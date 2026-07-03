@@ -29,7 +29,12 @@ import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import {
   tierPriceGBP,
-  UK_SHIPPING_STANDARD_GBP,
+  SHIPPING_TIERS,
+  getShippingTier,
+  DEFAULT_SHIPPING_TIER,
+  deliveryEstimateCopy,
+  PRODUCTION_NOTICE,
+  type ShippingTierId,
 } from '@shared/pricing';
 
 interface CardSummary {
@@ -72,21 +77,20 @@ type ProductChoice = 'digital' | 'print' | 'both';
 // Prices in pence — sourced from shared/pricing.ts so the public
 // /pricing page and checkout can't disagree. Print-led V1: the printed
 // card is the only product and includes a free digital link, so digital
-// is always £0 and there's no bundle discount. Postage is a separate
-// line (placeholder until Prodigi supplies the real quote).
+// is always £0 and there's no bundle discount. Postage is a separate line
+// priced from the chosen delivery tier (SHIPPING_TIERS).
 const PRINT_PRICE = tierPriceGBP('printed');
-const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
 
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
 
-// Always the printed card (+ free digital link) + postage. Kept as a
-// function with an optional arg so existing callers don't need changing.
-function totalsFor(_choice?: ProductChoice) {
+// Printed card (+ free digital link) + postage for the chosen delivery
+// tier. The server re-derives the same numbers from shared/pricing.ts.
+function totalsFor(tier: ShippingTierId) {
   const printAmount = PRINT_PRICE;
   const digitalAmount = 0;
-  const shippingAmount = UK_SHIPPING;
+  const shippingAmount = getShippingTier(tier).price;
   return {
     printAmount,
     digitalAmount,
@@ -152,6 +156,7 @@ export default function CheckoutPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
+  const [shippingTier, setShippingTier] = useState<ShippingTierId>(DEFAULT_SHIPPING_TIER);
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
@@ -165,7 +170,7 @@ export default function CheckoutPage() {
   // digital link — so digital is always part of the order. (The dead
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
-  const totals = useMemo(() => totalsFor(choice), [choice]);
+  const totals = useMemo(() => totalsFor(shippingTier), [shippingTier]);
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
@@ -212,6 +217,7 @@ export default function CheckoutPage() {
       };
       if (includesPrint) {
         payload.shipTo = shipTo;
+        payload.shippingTier = shippingTier;
         payload.shippingAddress = {
           line1: line1.trim(),
           line2: line2.trim() || undefined,
@@ -361,7 +367,7 @@ export default function CheckoutPage() {
                   digital link to share too.
                 </p>
                 <p className="text-lg font-semibold text-ink mt-3">
-                  {formatGBP(totalsFor().total)}{' '}
+                  {formatGBP(totals.total)}{' '}
                   <span className="text-xs font-normal text-stone-500">
                     inc. postage
                   </span>
@@ -499,6 +505,51 @@ export default function CheckoutPage() {
                   </div>
                 </Section>
 
+                {/* Delivery speed. Production time is the headline — every
+                    card is printed to order, so the tiers below buy a faster
+                    SHIPPING leg, NOT faster production. We never imply
+                    next-day-from-order. */}
+                <Section title="Delivery speed">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                    <p className="text-xs text-amber-900 leading-relaxed">
+                      <span className="font-semibold">Printed to order.</span>{' '}
+                      {PRODUCTION_NOTICE}
+                    </p>
+                  </div>
+                  <RadioGroup
+                    value={shippingTier}
+                    onValueChange={(v) => setShippingTier(v as ShippingTierId)}
+                    className="grid grid-cols-1 gap-3"
+                  >
+                    {SHIPPING_TIERS.map((t) => (
+                      <label
+                        key={t.id}
+                        htmlFor={`ship-${t.id}`}
+                        className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+                          shippingTier === t.id
+                            ? 'border-brand bg-brand-muted/40'
+                            : 'border-stone-200 hover:border-stone-300'
+                        }`}
+                        data-testid={`ship-tier-${t.id}`}
+                      >
+                        <RadioGroupItem id={`ship-${t.id}`} value={t.id} className="mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold text-ink">{t.name}</span>
+                            <span className="text-sm font-semibold text-ink">
+                              {formatGBP(t.price)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-600 mt-0.5">{t.carrier}</p>
+                          <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                            Ships {t.shippingEstimate} once printed.
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </Section>
+
                 {/* "Send-with" section — isResolved + recipient-bound
                     print orders. Holds the gift-message + (for Both)
                     recipient-email fields the fallback path nests
@@ -584,7 +635,11 @@ export default function CheckoutPage() {
                 sub="Instant 3D share link — free"
                 amount={totals.digitalAmount}
               />
-              <LineItem label="UK postage" amount={totals.shippingAmount} muted />
+              <LineItem
+                label={`Postage · ${getShippingTier(shippingTier).name}`}
+                amount={totals.shippingAmount}
+                muted
+              />
               {totals.discount > 0 && (
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}
@@ -595,6 +650,13 @@ export default function CheckoutPage() {
                   {formatGBP(totals.total)}
                 </span>
               </div>
+
+              {/* Honest delivery estimate — production + carrier. */}
+              {includesPrint && (
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  {deliveryEstimateCopy(shippingTier)}
+                </p>
+              )}
 
               <Button
                 onClick={handlePay}

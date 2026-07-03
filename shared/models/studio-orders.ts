@@ -38,6 +38,10 @@ export const studioOrders = pgTable(
     // plain packaging + optional gift message. Null when digital-only.
     shipTo: text("ship_to"), // 'sender' | 'recipient' | null
     shippingAddress: jsonb("shipping_address"), // { line1, line2?, city, postcode, country }
+    // Delivery speed the customer picked at checkout. Drives shippingAmount
+    // AND the Prodigi shippingMethod at fulfilment. See SHIPPING_TIERS in
+    // shared/pricing.ts. 'standard' | 'express' | 'overnight'.
+    shippingTier: text("shipping_tier").notNull().default("standard"),
     giftMessage: text("gift_message"),
     // Legacy column: the welcome gate has no custom-message UI anymore,
     // but the column is kept so `drizzle-kit push` doesn't flag it for
@@ -95,6 +99,7 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   includesDigital: true,
   shipTo: true,
   shippingAddress: true,
+  shippingTier: true,
   giftMessage: true,
   currency: true,
   printAmount: true,

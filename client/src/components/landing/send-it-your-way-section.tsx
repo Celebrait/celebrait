@@ -18,7 +18,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { Truck, Sparkles, Zap, MailOpen, Globe } from 'lucide-react';
+import { Truck, Sparkles, Package, MailOpen, Globe } from 'lucide-react';
 import fathersDayFront from '@/assets/fathers-day-front.jpg';
 
 /** Auto-looping envelope-opening mock. Just CSS transforms — full
@@ -124,14 +124,14 @@ const PRINT_FEATURES: PrintFeature[] = [
     body: 'Gloss-coated art card, HP Indigo digital print — crisp, vivid colour.',
   },
   {
-    icon: Truck,
-    title: 'Standard delivery, 3–5 days',
-    body: 'Tracked, posted from London. Kraft envelope, no plastic wrap.',
+    icon: Package,
+    title: 'Printed to order in up to 72 hrs',
+    body: 'Every card is made just for you before it ships — no shelf, no stock.',
   },
   {
-    icon: Zap,
-    title: 'Overnight option',
-    body: 'Order before 2pm — on the doorstep next day.',
+    icon: Truck,
+    title: 'Then posted, tracked',
+    body: 'Royal Mail 24 as standard, or Express & Overnight couriers to speed up the post.',
   },
   {
     icon: Globe,

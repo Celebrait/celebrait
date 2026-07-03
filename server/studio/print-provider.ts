@@ -18,10 +18,25 @@ export interface PrintOrderRequest {
   cardId: number;
   frontImageUrl: string;
   insideImageUrl: string | null;
+  // Delivery destination. Drives the Prodigi SKU: 'recipient' → Direct
+  // Delivery (-DIR, Kraft envelope, we post it); 'sender' → Self Send
+  // (-BLA, cellophane sleeve + spare envelopes, the creator posts it).
   shipTo: "sender" | "recipient";
   shippingAddress: ShippingAddress;
   recipientName: string;
   giftMessage?: string;
+  // Prodigi shippingMethod for the chosen delivery speed
+  // (Standard|Express|Overnight). Defaults to Standard when absent.
+  shippingMethod?: string;
+  // Card's stable per-card secret — used to name the composed print-strip
+  // object so it can't be enumerated from the sequential card id (matches
+  // the front/inside key scheme). Optional: legacy cards fall back to the
+  // bare card id.
+  imageKey?: string | null;
+  // Sender's first name (captured at signup) for the back-of-card signed
+  // credit. Absent → the compositor falls back to a "Made with Celebrait"
+  // wordmark.
+  senderFirstName?: string | null;
 }
 
 export interface PrintOrderResult {

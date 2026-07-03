@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import {
   cards,
+  users,
   studioOrders,
   shippingAddressSchema,
   type CardDraftState,
@@ -32,7 +33,9 @@ import {
 } from '../email-service';
 import {
   tierPriceGBP,
-  UK_SHIPPING_STANDARD_GBP,
+  getShippingTier,
+  DEFAULT_SHIPPING_TIER,
+  type ShippingTierId,
 } from '@shared/pricing';
 
 // Pricing in pence — sourced from shared/pricing.ts. Client checkout
@@ -41,7 +44,6 @@ import {
 // digital link — digital is always £0 and there is no bundle/"both"
 // discount. See next_digital_card_strategy.md.
 const PRINT_PRICE = tierPriceGBP('printed');
-const UK_SHIPPING = UK_SHIPPING_STANDARD_GBP;
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -64,6 +66,7 @@ const checkoutSchema = z.object({
   includesPrint: z.boolean().optional(),
   includesDigital: z.boolean().optional(),
   shipTo: z.enum(['sender', 'recipient']).optional(),
+  shippingTier: z.enum(['standard', 'express', 'overnight']).optional(),
   shippingAddress: shippingAddressSchema.optional(),
   recipientEmail: z.string().email().optional(),
   recipientPhone: z.string().optional(),
@@ -141,11 +144,13 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           state?.recipient?.name?.trim() || body.customerName;
 
         // Every order: printed card + free digital link. Digital is £0.
-        // Postage is a separate line (placeholder until Prodigi supplies
-        // the real quote — see UK_SHIPPING_STANDARD_GBP).
+        // Postage is a separate line, priced from the chosen delivery tier
+        // (server is the source of truth — a crafted POST can't pick a
+        // cheaper tier than it pays for).
+        const shippingTier: ShippingTierId = body.shippingTier ?? DEFAULT_SHIPPING_TIER;
         const printAmount = PRINT_PRICE;
         const digitalAmount = 0;
-        const shippingAmount = UK_SHIPPING;
+        const shippingAmount = getShippingTier(shippingTier).price;
         const totalAmount = printAmount + shippingAmount;
 
         // Mint a share token up-front for digital orders. Payment
@@ -172,6 +177,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             includesPrint,
             includesDigital,
             shipTo: body.shipTo,
+            shippingTier,
             shippingAddress: body.shippingAddress,
             giftMessage: body.giftMessage,
             currency: 'GBP',
@@ -539,6 +545,8 @@ async function submitPrintOrder(
 
   const cardRows = await db
     .select({
+      userId: cards.userId,
+      imageKey: cards.imageKey,
       frontImageUrl: cards.frontImageUrl,
       frontImagePath: cards.frontImagePath,
       insideImageUrl: cards.insideImageUrl,
@@ -560,6 +568,18 @@ async function submitPrintOrder(
       ? state?.recipient?.name?.trim() || order.customerName
       : order.customerName;
 
+  // Sender's first name (captured at signup) → back-of-card signed credit.
+  // Best-effort: a missing name just falls back to the wordmark.
+  let senderFirstName: string | null = null;
+  if (card.userId) {
+    const userRows = await db
+      .select({ firstName: users.firstName })
+      .from(users)
+      .where(eq(users.id, card.userId))
+      .limit(1);
+    senderFirstName = userRows[0]?.firstName?.trim() || null;
+  }
+
   const frontImageUrl = card.frontImagePath
     ? publicImageUrl(card.frontImagePath)
     : card.frontImageUrl;
@@ -578,6 +598,11 @@ async function submitPrintOrder(
       shippingAddress: shippingAddress as ShippingAddress,
       recipientName,
       giftMessage: order.giftMessage ?? undefined,
+      imageKey: card.imageKey,
+      senderFirstName,
+      shippingMethod: getShippingTier(
+        (order.shippingTier as ShippingTierId) ?? DEFAULT_SHIPPING_TIER,
+      ).prodigiMethod,
     });
     await db
       .update(studioOrders)

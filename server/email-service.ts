@@ -1025,29 +1025,31 @@ export async function sendReminderEmail(params: {
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} If you start now, there's still time to print and post in time for the day.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} If you start now, there's comfortable runway to print and post in time for the day.
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
-        Order by 2pm and we'll post it for next-day delivery.
+        Every card's printed to order (allow up to 72 hrs) then posted — a week gives it room to arrive with time to spare.
       </p>
     `;
     ctaLabel = hasMemory
       ? `Make this year's card`
       : `Start ${recipientName}'s card`;
   } else {
-    // t_3 — cutting it fine, but next-day print still makes it. Print-led:
-    // there's no standalone digital card to "pivot" to; the printed card
-    // already includes a share link (see next_digital_card_strategy.md).
+    // t_3 — cutting it fine. Print is made-to-order (up to 72h) so this
+    // close it's tight; the honest safety net is the free digital link,
+    // which lands instantly. Print-led: there's no standalone digital card
+    // to "pivot" to — every card already includes the share link (see
+    // next_digital_card_strategy.md).
     subject = `${recipientName}'s ${occasionLabel} is in ${daysUntil} days`;
-    preheader = `Cutting it fine — but next-day delivery still makes it.`;
+    preheader = `Cutting it fine — the digital link sends instantly.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. There's still time — order by 2pm and we'll print and post it for next-day delivery, with their face on the front.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Cards are printed to order (up to 72 hrs) then posted, so this close it's tight — pick the fastest delivery at checkout to give the printed card its best shot.
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
-        About 5 minutes to make. Every card comes with a share link too, so you can send something the moment it's ready.
+        About 5 minutes to make — and every card comes with a free share link that lands the instant it's ready, so you've always got something to send on the day.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1068,7 +1070,7 @@ export async function sendReminderEmail(params: {
       ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something lovely.`
       : tier === 't_7'
         ? `${recipientName}'s ${occasionLabel} is a week away. If you start now there's time to print and post.`
-        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. There's still time — order by 2pm for next-day delivery.`) +
+        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Cards are printed to order (up to 72h) then posted, so it's tight — pick the fastest delivery, and the free digital link lands instantly either way.`) +
     `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });

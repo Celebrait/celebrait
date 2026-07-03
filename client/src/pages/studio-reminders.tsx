@@ -325,12 +325,12 @@ function ReminderRow({
             </span>
           </p>
           {/* T-3 nudge surfaced inline so the user sees it before the
-              email lands. Print-led: order by 2pm for next-day (no
-              standalone digital card to pivot to). Only when not
-              already suppressed. */}
+              email lands. Print is made-to-order (up to 72h) so this close
+              it's tight — the honest fallback is the instant digital link.
+              Only when not already suppressed. */}
           {!reminder.suppressed && reminder.daysUntil <= 3 && reminder.daysUntil >= 0 && (
             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mt-2 inline-block">
-              Cutting it fine — order by 2pm for next-day delivery.
+              Cutting it fine — pick the fastest delivery; the digital link lands instantly.
             </p>
           )}
         </div>

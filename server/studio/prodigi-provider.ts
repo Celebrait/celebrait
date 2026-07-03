@@ -12,17 +12,23 @@
 //   PRODIGI_API_KEY        — required. Prodigi API key (header X-API-Key).
 //   PRODIGI_BASE_URL       — default https://api.sandbox.prodigi.com/v4.0
 //                            (live: https://api.prodigi.com/v4.0)
-//   PRODIGI_CARD_SKU       — required. The 5.5" square folded-card product
-//                            SKU (⚠️ TBD — confirm once the paper stock
-//                            decision lands; samples were ordered).
-//   PRODIGI_SHIPPING_METHOD — default "Standard" (Budget|Standard|Express|
-//                            Overnight). Overnight upsell isn't plumbed to
-//                            the order yet, so all orders use the default.
+//   PRODIGI_CARD_SKU         — Direct Delivery SKU (default
+//                            GLOBAL-GRE-GLOS-6X6-DIR). Used when shipping to
+//                            the recipient.
+//   PRODIGI_CARD_SKU_SELFSEND — Self Send SKU (default
+//                            GLOBAL-GRE-GLOS-6X6-BLA). Used when shipping to
+//                            the sender/creator.
+//   PRODIGI_SHIPPING_METHOD  — fallback when the order doesn't carry a
+//                            method (Budget|Standard|Express|Overnight;
+//                            default "Standard"). The order's chosen speed
+//                            (req.shippingMethod) takes precedence.
 //
-// Asset print areas: a Prodigi folded greeting card exposes named print
-// areas. We send front → "front" and inside → "inside". ⚠️ These names
-// MUST match the chosen SKU's print areas — verify against the sandbox
-// product detail (GET /v4.0/products/{sku}) when the SKU is confirmed.
+// Print asset: GLOBAL-GRE-GLOS-6X6-DIR exposes a SINGLE print area named
+// "default" sized 6732×1712 — a wide four-panel flat spread, NOT separate
+// front/inside areas (verified against GET /v4.0/products/{sku} 2026-07-03).
+// So at order time we compose the card's front + inside into one 6732×1713
+// strip (compositor in print-compositor.ts: rear | front | inside-L | inside-R),
+// upload it to R2, and send it as the lone "default" asset.
 //
 // Webhooks: Prodigi POSTs order status updates to a configured callback
 // URL (CloudEvents-shaped, order under data). It has no signature scheme,
@@ -37,12 +43,23 @@ import type {
   PrintProviderStatus,
 } from "./print-provider";
 import type { ShippingAddress } from "@shared/schema";
+import { composeCardPrintStrip } from "./print-compositor";
+import {
+  cardImageBaseName,
+  publicImageUrl,
+  storeImageToCustomFilename,
+} from "../image-storage";
 
 interface ProdigiConfig {
   apiKey: string;
   baseUrl: string;
-  sku: string;
-  shippingMethod: string;
+  /** Direct Delivery (-DIR): message printed, Kraft envelope, post it. */
+  skuDirect: string;
+  /** Self Send (-BLA): decorative inside, cellophane sleeve + spare
+   *  envelopes, the creator handwrites/posts. */
+  skuSelfSend: string;
+  /** Fallback shipping method when the order doesn't specify one. */
+  defaultShippingMethod: string;
 }
 
 function config(): ProdigiConfig {
@@ -53,15 +70,18 @@ function config(): ProdigiConfig {
         "Set it in the environment or switch STUDIO_PRINT_PROVIDER=stub.",
     );
   }
-  // Confirmed product 2026-07-03: 5.5" square, 280gsm gloss-coated, HP
-  // Indigo, direct-to-recipient in a kraft envelope. Env-overridable if we
-  // switch product later. Print areas: "front" + "inside" (verified match).
-  const sku = process.env.PRODIGI_CARD_SKU ?? "GLOBAL-GRE-GLOS-6X6-DIR";
+  // Confirmed products 2026-07-03: 5.5" square, 280gsm gloss-coated, HP
+  // Indigo. Both share one "default" print area (6732×1712 flat spread) and
+  // the same composed strip; only packaging/shipping-origin differ. The SKU
+  // is chosen per-order from the delivery destination (see submitOrder).
+  const skuDirect = process.env.PRODIGI_CARD_SKU ?? "GLOBAL-GRE-GLOS-6X6-DIR";
+  const skuSelfSend =
+    process.env.PRODIGI_CARD_SKU_SELFSEND ?? "GLOBAL-GRE-GLOS-6X6-BLA";
   const baseUrl = (
     process.env.PRODIGI_BASE_URL ?? "https://api.sandbox.prodigi.com/v4.0"
   ).replace(/\/+$/, "");
-  const shippingMethod = process.env.PRODIGI_SHIPPING_METHOD ?? "Standard";
-  return { apiKey, baseUrl, sku, shippingMethod };
+  const defaultShippingMethod = process.env.PRODIGI_SHIPPING_METHOD ?? "Standard";
+  return { apiKey, baseUrl, skuDirect, skuSelfSend, defaultShippingMethod };
 }
 
 async function prodigiFetch(
@@ -90,6 +110,27 @@ async function prodigiFetch(
     );
   }
   return json;
+}
+
+/** Fetch a stored card image (R2 public URL, or a relative /images path in
+ *  local dev) into a buffer for the compositor. Relative paths are resolved
+ *  through publicImageUrl → still relative in dev, so we only support http(s)
+ *  here; a real Prodigi order requires R2 (Prodigi must be able to fetch the
+ *  composed strip anyway). */
+async function fetchImageBuffer(url: string): Promise<Buffer> {
+  const abs = publicImageUrl(url);
+  if (!/^https?:/i.test(abs)) {
+    throw new Error(
+      `Cannot fetch card image "${url}" — resolved to non-absolute "${abs}". ` +
+        "The Prodigi provider needs R2 enabled (public image URLs) so both this " +
+        "compositor and Prodigi itself can fetch card assets.",
+    );
+  }
+  const res = await fetch(abs);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch card image ${abs}: ${res.status}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /** Map our stored shipping address to Prodigi's recipient.address shape. */
@@ -133,17 +174,41 @@ export const prodigiPrintProvider: PrintProvider = {
   name: "prodigi",
 
   async submitOrder(req: PrintOrderRequest): Promise<PrintOrderResult> {
-    const { sku, shippingMethod } = config();
+    const { skuDirect, skuSelfSend, defaultShippingMethod } = config();
 
-    // Front is always present; inside only for written cards (a blank-
-    // inside card still generates a decorative inside, so this is usually
-    // set — but guard anyway).
-    const assets: Array<{ printArea: string; url: string }> = [
-      { printArea: "front", url: req.frontImageUrl },
-    ];
-    if (req.insideImageUrl) {
-      assets.push({ printArea: "inside", url: req.insideImageUrl });
+    // SKU follows the delivery destination, not the inside content:
+    //   recipient → -DIR (Kraft envelope, we post it)
+    //   sender    → -BLA (cellophane + spare envelopes, creator posts it)
+    const sku = req.shipTo === "sender" ? skuSelfSend : skuDirect;
+    const shippingMethod = req.shippingMethod ?? defaultShippingMethod;
+
+    // Compose the card's front + inside into the single 6732×1713 flat spread
+    // this SKU's lone "default" print area expects, then upload it to R2 and
+    // hand Prodigi its public URL. (front/inside are separate square images in
+    // our system; Prodigi wants them stitched into one four-panel strip.) The
+    // strip is identical for both SKUs — the inside image already carries the
+    // message (or a clear centre for handwriting) from generation.
+    const frontBuffer = await fetchImageBuffer(req.frontImageUrl);
+    const insideBuffer = req.insideImageUrl
+      ? await fetchImageBuffer(req.insideImageUrl)
+      : null;
+    const strip = await composeCardPrintStrip({
+      frontBuffer,
+      insideBuffer,
+      senderFirstName: req.senderFirstName ?? null,
+    });
+    const stripName = `${cardImageBaseName(req.cardId, req.imageKey)}_print_strip.png`;
+    await storeImageToCustomFilename(strip.toString("base64"), stripName);
+    const stripUrl = publicImageUrl(stripName);
+    if (!/^https?:/i.test(stripUrl)) {
+      throw new Error(
+        `Composed print strip URL is not absolute ("${stripUrl}") — Prodigi ` +
+          "can't fetch it. R2 must be enabled for Prodigi orders.",
+      );
     }
+    const assets: Array<{ printArea: string; url: string }> = [
+      { printArea: "default", url: stripUrl },
+    ];
 
     const body = {
       // Our order id → Prodigi merchantReference so their webhooks/support

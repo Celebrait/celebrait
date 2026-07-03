@@ -91,12 +91,99 @@ export const PRICING_TIERS: PricingTier[] = [
   },
 ];
 
-/** Overnight delivery upgrade — NOT a tier, an add-on at checkout for the
- *  Printed path. UK only. £10.75 = Prodigi's Overnight rate (their SKU
- *  GLOBAL-GRE-GLOS-6X6-DIR, confirmed 2026-07-03), passed through at cost. */
+// ─────────────────────────────────────────────────────────────────────
+// Delivery — production time + shipping tiers.
+//
+// TWO things the customer must understand, kept SEPARATE so we never
+// over-promise:
+//
+//   1. PRODUCTION. Every card is printed to order. Prodigi typically
+//      dispatches greeting cards within 24–48h, but their SLA ceiling is
+//      up to 72h / 3 working days (live-chat confirmed "no more than 3
+//      working days"). We always quote the 72h ceiling.
+//   2. SHIPPING. The carrier leg AFTER dispatch. Three speeds below.
+//
+// The customer's delivery estimate = production (up to 72h) + carrier.
+// The fast tiers buy a faster SHIPPING leg, NOT faster production — so we
+// deliberately never sell "next day" as next-day-from-order. That honest
+// framing must show up site-wide (production banner).
+//
+// Prices include a small markup over Prodigi's pass-through cost
+// (Prodigi 2026-07-03: Budget £1.45, Standard £1.95, Express £5.70,
+// Overnight £10.75).
+// ─────────────────────────────────────────────────────────────────────
+
+/** Worst-case production/dispatch ceiling before the card leaves the lab. */
+export const PRODUCTION_HOURS = 72;
+
+export type ShippingTierId = 'standard' | 'express' | 'overnight';
+
+export interface ShippingTier {
+  id: ShippingTierId;
+  /** Customer-facing label. */
+  name: string;
+  /** Carrier + service — the fine print under the label. */
+  carrier: string;
+  /** Prodigi `shippingMethod` enum value. */
+  prodigiMethod: 'Standard' | 'Express' | 'Overnight';
+  /** Price charged to the customer, minor units (pence). */
+  price: number;
+  /** The SHIPPING leg only (after dispatch) — for the estimate line. */
+  shippingEstimate: string;
+}
+
+export const SHIPPING_TIERS: ShippingTier[] = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    carrier: 'Royal Mail 24, tracked',
+    prodigiMethod: 'Standard',
+    price: 195,
+    shippingEstimate: '1–2 working days',
+  },
+  {
+    id: 'express',
+    name: 'Express',
+    carrier: 'Evri Next Day',
+    prodigiMethod: 'Express',
+    price: 595,
+    shippingEstimate: 'next working day',
+  },
+  {
+    id: 'overnight',
+    name: 'Overnight',
+    carrier: 'DPD Local Next Day',
+    prodigiMethod: 'Overnight',
+    price: 1095,
+    shippingEstimate: 'next working day',
+  },
+];
+
+export const DEFAULT_SHIPPING_TIER: ShippingTierId = 'standard';
+
+export function getShippingTier(id: ShippingTierId): ShippingTier {
+  const t = SHIPPING_TIERS.find((x) => x.id === id);
+  if (!t) throw new Error(`Unknown shipping tier: ${id}`);
+  return t;
+}
+
+/** The honest expectation-setting line for a tier: production + carrier. */
+export function deliveryEstimateCopy(id: ShippingTierId): string {
+  const t = getShippingTier(id);
+  return `Made to order in up to ${PRODUCTION_HOURS} hrs, then ${t.carrier} (${t.shippingEstimate}).`;
+}
+
+/** One-liner for the site-wide production banner + any "how long" copy. */
+export const PRODUCTION_NOTICE = `Every card is printed to order — allow up to ${PRODUCTION_HOURS} hrs for production, then your chosen delivery on top.`;
+
+/** Overnight delivery — kept for the /pricing page's add-on callout. The
+ *  full picker (SHIPPING_TIERS) is the source of truth at checkout; this
+ *  mirrors the overnight tier's price. £10.95 (Prodigi Overnight £10.75 +
+ *  small markup). NOTE: "next-day" is the SHIPPING leg — production (up to
+ *  72h) still applies first. */
 export const OVERNIGHT_DELIVERY = {
-  price: { GBP: 1075, ZAR: null }, // ZAR null = not available
-  description: 'UK only · order before 2pm for next-day',
+  price: { GBP: 1095, ZAR: null }, // ZAR null = not available
+  description: 'UK only · next-day courier once printed',
   ukOnly: true,
 } as const;
 
@@ -112,13 +199,10 @@ export const OVERNIGHT_DELIVERY = {
 // Numbers stay UK-GBP only for V1 — SA is parked.
 // ─────────────────────────────────────────────────────────────────────
 
-/** UK standard shipping for a single printed card, shown as its own line
- *  at checkout. In minor units (pence). £1.95 = Prodigi's Standard rate
- *  (Royal Mail RM24, SKU GLOBAL-GRE-GLOS-6X6-DIR, confirmed 2026-07-03),
- *  passed through at cost. Prodigi's other tiers for the same SKU: Budget
- *  £1.45, Express £5.70, Overnight £10.75 (see OVERNIGHT_DELIVERY). A full
- *  shipping-tier picker at checkout is the follow-on (needs a delivery-
- *  speed field on the order, threaded to the Prodigi shippingMethod). */
+/** UK standard shipping — the default/cheapest tier's price, in minor
+ *  units (pence). Superseded by SHIPPING_TIERS (the full picker); kept as
+ *  the back-compat default when no tier is chosen. Mirrors
+ *  getShippingTier('standard').price. */
 export const UK_SHIPPING_STANDARD_GBP = 195;
 
 /** Derive the GBP price of a tier in minor units. Tiny helper so

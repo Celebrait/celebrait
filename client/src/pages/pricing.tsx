@@ -234,8 +234,9 @@ export default function PricingPage() {
               </li>
               <li>
                 <strong className="text-ink font-semibold">Delivery:</strong>{' '}
-                Standard tracked delivery in 3–5 working days. Order before
-                2pm for next-day with the overnight add-on.
+                Every card is printed to order — allow up to 72 hrs — then
+                posted. Standard is Royal Mail 24 (tracked); Express and
+                Overnight couriers speed up the postage, not the printing.
               </li>
               <li>
                 <strong className="text-ink font-semibold">Free regenerations:</strong>{' '}

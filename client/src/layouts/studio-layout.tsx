@@ -35,6 +35,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { PRODUCTION_NOTICE } from '@shared/pricing';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
@@ -266,6 +267,16 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             <span className="hidden sm:inline ml-1">Log out</span>
           </Button>
         </header>
+
+        {/* Production-time notice — every card is printed to order (up to
+            72h before dispatch). Kept honest + visible across the whole app
+            so the expectation is set well before checkout. */}
+        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-1.5 flex-shrink-0">
+          <p className="text-[11px] sm:text-xs text-amber-900 text-center leading-snug flex items-center justify-center gap-1.5">
+            <Truck className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+            <span>{PRODUCTION_NOTICE}</span>
+          </p>
+        </div>
 
         {/* Main scroll area. Per-page headers live inside `children`
             (Week 1 dashboard rebuild) — the layout no longer owns the

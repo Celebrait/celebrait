@@ -32,11 +32,11 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. £8.99 plus postage, with a free digital version included. Tracked delivery, with overnight available if you order before 2pm.",
+    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. £8.99 plus postage, with a free digital version included. Every card is printed to order — allow up to 72 hours for production — then it's posted tracked, with faster courier options at checkout.",
   },
   {
     q: 'How fast is delivery?',
-    a: 'Standard delivery is tracked (Royal Mail 24). Overnight available for £10.75 if you order before 2pm.',
+    a: 'Every card is printed to order, so allow up to 72 hours for production before it ships. Then pick your delivery: Standard (Royal Mail 24, £1.95), Express (Evri Next Day, £5.95) or Overnight (DPD, £10.95). The faster options speed up the postage, not the printing — so we never promise next-day-from-order.',
   },
   {
     q: 'What paper do you print on?',
@@ -48,7 +48,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How do reminders work?',
-    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and if you've left it late, order before 2pm for next-day delivery.",
+    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and because every card is printed to order (up to 72 hours) then posted, those reminders give you the runway to order in good time.",
   },
   {
     q: 'Does my card come with a digital version?',
