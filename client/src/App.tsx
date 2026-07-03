@@ -33,13 +33,14 @@
 
 import { Switch, Route, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { queryClient, handleQuotaError } from "./lib/queryClient";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
@@ -298,37 +299,17 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    // Global error handler for quota exceeded errors
-    const handleGlobalError = (event: ErrorEvent) => {
-      if (event.error && handleQuotaError(event.error)) {
-        event.preventDefault();
-        return true;
-      }
-    };
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (event.reason && handleQuotaError(event.reason)) {
-        event.preventDefault();
-        return true;
-      }
-    };
-
-    window.addEventListener('error', handleGlobalError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener('error', handleGlobalError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthModalProvider>
           <Toaster />
-          <Router />
+          {/* App-level boundary — a render throw (e.g. WebGL context loss
+              in the 3D card) shows a reload prompt instead of a white
+              screen (audit 2026-07-02). */}
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
         </AuthModalProvider>
       </TooltipProvider>
     </QueryClientProvider>
