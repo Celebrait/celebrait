@@ -1,9 +1,10 @@
 // client/src/pages/checkout-success.tsx
 //
 // Landing page after a successful payment. Polls the order until
-// paymentStatus flips to 'paid' (or gives up after ~10s), then shows
-// a summary + the digital share link (if the order included digital).
+// paymentStatus flips to 'paid' (or gives up after ~20s → a calm "check
+// Orders" state), then shows a summary + the digital share link.
 
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Copy, Loader2, Package, Sparkles } from 'lucide-react';
@@ -35,16 +36,35 @@ export default function CheckoutSuccessPage() {
   const qs = new URLSearchParams(window.location.search);
   const orderId = qs.get('orderId') ?? '';
 
+  const timedOutRef = useRef(false);
+  const [timedOut, setTimedOut] = useState(false);
+
   const { data, isLoading } = useQuery<OrderResponse>({
     queryKey: [`/api/studio/orders/${orderId}`],
     enabled: orderId.length > 0,
     refetchInterval: (q) => {
       const order = (q.state.data as OrderResponse | undefined)?.order;
-      return order?.paymentStatus === 'paid' ? false : 1500;
+      if (order?.paymentStatus === 'paid') return false;
+      // Give up after ~20s — don't poll forever on an order that never
+      // confirms (the header used to claim this but never did; audit
+      // 2026-07-02).
+      if (timedOutRef.current) return false;
+      return 1500;
     },
   });
 
   const paid = data?.order.paymentStatus === 'paid';
+
+  // Stop confirming after 20s if payment hasn't landed — surface a calm
+  // "check Orders" state instead of a forever spinner.
+  useEffect(() => {
+    if (paid) return;
+    const t = setTimeout(() => {
+      timedOutRef.current = true;
+      setTimedOut(true);
+    }, 20000);
+    return () => clearTimeout(t);
+  }, [paid]);
   const fullShareUrl = data?.shareUrl
     ? `${window.location.origin}${data.shareUrl}`
     : null;
@@ -67,7 +87,7 @@ export default function CheckoutSuccessPage() {
     );
   }
 
-  if (isLoading || !paid) {
+  if (!paid && !timedOut) {
     return (
       <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
         <Centered>
@@ -77,6 +97,29 @@ export default function CheckoutSuccessPage() {
       </CheckoutLayout>
     );
   }
+
+  if (!paid && timedOut) {
+    return (
+      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+        <Centered>
+          <p className="text-sm font-medium text-ink mb-2">
+            This is taking longer than usual
+          </p>
+          <p className="text-xs text-stone-500 mb-6 max-w-xs leading-relaxed">
+            Your payment may still be going through — we'll email your receipt
+            as soon as it confirms. You can also find it under Orders.
+          </p>
+          <Button onClick={() => setLocation('/studio/orders')}>
+            Go to Orders
+          </Button>
+        </Centered>
+      </CheckoutLayout>
+    );
+  }
+
+  // Paid — data is present (paid is derived from it). Belt-and-braces
+  // guard so the success render can read data without optional chaining.
+  if (!data) return null;
 
   return (
     <CheckoutLayout backHref="/studio" backLabel="Back to Studio">

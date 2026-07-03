@@ -396,6 +396,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           conversationData: cards.conversationData,
           frontImageUrl: cards.frontImageUrl,
           insideImageUrl: cards.insideImageUrl,
+          frontImagePath: cards.frontImagePath,
+          insideImagePath: cards.insideImagePath,
           viewToken: cards.viewToken,
         })
         .from(cards)
@@ -424,8 +426,16 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.json({
         id: row.id,
         status: row.status,
-        frontImageUrl: row.frontImageUrl,
-        insideImageUrl: row.insideImageUrl,
+        // Prefer the path column (current for R2-era / regen writes),
+        // fall back to the stored URL — same resolution the owner view
+        // uses. Without this a path-only card rendered for the sender but
+        // 404'd for the recipient (audit 2026-07-02).
+        frontImageUrl: row.frontImagePath
+          ? publicImageUrl(row.frontImagePath)
+          : row.frontImageUrl,
+        insideImageUrl: row.insideImagePath
+          ? publicImageUrl(row.insideImagePath)
+          : row.insideImageUrl,
         recipientName,
         occasion,
       });

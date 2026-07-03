@@ -430,7 +430,21 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         // 'generating'. We continue until it flips to 'completed' or
         // 'failed' (both terminal states).
         while (true) {
-          const data = await loadDraft();
+          // Bail if the component unmounted (navigated away mid-regen) —
+          // otherwise this loop kept fetching + setState-ing forever until
+          // the 8-min timeout (audit 2026-07-02).
+          if (cancelledRef.current) return;
+          let data: Awaited<ReturnType<typeof loadDraft>> | null = null;
+          try {
+            data = await loadDraft();
+          } catch {
+            // A network/HTTP blip — treat it exactly like the transient
+            // null case below (keep polling). loadDraft throws on !res.ok,
+            // so without this a single blipped poll propagated out and
+            // flashed a false failure panel while the gen was still
+            // running (audit 2026-07-02).
+            data = null;
+          }
           if (!data) {
             // Transient poll failure (network blip / busy server). Do NOT
             // treat "couldn't fetch" as "done" — that ended the regen
