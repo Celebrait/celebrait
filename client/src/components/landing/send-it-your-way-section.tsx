@@ -120,8 +120,8 @@ interface PrintFeature {
 const PRINT_FEATURES: PrintFeature[] = [
   {
     icon: Sparkles,
-    title: 'Premium 350gsm card',
-    body: 'Uncoated, archival-quality stock. Feels heavier than the supermarket norm.',
+    title: 'Premium 280gsm gloss card',
+    body: 'Gloss-coated art card, HP Indigo digital print — crisp, vivid colour.',
   },
   {
     icon: Truck,
@@ -154,8 +154,8 @@ export function SendItYourWaySection() {
             and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A premium 350gsm card, posted anywhere in the UK — and every one
-            comes with a free private link to share too.
+            A premium 280gsm gloss card, posted anywhere in the UK — and every
+            one comes with a free private link to share too.
           </p>
         </div>
 
@@ -190,8 +190,8 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              £8.99 plus postage — printed on premium uncoated stock, posted in
-              a kraft envelope.
+              £8.99 plus postage — HP Indigo printed on 280gsm gloss card,
+              posted in a kraft envelope.
             </p>
 
             <div className="space-y-5">

@@ -53,12 +53,10 @@ function config(): ProdigiConfig {
         "Set it in the environment or switch STUDIO_PRINT_PROVIDER=stub.",
     );
   }
-  const sku = process.env.PRODIGI_CARD_SKU;
-  if (!sku) {
-    throw new Error(
-      "PRODIGI_CARD_SKU is not set — the 5.5in square card product SKU is required.",
-    );
-  }
+  // Confirmed product 2026-07-03: 5.5" square, 280gsm gloss-coated, HP
+  // Indigo, direct-to-recipient in a kraft envelope. Env-overridable if we
+  // switch product later. Print areas: "front" + "inside" (verified match).
+  const sku = process.env.PRODIGI_CARD_SKU ?? "GLOBAL-GRE-GLOS-6X6-DIR";
   const baseUrl = (
     process.env.PRODIGI_BASE_URL ?? "https://api.sandbox.prodigi.com/v4.0"
   ).replace(/\/+$/, "");

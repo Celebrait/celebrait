@@ -357,7 +357,7 @@ export default function CheckoutPage() {
                   Printed &amp; posted
                 </h2>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  A premium 350gsm card, posted in the UK — with a free
+                  A premium 280gsm gloss card, posted in the UK — with a free
                   digital link to share too.
                 </p>
                 <p className="text-lg font-semibold text-ink mt-3">
@@ -574,7 +574,7 @@ export default function CheckoutPage() {
               <LineItem
                 icon={<Package className="w-4 h-4" />}
                 label="Printed card"
-                sub="Square, Mohawk / premium stock"
+                sub="Square, 280gsm gloss art card"
                 amount={totals.printAmount}
               />
               {/* Always included free with the printed card. */}

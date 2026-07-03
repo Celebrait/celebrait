@@ -32,7 +32,7 @@ const STEPS: Step[] = [
     icon: Send,
     eyebrow: 'Step 03',
     title: 'We print and post it',
-    body: 'A premium 350gsm card, posted across the UK — with a private animated link to share included.',
+    body: 'A premium 280gsm gloss card, HP Indigo printed and posted across the UK — with a private animated link to share included.',
   },
 ];
 

@@ -79,9 +79,9 @@ export const PRICING_TIERS: PricingTier[] = [
     // (UK_SHIPPING_STANDARD_GBP below); overnight is an optional add-on.
     price: { GBP: 899, ZAR: 19900 },
     features: [
-      'Premium 350gsm uncoated card',
-      'Posted in a kraft envelope',
-      'Tracked delivery, 3–5 days',
+      '280gsm gloss-coated art card, HP Indigo print',
+      'Posted in a kraft envelope, tracked',
+      'Sustainably sourced, plastic-free & recyclable',
       'Free digital link included — 3D opening view, share anywhere',
       'See when they open it',
       'Print-resolution file to keep',

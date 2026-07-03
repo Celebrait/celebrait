@@ -227,9 +227,10 @@ export default function PricingPage() {
                 we'll let you know when yours is live.
               </li>
               <li>
-                <strong className="text-ink font-semibold">Paper:</strong>{' '}
-                Premium uncoated 350gsm. Heavier than the supermarket norm.
-                Archival quality so it keeps its colour for years.
+                <strong className="text-ink font-semibold">Paper &amp; print:</strong>{' '}
+                280gsm gloss-coated art card, printed on an HP Indigo press
+                for crisp, vivid colour. Sustainably sourced, vegan-friendly,
+                plastic-free and recyclable — packaging included.
               </li>
               <li>
                 <strong className="text-ink font-semibold">Delivery:</strong>{' '}

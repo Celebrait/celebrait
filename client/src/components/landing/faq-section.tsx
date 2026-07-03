@@ -32,7 +32,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. Premium uncoated 350gsm card, posted in a kraft envelope. £8.99 plus postage, with a free digital version included. Tracked delivery, with overnight available if you order before 2pm.",
+    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. £8.99 plus postage, with a free digital version included. Tracked delivery, with overnight available if you order before 2pm.",
   },
   {
     q: 'How fast is delivery?',
@@ -40,7 +40,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'What paper do you print on?',
-    a: 'Premium uncoated 350gsm — heavier than the supermarket standard, with a soft tactile finish. Archival quality so it keeps its colour for years.',
+    a: '280gsm gloss-coated art card, printed on an HP Indigo press for crisp, vivid colour. Sustainably sourced, vegan-friendly, plastic-free and recyclable — right down to the packaging.',
   },
   {
     q: 'Where do you ship to?',
