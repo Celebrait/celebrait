@@ -1028,29 +1028,31 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} If you start now, there's still time to print and post in time for the day.
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
-        Or send them a digital one — that lands instantly.
+        Order by 2pm and we'll post it for next-day delivery.
       </p>
     `;
     ctaLabel = hasMemory
       ? `Make this year's card`
       : `Start ${recipientName}'s card`;
   } else {
-    // t_3 — digital pivot
+    // t_3 — cutting it fine, but next-day print still makes it. Print-led:
+    // there's no standalone digital card to "pivot" to; the printed card
+    // already includes a share link (see next_digital_card_strategy.md).
     subject = `${recipientName}'s ${occasionLabel} is in ${daysUntil} days`;
-    preheader = `Cutting it fine for print — but a digital card lands instantly.`;
+    preheader = `Cutting it fine — but next-day delivery still makes it.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Print won't make it now — but a digital card lands instantly, with their face on it, and they can open it on the day.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. There's still time — order by 2pm and we'll print and post it for next-day delivery, with their face on the front.
       </p>
       <p style="margin: 0 0 8px; color: #475569;">
-        About 5 minutes to make. Sent the moment it's ready, or scheduled for the day.
+        About 5 minutes to make. Every card comes with a share link too, so you can send something the moment it's ready.
       </p>
     `;
     ctaLabel = hasMemory
-      ? `Make this year's digital card`
-      : `Make a digital card for ${recipientName}`;
+      ? `Make this year's card`
+      : `Start ${recipientName}'s card`;
   }
 
   const html = chassis({
@@ -1066,7 +1068,7 @@ export async function sendReminderEmail(params: {
       ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something lovely.`
       : tier === 't_7'
         ? `${recipientName}'s ${occasionLabel} is a week away. If you start now there's time to print and post.`
-        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Print won't make it — but a digital card lands instantly.`) +
+        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. There's still time — order by 2pm for next-day delivery.`) +
     `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });

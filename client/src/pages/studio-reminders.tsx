@@ -324,11 +324,13 @@ function ReminderRow({
               {distanceLabel}
             </span>
           </p>
-          {/* T-3 print warning surfaced inline so the user sees it
-              before the email lands. Only when not already suppressed. */}
+          {/* T-3 nudge surfaced inline so the user sees it before the
+              email lands. Print-led: order by 2pm for next-day (no
+              standalone digital card to pivot to). Only when not
+              already suppressed. */}
           {!reminder.suppressed && reminder.daysUntil <= 3 && reminder.daysUntil >= 0 && (
             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mt-2 inline-block">
-              Print won't make it in time. A digital card lands instantly.
+              Cutting it fine — order by 2pm for next-day delivery.
             </p>
           )}
         </div>
