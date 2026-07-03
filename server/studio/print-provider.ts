@@ -11,6 +11,7 @@
 // 2026-05-27 — paper choice lands when they arrive.
 
 import type { ShippingAddress } from "@shared/schema";
+import { prodigiPrintProvider } from "./prodigi-provider";
 
 export interface PrintOrderRequest {
   studioOrderId: string;
@@ -70,6 +71,11 @@ export function getPrintProvider(): PrintProvider {
   switch (name) {
     case "stub":
       return stubPrintProvider;
+    case "prodigi":
+      // The Prodigi module's config() (API key + SKU check) only runs when
+      // submitOrder/getStatus is actually called, so importing it here in
+      // stub mode is harmless.
+      return prodigiPrintProvider;
     default:
       throw new Error(`Unknown STUDIO_PRINT_PROVIDER: ${name}`);
   }
