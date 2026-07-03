@@ -36,6 +36,7 @@ import {
 import { CardGridSkeleton } from '@/components/studio/card-grid';
 import { NewCardTile } from '@/components/studio/new-card-tile';
 import { DemoVideoBlock } from '@/components/studio/demo-video-block';
+import { StudioJourney } from '@/components/studio/studio-journey';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 // Hero asset for the empty-state. Real Celebrait-rendered example
 // (Father's Day occasion) — chosen to demonstrate the photoreal output
@@ -198,7 +199,11 @@ function EmptyView({ name }: { name: string }) {
           finish a card. */}
       <UpcomingWidget />
 
-      <HowItWorks />
+      {/* First-run journey panel — the full numbered how-it-works grid.
+          Shown pre-first-card only (this view + draft-pending); once a
+          card completes, the has-activity view swaps to the small
+          compact strip instead. */}
+      <StudioJourney />
       {/* Invitations teaser intentionally OMITTED on the empty state
           (audit 2026-04-25): a brand-new user's first visit shouldn't
           have a "coming soon" block competing with the hero. Kept on
@@ -285,7 +290,10 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
       <UpcomingWidget />
 
       <DemoVideoBlock />
-      <HowItWorks compact />
+      {/* Still pre-first-completed-card here (drafts only), so the full
+          journey panel stays. No CTA — the Continue button above is the
+          primary action on this view. */}
+      <StudioJourney showCta={false} />
       <InvitationsTeaser />
     </>
   );
@@ -717,10 +725,10 @@ function formatRelativeTime(ts: Date | string | null): string | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// HowItWorks — 4-step strip shown on every state. `compact` variant
-// (used on draft-pending + has-activity) shrinks type + padding so the
-// section doesn't dominate returning users' screens. Empty state gets
-// the full-size version.
+// HowItWorks — small 4-step refresher strip, now used ONLY on the
+// has-activity view (returning makers). Pre-first-card users get the
+// full StudioJourney panel instead (studio-journey.tsx), which
+// disappears once their first card completes.
 // ─────────────────────────────────────────────────────────────────────
 
 function HowItWorks({ compact = false }: { compact?: boolean }) {

@@ -41,6 +41,7 @@
 import { BlogTeaserSection } from '@/components/landing/blog-teaser-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { FaqSection } from '@/components/landing/faq-section';
+import { HowItWorksStrip } from '@/components/landing/how-it-works-strip';
 import { FinalCtaBand } from '@/components/landing/final-cta-band';
 import { HeroFloatingSection } from '@/components/landing/hero-floating-section';
 import { StudioBuildSteps } from '@/components/landing/studio-build-steps';
@@ -70,6 +71,11 @@ export default function Landing() {
         {/* Card finale — loads → reveals → opens → closes → envelope → flick. */}
         <StudioFlowSection />
         <MakeYourOwnSection />
+        {/* Four-beat numbered strip — condensed mirror of the studio's
+            first-run journey (see how-it-works-strip.tsx). Sits right
+            after the make-your-own CTA so "what am I signing up for"
+            is answered in one glance. */}
+        <HowItWorksStrip />
         <ImagineDescribeShipSection />
         <DemoVideoSection />
         <TestimonialCarouselSection />
