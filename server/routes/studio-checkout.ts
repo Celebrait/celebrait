@@ -20,9 +20,12 @@ import {
   studioOrders,
   shippingAddressSchema,
   type CardDraftState,
+  type ShippingAddress,
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
+import { getPrintProvider } from '../studio/print-provider';
+import { publicImageUrl } from '../image-storage';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
@@ -504,7 +507,102 @@ async function markOrderPaidAndDispatch(
     console.error('[STUDIO-CHECKOUT] paid-email dispatch failed:', err);
   });
 
+  // Submit the printed card to the fulfilment provider (async, non-
+  // blocking). Runs exactly once per order — this branch only executes
+  // when THIS call won the paid-flip. Stub today; real Prodigi when
+  // STUDIO_PRINT_PROVIDER=prodigi. Previously nothing ever called
+  // submitOrder → money in, no card out (audit 2026-05-27).
+  submitPrintOrder(updated[0]).catch((err) => {
+    console.error('[STUDIO-CHECKOUT] print submission dispatch failed:', err);
+  });
+
   return { ok: true };
+}
+
+// ── Post-paid fulfilment: submit the printed card to the provider ────
+// Fires once when an order transitions to paid. Digital-only orders are
+// skipped. Records providerOrderId + fulfillmentStatus so the dashboard
+// reflects reality instead of "processing" forever. Best-effort — a
+// submission failure is logged + marked 'failed', never thrown back into
+// the paid-flip.
+async function submitPrintOrder(
+  order: typeof studioOrders.$inferSelect,
+): Promise<void> {
+  if (!order.includesPrint) return; // nothing to print
+
+  const shipTo = order.shipTo;
+  const shippingAddress = order.shippingAddress;
+  if (!shipTo || !shippingAddress) {
+    console.warn('[STUDIO-CHECKOUT] print submit: no shipping address on order', order.id);
+    return;
+  }
+
+  const cardRows = await db
+    .select({
+      frontImageUrl: cards.frontImageUrl,
+      frontImagePath: cards.frontImagePath,
+      insideImageUrl: cards.insideImageUrl,
+      insideImagePath: cards.insideImagePath,
+      conversationData: cards.conversationData,
+    })
+    .from(cards)
+    .where(eq(cards.id, order.cardId))
+    .limit(1);
+  const card = cardRows[0];
+  if (!card || !card.frontImageUrl) {
+    console.warn('[STUDIO-CHECKOUT] print submit: card/front image missing for order', order.id);
+    return;
+  }
+
+  const state = (card.conversationData as CardDraftState | null) ?? null;
+  const recipientName =
+    shipTo === 'recipient'
+      ? state?.recipient?.name?.trim() || order.customerName
+      : order.customerName;
+
+  const frontImageUrl = card.frontImagePath
+    ? publicImageUrl(card.frontImagePath)
+    : card.frontImageUrl;
+  const insideImageUrl = card.insideImagePath
+    ? publicImageUrl(card.insideImagePath)
+    : card.insideImageUrl;
+
+  try {
+    const provider = getPrintProvider();
+    const result = await provider.submitOrder({
+      studioOrderId: order.id,
+      cardId: order.cardId,
+      frontImageUrl,
+      insideImageUrl,
+      shipTo: shipTo as 'sender' | 'recipient',
+      shippingAddress: shippingAddress as ShippingAddress,
+      recipientName,
+      giftMessage: order.giftMessage ?? undefined,
+    });
+    await db
+      .update(studioOrders)
+      .set({
+        printProvider: provider.name,
+        providerOrderId: result.providerOrderId,
+        fulfillmentStatus: result.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(studioOrders.id, order.id));
+    console.log(
+      `[STUDIO-CHECKOUT] print submitted for order ${order.id} → ${provider.name}:${result.providerOrderId} (${result.status})`,
+    );
+  } catch (err: any) {
+    console.error(
+      '[STUDIO-CHECKOUT] print submission failed for order',
+      order.id,
+      err?.message ?? err,
+    );
+    await db
+      .update(studioOrders)
+      .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
+      .where(eq(studioOrders.id, order.id))
+      .catch(() => {});
+  }
 }
 
 // ── Post-paid comms dispatch ─────────────────────────────────────────
