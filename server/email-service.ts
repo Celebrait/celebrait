@@ -220,6 +220,19 @@ async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
 // ── Shared chassis ──────────────────────────────────────────────────
 // All sender/recipient templates use the same outer table layout so
 // they read as one product. Pass the inner block via `bodyHtml`.
+// Footer opt-out line for non-transactional email (recurring occasion
+// reminders + drop-off nudges) — gives a clear way to stop receiving them
+// (PECR; audit 2026-07-02). A full token-based one-click unsubscribe is a
+// follow-up; this at least provides a manage link + an email opt-out.
+function optOutFooter(): string {
+  const manageUrl = `${PUBLIC_ORIGIN}/studio/people/reminders`;
+  return (
+    `You're receiving this because you use Celebrait. ` +
+    `<a href="${manageUrl}" style="color:#7a76e8;">Manage reminders</a> · ` +
+    `<a href="mailto:${FROM_EMAIL}?subject=Unsubscribe" style="color:#7a76e8;">Unsubscribe</a>`
+  );
+}
+
 function chassis(opts: {
   preheader: string;
   bodyHtml: string;
@@ -227,6 +240,9 @@ function chassis(opts: {
   cta?: { label: string; href: string };
   /** Optional secondary line under the CTA (e.g. tracking ref). */
   postCtaHtml?: string;
+  /** Optional opt-out line above the sign-off — for non-transactional
+   *  email only (reminders / drop-off nudges). */
+  footerNote?: string;
 }): string {
   const ctaHtml = opts.cta
     ? `
@@ -273,7 +289,7 @@ function chassis(opts: {
                 ${postCtaBlock}
                 <tr>
                   <td style="padding: 32px 40px 40px 40px; color: #94a3b8; font-size: 13px;">
-                    — Celebrait
+                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}— Celebrait
                   </td>
                 </tr>
               </table>
@@ -756,6 +772,7 @@ export async function sendDropOffRecoveryEmail(params: {
     preheader: 'Ready when you are — no rush.',
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
+    footerNote: optOutFooter(),
   });
 
   const text =
@@ -818,6 +835,7 @@ export async function sendDropOffTweakEmail(params: {
     preheader: "Tweak the scene, swap the photo, try a different style.",
     bodyHtml: body,
     cta: { label: 'Tweak your card', href: cardUrl },
+    footerNote: optOutFooter(),
   });
 
   const text =
@@ -878,6 +896,7 @@ export async function sendDropOffLastCallEmail(params: {
     preheader: "We'll stop emailing about this card after today.",
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
+    footerNote: optOutFooter(),
   });
 
   const text =
@@ -1038,6 +1057,7 @@ export async function sendReminderEmail(params: {
     preheader,
     bodyHtml: body,
     cta: { label: ctaLabel, href: startCardUrl },
+    footerNote: optOutFooter(),
   });
 
   const text =
