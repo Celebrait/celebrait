@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomBytes } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -58,6 +59,9 @@ export class DatabaseStorage implements IStorage {
       userId: cardData.userId || null,
       cardType: cardData.cardType || 'printed',
       printOption: cardData.printOption || 'front-and-inside',
+      // Stable unguessable secret for this card's image object keys, so
+      // they can't be enumerated from the sequential id (audit 2026-07-02).
+      imageKey: randomBytes(16).toString('base64url'),
     }).returning();
     return result[0];
   }

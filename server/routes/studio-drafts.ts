@@ -133,6 +133,10 @@ export function registerStudioDraftRoutes(app: Express): void {
           cardType: 'printed',
           printOption: 'front-and-inside',
           conversationData: EMPTY_CARD_DRAFT,
+          // Stable, unguessable secret woven into this card's image object
+          // keys so they can't be enumerated from the sequential id
+          // (security audit 2026-07-02).
+          imageKey: generateShareToken(),
         })
         .returning({ id: cards.id });
 
@@ -956,6 +960,16 @@ export function registerStudioDraftRoutes(app: Express): void {
             .json({ message: 'Attempt has no image to select' });
         }
 
+        // The card's stable image-key secret — needed so the canonical
+        // mirror + print-res files use the same unguessable filename the
+        // attempt was stored under (security audit 2026-07-02).
+        const [cardKeyRow] = await db
+          .select({ imageKey: cards.imageKey })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const imageKey = cardKeyRow?.imageKey ?? null;
+
         const url = attempt.imagePath
           ? publicImageUrl(attempt.imagePath)
           : attempt.imageUrl!;
@@ -979,14 +993,14 @@ export function registerStudioDraftRoutes(app: Express): void {
         // fulfillment all read by canonical name, so without this
         // copy they'd keep using whichever attempt was last *generated*
         // rather than the one the user picked.
-        await promoteAttemptToCanonical(id, attempt.side as CardSide, attempt.id);
+        await promoteAttemptToCanonical(id, attempt.side as CardSide, attempt.id, imageKey);
 
         // For front swaps, regenerate the 3000×3000 print-res file so
         // it matches the newly-selected attempt. Non-fatal — checkout
         // can still proceed if this hiccups (the canonical display
         // copy is already correct).
         if (attempt.side === 'front') {
-          generatePrintResolutionFiles(id).catch((err) =>
+          generatePrintResolutionFiles(id, imageKey).catch((err) =>
             console.warn(`[STUDIO] print-res after select-attempt failed:`, err),
           );
         }

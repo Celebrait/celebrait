@@ -39,6 +39,25 @@ import {
 import { resolveStyleDescription } from '@shared/style-descriptions';
 import { openai } from './utils/shared';
 
+// Load a card's stable image-key secret (cards.imageKey) — woven into its
+// image object keys so the public-bucket filenames can't be enumerated
+// from the sequential card id (security audit 2026-07-02). Returns null
+// for legacy rows with no key; the storage helpers then fall back to the
+// old card_<id>_ naming. Used by generation paths that don't already load
+// the card row (those add cards.imageKey to their projection instead).
+async function loadImageKey(cardId: number): Promise<string | null> {
+  try {
+    const [row] = await db
+      .select({ imageKey: cards.imageKey })
+      .from(cards)
+      .where(eq(cards.id, cardId))
+      .limit(1);
+    return row?.imageKey ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Fallback provider / quality used when the active prompt_active row has
 // null values. Matches the hardcoded behaviour this function had before
 // Phase 4b so existing cards keep generating unchanged.
@@ -421,7 +440,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         resolved: resolvedFront,
         referenceImages: params.imageDataArray,
       });
-      frontUrl = await savePngFiles(sceneImageUrl, cardId, 'front');
+      frontUrl = await savePngFiles(sceneImageUrl, cardId, 'front', await loadImageKey(cardId));
       frontOriginal = sceneImageUrl;
 
     } else {
@@ -452,7 +471,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         resolved: resolvedInside,
         referenceImages: [frontImageForInside],
       });
-      insideUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
+      insideUrl = await savePngFiles(insideImageUrl, cardId, 'inside', await loadImageKey(cardId));
       insideOriginal = insideImageUrl;
     }
 
@@ -478,7 +497,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     console.log(`[BG_GEN] Card ${cardId} generation completed successfully`);
 
     // --- GENERATE PRINT-RESOLUTION FILES (non-fatal) ---
-    await generatePrintResolutionFiles(cardId);
+    await generatePrintResolutionFiles(cardId, await loadImageKey(cardId));
 
     // No auto-email on generation complete — the Studio flow sends
     // the recipient / sender emails on order-paid, not card-ready.
@@ -526,7 +545,7 @@ export async function finalizeCardArtifacts(
   state: CardDraftState,
   userId: string | null,
 ): Promise<void> {
-  await generatePrintResolutionFiles(cardId);
+  await generatePrintResolutionFiles(cardId, await loadImageKey(cardId));
   try {
     await sendCardReadyEmailForCard(cardId, state, userId);
   } catch (mailErr) {
@@ -559,6 +578,7 @@ export async function generateStudioCard(
       conversationData: cards.conversationData,
       frontImagePath: cards.frontImagePath,
       frontImageUrl: cards.frontImageUrl,
+      imageKey: cards.imageKey,
     })
     .from(cards)
     .where(eq(cards.id, cardId))
@@ -681,7 +701,7 @@ export async function generateStudioCard(
           'Front generation',
         );
       }
-      frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front');
+      frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front', row.imageKey);
 
       // Persist the front immediately so the client can reveal it. In
       // 'full' mode status stays 'generating' until the inside lands;
@@ -767,7 +787,7 @@ export async function generateStudioCard(
             'Inside generation',
           );
         }
-        insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
+        insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside', row.imageKey);
       }
 
       // ── Persist + finalise ───────────────────────────────────────
@@ -1080,7 +1100,7 @@ async function ensureInitialAttemptRow(
   // pre-storage cards) this no-ops and the attempt keeps its
   // original url — selectAttempt back to it later will grab whatever
   // the URL points at, which is the best we can do for those rows.
-  const snapshotted = await snapshotCanonicalToAttempt(cardId, side, inserted.id);
+  const snapshotted = await snapshotCanonicalToAttempt(cardId, side, inserted.id, await loadImageKey(cardId));
   if (snapshotted) {
     await db
       .update(cardAttempts)
@@ -1194,6 +1214,7 @@ export async function runRegenAttempt(
         frontImagePath: cards.frontImagePath,
         insideImageUrl: cards.insideImageUrl,
         insideImagePath: cards.insideImagePath,
+        imageKey: cards.imageKey,
       })
       .from(cards)
       .where(eq(cards.id, cardId))
@@ -1503,6 +1524,7 @@ export async function runRegenAttempt(
       cardId,
       side,
       attemptId,
+      card.imageKey,
     );
     const imagePathRel = attemptFilename;
 
@@ -1526,7 +1548,7 @@ export async function runRegenAttempt(
         })
         .where(eq(cards.id, cardId));
       // Re-run print-resolution upscale for the new front (non-fatal).
-      await generatePrintResolutionFiles(cardId).catch((err) =>
+      await generatePrintResolutionFiles(cardId, card.imageKey).catch((err) =>
         console.warn(`[STUDIO_GEN] print-res after front regen failed:`, err),
       );
     } else {

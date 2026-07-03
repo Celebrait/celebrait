@@ -24,6 +24,23 @@ export function publicImageUrl(pathOrName: string): string {
   return isR2Enabled() ? r2PublicUrl(name) : `/images/${name}`;
 }
 
+/**
+ * Base stem for a card's image object keys. With an imageKey (the stable
+ * per-card random secret on cards.imageKey) the stem is
+ * `card_<id>_<imageKey>` — so the public-bucket keys can't be enumerated
+ * from the sequential card id (security audit 2026-07-02). Legacy rows
+ * with no imageKey fall back to the old `card_<id>` stem so their already-
+ * stored URLs keep resolving.
+ *
+ * Callers append the side/format: `${cardImageBaseName(id, key)}_front.png`.
+ */
+export function cardImageBaseName(
+  cardId: number,
+  imageKey?: string | null,
+): string {
+  return imageKey ? `card_${cardId}_${imageKey}` : `card_${cardId}`;
+}
+
 // Ensure directories exist
 async function ensureDirectories() {
   try {
@@ -49,17 +66,18 @@ export interface StoredImage {
  * Convert base64 image data to PNG file and store it
  */
 export async function storeImageFromBase64(
-  base64Data: string, 
-  cardId: number, 
-  imageType: 'front' | 'inside'
+  base64Data: string,
+  cardId: number,
+  imageType: 'front' | 'inside',
+  imageKey?: string | null,
 ): Promise<StoredImage> {
   try {
     // Remove data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(cleanBase64, 'base64');
-    
-    // Generate filename with card ID and type
-    const filename = `card_${cardId}_${imageType}.png`;
+
+    // Generate filename with card ID + unguessable key + type
+    const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
 
     if (isR2Enabled()) {
       await r2Put(filename, imageBuffer, 'image/png');
@@ -91,8 +109,8 @@ export async function storeImageFromBase64(
 /**
  * Get stored image as buffer for serving
  */
-export async function getStoredImage(cardId: number, imageType: 'front' | 'inside'): Promise<Buffer | null> {
-  const filename = `card_${cardId}_${imageType}.png`;
+export async function getStoredImage(cardId: number, imageType: 'front' | 'inside', imageKey?: string | null): Promise<Buffer | null> {
+  const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
   try {
     if (isR2Enabled()) {
       return await r2Get(filename);
@@ -366,10 +384,11 @@ export async function getStorageStats(): Promise<{
 /**
  * Get file URL for serving static images
  */
-export function getImageUrl(cardId: number, imageType: 'front' | 'inside' | 'print'): string {
+export function getImageUrl(cardId: number, imageType: 'front' | 'inside' | 'print', imageKey?: string | null): string {
+  const base = cardImageBaseName(cardId, imageKey);
   const filename = imageType === 'print'
-    ? `card_${cardId}_print_5x5.png`
-    : `card_${cardId}_${imageType}.png`;
+    ? `${base}_print_5x5.png`
+    : `${base}_${imageType}.png`;
 
   return publicImageUrl(filename);
 }
@@ -399,9 +418,10 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
  * actual watermarking, just the misleading filename suffix.)
  */
 export async function storePngWithSharp(
-  base64Data: string, 
-  cardId: number, 
-  imageType: string
+  base64Data: string,
+  cardId: number,
+  imageType: string,
+  imageKey?: string | null,
 ): Promise<StoredImage> {
   try {
     const { default: sharp } = await import('sharp');
@@ -420,7 +440,7 @@ export async function storePngWithSharp(
       .toBuffer();
     
     // Generate filename
-    const filename = `card_${cardId}_${imageType}.png`;
+    const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
 
     if (isR2Enabled()) {
       await r2Put(filename, pngBuffer, 'image/png');

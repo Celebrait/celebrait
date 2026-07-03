@@ -34,6 +34,15 @@ export const cards = pgTable("cards", {
    *  /api/card/:id/view?t=TOKEN endpoint without auth. Null = card
    *  has never been shared. */
   viewToken: text("view_token"),
+  /** Stable random secret woven into this card's image object keys
+   *  (card_<id>_<imageKey>_front.png). Makes the public-bucket keys
+   *  UNGUESSABLE so the sequential card id can't be used to enumerate
+   *  everyone's artwork (security audit 2026-07-02). Distinct from
+   *  viewToken: minted once at card creation and NEVER rotated (rotating
+   *  it would orphan the stored image URLs). Nullable for legacy rows —
+   *  the filename helper falls back to the old card_<id>_ naming when
+   *  absent. */
+  imageKey: text("image_key"),
   /** Pointer to the currently-displayed attempt for each side.
    *  See models/card-attempts.ts. The frontImageUrl/insideImageUrl
    *  columns above are kept in sync with the selected attempt's image
