@@ -36,7 +36,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How fast is delivery?',
-    a: 'Standard delivery is 3–5 working days, tracked. Overnight available for £15.99 if you order before 2pm.',
+    a: 'Standard delivery is tracked (Royal Mail 24). Overnight available for £10.75 if you order before 2pm.',
   },
   {
     q: 'What paper do you print on?',

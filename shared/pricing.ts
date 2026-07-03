@@ -91,11 +91,11 @@ export const PRICING_TIERS: PricingTier[] = [
   },
 ];
 
-/** Overnight delivery upgrade — NOT a tier, an add-on at checkout
- *  for the Printed path. UK only for now (SAPO is dead; Courier Guy
- *  and Aramex don't do consumer next-day reliably at this price). */
+/** Overnight delivery upgrade — NOT a tier, an add-on at checkout for the
+ *  Printed path. UK only. £10.75 = Prodigi's Overnight rate (their SKU
+ *  GLOBAL-GRE-GLOS-6X6-DIR, confirmed 2026-07-03), passed through at cost. */
 export const OVERNIGHT_DELIVERY = {
-  price: { GBP: 1599, ZAR: null }, // ZAR null = not available
+  price: { GBP: 1075, ZAR: null }, // ZAR null = not available
   description: 'UK only · order before 2pm for next-day',
   ukOnly: true,
 } as const;
@@ -112,14 +112,14 @@ export const OVERNIGHT_DELIVERY = {
 // Numbers stay UK-GBP only for V1 — SA is parked.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Flat UK standard shipping for a single printed card, shown as its own
- *  line at checkout. In minor units (pence).
- *
- *  ⚠️ TODO(Prodigi): this is a PLACEHOLDER. Founder decision 2026-07-01 —
- *  real postage must be sourced from Prodigi's quote at order time once
- *  the print provider is wired (server/studio/print-provider.ts is still a
- *  stub). Until then every printed order uses this flat figure. */
-export const UK_SHIPPING_STANDARD_GBP = 150;
+/** UK standard shipping for a single printed card, shown as its own line
+ *  at checkout. In minor units (pence). £1.95 = Prodigi's Standard rate
+ *  (Royal Mail RM24, SKU GLOBAL-GRE-GLOS-6X6-DIR, confirmed 2026-07-03),
+ *  passed through at cost. Prodigi's other tiers for the same SKU: Budget
+ *  £1.45, Express £5.70, Overnight £10.75 (see OVERNIGHT_DELIVERY). A full
+ *  shipping-tier picker at checkout is the follow-on (needs a delivery-
+ *  speed field on the order, threaded to the Prodigi shippingMethod). */
+export const UK_SHIPPING_STANDARD_GBP = 195;
 
 /** Derive the GBP price of a tier in minor units. Tiny helper so
  *  consumers don't have to remember the price-shape (`.GBP` indexing). */
