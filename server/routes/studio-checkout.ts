@@ -334,6 +334,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             paymentStatus: studioOrders.paymentStatus,
             fulfillmentStatus: studioOrders.fulfillmentStatus,
             trackingUrl: studioOrders.trackingUrl,
+            trackingNumber: studioOrders.trackingNumber,
+            printProvider: studioOrders.printProvider,
             shipTo: studioOrders.shipTo,
             // Card-side projection — no jsonb, no image bytes blown up
             // into the response. conversationData is the one jsonb column
@@ -365,6 +367,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             paymentStatus: r.paymentStatus,
             fulfillmentStatus: r.fulfillmentStatus,
             trackingUrl: r.trackingUrl,
+            trackingNumber: r.trackingNumber,
+            printProvider: r.printProvider,
             shipTo: r.shipTo,
             recipientName: state?.recipient?.name?.trim() || null,
             occasion: state?.recipient?.occasion?.trim() || null,
@@ -528,6 +532,71 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       res.status(500).json({ message: 'Webhook handler error' });
     }
   });
+
+  // ── POST /api/studio/orders/:id/refresh-status ───────────────────
+  // Pull the live fulfilment status straight from the print provider
+  // (Prodigi getStatus) and apply it — the on-demand complement to the
+  // push webhook, for orders a webhook missed (downtime, before the
+  // callback URL was registered). No-ops politely on stub/unsubmitted
+  // orders. Same idempotent transition path as the webhook, so double
+  // emails can't happen.
+  app.post(
+    '/api/studio/orders/:id/refresh-status',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const orderId = req.params.id;
+      try {
+        const rows = await db
+          .select()
+          .from(studioOrders)
+          .where(eq(studioOrders.id, orderId))
+          .limit(1);
+        const order = rows[0];
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (order.userId !== userId) return res.status(403).json({ message: 'Not your order' });
+        if (!order.includesPrint || !order.providerOrderId) {
+          return res.status(400).json({ message: 'Nothing to refresh for this order' });
+        }
+
+        const provider = getPrintProvider();
+        // Only refresh against the provider that actually holds the order
+        // (a stub order id means nothing to Prodigi and vice versa).
+        if (provider.name === 'stub' || provider.name !== order.printProvider) {
+          return res.json({
+            ok: true,
+            refreshed: false,
+            fulfillmentStatus: order.fulfillmentStatus,
+          });
+        }
+
+        const status = await provider.getStatus(order.providerOrderId);
+        await applyFulfillmentUpdate(order, status);
+
+        const after = await db
+          .select({
+            f: studioOrders.fulfillmentStatus,
+            tn: studioOrders.trackingNumber,
+            tu: studioOrders.trackingUrl,
+          })
+          .from(studioOrders)
+          .where(eq(studioOrders.id, orderId))
+          .limit(1);
+        res.json({
+          ok: true,
+          refreshed: true,
+          fulfillmentStatus: after[0]?.f ?? order.fulfillmentStatus,
+          trackingNumber: after[0]?.tn ?? null,
+          trackingUrl: after[0]?.tu ?? null,
+        });
+      } catch (err: any) {
+        console.error('[STUDIO-CHECKOUT] refresh-status error:', err?.message ?? err);
+        res.status(502).json({ message: 'Could not reach the print provider' });
+      }
+    },
+  );
 
   // ── POST /api/studio/orders/:id/dev-fulfillment ──────────────────
   // DEV ONLY. Simulate a Prodigi status transition so the whole

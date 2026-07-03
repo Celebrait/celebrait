@@ -29,6 +29,8 @@
 import * as brevo from '@getbrevo/brevo';
 import nodemailer from 'nodemailer';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { promises as fsp } from 'node:fs';
+import path from 'node:path';
 
 // ── Preview capture (admin email tester) ──────────────────────────────
 // Lets `/admin/emails` render any template's HTML without sending it
@@ -124,6 +126,37 @@ interface EmailParams {
   attachments?: Array<{ name: string; content: string; type: string }>;
 }
 
+// ── Dev email sink ────────────────────────────────────────────────────
+// In non-production, every ACTUALLY-FIRED email is also written to disk
+// as rendered HTML (dev-emails/<ts>_<subject>.html) so the full lifecycle
+// can be inspected even when the dev Brevo key is disabled/absent (it
+// 401s — emails trigger correctly but never deliver). Best-effort; never
+// blocks or fails the send path. Preview renders (admin tester) don't
+// hit this — they short-circuit above.
+const DEV_EMAIL_SINK_DIR = path.join(process.cwd(), 'dev-emails');
+
+async function writeDevEmailSink(params: EmailParams): Promise<void> {
+  try {
+    await fsp.mkdir(DEV_EMAIL_SINK_DIR, { recursive: true });
+    const slug =
+      params.subject
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60) || 'email';
+    const file = path.join(DEV_EMAIL_SINK_DIR, `${Date.now()}_${slug}.html`);
+    const header = `<!-- to: ${params.to} | subject: ${params.subject} -->\n`;
+    const body =
+      params.html ?? `<pre>${params.text ?? '(no HTML or text body)'}</pre>`;
+    await fsp.writeFile(file, header + body);
+    console.log(
+      `[EMAIL] dev sink → ${path.relative(process.cwd(), file)} (to: ${params.to})`,
+    );
+  } catch {
+    /* best-effort — a sink failure must never affect the send */
+  }
+}
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   // Preview short-circuit — when running inside renderEmailForPreview(),
   // capture the rendered parts into the request-scoped cell and skip
@@ -138,6 +171,11 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
     };
     return true;
+  }
+
+  // Dev sink — record what fired regardless of whether transport works.
+  if (process.env.NODE_ENV !== 'production') {
+    void writeDevEmailSink(params);
   }
 
   const from = params.from ?? FROM_EMAIL;

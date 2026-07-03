@@ -10,7 +10,8 @@
 // returned by studio_orders should be added there so they don't fall
 // through as generic "Processing".
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import {
@@ -18,12 +19,17 @@ import {
   Truck,
   ExternalLink,
   Image as ImageIcon,
+  Check,
   CheckCircle2,
   Package,
   Printer,
+  RefreshCw,
   Share2,
   XCircle,
+  FlaskConical,
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import type { StudioOrderListItem } from '@shared/schema';
 
 export default function StudioOrders() {
@@ -105,9 +111,23 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
           {amount ? ` · ${amount}` : ''}
           {when ? ` · ${formatWhen(when)}` : ''}
         </p>
-        <div className="mt-2">
+        <div className="mt-2 flex items-center gap-3 flex-wrap">
           <StatusChip order={order} />
+          {order.trackingNumber && (
+            <span className="text-[11px] text-stone-500 font-mono">
+              {order.trackingNumber}
+            </span>
+          )}
         </div>
+
+        {/* Fulfilment journey — print orders only, once paid. Failure
+            shows via the chip; the stepper hides rather than showing a
+            broken journey. */}
+        {order.includesPrint &&
+          order.paymentStatus === 'paid' &&
+          order.fulfillmentStatus !== 'failed' && (
+            <FulfilmentStepper status={order.fulfillmentStatus} />
+          )}
       </div>
 
       {/* Actions — share link (digital only) + tracking link (print only).
@@ -138,8 +158,192 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
             Track
           </a>
         )}
+        <RefreshStatusButton order={order} />
+        {import.meta.env.DEV && <DevAdvanceButton order={order} />}
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Fulfilment stepper — Ordered → Printing → Posted → Delivered.
+// Data comes from studio_orders.fulfillment_status, which the Prodigi
+// webhook (push) and refresh-status (pull) keep current in prod, and
+// the dev-fulfillment simulator drives locally.
+// ─────────────────────────────────────────────────────────────────────
+
+const FULFILMENT_RANK: Record<string, number> = {
+  pending: 0,
+  submitted: 1,
+  printed: 2,
+  shipped: 3,
+  delivered: 4,
+};
+
+function FulfilmentStepper({ status }: { status: string }) {
+  const rank = FULFILMENT_RANK[status] ?? 0;
+  // Each step is done once the pipeline reaches doneAt; "Printing" is
+  // additionally active (pulsing) while the lab has it (submitted).
+  const steps = [
+    { label: 'Ordered', done: true, active: false },
+    { label: 'Printing', done: rank >= 2, active: rank === 1 },
+    { label: 'Posted', done: rank >= 3, active: rank === 2 },
+    { label: 'Delivered', done: rank >= 4, active: rank === 3 },
+  ];
+
+  return (
+    <div className="flex items-center mt-3" data-testid="fulfilment-stepper">
+      {steps.map((step, i) => (
+        <div key={step.label} className="flex items-center">
+          {i > 0 && (
+            <div
+              className={`w-6 sm:w-10 h-px mx-1 ${
+                step.done || step.active ? 'bg-brand' : 'bg-stone-200'
+              }`}
+            />
+          )}
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
+                step.done
+                  ? 'bg-brand text-white'
+                  : step.active
+                    ? 'bg-brand-muted ring-2 ring-brand/40'
+                    : 'bg-stone-100'
+              }`}
+            >
+              {step.done ? (
+                <Check className="w-2.5 h-2.5" strokeWidth={3} />
+              ) : (
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    step.active ? 'bg-brand animate-pulse' : 'bg-stone-300'
+                  }`}
+                />
+              )}
+            </div>
+            <span
+              className={`text-[11px] ${
+                step.done
+                  ? 'text-ink font-medium'
+                  : step.active
+                    ? 'text-brand-dark font-medium'
+                    : 'text-stone-400'
+              }`}
+            >
+              {step.label}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Refresh from the print provider — pulls live status via Prodigi's
+// getStatus (the on-demand complement to the webhook). Only rendered
+// when there's genuinely something to ask Prodigi about.
+// ─────────────────────────────────────────────────────────────────────
+
+function RefreshStatusButton({ order }: { order: StudioOrderListItem }) {
+  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const show =
+    order.includesPrint &&
+    order.paymentStatus === 'paid' &&
+    order.printProvider === 'prodigi' &&
+    order.fulfillmentStatus !== 'delivered' &&
+    order.fulfillmentStatus !== 'failed';
+  if (!show) return null;
+
+  const refresh = async () => {
+    setBusy(true);
+    try {
+      await apiRequest('POST', `/api/studio/orders/${order.id}/refresh-status`);
+      await queryClient.invalidateQueries({ queryKey: ['/api/studio/orders'] });
+    } catch {
+      toast({
+        title: "Couldn't check with the print lab",
+        description: 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={refresh}
+      disabled={busy}
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-brand rounded-full px-2 py-1.5 transition-colors disabled:opacity-50"
+      aria-label="Refresh delivery status"
+      data-testid={`order-refresh-${order.id}`}
+    >
+      <RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// DEV ONLY — advance the fulfilment status through the simulator so the
+// stepper + lifecycle emails can be exercised without Prodigi reaching
+// localhost. Stripped from prod bundles via the import.meta.env.DEV
+// guard at the call site.
+// ─────────────────────────────────────────────────────────────────────
+
+const DEV_NEXT_STATUS: Record<string, string> = {
+  pending: 'printed',
+  submitted: 'printed',
+  printed: 'shipped',
+  shipped: 'delivered',
+};
+
+function DevAdvanceButton({ order }: { order: StudioOrderListItem }) {
+  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const next =
+    order.includesPrint && order.paymentStatus === 'paid'
+      ? DEV_NEXT_STATUS[order.fulfillmentStatus]
+      : undefined;
+  if (!next) return null;
+
+  const advance = async () => {
+    setBusy(true);
+    try {
+      await apiRequest('POST', `/api/studio/orders/${order.id}/dev-fulfillment`, {
+        status: next,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/studio/orders'] });
+    } catch (err: any) {
+      toast({
+        title: 'Dev advance failed',
+        description: err?.message ?? 'Check the server logs.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={advance}
+      disabled={busy}
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 border border-dashed border-violet-300 rounded-full px-3 py-1.5 transition-colors disabled:opacity-50"
+      title="Dev only — simulate the next Prodigi status"
+      data-testid={`order-dev-advance-${order.id}`}
+    >
+      <FlaskConical className="w-3.5 h-3.5" />
+      {busy ? '…' : `→ ${next}`}
+    </button>
   );
 }
 

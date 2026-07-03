@@ -126,6 +126,8 @@ export type StudioOrderListItem = {
   paymentStatus: string;       // 'pending' | 'paid' | 'failed' | 'refunded'
   fulfillmentStatus: string;   // 'pending' | 'submitted' | 'printed' | 'shipped' | 'delivered' | 'failed'
   trackingUrl: string | null;
+  trackingNumber: string | null;
+  printProvider: string | null; // 'stub' | 'prodigi' | null (not yet submitted)
   shipTo: string | null;
   recipientName: string | null;
   occasion: string | null;
