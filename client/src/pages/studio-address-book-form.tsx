@@ -555,7 +555,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+27…"
+                placeholder="+44…"
                 maxLength={40}
                 data-testid="input-ab-phone"
               />

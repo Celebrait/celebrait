@@ -70,7 +70,15 @@ export function NewCardPage() {
     }, 400);
     (async () => {
       try {
-        const res = await apiRequest('POST', '/api/studio/drafts');
+        // Prefill from a reminder deep-link
+        // (/studio/new-card?recipient=…&occasion=…) so "Start Mum's card"
+        // opens a draft that already knows who it's for (audit 2026-07-02).
+        const qp = new URLSearchParams(window.location.search);
+        const recipientName = qp.get('recipient')?.trim() || undefined;
+        const occasion = qp.get('occasion')?.trim() || undefined;
+        const seedBody =
+          recipientName || occasion ? { recipientName, occasion } : undefined;
+        const res = await apiRequest('POST', '/api/studio/drafts', seedBody);
         const { id } = (await res.json()) as { id: number };
         if (!cancelled) setLocation(`/studio/card/${id}/edit`);
       } catch (err: any) {

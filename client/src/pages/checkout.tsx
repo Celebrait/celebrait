@@ -611,9 +611,13 @@ export default function CheckoutPage() {
                   `Pay ${formatGBP(totals.total)}`
                 )}
               </Button>
-              <p className="text-[11px] text-stone-400 text-center">
-                Payment is in dev stub mode.
-              </p>
+              {/* Dev-only notice — never ships to the deployed site
+                  (audit 2026-07-02). Remove once a real gateway is live. */}
+              {import.meta.env.DEV && (
+                <p className="text-[11px] text-stone-400 text-center">
+                  Payment is in dev stub mode.
+                </p>
+              )}
             </div>
           </aside>
       </div>

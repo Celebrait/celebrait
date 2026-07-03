@@ -120,6 +120,27 @@ export function registerStudioDraftRoutes(app: Express): void {
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });
 
     try {
+      // Optional prefill from a reminder deep-link
+      // (/studio/new-card?recipient=…&occasion=…) so "Start Mum's card"
+      // lands on a draft that already knows who it's for. Previously the
+      // params were built by the dispatcher but silently ignored here
+      // (audit 2026-07-02).
+      const body = (req.body ?? {}) as { recipientName?: unknown; occasion?: unknown };
+      const seedName =
+        typeof body.recipientName === 'string' ? body.recipientName.trim().slice(0, 100) : '';
+      const seedOccasion =
+        typeof body.occasion === 'string' ? body.occasion.trim().slice(0, 100) : '';
+      const conversationData =
+        seedName || seedOccasion
+          ? {
+              ...EMPTY_CARD_DRAFT,
+              recipient: {
+                ...(seedName ? { name: seedName } : {}),
+                ...(seedOccasion ? { occasion: seedOccasion } : {}),
+              },
+            }
+          : EMPTY_CARD_DRAFT;
+
       // sceneType + price are NOT NULL in the schema. We give them
       // harmless defaults — the real values get filled in as the user
       // progresses through the maker steps.
@@ -132,7 +153,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           status: 'draft',
           cardType: 'printed',
           printOption: 'front-and-inside',
-          conversationData: EMPTY_CARD_DRAFT,
+          conversationData,
           // Stable, unguessable secret woven into this card's image object
           // keys so they can't be enumerated from the sequential id
           // (security audit 2026-07-02).

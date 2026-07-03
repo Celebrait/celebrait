@@ -542,7 +542,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
   }
   if (includesPrint) {
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — queued for print today. Typically arrives in <strong>5–7 working days</strong>. Tracking lands in your inbox the moment it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed — queued for print today. Typically arrives in <strong>3–5 working days</strong>. Tracking lands in your inbox the moment it ships.</li>`,
     );
   }
 
