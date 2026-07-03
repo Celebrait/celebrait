@@ -18,6 +18,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { FIXED_DATE_OCCASIONS } from '@shared/fixed-occasions';
 import {
   ArrowLeft,
   Cake,
@@ -109,22 +110,19 @@ const OCCASION_OPTIONS: Array<{ value: string; label: string }> = [
 // Helpers below drive the form's date label + visibility per occasion.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Occasions where the date is universally known (fixed calendar
- *  date). For these, the form hides the date input entirely. */
-const FIXED_DATE_OCCASIONS = new Set([
-  'christmas',
-  'valentines',
-  'mothers_day',
-  'fathers_day',
-]);
+// FIXED_DATE_OCCASIONS is the single shared source (@shared/fixed-occasions)
+// — the same set the reminder dispatcher resolves dates for. For these the
+// form hides the date input; the calendar already knows when they fall.
 
 /** Human-readable date-the-fixed-occasion-falls-on, shown as a tiny
- *  helper line where the date input would have been. */
+ *  helper line where the date input would have been. UK dates. */
 const FIXED_DATE_NOTES: Record<string, string> = {
   christmas: '25 December — we know.',
   valentines: '14 February — we know.',
-  mothers_day: 'Second Sunday of May (UK / SA pattern).',
-  fathers_day: 'Third Sunday of June.',
+  // UK Mother's Day = Mothering Sunday (4th Sunday of Lent, in March) —
+  // NOT the US "2nd Sunday of May". (audit 2026-07-02.)
+  mothers_day: 'Mothering Sunday (in March) — we know.',
+  fathers_day: 'Third Sunday of June — we know.',
 };
 
 /** Field label for the date input, occasion-aware. The reminder

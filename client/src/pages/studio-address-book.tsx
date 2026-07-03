@@ -48,6 +48,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import {
+  isFixedDateOccasion,
+  nextFixedOccasionDate,
+} from '@shared/fixed-occasions';
 import type {
   AddressBookEntry,
   RecipientOccasionRow,
@@ -397,9 +401,17 @@ function EntryRow({
 
 function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
   const Icon = getOccasionIcon(occasion.occasion) ?? Cake;
+  // Fixed-date occasions (Christmas etc.) store no date — resolve it from
+  // the calendar so they show a real date and never get the "add the date"
+  // nag (audit 2026-07-02).
   const dateLabel = occasion.date
     ? formatOccasionDate(occasion.date, occasion.yearSpecific)
-    : null;
+    : isFixedDateOccasion(occasion.occasion)
+      ? (nextFixedOccasionDate(occasion.occasion, new Date())?.toLocaleDateString(
+          'en-GB',
+          { day: 'numeric', month: 'short', timeZone: 'UTC' },
+        ) ?? null)
+      : null;
 
   return (
     <span

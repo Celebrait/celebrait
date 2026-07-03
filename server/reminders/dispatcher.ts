@@ -23,7 +23,7 @@
 // Acceptable for SA (10am) + UK (9am). Real timezone awareness is
 // V1.5 (would need users.timezone).
 
-import { and, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { publicImageUrl } from '../image-storage';
 import {
@@ -34,6 +34,11 @@ import {
   cards,
   users,
 } from '@shared/schema';
+import {
+  FIXED_DATE_OCCASIONS,
+  isFixedDateOccasion,
+  nextFixedOccasionDate,
+} from '@shared/fixed-occasions';
 import {
   sendReminderEmail,
   type ReminderTier,
@@ -86,7 +91,14 @@ export async function runReminderDispatch(
       addressBookEntries,
       eq(recipientOccasions.addressBookEntryId, addressBookEntries.id),
     )
-    .where(sql`${recipientOccasions.date} IS NOT NULL`);
+    .where(
+      // A stored date OR a fixed-date occasion type (Christmas etc. store
+      // no date — the date is resolved from the calendar below).
+      or(
+        sql`${recipientOccasions.date} IS NOT NULL`,
+        inArray(recipientOccasions.occasion, Array.from(FIXED_DATE_OCCASIONS)),
+      ),
+    );
 
   result.examined = allOccasions.length;
 
@@ -103,8 +115,13 @@ export async function runReminderDispatch(
       continue;
     }
 
-    const occasionDate = parseDateUTC(occasion.date as string);
-    const nextOccurrence = computeNextOccurrence(occasionDate, occasion.yearSpecific, today);
+    // Fixed-date occasions resolve from the calendar (no stored date);
+    // everything else rolls its stored month/day forward.
+    const nextOccurrence = isFixedDateOccasion(occasion.occasion)
+      ? nextFixedOccasionDate(occasion.occasion, today)
+      : occasion.date
+        ? computeNextOccurrence(parseDateUTC(occasion.date as string), occasion.yearSpecific, today)
+        : null;
     if (!nextOccurrence) {
       // Year-specific date has passed — historical, won't recur.
       result.skipped.push({
