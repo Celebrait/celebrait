@@ -30,11 +30,135 @@
 // This is NOT the full CelebrationCard from celebrait-card-brief.md.
 // That's a Sprint 5+ rebuild (envelope, seal, state machine, audio).
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import {
+  Component,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
+
+// ── Local "airbag" around the 3D canvas ─────────────────────────────
+// A failed texture load (dead image URL, CORS break) or a WebGL crash
+// throws THROUGH the r3f <Canvas> into the parent React tree. Without
+// this boundary the throw sails up to the app-level ErrorBoundary and
+// the WHOLE page becomes "Something went wrong" (card 234, 2026-07-04
+// — a legacy /images path 404ing on Render's wiped disk). One bad
+// texture must never cost more than the 3D effect itself: catch it
+// here, show the flat card image, keep the page (Buy/back/regen) alive.
+class Viewer3DBoundary extends Component<
+  { fallback: (retry: () => void) => ReactNode; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn(
+      '[Card3DViewer] 3D render failed — falling back to flat image:',
+      error?.message ?? error,
+    );
+  }
+  retry = () => this.setState({ failed: false });
+  render() {
+    if (this.state.failed) return this.props.fallback(this.retry);
+    return this.props.children;
+  }
+}
+
+/** Flat-image stand-in when the 3D view can't render. Shows the front
+ *  image sized roughly like the 3D card; if even that image is dead
+ *  (the usual root cause), swaps to a soft cream placeholder so we
+ *  never show the browser's broken-image glyph. */
+function FlatCardFallback({
+  src,
+  framingMargin,
+  onRetry,
+}: {
+  src: string;
+  framingMargin: number;
+  onRetry: () => void;
+}) {
+  const [imgDead, setImgDead] = useState(false);
+  const side = `${Math.min(90, 100 / framingMargin)}%`;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        pointerEvents: 'auto',
+      }}
+      data-testid="card-3d-fallback"
+    >
+      {imgDead ? (
+        <div
+          style={{
+            height: side,
+            aspectRatio: '1 / 1',
+            maxWidth: '80%',
+            borderRadius: 12,
+            background: '#fbf5ea',
+            border: '1px solid #e7e5e4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', margin: 0 }}>
+            This card's image couldn't be loaded.
+          </p>
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt="Card front"
+          onError={() => setImgDead(true)}
+          style={{
+            height: side,
+            aspectRatio: '1 / 1',
+            maxWidth: '80%',
+            objectFit: 'cover',
+            borderRadius: 12,
+            boxShadow: '0 18px 40px -12px rgba(15,23,42,0.35)',
+          }}
+        />
+      )}
+      <p style={{ fontSize: 12, color: '#78716c', margin: 0 }}>
+        3D view couldn't load — showing the card flat.{' '}
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            color: '#6d28d9',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            font: 'inherit',
+            cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
+      </p>
+    </div>
+  );
+}
 
 interface Card3DViewerProps {
   frontImageUrl: string;
@@ -324,40 +448,59 @@ export function Card3DViewer({
         touchAction: 'pan-y',
       }}
     >
-      <Canvas
-        shadows
-        camera={{ position: [0, 0.15, 2.2], fov: 40 }}
-        dpr={[1, 2]}
-        gl={{
-          toneMapping: THREE.NoToneMapping,
-          outputColorSpace: THREE.SRGBColorSpace,
-          antialias: true,
-        }}
-        // Funnel r3f pointer events (raycasting → mesh onClick handlers,
-        // e.g. the card's tap-to-open hinge) through the hit zone so
-        // they only fire when the user is actually over the card area.
-        eventSource={hitEl ?? undefined}
+      <Viewer3DBoundary
+        fallback={(retry) => (
+          <FlatCardFallback
+            src={frontImageUrl}
+            framingMargin={framingMargin}
+            onRetry={() => {
+              // r3f's useLoader caches FAILED loads too — without
+              // clearing, a retry re-throws instantly from cache.
+              try {
+                useLoader.clear(THREE.TextureLoader, [frontImageUrl, insideUrl]);
+              } catch {
+                /* cache clear is best-effort */
+              }
+              retry();
+            }}
+          />
+        )}
       >
-        <Scene
-          frontUrl={frontImageUrl}
-          insideUrl={insideUrl}
-          backCredit={backCredit}
-          open={open}
-          onOpenChange={setOpen}
-          framingMargin={framingMargin}
-          minDistance={minDistance}
-          orbitDomElement={hitEl ?? undefined}
-          autoRotate={autoRotate}
-          autoRotateSpeed={autoRotateSpeed}
-          enableZoom={enableZoom}
-          enableRotate={enableRotate}
-          openProgress={openProgress}
-          closedAngle={closedAngle}
-          hover={hover}
-          restYaw={restYaw}
-          instantOpen={instantOpen}
-        />
-      </Canvas>
+        <Canvas
+          shadows
+          camera={{ position: [0, 0.15, 2.2], fov: 40 }}
+          dpr={[1, 2]}
+          gl={{
+            toneMapping: THREE.NoToneMapping,
+            outputColorSpace: THREE.SRGBColorSpace,
+            antialias: true,
+          }}
+          // Funnel r3f pointer events (raycasting → mesh onClick handlers,
+          // e.g. the card's tap-to-open hinge) through the hit zone so
+          // they only fire when the user is actually over the card area.
+          eventSource={hitEl ?? undefined}
+        >
+          <Scene
+            frontUrl={frontImageUrl}
+            insideUrl={insideUrl}
+            backCredit={backCredit}
+            open={open}
+            onOpenChange={setOpen}
+            framingMargin={framingMargin}
+            minDistance={minDistance}
+            orbitDomElement={hitEl ?? undefined}
+            autoRotate={autoRotate}
+            autoRotateSpeed={autoRotateSpeed}
+            enableZoom={enableZoom}
+            enableRotate={enableRotate}
+            openProgress={openProgress}
+            closedAngle={closedAngle}
+            hover={hover}
+            restYaw={restYaw}
+            instantOpen={instantOpen}
+          />
+        </Canvas>
+      </Viewer3DBoundary>
       {/* The hit zone — invisible, sits over roughly the card's visible
           area. All pointer/wheel/touch events for OrbitControls + r3f
           mesh raycasting come through this element. Outside it, events
