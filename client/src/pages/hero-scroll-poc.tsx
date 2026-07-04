@@ -83,7 +83,7 @@ export function StudioFlowSection() {
     <section className="snap-start relative flex min-h-screen flex-col items-center justify-center py-16">
       {/* Fixed-height stage across all three phases so the section never
           reflows the page as it moves button → spinner → card. */}
-      <div className="relative mx-auto flex h-[66vh] min-h-[480px] w-full max-w-3xl flex-col items-center justify-center px-6">
+      <div className="relative mx-auto flex h-[58vh] min-h-[430px] w-full max-w-3xl flex-col items-center justify-center px-6">
         {phase === 'idle' && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -148,7 +148,7 @@ export function StudioFlowSection() {
                   onOpenChange={setCardOpen}
                   enableRotate={false}
                   enableZoom={false}
-                  framingMargin={1.4}
+                  framingMargin={1.7}
                   minDistance={1.6}
                   dprMax={1.5}
                   /* Resting ajar + slight yaw — reads as openable, matches

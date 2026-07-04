@@ -66,7 +66,9 @@ export default function Landing() {
   // scroll-padding-top = fixed header (80px) + promo strip (40px).
   useEffect(() => {
     const html = document.documentElement;
-    html.style.scrollSnapType = 'y proximity';
+    // 'mandatory' (was proximity — Kevin: too subtle): every scroll in
+    // the journey settles on a section. Tail still free (no snap points).
+    html.style.scrollSnapType = 'y mandatory';
     html.style.scrollPaddingTop = '120px';
     return () => {
       html.style.scrollSnapType = '';
