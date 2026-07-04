@@ -66,7 +66,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-ink text-stone-300">
+    <footer className="snap-end bg-ink text-stone-300">
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-16">
         {/* Top row: brand + columns */}
         <div className="grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr] gap-10 md:gap-8">

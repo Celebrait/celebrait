@@ -650,7 +650,7 @@ export function ImagineDescribeShipSection() {
       // offscreen empty canvas — clip it so it can't widen the document
       // (was causing a ~9px horizontal scroll). `clip` (not hidden) keeps
       // overflow-y visible so the intended vertical card bleed survives.
-      className="relative overflow-x-clip py-16 md:py-20 lg:py-24"
+      className="snap-center relative overflow-x-clip py-16 md:py-20 lg:py-24"
     >
       {/* Single inner column — normal flow, no sticky, no fixed
           height. Headline at top, stage below (phone → card via

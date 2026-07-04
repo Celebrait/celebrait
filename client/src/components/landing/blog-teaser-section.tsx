@@ -43,7 +43,7 @@ const POSTS: PostTeaser[] = [
 
 export function BlogTeaserSection() {
   return (
-    <section className="relative py-24 md:py-32">
+    <section className="snap-center relative py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-6 md:px-10">
         <div className="flex items-end justify-between gap-6 mb-12 md:mb-16">
           <div>

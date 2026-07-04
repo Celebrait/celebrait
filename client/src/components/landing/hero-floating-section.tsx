@@ -19,7 +19,7 @@ export function HeroFloatingSection() {
   const reduced = useReducedMotion() ?? false;
 
   return (
-    <section className="snap-center relative flex min-h-[86vh] flex-col items-center justify-center px-6 py-20">
+    <section className="snap-center snap-always relative flex min-h-[86vh] flex-col items-center justify-center px-6 py-20">
       <div className="relative z-10 flex max-w-[60ch] flex-col items-center text-center">
         {/* Headline — violet shimmer wave on "they'll keep". */}
         <h1 className="font-display text-[40px] font-bold leading-[0.95] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px] lg:text-[74px]">

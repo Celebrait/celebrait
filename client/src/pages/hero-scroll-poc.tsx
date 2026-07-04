@@ -70,7 +70,7 @@ export function StudioFlowSection() {
   const [cardOpen, setCardOpen] = useState(false);
 
   return (
-    <section className="snap-center relative flex min-h-screen flex-col items-center justify-center py-16">
+    <section className="snap-center snap-always relative flex min-h-screen flex-col items-center justify-center py-16">
       <div className="relative mx-auto flex h-[58vh] min-h-[430px] w-full max-w-3xl flex-col items-center justify-center px-6">
         {/* The card is just THERE — no button, no fake generating beat
             (Kevin 2026-07-04: "visual easy without effort on a LP").
@@ -126,47 +126,23 @@ export function StudioFlowSection() {
 }
 
 // The pay-off after the scroll journey — a key decision moment: start now, or
-// learn more (pricing). The content is PINNED (sticky) and zoom-fades in PLACE
-// — no rise-from-below — exactly as the "Send it" finale clears. The -100vh
-// margin lines the pin up with the flow's end so they hand off in sync.
+// learn more (pricing). A PLAIN centred section like every other beat (the
+// 150vh sticky pin was the last scrub remnant — a snap area taller than the
+// viewport has a RANGE of valid snap positions, which is exactly the mushy
+// "doesn't land" feel; flattened 2026-07-04).
 export function MakeYourOwnSection() {
   const { isAuthenticated, isLoading } = useAuth();
   const authed = !isLoading && isAuthenticated;
   const reduced = useReducedMotion() ?? false;
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end end'],
-  });
-  // Content stays invisible while the section rises (so you never see it come
-  // up), then — once pinned — RAPIDLY zooms + fades into place.
-  const riseZ = useTransform(scrollYProgress, [0, 0.16], [-1000, 0]);
-  const riseO = useTransform(scrollYProgress, [0, 0.08], [0, 1]);
-  // The pin overlaps the flow finale by design (-114vh) — which meant this
-  // full-screen container sat ON TOP of the 3D card and swallowed its taps
-  // while still invisible (found 2026-07-04 when the finale card went
-  // interactive). Container is now pointer-inert; the content only accepts
-  // clicks once it's actually visible.
-  const contentPE = useTransform(riseO, (o) => (o > 0.5 ? ('auto' as const) : ('none' as const)));
 
   return (
-    <div
-      ref={ref}
-      // pointer-events-none on the SHELL too — it's a transparent later
-      // sibling that can overlap the section above, so with default
-      // pointer events it would hit-test above the 3D card and eat taps.
-      // No more -114vh overlap: the finale is a plain section now
-      // (2026-07-04), so this pins normally after it.
-      className="snap-center relative pointer-events-none"
-      style={{ height: '150vh' }}
-    >
-      <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>
-        {/* Centred in the full viewport — same vertical position the flow
-            beats (photos … Send it) sit at, so the journey flows consistently. */}
-        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+    <section className="snap-center snap-always relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
           <motion.div
-            style={reduced ? undefined : { z: riseZ, opacity: riseO, pointerEvents: contentPE }}
-            className="flex flex-col items-center will-change-transform pointer-events-auto"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 40 }}
+            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center will-change-transform"
           >
             <h2 className="font-display text-[40px] font-bold leading-[1.0] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px]">
               Make your own
@@ -192,18 +168,13 @@ export function MakeYourOwnSection() {
             </div>
             <p className="mt-3 text-[13px] text-ink-soft">Free to start. No card needed.</p>
           </motion.div>
-        </div>
 
-        {/* Green "keep scrolling" cue, pinned near the bottom (out of the
+        {/* Green "keep scrolling" cue, near the bottom (out of the
             centred column so it doesn't drag the content upward). */}
-        <motion.div
-          style={reduced ? undefined : { opacity: riseO }}
-          className="absolute inset-x-0 bottom-12 flex justify-center"
-        >
+        <div className="absolute inset-x-0 bottom-12 flex justify-center">
           <ScrollHint reduced={reduced} prefix="keep" suffix="— there's more" />
-        </motion.div>
-      </div>
-    </div>
+        </div>
+    </section>
   );
 }
 

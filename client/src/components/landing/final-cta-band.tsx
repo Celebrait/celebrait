@@ -17,7 +17,7 @@ export function FinalCtaBand() {
   const showAuthedTreatment = !isLoading && isAuthenticated;
 
   return (
-    <section className="relative bg-brand text-brand-foreground">
+    <section className="snap-center relative bg-brand text-brand-foreground">
       <div className="max-w-7xl mx-auto px-6 md:px-10 py-20 md:py-28 text-center">
         <h2 className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.05] max-w-3xl mx-auto">
           {showAuthedTreatment

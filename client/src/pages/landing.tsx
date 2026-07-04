@@ -66,13 +66,14 @@ export default function Landing() {
   // scroll-padding-top = fixed header (80px) + promo strip (40px).
   useEffect(() => {
     const html = document.documentElement;
-    // 'mandatory' (was proximity — Kevin: too subtle): every scroll in
-    // the journey settles on a section. Tail still free (no snap points).
+    // 'mandatory' (was proximity — Kevin: too subtle): every scroll
+    // settles on a section, hero to final CTA. NO scroll-padding: padding
+    // shrinks the snapport below the 100vh sections, and a snap area
+    // bigger than the snapport has a RANGE of valid positions — the mushy
+    // "doesn't quite land" feel. Sections == snapport → one crisp centre.
     html.style.scrollSnapType = 'y mandatory';
-    html.style.scrollPaddingTop = '120px';
     return () => {
       html.style.scrollSnapType = '';
-      html.style.scrollPaddingTop = '';
     };
   }, []);
 
