@@ -83,9 +83,14 @@ export default {
           ink: '#211D19',        // warm near-black — text + the one dark band
           stone: '#7A7267',      // warm secondary text
           hair: '#E5DFD4',       // hairline borders
-          gold: '#C97B12',       // marigold accent — eyebrows, accents, links
-          'gold-deep': '#A05E08',// hover / small text on paper
-          'gold-wash': '#F6EAD7',// pale wash — chips, tags
+          // Accent = the EXISTING brand violet (Kevin killed the judge's
+          // marigold on sight, 2026-07-04 — "wtf is that gold"; it also
+          // fought the violet header = two accent families on one screen).
+          // ONE accent site-wide: the violet the logo/studio already own.
+          // Class names keep the gold- prefix until the palette pass renames.
+          gold: '#5c57d4',       // accent — eyebrows, persona word, links (= brand.dark for paper contrast)
+          'gold-deep': '#4a45c0',// hover / pressed
+          'gold-wash': '#EDECFA',// pale wash — chips, tags
         },
         surface: {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
