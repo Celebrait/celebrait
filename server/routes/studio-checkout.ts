@@ -26,7 +26,7 @@ import {
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
 import { getPrintProvider } from '../studio/print-provider';
-import { publicImageUrl } from '../image-storage';
+import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
@@ -341,6 +341,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             // into the response. conversationData is the one jsonb column
             // we need, for recipient name + occasion derivation.
             cardFrontImageUrl: cards.frontImageUrl,
+            cardFrontImagePath: cards.frontImagePath,
             cardConversationData: cards.conversationData,
             cardViewToken: cards.viewToken,
           })
@@ -372,7 +373,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             shipTo: r.shipTo,
             recipientName: state?.recipient?.name?.trim() || null,
             occasion: state?.recipient?.occasion?.trim() || null,
-            frontImageUrl: r.cardFrontImageUrl,
+            frontImageUrl: resolveStoredImageUrl(r.cardFrontImagePath, r.cardFrontImageUrl),
             // Share URL for paid digital orders. Null otherwise.
             shareUrl:
               r.includesDigital &&
@@ -756,12 +757,14 @@ async function submitPrintOrder(
     senderFirstName = userRows[0]?.firstName?.trim() || null;
   }
 
-  const frontImageUrl = card.frontImagePath
-    ? publicImageUrl(card.frontImagePath)
-    : card.frontImageUrl;
-  const insideImageUrl = card.insideImagePath
-    ? publicImageUrl(card.insideImagePath)
-    : card.insideImageUrl;
+  const frontImageUrl = resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl);
+  const insideImageUrl = resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl);
+  if (!frontImageUrl) {
+    // Guarded above via card.frontImageUrl, but keep the narrow check so
+    // the provider contract (non-null front) holds by construction.
+    console.warn('[STUDIO-CHECKOUT] print submit: no resolvable front image for order', order.id);
+    return;
+  }
 
   try {
     const provider = getPrintProvider();

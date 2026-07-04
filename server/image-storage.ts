@@ -25,6 +25,27 @@ export function publicImageUrl(pathOrName: string): string {
 }
 
 /**
+ * Resolve a card image's browser URL from its (path, legacy-url) column
+ * pair — path preferred, BOTH mapped through publicImageUrl. The legacy
+ * fallback previously passed the raw stored URL straight through, so
+ * pre-R2 rows handed clients literal '/images/<name>' paths. On
+ * ephemeral-disk hosts the local file is gone; the /images route's R2
+ * fallback rescues plain <img> loads, but CORS-mode loads (three.js
+ * textures, crossOrigin='anonymous') reject cross-origin REDIRECTS —
+ * that's the card-234 "3D view couldn't load" bug (2026-07-04). Mapping
+ * the legacy URL through publicImageUrl hands the client the direct R2
+ * URL instead, which CORS-loads fine. Absolute http(s)/data URLs still
+ * pass through untouched.
+ */
+export function resolveStoredImageUrl(
+  path: string | null | undefined,
+  url: string | null | undefined,
+): string | null {
+  const src = path || url;
+  return src ? publicImageUrl(src) : null;
+}
+
+/**
  * Base stem for a card's image object keys. With an imageKey (the stable
  * per-card random secret on cards.imageKey) the stem is
  * `card_<id>_<imageKey>` — so the public-bucket keys can't be enumerated

@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // reject `..` traversal — path.join collapses encoded dot-segments,
     // which previously let /images/%2e%2e/.env read ANY server file
     // (security audit 2026-07-02).
-    res.sendFile(req.path, { root: path.join(process.cwd(), 'stored_images') }, (err) => {
+    res.sendFile(req.path, { root: path.join(process.cwd(), 'stored_images') }, async (err) => {
       if (err && !res.headersSent) {
         // Local miss → R2 fallback. Legacy card rows store literal
         // '/images/<name>' URLs (pre-R2 convention); on ephemeral-disk
@@ -184,13 +184,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // backfill). Without this, those cards 404 → the 3D viewer's
         // texture loader throws → the whole card page falls into the
         // app error boundary ("Something went wrong", card 234,
-        // 2026-07-04). Strict filename allowlist so this can't be used
-        // to bounce through to arbitrary bucket keys with odd chars.
+        // 2026-07-04).
+        //
+        // STREAM the object (don't 302): browsers REJECT cross-origin
+        // redirects for CORS-mode loads (crossOrigin='anonymous' — the
+        // 3D texture loader), so a redirect fixes <img> but not the 3D
+        // card (verified in-browser 2026-07-04: plain img OK, anonymous
+        // img FAILED through the redirect). Same-origin bytes work for
+        // every consumer. Strict filename allowlist so this can't fetch
+        // arbitrary bucket keys with odd chars.
         const name = req.path.replace(/^\/+/, '');
         if (isR2Enabled() && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
-          return res.redirect(302, r2PublicUrl(name));
+          try {
+            const upstream = await fetch(r2PublicUrl(name));
+            if (upstream.ok) {
+              res.setHeader(
+                'Content-Type',
+                upstream.headers.get('content-type') ?? 'image/png',
+              );
+              const buf = Buffer.from(await upstream.arrayBuffer());
+              return res.end(buf);
+            }
+          } catch (r2Err: any) {
+            console.warn(
+              `[IMAGES] R2 fallback failed for ${name}:`,
+              r2Err?.message ?? r2Err,
+            );
+          }
         }
-        res.status(404).send('Image not found');
+        if (!res.headersSent) res.status(404).send('Image not found');
       }
     });
   });

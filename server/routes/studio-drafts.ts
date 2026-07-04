@@ -29,7 +29,7 @@ import {
   type CardAttemptListItem,
 } from '@shared/schema';
 import { sendSenderCardOpenedEmail } from '../email-service';
-import { publicImageUrl, deleteCardImages } from '../image-storage';
+import { publicImageUrl, resolveStoredImageUrl, deleteCardImages } from '../image-storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
@@ -218,17 +218,14 @@ export function registerStudioDraftRoutes(app: Express): void {
           ? (stateRaw as CardDraftState)
           : EMPTY_CARD_DRAFT;
 
-      // Prefer the stored-file path (served under /images/) and fall
-      // back to the direct URL column for legacy rows where only one
-      // of the two is populated. Mirrors the logic in
+      // Prefer the stored-file path and fall back to the legacy URL
+      // column — BOTH resolved through publicImageUrl so legacy
+      // '/images/<name>' rows come back as direct R2 URLs (CORS-safe
+      // for the 3D texture loader; see resolveStoredImageUrl). Mirrors
       // storage.getUserCardsForGrid — keep them aligned so all
       // dashboard surfaces resolve the same.
-      const frontUrl = row.frontImagePath
-        ? publicImageUrl(row.frontImagePath)
-        : row.frontImageUrl;
-      const insideUrl = row.insideImagePath
-        ? publicImageUrl(row.insideImagePath)
-        : row.insideImageUrl;
+      const frontUrl = resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl);
+      const insideUrl = resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl);
 
       // Attempts (regen history) — slim projection. Failed attempts
       // are filtered out so the versions strip never shows broken
@@ -275,9 +272,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           side: a.side as CardSide,
           attemptNumber: a.attemptNumber,
           status: a.status,
-          imageUrl: a.imagePath
-            ? publicImageUrl(a.imagePath)
-            : (a.imageUrl ?? ''),
+          imageUrl: resolveStoredImageUrl(a.imagePath, a.imageUrl) ?? '',
           isSelected:
             (a.side === 'front' && a.id === row.selectedFrontAttemptId) ||
             (a.side === 'inside' && a.id === row.selectedInsideAttemptId),
@@ -426,16 +421,11 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.json({
         id: row.id,
         status: row.status,
-        // Prefer the path column (current for R2-era / regen writes),
-        // fall back to the stored URL — same resolution the owner view
-        // uses. Without this a path-only card rendered for the sender but
-        // 404'd for the recipient (audit 2026-07-02).
-        frontImageUrl: row.frontImagePath
-          ? publicImageUrl(row.frontImagePath)
-          : row.frontImageUrl,
-        insideImageUrl: row.insideImagePath
-          ? publicImageUrl(row.insideImagePath)
-          : row.insideImageUrl,
+        // Path preferred, legacy URL fallback — both through
+        // publicImageUrl (resolveStoredImageUrl) so the recipient's 3D
+        // viewer gets a direct, CORS-safe URL even on pre-R2 rows.
+        frontImageUrl: resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl),
+        insideImageUrl: resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl),
         recipientName,
         occasion,
       });
