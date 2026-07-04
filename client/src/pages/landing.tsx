@@ -38,6 +38,7 @@
 // component under client/src/components/landing/* so iteration on any
 // one section is local.
 
+import { useEffect } from 'react';
 import { BlogTeaserSection } from '@/components/landing/blog-teaser-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { FaqSection } from '@/components/landing/faq-section';
@@ -53,6 +54,26 @@ import { PromoStrip } from '@/components/landing/promo-strip';
 import { TestimonialCarouselSection } from '@/components/landing/testimonial-carousel-section';
 
 export default function Landing() {
+  // Gentle scroll-snap through the JOURNEY only (hero → build steps →
+  // example card → make-your-own): those sections carry `snap-start`;
+  // the reading tail (FAQ, pricing, testimonials…) has no snap points so
+  // it scrolls free. `proximity` (not mandatory) = native magnetism when
+  // a swipe ends near a boundary, never a hijack — the JS proximity-snap
+  // experiment (HeroFlowSnap) that fought sticky sections was rejected as
+  // "super clunky"; this is the browser's own compositor snapping on a
+  // page that no longer has scrub pins. Applied to <html> only while the
+  // landing is mounted so studio/checkout scrolling is untouched.
+  // scroll-padding-top = fixed header (80px) + promo strip (40px).
+  useEffect(() => {
+    const html = document.documentElement;
+    html.style.scrollSnapType = 'y proximity';
+    html.style.scrollPaddingTop = '120px';
+    return () => {
+      html.style.scrollSnapType = '';
+      html.style.scrollPaddingTop = '';
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen">
       {/* Always-on celebration field — a single fixed -z-10 backdrop so the

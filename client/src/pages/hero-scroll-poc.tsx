@@ -80,7 +80,7 @@ export function StudioFlowSection() {
   };
 
   return (
-    <section className="relative py-20 md:py-28">
+    <section className="snap-start relative flex min-h-screen flex-col items-center justify-center py-16">
       {/* Fixed-height stage across all three phases so the section never
           reflows the page as it moves button → spinner → card. */}
       <div className="relative mx-auto flex h-[66vh] min-h-[480px] w-full max-w-3xl flex-col items-center justify-center px-6">
@@ -205,7 +205,7 @@ export function MakeYourOwnSection() {
       // pointer events it would hit-test above the 3D card and eat taps.
       // No more -114vh overlap: the finale is a plain section now
       // (2026-07-04), so this pins normally after it.
-      className="relative pointer-events-none"
+      className="snap-start relative pointer-events-none"
       style={{ height: '150vh' }}
     >
       <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>
