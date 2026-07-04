@@ -73,6 +73,20 @@ export default {
           'red-dark': '#8f3530', // deep oxblood — text/icon glyph
           'red-light': '#fbece9', // pale rose-cream wash — backgrounds
         },
+        // THE KEEPER landing palette (locked 2026-07-04, judge's pick from
+        // the LP panel — see next_lp_keeper_blueprint.md). Gallery
+        // neutrals + ONE marigold accent; kills the pinky-Replit read and
+        // flatters skin tones on a face-led page. Landing-scope for now;
+        // candidate for brand-wide adoption after Kevin sees it live.
+        keeper: {
+          paper: '#FAF8F4',      // warm paper white — page ground
+          ink: '#211D19',        // warm near-black — text + the one dark band
+          stone: '#7A7267',      // warm secondary text
+          hair: '#E5DFD4',       // hairline borders
+          gold: '#C97B12',       // marigold accent — eyebrows, accents, links
+          'gold-deep': '#A05E08',// hover / small text on paper
+          'gold-wash': '#F6EAD7',// pale wash — chips, tags
+        },
         surface: {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
           card: '#ffffff',        // card backgrounds
