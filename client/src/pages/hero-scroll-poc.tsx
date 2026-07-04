@@ -70,7 +70,7 @@ export function StudioFlowSection() {
   const [cardOpen, setCardOpen] = useState(false);
 
   return (
-    <section className="snap-start relative flex min-h-screen flex-col items-center justify-center py-16">
+    <section className="snap-center relative flex min-h-screen flex-col items-center justify-center py-16">
       <div className="relative mx-auto flex h-[58vh] min-h-[430px] w-full max-w-3xl flex-col items-center justify-center px-6">
         {/* The card is just THERE — no button, no fake generating beat
             (Kevin 2026-07-04: "visual easy without effort on a LP").
@@ -157,7 +157,7 @@ export function MakeYourOwnSection() {
       // pointer events it would hit-test above the 3D card and eat taps.
       // No more -114vh overlap: the finale is a plain section now
       // (2026-07-04), so this pins normally after it.
-      className="snap-start relative pointer-events-none"
+      className="snap-center relative pointer-events-none"
       style={{ height: '150vh' }}
     >
       <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>

@@ -141,7 +141,7 @@ function BuildStep({ children }: { children: (active: boolean) => React.ReactNod
   return (
     <section
       ref={ref}
-      className="snap-start relative flex min-h-screen items-center justify-center px-6"
+      className="snap-center relative flex min-h-screen items-center justify-center px-6"
     >
       <motion.div
         initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 48 }}
