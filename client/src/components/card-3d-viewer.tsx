@@ -76,15 +76,24 @@ class Viewer3DBoundary extends Component<
 /** Flat-image stand-in when the 3D view can't render. Shows the front
  *  image sized roughly like the 3D card; if even that image is dead
  *  (the usual root cause), swaps to a soft cream placeholder so we
- *  never show the browser's broken-image glyph. */
+ *  never show the browser's broken-image glyph.
+ *
+ *  `showCaption` — the "3D view couldn't load / Try again" line. Only
+ *  for interactive viewers: in miniature/ambient embeds (AjarCardRender
+ *  thumbnails, marketing heroes) the wrapper is pointer-events: none so
+ *  the button couldn't be clicked anyway, and the caption crammed into
+ *  an 80px thumb overlapped surrounding copy (Kevin 2026-07-04, Giving
+ *  Moment screenshot). There the fallback is just the flat image. */
 function FlatCardFallback({
   src,
   framingMargin,
   onRetry,
+  showCaption,
 }: {
   src: string;
   framingMargin: number;
   onRetry: () => void;
+  showCaption: boolean;
 }) {
   const [imgDead, setImgDead] = useState(false);
   const side = `${Math.min(90, 100 / framingMargin)}%`;
@@ -118,9 +127,11 @@ function FlatCardFallback({
             padding: 16,
           }}
         >
-          <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', margin: 0 }}>
-            This card's image couldn't be loaded.
-          </p>
+          {showCaption && (
+            <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', margin: 0 }}>
+              This card's image couldn't be loaded.
+            </p>
+          )}
         </div>
       ) : (
         <img
@@ -137,6 +148,7 @@ function FlatCardFallback({
           }}
         />
       )}
+      {showCaption && (
       <p style={{ fontSize: 12, color: '#78716c', margin: 0 }}>
         3D view couldn't load — showing the card flat.{' '}
         <button
@@ -156,6 +168,7 @@ function FlatCardFallback({
           Try again
         </button>
       </p>
+      )}
     </div>
   );
 }
@@ -453,6 +466,10 @@ export function Card3DViewer({
           <FlatCardFallback
             src={frontImageUrl}
             framingMargin={framingMargin}
+            // Miniature/ambient embeds (interactive={false}: AjarCardRender
+            // thumbnails, marketing heroes) get image-only — no caption, no
+            // Try again (their wrappers are pointer-events: none anyway).
+            showCaption={interactive}
             onRetry={() => {
               // r3f's useLoader caches FAILED loads too — without
               // clearing, a retry re-throws instantly from cache.
