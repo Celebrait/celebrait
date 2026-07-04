@@ -272,11 +272,9 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
         {/* Production-time notice — every card is printed to order (up to
             72h before dispatch). Kept honest + visible across the whole app
-            so the expectation is set well before checkout. Coral (not amber):
-            this is a brand note, not a warning — matches the What's-new
-            badge + landing eyebrows (Kevin 2026-07-04). */}
-        <div className="bg-accent-coral-light border-b border-accent-coral/40 px-4 sm:px-6 py-1.5 flex-shrink-0">
-          <p className="text-[11px] sm:text-xs text-accent-coral-dark text-center leading-snug flex items-center justify-center gap-1.5">
+            so the expectation is set well before checkout. */}
+        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-1.5 flex-shrink-0">
+          <p className="text-[11px] sm:text-xs text-amber-900 text-center leading-snug flex items-center justify-center gap-1.5">
             <Truck className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
             <span>{PRODUCTION_NOTICE}</span>
           </p>

@@ -131,12 +131,10 @@ function PriceCard({ tier, authed }: PriceCardProps) {
 
       {/* Overnight add-on note lives on the Printed card only */}
       {tier.id === 'printed' && (
-        // Coral (delivery/brand-note family) — matches the site-wide
-        // production strip; amber stays reserved for warnings.
-        <div className="mb-6 -mt-2 rounded-xl bg-accent-coral-light/60 border border-accent-coral/30 px-4 py-3">
+        <div className="mb-6 -mt-2 rounded-xl bg-accent-amber-light/60 border border-accent-amber/30 px-4 py-3">
           <div className="flex items-start gap-2.5">
             <Zap
-              className="w-4 h-4 text-accent-coral-dark shrink-0 mt-0.5"
+              className="w-4 h-4 text-accent-amber-dark shrink-0 mt-0.5"
               strokeWidth={2.25}
             />
             <div className="text-xs text-ink-soft leading-relaxed">

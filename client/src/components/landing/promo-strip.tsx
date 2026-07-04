@@ -15,9 +15,9 @@ import { Link } from 'wouter';
 
 export function PromoStrip() {
   return (
-    <div className="fixed top-20 left-0 right-0 z-[140] bg-accent-coral-light border-y border-accent-coral/40">
+    <div className="fixed top-20 left-0 right-0 z-[140] bg-surface border-y border-stone-200/70">
       <div className="max-w-7xl mx-auto h-10 px-6 md:px-10 flex items-center justify-center">
-        <p className="text-xs md:text-sm text-accent-coral-dark text-center">
+        <p className="text-xs md:text-sm text-ink-soft text-center">
           Printed to order — allow up to 72&nbsp;hrs, then posted. Cards £8.99
           + delivery.{' '}
           <Link

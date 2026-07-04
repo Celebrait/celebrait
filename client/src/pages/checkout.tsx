@@ -510,10 +510,8 @@ export default function CheckoutPage() {
                     SHIPPING leg, NOT faster production. We never imply
                     next-day-from-order. */}
                 <Section title="Delivery speed">
-                  {/* Coral, not amber — brand note, not a warning. Matches
-                      the site-wide production strip (Kevin 2026-07-04). */}
-                  <div className="rounded-lg border border-accent-coral/40 bg-accent-coral-light px-4 py-3">
-                    <p className="text-xs text-accent-coral-dark leading-relaxed">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                    <p className="text-xs text-amber-900 leading-relaxed">
                       <span className="font-semibold">Printed to order.</span>{' '}
                       {PRODUCTION_NOTICE}
                     </p>
