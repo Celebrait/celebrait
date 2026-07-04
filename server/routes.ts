@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { storage } from "./storage";
+import { isR2Enabled, r2PublicUrl } from "./r2-storage";
 import { setupAuth, registerAuthRoutes, registerGoogleAuthRoutes } from "./replit_integrations/auth";
 import {
   getStorageStats,
@@ -176,6 +177,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // (security audit 2026-07-02).
     res.sendFile(req.path, { root: path.join(process.cwd(), 'stored_images') }, (err) => {
       if (err && !res.headersSent) {
+        // Local miss → R2 fallback. Legacy card rows store literal
+        // '/images/<name>' URLs (pre-R2 convention); on ephemeral-disk
+        // hosts (Render) the local copy vanishes on every deploy while
+        // the byte-identical object lives in the R2 bucket (2026-06
+        // backfill). Without this, those cards 404 → the 3D viewer's
+        // texture loader throws → the whole card page falls into the
+        // app error boundary ("Something went wrong", card 234,
+        // 2026-07-04). Strict filename allowlist so this can't be used
+        // to bounce through to arbitrary bucket keys with odd chars.
+        const name = req.path.replace(/^\/+/, '');
+        if (isR2Enabled() && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
+          return res.redirect(302, r2PublicUrl(name));
+        }
         res.status(404).send('Image not found');
       }
     });
