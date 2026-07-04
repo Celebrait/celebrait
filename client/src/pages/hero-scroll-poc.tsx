@@ -29,7 +29,6 @@ import {
   User,
   Check,
   Loader2,
-  Sparkles,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -68,65 +67,19 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 // beat → the REAL Card3DViewer fades in, tap-to-open/close only, green
 // tap hint. MagicCard stays retired in-file below.
 export function StudioFlowSection() {
-  const [phase, setPhase] = useState<'idle' | 'generating' | 'revealed'>('idle');
   const [cardOpen, setCardOpen] = useState(false);
-
-  const generate = () => {
-    if (phase !== 'idle') return;
-    setPhase('generating');
-    // Short theatrical beat — long enough to read as "painting", short
-    // enough to never feel like a real wait.
-    window.setTimeout(() => setPhase('revealed'), 1400);
-  };
 
   return (
     <section className="snap-start relative flex min-h-screen flex-col items-center justify-center py-16">
-      {/* Fixed-height stage across all three phases so the section never
-          reflows the page as it moves button → spinner → card. */}
       <div className="relative mx-auto flex h-[58vh] min-h-[430px] w-full max-w-3xl flex-col items-center justify-center px-6">
-        {phase === 'idle' && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="text-center"
-          >
-            <button
-              type="button"
-              onClick={generate}
-              className="inline-flex items-center gap-2.5 rounded-full bg-brand px-8 py-4 text-base font-semibold text-brand-foreground shadow-lg transition-colors hover:bg-brand-dark"
-              data-testid="lp-generate-example"
-            >
-              <Sparkles className="h-5 w-5" />
-              Generate example card
-            </button>
-            <p className="mt-3 text-[13px] text-ink-soft">
-              See exactly what they'd receive.
-            </p>
-          </motion.div>
-        )}
-
-        {phase === 'generating' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
-            >
-              <Loader2 className="h-12 w-12 text-brand" strokeWidth={2} />
-            </motion.div>
-            <p className="text-sm text-ink-soft">Painting the card…</p>
-          </motion.div>
-        )}
-
-        {phase === 'revealed' && (
+        {/* The card is just THERE — no button, no fake generating beat
+            (Kevin 2026-07-04: "visual easy without effort on a LP").
+            Gentle settle-in as the section scrolls into view; tap to
+            open/close with the green hint. */}
           <motion.div
             initial={{ opacity: 0, y: 28, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="flex h-full w-full flex-col items-center"
           >
@@ -167,7 +120,6 @@ export function StudioFlowSection() {
               <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
             </div>
           </motion.div>
-        )}
       </div>
     </section>
   );
