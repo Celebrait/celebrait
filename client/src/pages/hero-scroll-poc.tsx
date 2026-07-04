@@ -83,7 +83,7 @@ export function StudioFlowSection() {
     <section className="relative py-20 md:py-28">
       {/* Fixed-height stage across all three phases so the section never
           reflows the page as it moves button → spinner → card. */}
-      <div className="relative mx-auto flex h-[60vh] min-h-[420px] w-full max-w-2xl flex-col items-center justify-center px-6">
+      <div className="relative mx-auto flex h-[66vh] min-h-[480px] w-full max-w-3xl flex-col items-center justify-center px-6">
         {phase === 'idle' && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -131,12 +131,16 @@ export function StudioFlowSection() {
             className="flex h-full w-full flex-col items-center"
           >
             {/* 3D stage — the canvas bleeds past the anchor so the opening
-                cover never clips (same pattern as the card viewer). */}
-            <div className="relative h-full w-full">
-              <div
-                className="absolute bottom-[-12vh] left-[-18vw] right-[-18vw] top-[-12vh]"
-                style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.12))' }}
-              >
+                cover never clips (same pattern as the card viewer). No CSS
+                drop-shadow here: filtering a huge canvas region re-rasterises
+                every hinge frame (stutter); ContactShadows inside the scene
+                already grounds the card. framingMargin 1.4 = card fills ~70%
+                of the stage (default 2.0 read tiny on desktop); minDistance
+                lowered so OrbitControls doesn't snap the closer fit back out.
+                grow + min-h-0 (not h-full) so the flex column distributes
+                height deterministically against the fixed hint slot below. */}
+            <div className="relative w-full grow min-h-0">
+              <div className="absolute bottom-[-12vh] left-[-18vw] right-[-18vw] top-[-12vh]">
                 <Card3DViewer
                   frontImageUrl={revealFront}
                   insideImageUrl={revealInside}
@@ -144,6 +148,9 @@ export function StudioFlowSection() {
                   onOpenChange={setCardOpen}
                   enableRotate={false}
                   enableZoom={false}
+                  framingMargin={1.4}
+                  minDistance={1.6}
+                  dprMax={1.5}
                   /* Resting ajar + slight yaw — reads as openable, matches
                      the studio card view's resting pose. */
                   closedAngle={-0.3}
@@ -152,9 +159,11 @@ export function StudioFlowSection() {
                 />
               </div>
             </div>
-            {/* Green tap hint — the only gesture on this card, so rotate +
-                zoom hints stay hidden. Self-hides while the card is open. */}
-            <div className="relative z-10 mt-2">
+            {/* Green tap hint — FIXED-HEIGHT slot (shrink-0) so the hint
+                fading out on open doesn't reflow the column (the canvas
+                above resized mid-hinge = the "stutters down" bug).
+                Rotate/zoom hints hidden. */}
+            <div className="relative z-10 mt-2 flex h-16 shrink-0 items-start justify-center">
               <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
             </div>
           </motion.div>

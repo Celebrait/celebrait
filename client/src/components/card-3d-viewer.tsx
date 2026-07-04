@@ -283,6 +283,11 @@ interface Card3DViewerProps {
    *  there, so it never swings. For static open-card displays (e.g. an
    *  example render). Default false; only meaningful alongside `open`. */
   instantOpen?: boolean;
+  /** Cap the canvas devicePixelRatio. Default 2 (crisp on retina). Drop
+   *  to ~1.5 on large decorative stages (e.g. the landing example card)
+   *  where the bleed canvas is huge and full retina costs frame rate
+   *  during the open/close spring. */
+  dprMax?: number;
 }
 
 export function Card3DViewer({
@@ -306,6 +311,7 @@ export function Card3DViewer({
   hover = false,
   restYaw = 0,
   instantOpen = false,
+  dprMax = 2,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -486,7 +492,7 @@ export function Card3DViewer({
         <Canvas
           shadows
           camera={{ position: [0, 0.15, 2.2], fov: 40 }}
-          dpr={[1, 2]}
+          dpr={[1, dprMax]}
           gl={{
             toneMapping: THREE.NoToneMapping,
             outputColorSpace: THREE.SRGBColorSpace,
