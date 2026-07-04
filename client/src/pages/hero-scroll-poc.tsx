@@ -10,7 +10,7 @@
 // Pure DOM + framer-motion: CSS perspective does the dolly; the studio card is
 // a live clone (not a screenshot) so it can animate. Isolated /hero-poc.
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   motion,
   useScroll,
@@ -34,6 +34,8 @@ import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ScrollHint } from '@/components/landing/hero-floating-section';
+import { Card3DViewer } from '@/components/card-3d-viewer';
+import { GestureHints } from '@/components/gesture-hints';
 import revealFront from '@/assets/hero-card-front.jpg';
 import revealInside from '@/assets/hero-card-inside.jpg';
 import envelopeImg from '@/assets/envelope.png';
@@ -77,39 +79,36 @@ export function StudioFlowSection() {
   // envelope, and flicks off as it ends → hands to MakeYourOwn.
   const scrollYProgress = useTransform(rawProgress, [0, 1], [0.79, 1]);
 
-  // Finale beats (numbers unchanged — the crop maps the section onto them):
-  //   • dolly in (−720→0) + spinner            0.80–0.825
-  //   • render SWIPES in (front appears)        0.825–0.85
-  //   • FRONT DWELL (front held, zoom begins)   0.85–0.885
-  //   • cover OPENS (eased hinge)               0.885–0.915
-  //   • OPEN DWELL (inside held, zoom continues)0.915–0.955
-  //   • slower DROP (uncovers "Send it")        0.955–0.972
-  //   • "Send it" + envelope sit, then flick    0.972–1.0
-  // The "camera moves closer" is a continuous translateZ push-in (0→175)
-  // folded into zCard, running from arrival through the open dwell.
-  // Spinner appears AFTER the previous beat clears (~0.82) and fully fades out
-  // BEFORE the wipe starts (0.863), so the wipe never runs over the spinner.
+  // Finale beats — REAL-3D rework (Kevin 2026-07-04: "switch back to the
+  // 3d render… just opened and closed… bring in the green control hints"):
+  //   • dolly in (−720→0) + blank card + spinner   0.80–0.86
+  //   • blank crossfades to the REAL 3D card        0.863–0.89
+  //   • HOLD — user taps to open/close (green hint) 0.89–0.98
+  //   • card flicks off top-right                   0.984–0.994
+  // Open/close is NO LONGER scroll-driven — the user taps the card
+  // (Card3DViewer's own hinge; rotate/zoom disabled so nothing fights
+  // page scroll). The previous CSS MagicCard (swipe-in + envelope morph)
+  // is retired below — kept in-file for cheap revival.
   const spinnerRot = useTransform(scrollYProgress, [0.825, 0.86], [0, 540]);
   const spinnerO = useTransform(scrollYProgress, [0.828, 0.84, 0.85, 0.86], [0, 1, 1, 0]);
-  const zCard = useTransform(scrollYProgress, [0.80, 0.835, 0.955], [-720, 0, 175]);
-  // Card stays opaque to the end — it doesn't fade; the whole card (now showing
-  // the envelope) FLICKS off the top-right.
+  const zCard = useTransform(scrollYProgress, [0.80, 0.835, 0.955], [-720, 0, 120]);
   const backdropO = useTransform(scrollYProgress, [0.80, 0.83, 1], [0, 1, 1]);
-  const swipeProgress = useTransform(scrollYProgress, [0.863, 0.89], [0, 1]);
-  // Card OPENS → holds (read the inside) → CLOSES again (cover swings shut).
-  const openProgress = useTransform(scrollYProgress, [0.905, 0.93, 0.945, 0.965], [0, 1, 1, 0]);
-  // Then the envelope SWIPES in (right→left) over the closed front, inside the
-  // cover face — the card's front becomes the envelope. The final scroll flicks
-  // the whole card off the top-right.
-  const replaceProgress = useTransform(scrollYProgress, [0.965, 0.978], [0, 1]);
-  // The envelope HOLDS briefly (0.978→0.984) so it reads as "in the post",
-  // then flicks off well BEFORE the section ends (gone by ~0.994) and travels
-  // far enough to fully clear the top-right — leaving clean daylight before
-  // "Make your own" overlaps in, so the text never lands on the envelope.
-  const xEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, 1200]);
-  const yEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, -950]);
-  const rotEnv = useTransform(scrollYProgress, [0.984, 0.994], [0, 40]);
-  const scaleEnv = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
+  // Blank "canvas" card fades out as the finished 3D render settles in.
+  const blankO = useTransform(scrollYProgress, [0.863, 0.885], [1, 0]);
+  const renderO = useTransform(scrollYProgress, [0.863, 0.89], [0, 1]);
+  const renderY = useTransform(scrollYProgress, [0.863, 0.89], [18, 0]);
+  // Green tap hint — arrives just after the card settles, leaves before
+  // the flick so it never travels with the card.
+  const hintsO = useTransform(scrollYProgress, [0.895, 0.92, 0.972, 0.982], [0, 1, 1, 0]);
+  // Flick off top-right, clearing daylight before "Make your own" lands.
+  const xFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, 1200]);
+  const yFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, -950]);
+  const rotFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, 40]);
+  const scaleFlick = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
+
+  // Tap-driven hinge state. A tap re-render is cheap here — the scrub
+  // itself runs on motion values and never re-renders.
+  const [cardOpen, setCardOpen] = useState(false);
 
   return (
     <div ref={ref} className="relative" style={{ height: '450vh', marginTop: '-60vh' }}>
@@ -117,36 +116,73 @@ export function StudioFlowSection() {
         className="sticky top-0 h-screen overflow-hidden"
         style={{ perspective: '1000px' }}
       >
-          {/* Blank card dollies in → render swipes in → opens → closes → the
-              envelope swipes in over the front → the whole card flicks off. */}
+          {/* Blank card dollies in with spinner → real 3D card settles in →
+              user plays with the hinge → the card flicks off. */}
           <motion.div
             style={{
               z: zCard,
               opacity: backdropO,
-              x: xEnv,
-              y: yEnv,
-              rotate: rotEnv,
-              scale: scaleEnv,
+              x: xFlick,
+              y: yFlick,
+              rotate: rotFlick,
+              scale: scaleFlick,
             }}
-            className="pointer-events-none absolute inset-0 flex items-center justify-center will-change-transform"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center will-change-transform"
           >
-            <div className="relative">
-              <MagicCard
-                swipe={swipeProgress}
-                open={openProgress}
-                replace={replaceProgress}
-              />
-              {/* Spinner attached to the blank card — zooms in with it, fades
-                  out as the render swipes in. */}
+            {/* Stage — fixed-height anchor; the 3D canvas bleeds past it so
+                the opening cover never clips (same pattern as the card
+                viewer + give modal). */}
+            <div className="relative w-full max-w-2xl h-[52vh] sm:h-[56vh]">
+              {/* Blank "still painting" card + spinner (pre-reveal) */}
+              <motion.div
+                style={{ opacity: blankO }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                <div className="w-[min(56vw,300px)] aspect-square rounded-2xl bg-white border border-stone-200 shadow-2xl" />
+              </motion.div>
               <motion.div
                 style={{ opacity: spinnerO }}
-                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                className="absolute inset-0 flex items-center justify-center"
               >
                 <motion.div style={{ rotate: spinnerRot }}>
                   <Loader2 className="h-14 w-14 text-brand" strokeWidth={2} />
                 </motion.div>
               </motion.div>
+
+              {/* The REAL card — tap to open/close only. pointer-events-auto
+                  re-enables interaction inside the scrub's inert wrapper;
+                  Card3DViewer's hit zone hugs the card, so page scroll over
+                  the surrounding space is never captured. */}
+              <motion.div
+                style={{ opacity: renderO, y: renderY }}
+                className="absolute inset-0 pointer-events-auto"
+              >
+                <div
+                  className="absolute top-[-14vh] bottom-[-14vh] left-[-18vw] right-[-18vw]"
+                  style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.12))' }}
+                >
+                  <Card3DViewer
+                    frontImageUrl={revealFront}
+                    insideImageUrl={revealInside}
+                    open={cardOpen}
+                    onOpenChange={setCardOpen}
+                    enableRotate={false}
+                    enableZoom={false}
+                    /* Resting ajar + slight yaw — reads as openable, matches
+                       the studio card view's resting pose. */
+                    closedAngle={-0.3}
+                    restYaw={-0.1}
+                    className="w-full h-full"
+                  />
+                </div>
+              </motion.div>
             </div>
+
+            {/* Green control hint — tap is the ONLY gesture here, so rotate
+                + zoom hints are hidden. GestureHints self-hides while open. */}
+            <motion.div style={{ opacity: hintsO }} className="relative z-10 mt-1">
+              <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
+            </motion.div>
           </motion.div>
       </div>
     </div>
@@ -170,11 +206,20 @@ export function MakeYourOwnSection() {
   // up), then — once pinned — RAPIDLY zooms + fades into place.
   const riseZ = useTransform(scrollYProgress, [0, 0.16], [-1000, 0]);
   const riseO = useTransform(scrollYProgress, [0, 0.08], [0, 1]);
+  // The pin overlaps the flow finale by design (-114vh) — which meant this
+  // full-screen container sat ON TOP of the 3D card and swallowed its taps
+  // while still invisible (found 2026-07-04 when the finale card went
+  // interactive). Container is now pointer-inert; the content only accepts
+  // clicks once it's actually visible.
+  const contentPE = useTransform(riseO, (o) => (o > 0.5 ? ('auto' as const) : ('none' as const)));
 
   return (
     <div
       ref={ref}
-      className="relative"
+      // pointer-events-none on the SHELL too — it's a transparent later
+      // sibling overlapping the flow finale, so with default pointer
+      // events it hit-tests above the 3D card and eats its taps.
+      className="relative pointer-events-none"
       style={{ height: '150vh', marginTop: '-114vh' }}
     >
       <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>
@@ -182,8 +227,8 @@ export function MakeYourOwnSection() {
             beats (photos … Send it) sit at, so the journey flows consistently. */}
         <div className="flex h-full flex-col items-center justify-center px-6 text-center">
           <motion.div
-            style={reduced ? undefined : { z: riseZ, opacity: riseO }}
-            className="flex flex-col items-center will-change-transform"
+            style={reduced ? undefined : { z: riseZ, opacity: riseO, pointerEvents: contentPE }}
+            className="flex flex-col items-center will-change-transform pointer-events-auto"
           >
             <h2 className="font-display text-[40px] font-bold leading-[1.0] tracking-[-0.02em] text-ink sm:text-[54px] md:text-[64px]">
               Make your own
