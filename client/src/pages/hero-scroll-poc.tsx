@@ -29,6 +29,7 @@ import {
   User,
   Check,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -58,134 +59,108 @@ const INSIDE_MESSAGE =
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-// The studio flow — a sticky-pinned section that plays the build journey on
-// scroll: photos → put them in the picture → add your words → finale (spinner →
-// swipe-render → open → "Send it"). Exported so the marketing landing can mount
-// it below the hero. Transparent stage (the host page provides the background).
+// The example-card reveal — a PLAIN section after the build steps (Kevin
+// 2026-07-04: "it just needs to be a separate part of the current flow…
+// scroll down to a button that says Generate Example Card and reveal the
+// 3d render with hints"). No sticky pin, no scrub, no overlap handoffs —
+// the two previous scrub finales (CSS MagicCard envelope theatre, then a
+// scroll-driven 3D hold) both read as clunky. Click → short "painting"
+// beat → the REAL Card3DViewer fades in, tap-to-open/close only, green
+// tap hint. MagicCard stays retired in-file below.
 export function StudioFlowSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: rawProgress } = useScroll({
-    target: ref,
-    // 'start center' begins tracking while the section is still RISING into
-    // view, so the first beat's photos sweep UP FROM BELOW as they zoom in
-    // (instead of just popping once the section pins). End unchanged, so the
-    // finale still lands at the bottom.
-    offset: ['start center', 'end end'],
-  });
-  // FINALE-ONLY section. The build steps (photos / picture / words) are now a
-  // separate pure-scroll component (StudioBuildSteps) above this. Crop the
-  // section's scroll onto the finale beat range (~0.79→1.0) so the card LOADS
-  // (spinner) + reveals as the section enters, opens/closes, becomes the
-  // envelope, and flicks off as it ends → hands to MakeYourOwn.
-  const scrollYProgress = useTransform(rawProgress, [0, 1], [0.79, 1]);
-
-  // Finale beats — REAL-3D rework (Kevin 2026-07-04: "switch back to the
-  // 3d render… just opened and closed… bring in the green control hints"):
-  //   • dolly in (−720→0) + blank card + spinner   0.80–0.86
-  //   • blank crossfades to the REAL 3D card        0.863–0.89
-  //   • HOLD — user taps to open/close (green hint) 0.89–0.98
-  //   • card flicks off top-right                   0.984–0.994
-  // Open/close is NO LONGER scroll-driven — the user taps the card
-  // (Card3DViewer's own hinge; rotate/zoom disabled so nothing fights
-  // page scroll). The previous CSS MagicCard (swipe-in + envelope morph)
-  // is retired below — kept in-file for cheap revival.
-  const spinnerRot = useTransform(scrollYProgress, [0.825, 0.86], [0, 540]);
-  const spinnerO = useTransform(scrollYProgress, [0.828, 0.84, 0.85, 0.86], [0, 1, 1, 0]);
-  const zCard = useTransform(scrollYProgress, [0.80, 0.835, 0.955], [-720, 0, 120]);
-  const backdropO = useTransform(scrollYProgress, [0.80, 0.83, 1], [0, 1, 1]);
-  // Blank "canvas" card fades out as the finished 3D render settles in.
-  const blankO = useTransform(scrollYProgress, [0.863, 0.885], [1, 0]);
-  const renderO = useTransform(scrollYProgress, [0.863, 0.89], [0, 1]);
-  const renderY = useTransform(scrollYProgress, [0.863, 0.89], [18, 0]);
-  // Green tap hint — arrives just after the card settles, leaves before
-  // the flick so it never travels with the card.
-  const hintsO = useTransform(scrollYProgress, [0.895, 0.92, 0.972, 0.982], [0, 1, 1, 0]);
-  // Flick off top-right, clearing daylight before "Make your own" lands.
-  const xFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, 1200]);
-  const yFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, -950]);
-  const rotFlick = useTransform(scrollYProgress, [0.984, 0.994], [0, 40]);
-  const scaleFlick = useTransform(scrollYProgress, [0.984, 0.994], [1, 1.1]);
-
-  // Tap-driven hinge state. A tap re-render is cheap here — the scrub
-  // itself runs on motion values and never re-renders.
+  const [phase, setPhase] = useState<'idle' | 'generating' | 'revealed'>('idle');
   const [cardOpen, setCardOpen] = useState(false);
 
+  const generate = () => {
+    if (phase !== 'idle') return;
+    setPhase('generating');
+    // Short theatrical beat — long enough to read as "painting", short
+    // enough to never feel like a real wait.
+    window.setTimeout(() => setPhase('revealed'), 1400);
+  };
+
   return (
-    <div ref={ref} className="relative" style={{ height: '450vh', marginTop: '-60vh' }}>
-      <div
-        className="sticky top-0 h-screen overflow-hidden"
-        style={{ perspective: '1000px' }}
-      >
-          {/* Blank card dollies in with spinner → real 3D card settles in →
-              user plays with the hinge → the card flicks off. */}
+    <section className="relative py-20 md:py-28">
+      {/* Fixed-height stage across all three phases so the section never
+          reflows the page as it moves button → spinner → card. */}
+      <div className="relative mx-auto flex h-[60vh] min-h-[420px] w-full max-w-2xl flex-col items-center justify-center px-6">
+        {phase === 'idle' && (
           <motion.div
-            style={{
-              z: zCard,
-              opacity: backdropO,
-              x: xFlick,
-              y: yFlick,
-              rotate: rotFlick,
-              scale: scaleFlick,
-            }}
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center will-change-transform"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="text-center"
           >
-            {/* Stage — fixed-height anchor; the 3D canvas bleeds past it so
-                the opening cover never clips (same pattern as the card
-                viewer + give modal). */}
-            <div className="relative w-full max-w-2xl h-[52vh] sm:h-[56vh]">
-              {/* Blank "still painting" card + spinner (pre-reveal) */}
-              <motion.div
-                style={{ opacity: blankO }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <div className="w-[min(56vw,300px)] aspect-square rounded-2xl bg-white border border-stone-200 shadow-2xl" />
-              </motion.div>
-              <motion.div
-                style={{ opacity: spinnerO }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <motion.div style={{ rotate: spinnerRot }}>
-                  <Loader2 className="h-14 w-14 text-brand" strokeWidth={2} />
-                </motion.div>
-              </motion.div>
-
-              {/* The REAL card — tap to open/close only. pointer-events-auto
-                  re-enables interaction inside the scrub's inert wrapper;
-                  Card3DViewer's hit zone hugs the card, so page scroll over
-                  the surrounding space is never captured. */}
-              <motion.div
-                style={{ opacity: renderO, y: renderY }}
-                className="absolute inset-0 pointer-events-auto"
-              >
-                <div
-                  className="absolute top-[-14vh] bottom-[-14vh] left-[-18vw] right-[-18vw]"
-                  style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.12))' }}
-                >
-                  <Card3DViewer
-                    frontImageUrl={revealFront}
-                    insideImageUrl={revealInside}
-                    open={cardOpen}
-                    onOpenChange={setCardOpen}
-                    enableRotate={false}
-                    enableZoom={false}
-                    /* Resting ajar + slight yaw — reads as openable, matches
-                       the studio card view's resting pose. */
-                    closedAngle={-0.3}
-                    restYaw={-0.1}
-                    className="w-full h-full"
-                  />
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Green control hint — tap is the ONLY gesture here, so rotate
-                + zoom hints are hidden. GestureHints self-hides while open. */}
-            <motion.div style={{ opacity: hintsO }} className="relative z-10 mt-1">
-              <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
-            </motion.div>
+            <button
+              type="button"
+              onClick={generate}
+              className="inline-flex items-center gap-2.5 rounded-full bg-brand px-8 py-4 text-base font-semibold text-brand-foreground shadow-lg transition-colors hover:bg-brand-dark"
+              data-testid="lp-generate-example"
+            >
+              <Sparkles className="h-5 w-5" />
+              Generate example card
+            </button>
+            <p className="mt-3 text-[13px] text-ink-soft">
+              See exactly what they'd receive.
+            </p>
           </motion.div>
+        )}
+
+        {phase === 'generating' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-4"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="h-12 w-12 text-brand" strokeWidth={2} />
+            </motion.div>
+            <p className="text-sm text-ink-soft">Painting the card…</p>
+          </motion.div>
+        )}
+
+        {phase === 'revealed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 28, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="flex h-full w-full flex-col items-center"
+          >
+            {/* 3D stage — the canvas bleeds past the anchor so the opening
+                cover never clips (same pattern as the card viewer). */}
+            <div className="relative h-full w-full">
+              <div
+                className="absolute bottom-[-12vh] left-[-18vw] right-[-18vw] top-[-12vh]"
+                style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.12))' }}
+              >
+                <Card3DViewer
+                  frontImageUrl={revealFront}
+                  insideImageUrl={revealInside}
+                  open={cardOpen}
+                  onOpenChange={setCardOpen}
+                  enableRotate={false}
+                  enableZoom={false}
+                  /* Resting ajar + slight yaw — reads as openable, matches
+                     the studio card view's resting pose. */
+                  closedAngle={-0.3}
+                  restYaw={-0.1}
+                  className="h-full w-full"
+                />
+              </div>
+            </div>
+            {/* Green tap hint — the only gesture on this card, so rotate +
+                zoom hints stay hidden. Self-hides while the card is open. */}
+            <div className="relative z-10 mt-2">
+              <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
+            </div>
+          </motion.div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -217,10 +192,12 @@ export function MakeYourOwnSection() {
     <div
       ref={ref}
       // pointer-events-none on the SHELL too — it's a transparent later
-      // sibling overlapping the flow finale, so with default pointer
-      // events it hit-tests above the 3D card and eats its taps.
+      // sibling that can overlap the section above, so with default
+      // pointer events it would hit-test above the 3D card and eat taps.
+      // No more -114vh overlap: the finale is a plain section now
+      // (2026-07-04), so this pins normally after it.
       className="relative pointer-events-none"
-      style={{ height: '150vh', marginTop: '-114vh' }}
+      style={{ height: '150vh' }}
     >
       <div className="sticky top-0 h-screen" style={{ perspective: '1000px' }}>
         {/* Centred in the full viewport — same vertical position the flow
