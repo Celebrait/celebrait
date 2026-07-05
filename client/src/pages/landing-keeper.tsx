@@ -23,6 +23,7 @@
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
+import { Mail, RefreshCw, Send, Truck } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
@@ -114,21 +115,24 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
   );
 }
 
+// Chips carry lil icons (Kevin 2026-07-05); the privacy chip swapped
+// for the deliver-your-way promise.
 const TRUST_CHIPS = [
-  'Regenerate free until you love it',
-  '280gsm · kraft envelope · printed in the UK',
-  'Your photos stay private — never used to train AI',
-];
+  { icon: RefreshCw, label: 'Regenerate free until you love it' },
+  { icon: Mail, label: '280gsm · kraft envelope · printed in the UK' },
+  { icon: Truck, label: 'Straight to them — or to you to hand over' },
+] as const;
 
 function TrustChips({ center = false }: { center?: boolean }) {
   return (
     <div className={`mt-5 flex flex-wrap gap-2 ${center ? 'justify-center' : ''}`}>
-      {TRUST_CHIPS.map((c) => (
+      {TRUST_CHIPS.map(({ icon: Icon, label }) => (
         <span
-          key={c}
-          className="rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-[11px] text-keeper-stone"
+          key={label}
+          className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-[11px] text-keeper-stone"
         >
-          {c}
+          <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
+          {label}
         </span>
       ))}
     </div>
@@ -291,6 +295,7 @@ function KeeperHeader() {
           Every card is printed to order, just for them — allow up to 72 hrs,
           then posted. £8.99 + delivery.
         </span>
+        <Send className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </div>
       <div className="px-4 pt-3">
       <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
