@@ -440,11 +440,11 @@ function HeroSection() {
         </div>
 
         {/* The real 3D card, static + ajar — with the square source
-            snapshot pinned to its corner and a violet arrow sweeping
-            from the snapshot down-right into the card: photo → card,
-            the whole product in one glance. STAND-IN: a crop of the
-            card art itself (it IS the same people), dressed as a
-            casual photo. Swap for the real A2 snapshot when it exists. */}
+            snapshot pinned to its corner: photo → card in one glance.
+            STAND-IN: a crop of the card art itself (it IS the same
+            people), dressed as a casual photo. Swap for the real A2
+            snapshot when it exists. (A violet annotation arrow lived
+            here briefly — cut 2026-07-05, Kevin: remove entirely.) */}
         <Rise className="relative">
           <StaticAjarCard />
           <div className="absolute -left-3 top-1 w-[27%] -rotate-6">
@@ -467,32 +467,6 @@ function HeroSection() {
               </span>
             </div>
           </div>
-          {/* Hand-drawn violet arrow living in the white strip LEFT of
-              the card art (card's visible left edge ≈13% of the column
-              — the arrow never crosses it): a wobbly pen stroke down
-              from under the snapshot, hooking right at the bottom to
-              point at the card. */}
-          <svg
-            viewBox="0 0 60 140"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-0 top-[29%] w-[12.5%] -rotate-3"
-          >
-            <path
-              d="M 27 6 C 15 26, 33 44, 23 66 C 15 84, 17 106, 48 123"
-              fill="none"
-              stroke="#5c57d4"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-            />
-            <path
-              d="M 36 129 L 50 124 L 39.5 114"
-              fill="none"
-              stroke="#5c57d4"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
         </Rise>
       </div>
     </section>
