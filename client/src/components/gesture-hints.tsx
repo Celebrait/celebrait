@@ -30,6 +30,11 @@ interface GestureHintsProps {
    *  fading row would change the modal's height mid-interaction).
    *  Default false. */
   alwaysVisible?: boolean;
+  /** When set, the hints DON'T hide on open — the tap hint's label
+   *  switches to this instead (e.g. "Tap to close"). For toggle
+   *  surfaces like the Keeper hero where the same tap closes the
+   *  card again. */
+  openLabel?: string;
 }
 
 export function GestureHints({
@@ -38,6 +43,7 @@ export function GestureHints({
   hideZoomHint = false,
   hideRotateHint = false,
   alwaysVisible = false,
+  openLabel,
 }: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
 
@@ -49,7 +55,7 @@ export function GestureHints({
 
   const HintsRow = (
     <div className="flex items-center gap-6 sm:gap-10">
-      <Hint label="Tap to open">
+      <Hint label={open && openLabel ? openLabel : 'Tap to open'}>
         <TapGlyph />
       </Hint>
       {!hideRotateHint && (
@@ -74,7 +80,7 @@ export function GestureHints({
 
   return (
     <AnimatePresence>
-      {visible && !open && (
+      {visible && (!open || openLabel) && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

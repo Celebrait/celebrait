@@ -43,6 +43,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
+import celebraitLogo from '@/assets/celebrait.png';
 
 // ── Local "airbag" around the 3D canvas ─────────────────────────────
 // A failed texture load (dead image URL, CORS break) or a WebGL crash
@@ -863,7 +864,12 @@ function Card({
   }, [frontTex, insideTex, maxAnisotropy]);
 
   const backTex = usePaperTexture({ credit: backCredit, anisotropy: maxAnisotropy });
-  const coverBackTex = usePaperTexture({ anisotropy: maxAnisotropy });
+  // Inside-left panel carries the brand mark, small at the bottom
+  // (Kevin 2026-07-05).
+  const coverBackTex = usePaperTexture({
+    anisotropy: maxAnisotropy,
+    logoUrl: celebraitLogo,
+  });
 
   // Rounded-corner card geometry, built once and reused across all
   // four card faces. ShapeGeometry + remapped UVs so textures map
@@ -1028,11 +1034,14 @@ function Card({
               paper reading grey next to the vivid inside art — the
               emissive floor keeps it true blank-white, matching the
               printed product (inside-left is unprinted stock). */}
+          {/* emissiveMap = same texture, so the lift follows the
+              paper: white stays white, the logo keeps its ink. */}
           <meshStandardMaterial
             map={coverBackTex}
             roughness={0.95}
             side={THREE.DoubleSide}
             emissive="#ffffff"
+            emissiveMap={coverBackTex}
             emissiveIntensity={0.4}
           />
         </mesh>
@@ -1058,8 +1067,12 @@ function Card({
 function usePaperTexture(opts: {
   credit?: string;
   anisotropy: number;
+  /** Optional logo image drawn small at the bottom-centre of the
+   *  face (Kevin 2026-07-05: brand mark on the inside-left panel).
+   *  Drawn async when the image decodes; the texture re-uploads. */
+  logoUrl?: string;
 }): THREE.CanvasTexture {
-  const { credit, anisotropy } = opts;
+  const { credit, anisotropy, logoUrl } = opts;
   return useMemo(() => {
     const size = 1024;
     const canvas = document.createElement('canvas');
@@ -1129,8 +1142,24 @@ function usePaperTexture(opts: {
     tex.anisotropy = anisotropy;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.generateMipmaps = true;
+
+    // 6. Optional logo, bottom-centre — drawn once the image decodes,
+    //    then the canvas re-uploads to the GPU.
+    if (logoUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const w = size * 0.24;
+        const h = w * (img.naturalHeight / img.naturalWidth);
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(img, (size - w) / 2, size - h - size * 0.06, w, h);
+        ctx.globalAlpha = 1;
+        tex.needsUpdate = true;
+      };
+      img.src = logoUrl;
+    }
+
     return tex;
-  }, [credit, anisotropy]);
+  }, [credit, anisotropy, logoUrl]);
 }
 
 function clamp8(v: number): number {

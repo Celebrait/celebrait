@@ -537,7 +537,12 @@ function HeroSection() {
               open; without a reserved height the column reflows and
               the card clunks down (same bug as the old landing). */}
           <div className="mt-3 h-14">
-            <GestureHints open={cardOpen} hideRotateHint hideZoomHint />
+            <GestureHints
+              open={cardOpen}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
           </div>
         </Rise>
       </div>
