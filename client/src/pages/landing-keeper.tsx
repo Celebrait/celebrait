@@ -250,7 +250,9 @@ function AjarTile({
 
 // ── 1. HERO — The Transformation ─────────────────────────────────────
 
-const PERSONAS = ['your mum', 'your best mate', 'the birthday girl', 'grandad'];
+// Always 'your SOMETHING' (Kevin's rule) — and short enough that the
+// persona line never wraps at any breakpoint.
+const PERSONAS = ['your mum', 'your best mate', 'your grandad', 'your sister'];
 
 function HeroSection() {
   const reduced = useReducedMotion();
@@ -267,6 +269,10 @@ function HeroSection() {
       ([e]) => {
         if (e.isIntersecting && timer === undefined) {
           timer = window.setInterval(() => {
+            // Background tabs throttle timers, which can batch this
+            // fade-out with its paired fade-in and strand the word at
+            // opacity 0 — skip cycles while hidden.
+            if (document.hidden) return;
             setVisible(false);
             window.setTimeout(() => {
               setPersona((p) => (p + 1) % PERSONAS.length);
@@ -292,19 +298,20 @@ function HeroSection() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
-            Personalised printed cards
+            Unbinnable Greetings Cards
           </p>
-          {/* minHeight reserves THREE display lines so a longer persona
-              ("the birthday girl") wrapping to an extra line never
-              reflows the layout — the 3D card on the right stays put
-              (Kevin: "the image on the right snaps down"). */}
+          {/* STRUCTURAL three lines (Kevin's rule: "ALWAYS flows 3 lines
+              on desktop and mobile"): Put / your-something / in the
+              picture. The persona line is nowrap and every persona is
+              short enough to fit at all breakpoints — the layout can
+              never reflow, so the 3D card column never moves. */}
           <h1
-            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}
-            style={{ minHeight: 'calc(3 * 1.04em)' }}
+            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}
           >
-            Put{' '}
+            Put
+            <br />
             <span
-              className="inline-block transition-opacity duration-300"
+              className="inline-block whitespace-nowrap transition-opacity duration-300"
               style={{ opacity: visible ? 1 : 0 }}
             >
               {/* The "Unbinnable" shimmer, verbatim from the old hero:
@@ -353,31 +360,48 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The real 3D card, static + ajar — with the source snapshot
-            "paperclipped" to its corner. STAND-IN: a tight face-crop of
-            the card art itself (it IS the same people), dressed as a
-            casual photo. Swap for the real A2 source snapshot when it
-            exists. */}
+        {/* The real 3D card, static + ajar — with TWO square source
+            snapshots pinned to its corner (Kevin: "a couple of square
+            photos"). STAND-INS: two different crops of the card art
+            itself (it IS the same people), dressed as casual photos.
+            Swap for the real A2 snapshots when they exist. */}
         <Rise className="relative">
           <StaticAjarCard />
-          <div className="absolute -left-2 top-2 w-[32%] -rotate-6">
+          <div className="absolute -left-3 top-1 w-[27%] -rotate-6">
             <div
               className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
-              style={{ aspectRatio: '3/4' }}
+              style={{ aspectRatio: '1/1' }}
             >
               <img
                 src={heroCardFront}
                 alt="Source snapshot of the couple"
                 className="h-full w-full object-cover"
                 style={{
-                  objectPosition: '66% 20%',
-                  transform: 'scale(2.1)',
-                  transformOrigin: '66% 20%',
+                  objectPosition: '66% 18%',
+                  transform: 'scale(2.2)',
+                  transformOrigin: '66% 18%',
                 }}
               />
               <span className="absolute left-1 top-1 rounded bg-white/85 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-keeper-gold">
                 A2
               </span>
+            </div>
+          </div>
+          <div className="absolute -left-1 top-[26%] w-[24%] rotate-3">
+            <div
+              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.35)]"
+              style={{ aspectRatio: '1/1' }}
+            >
+              <img
+                src={heroCardFront}
+                alt="Second snapshot of the couple"
+                className="h-full w-full object-cover"
+                style={{
+                  objectPosition: '60% 42%',
+                  transform: 'scale(1.55)',
+                  transformOrigin: '60% 42%',
+                }}
+              />
             </div>
           </div>
         </Rise>
