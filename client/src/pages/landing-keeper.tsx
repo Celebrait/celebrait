@@ -279,12 +279,32 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The real 3D card, static + ajar — with the source-snapshot
-            slot paperclipped to its corner (A2 still to generate). */}
+        {/* The real 3D card, static + ajar — with the source snapshot
+            "paperclipped" to its corner. STAND-IN: a tight face-crop of
+            the card art itself (it IS the same people), dressed as a
+            casual photo. Swap for the real A2 source snapshot when it
+            exists. */}
         <Rise className="relative">
           <StaticAjarCard />
-          <div className="absolute -left-2 top-2 w-[30%] -rotate-6">
-            <AssetSlot tag="A2" ratio="3/4" note="Source snapshot — the same person" className="bg-white" />
+          <div className="absolute -left-2 top-2 w-[32%] -rotate-6">
+            <div
+              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
+              style={{ aspectRatio: '3/4' }}
+            >
+              <img
+                src={heroCardFront}
+                alt="Source snapshot of the couple"
+                className="h-full w-full object-cover"
+                style={{
+                  objectPosition: '66% 20%',
+                  transform: 'scale(2.1)',
+                  transformOrigin: '66% 20%',
+                }}
+              />
+              <span className="absolute left-1 top-1 rounded bg-white/85 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-keeper-gold">
+                A2
+              </span>
+            </div>
           </div>
         </Rise>
       </div>
