@@ -280,12 +280,12 @@ function KeeperHeader() {
           2026-07-05). Same 72h copy the ValueStrip carried mid-page;
           it lives up here now instead. */}
       <div
-        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
+        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
         style={{
-          // Faded violet band (Kevin 2026-07-05: violet→green "a little
-          // strong"): deep brand violet melting into the soft brand
-          // violet — one calm family, white text legible at both ends.
-          background: 'linear-gradient(90deg, #4a45c0 0%, #7a76e8 100%)',
+          // Soft lavender wash (Kevin stepped the banner down twice:
+          // green "a little strong", then the solid violet too) —
+          // brand.light fading toward brand.muted, deep-violet text.
+          background: 'linear-gradient(90deg, #e5e4f9 0%, #f2f1fb 100%)',
         }}
       >
         <span className="sm:hidden">
@@ -400,7 +400,7 @@ function HeroSection() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} className="px-6 pb-20 pt-28 md:pb-28 md:pt-36">
+    <section ref={sectionRef} className="px-6 pb-20 pt-6 md:pb-28 md:pt-10">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
@@ -875,7 +875,10 @@ export default function LandingKeeper() {
   }, []);
 
   return (
-    <div className="keeper-serif relative min-h-screen">
+    // overflow-x-clip: the hero card's bleed wrapper (inset-[-24%])
+    // pokes past the viewport on mobile and made the whole page pan
+    // sideways. Clip (not hidden) so no scroll container is created.
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
       {/* Floating celebration icons — Kevin's call. The page paints NO
           opaque background (that's what hid them before); the backdrop
           supplies the warm-paper tint behind its icon field. */}
