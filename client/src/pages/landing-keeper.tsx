@@ -26,8 +26,9 @@ import { Link } from 'wouter';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
-import { MarketingHeader } from '@/components/landing/marketing-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
+import { WhatsNewDrawer } from '@/components/studio/whats-new-drawer';
+import celebraitLogo from '@/assets/celebrait.png';
 import { FaqSection } from '@/components/landing/faq-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
@@ -248,6 +249,82 @@ function AjarTile({
   );
 }
 
+// ── 0. HEADER — floating pill nav (memorae-style, Kevin 2026-07-05) ──
+//
+// A single rounded capsule floating over the page instead of a
+// full-width bar: warm glass (paper tint + blur) so the celebration
+// backdrop reads through it, hairline border, ink CTA. Scoped to
+// /keeper until Kevin approves it for the rest of the site.
+
+const NAV_LINKS = [
+  { label: 'The proof', id: 'proof' },
+  { label: 'Examples', id: 'gallery' },
+  { label: 'Pricing', id: 'price' },
+] as const;
+
+function KeeperHeader() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
+
+  const jump = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[150] px-4 pt-4">
+      <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-5 pr-2 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md">
+        <Link href="/" className="flex items-center" aria-label="Celebrait home">
+          <img src={celebraitLogo} alt="Celebrait" className="h-9 w-auto" />
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          {NAV_LINKS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => jump(l.id)}
+              className="text-[13px] font-medium text-keeper-stone transition-colors hover:text-keeper-ink"
+            >
+              {l.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <WhatsNewDrawer />
+          {!isLoading && isAuthenticated ? (
+            <Link href="/studio">
+              <button
+                type="button"
+                className="h-10 rounded-full bg-keeper-ink px-5 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black"
+              >
+                Open my studio
+              </button>
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => openAuth('/studio')}
+                className="hidden px-2 text-[13px] font-medium text-keeper-stone transition-colors hover:text-keeper-ink sm:block"
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => openAuth('/studio/new-card')}
+                className="h-10 rounded-full bg-keeper-ink px-5 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black"
+              >
+                Make my first card
+              </button>
+            </>
+          )}
+        </div>
+      </header>
+    </div>
+  );
+}
+
 // ── 1. HERO — The Transformation ─────────────────────────────────────
 
 // Always 'your SOMETHING' (Kevin's rule) — and short enough that the
@@ -425,7 +502,7 @@ function ValueStrip() {
 
 function ProofSection() {
   return (
-    <section className="px-6 py-24 md:py-32">
+    <section id="proof" className="scroll-mt-24 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
@@ -511,7 +588,7 @@ const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
 function GallerySection() {
   const [active, setActive] = useState<number | null>(null);
   return (
-    <section className="px-6 py-24 md:py-32">
+    <section id="gallery" className="scroll-mt-24 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
         <Rise className="text-center">
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
@@ -689,7 +766,7 @@ function FreePartSection() {
 
 function PriceSection() {
   return (
-    <section className="px-6 py-24 md:py-32">
+    <section id="price" className="scroll-mt-24 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
           <div className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>£8.99</div>
@@ -804,7 +881,7 @@ export default function LandingKeeper() {
         background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)"
         permanentFade
       />
-      <MarketingHeader />
+      <KeeperHeader />
       <main className="pt-20">
         <HeroSection />
         <ValueStrip />
