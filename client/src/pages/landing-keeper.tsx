@@ -147,42 +147,43 @@ function TrustChips({ center = false }: { center?: boolean }) {
  *  `onOpenChange` for the truly static uses. */
 function StaticAjarCard({
   className,
-  clickable = false,
-  onOpenChange,
+  open = false,
+  onToggle,
 }: {
   className?: string;
-  clickable?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
   return (
-    // pointer-events-none on the whole tree — the viewer's own hit
-    // zone re-enables itself (explicit auto beats inherited none), so
-    // taps land ONLY on the card and the bleed area never eats clicks
-    // on the hero text/CTA it overlaps.
+    // pointer-events-none on the whole tree — only the overlay button
+    // (the card square itself) accepts taps, so the huge bleed canvas
+    // never eats clicks on the hero text/CTA it overlaps.
     <div
       className={`pointer-events-none relative ${className ?? ''}`}
       style={{ aspectRatio: '1/1' }}
     >
       {/* The canvas BLEEDS past the square anchor so the cover is
-          never clipped — x-bleed is much wider than y since the OPEN
-          cover swings ~55% of the card width past the spine (plus
-          perspective). Camera fit is height-driven, so widening the
-          canvas doesn't change the card's visual size. */}
-      <div className="absolute inset-y-[-24%] inset-x-[-55%]">
+          never clipped. x-bleed is HUGE: at fov 40 the open cover
+          (-2.1 rad) tilts toward the camera and its free edge
+          projects ~1.6 world units left of centre — the canvas needs
+          ~2.9× the anchor width to contain it. Camera fit is
+          height-driven, so the wider canvas doesn't change the card's
+          visual size. */}
+      <div className="absolute inset-y-[-24%] inset-x-[-105%]">
         <Suspense
           fallback={
             <img
               src={heroCardFront}
               alt="Celebrait card"
-              className="absolute left-[30%] top-[21%] h-auto w-[40%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
+              className="absolute left-[36%] top-[21%] h-auto w-[27%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
             />
           }
         >
           <Card3DViewer
             frontImageUrl={heroCardFront}
             insideImageUrl={heroCardInside}
-            interactive={clickable}
-            onOpenChange={onOpenChange}
+            open={open}
+            interactive={false}
             enableRotate={false}
             enableZoom={false}
             closedAngle={-0.55}
@@ -190,16 +191,21 @@ function StaticAjarCard({
             framingMargin={1.75}
             minDistance={1.2}
             dprMax={1.5}
-            // Bleed wrapper breaks the auto hit-zone derivation (see
-            // viewer docs): explicit insets so the tap target roughly
-            // hugs the visible card closed, and widens for the open
-            // spread (percentages of the 210%×148% bleed box).
-            hitZoneInsetPercent={26}
-            openHitZoneInsetPercent={12}
             className="h-full w-full"
           />
         </Suspense>
       </div>
+      {/* Our own tap target: the card square. Controlled-open beats
+          the viewer's hit zone here — its single inset percentage
+          can't hug the card inside a 2.9:1 bleed box. */}
+      {onToggle && (
+        <button
+          type="button"
+          aria-label={open ? 'Close the card' : 'Open the card'}
+          onClick={onToggle}
+          className="pointer-events-auto absolute inset-0 z-10 cursor-pointer bg-transparent"
+        />
+      )}
     </div>
   );
 }
@@ -501,7 +507,7 @@ function HeroSection() {
         {/* z-10: the open cover swings LEFT over the text column —
             Kevin: let it cover that text (don't clip it). */}
         <Rise className="relative z-10">
-          <StaticAjarCard clickable onOpenChange={setCardOpen} />
+          <StaticAjarCard open={cardOpen} onToggle={() => setCardOpen((o) => !o)} />
           <div
             className={`absolute -left-3 top-1 w-[27%] -rotate-6 transition-opacity duration-500 ${
               cardOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
