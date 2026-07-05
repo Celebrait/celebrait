@@ -433,7 +433,7 @@ function HeroSection() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} className="px-6 pb-20 pt-6 md:pb-28 md:pt-16">
+    <section ref={sectionRef} className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
