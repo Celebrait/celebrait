@@ -8,9 +8,10 @@
 //     vanishing halfway — here it's on EVERY headline, no exceptions.
 //   • Cards are SQUARE (5.5" product) — every card slot is 1:1.
 //   • The real 3D card asset used STATIC (ajar, non-interactive) as
-//     the hero visual; gallery examples open IN PLACE with the REAL 3D
-//     hinge — one live WebGL tile at a time (click another, it takes
-//     the engine and the previous reverts to a still). No modals.
+//     the hero visual; gallery examples are permanently-ajar cards
+//     whose covers spring open IN PLACE on click (pure composited CSS
+//     hinge — fixed dimensions, nothing mounts, one value animates).
+//     The real WebGL engine appears only in the hero + free-link beat.
 //   • CelebrationBackdrop (floating icons), ImagineDescribeShip
 //     (animated phone) and DemoVideoSection (walkthrough placeholder)
 //     restored — founder call, overriding the panel's deletions.
@@ -174,82 +175,76 @@ function StaticAjarCard({ className }: { className?: string }) {
   );
 }
 
-/** Gallery tile. At rest: a static card front. Clicked: it becomes
- *  THE live 3D card and the cover swings open with the real hinge
- *  (Kevin: "need to feel like an actual card opening, not switching
- *  between square images"). Only ONE tile runs WebGL at a time — the
- *  previously active tile reverts to its still — so six examples cost
- *  one canvas. Hero art is the stand-in until D1–D6 are generated. */
-function GalleryCard({
+/** Gallery tile — a permanently-ajar card with a spring-hinged cover.
+ *  Kevin on the live-3D-swap version: "super clunky… each asset should
+ *  be slightly ajar and not change its dimensions once clicked. Must
+ *  be super fluid." The fix: NOTHING mounts or reframes on click —
+ *  every tile is always this exact DOM, and the click animates ONE
+ *  value (the cover's hinge angle) on a spring. Pure composited CSS
+ *  3D; at tile scale it reads identically to the WebGL card, without
+ *  costing six GPU contexts (the real engine stays in the hero + the
+ *  free-link section). Hero art is the stand-in until D1–D6 land. */
+function AjarTile({
   tag,
   what,
-  active,
-  onActivate,
+  open,
+  onToggle,
 }: {
   tag: string;
   what: string;
-  active: boolean;
-  onActivate: () => void;
+  open: boolean;
+  onToggle: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  // Swing open shortly after the live viewer mounts, so the visitor
-  // sees the hinge animate rather than an already-open card.
-  useEffect(() => {
-    if (!active) {
-      setOpen(false);
-      return;
-    }
-    const t = window.setTimeout(() => setOpen(true), 250);
-    return () => window.clearTimeout(t);
-  }, [active]);
-
   return (
-    <div className={`relative ${active ? 'z-20' : 'z-0'}`} style={{ aspectRatio: '1/1' }}>
-      {active ? (
-        /* Canvas bleeds past the tile so the opening cover has room —
-           it will gracefully overlap neighbouring tiles while open. */
-        <div className="absolute inset-[-28%]">
-          <Suspense
-            fallback={
-              <img
-                src={heroCardFront}
-                alt=""
-                className="absolute inset-[28%] h-auto w-[44%] rounded-2xl object-cover"
-              />
-            }
-          >
-            <Card3DViewer
-              frontImageUrl={heroCardFront}
-              insideImageUrl={heroCardInside}
-              open={open}
-              onOpenChange={setOpen}
-              enableRotate={false}
-              enableZoom={false}
-              framingMargin={1.7}
-              minDistance={1.4}
-              dprMax={1.5}
-              className="h-full w-full"
-            />
-          </Suspense>
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`relative block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold rounded-2xl ${open ? 'z-20' : 'z-0'}`}
+      style={{ aspectRatio: '1/1' }}
+      data-testid={`gallery-card-${tag}`}
+      aria-label={`${what} — ${open ? 'tap to close' : 'tap to open'} the card`}
+    >
+      <div className="absolute inset-[6%]" style={{ perspective: '1100px' }}>
+        {/* Inside page (right-hand spread) */}
+        <div className="absolute inset-0 overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
+          <img src={heroCardInside} alt="" className="h-full w-full object-cover" />
+          {/* Soft spine shadow so the inside reads as a page, not a print */}
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-[18%]"
+            style={{ background: 'linear-gradient(90deg, rgba(33,29,25,0.18), transparent)' }}
+          />
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onActivate}
-          className="group relative block h-full w-full overflow-hidden rounded-2xl shadow-[0_18px_40px_-18px_rgba(33,29,25,0.28)] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
-          data-testid={`gallery-card-${tag}`}
-          aria-label={`${what} — tap to open the card`}
+        {/* Cover — hinged on the left edge. Rests slightly ajar (-14°),
+            springs to open (-152°). The paper spring: soft stiffness,
+            a touch underdamped so it settles like card stock. */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
+          initial={false}
+          animate={{ rotateY: open ? -152 : -14 }}
+          transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
         >
-          <img src={heroCardFront} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
-            {tag}
-          </span>
-          <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
-            tap to open
-          </span>
-        </button>
-      )}
-    </div>
+          {/* Front face */}
+          <div
+            className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <img src={heroCardFront} alt="" className="h-full w-full object-cover" />
+          </div>
+          {/* Back of the cover — cream paper */}
+          <div
+            className="absolute inset-0 rounded-xl border border-stone-200/60 bg-[#FBF5EA]"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+          />
+        </motion.div>
+      </div>
+      <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
+        {tag}
+      </span>
+      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
+        {open ? 'tap to close' : 'tap to open'}
+      </span>
+    </button>
   );
 }
 
@@ -471,11 +466,11 @@ function GallerySection() {
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
           {GALLERY.map((g, i) => (
             <Rise key={g.tag} delay={i * 0.08}>
-              <GalleryCard
+              <AjarTile
                 tag={g.tag}
                 what={g.what}
-                active={active === i}
-                onActivate={() => setActive(i)}
+                open={active === i}
+                onToggle={() => setActive(active === i ? null : i)}
               />
               <div className="mt-2 flex items-center gap-2">
                 <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
