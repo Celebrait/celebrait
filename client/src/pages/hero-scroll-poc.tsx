@@ -182,7 +182,10 @@ export function MakeYourOwnSection() {
 // field (desktop + mobile sets, centre-masked). Mount once behind a page so the
 // objects persist across the WHOLE scroll. Sits at -z-10; pages that use it must
 // not paint an opaque background over it.
-export function CelebrationBackdrop({ background }: { background?: string } = {}) {
+export function CelebrationBackdrop({
+  background,
+  permanentFade = false,
+}: { background?: string; permanentFade?: boolean } = {}) {
   const reduced = useReducedMotion();
   const { scrollY } = useScroll();
   // Cache the viewport height (refreshed on resize) instead of reading
@@ -201,7 +204,11 @@ export function CelebrationBackdrop({ background }: { background?: string } = {}
   // faint floor so it still adds depth without competing with the journey.
   // Fades across ~0.4vh→1.0vh of scroll (leaving the hero → into the flow).
   const FIELD_FLOOR = 0.28; // lingering opacity once into the flow
+  // permanentFade (keeper landing): the field sits at the faded floor
+  // from the first paint — same look the scroll fade produces, but
+  // everywhere including the hero (Kevin 2026-07-04).
   const fieldOpacity = useTransform(scrollY, (y) => {
+    if (permanentFade) return FIELD_FLOOR;
     const vh = vhRef.current;
     const t = clamp((y - vh * 0.4) / (vh * 1.0 - vh * 0.4), 0, 1);
     return 1 - t * (1 - FIELD_FLOOR);

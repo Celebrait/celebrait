@@ -294,14 +294,48 @@ function HeroSection() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
             Personalised printed cards
           </p>
-          <h1 className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
+          {/* minHeight reserves THREE display lines so a longer persona
+              ("the birthday girl") wrapping to an extra line never
+              reflows the layout — the 3D card on the right stays put
+              (Kevin: "the image on the right snaps down"). */}
+          <h1
+            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}
+            style={{ minHeight: 'calc(3 * 1.04em)' }}
+          >
             Put{' '}
-            <em
-              className="italic text-keeper-gold transition-opacity duration-300"
+            <span
+              className="inline-block transition-opacity duration-300"
               style={{ opacity: visible ? 1 : 0 }}
             >
-              {PERSONAS[persona]}
-            </em>
+              {/* The "Unbinnable" shimmer, verbatim from the old hero:
+                  ink-based gradient-clipped text with a violet wave
+                  sweeping through every ~8s. Fraunces bold, no italic. */}
+              <motion.span
+                className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
+                  backgroundSize: '220% 100%',
+                  backgroundRepeat: 'no-repeat',
+                }}
+                initial={{ backgroundPosition: '0% 0%' }}
+                animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
+                transition={
+                  reduced
+                    ? undefined
+                    : {
+                        duration: 4,
+                        repeat: Infinity,
+                        repeatDelay: 4.5,
+                        ease: 'easeInOut',
+                        delay: 0.8,
+                        times: [0, 0.5, 1],
+                      }
+                }
+              >
+                {PERSONAS[persona]}
+              </motion.span>
+            </span>
             <br />
             in the picture.
           </h1>
@@ -718,12 +752,34 @@ function FloatingPill() {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function LandingKeeper() {
+  // Warm the hero imagery immediately — the 3D card's textures and the
+  // polaroid crop both come from these two files (Kevin: "the images on
+  // the right are slow to load"). crossOrigin MUST match three.js's
+  // anonymous texture loads or the preload poisons the cache (same
+  // lesson as studio-card-view).
+  useEffect(() => {
+    const links = [heroCardFront, heroCardInside].map((href) => {
+      const el = document.createElement('link');
+      el.rel = 'preload';
+      el.as = 'image';
+      el.crossOrigin = 'anonymous';
+      el.setAttribute('fetchpriority', 'high');
+      el.href = href;
+      document.head.appendChild(el);
+      return el;
+    });
+    return () => links.forEach((el) => el.parentNode?.removeChild(el));
+  }, []);
+
   return (
     <div className="keeper-serif relative min-h-screen">
       {/* Floating celebration icons — Kevin's call. The page paints NO
           opaque background (that's what hid them before); the backdrop
           supplies the warm-paper tint behind its icon field. */}
-      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" />
+      <CelebrationBackdrop
+        background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)"
+        permanentFade
+      />
       <MarketingHeader />
       <main className="pt-20">
         <HeroSection />
