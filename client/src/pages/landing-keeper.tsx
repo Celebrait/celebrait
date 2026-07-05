@@ -280,13 +280,12 @@ function KeeperHeader() {
           2026-07-05). Same 72h copy the ValueStrip carried mid-page;
           it lives up here now instead. */}
       <div
-        className="pointer-events-auto flex h-10 items-center justify-center border-b border-keeper-hair px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
+        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
         style={{
-          // Kevin walked the banner down four steps (violet→green,
-          // faded violet, lavender wash, purple-from-the-right) and
-          // landed on flat brand.muted: "that far left colour will be
-          // fine all the way through, go light."
-          background: '#f2f1fb',
+          // Kevin's final call (after five steps down the gradient
+          // ladder): ink black sweeping into the brand purple, left to
+          // right — the logo's own two colours — white copy on top.
+          background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)',
         }}
       >
         <span className="sm:hidden">
@@ -298,7 +297,7 @@ function KeeperHeader() {
         </span>
         <Send className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </div>
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-5">
       <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
         <Link href="/" className="flex items-center" aria-label="Celebrait home">
           <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto sm:h-9" />
