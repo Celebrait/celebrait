@@ -154,6 +154,12 @@ function StaticAjarCard({
   open?: boolean;
   onToggle?: () => void;
 }) {
+  // True once the 3D engine has painted its first frame (chunk + GL +
+  // textures). Until then a flat card image holds the space — the
+  // engine is a ~1.4MB lazy chunk, and without this there's a dead
+  // beat between the Suspense fallback unmounting and the first
+  // painted frame. Crossfade beats a spinner on a gallery page.
+  const [engineReady, setEngineReady] = useState(false);
   return (
     // pointer-events-none on the whole tree — only the overlay button
     // (the card square itself) accepts taps, so the huge bleed canvas
@@ -170,15 +176,7 @@ function StaticAjarCard({
           height-driven, so the wider canvas doesn't change the card's
           visual size. */}
       <div className="absolute inset-y-[-24%] inset-x-[-105%]">
-        <Suspense
-          fallback={
-            <img
-              src={heroCardFront}
-              alt="Celebrait card"
-              className="absolute left-[36%] top-[21%] h-auto w-[27%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
-            />
-          }
-        >
+        <Suspense fallback={null}>
           <Card3DViewer
             frontImageUrl={heroCardFront}
             insideImageUrl={heroCardInside}
@@ -191,9 +189,20 @@ function StaticAjarCard({
             framingMargin={1.75}
             minDistance={1.2}
             dprMax={1.5}
+            onFirstFrame={() => setEngineReady(true)}
             className="h-full w-full"
           />
         </Suspense>
+        {/* Flat stand-in — covers chunk load, GL init AND texture
+            upload; fades only when the engine reports its first
+            painted frame. */}
+        <img
+          src={heroCardFront}
+          alt="Celebrait card"
+          className={`pointer-events-none absolute left-[36%] top-[21%] h-auto w-[27%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)] transition-opacity duration-700 ${
+            engineReady ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
       </div>
       {/* Our own tap target: the card square. Controlled-open beats
           the viewer's hit zone here — its single inset percentage

@@ -289,6 +289,11 @@ interface Card3DViewerProps {
    *  where the bleed canvas is huge and full retina costs frame rate
    *  during the open/close spring. */
   dprMax?: number;
+  /** Fires ONCE, on the first frame the card actually renders — i.e.
+   *  after the three.js chunk, GL context AND textures are all live.
+   *  Callers keep a flat placeholder painted over the canvas until
+   *  this fires, then crossfade (no blank beat, no spinner). */
+  onFirstFrame?: () => void;
 }
 
 export function Card3DViewer({
@@ -313,6 +318,7 @@ export function Card3DViewer({
   restYaw = 0,
   instantOpen = false,
   dprMax = 2,
+  onFirstFrame,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -522,6 +528,7 @@ export function Card3DViewer({
             hover={hover}
             restYaw={restYaw}
             instantOpen={instantOpen}
+            onFirstFrame={onFirstFrame}
           />
         </Canvas>
       </Viewer3DBoundary>
@@ -614,6 +621,7 @@ function Scene({
   hover,
   restYaw,
   instantOpen,
+  onFirstFrame,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -636,6 +644,7 @@ function Scene({
   hover: boolean;
   restYaw: number;
   instantOpen: boolean;
+  onFirstFrame?: () => void;
 }) {
   return (
     <>
@@ -683,6 +692,7 @@ function Scene({
         hover={hover}
         restYaw={restYaw}
         instantOpen={instantOpen}
+        onFirstFrame={onFirstFrame}
       />
 
       {/* Ground shadow — two layers. The soft broad layer reads as
@@ -835,6 +845,7 @@ function Card({
   hover,
   restYaw,
   instantOpen,
+  onFirstFrame,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -846,9 +857,11 @@ function Card({
   hover: boolean;
   restYaw: number;
   instantOpen: boolean;
+  onFirstFrame?: () => void;
 }) {
   const { gl } = useThree();
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
+  const firstFrameFired = useRef(false);
 
   const [frontTex, insideTex] = useTexture([frontUrl, insideUrl]);
   useEffect(() => {
@@ -892,6 +905,13 @@ function Card({
 
   useFrame((state, delta) => {
     if (!rootRef.current || !coverRef.current) return;
+    // First real frame: this component only mounts once useTexture has
+    // resolved, so by here chunk + GL + textures are all live. Callers
+    // use this to crossfade away a flat placeholder.
+    if (!firstFrameFired.current) {
+      firstFrameFired.current = true;
+      onFirstFrame?.();
+    }
     const cover = coverRef.current;
     const root = rootRef.current;
 
