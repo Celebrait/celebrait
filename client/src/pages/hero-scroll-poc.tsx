@@ -182,7 +182,7 @@ export function MakeYourOwnSection() {
 // field (desktop + mobile sets, centre-masked). Mount once behind a page so the
 // objects persist across the WHOLE scroll. Sits at -z-10; pages that use it must
 // not paint an opaque background over it.
-export function CelebrationBackdrop() {
+export function CelebrationBackdrop({ background }: { background?: string } = {}) {
   const reduced = useReducedMotion();
   const { scrollY } = useScroll();
   // Cache the viewport height (refreshed on resize) instead of reading
@@ -210,7 +210,7 @@ export function CelebrationBackdrop() {
     <>
       <div
         className="fixed inset-0 -z-10"
-        style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
+        style={{ background: background ?? 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
       />
       <motion.div
         className="pointer-events-none fixed inset-0 -z-10"

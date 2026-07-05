@@ -8,8 +8,8 @@
 //     vanishing halfway — here it's on EVERY headline, no exceptions.
 //   • Cards are SQUARE (5.5" product) — every card slot is 1:1.
 //   • The real 3D card asset used STATIC (ajar, non-interactive) as
-//     the hero visual; every gallery example CLICKABLE → opens the
-//     interactive 3D viewer in a dialog.
+//     the hero visual; every gallery example is a clickable STATIC
+//     asset — click crossfades front → inside IN PLACE (no modal).
 //   • CelebrationBackdrop (floating icons), ImagineDescribeShip
 //     (animated phone) and DemoVideoSection (walkthrough placeholder)
 //     restored — founder call, overriding the panel's deletions.
@@ -31,12 +31,6 @@ import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { GestureHints } from '@/components/gesture-hints';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import heroCardFront from '@/assets/hero-card-front.jpg';
 import heroCardInside from '@/assets/hero-card-inside.jpg';
 
@@ -145,78 +139,72 @@ function TrustChips({ center = false }: { center?: boolean }) {
 function StaticAjarCard({ className }: { className?: string }) {
   return (
     <div className={`pointer-events-none relative ${className ?? ''}`} style={{ aspectRatio: '1/1' }}>
-      <Suspense
-        fallback={
-          <img
-            src={heroCardFront}
-            alt="Celebrait card"
-            className="h-full w-full rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
+      {/* The canvas BLEEDS past the square anchor so the ajar cover is
+          never clipped (Kevin's screenshot: card cut off at the frame).
+          framingMargin scales with the larger canvas so the card's
+          visual size in the anchor stays the same. */}
+      <div className="absolute inset-[-24%]">
+        <Suspense
+          fallback={
+            <img
+              src={heroCardFront}
+              alt="Celebrait card"
+              className="absolute inset-[24%] h-auto w-[52%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
+            />
+          }
+        >
+          <Card3DViewer
+            frontImageUrl={heroCardFront}
+            insideImageUrl={heroCardInside}
+            open={false}
+            interactive={false}
+            enableRotate={false}
+            enableZoom={false}
+            closedAngle={-0.55}
+            restYaw={-0.12}
+            framingMargin={1.75}
+            minDistance={1.2}
+            dprMax={1.5}
+            className="h-full w-full"
           />
-        }
-      >
-        <Card3DViewer
-          frontImageUrl={heroCardFront}
-          insideImageUrl={heroCardInside}
-          open={false}
-          interactive={false}
-          enableRotate={false}
-          enableZoom={false}
-          closedAngle={-0.55}
-          restYaw={-0.12}
-          framingMargin={1.2}
-          minDistance={1.2}
-          dprMax={1.5}
-          className="h-full w-full"
-        />
-      </Suspense>
+        </Suspense>
+      </div>
     </div>
   );
 }
 
-/** Modal 3D viewer — the "every example is clickable" payoff. Same
- *  pattern as the studio give-page modal: tap to open, drag to rotate,
- *  no zoom. */
-function CardPeekDialog({
-  open,
-  onOpenChange,
-  title,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  title: string;
-}) {
-  const [cardOpen, setCardOpen] = useState(false);
+/** Gallery tile — a clickable STATIC card (Kevin: "no need to open a
+ *  modal"). Click crossfades front → inside in place; click again to
+ *  close. Hero art is the stand-in for all six until D1–D6 are
+ *  generated (the D-tag chip marks the slot). */
+function FlipCard({ tag, what }: { tag: string; what: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="sr-only">{title}</DialogTitle>
-        </DialogHeader>
-        <div className="relative h-[44vh] w-full sm:h-[48vh]">
-          <div
-            className="absolute inset-x-[-6vw] bottom-[-2vh] top-[-2vh]"
-            style={{ filter: 'drop-shadow(0 18px 24px rgba(0,0,0,0.10))' }}
-          >
-            <Suspense fallback={null}>
-              {/* Stand-in art until D1–6 are generated — every card
-                  currently opens the hero card. Swap per-card assets in. */}
-              <Card3DViewer
-                frontImageUrl={heroCardFront}
-                insideImageUrl={heroCardInside}
-                open={cardOpen}
-                onOpenChange={setCardOpen}
-                enableZoom={false}
-                enableRotate
-                className="h-full w-full"
-              />
-            </Suspense>
-          </div>
-        </div>
-        <div className="mt-3">
-          <GestureHints open={cardOpen} hideZoomHint alwaysVisible />
-        </div>
-      </DialogContent>
-    </Dialog>
+    <button
+      type="button"
+      onClick={() => setOpen((o) => !o)}
+      className="group relative block w-full overflow-hidden rounded-2xl shadow-[0_18px_40px_-18px_rgba(33,29,25,0.28)] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
+      style={{ aspectRatio: '1/1' }}
+      data-testid={`gallery-card-${tag}`}
+      aria-label={`${what} — tap to see inside`}
+    >
+      <img
+        src={heroCardFront}
+        alt=""
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${open ? 'opacity-0' : 'opacity-100'}`}
+      />
+      <img
+        src={heroCardInside}
+        alt=""
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}
+      />
+      <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
+        {tag}
+      </span>
+      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
+        {open ? 'tap to close' : 'tap to peek inside'}
+      </span>
+    </button>
   );
 }
 
@@ -403,7 +391,6 @@ const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
 ];
 
 function GallerySection() {
-  const [peek, setPeek] = useState<number | null>(null);
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
@@ -412,20 +399,13 @@ function GallerySection() {
             Any face. Any occasion.
           </h2>
           <p className="mt-3 text-[15px] text-keeper-stone">
-            Made in the Studio this month — tap any card to open it.
+            Made in the Studio this month — tap any card to peek inside.
           </p>
         </Rise>
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
           {GALLERY.map((g, i) => (
             <Rise key={g.tag} delay={i * 0.08}>
-              <button
-                type="button"
-                onClick={() => setPeek(i)}
-                className="block w-full rounded-2xl transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
-                data-testid={`gallery-card-${g.tag}`}
-              >
-                <AssetSlot tag={g.tag} note={`${g.what} — tap to open in 3D`} />
-              </button>
+              <FlipCard tag={g.tag} what={g.what} />
               <div className="mt-2 flex items-center gap-2">
                 <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
                 <span className="text-[12px] text-keeper-stone">{g.brief}</span>
@@ -434,11 +414,6 @@ function GallerySection() {
           ))}
         </div>
       </div>
-      <CardPeekDialog
-        open={peek !== null}
-        onOpenChange={(o) => !o && setPeek(null)}
-        title={peek !== null ? GALLERY[peek].what : 'Card'}
-      />
     </section>
   );
 }
@@ -678,11 +653,11 @@ function FloatingPill() {
 
 export default function LandingKeeper() {
   return (
-    <div className="relative min-h-screen bg-keeper-paper">
-      {/* Floating celebration icons — Kevin's call to keep them (the
-          panel wanted them gone). Their own scroll logic fades them to
-          a faint floor after the hero, so the gallery stays calm. */}
-      <CelebrationBackdrop />
+    <div className="keeper-serif relative min-h-screen">
+      {/* Floating celebration icons — Kevin's call. The page paints NO
+          opaque background (that's what hid them before); the backdrop
+          supplies the warm-paper tint behind its icon field. */}
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" />
       <MarketingHeader />
       <main className="pt-20">
         <HeroSection />

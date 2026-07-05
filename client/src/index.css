@@ -217,3 +217,12 @@
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-500 { animation-delay: 0.5s; }
 }
+/* THE KEEPER (/keeper) — every headline in Fraunces Bold, including
+   those inside shared sections (FAQ, phone demo, video) mounted on the
+   page. Scoped so the old landing on / is untouched. */
+.keeper-serif h1,
+.keeper-serif h2,
+.keeper-serif h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+}
