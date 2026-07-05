@@ -467,25 +467,28 @@ function HeroSection() {
               </span>
             </div>
           </div>
-          {/* Hand-drawn violet arrow: starts under the snapshot,
-              curves down-and-right, tip pointing into the card face. */}
+          {/* Hand-drawn violet arrow living in the white strip LEFT of
+              the card art (card's visible left edge ≈13% of the column
+              — the arrow never crosses it): a wobbly pen stroke down
+              from under the snapshot, hooking right at the bottom to
+              point at the card. */}
           <svg
-            viewBox="0 0 100 100"
+            viewBox="0 0 60 140"
             aria-hidden="true"
-            className="pointer-events-none absolute left-[6%] top-[27%] w-[20%]"
+            className="pointer-events-none absolute left-0 top-[29%] w-[12.5%] -rotate-3"
           >
             <path
-              d="M 18 6 C 12 38, 26 62, 62 74"
+              d="M 27 6 C 15 26, 33 44, 23 66 C 15 84, 17 106, 48 123"
               fill="none"
               stroke="#5c57d4"
-              strokeWidth="3.5"
+              strokeWidth="3.2"
               strokeLinecap="round"
             />
             <path
-              d="M 50 78 L 66 75.5 L 56 62"
+              d="M 36 129 L 50 124 L 39.5 114"
               fill="none"
               stroke="#5c57d4"
-              strokeWidth="3.5"
+              strokeWidth="3.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
