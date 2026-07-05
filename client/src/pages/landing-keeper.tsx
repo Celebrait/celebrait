@@ -155,21 +155,26 @@ function StaticAjarCard({
   onOpenChange?: (open: boolean) => void;
 }) {
   return (
+    // pointer-events-none on the whole tree — the viewer's own hit
+    // zone re-enables itself (explicit auto beats inherited none), so
+    // taps land ONLY on the card and the bleed area never eats clicks
+    // on the hero text/CTA it overlaps.
     <div
-      className={`relative ${clickable ? '' : 'pointer-events-none'} ${className ?? ''}`}
+      className={`pointer-events-none relative ${className ?? ''}`}
       style={{ aspectRatio: '1/1' }}
     >
-      {/* The canvas BLEEDS past the square anchor so the ajar cover is
-          never clipped (Kevin's screenshot: card cut off at the frame).
-          framingMargin scales with the larger canvas so the card's
-          visual size in the anchor stays the same. */}
-      <div className="absolute inset-[-24%]">
+      {/* The canvas BLEEDS past the square anchor so the cover is
+          never clipped — x-bleed is much wider than y since the OPEN
+          cover swings ~55% of the card width past the spine (plus
+          perspective). Camera fit is height-driven, so widening the
+          canvas doesn't change the card's visual size. */}
+      <div className="absolute inset-y-[-24%] inset-x-[-55%]">
         <Suspense
           fallback={
             <img
               src={heroCardFront}
               alt="Celebrait card"
-              className="absolute inset-[24%] h-auto w-[52%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
+              className="absolute left-[30%] top-[21%] h-auto w-[40%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
             />
           }
         >
@@ -186,10 +191,11 @@ function StaticAjarCard({
             minDistance={1.2}
             dprMax={1.5}
             // Bleed wrapper breaks the auto hit-zone derivation (see
-            // viewer docs): explicit insets so the tap target hugs the
-            // visible card closed, and widens for the open spread.
-            hitZoneInsetPercent={24}
-            openHitZoneInsetPercent={10}
+            // viewer docs): explicit insets so the tap target roughly
+            // hugs the visible card closed, and widens for the open
+            // spread (percentages of the 210%×148% bleed box).
+            hitZoneInsetPercent={26}
+            openHitZoneInsetPercent={12}
             className="h-full w-full"
           />
         </Suspense>
@@ -492,7 +498,9 @@ function HeroSection() {
             done once the card takes over), green tap hint underneath.
             Snapshot STAND-IN: a crop of the card art itself (it IS the
             same people). Swap for the real A2 snapshot when it exists. */}
-        <Rise className="relative">
+        {/* z-10: the open cover swings LEFT over the text column —
+            Kevin: let it cover that text (don't clip it). */}
+        <Rise className="relative z-10">
           <StaticAjarCard clickable onOpenChange={setCardOpen} />
           <div
             className={`absolute -left-3 top-1 w-[27%] -rotate-6 transition-opacity duration-500 ${
@@ -518,8 +526,11 @@ function HeroSection() {
               </span>
             </div>
           </div>
-          {/* Green tap/click hint — fades out once the card opens. */}
-          <div className="mt-3">
+          {/* Green tap/click hint — fades out once the card opens.
+              FIXED-HEIGHT slot: the hints mount late + unmount on
+              open; without a reserved height the column reflows and
+              the card clunks down (same bug as the old landing). */}
+          <div className="mt-3 h-14">
             <GestureHints open={cardOpen} hideRotateHint hideZoomHint />
           </div>
         </Rise>

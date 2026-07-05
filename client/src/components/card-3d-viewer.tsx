@@ -1023,7 +1023,18 @@ function Card({
           castShadow
           receiveShadow
         >
-          <meshStandardMaterial map={coverBackTex} roughness={0.95} side={THREE.DoubleSide} />
+          {/* Emissive lift: this face is the inside-LEFT panel when
+              the card is open. Standard lighting leaves the white
+              paper reading grey next to the vivid inside art — the
+              emissive floor keeps it true blank-white, matching the
+              printed product (inside-left is unprinted stock). */}
+          <meshStandardMaterial
+            map={coverBackTex}
+            roughness={0.95}
+            side={THREE.DoubleSide}
+            emissive="#ffffff"
+            emissiveIntensity={0.4}
+          />
         </mesh>
       </group>
     </group>
