@@ -439,11 +439,12 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The real 3D card, static + ajar — with TWO square source
-            snapshots pinned to its corner (Kevin: "a couple of square
-            photos"). STAND-INS: two different crops of the card art
-            itself (it IS the same people), dressed as casual photos.
-            Swap for the real A2 snapshots when they exist. */}
+        {/* The real 3D card, static + ajar — with the square source
+            snapshot pinned to its corner and a violet arrow sweeping
+            from the snapshot down-right into the card: photo → card,
+            the whole product in one glance. STAND-IN: a crop of the
+            card art itself (it IS the same people), dressed as a
+            casual photo. Swap for the real A2 snapshot when it exists. */}
         <Rise className="relative">
           <StaticAjarCard />
           <div className="absolute -left-3 top-1 w-[27%] -rotate-6">
@@ -466,23 +467,29 @@ function HeroSection() {
               </span>
             </div>
           </div>
-          <div className="absolute -left-1 top-[26%] w-[24%] rotate-3">
-            <div
-              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.35)]"
-              style={{ aspectRatio: '1/1' }}
-            >
-              <img
-                src={heroCardFront}
-                alt="Second snapshot of the couple"
-                className="h-full w-full object-cover"
-                style={{
-                  objectPosition: '60% 42%',
-                  transform: 'scale(1.55)',
-                  transformOrigin: '60% 42%',
-                }}
-              />
-            </div>
-          </div>
+          {/* Hand-drawn violet arrow: starts under the snapshot,
+              curves down-and-right, tip pointing into the card face. */}
+          <svg
+            viewBox="0 0 100 100"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[6%] top-[27%] w-[20%]"
+          >
+            <path
+              d="M 18 6 C 12 38, 26 62, 62 74"
+              fill="none"
+              stroke="#5c57d4"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 50 78 L 66 75.5 L 56 62"
+              fill="none"
+              stroke="#5c57d4"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </Rise>
       </div>
     </section>
