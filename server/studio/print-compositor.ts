@@ -18,11 +18,60 @@
 // provider at order time, sourcing images from R2.
 
 import sharp from "sharp";
+import path from "path";
+import fs from "fs";
 
 const CANVAS_W = 6732;
 const CANVAS_H = 1713;
 const PANEL_W = Math.floor(CANVAS_W / 4); // 1683
 const PANEL_H = CANVAS_H;
+
+// ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
+// panel — matching the 3D render — and on the rear). Sizing mirrors
+// the render's cover-back texture: ~24% of the face width, sitting
+// ~6% off the bottom edge, centred.
+const LOGO_W = Math.round(PANEL_W * 0.24);
+const LOGO_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
+
+let logoOverlayPromise:
+  | Promise<{ input: Buffer; top: number; left: number } | null>
+  | null = null;
+
+/** Load + size the celebrait logo once per process. Resolution is
+ *  defensive because dev (tsx, this file at server/studio/) and prod
+ *  (esbuild bundle at dist/index.js) sit at different depths. A
+ *  missing logo must NEVER fail an order — we warn and print the
+ *  panels unbranded instead. */
+function loadLogoOverlay() {
+  if (!logoOverlayPromise) {
+    logoOverlayPromise = (async () => {
+      try {
+        const candidates = [
+          // dev: server/studio/ → repo root
+          path.resolve(import.meta.dirname, "..", "..", "client", "src", "assets", "celebrait.png"),
+          // prod: dist/ → repo root
+          path.resolve(import.meta.dirname, "..", "client", "src", "assets", "celebrait.png"),
+        ];
+        const file = candidates.find((p) => fs.existsSync(p));
+        if (!file) {
+          console.warn("[print-compositor] celebrait.png not found — printing unbranded panels");
+          return null;
+        }
+        const input = await sharp(file).resize(LOGO_W).png().toBuffer();
+        const meta = await sharp(input).metadata();
+        return {
+          input,
+          top: PANEL_H - (meta.height ?? 0) - LOGO_BOTTOM_MARGIN,
+          left: Math.round((PANEL_W - LOGO_W) / 2),
+        };
+      } catch (err) {
+        console.warn("[print-compositor] logo overlay failed — printing unbranded panels", err);
+        return null;
+      }
+    })();
+  }
+  return logoOverlayPromise;
+}
 const OFFSETS = {
   outerRear: 0,
   outerFront: PANEL_W,
@@ -60,9 +109,23 @@ async function blankPanel(): Promise<Buffer> {
     .toBuffer();
 }
 
+/** Inside-left panel — blank cream with the brand logo small at the
+ *  bottom, matching the 3D render's cover-back. */
+async function insideLeftPanel(): Promise<Buffer> {
+  const logo = await loadLogoOverlay();
+  const base = sharp({
+    create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
+  });
+  if (!logo) return base.png().toBuffer();
+  return base.composite([logo]).png().toBuffer();
+}
+
 /** Back-of-card panel — signed credit when the sender has a firstName,
- *  else a "Made with Celebrait" wordmark. Typography via composited SVG. */
+ *  else a "Made with Celebrait" wordmark. Typography via composited SVG.
+ *  Brand logo sits small at the bottom in both variants. */
 async function backPanel(senderFirstName: string | null): Promise<Buffer> {
+  const logo = await loadLogoOverlay();
+  const logoLayers = logo ? [logo] : [];
   const base = sharp({
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
@@ -86,7 +149,7 @@ async function backPanel(senderFirstName: string | null): Promise<Buffer> {
         <text x="${PANEL_W / 2}" y="${SMALLCAPS_SIZE + SMALL_LINE_GAP + NAME_SIZE + NAME_LINE_GAP + SMALLCAPS_SIZE}" class="smallcaps">USING CELEBRAIT</text>
       </svg>`;
     return base
-      .composite([{ input: Buffer.from(textSvg), top: BLOCK_TOP, left: 0 }])
+      .composite([{ input: Buffer.from(textSvg), top: BLOCK_TOP, left: 0 }, ...logoLayers])
       .png()
       .toBuffer();
   }
@@ -98,7 +161,7 @@ async function backPanel(senderFirstName: string | null): Promise<Buffer> {
       <text x="${PANEL_W / 2}" y="${PANEL_H / 2}" class="wordmark">Made with Celebrait</text>
     </svg>`;
   return base
-    .composite([{ input: Buffer.from(wordmarkSvg), top: 0, left: 0 }])
+    .composite([{ input: Buffer.from(wordmarkSvg), top: 0, left: 0 }, ...logoLayers])
     .png()
     .toBuffer();
 }
@@ -119,12 +182,12 @@ export interface ComposeStripOpts {
  *  Layout is the same regardless of delivery mode (DIR vs BLA): the SKU
  *  differs (packaging), and whether a written message is present is baked
  *  into `insideBuffer` at generation time — not decided here. Inside-left
- *  stays blank cream (the reverse of the front cover); the inside artwork
- *  sits on the right. */
+ *  is blank cream with the brand logo small at the bottom (matching the
+ *  3D render); the inside artwork sits on the right. */
 export async function composeCardPrintStrip(opts: ComposeStripOpts): Promise<Buffer> {
   const rearBuf = await backPanel(opts.senderFirstName ?? null);
   const frontBuf = await panelFromBuffer(opts.frontBuffer);
-  const insideFrontBuf = await blankPanel(); // left half — blank cream
+  const insideFrontBuf = await insideLeftPanel(); // left half — cream + logo
   const innerBackBuf = opts.insideBuffer
     ? await panelFromBuffer(opts.insideBuffer)
     : await blankPanel();
