@@ -46,6 +46,10 @@ import { ErrorBoundary } from "@/components/error-boundary";
 // Critical-path or trivially small. Worth shipping in the main chunk.
 import { AuthModalProvider } from "@/components/auth/auth-modal";
 import Landing from "@/pages/landing";
+// THE KEEPER preview — the LP rebuild lives at /keeper while its asset
+// slots are empty; swaps to "/" once Kevin's imagery lands. Lazy: no
+// reason for it in the first-paint chunk.
+const LandingKeeper = lazy(() => import("@/pages/landing-keeper"));
 import LoginPage from "@/pages/login";
 import PricingPage from "@/pages/pricing";
 import NotFound from "@/pages/not-found";
@@ -126,6 +130,7 @@ function Router() {
       <Suspense fallback={<RouteFallback />}>
         <Switch>
           <Route path="/" component={Landing} />
+          <Route path="/keeper" component={LandingKeeper} />
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />

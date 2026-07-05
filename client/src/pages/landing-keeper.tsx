@@ -1,4 +1,9 @@
-// client/src/pages/landing.tsx
+// client/src/pages/landing-keeper.tsx (PREVIEW at /keeper)
+//
+// Becomes the live landing once the 13 asset slots hold real imagery.
+// Kevin's verdict on the empty skeleton: "kinda poor" — the judge's
+// predicted failure mode for placeholders in a proof-driven layout.
+// The previous landing is restored on / meanwhile.
 //
 // THE KEEPER — the landing page as a warm-paper gallery (rebuilt
 // 2026-07-04 from the 10-agent panel blueprint; full spec in memory
