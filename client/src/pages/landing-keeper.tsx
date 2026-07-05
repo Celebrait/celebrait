@@ -271,7 +271,25 @@ function KeeperHeader() {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[150] px-4 pt-4">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[150]">
+      {/* Production-promise banner — brand violet → CTA green (Kevin
+          2026-07-05). Same 72h copy the ValueStrip carried mid-page;
+          it lives up here now instead. */}
+      <div
+        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
+        style={{
+          background: 'linear-gradient(90deg, #5c57d4 0%, #4ac437 100%)',
+        }}
+      >
+        <span className="sm:hidden">
+          Printed to order in 72 hrs — £8.99 + delivery.
+        </span>
+        <span className="hidden sm:inline">
+          Every card is printed to order, just for them — allow up to 72 hrs,
+          then posted. £8.99 + delivery.
+        </span>
+      </div>
+      <div className="px-4 pt-3">
       <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
         <Link href="/" className="flex items-center" aria-label="Celebrait home">
           <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto sm:h-9" />
@@ -323,6 +341,7 @@ function KeeperHeader() {
           )}
         </div>
       </header>
+      </div>
     </div>
   );
 }
@@ -473,22 +492,11 @@ function HeroSection() {
   );
 }
 
-function ValueStrip() {
-  return (
-    <div className="border-y border-keeper-hair bg-white/50">
-      <p className="mx-auto max-w-6xl px-6 py-3 text-center text-[12.5px] text-keeper-stone">
-        Every card is printed to order, just for them — allow up to 72 hrs, then
-        posted. £8.99 + delivery.
-      </p>
-    </div>
-  );
-}
-
 // ── 2. PROOF — One photo. One line. ──────────────────────────────────
 
 function ProofSection() {
   return (
-    <section id="proof" className="scroll-mt-24 px-6 py-24 md:py-32">
+    <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
@@ -574,7 +582,7 @@ const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
 function GallerySection() {
   const [active, setActive] = useState<number | null>(null);
   return (
-    <section id="gallery" className="scroll-mt-24 px-6 py-24 md:py-32">
+    <section id="gallery" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
         <Rise className="text-center">
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
@@ -752,7 +760,7 @@ function FreePartSection() {
 
 function PriceSection() {
   return (
-    <section id="price" className="scroll-mt-24 px-6 py-24 md:py-32">
+    <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
           <div className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>£8.99</div>
@@ -868,9 +876,8 @@ export default function LandingKeeper() {
         permanentFade
       />
       <KeeperHeader />
-      <main className="pt-20">
+      <main className="pt-32">
         <HeroSection />
-        <ValueStrip />
         <ProofSection />
         <InsideSection />
         <StatementSection />
