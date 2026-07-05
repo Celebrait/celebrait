@@ -139,13 +139,26 @@ function TrustChips({ center = false }: { center?: boolean }) {
   );
 }
 
-/** The real 3D card, frozen ajar as a static visual (Kevin: "we have a
- *  great 3d card asset that can be used static"). Non-interactive —
- *  clicks pass through; the interactive versions live in the gallery
- *  dialogs + the Free Part section. */
-function StaticAjarCard({ className }: { className?: string }) {
+/** The real 3D card, resting ajar (Kevin: "we have a great 3d card
+ *  asset that can be used static"). Since 2026-07-05 the HERO copy is
+ *  clickable — tap/click swings the cover open (the viewer's ONLY
+ *  enabled gesture: no rotate, no zoom) and reports open state up so
+ *  the hero can fade the source polaroid + hints. Pass no
+ *  `onOpenChange` for the truly static uses. */
+function StaticAjarCard({
+  className,
+  clickable = false,
+  onOpenChange,
+}: {
+  className?: string;
+  clickable?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   return (
-    <div className={`pointer-events-none relative ${className ?? ''}`} style={{ aspectRatio: '1/1' }}>
+    <div
+      className={`relative ${clickable ? '' : 'pointer-events-none'} ${className ?? ''}`}
+      style={{ aspectRatio: '1/1' }}
+    >
       {/* The canvas BLEEDS past the square anchor so the ajar cover is
           never clipped (Kevin's screenshot: card cut off at the frame).
           framingMargin scales with the larger canvas so the card's
@@ -163,8 +176,8 @@ function StaticAjarCard({ className }: { className?: string }) {
           <Card3DViewer
             frontImageUrl={heroCardFront}
             insideImageUrl={heroCardInside}
-            open={false}
-            interactive={false}
+            interactive={clickable}
+            onOpenChange={onOpenChange}
             enableRotate={false}
             enableZoom={false}
             closedAngle={-0.55}
@@ -172,6 +185,11 @@ function StaticAjarCard({ className }: { className?: string }) {
             framingMargin={1.75}
             minDistance={1.2}
             dprMax={1.5}
+            // Bleed wrapper breaks the auto hit-zone derivation (see
+            // viewer docs): explicit insets so the tap target hugs the
+            // visible card closed, and widens for the open spread.
+            hitZoneInsetPercent={24}
+            openHitZoneInsetPercent={10}
             className="h-full w-full"
           />
         </Suspense>
@@ -364,6 +382,9 @@ function HeroSection() {
   const reduced = useReducedMotion();
   const [persona, setPersona] = useState(0);
   const [visible, setVisible] = useState(true);
+  // Card open state lives here (viewer self-manages the hinge; this
+  // mirror drives the snapshot fade + the tap hint).
+  const [cardOpen, setCardOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -466,15 +487,18 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The real 3D card, static + ajar — with the square source
-            snapshot pinned to its corner: photo → card in one glance.
-            STAND-IN: a crop of the card art itself (it IS the same
-            people), dressed as a casual photo. Swap for the real A2
-            snapshot when it exists. (A violet annotation arrow lived
-            here briefly — cut 2026-07-05, Kevin: remove entirely.) */}
+        {/* The real 3D card, ajar + CLICKABLE (Kevin 2026-07-05) — tap
+            swings it open, the source snapshot fades out (its job is
+            done once the card takes over), green tap hint underneath.
+            Snapshot STAND-IN: a crop of the card art itself (it IS the
+            same people). Swap for the real A2 snapshot when it exists. */}
         <Rise className="relative">
-          <StaticAjarCard />
-          <div className="absolute -left-3 top-1 w-[27%] -rotate-6">
+          <StaticAjarCard clickable onOpenChange={setCardOpen} />
+          <div
+            className={`absolute -left-3 top-1 w-[27%] -rotate-6 transition-opacity duration-500 ${
+              cardOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
+            }`}
+          >
             <div
               className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
               style={{ aspectRatio: '1/1' }}
@@ -493,6 +517,10 @@ function HeroSection() {
                 A2
               </span>
             </div>
+          </div>
+          {/* Green tap/click hint — fades out once the card opens. */}
+          <div className="mt-3">
+            <GestureHints open={cardOpen} hideRotateHint hideZoomHint />
           </div>
         </Rise>
       </div>
