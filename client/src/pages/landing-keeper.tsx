@@ -280,7 +280,7 @@ function KeeperHeader() {
           2026-07-05). Same 72h copy the ValueStrip carried mid-page;
           it lives up here now instead. */}
       <div
-        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
+        className="pointer-events-auto flex h-10 items-center justify-center border-b border-keeper-hair px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
         style={{
           // Kevin walked the banner down four steps (violet→green,
           // faded violet, lavender wash, purple-from-the-right) and
