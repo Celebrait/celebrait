@@ -1,39 +1,23 @@
 // client/src/pages/landing-keeper.tsx (PREVIEW at /keeper)
 //
-// Becomes the live landing once the 13 asset slots hold real imagery.
-// Kevin's verdict on the empty skeleton: "kinda poor" — the judge's
-// predicted failure mode for placeholders in a proof-driven layout.
-// The previous landing is restored on / meanwhile.
+// THE KEEPER — the landing rebuild, evolving under Kevin's direction.
+// Becomes the live landing when he calls it. Panel blueprint in
+// next_lp_keeper_blueprint.md; Kevin's revisions 2026-07-04:
+//   • Fraunces BOLD on every display headline (font-display; loaded in
+//     index.html). Inter for body/UI. The old crime was the serif
+//     vanishing halfway — here it's on EVERY headline, no exceptions.
+//   • Cards are SQUARE (5.5" product) — every card slot is 1:1.
+//   • The real 3D card asset used STATIC (ajar, non-interactive) as
+//     the hero visual; every gallery example CLICKABLE → opens the
+//     interactive 3D viewer in a dialog.
+//   • CelebrationBackdrop (floating icons), ImagineDescribeShip
+//     (animated phone) and DemoVideoSection (walkthrough placeholder)
+//     restored — founder call, overriding the panel's deletions.
 //
-// THE KEEPER — the landing page as a warm-paper gallery (rebuilt
-// 2026-07-04 from the 10-agent panel blueprint; full spec in memory
-// next_lp_keeper_blueprint.md + the published artifact).
-//
-// Big idea: stop describing magic; hang it on a wall. Finished cards —
-// real faces, real scenes — are the ONLY colour and the ONLY
-// decoration. Every screen makes exactly one claim and proves it with
-// one image.
-//
-// DESIGN LAWS (no exceptions — the page is a coherence machine):
-//   • Palette: keeper.* gallery neutrals + ONE marigold accent.
-//   • One typeface (Inter), three sizes only: display
-//     clamp(44–76px)/600/-0.03em · body 17px/1.6 · labels 11px caps.
-//   • Motion budget: ONE animated element per viewport; after its
-//     entrance everything is static. The page's single signature move
-//     is the hero snapshot→card crossfade (once assets land). No
-//     loops, no idle rotation, NO SCROLL-SNAP (deleted — the CSS
-//     re-invention of twice-rejected scroll-jacking).
-//   • Zero "coming soon": build steps, chat mock, demo video, blog
-//     teasers, emoji backdrop all unmounted (files kept on disk).
-//   • One WebGL context, lazy: three.js leaves the eager bundle; the
-//     3D card mounts near-view only, in section 6.
-//
-// ASSET SLOTS (Kevin generates in the Studio with consented photos —
-// tags match the blueprint): A hero card + A2 source snapshot ·
-// B proof card + B2 snapshot · D1–D6 gallery · E print macro photo
-// (needs the paid Prodigi test print). Swap <AssetSlot> → <img> as
-// each lands. The structure promises proof everywhere, so DON'T ship
-// this page to real traffic until A/A2/B/B2/D1–6 are real.
+// ASSET SLOTS still to fill (Kevin, in the Studio, consented photos):
+// A2/B2 source snapshots · B proof card · C inside spread · D1–D6
+// gallery cards · E print macro photo (needs the Prodigi test print).
+// Gallery dialogs use the hero card as a stand-in until D1–6 land.
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
@@ -43,12 +27,20 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { MarketingHeader } from '@/components/landing/marketing-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { FaqSection } from '@/components/landing/faq-section';
+import { DemoVideoSection } from '@/components/landing/demo-video-section';
+import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { GestureHints } from '@/components/gesture-hints';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import heroCardFront from '@/assets/hero-card-front.jpg';
 import heroCardInside from '@/assets/hero-card-inside.jpg';
 
-// three.js stays OUT of the eager landing bundle (mobile audit: 1.4MB
-// raw in the critical path). Loaded only when section 6 nears view.
+// three.js loads on demand only (hero static card + gallery dialogs).
 const Card3DViewer = lazy(() =>
   import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),
 );
@@ -56,8 +48,10 @@ const Card3DViewer = lazy(() =>
 // ── Shared bits ──────────────────────────────────────────────────────
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+// Fraunces Bold for every display headline (Kevin 2026-07-04). Serif
+// wants gentler negative tracking than the grotesque did.
+const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 
-/** Entrance-only fade — the ONLY motion pattern outside the hero. */
 function Rise({
   children,
   delay = 0,
@@ -80,18 +74,16 @@ function Rise({
   );
 }
 
-/** Tagged placeholder for a not-yet-generated asset. Swap for <img>
- *  as Kevin's Studio-generated assets land. Deliberately looks like a
- *  labelled frame, not a broken image. */
+/** Tagged placeholder for a not-yet-generated asset. Cards are SQUARE. */
 function AssetSlot({
   tag,
   note,
-  ratio,
+  ratio = '1/1',
   className,
 }: {
   tag: string;
   note: string;
-  ratio: string;
+  ratio?: string;
   className?: string;
 }) {
   return (
@@ -107,7 +99,6 @@ function AssetSlot({
   );
 }
 
-/** One CTA to rule them all. */
 function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
@@ -147,6 +138,88 @@ function TrustChips({ center = false }: { center?: boolean }) {
   );
 }
 
+/** The real 3D card, frozen ajar as a static visual (Kevin: "we have a
+ *  great 3d card asset that can be used static"). Non-interactive —
+ *  clicks pass through; the interactive versions live in the gallery
+ *  dialogs + the Free Part section. */
+function StaticAjarCard({ className }: { className?: string }) {
+  return (
+    <div className={`pointer-events-none relative ${className ?? ''}`} style={{ aspectRatio: '1/1' }}>
+      <Suspense
+        fallback={
+          <img
+            src={heroCardFront}
+            alt="Celebrait card"
+            className="h-full w-full rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
+          />
+        }
+      >
+        <Card3DViewer
+          frontImageUrl={heroCardFront}
+          insideImageUrl={heroCardInside}
+          open={false}
+          interactive={false}
+          enableRotate={false}
+          enableZoom={false}
+          closedAngle={-0.55}
+          restYaw={-0.12}
+          framingMargin={1.2}
+          minDistance={1.2}
+          dprMax={1.5}
+          className="h-full w-full"
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Modal 3D viewer — the "every example is clickable" payoff. Same
+ *  pattern as the studio give-page modal: tap to open, drag to rotate,
+ *  no zoom. */
+function CardPeekDialog({
+  open,
+  onOpenChange,
+  title,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  title: string;
+}) {
+  const [cardOpen, setCardOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="sr-only">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="relative h-[44vh] w-full sm:h-[48vh]">
+          <div
+            className="absolute inset-x-[-6vw] bottom-[-2vh] top-[-2vh]"
+            style={{ filter: 'drop-shadow(0 18px 24px rgba(0,0,0,0.10))' }}
+          >
+            <Suspense fallback={null}>
+              {/* Stand-in art until D1–6 are generated — every card
+                  currently opens the hero card. Swap per-card assets in. */}
+              <Card3DViewer
+                frontImageUrl={heroCardFront}
+                insideImageUrl={heroCardInside}
+                open={cardOpen}
+                onOpenChange={setCardOpen}
+                enableZoom={false}
+                enableRotate
+                className="h-full w-full"
+              />
+            </Suspense>
+          </div>
+        </div>
+        <div className="mt-3">
+          <GestureHints open={cardOpen} hideZoomHint alwaysVisible />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── 1. HERO — The Transformation ─────────────────────────────────────
 
 const PERSONAS = ['your mum', 'your best mate', 'the birthday girl', 'grandad'];
@@ -157,9 +230,6 @@ function HeroSection() {
   const [visible, setVisible] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Rotating persona word — 3.5s crossfade timer, paused when the hero
-  // is off-screen, static under prefers-reduced-motion. This + the
-  // (future) snapshot→card crossfade are the hero's ONE motion moment.
   useEffect(() => {
     if (reduced) return;
     const el = sectionRef.current;
@@ -190,20 +260,20 @@ function HeroSection() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} className="px-6 pb-20 pt-28 md:pt-36 md:pb-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.1fr_0.9fr] md:gap-16">
+    <section ref={sectionRef} className="px-6 pb-20 pt-28 md:pb-28 md:pt-36">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
             Personalised printed cards
           </p>
-          <h1 className="mt-4 text-[clamp(44px,7vw,76px)] font-semibold leading-[1.02] tracking-[-0.03em] text-keeper-ink [text-wrap:balance]">
+          <h1 className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
             Put{' '}
-            <span
-              className="text-keeper-gold transition-opacity duration-300"
+            <em
+              className="italic text-keeper-gold transition-opacity duration-300"
               style={{ opacity: visible ? 1 : 0 }}
             >
               {PERSONAS[persona]}
-            </span>
+            </em>
             <br />
             in the picture.
           </h1>
@@ -221,19 +291,12 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The money shot: finished card with the source snapshot
-            "paperclipped" to its corner. When A/A2 land, the snapshot
-            crossfades once into the card art on load — the page's
-            signature motion. Until then: labelled slots. */}
+        {/* The real 3D card, static + ajar — with the source-snapshot
+            slot paperclipped to its corner (A2 still to generate). */}
         <Rise className="relative">
-          <AssetSlot
-            tag="A"
-            ratio="4/5"
-            note="Finished card front — a recognisable face mid-scene (grandad on a fishing boat, golden hour)"
-            className="shadow-[0_28px_60px_-24px_rgba(33,29,25,0.25)]"
-          />
-          <div className="absolute -left-3 -top-3 w-[34%] -rotate-6">
-            <AssetSlot tag="A2" ratio="3/4" note="Source snapshot — same person" className="bg-white" />
+          <StaticAjarCard />
+          <div className="absolute -left-2 top-2 w-[30%] -rotate-6">
+            <AssetSlot tag="A2" ratio="3/4" note="Source snapshot — the same person" className="bg-white" />
           </div>
         </Rise>
       </div>
@@ -241,8 +304,6 @@ function HeroSection() {
   );
 }
 
-// In-flow value strip — the honest 72h line, scrolls away with the
-// page (replaces the fixed PromoStrip chrome).
 function ValueStrip() {
   return (
     <div className="border-y border-keeper-hair bg-white/50">
@@ -261,7 +322,7 @@ function ProofSection() {
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
         <Rise>
-          <h2 className="text-[clamp(30px,4.4vw,44px)] font-semibold leading-[1.06] tracking-[-0.03em] text-keeper-ink [text-wrap:balance]">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             One photo. One line. That's all we need.
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
@@ -276,8 +337,7 @@ function ProofSection() {
           </p>
           <AssetSlot
             tag="B"
-            ratio="4/5"
-            note="The card that exact sentence produced (generate it for real — setup must equal payoff)"
+            note="The card that exact sentence produced (square, 1:1)"
             className="w-56"
           />
         </Rise>
@@ -286,18 +346,14 @@ function ProofSection() {
   );
 }
 
-// ── 2b. THE INSIDE — the second half of the USP ──────────────────────
-// Most cards are blank or plain-type inside; Celebrait paints the
-// message in the front's own style. One claim, one provable image
-// (Kevin 2026-07-04: "a big USP is the fact the inside is custom text
-// with artwork styled to match the front").
+// ── 2b. THE INSIDE ───────────────────────────────────────────────────
 
 function InsideSection() {
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <Rise>
-          <h2 className="text-[clamp(30px,4.4vw,44px)] font-semibold leading-[1.06] tracking-[-0.03em] text-keeper-ink [text-wrap:balance]">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Your words, in the card's own hand.
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-stone">
@@ -310,7 +366,7 @@ function InsideSection() {
           <AssetSlot
             tag="C"
             ratio="2/1"
-            note="Open card spread — the inside message in matching typography + artwork (compose from a real Studio inside render; left panel blank for handwriting)"
+            note="Open card spread — inside message in matching typography + artwork (left panel blank for handwriting)"
           />
         </Rise>
       </div>
@@ -318,16 +374,16 @@ function InsideSection() {
   );
 }
 
-// ── 3. STATEMENT — The pause ─────────────────────────────────────────
+// ── 3. STATEMENT ─────────────────────────────────────────────────────
 
 function StatementSection() {
   return (
     <section className="flex min-h-[70vh] items-center justify-center px-6">
       <Rise className="text-center">
-        <h2 className="text-[clamp(38px,6vw,64px)] font-semibold leading-[1.05] tracking-[-0.03em] text-keeper-ink [text-wrap:balance]">
+        <h2 className={`text-[clamp(38px,6vw,64px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
           Everyone gets cards.
           <br />
-          Nobody <em className="font-normal italic">gets</em> them.
+          Nobody <em className="italic">gets</em> them.
         </h2>
         <p className="mt-5 text-[15px] text-keeper-stone">This is the unbinnable kind.</p>
       </Rise>
@@ -335,7 +391,7 @@ function StatementSection() {
   );
 }
 
-// ── 4. RANGE — The gallery wall ──────────────────────────────────────
+// ── 4. RANGE — The gallery wall (every card clickable) ──────────────
 
 const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
   { tag: 'D1', what: "Kid's birthday", brief: '“Leo, 7, dinosaur mad”' },
@@ -347,24 +403,30 @@ const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
 ];
 
 function GallerySection() {
+  const [peek, setPeek] = useState<number | null>(null);
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
         <Rise className="text-center">
-          <h2 className="text-[clamp(30px,4.4vw,44px)] font-semibold leading-[1.06] tracking-[-0.03em] text-keeper-ink">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
             Any face. Any occasion.
           </h2>
           <p className="mt-3 text-[15px] text-keeper-stone">
-            Made in the Studio this month — each from one photo and one line.
+            Made in the Studio this month — tap any card to open it.
           </p>
         </Rise>
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
           {GALLERY.map((g, i) => (
             <Rise key={g.tag} delay={i * 0.08}>
-              <AssetSlot tag={g.tag} ratio="4/5" note={g.what} />
+              <button
+                type="button"
+                onClick={() => setPeek(i)}
+                className="block w-full rounded-2xl transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
+                data-testid={`gallery-card-${g.tag}`}
+              >
+                <AssetSlot tag={g.tag} note={`${g.what} — tap to open in 3D`} />
+              </button>
               <div className="mt-2 flex items-center gap-2">
-                {/* Source-photo thumbnail (graft #5): provenance you can
-                    see — six mini before/afters. */}
                 <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
                 <span className="text-[12px] text-keeper-stone">{g.brief}</span>
               </div>
@@ -372,11 +434,16 @@ function GallerySection() {
           ))}
         </div>
       </div>
+      <CardPeekDialog
+        open={peek !== null}
+        onOpenChange={(o) => !o && setPeek(null)}
+        title={peek !== null ? GALLERY[peek].what : 'Card'}
+      />
     </section>
   );
 }
 
-// ── 5. THE OBJECT — Paper you can feel ───────────────────────────────
+// ── 5. THE OBJECT ────────────────────────────────────────────────────
 
 function ObjectSection() {
   return (
@@ -390,7 +457,7 @@ function ObjectSection() {
           />
         </Rise>
         <Rise delay={0.1}>
-          <h2 className="text-[clamp(30px,4.4vw,44px)] font-semibold leading-[1.06] tracking-[-0.03em] text-keeper-ink">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
             Made to be kept.
           </h2>
           <ul className="mt-6 space-y-2 text-[16px] text-keeper-ink">
@@ -406,9 +473,6 @@ function ObjectSection() {
           <p className="mt-4 font-mono text-[12px] text-keeper-stone">
             Today you make it → within 72 hrs it's printed → then posted from £1.95
           </p>
-          {/* Delivery, your way — direct or hand-it-over (DIR vs BLA;
-              Kevin: "the user can choose to deliver direct to recipient
-              OR to them to hand over"). Quiet row, not a new screen. */}
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-keeper-hair bg-white/70 p-4">
               <p className="text-[13px] font-semibold text-keeper-ink">Straight to them</p>
@@ -429,7 +493,7 @@ function ObjectSection() {
   );
 }
 
-// ── 6. THE FREE PART — the one earned WebGL moment ───────────────────
+// ── 6. THE FREE PART — interactive 3D + reminders beat ──────────────
 
 function FreePartSection() {
   const reduced = useReducedMotion();
@@ -437,8 +501,6 @@ function FreePartSection() {
   const [near, setNear] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
 
-  // Lazy-mount the 3D card (and three.js itself) only when the section
-  // is within ~1 viewport. Flat card image is the instant stand-in.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -467,7 +529,7 @@ function FreePartSection() {
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
         <Rise>
-          <h2 className="text-[clamp(30px,4.4vw,44px)] font-semibold leading-[1.06] tracking-[-0.03em] text-keeper-ink [text-wrap:balance]">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             And this comes free with every card.
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
@@ -504,7 +566,6 @@ function FreePartSection() {
         </div>
       </div>
 
-      {/* Slim reminders beat (graft #7) — the retention hook. */}
       <Rise className="mx-auto mt-16 max-w-3xl text-center">
         <div className="flex justify-center gap-2">
           {['21 days', '7 days', '3 days'].map((d) => (
@@ -525,16 +586,14 @@ function FreePartSection() {
   );
 }
 
-// ── 7. PRICE — one number ────────────────────────────────────────────
+// ── 7. PRICE ─────────────────────────────────────────────────────────
 
 function PriceSection() {
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
-          <div className="text-[clamp(56px,9vw,96px)] font-semibold tracking-[-0.03em] text-keeper-ink">
-            £8.99
-          </div>
+          <div className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>£8.99</div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
             Printed, posted, and free to share. Make and preview unlimited
             cards free — pay only when you post one. Postage from £1.95 ·
@@ -550,20 +609,33 @@ function PriceSection() {
   );
 }
 
-// ── 8. FINALE — wordmark band ────────────────────────────────────────
+// ── 8. FINALE ────────────────────────────────────────────────────────
 
 function FinaleSection() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
+  const authed = !isLoading && isAuthenticated;
+  const cls =
+    'inline-flex items-center justify-center rounded-full bg-keeper-paper px-9 py-4 text-base font-semibold text-keeper-ink transition-colors hover:bg-white';
   return (
     <section className="bg-keeper-ink px-6 py-20 text-center md:py-28">
       <Rise>
         <p className="text-[17px] text-keeper-paper/80">
           You bring the person. We paint the moment.
         </p>
-        <div className="mt-6 text-[clamp(56px,12vw,140px)] font-semibold leading-none tracking-[-0.03em] text-keeper-paper">
+        <div className="mt-6 font-display text-[clamp(56px,12vw,140px)] font-bold leading-none tracking-[-0.01em] text-keeper-paper">
           Celebrait
         </div>
         <div className="mt-10">
-          <PrimaryCtaInverted />
+          {authed ? (
+            <Link href="/studio/new-card" className={cls}>
+              Make a card — it's free
+            </Link>
+          ) : (
+            <button type="button" onClick={() => openAuth('/studio/new-card')} className={cls}>
+              Make a card — it's free
+            </button>
+          )}
         </div>
         <p className="mt-4 text-[12.5px] text-keeper-paper/60">
           Free to make. £8.99 to print and post. We'll even remind you before
@@ -574,32 +646,13 @@ function FinaleSection() {
   );
 }
 
-function PrimaryCtaInverted() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
-  const authed = !isLoading && isAuthenticated;
-  const cls =
-    'inline-flex items-center justify-center rounded-full bg-keeper-paper px-9 py-4 text-base font-semibold text-keeper-ink transition-colors hover:bg-white';
-  return authed ? (
-    <Link href="/studio/new-card" className={cls}>
-      Make a card — it's free
-    </Link>
-  ) : (
-    <button type="button" onClick={() => openAuth('/studio/new-card')} className={cls}>
-      Make a card — it's free
-    </button>
-  );
-}
-
-// ── Floating CTA pill (graft #3) — appears after the hero ────────────
+// ── Floating CTA pill ────────────────────────────────────────────────
 
 function FloatingPill() {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
-      // Visible after ~1 viewport, retires near the finale band (the
-      // last 1.5 viewports) where the big inverted CTA takes over.
       const max = document.documentElement.scrollHeight - window.innerHeight;
       setShow(y > window.innerHeight * 0.9 && y < max - window.innerHeight * 1.5);
     };
@@ -623,9 +676,13 @@ function FloatingPill() {
 
 // ── Page ─────────────────────────────────────────────────────────────
 
-export default function Landing() {
+export default function LandingKeeper() {
   return (
     <div className="relative min-h-screen bg-keeper-paper">
+      {/* Floating celebration icons — Kevin's call to keep them (the
+          panel wanted them gone). Their own scroll logic fades them to
+          a faint floor after the hero, so the gallery stays calm. */}
+      <CelebrationBackdrop />
       <MarketingHeader />
       <main className="pt-20">
         <HeroSection />
@@ -636,6 +693,10 @@ export default function Landing() {
         <GallerySection />
         <ObjectSection />
         <FreePartSection />
+        {/* Imagine it → describe it → send it (animated phone) + the
+            demo-walkthrough video slot — restored on Kevin's call. */}
+        <ImagineDescribeShipSection />
+        <DemoVideoSection />
         <PriceSection />
         <FaqSection />
         <FinaleSection />
