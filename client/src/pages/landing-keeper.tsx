@@ -282,10 +282,12 @@ function KeeperHeader() {
       <div
         className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
         style={{
-          // Soft lavender wash (Kevin stepped the banner down twice:
-          // green "a little strong", then the solid violet too) —
-          // brand.light fading toward brand.muted, deep-violet text.
-          background: 'linear-gradient(90deg, #e5e4f9 0%, #f2f1fb 100%)',
+          // Kevin's spec: brand purple melting into the lighter wash,
+          // right to left — purple lives at the right edge and settles
+          // to lavender by the middle, so the centred deep-violet text
+          // always sits on the light end.
+          background:
+            'linear-gradient(270deg, #5c57d4 0%, #8f8cee 12%, #e5e4f9 45%, #f2f1fb 100%)',
         }}
       >
         <span className="sm:hidden">
@@ -400,7 +402,7 @@ function HeroSection() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} className="px-6 pb-20 pt-6 md:pb-28 md:pt-10">
+    <section ref={sectionRef} className="px-6 pb-20 pt-6 md:pb-28 md:pt-16">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
