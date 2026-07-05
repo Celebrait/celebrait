@@ -282,12 +282,11 @@ function KeeperHeader() {
       <div
         className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-[#4a45c0] sm:text-[12.5px]"
         style={{
-          // Kevin's spec: brand purple melting into the lighter wash,
-          // right to left — purple lives at the right edge and settles
-          // to lavender by the middle, so the centred deep-violet text
-          // always sits on the light end.
-          background:
-            'linear-gradient(270deg, #5c57d4 0%, #8f8cee 12%, #e5e4f9 45%, #f2f1fb 100%)',
+          // Kevin walked the banner down four steps (violet→green,
+          // faded violet, lavender wash, purple-from-the-right) and
+          // landed on flat brand.muted: "that far left colour will be
+          // fine all the way through, go light."
+          background: '#f2f1fb',
         }}
       >
         <span className="sm:hidden">
