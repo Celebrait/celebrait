@@ -8,8 +8,9 @@
 //     vanishing halfway — here it's on EVERY headline, no exceptions.
 //   • Cards are SQUARE (5.5" product) — every card slot is 1:1.
 //   • The real 3D card asset used STATIC (ajar, non-interactive) as
-//     the hero visual; every gallery example is a clickable STATIC
-//     asset — click crossfades front → inside IN PLACE (no modal).
+//     the hero visual; gallery examples open IN PLACE with the REAL 3D
+//     hinge — one live WebGL tile at a time (click another, it takes
+//     the engine and the previous reverts to a still). No modals.
 //   • CelebrationBackdrop (floating icons), ImagineDescribeShip
 //     (animated phone) and DemoVideoSection (walkthrough placeholder)
 //     restored — founder call, overriding the panel's deletions.
@@ -173,38 +174,82 @@ function StaticAjarCard({ className }: { className?: string }) {
   );
 }
 
-/** Gallery tile — a clickable STATIC card (Kevin: "no need to open a
- *  modal"). Click crossfades front → inside in place; click again to
- *  close. Hero art is the stand-in for all six until D1–D6 are
- *  generated (the D-tag chip marks the slot). */
-function FlipCard({ tag, what }: { tag: string; what: string }) {
+/** Gallery tile. At rest: a static card front. Clicked: it becomes
+ *  THE live 3D card and the cover swings open with the real hinge
+ *  (Kevin: "need to feel like an actual card opening, not switching
+ *  between square images"). Only ONE tile runs WebGL at a time — the
+ *  previously active tile reverts to its still — so six examples cost
+ *  one canvas. Hero art is the stand-in until D1–D6 are generated. */
+function GalleryCard({
+  tag,
+  what,
+  active,
+  onActivate,
+}: {
+  tag: string;
+  what: string;
+  active: boolean;
+  onActivate: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  // Swing open shortly after the live viewer mounts, so the visitor
+  // sees the hinge animate rather than an already-open card.
+  useEffect(() => {
+    if (!active) {
+      setOpen(false);
+      return;
+    }
+    const t = window.setTimeout(() => setOpen(true), 250);
+    return () => window.clearTimeout(t);
+  }, [active]);
+
   return (
-    <button
-      type="button"
-      onClick={() => setOpen((o) => !o)}
-      className="group relative block w-full overflow-hidden rounded-2xl shadow-[0_18px_40px_-18px_rgba(33,29,25,0.28)] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
-      style={{ aspectRatio: '1/1' }}
-      data-testid={`gallery-card-${tag}`}
-      aria-label={`${what} — tap to see inside`}
-    >
-      <img
-        src={heroCardFront}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${open ? 'opacity-0' : 'opacity-100'}`}
-      />
-      <img
-        src={heroCardInside}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}
-      />
-      <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
-        {tag}
-      </span>
-      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
-        {open ? 'tap to close' : 'tap to peek inside'}
-      </span>
-    </button>
+    <div className={`relative ${active ? 'z-20' : 'z-0'}`} style={{ aspectRatio: '1/1' }}>
+      {active ? (
+        /* Canvas bleeds past the tile so the opening cover has room —
+           it will gracefully overlap neighbouring tiles while open. */
+        <div className="absolute inset-[-28%]">
+          <Suspense
+            fallback={
+              <img
+                src={heroCardFront}
+                alt=""
+                className="absolute inset-[28%] h-auto w-[44%] rounded-2xl object-cover"
+              />
+            }
+          >
+            <Card3DViewer
+              frontImageUrl={heroCardFront}
+              insideImageUrl={heroCardInside}
+              open={open}
+              onOpenChange={setOpen}
+              enableRotate={false}
+              enableZoom={false}
+              framingMargin={1.7}
+              minDistance={1.4}
+              dprMax={1.5}
+              className="h-full w-full"
+            />
+          </Suspense>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onActivate}
+          className="group relative block h-full w-full overflow-hidden rounded-2xl shadow-[0_18px_40px_-18px_rgba(33,29,25,0.28)] transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold"
+          data-testid={`gallery-card-${tag}`}
+          aria-label={`${what} — tap to open the card`}
+        >
+          <img src={heroCardFront} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
+            {tag}
+          </span>
+          <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
+            tap to open
+          </span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -411,6 +456,7 @@ const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
 ];
 
 function GallerySection() {
+  const [active, setActive] = useState<number | null>(null);
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
@@ -419,13 +465,18 @@ function GallerySection() {
             Any face. Any occasion.
           </h2>
           <p className="mt-3 text-[15px] text-keeper-stone">
-            Made in the Studio this month — tap any card to peek inside.
+            Made in the Studio this month — tap any card to open it.
           </p>
         </Rise>
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
           {GALLERY.map((g, i) => (
             <Rise key={g.tag} delay={i * 0.08}>
-              <FlipCard tag={g.tag} what={g.what} />
+              <GalleryCard
+                tag={g.tag}
+                what={g.what}
+                active={active === i}
+                onActivate={() => setActive(i)}
+              />
               <div className="mt-2 flex items-center gap-2">
                 <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
                 <span className="text-[12px] text-keeper-stone">{g.brief}</span>
