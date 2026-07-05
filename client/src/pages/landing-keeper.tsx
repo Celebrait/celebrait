@@ -278,7 +278,9 @@ function KeeperHeader() {
       <div
         className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
         style={{
-          background: 'linear-gradient(90deg, #5c57d4 0%, #4ac437 100%)',
+          // brand.dark violet → cta.DEFAULT green — the EXACT studio
+          // button green (#5fd94a), not its darker hover shade.
+          background: 'linear-gradient(90deg, #5c57d4 0%, #5fd94a 100%)',
         }}
       >
         <span className="sm:hidden">
