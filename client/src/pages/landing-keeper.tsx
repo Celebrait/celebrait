@@ -193,16 +193,46 @@ function StaticAjarCard({
             className="h-full w-full"
           />
         </Suspense>
-        {/* Flat stand-in — covers chunk load, GL init AND texture
+        {/* CSS-posed stand-in — covers chunk load, GL init AND texture
             upload; fades only when the engine reports its first
-            painted frame. */}
-        <img
-          src={heroCardFront}
-          alt="Celebrait card"
-          className={`pointer-events-none absolute left-[36%] top-[21%] h-auto w-[27%] rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)] transition-opacity duration-700 ${
+            painted frame. Crucially it's NOT a flat image: it mimics
+            the 3D card's rest pose (yaw -0.12 rad ≈ -7°, cover ajar
+            -0.55 rad ≈ -31°, white body behind) so the handover reads
+            as the same card gaining depth, not a snap between two
+            different objects. */}
+        <div
+          className={`pointer-events-none absolute left-[36%] top-[21%] w-[27%] transition-opacity duration-700 ${
             engineReady ? 'opacity-0' : 'opacity-100'
           }`}
-        />
+          style={{ perspective: '1400px' }}
+        >
+          <div
+            className="relative"
+            style={{
+              aspectRatio: '1/1',
+              transform: 'rotateY(-7deg)',
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {/* Card body — the white inside revealed by the ajar cover. */}
+            <div className="absolute inset-0 rounded-xl bg-white shadow-[0_28px_60px_-24px_rgba(33,29,25,0.35)]" />
+            {/* Cover — front art hinged at the spine, resting ajar. */}
+            <div
+              className="absolute inset-0 overflow-hidden rounded-xl"
+              style={{
+                transformOrigin: 'left center',
+                transform: 'rotateY(-31deg)',
+                backfaceVisibility: 'hidden',
+              }}
+            >
+              <img
+                src={heroCardFront}
+                alt="Celebrait card"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
       </div>
       {/* Our own tap target: the card square. Controlled-open beats
           the viewer's hit zone here — its single inset percentage
