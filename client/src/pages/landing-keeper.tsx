@@ -223,13 +223,14 @@ function StaticAjarCard({
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Card body — the white inside revealed by the ajar cover. */}
-            <div className="absolute inset-0 rounded-xl bg-white shadow-[0_28px_60px_-24px_rgba(33,29,25,0.35)]" />
-            {/* Cover — front art hinged at the spine, resting ajar.
-                The blurred LQIP paints behind the jpg so the cover is
-                never blank white while the real art downloads. */}
+            {/* Cover ONLY — front art hinged at the spine, resting
+                ajar, LQIP behind the img so it's never blank. NO white
+                body layer behind it: a flat white square peeking out
+                around the art read as a "white flash in the bg" while
+                the engine loaded (Kevin). The 3D card introduces its
+                body sliver itself when it takes over. */}
             <div
-              className="absolute inset-0 overflow-hidden rounded-xl"
+              className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_28px_60px_-24px_rgba(33,29,25,0.35)]"
               style={{
                 transformOrigin: 'left center',
                 transform: 'rotateY(-31deg)',
