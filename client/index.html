@@ -16,6 +16,15 @@
       href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"
       rel="stylesheet"
     />
+    <!-- Hero card art (public/, stable URLs — see landing-keeper.tsx).
+         Preloading from the HTML head starts the download in PARALLEL
+         with the JS bundle; as bundled assets the fetch couldn't begin
+         until the app had loaded and run, which is why the hero showed
+         white card stock for a beat on prod. crossorigin matters: the
+         3D viewer loads the same URLs as anonymous textures, and a
+         non-matching preload would be ignored (double download). -->
+    <link rel="preload" as="image" href="/hero-card-front.jpg" fetchpriority="high" crossorigin="anonymous" />
+    <link rel="preload" as="image" href="/hero-card-inside.jpg" fetchpriority="low" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>

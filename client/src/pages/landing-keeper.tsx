@@ -35,8 +35,17 @@ import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { GestureHints } from '@/components/gesture-hints';
-import heroCardFront from '@/assets/hero-card-front.jpg';
-import heroCardInside from '@/assets/hero-card-inside.jpg';
+// Hero art lives in client/public (NOT bundled assets) so index.html
+// can <link rel="preload"> it — the download starts in parallel with
+// the JS bundle instead of after it. On prod that parallel start is
+// most of the fix for the white-card beat Kevin screenshotted.
+const heroCardFront = '/hero-card-front.jpg';
+const heroCardInside = '/hero-card-inside.jpg';
+// Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
+// BEHIND the hero art — zero network, so there's never blank white
+// card stock while the real jpg downloads.
+const HERO_FRONT_LQIP =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABIMDRANCxIQDhAUExIVGywdGxgYGzYnKSAsQDlEQz85Pj1HUGZXR0thTT0+WXlaYWltcnNyRVV9hnxvhWZwcm7/2wBDARMUFBsXGzQdHTRuST5Jbm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubm7/wAARCAAcABwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCjDrKKoDxg+9PfWIXfCRDmsq0tRMCN2AKn+zrbzcjIx1rnfLc6YubLst+sagmNeagOqJn/AFYqhcyo8GAcENTRGWAIBNaLRakSd3ZE1lc+ShDA4PSpJJGncEKQoqvbMZHUNggCrczEJxxWbWpcdihcQhZh70vmyJ8q9BTJmJcEnmk3Gt1G61MXKzdj/9k=';
 
 // three.js loads on demand only (hero static card + gallery dialogs).
 const Card3DViewer = lazy(() =>
@@ -216,17 +225,22 @@ function StaticAjarCard({
           >
             {/* Card body — the white inside revealed by the ajar cover. */}
             <div className="absolute inset-0 rounded-xl bg-white shadow-[0_28px_60px_-24px_rgba(33,29,25,0.35)]" />
-            {/* Cover — front art hinged at the spine, resting ajar. */}
+            {/* Cover — front art hinged at the spine, resting ajar.
+                The blurred LQIP paints behind the jpg so the cover is
+                never blank white while the real art downloads. */}
             <div
               className="absolute inset-0 overflow-hidden rounded-xl"
               style={{
                 transformOrigin: 'left center',
                 transform: 'rotateY(-31deg)',
                 backfaceVisibility: 'hidden',
+                backgroundImage: `url(${HERO_FRONT_LQIP})`,
+                backgroundSize: 'cover',
               }}
             >
               <img
                 src={heroCardFront}
+                crossOrigin="anonymous"
                 alt="Celebrait card"
                 className="h-full w-full object-cover"
               />
@@ -281,7 +295,8 @@ function AjarTile({
       <div className="absolute inset-[6%]" style={{ perspective: '1100px' }}>
         {/* Inside page (right-hand spread) */}
         <div className="absolute inset-0 overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
-          <img src={heroCardInside} alt="" className="h-full w-full object-cover" />
+          <img src={heroCardInside}
+                crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
           {/* Soft spine shadow so the inside reads as a page, not a print */}
           <div
             className="pointer-events-none absolute inset-y-0 left-0 w-[18%]"
@@ -303,7 +318,8 @@ function AjarTile({
             className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <img src={heroCardFront} alt="" className="h-full w-full object-cover" />
+            <img src={heroCardFront}
+                crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
           </div>
           {/* Back of the cover — cream paper */}
           <div
@@ -554,10 +570,19 @@ function HeroSection() {
           >
             <div
               className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
-              style={{ aspectRatio: '1/1' }}
+              style={{
+                aspectRatio: '1/1',
+                // Blurred LQIP roughly matching the crop — the
+                // polaroid is never a blank white square while the
+                // real jpg downloads.
+                backgroundImage: `url(${HERO_FRONT_LQIP})`,
+                backgroundSize: '220%',
+                backgroundPosition: '66% 18%',
+              }}
             >
               <img
                 src={heroCardFront}
+                crossOrigin="anonymous"
                 alt="Source snapshot of the couple"
                 className="h-full w-full object-cover"
                 style={{
@@ -787,6 +812,7 @@ function FreePartSection() {
   const flatFallback = (
     <img
       src={heroCardFront}
+                crossOrigin="anonymous"
       alt="Celebrait card"
       className="mx-auto h-full w-auto rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
     />
@@ -944,24 +970,10 @@ function FloatingPill() {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function LandingKeeper() {
-  // Warm the hero imagery immediately — the 3D card's textures and the
-  // polaroid crop both come from these two files (Kevin: "the images on
-  // the right are slow to load"). crossOrigin MUST match three.js's
-  // anonymous texture loads or the preload poisons the cache (same
-  // lesson as studio-card-view).
-  useEffect(() => {
-    const links = [heroCardFront, heroCardInside].map((href) => {
-      const el = document.createElement('link');
-      el.rel = 'preload';
-      el.as = 'image';
-      el.crossOrigin = 'anonymous';
-      el.setAttribute('fetchpriority', 'high');
-      el.href = href;
-      document.head.appendChild(el);
-      return el;
-    });
-    return () => links.forEach((el) => el.parentNode?.removeChild(el));
-  }, []);
+  // (Hero imagery preloading moved to index.html <link rel="preload">
+  // — the JS-side version here couldn't start until the bundle ran,
+  // which was exactly the delay it was trying to hide. crossOrigin
+  // still must match three.js's anonymous texture loads everywhere.)
 
   return (
     // overflow-x-clip: the hero card's bleed wrapper (inset-[-24%])
