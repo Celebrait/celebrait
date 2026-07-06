@@ -102,8 +102,16 @@ app.use((req, res, next) => {
     console.error("[ERROR]", err);
   });
 
-  // Serve static files from client/public directory
-  app.use(express.static(path.join(import.meta.dirname, "..", "client", "public")));
+  // Serve static files from client/public directory.
+  // maxAge matters: Cloudflare fronts prod, and the express default
+  // (max-age=0) FORBADE edge caching — every image/model came from
+  // the Render origin on every visit, measured at 2-6s per asset from
+  // SA. These files change rarely; let the edge hold them for a day.
+  app.use(
+    express.static(path.join(import.meta.dirname, "..", "client", "public"), {
+      maxAge: "1d",
+    }),
+  );
 
   // Only setup vite in development, and after registering API routes
   if (app.get("env") === "development") {

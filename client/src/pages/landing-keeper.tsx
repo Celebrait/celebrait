@@ -39,8 +39,8 @@ import { GestureHints } from '@/components/gesture-hints';
 // can <link rel="preload"> it — the download starts in parallel with
 // the JS bundle instead of after it. On prod that parallel start is
 // most of the fix for the white-card beat Kevin screenshotted.
-const heroCardFront = '/hero-card-front.jpg';
-const heroCardInside = '/hero-card-inside.jpg';
+const heroCardFront = '/hero-card-front.webp';
+const heroCardInside = '/hero-card-inside.webp';
 // Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
 // BEHIND the hero art — zero network, so there's never blank white
 // card stock while the real jpg downloads.

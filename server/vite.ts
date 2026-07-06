@@ -77,10 +77,31 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Cache policy exists for Cloudflare's benefit: prod sits behind CF,
+  // and express's default max-age=0 forbade ALL edge caching — the
+  // 1.4MB three-stack chunk was fetched from the Render origin on
+  // every single visit (8.7s measured from SA). Vite content-hashes
+  // everything under /assets, so those are immutable; other build
+  // outputs (favicons, public/ copies) get a day.
+  app.use(
+    express.static(distPath, {
+      // index.html must NOT be served by this mount with a long
+      // max-age — deploys would go stale at the edge. The catch-all
+      // below serves it with no-cache (etag revalidation only).
+      index: false,
+      setHeaders(res, filePath) {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=86400");
+        }
+      },
+    }),
+  );
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.set("Cache-Control", "no-cache");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
