@@ -232,13 +232,13 @@ interface Card3DViewerProps {
    *  card's horizontal extent. The hit zone CSS-transitions
    *  smoothly between the two states. */
   openHitZoneInsetPercent?: number;
-  /** Disable mouse-wheel / pinch zoom. Default true (zoom enabled).
-   *  Used by static-display surfaces (e.g. marketing hero where the
-   *  card should sit at its mount framing without user re-zoom). */
+  /** Mouse-wheel / pinch zoom. Default FALSE since 2026-07-07 —
+   *  Kevin removed the orbit gadget site-wide ("fancy gadget that
+   *  does not really do much other than cause us issues"). */
   enableZoom?: boolean;
-  /** Disable click-drag rotate. Default true (rotation enabled).
-   *  Pair with `enableZoom={false}` for a fully static display where
-   *  the only user gesture is the click-to-open hinge. */
+  /** Click-drag rotate. Default FALSE since 2026-07-07 (same call).
+   *  The click-to-open hinge is the whole interaction model; opt back
+   *  in explicitly if a surface ever truly needs orbit. */
   enableRotate?: boolean;
   /** Disable ALL pointer interaction with the card. Default true.
    *  When `false`, the hit zone becomes `pointer-events: none` so:
@@ -309,8 +309,8 @@ export function Card3DViewer({
   autoRotateSpeed = 0.6,
   hitZoneInsetPercent,
   openHitZoneInsetPercent,
-  enableZoom = true,
-  enableRotate = true,
+  enableZoom = false,
+  enableRotate = false,
   interactive = true,
   openProgress,
   closedAngle = 0,

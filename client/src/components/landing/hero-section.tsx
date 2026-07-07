@@ -522,12 +522,11 @@ export function HeroSection() {
                     onOpenChange={setOpen}
                     framingMargin={2.4}
                     minDistance={2.2}
-                    /* Rotate ON (drag), zoom OFF — card stays at the
-                       mount framing while still inviting playful
-                       rotation. Tap-to-open hinge is wired to the
-                       `open` state above (controlled). */
+                    /* Rotate + zoom OFF (orbit gadget removed
+                       site-wide, Kevin 2026-07-07). Tap-to-open hinge
+                       is wired to the `open` state above (controlled). */
                     enableZoom={false}
-                    enableRotate={true}
+                    enableRotate={false}
                     /* Resting ajar (Kevin 2026-06-01): a gentle peek so
                        the card reads as a real openable object, not a flat
                        image. Earlier attempts looked lopsided because the
@@ -567,7 +566,7 @@ export function HeroSection() {
                 the button stack's mt is reduced by the same amount
                 (mt-8/12 → mt-2/6) so the CTA doesn't shift. */}
             <div className="relative mt-12 md:mt-14 z-[70] min-h-[64px]">
-              <GestureHints open={open} hideZoomHint />
+              <GestureHints open={open} hideZoomHint hideRotateHint />
             </div>
 
             {/* CTA + watch button — centred stack, no desktop flanks. */}

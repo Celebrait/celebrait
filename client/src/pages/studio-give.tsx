@@ -157,13 +157,15 @@ export default function StudioGivePage() {
                 open={cardOpen}
                 onOpenChange={setCardOpen}
                 enableZoom={false}
-                enableRotate
+                enableRotate={false}
+                closedAngle={-0.38}
+                restYaw={-0.12}
                 className="w-full h-full"
               />
             </div>
           </div>
           <div className="mt-3">
-            <GestureHints open={cardOpen} hideZoomHint alwaysVisible />
+            <GestureHints open={cardOpen} hideZoomHint hideRotateHint alwaysVisible />
           </div>
         </DialogContent>
       </Dialog>

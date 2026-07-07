@@ -437,12 +437,14 @@ function LoadedView({
             insideImageUrl={card.insideImageUrl}
             open={open3D}
             onOpenChange={setOpen3D}
-            /* Resting ajar (Kevin 2026-06-01) — a gentle peek so the card
-               reads as openable. Matches the homepage hero + brainstorm
-               reveal (-0.3 rad ≈ 17°). */
-            closedAngle={-0.3}
-            /* Slight left angle so the ajar reads as 3D depth. */
-            restYaw={-0.1}
+            /* Resting ajar — the site-wide pose (~22°, Kevin's
+               2026-07-07 dial-in on the studio reveal). Orbit gadget
+               removed site-wide the same day: tap to open/close is
+               the whole interaction model. */
+            closedAngle={-0.38}
+            restYaw={-0.12}
+            enableRotate={false}
+            enableZoom={false}
             className="w-full h-full"
           />
         </div>

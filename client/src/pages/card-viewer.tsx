@@ -259,6 +259,15 @@ export default function CardViewerPage() {
                 insideImageUrl={data.insideImageUrl}
                 open={open}
                 onOpenChange={setOpen}
+                // Orbit gadget removed SITE-WIDE (Kevin 2026-07-07:
+                // "fancy gadget that does not really do much other
+                // than cause us issues"). Cards rest ajar (~22°, the
+                // studio-reveal pose) and tap to open/close — that's
+                // the whole interaction model now.
+                enableRotate={false}
+                enableZoom={false}
+                closedAngle={-0.38}
+                restYaw={-0.12}
                 className="w-full h-full"
                 // Card3DViewer auto-derives its hit zone from framingMargin,
                 // but our outer wrapper bleeds 25vh + 22vw past the visible
@@ -299,7 +308,7 @@ export default function CardViewerPage() {
             className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
             style={{ height: hasInteracted ? 0 : 72 }}
           >
-            <GestureHints open={open || hasInteracted} />
+            <GestureHints open={open || hasInteracted} hideRotateHint hideZoomHint />
           </div>
 
           {/* Action row */}

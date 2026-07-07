@@ -813,7 +813,7 @@ export function ImagineDescribeShipSection() {
                       framingMargin={2.4}
                       minDistance={2.2}
                       enableZoom={false}
-                      enableRotate
+                      enableRotate={false}
                       /* Resting ajar (Kevin 2026-06-01) — gentle peek so
                          the revealed card reads as openable. Matches the
                          hero + studio card view (-0.3 rad). */
@@ -839,7 +839,7 @@ export function ImagineDescribeShipSection() {
                   the hints and the CTA — copy the hero as that's
                   spot on"). mt-12/14, min-h-[64px] to match. */}
               <div className="relative mt-12 md:mt-14 z-[20] min-h-[64px]">
-                <GestureHints open={cardManualOpen} hideZoomHint />
+                <GestureHints open={cardManualOpen} hideZoomHint hideRotateHint />
               </div>
 
               {/* CTA stack — spacing copied from hero too: mt-2 md:mt-6,

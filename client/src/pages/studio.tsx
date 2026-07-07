@@ -184,8 +184,13 @@ function EmptyView({ name }: { name: string }) {
             backCredit="Made with Celebrait"
             framingMargin={1.5}
             minDistance={2.1}
-            autoRotate
-            autoRotateSpeed={0.55}
+            /* Was autoRotate — the spinning card was the "fancy
+               gadget" Kevin removed site-wide 2026-07-07. Rests ajar
+               in the standard pose instead. */
+            enableRotate={false}
+            enableZoom={false}
+            closedAngle={-0.38}
+            restYaw={-0.12}
             className="w-full h-full"
           />
         </div>
