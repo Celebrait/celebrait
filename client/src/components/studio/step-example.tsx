@@ -30,7 +30,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import exampleFront from '@/assets/hero-card-front.jpg';
 import exampleInside from '@/assets/hero-card-inside.jpg';
@@ -58,6 +57,59 @@ export function StepExample({
   show,
 }: StepExampleProps) {
   const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="group flex items-center gap-3 w-full sm:w-auto rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition-colors hover:border-brand/40 hover:bg-white"
+        data-testid="step-example-trigger"
+      >
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-muted text-brand shrink-0">
+          <Lightbulb className="w-4 h-4" strokeWidth={2} aria-hidden />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[13px] text-stone-600 leading-snug">
+            {assist}
+          </span>
+          <span className="text-[13px] font-medium text-brand group-hover:text-brand-dark">
+            See an example →
+          </span>
+        </span>
+      </button>
+      <ExampleCardDialog
+        open={open}
+        onOpenChange={setOpen}
+        eyebrow={eyebrow}
+        modalTitle={modalTitle}
+        modalDescription={modalDescription}
+        show={show}
+      />
+    </>
+  );
+}
+
+// ── ExampleCardDialog ────────────────────────────────────────────────
+// The 3D example pop-up on its own, trigger-agnostic — extracted
+// 2026-07-07 so surfaces with their own trigger markup (the inside
+// fork cards in the post-reveal composer) can open the same example
+// without inheriting StepExample's lightbulb trigger.
+export function ExampleCardDialog({
+  open,
+  onOpenChange,
+  eyebrow,
+  modalTitle,
+  modalDescription,
+  show,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  eyebrow: string;
+  modalTitle: string;
+  modalDescription: string;
+  show: 'front' | 'inside';
+}) {
   const showInside = show === 'inside';
 
   // Spinner-then-card: the 3D canvas takes a beat to spin up on open. Show a
@@ -105,27 +157,7 @@ export function StepExample({
   }, []);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="group flex items-center gap-3 w-full sm:w-auto rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition-colors hover:border-brand/40 hover:bg-white"
-          data-testid="step-example-trigger"
-        >
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-muted text-brand shrink-0">
-            <Lightbulb className="w-4 h-4" strokeWidth={2} aria-hidden />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[13px] text-stone-600 leading-snug">
-              {assist}
-            </span>
-            <span className="text-[13px] font-medium text-brand group-hover:text-brand-dark">
-              See an example →
-            </span>
-          </span>
-        </button>
-      </DialogTrigger>
-
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         {/* No visible headline (Kevin) — the eyebrow + card carry it. Title
             stays for screen-reader/Radix a11y only. */}

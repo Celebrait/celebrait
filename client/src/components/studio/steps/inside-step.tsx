@@ -41,7 +41,7 @@ import { FileText, PenLine, Check, User, AlignLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { StepExample } from '@/components/studio/step-example';
+import { StepExample, ExampleCardDialog } from '@/components/studio/step-example';
 import type { CardDraftState } from '@shared/schema';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
@@ -138,28 +138,64 @@ function InsideForkPicker({
   onWrite: () => void;
   onBlank: () => void;
 }) {
+  // 3D example dialog — opened from the "see an example" link on the
+  // write card. (The blank card gets its own example the moment a real
+  // blank-inside asset exists — see the TODO on that card.)
+  const [exampleOpen, setExampleOpen] = useState(false);
   return (
     <div className="space-y-3" data-testid="inside-fork-picker">
       <h3 className="text-base font-semibold text-ink">
         What goes inside the card?
       </h3>
+      {/* Either way the inside gets DESIGNED — the fork is only about
+          whose lettering carries the message (Kevin 2026-07-07: "these
+          two buttons need to be so much clearer"). */}
+      <p className="text-xs text-stone-500 -mt-1">
+        We design the inside to match the front either way — the choice
+        is whose writing goes in it.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ForkCard
           icon={PenLine}
-          title="Write your message here"
-          body="A greeting, your message, a sign-off — we'll print it inside, set in a style that matches the card."
+          title="We print your message"
+          body="Type it now and we set your words into the design — typography chosen to match the front."
           onClick={onWrite}
           testid="inside-fork-write"
           highlighted
+          exampleSlot={
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExampleOpen(true);
+              }}
+              className="mt-1 self-start text-xs font-medium text-brand underline underline-offset-2 hover:text-brand-dark"
+              data-testid="inside-fork-write-example"
+            >
+              See an example →
+            </button>
+          }
         />
+        {/* TODO(asset): add a "See an example →" here too, showing a
+            real blank-mode inside (decorative border, clear centre).
+            Needs one blank-inside generation saved as an asset —
+            ExampleCardDialog is ready for it. */}
         <ForkCard
           icon={FileText}
-          title="Leave it blank"
-          body="We'll keep the inside clean for your own handwriting — write your message by hand when the card arrives."
+          title="You handwrite it later"
+          body="We print a decorative border matching the front and leave the centre clear — you write your message by hand when the card arrives."
           onClick={onBlank}
           testid="inside-fork-blank"
         />
       </div>
+      <ExampleCardDialog
+        open={exampleOpen}
+        onOpenChange={setExampleOpen}
+        eyebrow="Printed Message Example"
+        modalTitle="Inside message example"
+        modalDescription="Your greeting, message and sign-off are set in type chosen to match the front, so the whole card feels like one piece."
+        show="inside"
+      />
     </div>
   );
 }
@@ -171,6 +207,7 @@ function ForkCard({
   onClick,
   testid,
   highlighted = false,
+  exampleSlot,
 }: {
   icon: LucideIcon;
   title: string;
@@ -178,12 +215,23 @@ function ForkCard({
   onClick: () => void;
   testid: string;
   highlighted?: boolean;
+  /** Optional extra control (e.g. a "see an example" link). Rendered
+   *  INSIDE the card, so the card itself is a div-with-role rather
+   *  than a <button> — nested buttons are invalid HTML. */
+  exampleSlot?: ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`cursor-pointer text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${
         highlighted
           ? 'border-brand/60 bg-brand-muted/30 hover:border-brand hover:bg-brand-muted/50 hover:shadow-sm'
           : 'border-stone-200 bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
@@ -199,7 +247,8 @@ function ForkCard({
       </span>
       <div className="text-sm font-semibold text-ink">{title}</div>
       <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
-    </button>
+      {exampleSlot}
+    </div>
   );
 }
 

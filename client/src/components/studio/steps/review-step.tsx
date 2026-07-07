@@ -795,7 +795,7 @@ function InsideComposeStage({
           </div>
           <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
             {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}{' '}
-            We'll set your words in type that matches it.
+            We'll design the inside to match.
           </p>
         </div>
       )}
