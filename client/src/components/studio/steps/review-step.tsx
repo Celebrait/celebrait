@@ -1251,13 +1251,13 @@ function RevealView({
                     onOpenChange={setOpen}
                     enableRotate={false}
                     enableZoom={false}
-                    // Rest slightly AJAR with a touch of turn — same
-                    // pose as the landing hero. Fully closed +
-                    // straight-on read as "a flat image" (Kevin
-                    // 2026-07-07); the crack of visible inside is
-                    // what sells it as a physical card before the
-                    // first tap.
-                    closedAngle={-0.55}
+                    // Rest slightly AJAR with a touch of turn. Fully
+                    // closed + straight-on read as "a flat image"
+                    // (Kevin 2026-07-07); the crack of visible inside
+                    // is what sells it as a physical card before the
+                    // first tap. ~15° (Kevin's dial-in; the landing
+                    // hero sits wider at ~31°).
+                    closedAngle={-0.26}
                     restYaw={-0.12}
                     className="w-full h-full"
                   />
