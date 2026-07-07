@@ -46,6 +46,10 @@ import {
 } from '@/components/studio/generation-wait';
 import { RegenEditMode } from '@/components/studio/regen-controls';
 import {
+  InsideStep,
+  isInsideStepReady,
+} from '@/components/studio/steps/inside-step';
+import {
   CardOuterSpread,
   CardInnerSpread,
 } from '@/components/studio/card-print-template';
@@ -86,6 +90,12 @@ interface ReviewStepProps {
    *  back — so they land in the write panel with the textarea ready,
    *  not re-staring at the blank selection they're trying to undo. */
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** Hook-provided debounced save + flush — threaded to the post-reveal
+   *  InsideComposeStage (the inside message is written AFTER the front
+   *  reveal since 2026-07-07; the composer autosaves like the old
+   *  Inside step did). */
+  scheduleSave?: (delayMs: number) => void;
+  flushSave?: () => Promise<void>;
   /** Called when the user hits Generate. Parent handles the POST and
    *  subsequent status polling. */
   onGenerate: () => void;
@@ -129,6 +139,8 @@ export function ReviewStep({
   onJumpToStepFromFailure,
   onJumpToStepFromRegenFailure,
   onChange,
+  scheduleSave,
+  flushSave,
   onGenerate,
   onStartInsideGeneration,
   onFinalize,
@@ -170,6 +182,9 @@ export function ReviewStep({
         status={status}
         state={state}
         insideMode={state.inside?.mode ?? null}
+        onChange={onChange}
+        scheduleSave={scheduleSave}
+        flushSave={flushSave}
         onEditInside={() => {
           onChange({
             inside: { ...state.inside, mode: 'write' },
@@ -344,13 +359,19 @@ function SummaryPanel({
         )}
       </SummaryRow>
 
-      <SummaryRow
-        icon={FileText}
-        label="Inside"
-        onEdit={() => onJumpToStep(stepIndexById.inside)}
-        testId="summary-inside"
-      >
-        {insideMode === 'blank' ? (
+      {/* Inside row. Since 2026-07-07 the message is written AFTER the
+          front reveal, so on a fresh draft this row explains what's
+          coming rather than reading "Not set" (which sounded like the
+          user forgot something). Drafts that already carry a decision
+          (resumed pre-re-sequence drafts, or the Buy-dialog recovery
+          path) still show it, with the edit link. */}
+      {insideMode === 'blank' ? (
+        <SummaryRow
+          icon={FileText}
+          label="Inside"
+          onEdit={() => onJumpToStep(stepIndexById.inside)}
+          testId="summary-inside"
+        >
           <div>
             <div className="text-sm text-stone-700">
               Blank centre with decorative border
@@ -359,7 +380,14 @@ function SummaryPanel({
               We'll post it to you to handwrite inside.
             </div>
           </div>
-        ) : insideMode === 'write' ? (
+        </SummaryRow>
+      ) : insideMode === 'write' && insideWrite.message?.trim() ? (
+        <SummaryRow
+          icon={FileText}
+          label="Inside"
+          onEdit={() => onJumpToStep(stepIndexById.inside)}
+          testId="summary-inside"
+        >
           <div className="space-y-0.5 text-sm text-stone-700">
             {insideWrite.salutation && <div>{insideWrite.salutation}</div>}
             {insideWrite.message && (
@@ -367,10 +395,15 @@ function SummaryPanel({
             )}
             {insideWrite.signoff && <div>{insideWrite.signoff}</div>}
           </div>
-        ) : (
-          <span className="text-sm text-stone-400">Not set</span>
-        )}
-      </SummaryRow>
+        </SummaryRow>
+      ) : (
+        <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
+          <div className="text-sm text-stone-600">
+            You'll write the inside once you've seen the front — so you
+            know exactly what you're writing in.
+          </div>
+        </SummaryRow>
+      )}
     </div>
   );
 }
@@ -389,7 +422,9 @@ function SummaryRow({
 }: {
   icon: typeof User;
   label: string;
-  onEdit: () => void;
+  /** Omit to render an informational row with no Edit link (the
+   *  pre-reveal Inside row — there's nothing to edit yet). */
+  onEdit?: () => void;
   children: React.ReactNode;
   testId: string;
 }) {
@@ -406,15 +441,17 @@ function SummaryRow({
           <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
             {label}
           </p>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-[11px] text-brand hover:text-brand-dark flex items-center gap-1"
-            data-testid={`${testId}-edit`}
-          >
-            <Pencil className="w-3 h-3" />
-            Edit
-          </button>
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-[11px] text-brand hover:text-brand-dark flex items-center gap-1"
+              data-testid={`${testId}-edit`}
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          )}
         </div>
         <div className="mt-1">{children}</div>
       </div>
@@ -707,6 +744,107 @@ function FrontFirstReview({
   );
 }
 
+// ── InsideComposeStage ───────────────────────────────────────────────
+// The post-reveal inside composer (2026-07-07 re-sequence). The user
+// has just approved the front; now — with that front visible beside
+// them — they pick write/blank and write the message. Reuses the
+// InsideStep fork/form wholesale so the two entry points (this stage +
+// the Buy-dialog recovery jump to the old step) never drift apart.
+function InsideComposeStage({
+  cardId,
+  state,
+  subject,
+  frontUrl,
+  onChange,
+  scheduleSave,
+  flushSave,
+  onBack,
+  onSubmit,
+}: {
+  cardId: number;
+  state: CardDraftState;
+  subject: string | null;
+  frontUrl: string | null;
+  onChange: (patch: Partial<CardDraftState>) => void;
+  scheduleSave?: (delayMs: number) => void;
+  flushSave?: () => Promise<void>;
+  onBack: () => void;
+  onSubmit: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const ready = isInsideStepReady(state);
+  const blank = state.inside?.mode === 'blank';
+  const recipientName = state.recipient?.name?.trim();
+  return (
+    <div className="mx-auto max-w-2xl py-6">
+      <div className="mb-6 text-center">
+        <p className="text-lg font-semibold text-ink">Now, the inside</p>
+        <p className="mt-0.5 text-sm text-stone-500">
+          {recipientName
+            ? `This is what ${recipientName} reads when they open it.`
+            : 'This is what they read when they open it.'}
+        </p>
+      </div>
+
+      {/* The approved front stays on screen, small — the whole point of
+          writing HERE is writing in its company. */}
+      {frontUrl && (
+        <div className="mx-auto mb-6 flex items-center justify-center gap-3">
+          <div className="aspect-square w-20 overflow-hidden rounded-md border border-stone-200 shadow-sm">
+            <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
+          </div>
+          <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
+            {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}{' '}
+            We'll set your words in type that matches it.
+          </p>
+        </div>
+      )}
+
+      <InsideStep
+        cardId={cardId}
+        state={state}
+        onChange={onChange}
+        scheduleSave={scheduleSave ?? (() => {})}
+        flushSave={flushSave ?? (async () => {})}
+      />
+
+      <div className="mt-7 flex flex-col items-center gap-3">
+        <button
+          disabled={!ready || busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onSubmit();
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
+          data-testid="btn-make-inside"
+        >
+          {busy
+            ? 'One sec…'
+            : blank
+              ? 'Finish the card →'
+              : 'Make the inside →'}
+        </button>
+        {!ready && (
+          <p className="text-[11.5px] text-stone-400">
+            Write your message — or choose to leave it blank — to carry on.
+          </p>
+        )}
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
+          data-testid="btn-back-to-front"
+        >
+          ← Back to the front
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RevealView({
   cardId,
   frontUrl,
@@ -714,6 +852,9 @@ function RevealView({
   status,
   state,
   insideMode,
+  onChange,
+  scheduleSave,
+  flushSave,
   onEditInside,
   attempts,
   isRegenerating,
@@ -733,6 +874,11 @@ function RevealView({
   /** Full draft — NarrationStage personalises every beat from it. */
   state: CardDraftState;
   insideMode: 'write' | 'blank' | null;
+  /** Draft patcher + autosave pair — power the post-reveal
+   *  InsideComposeStage (write the message after seeing the front). */
+  onChange: (patch: Partial<CardDraftState>) => void;
+  scheduleSave?: (delayMs: number) => void;
+  flushSave?: () => Promise<void>;
   onEditInside: () => void;
   attempts: CardAttemptDTO[];
   isRegenerating: CardSide | null;
@@ -885,6 +1031,11 @@ function RevealView({
   // Front-first review surfaces default to "look at your card"; this flips
   // to the tweak workbench when the user taps "Make a change".
   const [frontFirstEditing, setFrontFirstEditing] = useState(false);
+  // Post-reveal inside composer (2026-07-07 re-sequence): approving the
+  // front opens the write/blank fork + message form HERE — in front of
+  // the approved front — instead of the message having been collected
+  // blind back at a stepper step.
+  const [insideComposing, setInsideComposing] = useState(false);
   const interactTimerRef = useRef<number | null>(null);
 
   const startInteract = () => {
@@ -930,18 +1081,36 @@ function RevealView({
         />
       );
     }
+    // Approving the front opens the inside composer (write/blank fork +
+    // message form) — the message is written IN CONTEXT of the approved
+    // front (Kevin's June call, built 2026-07-07). generate-inside only
+    // fires from the composer's own CTA.
+    if (insideComposing) {
+      return (
+        <InsideComposeStage
+          cardId={cardId}
+          state={state}
+          subject={frontFirstSubject(state)}
+          frontUrl={frontUrl}
+          onChange={onChange}
+          scheduleSave={scheduleSave}
+          flushSave={flushSave}
+          onBack={() => setInsideComposing(false)}
+          onSubmit={async () => {
+            await flushSave?.();
+            await onStartInsideGeneration?.();
+          }}
+        />
+      );
+    }
     return (
       <FrontFirstReview
         title="Here's the front"
         subject={frontFirstSubject(state)}
         heroUrl={frontUrl}
         printVisual={<CardOuterSpread frontUrl={frontUrl} />}
-        approveLabel={
-          insideMode === 'blank'
-            ? 'Looks good — finish the card →'
-            : 'Looks good — write the inside →'
-        }
-        onApprove={onStartInsideGeneration}
+        approveLabel="Looks good — now the inside →"
+        onApprove={async () => setInsideComposing(true)}
         onEdit={() => setFrontFirstEditing(true)}
       />
     );

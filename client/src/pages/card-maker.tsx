@@ -343,6 +343,29 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   const isFirst = currentStep === 0;
   const isLast = currentStep === totalSteps - 1;
 
+  // ── Inside step skipped in the linear walk (2026-07-07) ────────────
+  // The inside message is now written AFTER the front reveal (the
+  // InsideComposeStage in review-step.tsx), so Next from Front jumps
+  // straight to Review and Back from Review returns to Front. The
+  // InsideStep panel + its index stay fully functional for direct
+  // jumps (the Buy dialog's "add a message" recovery path) —
+  // deliberately NOT re-indexing CARD_MAKER_STEPS (two prod bugs
+  // last time).
+  const handleNext = () => {
+    if (currentStep === stepIndexById.front) {
+      setStep(stepIndexById.review);
+    } else {
+      goNext();
+    }
+  };
+  const handleBack = () => {
+    if (currentStep === stepIndexById.review) {
+      setStep(stepIndexById.front);
+    } else {
+      goBack();
+    }
+  };
+
   // "Furthest reached" = the max of currentStep and whatever was stored
   // on the draft. Lets the user click back to any earlier step but not
   // skip forward past where they've been.
@@ -506,6 +529,8 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 state={state}
                 status={status}
                 stepIndexById={stepIndexById}
+                scheduleSave={scheduleSave}
+                flushSave={flushSave}
                 onJumpToStep={setStep}
                 onJumpToStepFromFailure={handleOpenFixDialog}
                 onJumpToStepFromRegenFailure={handleOpenFixDialogRegen}
@@ -567,7 +592,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         <div className="flex items-center justify-between mt-6">
           <Button
             variant="ghost"
-            onClick={goBack}
+            onClick={handleBack}
             disabled={isFirst}
             className="text-stone-600"
             data-testid="btn-card-maker-back"
@@ -576,7 +601,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             Back
           </Button>
           <Button
-            onClick={goNext}
+            onClick={handleNext}
             disabled={!canAdvance}
             className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
             data-testid="btn-card-maker-next"
@@ -590,7 +615,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         <div className="flex items-center justify-start mt-6">
           <Button
             variant="ghost"
-            onClick={goBack}
+            onClick={handleBack}
             className="text-stone-600"
             data-testid="btn-card-maker-back"
           >
