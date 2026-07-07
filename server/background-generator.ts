@@ -1010,21 +1010,21 @@ async function applyInsideStyleTweak(
   }
 }
 
-/** Hard cap on regens per (card, side). Effectively lifted for now
- *  (Kevin's call 2026-05-05) — set to 999 so iteration during the
- *  pre-launch testing window isn't blocked. Real strategy + tier
- *  thresholds revisit pre-launch as part of the pricing/regen-economics
- *  work (see memory: next_pricing_and_regen_economics.md).
+/** Hard cap on regens per (card, side). Was 999 ("unbounded for
+ *  testing", 2026-05-05); set to a REAL limit 2026-07-07 after Kevin's
+ *  regen test run — tweaks past a handful stop converging ("don't go
+ *  wild here, make subtle changes") and a fresh start beats attempt #9.
+ *  The client (regen-controls.tsx REGEN_HARD_CAP_PER_SIDE_UI — keep in
+ *  sync!) surfaces the cap gracefully before the server 429 is ever
+ *  hit: capped side's tweak box swaps for a "start fresh" panel.
  *
- *  Override at runtime via the REGEN_CAP_PER_SIDE env var; default 999
- *  is "unbounded for testing." Production launch should drop this
- *  back to a sane value (10–20) once paid usage is in.
+ *  Override at runtime via the REGEN_CAP_PER_SIDE env var.
  *
  *  Kept here rather than in the route so the limit lives next to the
  *  gen path that enforces it. The route also pre-checks and returns a
  *  friendly 429 when hit. */
 export const REGEN_HARD_CAP_PER_SIDE: number =
-  parseInt(process.env.REGEN_CAP_PER_SIDE ?? '999', 10) || 999;
+  parseInt(process.env.REGEN_CAP_PER_SIDE ?? '8', 10) || 8;
 
 /** Look up the next attempt number for (card, side). Used both by the
  *  regen entry point AND by the lazy backfill of attempt #1 on first

@@ -105,6 +105,14 @@ interface RegenEditModeProps {
  *  once a side has this many completed attempts. */
 const SOFT_CAP_PER_SIDE = 3;
 
+/** Hard cap — tweaks allowed per side before the box swaps for a
+ *  "start fresh" panel (Kevin 2026-07-07: past a handful, tweaks stop
+ *  converging — a fresh card beats attempt #9). MUST match the
+ *  server's REGEN_HARD_CAP_PER_SIDE (background-generator.ts), which
+ *  is the real enforcement — this constant only surfaces it kindly
+ *  before the 429 would. */
+const REGEN_HARD_CAP_PER_SIDE_UI = 8;
+
 /** Two-mode state machine. See file header. */
 type Mode = 'tweaking' | 'deciding';
 
@@ -174,6 +182,23 @@ export function RegenEditMode({
   const completedFront = frontAttempts.filter((a) => a.status === 'completed');
   const completedInside = insideAttempts.filter((a) => a.status === 'completed');
   const totalAttempts = completedFront.length + completedInside.length;
+
+  // Hard-cap accounting — mirrors the server's check (ALL attempt rows
+  // for the side, minus the seeded original #1). Failed attempts count:
+  // they cost a generation.
+  const frontRegensUsed = Math.max(0, frontAttempts.length - 1);
+  const insideRegensUsed = Math.max(0, insideAttempts.length - 1);
+  const frontCapped = frontRegensUsed >= REGEN_HARD_CAP_PER_SIDE_UI;
+  const insideCapped = insideRegensUsed >= REGEN_HARD_CAP_PER_SIDE_UI;
+  // Every side the user could still tweak is capped → the workbench
+  // can only commit or start over.
+  const editableSides: CardSide[] = [
+    ...(lockedSide !== 'front' ? (['front'] as const) : []),
+    ...(hasInside && lockedSide !== 'inside' ? (['inside'] as const) : []),
+  ];
+  const allEditableCapped =
+    editableSides.length > 0 &&
+    editableSides.every((s) => (s === 'front' ? frontCapped : insideCapped));
 
   // ── Per-side busy model (concurrency-safe) ─────────────────────────
   // A side is "busy" from the moment the user submits a tweak for it
@@ -423,7 +448,9 @@ export function RegenEditMode({
           away rather than a wall of text pushing the card down). */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[12px] text-stone-500 leading-snug">
-          Describe a change — your photo &amp; likeness stay put.
+          Small, specific changes work best — swap a detail, shift the
+          mood, fix the words. Your photo &amp; likeness stay put. Want a
+          different scene entirely? That's a new card, not a tweak.
         </p>
         <HowTweakingWorks />
       </div>
@@ -631,31 +658,50 @@ export function RegenEditMode({
                 )}
               </p>
               <div className="mb-4 space-y-3">
-                {lockedSide !== 'front' && (
-                  <SidedTweakInput
-                    label="Front"
-                    value={tweakFront}
-                    onChange={setTweakFront}
-                    placeholder='e.g. "make it more autumnal" or "swap the dog for a cat"'
-                    onSubmit={handleSubmit}
-                    inputRef={frontTextareaRef}
-                    disabled={anyBusy}
-                    autoFocus={autoFocusTweak}
-                    testId="input-regen-tweak-front"
-                  />
-                )}
-                {hasInside && lockedSide !== 'inside' && (
-                  <SidedTweakInput
-                    label="Inside"
-                    value={tweakInside}
-                    onChange={setTweakInside}
-                    placeholder='e.g. "tidier handwriting" or "warmer tone"'
-                    onSubmit={handleSubmit}
-                    inputRef={insideTextareaRef}
-                    disabled={anyBusy}
-                    testId="input-regen-tweak-inside"
-                  />
-                )}
+                {lockedSide !== 'front' &&
+                  (frontCapped ? (
+                    <SideCappedPanel side="Front" />
+                  ) : (
+                    <div>
+                      <SidedTweakInput
+                        label="Front"
+                        value={tweakFront}
+                        onChange={setTweakFront}
+                        placeholder='e.g. "make it more autumnal" or "swap the dog for a cat"'
+                        onSubmit={handleSubmit}
+                        inputRef={frontTextareaRef}
+                        disabled={anyBusy}
+                        autoFocus={autoFocusTweak}
+                        testId="input-regen-tweak-front"
+                      />
+                      <TweaksLeftHint
+                        used={frontRegensUsed}
+                        cap={REGEN_HARD_CAP_PER_SIDE_UI}
+                      />
+                    </div>
+                  ))}
+                {hasInside &&
+                  lockedSide !== 'inside' &&
+                  (insideCapped ? (
+                    <SideCappedPanel side="Inside" />
+                  ) : (
+                    <div>
+                      <SidedTweakInput
+                        label="Inside"
+                        value={tweakInside}
+                        onChange={setTweakInside}
+                        placeholder='e.g. "tidier handwriting" or "warmer tone"'
+                        onSubmit={handleSubmit}
+                        inputRef={insideTextareaRef}
+                        disabled={anyBusy}
+                        testId="input-regen-tweak-inside"
+                      />
+                      <TweaksLeftHint
+                        used={insideRegensUsed}
+                        cap={REGEN_HARD_CAP_PER_SIDE_UI}
+                      />
+                    </div>
+                  ))}
               </div>
 
               {showSoftCap && !anyBusy && (
@@ -668,17 +714,41 @@ export function RegenEditMode({
                 </p>
               )}
 
-              {/* Start over — escape to a wholly different card. */}
-              <p className="text-[11px] text-ink-soft text-center mb-4">
-                Want a different card altogether?{' '}
-                <Link
-                  href="/studio/new-card"
-                  className="text-brand hover:text-brand-dark font-medium"
-                  data-testid="regen-start-over"
+              {/* Start over — escape to a wholly different card. Promoted
+                  to a proper panel when every editable side has hit the
+                  hard cap (there's nothing left to tweak). */}
+              {allEditableCapped ? (
+                <div
+                  className="mb-4 rounded-xl border border-stone-200 bg-stone-50 p-4 text-center"
+                  data-testid="regen-all-capped"
                 >
-                  Start over →
-                </Link>
-              </p>
+                  <p className="text-sm font-medium text-ink">
+                    You've taken this design as far as tweaks go.
+                  </p>
+                  <p className="mt-1 text-xs text-stone-600">
+                    Pick your favourite from the versions above — or if none
+                    of them are the one,{' '}
+                    <Link
+                      href="/studio/new-card"
+                      className="font-medium text-brand hover:text-brand-dark"
+                      data-testid="regen-start-over"
+                    >
+                      start a fresh card →
+                    </Link>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-ink-soft text-center mb-4">
+                  Want a different card altogether?{' '}
+                  <Link
+                    href="/studio/new-card"
+                    className="text-brand hover:text-brand-dark font-medium"
+                    data-testid="regen-start-over"
+                  >
+                    Start over →
+                  </Link>
+                </p>
+              )}
 
               {/* Submit — sticky-bottom on mobile so it stays above the
                   keyboard. G6: bottom padding adds the safe-area inset so
@@ -800,6 +870,37 @@ function VersionRail({
 }
 
 // ── SidedTweakInput — labelled textarea row, one per side.
+/** Quiet remaining-tweaks counter under a side's box. Silent until the
+ *  soft-cap zone so early iteration feels unlimited; from there it sets
+ *  the expectation that tweaks are finite BEFORE the hard stop. */
+function TweaksLeftHint({ used, cap }: { used: number; cap: number }) {
+  const left = cap - used;
+  if (left > cap - SOFT_CAP_PER_SIDE) return null;
+  return (
+    <p className="mt-1 text-right text-[10.5px] text-stone-400" data-testid="tweaks-left-hint">
+      {left === 1 ? 'Last tweak for this side' : `${left} tweaks left for this side`}
+    </p>
+  );
+}
+
+/** Replaces a side's tweak box once it hits the hard cap. */
+function SideCappedPanel({ side }: { side: 'Front' | 'Inside' }) {
+  return (
+    <div
+      className="rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3"
+      data-testid={`regen-capped-${side.toLowerCase()}`}
+    >
+      <p className="text-xs font-medium text-stone-600">
+        {side} — tweak limit reached
+      </p>
+      <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">
+        This side's been through every version it has in it. Flip back
+        through the row above and pick the strongest one.
+      </p>
+    </div>
+  );
+}
+
 function SidedTweakInput({
   label,
   value,
