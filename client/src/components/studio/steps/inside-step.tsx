@@ -159,6 +159,7 @@ function InsideForkPicker({
           icon={PenLine}
           title="We print your message"
           body="Type it now and we set your words into the design — typography chosen to match the front."
+          hint="The one to pick if it's posting straight to them — it arrives ready to read. (Or if you'd just rather we did the writing.)"
           onClick={onWrite}
           testid="inside-fork-write"
           highlighted
@@ -184,6 +185,7 @@ function InsideForkPicker({
           icon={FileText}
           title="You handwrite it later"
           body="We print a decorative border matching the front and leave the centre clear — you write your message by hand when the card arrives."
+          hint="The one to pick if the card's coming to you first — write your message in your own hand, then give it over."
           onClick={onBlank}
           testid="inside-fork-blank"
         />
@@ -204,6 +206,7 @@ function ForkCard({
   icon: Icon,
   title,
   body,
+  hint,
   onClick,
   testid,
   highlighted = false,
@@ -212,6 +215,10 @@ function ForkCard({
   icon: LucideIcon;
   title: string;
   body: string;
+  /** "Best for…" delivery-mode nudge (Kevin 2026-07-07): printed
+   *  message pairs with posting direct; blank pairs with
+   *  receive-write-hand-over. */
+  hint?: string;
   onClick: () => void;
   testid: string;
   highlighted?: boolean;
@@ -247,6 +254,11 @@ function ForkCard({
       </span>
       <div className="text-sm font-semibold text-ink">{title}</div>
       <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
+      {hint && (
+        <p className="text-[11px] leading-relaxed text-stone-500 border-t border-stone-200/70 pt-2 mt-0.5">
+          {hint}
+        </p>
+      )}
       {exampleSlot}
     </div>
   );
