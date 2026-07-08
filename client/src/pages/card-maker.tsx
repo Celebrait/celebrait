@@ -299,6 +299,27 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return acc;
   }, {} as Record<StepId, number>);
 
+  // ── Focused edit overlay (Kevin 2026-07-08) ────────────────────────
+  // Review's Edit links used to setStep(n) — which PERSISTS the step,
+  // collapsing "furthest reached" and forcing the user to Next their
+  // way back through every step. Now an edit from Review opens the
+  // target step as an OVERLAY: the draft stays parked on Review, the
+  // user changes the one thing, and "Done — back to review" returns
+  // in a single tap. Local state only — a refresh lands back on
+  // Review, which is exactly right.
+  const [editingStep, setEditingStep] = useState<number | null>(null);
+  const jumpToStepForEdit = (idx: number) => {
+    if (currentStep === stepIndexById.review && idx !== stepIndexById.review) {
+      setEditingStep(idx);
+    } else {
+      setStep(idx);
+    }
+  };
+  const finishEditing = async () => {
+    await flushSave();
+    setEditingStep(null);
+  };
+
   // The saving indicator only renders if a save has been in flight long
   // enough to be worth signalling — fast saves stay invisible. Below
   // ~600ms we'd just flash "Saving…" then "Saved" for a beat, which
@@ -335,7 +356,10 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     );
   }
 
-  const currentStepId = CARD_MAKER_STEPS[currentStep]?.id;
+  // While the edit overlay is open, the PANEL shows the overlay step;
+  // the draft's persisted step stays parked on Review.
+  const displayStep = editingStep ?? currentStep;
+  const currentStepId = CARD_MAKER_STEPS[displayStep]?.id;
   // Conversational headline per step — name-woven where possible. The
   // stepper below keeps short-noun labels for scannable navigation;
   // the h1 carries the voice.
@@ -407,6 +431,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // stopped hiding during the reveal). Fixed 2026-05-19.
   const isRevealMode =
     currentStep === 5 &&
+    editingStep === null &&
     (status === 'generating' ||
       status === 'generating-front' ||
       status === 'front-ready' ||
@@ -443,13 +468,26 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       {/* ── Stepper (global nav) — hidden during the reveal so the
           user isn't tempted to mid-render-rewind, and so nothing
           competes with the card itself. */}
-      {!isRevealMode && (
+      {!isRevealMode && editingStep === null && (
         <div className="mb-6 sm:mb-8">
           <Stepper
             currentStep={currentStep}
             furthestStep={furthestStep}
             onStepClick={setStep}
           />
+        </div>
+      )}
+      {editingStep !== null && (
+        <div className="mb-6 sm:mb-8">
+          <button
+            type="button"
+            onClick={() => void finishEditing()}
+            className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink transition-colors"
+            data-testid="btn-edit-overlay-breadcrumb"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to review
+          </button>
         </div>
       )}
 
@@ -470,7 +508,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             swap (0 duration, no transform). */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={currentStep}
+            key={displayStep}
             initial={
               prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
             }
@@ -498,23 +536,23 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 them" moment happens before the blank scene textarea. Front text
                 (index 4) was added 2026-04-19 so the user sees + can edit the
                 headline that's always been rendered on the card front. */}
-            {currentStep === 0 && (
+            {displayStep === 0 && (
               <RecipientStep
                 state={state}
                 onChange={update}
                 onAdvance={() => handleAutoAdvance(0)}
               />
             )}
-            {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
-            {currentStep === 2 && (
+            {displayStep === 1 && <PhotoStep state={state} onChange={update} />}
+            {displayStep === 2 && (
               <SceneStep state={state} onChange={update} cardId={cardId} />
             )}
             {/* Step 3 is FRONT TEXT in V1 (Style step removed — parked for
                 Celebrait Premium; see CARD_MAKER_STEPS comment in
                 shared/models/card-draft.ts). All step indices below
                 shifted down by one accordingly. */}
-            {currentStep === 3 && <FrontStep state={state} onChange={update} />}
-            {currentStep === 4 && (
+            {displayStep === 3 && <FrontStep state={state} onChange={update} />}
+            {displayStep === 4 && (
               <InsideStep
                 cardId={cardId}
                 state={state}
@@ -523,7 +561,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 flushSave={flushSave}
               />
             )}
-            {currentStep === 5 && (
+            {displayStep === 5 && (
               <ReviewStep
                 cardId={cardId}
                 state={state}
@@ -531,7 +569,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 stepIndexById={stepIndexById}
                 scheduleSave={scheduleSave}
                 flushSave={flushSave}
-                onJumpToStep={setStep}
+                onJumpToStep={jumpToStepForEdit}
                 onJumpToStepFromFailure={handleOpenFixDialog}
                 onJumpToStepFromRegenFailure={handleOpenFixDialogRegen}
                 onChange={update}
@@ -588,7 +626,23 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           to do with Back. Hide the whole nav on the Review step
           except when the user is still on the review summary and
           might want to go back to the Inside step. */}
-      {!isLast && (
+      {/* Edit-overlay nav: one action, back to Review. Gated on the
+          step being complete so a half-cleared field can't return to a
+          Review that would then fail generation. */}
+      {editingStep !== null && (
+        <div className="flex items-center justify-end mt-6">
+          <Button
+            onClick={() => void finishEditing()}
+            disabled={!isStepReady(editingStep, state)}
+            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
+            data-testid="btn-edit-overlay-done"
+          >
+            Done — back to review
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
+      {editingStep === null && !isLast && (
         <div className="flex items-center justify-between mt-6">
           <Button
             variant="ghost"
@@ -611,7 +665,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           </Button>
         </div>
       )}
-      {isLast && (status === null || status === 'draft') && (
+      {editingStep === null && isLast && (status === null || status === 'draft') && (
         <div className="flex items-center justify-start mt-6">
           <Button
             variant="ghost"
