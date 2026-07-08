@@ -214,6 +214,9 @@ export function registerStudioDraftRoutes(app: Express): void {
           ...state,
           step: 5,
           rerollOfCardId: id,
+          // Family id survives chained clones: a take-three cloned
+          // from take-two still belongs to take-one's family.
+          rerollFamilyId: state.rerollFamilyId ?? id,
         };
 
         const [inserted] = await db

@@ -18,6 +18,9 @@ import type { CardGridItem } from '@shared/schema';
 
 interface CardGridProps {
   cards: CardGridItem[];
+  /** Cover-card id → family size (from collapseFamilies). Badges the
+   *  tile with "N takes" when its family has more than one. */
+  takeCounts?: Map<number, number>;
   /** Render the dashed/violet "Start a card" tile as the first cell.
    *  Default true — matches original Sprint 2 behaviour on /studio. */
   showNewCardTile?: boolean;
@@ -29,6 +32,7 @@ interface CardGridProps {
 
 export function CardGrid({
   cards,
+  takeCounts,
   showNewCardTile = true,
   emptyHint,
 }: CardGridProps) {
@@ -51,7 +55,11 @@ export function CardGrid({
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
       {showNewCardTile && <NewCardTile />}
       {sorted.map((card) => (
-        <CardThumbnail key={card.id} card={card} />
+        <CardThumbnail
+          key={card.id}
+          card={card}
+          takesCount={takeCounts?.get(card.id)}
+        />
       ))}
     </div>
   );

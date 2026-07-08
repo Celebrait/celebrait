@@ -35,13 +35,17 @@ import type { CardGridItem } from '@shared/schema';
 
 interface CardThumbnailProps {
   card: CardGridItem;
+  /** Family size when this tile is the COVER of a take-family with
+   *  more than one member (see collapseFamilies). Renders an "N takes"
+   *  badge bottom-left; the card view's takes rail does the switching. */
+  takesCount?: number;
 }
 
 // Title derivation lives in @/lib/studio-card-buckets so the dashboard
 // + grid + drafts/ready/sent surfaces all read identically. Was
 // duplicated here pre-2026-04-26 — leaked "Mum's birthday" / "Mum's
 // thankyou" because this copy didn't get the suffix + label fixes.
-export function CardThumbnail({ card }: CardThumbnailProps) {
+export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
   const title = deriveCardTitle(card);
   // Use the shared bucket logic so front-first lifecycle statuses
   // (generating-front/front-ready/…) read correctly — inline
@@ -168,6 +172,14 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
           >
             <span aria-hidden>✨</span>
             Just finished
+          </div>
+        )}
+        {typeof takesCount === 'number' && takesCount > 1 && (
+          <div
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-stone-700 text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-stone-200"
+            data-testid={`chip-takes-${card.id}`}
+          >
+            {takesCount} takes
           </div>
         )}
       </div>

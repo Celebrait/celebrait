@@ -144,8 +144,10 @@ function DraftListRow({ card }: { card: CardGridItem }) {
 
   const stepLabel = formatStepLabel(step);
   const dateLabel = formatRelativeTime(card.createdAt);
-  const metaLine =
-    stepLabel && dateLabel ? `${stepLabel} · ${dateLabel}` : stepLabel || dateLabel || '';
+  // Start-again clones announce themselves so two "Kayla's birthday
+  // card" rows don't read as a duplicate bug.
+  const takePrefix = card.rerollFamilyId != null ? 'Fresh take' : '';
+  const metaLine = [takePrefix, stepLabel, dateLabel].filter(Boolean).join(' · ');
 
   // Same delete pattern card-thumbnail.tsx uses — DELETE
   // /api/studio/cards/:id, invalidate the user-cards query, toast on

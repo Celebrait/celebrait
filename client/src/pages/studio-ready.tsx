@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { Wand2, Package } from 'lucide-react';
 import { CardGrid, CardGridSkeleton } from '@/components/studio/card-grid';
-import { bucketCards } from '@/lib/studio-card-buckets';
+import { bucketCards, collapseFamilies } from '@/lib/studio-card-buckets';
 import type { CardGridItem } from '@shared/schema';
 
 export default function StudioReady() {
@@ -31,13 +31,24 @@ export default function StudioReady() {
       ) : error ? (
         <ErrorState message={error instanceof Error ? error.message : 'Please try again.'} />
       ) : (
-        <CardGrid
-          cards={bucketCards(data ?? []).ready}
-          showNewCardTile={false}
-          emptyHint={<ReadyEmpty />}
-        />
+        <ReadyGrid ready={bucketCards(data ?? []).ready} />
       )}
     </>
+  );
+}
+
+// Take-families collapse to one tile (newest take as cover, "N takes"
+// badge) so five rolls of Kayla's card don't read as five cards. The
+// card view's takes rail handles switching between them.
+function ReadyGrid({ ready }: { ready: CardGridItem[] }) {
+  const { covers, takeCounts } = collapseFamilies(ready);
+  return (
+    <CardGrid
+      cards={covers}
+      takeCounts={takeCounts}
+      showNewCardTile={false}
+      emptyHint={<ReadyEmpty />}
+    />
   );
 }
 

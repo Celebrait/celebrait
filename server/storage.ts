@@ -122,6 +122,9 @@ export class DatabaseStorage implements IStorage {
         -- tiles in the dashboard activity column. Nullable on legacy
         -- rows that predate the step field.
         (c.conversation_data->>'step')::int AS "draftStep",
+        -- Take-family id (Start-again clones) — groups takes in the
+        -- dashboard. NULL on standalone cards.
+        (c.conversation_data->>'rerollFamilyId')::int AS "rerollFamilyId",
         -- Boolean: does this card have at least one paid Studio order?
         -- EXISTS keeps the grid one row per card even if a user has
         -- multiple orders against the same card (reorder, etc.).
@@ -159,6 +162,10 @@ export class DatabaseStorage implements IStorage {
       // legacy rows. Some cards have only one populated; never assume
       // both — that's why the dashboard was showing empty thumbnails.
       frontImageUrl: resolveStoredImageUrl(r.frontImagePath, r.frontImageUrl),
+      rerollFamilyId:
+        typeof r.rerollFamilyId === 'number' && Number.isFinite(r.rerollFamilyId)
+          ? r.rerollFamilyId
+          : null,
       hasPaidOrder: Boolean(r.hasPaidOrder),
       draftStep:
         typeof r.draftStep === 'number' && Number.isFinite(r.draftStep)

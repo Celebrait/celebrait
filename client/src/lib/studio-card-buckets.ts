@@ -69,6 +69,44 @@ export function isGeneratedStatus(status: string | null | undefined): boolean {
   return status === 'completed' || status === 'paid' || status === 'purchased';
 }
 
+/** The take-family a card belongs to — Start-again clones share their
+ *  original card's id; standalone cards are their own family. */
+export function familyKey(c: Pick<CardGridItem, 'id' | 'rerollFamilyId'>): number {
+  return c.rerollFamilyId ?? c.id;
+}
+
+const byDateDesc = (a: CardGridItem, b: CardGridItem) => {
+  const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  return bt - at;
+};
+
+/** Collapse take-families to one COVER card each (the newest take).
+ *  `takeCounts` maps cover-card id → family size for families > 1, so
+ *  grids can badge "N takes" without re-deriving. Kevin 2026-07-08:
+ *  Start-again takes were flooding Ready as siblings. */
+export function collapseFamilies(cards: CardGridItem[]): {
+  covers: CardGridItem[];
+  takeCounts: Map<number, number>;
+} {
+  const byFam = new Map<number, CardGridItem[]>();
+  for (const c of cards) {
+    const k = familyKey(c);
+    const arr = byFam.get(k);
+    if (arr) arr.push(c);
+    else byFam.set(k, [c]);
+  }
+  const covers: CardGridItem[] = [];
+  const takeCounts = new Map<number, number>();
+  byFam.forEach((fam) => {
+    fam.sort(byDateDesc);
+    covers.push(fam[0]);
+    if (fam.length > 1) takeCounts.set(fam[0].id, fam.length);
+  });
+  covers.sort(byDateDesc);
+  return { covers, takeCounts };
+}
+
 export function bucketCards(cards: CardGridItem[]): {
   drafts: CardGridItem[];
   ready: CardGridItem[];
@@ -86,11 +124,6 @@ export function bucketCards(cards: CardGridItem[]): {
     }
     // Unknown statuses fall through — not shown on any surface.
   }
-  const byDateDesc = (a: CardGridItem, b: CardGridItem) => {
-    const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return bt - at;
-  };
   return {
     drafts: drafts.sort(byDateDesc),
     ready: ready.sort(byDateDesc),

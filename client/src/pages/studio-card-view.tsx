@@ -24,6 +24,8 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import { StartAgainButton } from '@/components/studio/steps/review-step';
+import { familyKey, isGeneratedStatus } from '@/lib/studio-card-buckets';
+import type { CardGridItem } from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
@@ -495,8 +497,90 @@ function LoadedView({
             />
           </motion.div>
         )}
+
+        {/* Takes rail — every finished take in this card's family, one
+            tap to view/buy a different one (Kevin 2026-07-08). Unpaid
+            cards only: once one take is bought, switching is noise. */}
+        {!hasPaid && (
+          <TakesRail
+            currentId={card.id}
+            famKey={card.state.rerollFamilyId ?? card.id}
+          />
+        )}
       </div>
 
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Takes rail — thumbnails of every finished take in this card's
+// family (Start-again clones + the original). Clicking navigates to
+// that take's own card view, where its Send CTA buys THAT take. Uses
+// the cached /api/user/cards list — no new endpoint.
+// ─────────────────────────────────────────────────────────────────────
+
+function TakesRail({ currentId, famKey }: { currentId: number; famKey: number }) {
+  const [, setLocation] = useLocation();
+  const { data: allCards } = useQuery<CardGridItem[]>({
+    queryKey: ['/api/user/cards'],
+  });
+  const takes = (allCards ?? [])
+    .filter(
+      (c) =>
+        familyKey(c) === famKey &&
+        isGeneratedStatus(c.status) &&
+        !!c.frontImageUrl,
+    )
+    .sort((a, b) => {
+      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return at - bt; // oldest first — reads as take 1, 2, 3…
+    });
+  if (takes.length < 2) return null;
+  return (
+    <div className="mt-6" data-testid="takes-rail">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mb-2">
+        Your takes
+      </p>
+      <div className="flex flex-wrap items-start justify-center gap-2">
+        {takes.map((t, idx) => {
+          const isCurrent = t.id === currentId;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              disabled={isCurrent}
+              onClick={() => setLocation(`/studio/card/${t.id}`)}
+              className={`group flex flex-col items-center gap-1 ${
+                isCurrent ? 'cursor-default' : 'cursor-pointer'
+              }`}
+              data-testid={`take-thumb-${t.id}`}
+            >
+              <span
+                className={`block h-16 w-16 overflow-hidden rounded-lg border-2 transition-all ${
+                  isCurrent
+                    ? 'border-brand shadow-sm'
+                    : 'border-transparent opacity-70 group-hover:opacity-100 group-hover:border-stone-300'
+                }`}
+              >
+                <img
+                  src={t.frontImageUrl!}
+                  alt={`Take ${idx + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </span>
+              <span
+                className={`text-[10px] ${
+                  isCurrent ? 'font-semibold text-brand-dark' : 'text-stone-400'
+                }`}
+              >
+                Take {idx + 1}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

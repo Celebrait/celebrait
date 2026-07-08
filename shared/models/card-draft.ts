@@ -35,6 +35,12 @@ export interface CardDraftState {
    *  framing + the reference link back to the first take. Absent on
    *  organically-created drafts. */
   rerollOfCardId?: number;
+  /** The take-FAMILY this card belongs to: the id of the family's
+   *  original card, propagated through every Start-again clone (a
+   *  clone of a clone keeps the same family id). Groups takes in the
+   *  dashboard + powers the takes rail on the card view. Absent =
+   *  the card is its own family. */
+  rerollFamilyId?: number;
   recipient?: {
     name?: string;
     occasion?: string;

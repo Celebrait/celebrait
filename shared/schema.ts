@@ -166,6 +166,10 @@ export type CardGridItem = {
   recipientName: string | null;
   occasion: string | null;
   frontImageUrl: string | null;
+  /** Take-family id (the family's original card id) when this card
+   *  was made via Start-again — null for standalone cards. Use
+   *  familyKey() in studio-card-buckets, not this field directly. */
+  rerollFamilyId: number | null;
   /** True if the card has at least one paid Studio order. Drives the
    *  Ready vs Sent bucket split in the dashboard — a completed card
    *  without a paid order is "ready to send"; one with is "sent". */

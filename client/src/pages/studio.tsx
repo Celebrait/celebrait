@@ -45,7 +45,7 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import heroFrontSrc from '@/assets/fathers-day-front.jpg';
 import heroInsideSrc from '@/assets/fathers-day-inside-new.jpg';
 import { useAuth } from '@/hooks/use-auth';
-import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
+import { bucketCards, collapseFamilies, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { CARD_MAKER_STEPS } from '@shared/schema';
@@ -320,12 +320,15 @@ function HasActivityView({
   // nostalgic "look how pretty." Action beats status, so Ready cards
   // carousel through the hero. If no Ready, we fall back to the
   // latest Sent card.
+  // Take-families collapse to their newest take so five rolls of one
+  // card don't dominate the hero carousel + Ready column.
+  const readyCovers = collapseFamilies(ready).covers;
   const heroCards: CardGridItem[] =
-    ready.length > 0 ? ready : sent[0] ? [sent[0]] : [];
-  const heroBucket: 'ready' | 'sent' = ready.length > 0 ? 'ready' : 'sent';
+    readyCovers.length > 0 ? readyCovers : sent[0] ? [sent[0]] : [];
+  const heroBucket: 'ready' | 'sent' = readyCovers.length > 0 ? 'ready' : 'sent';
 
   const recentDrafts = drafts.slice(0, 3);
-  const recentReady = ready.slice(0, 3);
+  const recentReady = readyCovers.slice(0, 3);
   const recentSent = sent.slice(0, 3);
 
   return (
