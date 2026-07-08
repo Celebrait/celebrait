@@ -98,6 +98,19 @@ export const cards = pgTable("cards", {
   failureAt: timestamp("failure_at"), // when the failure was persisted
 });
 
+// Lightweight lead capture — recipients of a digital card who aren't
+// ready to make one on arrival ("email me a link for later", Kevin
+// 2026-07-08). No auth, no account: just an email + where it came
+// from. Nurture flows come later; today we send ONE immediate
+// "here's your link" email at capture time.
+export const marketingLeads = pgTable("marketing_leads", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  source: text("source").notNull(),
+  cardId: integer("card_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   cardId: integer("card_id").notNull().references(() => cards.id),

@@ -339,6 +339,37 @@ function chassis(opts: {
   `;
 }
 
+// ── Make-your-own link (lead capture from the digital card viewer) ──
+// The recipient of a card said "not right now — email me the link".
+// One warm email, sent immediately, so the intent survives the moment.
+export async function sendMakeYourOwnLinkEmail(email: string): Promise<boolean> {
+  const startUrl = `${PUBLIC_ORIGIN}/studio/new-card`;
+  const body = `
+    <p style="margin: 0 0 16px;">Hi,</p>
+    <p style="margin: 0 0 16px;">
+      You asked us to save you the link — here it is. Whenever the moment's
+      right, make someone their own card: upload a photo, tell us the scene,
+      and we'll paint them into it. Printed, posted, kept.
+    </p>
+    <p style="margin: 0 0 8px;">
+      Free to make — you only pay if you send one.
+    </p>
+  `;
+  const html = chassis({
+    preheader: "Your link to make a card — whenever you're ready.",
+    bodyHtml: body,
+    cta: { label: 'Make a card', href: startUrl },
+  });
+  const text =
+    `Hi,\n\nYou asked us to save you the link — here it is. Whenever the moment's right, make someone their own card: upload a photo, tell us the scene, and we'll paint them into it.\n\nMake a card: ${startUrl}\n\nFree to make — you only pay if you send one.\n\n— Celebrait`;
+  return sendEmail({
+    to: email,
+    subject: 'Your link to make a card — whenever you\'re ready',
+    html,
+    text,
+  });
+}
+
 // ── OTP (auth) ───────────────────────────────────────────────────────
 export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
   // Route through sendEmail so it uses the same transport policy (HTTPS API

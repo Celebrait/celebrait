@@ -87,36 +87,14 @@ export default function CardViewerPage() {
 
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  // Once the user has interacted with the card at all, we stop
-  // showing the gesture hints — they've found the controls. Persists
-  // for the session only (no localStorage); fresh visit = hints back.
-  const [hasInteracted, setHasInteracted] = useState(false);
   // Welcome gate — acts as the arrival moment. Shown until the user
   // clicks "Open", at which point it slides away like a pair of doors
   // opening to reveal the viewer behind.
   const [gateOpen, setGateOpen] = useState(false);
-
-  // Fade the UI (buttons + make-your-own + hints) while the user
-  // is actively interacting with the card. Triggered on pointer
-  // down / wheel; 1.2s after the last interaction the UI fades back
-  // in. Lets the card rotate/zoom over the button area without
-  // clipping against the UI. Header is intentionally NOT faded —
-  // card passes behind it (translucent bg gives depth cue).
-  const [isInteracting, setIsInteracting] = useState(false);
-  const interactTimerRef = useRef<number | null>(null);
-  const startInteract = () => {
-    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
-    setIsInteracting(true);
-    setHasInteracted(true);
-  };
-  const endInteract = () => {
-    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
-    interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
-  };
-  const bumpInteract = () => {
-    startInteract();
-    endInteract();
-  };
+  // (The fade-UI-while-interacting + hide-hints-after-first-touch
+  // machinery from the drag-rotate era was removed 2026-07-08 —
+  // tap-to-open is the only gesture now, and hiding CTAs on scroll
+  // read as a bug.)
 
   if (!Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
@@ -218,7 +196,7 @@ export default function CardViewerPage() {
             sit as an absolute overlay inside the stage so their
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
-        <div className="h-[56vh] sm:h-[62vh] w-full relative">
+        <div className="mx-auto h-[55vh] sm:h-[62vh] w-full max-w-3xl relative">
           {/* Canvas bleed: ±25vh vertical + ±22vw horizontal. Large
               enough that the card never hits the canvas edge when
               rotating/tilting/zooming, even at max zoom. Paired with
@@ -233,14 +211,13 @@ export default function CardViewerPage() {
               CSS drop-shadow adds a soft depth shadow beneath the
               card's silhouette. The 3D scene's own ContactShadows
               still handle grounded-on-surface during rotation. */}
+          {/* Bleed matches studio-card-view exactly (2026-07-08:
+              "card size should be the same as the studio") — same
+              stage height, same max-w-3xl, same insets = identical
+              rendered card size. */}
           <div
-            className="absolute top-[-25vh] bottom-[-25vh] left-[-22vw] right-[-22vw] z-[25]"
+            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw] z-[25]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
-            onPointerDown={startInteract}
-            onPointerUp={endInteract}
-            onPointerCancel={endInteract}
-            onPointerLeave={endInteract}
-            onWheel={bumpInteract}
           >
             {/* Suspense fallback = static poster while the lazy
                 Three.js chunk loads. Recipients always see their card
@@ -286,19 +263,10 @@ export default function CardViewerPage() {
           </div>
         </div>
 
-        {/* UI — flows below the stage. The card canvas extends past
-            the stage into this zone at z-0; UI sits at z-10.
-            Buttons + hints + make-your-own panel fade out while the
-            user is actively interacting with the card (drag/zoom),
-            so anything the card rotates over doesn't clip against
-            the UI. Fade back in 1.2s after the last interaction. */}
-        <div
-          className="relative z-30 max-w-xl mx-auto px-4 pt-2 pb-16 transition-opacity duration-500"
-          style={{
-            opacity: isInteracting ? 0 : 1,
-            pointerEvents: isInteracting ? 'none' : 'auto',
-          }}
-        >
+        {/* UI — flows below the stage. Always visible: the old
+            fade-while-interacting belonged to the drag-rotate era
+            (orbit removed site-wide 2026-07-07). */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 pb-16">
           {/* Gesture hints — sit close to the card with generous gap
               between them and the action row below. Container
               collapses (max-height → 0) once hasInteracted fires,
@@ -335,28 +303,12 @@ export default function CardViewerPage() {
             </Button>
           </div>
 
-          {/* Acquisition panel — boxed so it reads as a distinct
-              moment. */}
-          <Link
-            href={createHref}
-            className="mt-8 block bg-white rounded-xl border border-stone-200 p-4 hover:border-brand/60 hover:shadow-sm transition-all group"
-            data-testid="btn-viewer-create"
-          >
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand flex-shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink">Make one of your own</p>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  A few minutes to craft a card worth sending.
-                </p>
-              </div>
-              <span className="text-brand group-hover:text-brand-dark text-sm font-medium whitespace-nowrap">
-                Start →
-              </span>
-            </div>
-          </Link>
+          {/* Acquisition moment (Kevin 2026-07-08): a STRONG make-your-
+              own CTA — plus the honest path for the 95% who aren't
+              ready right now: email yourself the link for later.
+              Recipients arrive emotional but busy; capture the intent,
+              don't demand the act. */}
+          <MakeYourOwnPanel createHref={createHref} cardId={cardId} />
         </div>
       </div>
 
@@ -374,6 +326,117 @@ export default function CardViewerPage() {
 
       <WelcomeGate show={!gateOpen} onOpen={() => setGateOpen(true)} />
     </Shell>
+  );
+}
+
+// ── MakeYourOwnPanel ─────────────────────────────────────────────────
+// The acquisition moment, two-speed (Kevin 2026-07-08): a strong
+// primary for the ready-now visitor, and an email-capture for the
+// realistic majority who love the card but aren't making one on the
+// spot. The capture stores a lead + fires ONE immediate "here's your
+// link" email — intent preserved past the moment.
+function MakeYourOwnPanel({
+  createHref,
+  cardId,
+}: {
+  createHref: string;
+  cardId: number;
+}) {
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const { toast } = useToast();
+
+  const submit = async () => {
+    if (busy || sent) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'card-viewer', cardId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? 'Please try again.');
+      }
+      setSent(true);
+    } catch (err: any) {
+      toast({
+        title: "Couldn't save that",
+        description: err?.message ?? 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="mt-10 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 text-center shadow-sm"
+      data-testid="make-your-own-panel"
+    >
+      <p className="text-lg font-semibold text-ink">
+        Someone made this just for you.
+      </p>
+      <p className="mx-auto mt-1 max-w-[38ch] text-sm text-stone-600">
+        Now put someone you love in the picture — upload a photo, tell us
+        the scene, we paint the card. Free to make.
+      </p>
+      <Link
+        href={createHref}
+        className="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[280px]"
+        data-testid="btn-viewer-create"
+      >
+        <Sparkles className="mr-2 h-4 w-4" />
+        Make one of your own — free
+      </Link>
+
+      {/* The not-right-now path. */}
+      <div className="mt-5 border-t border-stone-100 pt-4">
+        {sent ? (
+          <p className="text-sm font-medium text-cta-hover" data-testid="lead-captured">
+            Done — the link's in your inbox for whenever you're ready. ✨
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-stone-500">
+              Not the moment? We'll email you the link for later.
+            </p>
+            <form
+              className="mx-auto mt-2 flex max-w-sm items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+            >
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                data-testid="input-lead-email"
+              />
+              <Button
+                type="submit"
+                disabled={busy}
+                variant="outline"
+                className="h-10 shrink-0 border-stone-300"
+                data-testid="btn-lead-submit"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send it'}
+              </Button>
+            </form>
+            <p className="mx-auto mt-1.5 max-w-sm text-[10.5px] text-stone-400">
+              One email with your link — no spam, ever.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

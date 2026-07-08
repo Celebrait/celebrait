@@ -17,6 +17,10 @@ import {
 // serving is the /images static handler below; PDF generation lives
 // in utils/shared.processSupplierOrder for when print fulfilment is
 // wired up post-launch.
+import { db } from "./db";
+import { and, eq, gte } from "drizzle-orm";
+import { marketingLeads } from "@shared/schema";
+import { sendMakeYourOwnLinkEmail } from "./email-service";
 import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
@@ -48,6 +52,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
+
+  // --- Public lead capture (digital card viewer: "email me the link
+  // for later") --------------------------------------------------------
+  // No auth: recipients aren't users. Stores the lead + sends ONE
+  // immediate link email. Minimal validation; dedupe = same email +
+  // source within 24h is a silent no-op (still returns ok so the UI
+  // can't be used to probe stored emails).
+  app.post("/api/leads", async (req, res) => {
+    try {
+      const email =
+        typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      const source =
+        typeof req.body?.source === "string" ? req.body.source.trim().slice(0, 60) : "";
+      const cardId = Number.isFinite(Number(req.body?.cardId))
+        ? Number(req.body.cardId)
+        : null;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) {
+        return res.status(400).json({ message: "Enter a valid email address." });
+      }
+      if (!source) return res.status(400).json({ message: "Missing source." });
+
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const existing = await db
+        .select({ id: marketingLeads.id })
+        .from(marketingLeads)
+        .where(
+          and(
+            eq(marketingLeads.email, email),
+            eq(marketingLeads.source, source),
+            gte(marketingLeads.createdAt, dayAgo),
+          ),
+        )
+        .limit(1);
+      if (existing.length === 0) {
+        await db.insert(marketingLeads).values({ email, source, cardId });
+        // Fire-and-forget — the lead is stored either way.
+        void sendMakeYourOwnLinkEmail(email).catch((err) =>
+          console.warn("[LEADS] link email failed:", err?.message ?? err),
+        );
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[LEADS] capture failed:", err);
+      res.status(500).json({ message: "Could not save that just now." });
+    }
+  });
 
   // --- Authenticated user routes ---
 
