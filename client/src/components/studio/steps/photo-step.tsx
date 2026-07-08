@@ -317,7 +317,10 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   const replaceNextRef = useRef(false);
   const triggerReplacePicker = () => {
     replaceNextRef.current = true;
-    triggerFilePicker();
+    // Deliberately NOT triggerFilePicker(): its atMax guard blocks a
+    // full set — which is precisely when replacing is wanted (a group
+    // card's single photo IS at max; that made the button a no-op).
+    fileInputRef.current?.click();
   };
 
   const triggerFilePicker = () => {
@@ -690,6 +693,20 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   // Ghost tiles for in-flight uploads render alongside real photos so
   // the user sees their cropped frame land immediately.
   const totalCount = selectedPhotos.length + pending.length;
+
+  // The library query resolves async. With photo ids on the draft but
+  // the library not yet loaded, totalCount is briefly 0 — which used
+  // to render the EMPTY upload state for a beat before snapping to the
+  // selected grid (visible when arriving via the Review edit overlay).
+  // Hold a quiet spinner instead.
+  if (selectedIds.length > 0 && !photos) {
+    return (
+      <div className="flex items-center justify-center py-24" data-testid="photo-step-loading">
+        <Loader2 className="w-6 h-6 animate-spin text-brand" />
+      </div>
+    );
+  }
+
   if (totalCount > 0) {
     // Count label — retired "angles" in favour of subject-agnostic copy
     // that works for people, pets, babies, dogs-with-teddies alike.
@@ -946,6 +963,16 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           // crops stay 1:1 — tight face crops survive the provider's
           // downscale better.
           aspect={mode === 'one_person' ? 1 : undefined}
+        />
+        {/* Library drawer must mount HERE too — the edit overlay's
+            "Choose from your library" sets libraryOpen from the
+            selected state; previously the drawer only existed in the
+            empty state, so the button did nothing. */}
+        <PhotoLibraryDrawer
+          open={libraryOpen}
+          onOpenChange={setLibraryOpen}
+          onPick={pickFromLibrary}
+          currentPhotoId={selectedIds[0]}
         />
       </div>
     );
