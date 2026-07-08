@@ -448,32 +448,38 @@ function LoadedView({
             includesDigital={paidOrder?.includesDigital ?? false}
           />
         ) : (
-          <Button
-            onClick={() =>
-              setLocation(
-                // Blank inside skips the Giving Moment (no choice to
-                // make → printed + posted to the sender, always);
-                // every other card lands on the Giving Moment screen
-                // for the format + destination choice. Same routing
-                // as the post-reveal "Send this card" in the maker.
-                insideMode === 'blank'
-                  ? `/checkout/${card.id}?product=print`
-                  : `/studio/card/${card.id}/give`,
-              )
-            }
-            className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
-            size="lg"
-            data-testid="btn-card-view-buy"
-          >
-            Send this card
-          </Button>
+          /* Send + start-again share ONE row on sm+ (Kevin 2026-07-08:
+             the start-again card was buried below the fold). Stacked
+             on mobile, Send first. Both stay visible while the card is
+             open — the old fade-on-open only hid the escape hatch. */
+          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch">
+            <Button
+              onClick={() =>
+                setLocation(
+                  // Blank inside skips the Giving Moment (no choice to
+                  // make → printed + posted to the sender, always);
+                  // every other card lands on the Giving Moment screen
+                  // for the format + destination choice. Same routing
+                  // as the post-reveal "Send this card" in the maker.
+                  insideMode === 'blank'
+                    ? `/checkout/${card.id}?product=print`
+                    : `/studio/card/${card.id}/give`,
+                )
+              }
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 rounded-lg w-full sm:w-auto sm:h-auto py-3.5"
+              size="lg"
+              data-testid="btn-card-view-buy"
+            >
+              Send this card
+            </Button>
+            <StartAgainButton cardId={card.id} />
+          </div>
         )}
 
-        {/* Gesture hints first — keep them close to the Buy CTA above
-            (the hints are about the 3D card, so spatial proximity to
-            the card+CTA cluster reads better than burying them under
-            the regen panel). */}
-        <div className="mt-2 flex h-16 items-start justify-center">
+        {/* Gesture hints below the action row — the hints are about
+            the 3D card; fixed-height slot so open/close never moves
+            the page. */}
+        <div className="mt-1 flex h-16 items-start justify-center">
           <GestureHints
             open={open3D}
             hideRotateHint
@@ -481,24 +487,6 @@ function LoadedView({
             openLabel="Tap to close"
           />
         </div>
-
-        {/* Regen entry — small pill that flips the whole surface into
-            edit mode. Only for unpaid cards: once paid, the gift's
-            on its way and further regens are pointless chrome.
-            Subordinate to Buy by design — quiet safety net, not a
-            parallel CTA. Fades out in lockstep with the gesture
-            hints when the card opens (Kevin 2026-04-26: chrome
-            shouldn't compete with the moment of opening the card). */}
-        {!hasPaid && (
-          <motion.div
-            animate={{ opacity: open3D ? 0 : 1 }}
-            transition={{ duration: 0.5 }}
-            style={{ pointerEvents: open3D ? 'none' : 'auto' }}
-            className="mt-2"
-          >
-            <StartAgainButton cardId={card.id} className="mx-auto" />
-          </motion.div>
-        )}
 
         {/* Takes rail — every finished take in this card's family, one
             tap to view/buy a different one (Kevin 2026-07-08). Unpaid
