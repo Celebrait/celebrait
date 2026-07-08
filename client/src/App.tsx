@@ -62,7 +62,6 @@ import NotFound from "@/pages/not-found";
 
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
-const ChatStudio = lazy(() => import("@/pages/chat-studio"));
 
 // Studio shell + pages
 const StudioLayout = lazy(() => import("@/layouts/studio-layout"));
@@ -134,11 +133,6 @@ function Router() {
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
-          <Route path="/studio-chat">
-            <RequireAuth>
-              <ChatStudio />
-            </RequireAuth>
-          </Route>
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/studio">
