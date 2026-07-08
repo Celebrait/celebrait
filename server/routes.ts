@@ -85,8 +85,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ),
         )
         .limit(1);
+      const marketingOptIn = req.body?.marketingOptIn === true;
       if (existing.length === 0) {
-        await db.insert(marketingLeads).values({ email, source, cardId });
+        await db.insert(marketingLeads).values({ email, source, cardId, marketingOptIn });
         // Fire-and-forget — the lead is stored either way.
         void sendMakeYourOwnLinkEmail(email).catch((err) =>
           console.warn("[LEADS] link email failed:", err?.message ?? err),

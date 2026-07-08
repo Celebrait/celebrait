@@ -202,11 +202,10 @@ export default function CardViewerPage() {
               rotating/tilting/zooming, even at max zoom. Paired with
               margin 2.0 in InitialCameraFit + minDistance 2.7.
 
-              Canvas sits at z-25 — ABOVE the header (z-20). When the
-              card rotates up it renders on top of the header for
-              real depth (not just peeking through the translucent
-              bg). UI is bumped to z-30 so buttons + make-your-own
-              still receive pointer events at rest.
+              Canvas sits BELOW the header (z-10 vs z-20) — it used
+              to render above it for rotate-era depth, which now just
+              meant the card overlapped the menu when scrolling
+              (Kevin 2026-07-08).
 
               CSS drop-shadow adds a soft depth shadow beneath the
               card's silhouette. The 3D scene's own ContactShadows
@@ -216,7 +215,7 @@ export default function CardViewerPage() {
               stage height, same max-w-3xl, same insets = identical
               rendered card size. */}
           <div
-            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw] z-[25]"
+            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw] z-[10]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
           >
             {/* Suspense fallback = static poster while the lazy
@@ -281,34 +280,12 @@ export default function CardViewerPage() {
             />
           </div>
 
-          {/* Action row */}
-          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-3">
-            <Button
-              onClick={() => setOpen(!open)}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
-              size="lg"
-              data-testid="btn-viewer-open"
-            >
-              {open ? 'Close card' : 'Open card'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShareOpen(true)}
-              className="w-full sm:w-auto bg-white"
-              size="lg"
-              data-testid="btn-viewer-share"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-          </div>
-
           {/* Acquisition moment (Kevin 2026-07-08): a STRONG make-your-
               own CTA — plus the honest path for the 95% who aren't
               ready right now: email yourself the link for later.
               Recipients arrive emotional but busy; capture the intent,
               don't demand the act. */}
-          <MakeYourOwnPanel createHref={createHref} cardId={cardId} />
+          <MakeYourOwnPanel createHref={createHref} cardId={cardId} onShare={() => setShareOpen(true)} />
         </div>
       </div>
 
@@ -338,11 +315,14 @@ export default function CardViewerPage() {
 function MakeYourOwnPanel({
   createHref,
   cardId,
+  onShare,
 }: {
   createHref: string;
   cardId: number;
+  onShare: () => void;
 }) {
   const [email, setEmail] = useState('');
+  const [optIn, setOptIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
@@ -354,7 +334,12 @@ function MakeYourOwnPanel({
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'card-viewer', cardId }),
+        body: JSON.stringify({
+          email,
+          source: 'card-viewer',
+          cardId,
+          marketingOptIn: optIn,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -374,38 +359,55 @@ function MakeYourOwnPanel({
 
   return (
     <div
-      className="mt-10 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 text-center shadow-sm"
+      className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8 text-center shadow-sm"
       data-testid="make-your-own-panel"
     >
-      <p className="text-lg font-semibold text-ink">
+      {/* 1 — the hook */}
+      <p className="text-xl sm:text-2xl font-semibold text-ink">
         Someone made this just for you.
       </p>
-      <p className="mx-auto mt-1 max-w-[38ch] text-sm text-stone-600">
+      <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-stone-600">
         Now put someone you love in the picture — upload a photo, tell us
         the scene, we paint the card. Free to make.
       </p>
+
+      {/* 2 — the act-now path */}
       <Link
         href={createHref}
-        className="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[280px]"
+        className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
         data-testid="btn-viewer-create"
       >
         <Sparkles className="mr-2 h-4 w-4" />
         Make one of your own — free
       </Link>
 
-      {/* The not-right-now path. */}
-      <div className="mt-5 border-t border-stone-100 pt-4">
+      {/* 3 — recipient utility, quiet */}
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={onShare}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-stone-500 underline underline-offset-4 transition-colors hover:text-brand-dark"
+          data-testid="btn-viewer-share"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          Share this card
+        </button>
+      </div>
+
+      {/* 4 — the not-right-now path */}
+      <div className="mt-6 border-t border-stone-100 pt-5">
         {sent ? (
           <p className="text-sm font-medium text-cta-hover" data-testid="lead-captured">
             Done — the link's in your inbox for whenever you're ready. ✨
           </p>
         ) : (
           <>
-            <p className="text-xs text-stone-500">
-              Not the moment? We'll email you the link for later.
+            <p className="text-sm font-medium text-ink">Not the moment?</p>
+            <p className="mt-0.5 text-xs text-stone-500">
+              We'll email you the link for later.
             </p>
             <form
-              className="mx-auto mt-2 flex max-w-sm items-center gap-2"
+              className="mx-auto mt-3 flex max-w-sm items-center gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 void submit();
@@ -417,21 +419,35 @@ function MakeYourOwnPanel({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="h-10 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                 data-testid="input-lead-email"
               />
               <Button
                 type="submit"
                 disabled={busy}
-                variant="outline"
-                className="h-10 shrink-0 border-stone-300"
+                className="h-11 shrink-0 bg-brand hover:bg-brand-dark text-brand-foreground"
                 data-testid="btn-lead-submit"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send it'}
               </Button>
             </form>
-            <p className="mx-auto mt-1.5 max-w-sm text-[10.5px] text-stone-400">
-              One email with your link — no spam, ever.
+            {/* Explicit opt-in for anything beyond the one link email
+                (GDPR-clean: unticked default, plain language). */}
+            <label className="mx-auto mt-3 flex max-w-sm cursor-pointer items-start gap-2 text-left">
+              <input
+                type="checkbox"
+                checked={optIn}
+                onChange={(e) => setOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 accent-[#5c57d4]"
+                data-testid="check-lead-optin"
+              />
+              <span className="text-[11.5px] leading-snug text-stone-500">
+                Keep me posted now and then — new features and ideas.
+                Unsubscribe anytime.
+              </span>
+            </label>
+            <p className="mx-auto mt-2 max-w-sm text-[10.5px] text-stone-400">
+              We'll send your link straight away. No spam, ever.
             </p>
           </>
         )}
@@ -699,7 +715,7 @@ function SquareEnvelope({ opening }: { opening: boolean }) {
 function Shell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen overflow-x-clip bg-white">
       {/* Header at z-20. The 3D canvas sits at z-0 and extends past
           the stage bounds, so the card visually passes behind the
           header (and the UI below, at z-10) when zoomed/rotated.

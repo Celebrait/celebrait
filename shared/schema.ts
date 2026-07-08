@@ -108,6 +108,9 @@ export const marketingLeads = pgTable("marketing_leads", {
   email: text("email").notNull(),
   source: text("source").notNull(),
   cardId: integer("card_id"),
+  /** Explicit tick for contact beyond the single link email —
+   *  GDPR-clean opt-in, default false. */
+  marketingOptIn: boolean("marketing_opt_in").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
