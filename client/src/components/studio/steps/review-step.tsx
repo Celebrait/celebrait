@@ -803,12 +803,14 @@ function FrontFirstReview({
 }) {
   const [busy, setBusy] = useState(false);
   // Toggle the hero between the full card image and the print-ready
-  // spread — tap the small one to swap it up.
+  // spread. The toggle is a CHIP on the hero's corner (was a separate
+  // 120px block below it, which pushed the actions under the fold —
+  // Kevin 2026-07-08).
   const [heroView, setHeroView] = useState<'image' | 'print'>('image');
   const showingPrint = heroView === 'print';
   return (
-    <div className="mx-auto max-w-xl py-6">
-      <div className="mb-5 text-center">
+    <div className="mx-auto max-w-2xl py-4">
+      <div className="mb-4 text-center">
         <p className="text-lg font-semibold text-ink">{title}</p>
         {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
       </div>
@@ -816,7 +818,7 @@ function FrontFirstReview({
       {/* Fixed square footprint so toggling image ↔ print never moves
           the CTAs below. The landscape print spread centres vertically
           inside the square; the full image fills it. */}
-      <div className="mx-auto flex aspect-square w-full max-w-[320px] items-center justify-center">
+      <div className="relative mx-auto flex aspect-square w-full max-w-[300px] items-center justify-center">
         {showingPrint ? (
           <div className="w-full">{printVisual}</div>
         ) : (
@@ -824,30 +826,21 @@ function FrontFirstReview({
             {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
+          className="absolute -bottom-3 right-2 inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-stone-600 shadow-sm transition-colors hover:border-brand/40 hover:text-brand-dark"
+          aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
+          data-testid="btn-hero-print-toggle"
+        >
+          <Printer className="h-3 w-3" strokeWidth={1.75} />
+          {showingPrint ? 'Card view' : 'Print view'}
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
-        className="mx-auto mt-4 flex flex-col items-center"
-        aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
-      >
-        <div className="flex aspect-square w-[84px] items-center justify-center transition-transform hover:scale-[1.06]">
-          {showingPrint ? (
-            <div className="aspect-square w-full overflow-hidden rounded-md border border-stone-300 bg-stone-100">
-              {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
-            </div>
-          ) : (
-            <div className="w-full">{printVisual}</div>
-          )}
-        </div>
-        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-stone-400">
-          <Printer className="h-3 w-3" strokeWidth={1.75} />
-          {showingPrint ? 'Tap for the full image' : 'Print-ready · tap to view'}
-        </span>
-      </button>
-
-      <div className="mt-7 flex flex-col items-center gap-3">
+      {/* Actions — side-by-side on desktop so BOTH choices sit above
+          the fold; stacked on mobile with tightened rhythm. */}
+      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch">
         <button
           disabled={busy}
           onClick={async () => {
@@ -858,7 +851,7 @@ function FrontFirstReview({
               setBusy(false);
             }
           }}
-          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
+          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50 sm:w-auto sm:min-w-[240px]"
         >
           {busy ? 'One sec…' : approveLabel}
         </button>
@@ -1398,12 +1391,15 @@ function RevealView({
                   </div>
                 </motion.div>
 
-                {/* Send CTA */}
+                {/* Send CTA + the iterate escape on ONE row (sm+) so
+                    both choices share the fold (Kevin 2026-07-08 —
+                    start-again was buried below it). Stacked on
+                    mobile; Send always first. */}
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.9 }}
-                  className="mt-2 flex flex-col items-center"
+                  className="mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch"
                 >
                   <Button
                     onClick={() =>
@@ -1418,25 +1414,13 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 rounded-lg w-full sm:w-auto sm:h-auto py-3.5"
                     size="lg"
                     data-testid="btn-buy-card"
                   >
                     Send this card
                   </Button>
-                  {/* Quiet iterate escape at the moment of final
-                      judgement — subordinate to Send by design (fades
-                      in later, plain text weight). Without it, a user
-                      lukewarm on the assembled card had to hunt back
-                      through drafts to find the start-again pill. */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 1.6 }}
-                    className="mt-4"
-                  >
-                    <StartAgainButton cardId={cardId} />
-                  </motion.div>
+                  <StartAgainButton cardId={cardId} />
                 </motion.div>
               </motion.div>
             )}
