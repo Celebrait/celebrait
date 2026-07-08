@@ -491,10 +491,7 @@ function LoadedView({
             style={{ pointerEvents: open3D ? 'none' : 'auto' }}
             className="mt-2"
           >
-            <StartAgainButton
-              cardId={card.id}
-              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all disabled:opacity-50"
-            />
+            <StartAgainButton cardId={card.id} className="mx-auto" />
           </motion.div>
         )}
 

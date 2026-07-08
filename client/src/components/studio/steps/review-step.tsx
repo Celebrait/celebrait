@@ -32,6 +32,7 @@ import {
   Loader2,
   Printer,
   RotateCcw,
+  ChevronRight,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
@@ -719,6 +720,7 @@ export function StartAgainButton({
   className,
 }: {
   cardId: number;
+  /** Extra classes on the OUTER button (layout only — margins etc). */
   className?: string;
 }) {
   const [, setLocation] = useLocation();
@@ -746,14 +748,31 @@ export function StartAgainButton({
           setBusy(false);
         }
       }}
-      className={
-        className ??
-        'inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50'
-      }
+      // A proper secondary CARD, not a ghost pill (Kevin 2026-07-08:
+      // "needs better design, more prominence") — this is the ONLY
+      // iterate affordance in the product now. White card + icon tile
+      // + bold hook keeps it findable while the filled primary above
+      // it stays unmistakably the main act.
+      className={`group flex w-full max-w-[320px] items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-brand/50 hover:shadow-md disabled:opacity-60 ${className ?? ''}`}
       data-testid="btn-start-again"
     >
-      <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} />
-      {busy ? 'Setting up…' : 'Not quite right? Start again with these details'}
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark transition-colors group-hover:bg-brand group-hover:text-white">
+        <RotateCcw
+          className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`}
+          strokeWidth={2}
+        />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink">
+          {busy ? 'Setting up your next take…' : 'Not quite right?'}
+        </span>
+        <span className="block text-xs leading-snug text-stone-500">
+          {busy
+            ? 'One second.'
+            : 'Start again with these details — free, and this take stays saved.'}
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-stone-300 transition-colors group-hover:text-brand" />
     </button>
   );
 }
@@ -1412,10 +1431,7 @@ function RevealView({
                     transition={{ duration: 0.5, delay: 1.6 }}
                     className="mt-4"
                   >
-                    <StartAgainButton
-                      cardId={cardId}
-                      className="inline-flex items-center gap-1.5 text-[12.5px] text-stone-500 underline underline-offset-4 hover:text-stone-700 disabled:opacity-50"
-                    />
+                    <StartAgainButton cardId={cardId} />
                   </motion.div>
                 </motion.div>
               </motion.div>
