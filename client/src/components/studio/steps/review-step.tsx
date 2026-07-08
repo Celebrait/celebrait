@@ -55,6 +55,11 @@ import {
   CardOuterSpread,
   CardInnerSpread,
 } from '@/components/studio/card-print-template';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide } from '@shared/schema';
@@ -717,63 +722,121 @@ function frontFirstSubject(state: CardDraftState): string | null {
 // pipeline. The current card is untouched (stays in drafts).
 export function StartAgainButton({
   cardId,
+  pill = false,
   className,
 }: {
   cardId: number;
-  /** Extra classes on the OUTER button (layout only — margins etc). */
+  /** Match a rounded-full primary (the sign-off screens) instead of
+   *  the default rounded-lg (Send rows). */
+  pill?: boolean;
+  /** Extra layout classes on the trigger button. */
   className?: string;
 }) {
   const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const startAgain = async () => {
+    setBusy(true);
+    try {
+      const res = await apiRequest(
+        'POST',
+        `/api/studio/drafts/${cardId}/duplicate`,
+        {},
+      );
+      const { id } = (await res.json()) as { id: number };
+      setLocation(`/studio/card/${id}/edit`);
+    } catch (err: any) {
+      toast({
+        title: "Couldn't start again",
+        description: err?.message ?? 'Please try again.',
+        variant: 'destructive',
+      });
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          const res = await apiRequest(
-            'POST',
-            `/api/studio/drafts/${cardId}/duplicate`,
-            {},
-          );
-          const { id } = (await res.json()) as { id: number };
-          setLocation(`/studio/card/${id}/edit`);
-        } catch (err: any) {
-          toast({
-            title: "Couldn't start again",
-            description: err?.message ?? 'Please try again.',
-            variant: 'destructive',
-          });
-          setBusy(false);
-        }
-      }}
-      // A proper secondary CARD, not a ghost pill (Kevin 2026-07-08:
-      // "needs better design, more prominence") — this is the ONLY
-      // iterate affordance in the product now. White card + icon tile
-      // + bold hook keeps it findable while the filled primary above
-      // it stays unmistakably the main act.
-      className={`group flex w-full max-w-[320px] items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-brand/50 hover:shadow-md disabled:opacity-60 ${className ?? ''}`}
-      data-testid="btn-start-again"
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark transition-colors group-hover:bg-brand group-hover:text-white">
-        <RotateCcw
-          className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`}
-          strokeWidth={2}
-        />
+    <>
+      {/* SAME-SIZE sibling to the primary beside it (Kevin 2026-07-08)
+          — the explanation lives in the module, not the button. */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`w-full border border-stone-300 bg-white px-10 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:border-brand/50 hover:text-brand-dark sm:w-auto ${
+          pill ? 'rounded-full' : 'rounded-lg'
+        } ${className ?? ''}`}
+        data-testid="btn-start-again"
+      >
+        Not quite right?
+      </button>
+
+      <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="text-lg font-semibold text-ink">
+            Start again with these details
+          </DialogTitle>
+          <div className="space-y-3 pt-1">
+            <ExplainRow icon={RotateCcw}>
+              We copy everything across — recipient, photo, scene, your
+              words — into a fresh card you can tweak before rolling.
+            </ExplainRow>
+            <ExplainRow icon={Sparkles}>
+              Generating paints a brand-new take. Every roll comes out
+              different — that's the fun of it.
+            </ExplainRow>
+            <ExplainRow icon={FileText}>
+              This take stays saved in your drafts, so you can compare
+              and send whichever one you love. Free until you buy.
+            </ExplainRow>
+          </div>
+          <div className="flex flex-col gap-2 pt-3 sm:flex-row-reverse">
+            <Button
+              onClick={() => void startAgain()}
+              disabled={busy}
+              className="bg-brand hover:bg-brand-dark text-brand-foreground sm:flex-1"
+              data-testid="btn-start-again-confirm"
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Setting up your next take…
+                </>
+              ) : (
+                'Start my fresh take →'
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+              className="border-stone-300 sm:flex-1"
+              data-testid="btn-start-again-cancel"
+            >
+              Keep this take
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function ExplainRow({
+  icon: Icon,
+  children,
+}: {
+  icon: typeof RotateCcw;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark">
+        <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-ink">
-          {busy ? 'Setting up your next take…' : 'Not quite right?'}
-        </span>
-        <span className="block text-xs leading-snug text-stone-500">
-          {busy
-            ? 'One second.'
-            : 'Start again with these details — free, and this take stays saved.'}
-        </span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-stone-300 transition-colors group-hover:text-brand" />
-    </button>
+      <p className="text-sm leading-relaxed text-stone-600">{children}</p>
+    </div>
   );
 }
 
@@ -1202,7 +1265,7 @@ function RevealView({
         printVisual={<CardOuterSpread frontUrl={frontUrl} />}
         approveLabel="Looks good — now the inside →"
         onApprove={async () => setInsideComposing(true)}
-        secondary={<StartAgainButton cardId={cardId} />}
+        secondary={<StartAgainButton cardId={cardId} pill />}
       />
     );
   }
@@ -1220,7 +1283,7 @@ function RevealView({
         printVisual={<CardInnerSpread insideUrl={insideUrl} />}
         approveLabel="Looks good — assemble the card →"
         onApprove={onFinalize}
-        secondary={<StartAgainButton cardId={cardId} />}
+        secondary={<StartAgainButton cardId={cardId} pill />}
       />
     );
   }
