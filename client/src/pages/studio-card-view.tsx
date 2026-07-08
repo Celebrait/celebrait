@@ -478,7 +478,7 @@ function LoadedView({
                     : `/studio/card/${card.id}/give`,
                 )
               }
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
               size="lg"
               data-testid="btn-card-view-buy"
             >

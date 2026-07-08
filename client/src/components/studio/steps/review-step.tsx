@@ -764,8 +764,11 @@ export function StartAgainButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`w-full border border-stone-300 bg-white px-10 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:border-brand/50 hover:text-brand-dark sm:w-auto ${
-          pill ? 'rounded-full' : 'rounded-lg'
+        // Dimensions EXACTLY mirror the primary beside it: same fixed
+        // height, same fixed sm width (pill pair = w-80 on the
+        // sign-off screens, lg pair = w-64 beside Send).
+        className={`inline-flex h-[52px] w-full items-center justify-center border border-stone-300 bg-white text-[15px] font-semibold text-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
+          pill ? 'max-w-[320px] rounded-full sm:w-80' : 'rounded-lg sm:w-64'
         } ${className ?? ''}`}
         data-testid="btn-start-again"
       >
@@ -914,7 +917,7 @@ function FrontFirstReview({
               setBusy(false);
             }
           }}
-          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50 sm:w-auto sm:min-w-[240px]"
+          className="inline-flex h-[52px] w-full max-w-[320px] items-center justify-center rounded-full bg-brand px-6 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50 sm:w-80"
         >
           {busy ? 'One sec…' : approveLabel}
         </button>
@@ -1477,7 +1480,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >
