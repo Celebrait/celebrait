@@ -442,6 +442,18 @@ function LoadedView({
 
       {/* Actions */}
       <div className="relative z-30 max-w-xl mx-auto px-4 pt-4 text-center flex flex-col items-center gap-5">
+        {/* Gesture hints ABOVE the CTAs (Kevin) — they're about the
+            3D card, so they sit between it and the actions. Fixed-
+            height slot so open/close never moves the page. */}
+        <div className="flex h-14 items-start justify-center">
+          <GestureHints
+            open={open3D}
+            hideRotateHint
+            hideZoomHint
+            openLabel="Tap to close"
+          />
+        </div>
+
         {hasPaid ? (
           <PaidActions
             shareUrl={shareUrl}
@@ -475,18 +487,6 @@ function LoadedView({
             <StartAgainButton cardId={card.id} />
           </div>
         )}
-
-        {/* Gesture hints below the action row — the hints are about
-            the 3D card; fixed-height slot so open/close never moves
-            the page. */}
-        <div className="mt-1 flex h-16 items-start justify-center">
-          <GestureHints
-            open={open3D}
-            hideRotateHint
-            hideZoomHint
-            openLabel="Tap to close"
-          />
-        </div>
 
         {/* Takes rail — every finished take in this card's family, one
             tap to view/buy a different one (Kevin 2026-07-08). Unpaid
