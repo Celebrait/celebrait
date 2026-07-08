@@ -127,7 +127,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
 // Chips carry lil icons (Kevin 2026-07-05); the privacy chip swapped
 // for the deliver-your-way promise.
 const TRUST_CHIPS = [
-  { icon: RefreshCw, label: 'Regenerate free until you love it' },
+  { icon: RefreshCw, label: "Don't love it? A fresh take is free" },
   { icon: Mail, label: '280gsm · kraft envelope · printed in the UK' },
   { icon: Truck, label: 'Straight to them — or to you to hand over' },
 ] as const;
@@ -627,7 +627,7 @@ function ProofSection() {
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
             You give us a snapshot and a sentence. We paint the moment. Don't
-            love it? Regenerate free until you do.
+            love it? Start again free until you do.
           </p>
         </Rise>
         <Rise delay={0.1} className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">

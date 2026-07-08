@@ -168,6 +168,72 @@ export function registerStudioDraftRoutes(app: Express): void {
     }
   });
 
+  // ── POST /api/studio/drafts/:id/duplicate ─────────────────────────
+  // "Start again with these details" (Kevin 2026-07-07 — the regen
+  // replacement; tweak workbench parked for Premium). Clones the
+  // draft's INPUTS into a brand-new draft so the user can re-roll
+  // through the full crafted generation prompt without re-typing:
+  // recipient, photo refs, scene, front text, inside decision all
+  // carry over; generation outputs/status do NOT — the clone starts
+  // life as a plain 'draft' parked on the Review step. The source
+  // card is untouched (stays in drafts, versions intact).
+  app.post(
+    '/api/studio/drafts/:id/duplicate',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            userId: cards.userId,
+            conversationData: cards.conversationData,
+            sceneType: cards.sceneType,
+            cardType: cards.cardType,
+            printOption: cards.printOption,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Card not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+
+        const state = (row.conversationData ?? {}) as CardDraftState;
+        // Land the clone on Review — inputs pre-filled and editable via
+        // the stepper, one tap to generate. Index 5 = review
+        // (CARD_MAKER_STEPS; the inside step at 4 is skipped in the
+        // linear walk since the 2026-07-07 re-sequence).
+        const conversationData = { ...state, step: 5 };
+
+        const [inserted] = await db
+          .insert(cards)
+          .values({
+            userId,
+            sceneType: row.sceneType ?? 'with-person',
+            price: 0,
+            status: 'draft',
+            cardType: row.cardType ?? 'printed',
+            printOption: row.printOption ?? 'front-and-inside',
+            conversationData,
+            imageKey: generateShareToken(),
+          })
+          .returning({ id: cards.id });
+
+        res.json({ id: inserted.id });
+      } catch (err: any) {
+        console.error('[STUDIO] draft duplicate error:', err);
+        res
+          .status(500)
+          .json({ message: 'Could not start again: ' + (err?.message ?? String(err)) });
+      }
+    },
+  );
+
   // ── GET /api/studio/drafts/:id ───────────────────────────────────
   // Fetch a single draft's state for resume. Only returns scalar
   // fields + the step state jsonb — no legacy image blobs.

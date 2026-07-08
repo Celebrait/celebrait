@@ -31,7 +31,9 @@ import {
   Type,
   Loader2,
   Printer,
+  RotateCcw,
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
@@ -44,7 +46,6 @@ import {
   AssemblingCard,
   type GenerationStage,
 } from '@/components/studio/generation-wait';
-import { RegenEditMode } from '@/components/studio/regen-controls';
 import {
   InsideStep,
   isInsideStepReady,
@@ -649,6 +650,56 @@ function frontFirstSubject(state: CardDraftState): string | null {
   return occ ? `${name}'s ${occ} card` : `${name}'s card`;
 }
 
+// ── StartAgainButton ─────────────────────────────────────────────────
+// The regen replacement (Kevin 2026-07-07 — tweak workbench parked
+// for Premium): clone this card's inputs into a fresh draft and jump
+// to its Review. Every re-roll goes through the full crafted
+// generation prompt — the engine that impresses — never the edit
+// pipeline. The current card is untouched (stays in drafts).
+export function StartAgainButton({
+  cardId,
+  className,
+}: {
+  cardId: number;
+  className?: string;
+}) {
+  const [, setLocation] = useLocation();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const res = await apiRequest(
+            'POST',
+            `/api/studio/drafts/${cardId}/duplicate`,
+            {},
+          );
+          const { id } = (await res.json()) as { id: number };
+          setLocation(`/studio/card/${id}/edit`);
+        } catch (err: any) {
+          toast({
+            title: "Couldn't start again",
+            description: err?.message ?? 'Please try again.',
+            variant: 'destructive',
+          });
+          setBusy(false);
+        }
+      }}
+      className={
+        className ??
+        'inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-50'
+      }
+      data-testid="btn-start-again"
+    >
+      <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} />
+      {busy ? 'Setting up…' : 'Not quite right? Start again with these details'}
+    </button>
+  );
+}
+
 // ── FrontFirstReview ─────────────────────────────────────────────────
 // The DEFAULT front-first review surface: big card image (hero) + a small
 // print-ready spread (secondary) + a primary sign-off and a quiet "Make a
@@ -661,7 +712,7 @@ function FrontFirstReview({
   printVisual,
   approveLabel,
   onApprove,
-  onEdit,
+  secondary,
 }: {
   title: string;
   subject: string | null;
@@ -669,7 +720,9 @@ function FrontFirstReview({
   printVisual: React.ReactNode;
   approveLabel: string;
   onApprove?: () => Promise<void>;
-  onEdit: () => void;
+  /** Secondary action under the approve button — the StartAgainButton
+   *  (the tweak workbench is parked for Premium, 2026-07-07). */
+  secondary?: React.ReactNode;
 }) {
   const [busy, setBusy] = useState(false);
   // Toggle the hero between the full card image and the print-ready
@@ -732,13 +785,7 @@ function FrontFirstReview({
         >
           {busy ? 'One sec…' : approveLabel}
         </button>
-        <button
-          onClick={onEdit}
-          className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
-        >
-          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Make a change
-        </button>
+        {secondary}
       </div>
     </div>
   );
@@ -1022,15 +1069,9 @@ function RevealView({
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
-  // Edit mode — flips the whole surface from "look at the card / buy"
-  // (3D card + Buy CTA) to a focused regen workbench. Triggered by
-  // the "Make a change" pill on the reveal layout; exited via the
-  // Done button inside RegenEditMode. Keeps state local so leaving
-  // and re-entering edit mode resets the textarea + target.
-  const [editMode, setEditMode] = useState(false);
-  // Front-first review surfaces default to "look at your card"; this flips
-  // to the tweak workbench when the user taps "Make a change".
-  const [frontFirstEditing, setFrontFirstEditing] = useState(false);
+  // (editMode + frontFirstEditing removed 2026-07-07 — the tweak
+  // workbench is parked for Premium; StartAgainButton is the iterate
+  // affordance now.)
   // Post-reveal inside composer (2026-07-07 re-sequence): approving the
   // front opens the write/blank fork + message form HERE — in front of
   // the approved front — instead of the message having been collected
@@ -1055,32 +1096,12 @@ function RevealView({
   // ── FRONT-FIRST intermediate states ────────────────────────────────
   // Purely additive: legacy 'full' cards go straight generating →
   // completed and never enter these. Front-first cards pass through here
-  // (front preview + approve/iterate) BEFORE the existing completed-card
-  // 3D ceremony below, which still runs unchanged at status 'completed'.
-  // Front-ready: reuse the PROVEN regen workbench (RegenEditMode) scoped
-  // to the front — version rail, attempt select, Gemini tweak, error
-  // panel — instead of a bespoke control. Its commit action ("write the
-  // inside") triggers the inside generation.
-  if (status === 'front-ready' && onRegenerate && onSelectAttempt) {
-    if (frontFirstEditing) {
-      return (
-        <RegenEditMode
-          state={state}
-          frontUrl={frontUrl}
-          insideUrl={null}
-          attempts={attempts}
-          isRegenerating={isRegenerating}
-          regenError={regenError ?? null}
-          hasInside={false}
-          onRegenerate={onRegenerate}
-          onSelectAttempt={onSelectAttempt}
-          onExit={() => setFrontFirstEditing(false)}
-          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-          onUpdateInputs={onUpdateInputs ?? (async () => {})}
-          title="Tweak the front"
-        />
-      );
-    }
+  // (front preview + approve) BEFORE the existing completed-card 3D
+  // ceremony below, which still runs unchanged at status 'completed'.
+  // The tweak workbench (RegenEditMode) was PARKED for Premium
+  // 2026-07-07 — the iterate affordance is now StartAgainButton (clone
+  // the inputs, re-roll through the full crafted prompt).
+  if (status === 'front-ready') {
     // Approving the front opens the inside composer (write/blank fork +
     // message form) — the message is written IN CONTEXT of the approved
     // front (Kevin's June call, built 2026-07-07). generate-inside only
@@ -1111,35 +1132,16 @@ function RevealView({
         printVisual={<CardOuterSpread frontUrl={frontUrl} />}
         approveLabel="Looks good — now the inside →"
         onApprove={async () => setInsideComposing(true)}
-        onEdit={() => setFrontFirstEditing(true)}
+        secondary={<StartAgainButton cardId={cardId} />}
       />
     );
   }
 
   // Inside-ready: mirror the front step — big inside image + the print
-  // spread; tweak is inside-only (front already signed off) and lives
-  // behind "Make a change". Sign off → finalize → the 3D assemble.
-  if (status === 'inside-ready' && onRegenerate && onSelectAttempt) {
-    if (frontFirstEditing) {
-      return (
-        <RegenEditMode
-          state={state}
-          frontUrl={frontUrl}
-          insideUrl={insideUrl}
-          attempts={attempts}
-          isRegenerating={isRegenerating}
-          regenError={regenError ?? null}
-          hasInside
-          lockedSide="front"
-          onRegenerate={onRegenerate}
-          onSelectAttempt={onSelectAttempt}
-          onExit={() => setFrontFirstEditing(false)}
-          onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-          onUpdateInputs={onUpdateInputs ?? (async () => {})}
-          title="Tweak the inside"
-        />
-      );
-    }
+  // spread. Sign off → finalize → the 3D assemble. The escape hatch is
+  // the same start-again clone (the crafted prompt re-rolls everything;
+  // a surgical inside-only tweak is a Premium-tier problem).
+  if (status === 'inside-ready') {
     return (
       <FrontFirstReview
         title="Here's the inside"
@@ -1148,7 +1150,7 @@ function RevealView({
         printVisual={<CardInnerSpread insideUrl={insideUrl} />}
         approveLabel="Looks good — assemble the card →"
         onApprove={onFinalize}
-        onEdit={() => setFrontFirstEditing(true)}
+        secondary={<StartAgainButton cardId={cardId} />}
       />
     );
   }
@@ -1170,34 +1172,9 @@ function RevealView({
     );
   }
 
-  // Edit mode takes the entire surface — the 3D card + CTA stack
-  // are intentionally hidden so the user has a focused workbench.
-  // The Giving Moment is an inline view of the normal reveal surface,
-  // so it isn't reachable from edit mode — the user exits edit mode
-  // (Done) and then continues to give the card.
-  if (editMode && onRegenerate && onSelectAttempt) {
-    return (
-      <RegenEditMode
-        state={state}
-        frontUrl={frontUrl}
-        insideUrl={insideUrl}
-        attempts={attempts}
-        isRegenerating={isRegenerating}
-        regenError={regenError ?? null}
-        hasInside={insideMode === 'write' || insideMode === 'blank'}
-        onRegenerate={onRegenerate}
-        onSelectAttempt={onSelectAttempt}
-        onExit={() => setEditMode(false)}
-        onJumpToStepFromRegenFailure={onJumpToStepFromRegenFailure}
-        onUpdateInputs={
-          onUpdateInputs ??
-          (async () => {
-            /* no-op fallback when not wired (defensive) */
-          })
-        }
-      />
-    );
-  }
+  // (The completed-reveal edit mode — RegenEditMode workbench — was
+  // PARKED for Premium 2026-07-07 along with the whole tweak flow.
+  // regen-controls.tsx is preserved for revival.)
 
   return (
       <div

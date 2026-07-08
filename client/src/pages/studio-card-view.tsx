@@ -23,7 +23,7 @@ import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
-import { RegenEditMode } from '@/components/studio/regen-controls';
+import { StartAgainButton } from '@/components/studio/steps/review-step';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
@@ -140,7 +140,6 @@ function LoadedView({
   // focused regen workbench. Same pattern as RevealView in the
   // maker — both surfaces stay visually aligned. Only available to
   // unpaid cards (paid cards hide the entry pill below).
-  const [editMode, setEditMode] = useState(false);
 
   const paidOrder = orders.find(
     (o) => o.cardId === card.id && o.paymentStatus === 'paid',
@@ -364,27 +363,16 @@ function LoadedView({
   const insideMode = card.state.inside?.mode ?? null;
   const hasInside = insideMode === 'write' || insideMode === 'blank';
 
-  // Edit mode takes the entire surface. Buy is now its own route
-  // (Giving Moment screen, then checkout) so there's no modal to
-  // keep mounted in this branch — the user exits edit mode and the
-  // Send button below navigates them away.
-  if (editMode && !hasPaid) {
-    return (
-      <RegenEditMode
-        state={card.state}
-        frontUrl={card.frontImageUrl}
-        insideUrl={card.insideImageUrl}
-        attempts={card.attempts ?? []}
-        isRegenerating={isRegenerating}
-        regenError={regenError}
-        hasInside={hasInside}
-        onRegenerate={handleRegenerate}
-        onSelectAttempt={handleSelectAttempt}
-        onUpdateInputs={handleUpdateInputs}
-        onExit={() => setEditMode(false)}
-      />
-    );
-  }
+  // (The RegenEditMode workbench branch that lived here was PARKED for
+  // Premium 2026-07-07 — the regen plumbing above stays dormant for its
+  // revival; the iterate affordance is now the StartAgainButton pill
+  // below the card.)
+  void isRegenerating;
+  void regenError;
+  void hasInside;
+  void handleRegenerate;
+  void handleSelectAttempt;
+  void handleUpdateInputs;
 
   return (
     <div className="max-w-3xl mx-auto" data-testid="card-view">
@@ -484,7 +472,7 @@ function LoadedView({
             the card+CTA cluster reads better than burying them under
             the regen panel). */}
         <div className="mt-2">
-          <GestureHints open={open3D} />
+          <GestureHints open={open3D} hideRotateHint hideZoomHint />
         </div>
 
         {/* Regen entry — small pill that flips the whole surface into
@@ -501,15 +489,10 @@ function LoadedView({
             style={{ pointerEvents: open3D ? 'none' : 'auto' }}
             className="mt-2"
           >
-            <button
-              type="button"
-              onClick={() => setEditMode(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
-              data-testid="btn-regen-open"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
-              Not 100% happy? Make a change.
-            </button>
+            <StartAgainButton
+              cardId={card.id}
+              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all disabled:opacity-50"
+            />
           </motion.div>
         )}
       </div>

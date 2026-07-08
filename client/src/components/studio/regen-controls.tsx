@@ -1,5 +1,17 @@
 // client/src/components/studio/regen-controls.tsx
 //
+// ⚠️ PARKED FOR PREMIUM — 2026-07-07 (Kevin's launch call).
+// The tweak workbench is UNMOUNTED from every surface (review-step +
+// studio-card-view). Reasoning: the refine/edit pipeline is a
+// different, less mature engine than the crafted initial-generation
+// prompt, and pre-payment economics favour one deliberate re-roll
+// ("Start again with these details" → StartAgainButton +
+// /drafts/:id/duplicate) over open-ended surgical tweaks. Preserved
+// intact — like the inside-text helper — for revival under Celebrait
+// Premium, where a capped "keep the art, change one detail" power
+// tool belongs. See memory: regen launch decision 2026-07-07.
+//
+//
 // REGEN EDIT MODE — full-screen "workbench" surface for iterating on
 // a generated card. The reveal screen's "Make a change" pill flips
 // here; the Back button (or "Use this version" CTA) flips back.

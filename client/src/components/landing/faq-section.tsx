@@ -28,7 +28,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: "What if I don't like the card we generate?",
-    a: 'Regenerate or tweak any part for free until you do — front, inside, scene, style. No card limits while you iterate.',
+    a: "Start again with the same details for a brand-new take — free, as many times as you need before you buy. Every draft is kept, so you can compare and send the one you love.",
   },
   {
     q: 'Can I print and post the card?',
