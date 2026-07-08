@@ -1401,6 +1401,22 @@ function RevealView({
                   >
                     Send this card
                   </Button>
+                  {/* Quiet iterate escape at the moment of final
+                      judgement — subordinate to Send by design (fades
+                      in later, plain text weight). Without it, a user
+                      lukewarm on the assembled card had to hunt back
+                      through drafts to find the start-again pill. */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 1.6 }}
+                    className="mt-4"
+                  >
+                    <StartAgainButton
+                      cardId={cardId}
+                      className="inline-flex items-center gap-1.5 text-[12.5px] text-stone-500 underline underline-offset-4 hover:text-stone-700 disabled:opacity-50"
+                    />
+                  </motion.div>
                 </motion.div>
               </motion.div>
             )}
