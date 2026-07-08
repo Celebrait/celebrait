@@ -543,7 +543,13 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 onAdvance={() => handleAutoAdvance(0)}
               />
             )}
-            {displayStep === 1 && <PhotoStep state={state} onChange={update} />}
+            {displayStep === 1 && (
+              <PhotoStep
+                state={state}
+                onChange={update}
+                editIntent={editingStep !== null}
+              />
+            )}
             {displayStep === 2 && (
               <SceneStep state={state} onChange={update} cardId={cardId} />
             )}

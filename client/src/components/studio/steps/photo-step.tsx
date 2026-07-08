@@ -39,6 +39,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -55,6 +56,11 @@ import type { CropBounds, Photo } from '@shared/models/photos';
 interface PhotoStepProps {
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** True when the step is open as an EDIT OVERLAY from Review
+   *  (2026-07-08). The selected state reframes for change-intent:
+   *  "your current photo" labelling + a prominent replace button,
+   *  instead of the first-pass celebration copy with buried links. */
+  editIntent?: boolean;
 }
 
 const CLIENT_MAX_BYTES = 15 * 1024 * 1024;
@@ -152,7 +158,7 @@ async function generateCroppedPreview(
   });
 }
 
-export function PhotoStep({ state, onChange }: PhotoStepProps) {
+export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -301,6 +307,18 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
       prefetchFaces(item.base64);
     }
   }, [mode, queuedFiles]);
+
+  // Replace-intent flag (edit overlay): the NEXT committed photo
+  // replaces the current selection instead of appending. Group mode
+  // already replaces by design; this extends the same semantics to a
+  // single one_person photo when the user explicitly asked to change
+  // it. Cleared on commit, and re-cleared by the add-tile so a
+  // cancelled OS picker can't leave a stale replace armed.
+  const replaceNextRef = useRef(false);
+  const triggerReplacePicker = () => {
+    replaceNextRef.current = true;
+    triggerFilePicker();
+  };
 
   const triggerFilePicker = () => {
     if (atMax) return;
@@ -522,8 +540,10 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         // Read the LATEST committed ids via ref (state captured at the
         // outer closure would be stale after parallel uploads commit).
         const currentIds = selectedIdsRef.current;
+        const replacing = replaceNextRef.current;
+        replaceNextRef.current = false;
         const nextIds =
-          modeAtCrop === 'group'
+          modeAtCrop === 'group' || replacing
             ? [photo.id]
             : [...currentIds, photo.id].slice(0, MAX_PHOTOS.one_person);
         selectedIdsRef.current = nextIds;
@@ -573,8 +593,12 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   };
 
   const pickFromLibrary = (photoId: number) => {
+    const replacing = replaceNextRef.current;
+    replaceNextRef.current = false;
     const nextIds =
-      mode === 'group' ? [photoId] : [...selectedIds, photoId].slice(0, MAX_PHOTOS.one_person);
+      mode === 'group' || replacing
+        ? [photoId]
+        : [...selectedIds, photoId].slice(0, MAX_PHOTOS.one_person);
     onChange({ photos: { mode, photoIds: nextIds } });
     setLibraryOpen(false);
   };
@@ -669,8 +693,11 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   if (totalCount > 0) {
     // Count label — retired "angles" in favour of subject-agnostic copy
     // that works for people, pets, babies, dogs-with-teddies alike.
-    const countLabel =
-      mode === 'group'
+    const countLabel = editIntent
+      ? totalCount === 1
+        ? 'Your current photo'
+        : 'Your current photos'
+      : mode === 'group'
         ? "Everyone's here."
         : totalCount === 1
           ? recipientName
@@ -708,8 +735,9 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // of someone they can't easily get more of). Soft nudge only.
     // After 1 photo: explain the benefit. After 2: still room for one
     // more. After 3: confirm they've hit the sweet spot.
-    const hintCopy =
-      mode !== 'one_person'
+    const hintCopy = editIntent
+      ? 'This is what the card paints from.'
+      : mode !== 'one_person'
         ? null
         : totalCount === 0
           ? null // empty state has its own copy elsewhere
@@ -751,7 +779,10 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           {canAdd && (
             <button
               type="button"
-              onClick={triggerFilePicker}
+              onClick={() => {
+                replaceNextRef.current = false;
+                triggerFilePicker();
+              }}
               className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-brand hover:bg-brand-muted/40 transition-colors ${
                 mode === 'one_person' && totalCount >= 1
                   ? 'border-brand/40 bg-brand-muted/20'
@@ -800,6 +831,39 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           <p className="text-[11px] text-stone-500 mt-1 text-center max-w-[280px]">
             {hintCopy}
           </p>
+        )}
+
+        {/* EDIT INTENT (from Review): the user came here to CHANGE the
+            photo — give them a real button, not a buried text link.
+            Single photo (either mode) → the next pick REPLACES it
+            (group commits already replace; replaceNextRef extends that
+            to a single one_person photo). Multi-photo one_person keeps
+            the grid as the management surface (X to remove, add-tile
+            to add) so we don't guess which photo they meant. */}
+        {editIntent && totalCount === 1 && (
+          <div className="mt-5 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+            <Button
+              onClick={triggerReplacePicker}
+              className="bg-brand hover:bg-brand-dark text-brand-foreground"
+              data-testid="btn-replace-photo"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload a different photo
+            </Button>
+            {hasLibrary && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  replaceNextRef.current = true;
+                  setLibraryOpen(true);
+                }}
+                className="border-stone-300"
+                data-testid="btn-replace-from-library"
+              >
+                Choose from your library
+              </Button>
+            )}
+          </div>
         )}
 
         <div className="flex flex-col items-center gap-1.5 mt-4">
