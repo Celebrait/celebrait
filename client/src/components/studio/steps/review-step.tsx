@@ -1383,14 +1383,18 @@ function RevealView({
                   style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
                   className="mt-6"
                 >
-                  {/* Reserved-height slot so the hint fading in (~450ms
-                      after mount) doesn't shove the CTA down. Collapses
-                      to 0 only once the card actually OPENS. */}
-                  <div
-                    className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
-                    style={{ height: open ? 0 : 72 }}
-                  >
-                    <GestureHints open={open} mountDelayMs={450} hideRotateHint hideZoomHint />
+                  {/* FIXED-height slot (Kevin 2026-07-08: the old
+                      collapse-on-open shoved the page when already
+                      scrolled). The hint never leaves — its label
+                      toggles Tap to open ↔ Tap to close instead. */}
+                  <div className="flex h-[72px] items-start justify-center">
+                    <GestureHints
+                      open={open}
+                      mountDelayMs={450}
+                      hideRotateHint
+                      hideZoomHint
+                      openLabel="Tap to close"
+                    />
                   </div>
                 </motion.div>
 

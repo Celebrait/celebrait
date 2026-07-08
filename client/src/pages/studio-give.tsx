@@ -165,7 +165,7 @@ export default function StudioGivePage() {
             </div>
           </div>
           <div className="mt-3">
-            <GestureHints open={cardOpen} hideZoomHint hideRotateHint alwaysVisible />
+            <GestureHints open={cardOpen} hideZoomHint hideRotateHint alwaysVisible openLabel="Tap to close" />
           </div>
         </DialogContent>
       </Dialog>

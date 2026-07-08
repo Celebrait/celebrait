@@ -304,11 +304,13 @@ export default function CardViewerPage() {
               collapses (max-height → 0) once hasInteracted fires,
               smoothly pulling the action row upward as the hints
               fade out so no dead whitespace is left behind. */}
-          <div
-            className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
-            style={{ height: hasInteracted ? 0 : 72 }}
-          >
-            <GestureHints open={open || hasInteracted} hideRotateHint hideZoomHint />
+          <div className="flex h-[72px] items-start justify-center">
+            <GestureHints
+              open={open}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
           </div>
 
           {/* Action row */}

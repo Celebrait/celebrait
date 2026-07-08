@@ -566,7 +566,7 @@ export function HeroSection() {
                 the button stack's mt is reduced by the same amount
                 (mt-8/12 → mt-2/6) so the CTA doesn't shift. */}
             <div className="relative mt-12 md:mt-14 z-[70] min-h-[64px]">
-              <GestureHints open={open} hideZoomHint hideRotateHint />
+              <GestureHints open={open} hideZoomHint hideRotateHint openLabel="Tap to close" />
             </div>
 
             {/* CTA + watch button — centred stack, no desktop flanks. */}

@@ -473,8 +473,13 @@ function LoadedView({
             (the hints are about the 3D card, so spatial proximity to
             the card+CTA cluster reads better than burying them under
             the regen panel). */}
-        <div className="mt-2">
-          <GestureHints open={open3D} hideRotateHint hideZoomHint />
+        <div className="mt-2 flex h-16 items-start justify-center">
+          <GestureHints
+            open={open3D}
+            hideRotateHint
+            hideZoomHint
+            openLabel="Tap to close"
+          />
         </div>
 
         {/* Regen entry — small pill that flips the whole surface into

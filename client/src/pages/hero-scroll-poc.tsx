@@ -117,7 +117,7 @@ export function StudioFlowSection() {
                 above resized mid-hinge = the "stutters down" bug).
                 Rotate/zoom hints hidden. */}
             <div className="relative z-10 mt-2 flex h-16 shrink-0 items-start justify-center">
-              <GestureHints open={cardOpen} hideZoomHint hideRotateHint />
+              <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
             </div>
           </motion.div>
       </div>

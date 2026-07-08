@@ -839,7 +839,7 @@ export function ImagineDescribeShipSection() {
                   the hints and the CTA — copy the hero as that's
                   spot on"). mt-12/14, min-h-[64px] to match. */}
               <div className="relative mt-12 md:mt-14 z-[20] min-h-[64px]">
-                <GestureHints open={cardManualOpen} hideZoomHint hideRotateHint />
+                <GestureHints open={cardManualOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
               </div>
 
               {/* CTA stack — spacing copied from hero too: mt-2 md:mt-6,

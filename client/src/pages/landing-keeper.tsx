@@ -856,7 +856,7 @@ function FreePartSection() {
           )}
         </div>
         <div className="mt-3 flex h-14 items-start justify-center">
-          {near && !reduced && <GestureHints open={cardOpen} hideZoomHint hideRotateHint />}
+          {near && !reduced && <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />}
         </div>
       </div>
 
