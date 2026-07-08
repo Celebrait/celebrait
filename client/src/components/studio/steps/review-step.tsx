@@ -840,7 +840,7 @@ function FrontFirstReview({
 
       {/* Actions — side-by-side on desktop so BOTH choices sit above
           the fold; stacked on mobile with tightened rhythm. */}
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch">
+      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-center">
         <button
           disabled={busy}
           onClick={async () => {
@@ -1399,7 +1399,7 @@ function RevealView({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.9 }}
-                  className="mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch"
+                  className="mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-center"
                 >
                   <Button
                     onClick={() =>
@@ -1414,7 +1414,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 rounded-lg w-full sm:w-auto sm:h-auto py-3.5"
+                    className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
                     size="lg"
                     data-testid="btn-buy-card"
                   >

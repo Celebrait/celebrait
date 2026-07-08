@@ -464,7 +464,7 @@ function LoadedView({
              the start-again card was buried below the fold). Stacked
              on mobile, Send first. Both stay visible while the card is
              open — the old fade-on-open only hid the escape hatch. */
-          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:items-stretch">
+          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:items-center">
             <Button
               onClick={() =>
                 setLocation(
@@ -478,7 +478,7 @@ function LoadedView({
                     : `/studio/card/${card.id}/give`,
                 )
               }
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 rounded-lg w-full sm:w-auto sm:h-auto py-3.5"
+              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
               size="lg"
               data-testid="btn-card-view-buy"
             >
