@@ -208,7 +208,13 @@ export function registerStudioDraftRoutes(app: Express): void {
         // the stepper, one tap to generate. Index 5 = review
         // (CARD_MAKER_STEPS; the inside step at 4 is skipped in the
         // linear walk since the 2026-07-07 re-sequence).
-        const conversationData = { ...state, step: 5 };
+        // rerollOfCardId marks the clone as a "take two" so the Review
+        // step can signpost the fresh start + link back to the source.
+        const conversationData: CardDraftState = {
+          ...state,
+          step: 5,
+          rerollOfCardId: id,
+        };
 
         const [inserted] = await db
           .insert(cards)

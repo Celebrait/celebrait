@@ -17,10 +17,10 @@
 //   - completed    → show the rendered front + inside images
 //   - failed       → error + retry button (flips status back to draft)
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
   Sparkles,
   Pencil,
@@ -218,15 +218,25 @@ export function ReviewStep({
     );
   }
 
-  // Default: review + generate.
+  // Default: review + generate. Two framings for one surface:
+  //   • organic first pass — "take one last look"
+  //   • a "Start again with these details" clone (rerollOfCardId set) —
+  //     "take two": signpost the fresh start, link back to the first
+  //     take, and let the CTA say what it really does (Kevin 2026-07-08:
+  //     "we're not going back… we're starting fresh, signpost better").
   const recipientName = state.recipient?.name?.trim();
+  const isTakeTwo = !!state.rerollOfCardId;
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <p className="text-sm text-stone-600 leading-relaxed">
-        Everything below is still a draft. Tap any section to change it — you
-        can re-roll the result after, tweak the copy, or come back tomorrow.
-        Nothing gets sent until you say so.
+        {isTakeTwo
+          ? 'Same details, clean slate. Sharpen anything below — the scene wording moves the needle most — or roll straight away. Every roll paints a brand-new card.'
+          : 'Everything below is still a draft. Tap any section to change it — nothing gets sent until you say so.'}
       </p>
+
+      {isTakeTwo && state.rerollOfCardId && (
+        <FirstTakeRow cardId={state.rerollOfCardId} />
+      )}
 
       <SummaryPanel
         state={state}
@@ -241,13 +251,61 @@ export function ReviewStep({
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
-          {recipientName ? `Generate ${recipientName}'s card` : 'Generate my card'}
+          {isTakeTwo
+            ? recipientName
+              ? `Roll a fresh take for ${recipientName}`
+              : 'Roll a fresh take'
+            : recipientName
+              ? `Generate ${recipientName}'s card`
+              : 'Generate my card'}
         </Button>
         <p className="text-[11px] text-stone-500 text-center mt-2 leading-relaxed">
-          About {TYPICAL_GENERATION_SECONDS} seconds to draft. If you don't
-          love it, re-roll it or edit any step — your card saves as you go.
+          {isTakeTwo
+            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your first take stays in your drafts — nothing here overwrites it.`
+            : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free — your card saves as you go.`}
         </p>
       </div>
+    </div>
+  );
+}
+
+// ── FirstTakeRow ─────────────────────────────────────────────────────
+// On a "take two" Review (a Start-again clone), show the FIRST take as
+// a small reference row — thumbnail + reassurance + a link back. The
+// user can compare without fear that rolling again destroys anything.
+function FirstTakeRow({ cardId }: { cardId: number }) {
+  const { data } = useQuery<{ frontImageUrl: string | null }>({
+    queryKey: [`/api/studio/drafts/${cardId}`],
+  });
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3"
+      data-testid="first-take-row"
+    >
+      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-white">
+        {data?.frontImageUrl && (
+          <img
+            src={data.frontImageUrl}
+            alt="Your first take"
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-ink">
+          Your first take is safe in your drafts.
+        </p>
+        <p className="text-[11px] text-stone-500">
+          Rolling again paints a brand-new card — it won't touch this one.
+        </p>
+      </div>
+      <Link
+        href={`/studio/card/${cardId}`}
+        className="shrink-0 text-[12px] font-medium text-brand hover:text-brand-dark"
+        data-testid="first-take-view"
+      >
+        View it →
+      </Link>
     </div>
   );
 }

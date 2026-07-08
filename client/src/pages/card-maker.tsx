@@ -692,6 +692,15 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
     case 'inside':
       return `What should it say inside ${ownedCard}?`;
     case 'review':
+      // "Take two" framing when this draft was cloned via "Start again
+      // with these details" — the user isn't looking at something new,
+      // they're re-rolling a brief they already know (Kevin 2026-07-08:
+      // "we're not 'going back'… we're starting fresh, signpost it").
+      if (state.rerollOfCardId) {
+        return name
+          ? `${name}'s card — take two`
+          : 'Take two — same details, fresh roll';
+      }
       return name
         ? `${name}'s card — take one last look`
         : 'Take one last look';

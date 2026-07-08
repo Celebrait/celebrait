@@ -29,6 +29,12 @@ export interface CardDraftState {
   version: 1;
   /** Last step the user was on (0-indexed). Used for resume. */
   step: number;
+  /** Set when this draft was created by "Start again with these
+   *  details" (POST /drafts/:id/duplicate, 2026-07-08) — the id of the
+   *  card it was cloned from. Drives the Review step's "take two"
+   *  framing + the reference link back to the first take. Absent on
+   *  organically-created drafts. */
+  rerollOfCardId?: number;
   recipient?: {
     name?: string;
     occasion?: string;
