@@ -117,7 +117,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/studio/new-card"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand-dark text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 w-full bg-cta hover:bg-cta-hover text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
           data-testid="nav-new-card-cta"
           data-hint="new-card"
         >
@@ -130,7 +130,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         <div key={section.label} className="mb-4">
           <div
             className={`px-4 text-[10px] font-semibold uppercase tracking-wider mb-1 ${
-              section.placeholder ? 'text-stone-300' : 'text-stone-400'
+              section.placeholder ? 'text-keeper-stone/50' : 'text-keeper-stone'
             }`}
           >
             {section.label}
@@ -146,7 +146,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
               return (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2 px-3 py-2 mx-2 rounded text-sm text-stone-300 cursor-not-allowed select-none"
+                  className="flex items-center gap-2 px-3 py-2 mx-2 rounded-lg text-sm text-keeper-stone/50 cursor-not-allowed select-none"
                   data-testid={`nav-disabled-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <Icon className="w-4 h-4" />
@@ -160,10 +160,10 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
-                className={`flex items-center gap-2 px-3 py-2 mx-2 rounded text-sm transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-brand-muted text-brand-dark font-medium'
-                    : 'text-stone-700 hover:bg-stone-50'
+                    ? 'bg-keeper-gold-wash text-keeper-gold-deep font-medium'
+                    : 'text-keeper-ink hover:bg-keeper-gold-wash/50'
                 }`}
                 data-testid={`nav-${item.href}`}
                 data-hint={item.hint}
@@ -182,7 +182,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
-      <div className="h-16 flex items-center px-4 border-b border-stone-200">
+      <div className="h-16 flex items-center px-4 border-b border-keeper-hair">
         <Link
           href="/studio"
           onClick={onNavigate}
@@ -210,16 +210,16 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
 
   return (
-    <div className="min-h-screen bg-surface flex">
+    <div className="min-h-screen bg-keeper-paper flex">
       {/* ─── Sidebar (desktop, sm and up) ─── */}
-      <aside className="hidden sm:flex w-56 bg-white border-r border-stone-200 flex-col flex-shrink-0">
+      <aside className="hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
         <SidebarContent />
       </aside>
 
       {/* ─── Main column ─── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top header — same 16px bar as admin layout, with mobile hamburger */}
-        <header className="h-16 bg-white border-b border-stone-200 flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
+        <header className="h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
           {/* Hamburger (mobile only) */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -233,7 +233,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
                 <Menu className="w-5 h-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-56 p-0 bg-white">
+            <SheetContent side="left" className="w-56 p-0 bg-keeper-paper">
               <SheetTitle className="sr-only">Studio navigation</SheetTitle>
               <SidebarContent onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
@@ -250,11 +250,11 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           <WhatsNewDrawer />
           <NotificationBell />
 
-          <div className="flex items-center gap-2 bg-stone-50 rounded-full pl-1 pr-3 py-1">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white text-xs font-semibold">
+          <div className="flex items-center gap-2 bg-white/70 border border-keeper-hair rounded-full pl-1 pr-3 py-1">
+            <div className="w-7 h-7 rounded-full bg-keeper-gold flex items-center justify-center text-white text-xs font-semibold">
               {initials}
             </div>
-            <span className="text-xs text-stone-700 max-w-[140px] truncate hidden sm:block">
+            <span className="text-xs text-keeper-stone max-w-[140px] truncate hidden sm:block">
               {user?.email}
             </span>
           </div>
@@ -262,7 +262,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             variant="ghost"
             size="sm"
             onClick={() => logout()}
-            className="text-stone-500 hover:text-red-600 hover:bg-red-50"
+            className="text-keeper-stone hover:text-keeper-ink hover:bg-keeper-gold-wash"
             data-testid="btn-studio-logout"
           >
             <LogOut className="w-4 h-4" />
@@ -273,9 +273,9 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
         {/* Production-time notice — every card is printed to order (up to
             72h before dispatch). Kept honest + visible across the whole app
             so the expectation is set well before checkout. */}
-        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-1.5 flex-shrink-0">
-          <p className="text-[11px] sm:text-xs text-amber-900 text-center leading-snug flex items-center justify-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+        <div className="bg-white/50 border-b border-keeper-hair px-4 sm:px-6 py-1.5 flex-shrink-0">
+          <p className="text-[11px] sm:text-xs text-keeper-stone text-center leading-snug flex items-center justify-center gap-1.5">
+            <Truck className="w-3.5 h-3.5 flex-shrink-0 text-keeper-gold" strokeWidth={2} />
             <span>{PRODUCTION_NOTICE}</span>
           </p>
         </div>
