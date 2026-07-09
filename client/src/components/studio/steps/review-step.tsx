@@ -20,7 +20,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import {
   Sparkles,
   Pencil,
@@ -61,8 +61,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
+import { familyKey, isGeneratedStatus } from '@/lib/studio-card-buckets';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
-import type { CardSide } from '@shared/schema';
+import type { CardSide, CardGridItem } from '@shared/schema';
 
 // Approximate generation time for a front + inside pair. Used to size
 // the progress copy ("this usually takes ~45 seconds"). Not a hard
@@ -227,22 +228,22 @@ export function ReviewStep({
   // Default: review + generate. Two framings for one surface:
   //   • organic first pass — "take one last look"
   //   • a "Start again with these details" clone (rerollOfCardId set) —
-  //     "take two": signpost the fresh start, link back to the first
-  //     take, and let the CTA say what it really does (Kevin 2026-07-08:
-  //     "we're not going back… we're starting fresh, signpost better").
+  //     a fresh take: signpost it, show the WHOLE take family (not just
+  //     the parent), and let the CTA say what it does. The take number
+  //     + prior-take thumbnails come from the family (TakesStrip);
+  //     nothing is hardcoded (the old "take two" was wrong from take 3).
   const recipientName = state.recipient?.name?.trim();
-  const isTakeTwo = !!state.rerollOfCardId;
+  const isReroll = !!state.rerollOfCardId;
+  const familyId = state.rerollFamilyId ?? cardId;
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <p className="text-sm text-stone-600 leading-relaxed">
-        {isTakeTwo
-          ? 'Same details, clean slate. Sharpen anything below — the scene wording moves the needle most — or roll straight away. Every roll paints a brand-new card.'
+        {isReroll
+          ? 'Same details, clean slate. Sharpen anything below — the scene wording moves the needle most — or roll straight away. Every roll paints a brand-new card, and every take you make is kept.'
           : 'Everything below is still a draft. Tap any section to change it — nothing gets sent until you say so.'}
       </p>
 
-      {isTakeTwo && state.rerollOfCardId && (
-        <FirstTakeRow cardId={state.rerollOfCardId} />
-      )}
+      {isReroll && <TakesStrip currentCardId={cardId} familyId={familyId} />}
 
       <SummaryPanel
         state={state}
@@ -257,7 +258,7 @@ export function ReviewStep({
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
-          {isTakeTwo
+          {isReroll
             ? recipientName
               ? `Roll a fresh take for ${recipientName}`
               : 'Roll a fresh take'
@@ -266,8 +267,8 @@ export function ReviewStep({
               : 'Generate my card'}
         </Button>
         <p className="text-[11px] text-stone-500 text-center mt-2 leading-relaxed">
-          {isTakeTwo
-            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your first take stays in your drafts — nothing here overwrites it.`
+          {isReroll
+            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your earlier takes stay in your drafts — nothing here overwrites them.`
             : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free — your card saves as you go.`}
         </p>
       </div>
@@ -275,43 +276,85 @@ export function ReviewStep({
   );
 }
 
-// ── FirstTakeRow ─────────────────────────────────────────────────────
-// On a "take two" Review (a Start-again clone), show the FIRST take as
-// a small reference row — thumbnail + reassurance + a link back. The
-// user can compare without fear that rolling again destroys anything.
-function FirstTakeRow({ cardId }: { cardId: number }) {
-  const { data } = useQuery<{ frontImageUrl: string | null }>({
-    queryKey: [`/api/studio/drafts/${cardId}`],
+// ── TakesStrip ───────────────────────────────────────────────────────
+// On a reroll Review, show the WHOLE take family — every prior take as
+// a clickable thumbnail (Take 1, 2, …) plus the current in-progress one
+// marked "you're here." Fixes the old FirstTakeRow, which only showed
+// the immediate PARENT mislabelled as "your first take" (so take 3
+// called take 2 the original + take 1 vanished). Same family logic as
+// the card-view TakesRail: filter by familyKey, generated + has image,
+// oldest-first. Take numbers are derived here — self-healing, no
+// hardcoded count, no stored field.
+function TakesStrip({
+  currentCardId,
+  familyId,
+}: {
+  currentCardId: number;
+  familyId: number;
+}) {
+  const [, setLocation] = useLocation();
+  const { data: allCards } = useQuery<CardGridItem[]>({
+    queryKey: ['/api/user/cards'],
   });
+  const prior = (allCards ?? [])
+    .filter(
+      (c) =>
+        familyKey(c) === familyId &&
+        c.id !== currentCardId &&
+        isGeneratedStatus(c.status) &&
+        !!c.frontImageUrl,
+    )
+    .sort((a, b) => {
+      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return at - bt; // oldest first — reads as take 1, 2, 3…
+    });
+  const currentNumber = prior.length + 1;
+
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3"
-      data-testid="first-take-row"
+      className="rounded-xl border border-stone-200 bg-stone-50 p-4"
+      data-testid="takes-strip"
     >
-      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-white">
-        {data?.frontImageUrl && (
-          <img
-            src={data.frontImageUrl}
-            alt="Your first take"
-            className="h-full w-full object-cover"
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-ink">
-          Your first take is safe in your drafts.
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+          Your takes
         </p>
-        <p className="text-[11px] text-stone-500">
-          Rolling again paints a brand-new card — it won't touch this one.
+        <p className="text-[11px] text-stone-400">
+          Every take is saved — flip back any time.
         </p>
       </div>
-      <Link
-        href={`/studio/card/${cardId}`}
-        className="shrink-0 text-[12px] font-medium text-brand hover:text-brand-dark"
-        data-testid="first-take-view"
-      >
-        View it →
-      </Link>
+      <div className="flex flex-wrap items-start gap-3">
+        {prior.map((t, idx) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setLocation(`/studio/card/${t.id}`)}
+            className="group flex flex-col items-center gap-1"
+            data-testid={`takes-strip-thumb-${t.id}`}
+          >
+            <span className="block h-16 w-16 overflow-hidden rounded-lg border border-stone-200 opacity-80 transition-all group-hover:border-brand/40 group-hover:opacity-100">
+              <img
+                src={t.frontImageUrl!}
+                alt={`Take ${idx + 1}`}
+                className="h-full w-full object-cover"
+              />
+            </span>
+            <span className="text-[10px] text-stone-400 transition-colors group-hover:text-brand-dark">
+              Take {idx + 1}
+            </span>
+          </button>
+        ))}
+        {/* Current in-progress take — the one they're about to roll. */}
+        <div className="flex flex-col items-center gap-1" data-testid="takes-strip-current">
+          <span className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-brand/50 bg-brand-muted/30 text-brand">
+            <Sparkles className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <span className="text-[10px] font-semibold text-brand-dark">
+            Take {currentNumber}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
