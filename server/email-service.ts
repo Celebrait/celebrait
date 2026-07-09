@@ -342,8 +342,20 @@ function chassis(opts: {
 // ── Make-your-own link (lead capture from the digital card viewer) ──
 // The recipient of a card said "not right now — email me the link".
 // One warm email, sent immediately, so the intent survives the moment.
-export async function sendMakeYourOwnLinkEmail(email: string): Promise<boolean> {
+export async function sendMakeYourOwnLinkEmail(
+  email: string,
+  opts?: { recipientName?: string | null; occasionDate?: string | null },
+): Promise<boolean> {
   const startUrl = `${PUBLIC_ORIGIN}/studio/new-card`;
+  // Occasion-capture variant: acknowledge the nudge they set up. The
+  // nudge email itself is a post-launch scheduled job — this line is
+  // the promise, the stored occasion_date is the mechanism.
+  const nudgeLine =
+    opts?.occasionDate
+      ? `<p style="margin: 0 0 16px;">We've made a note of ${
+          opts.recipientName ? `${escape(opts.recipientName)}'s` : 'the'
+        } big day — we'll give you a nudge in good time, with a card idea ready.</p>`
+      : '';
   const body = `
     <p style="margin: 0 0 16px;">Hi,</p>
     <p style="margin: 0 0 16px;">
@@ -351,6 +363,7 @@ export async function sendMakeYourOwnLinkEmail(email: string): Promise<boolean> 
       right, make someone their own card: upload a photo, tell us the scene,
       and we'll paint them into it. Printed, posted, kept.
     </p>
+    ${nudgeLine}
     <p style="margin: 0 0 8px;">
       Free to make — you only pay if you send one.
     </p>

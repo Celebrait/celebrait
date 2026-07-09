@@ -86,10 +86,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
         .limit(1);
       const marketingOptIn = req.body?.marketingOptIn === true;
+      // Occasion capture (optional): first name + YYYY-MM-DD date.
+      const recipientName =
+        typeof req.body?.recipientName === "string"
+          ? req.body.recipientName.trim().slice(0, 80) || null
+          : null;
+      const rawDate =
+        typeof req.body?.occasionDate === "string" ? req.body.occasionDate.trim() : "";
+      const occasionDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+
       if (existing.length === 0) {
-        await db.insert(marketingLeads).values({ email, source, cardId, marketingOptIn });
+        await db.insert(marketingLeads).values({
+          email,
+          source,
+          cardId,
+          marketingOptIn,
+          recipientName,
+          occasionDate,
+        });
         // Fire-and-forget — the lead is stored either way.
-        void sendMakeYourOwnLinkEmail(email).catch((err) =>
+        void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
           console.warn("[LEADS] link email failed:", err?.message ?? err),
         );
       }

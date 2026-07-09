@@ -111,6 +111,12 @@ export const marketingLeads = pgTable("marketing_leads", {
   /** Explicit tick for contact beyond the single link email —
    *  GDPR-clean opt-in, default false. */
   marketingOptIn: boolean("marketing_opt_in").default(false),
+  /** Occasion capture (Keeper LP, 2026-07-08): who the next occasion
+   *  is for + when. BOTH optional — the capture works as a plain
+   *  email-only lead when skipped. A date makes the lead nudgeable:
+   *  post-launch, a scheduled job emails a card idea ahead of it. */
+  recipientName: text("recipient_name"),
+  occasionDate: text("occasion_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

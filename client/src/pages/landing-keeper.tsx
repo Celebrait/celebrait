@@ -903,6 +903,150 @@ function PriceSection() {
   );
 }
 
+// ── OCCASION CAPTURE — "Whose birthday's next?" ─────────────────────
+// Two-speed lead capture (Kevin 2026-07-08, built pre-launch on his
+// call): email REQUIRED, name + date OPTIONAL — skipping the date
+// still captures the lead and still teaches that reminders exist.
+// A date makes the lead nudgeable (stored on marketing_leads;
+// the scheduled nudge email is a post-launch job — the setup email
+// makes the promise either way).
+function OccasionCaptureSection() {
+  const [name, setName] = useState('');
+  const [date, setDate] = useState('');
+  const [email, setEmail] = useState('');
+  const [optIn, setOptIn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState<null | 'dated' | 'plain'>(null);
+
+  const submit = async () => {
+    if (busy || sent) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          source: date ? 'keeper-occasion' : 'keeper-plain',
+          recipientName: name || undefined,
+          occasionDate: date || undefined,
+          marketingOptIn: optIn,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? 'Please try again.');
+      }
+      setSent(date ? 'dated' : 'plain');
+    } catch {
+      setSent(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="px-6 py-24 md:py-32">
+      <div className="mx-auto max-w-2xl text-center">
+        <Rise>
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
+            Whose birthday's next?
+          </h2>
+          <p className="mx-auto mt-4 max-w-[48ch] text-[17px] leading-[1.6] text-keeper-stone">
+            Tell us the date and we'll nudge you in good time — with a card
+            idea ready. Or skip the date and just take the link for later.
+          </p>
+        </Rise>
+
+        <Rise delay={0.1} className="mt-8">
+          {sent ? (
+            <div
+              className="mx-auto max-w-md rounded-2xl border border-keeper-hair bg-white/80 p-6"
+              data-testid="occasion-captured"
+            >
+              <p className="text-[15px] font-semibold text-keeper-ink">
+                {sent === 'dated'
+                  ? "Done — we'll nudge you in good time. ✨"
+                  : "Done — the link's in your inbox. ✨"}
+              </p>
+              <p className="mt-1 text-[12.5px] text-keeper-stone">
+                {sent === 'dated'
+                  ? 'Your link is in your inbox meanwhile, whenever you fancy a look.'
+                  : 'Whenever the moment comes, it takes a few minutes.'}
+              </p>
+            </div>
+          ) : (
+            <form
+              className="mx-auto max-w-md"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+              data-testid="occasion-capture-form"
+            >
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Their name (optional)"
+                  className="h-12 min-w-0 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  data-testid="input-occasion-name"
+                />
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  aria-label="Their date (optional)"
+                  className="h-12 min-w-0 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  data-testid="input-occasion-date"
+                />
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  data-testid="input-occasion-email"
+                />
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="h-12 shrink-0 rounded-full bg-keeper-ink px-6 text-[14px] font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-50"
+                  data-testid="btn-occasion-submit"
+                >
+                  {busy ? 'One sec…' : date ? 'Set my nudge' : 'Email me the link'}
+                </button>
+              </div>
+              <label className="mx-auto mt-3 flex max-w-md cursor-pointer items-start gap-2 text-left">
+                <input
+                  type="checkbox"
+                  checked={optIn}
+                  onChange={(e) => setOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair accent-[#5c57d4]"
+                  data-testid="check-occasion-optin"
+                />
+                <span className="text-[11.5px] leading-snug text-keeper-stone">
+                  Keep me posted now and then — new features and ideas.
+                  Unsubscribe anytime.
+                </span>
+              </label>
+              <p className="mt-2 text-[10.5px] text-keeper-stone/80">
+                {date
+                  ? 'One nudge before the day + your link now. No spam, ever.'
+                  : "We'll send your link straight away. No spam, ever."}
+              </p>
+            </form>
+          )}
+        </Rise>
+      </div>
+    </section>
+  );
+}
+
 // ── 8. FINALE ────────────────────────────────────────────────────────
 
 function FinaleSection() {
@@ -997,6 +1141,7 @@ export default function LandingKeeper() {
         <GallerySection />
         <ObjectSection />
         <FreePartSection />
+        <OccasionCaptureSection />
         {/* Imagine it → describe it → send it (animated phone) + the
             demo-walkthrough video slot — restored on Kevin's call. */}
         <ImagineDescribeShipSection />
