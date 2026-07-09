@@ -9,7 +9,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      // Keeper skin (2026-07-09): hairline on translucent white over the
+      // paper ground, rounded-2xl, ink-tinted soft shadow — never an
+      // opaque cold box.
+      "rounded-2xl border border-keeper-hair bg-white/70 text-keeper-ink shadow-[0_10px_30px_-18px_rgba(33,29,25,0.28)]",
       className
     )}
     {...props}
@@ -36,7 +39,8 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      // Fraunces (font-display) headline moment.
+      "font-display text-2xl font-bold leading-none tracking-[-0.015em] text-keeper-ink",
       className
     )}
     {...props}
@@ -50,7 +54,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-keeper-stone", className)}
     {...props}
   />
 ))
