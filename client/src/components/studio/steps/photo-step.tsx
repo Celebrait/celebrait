@@ -392,7 +392,16 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 
     // Respect the remaining-slot budget for the current mode. Extras
     // get toasted, not silently dropped.
-    const remaining = MAX_PHOTOS[mode] - selectedIds.length;
+    //
+    // REPLACE intent (edit overlay "upload a different photo"): the
+    // incoming photo takes the current one's place, so a full set is
+    // fine — otherwise a group photo (max 1, already at 1) reports
+    // "already at the limit" and the swap is impossible (Kevin
+    // 2026-07-09). Guarantee at least one slot when replacing.
+    const replacing = replaceNextRef.current;
+    const remaining = replacing
+      ? Math.max(1, MAX_PHOTOS[mode] - selectedIds.length)
+      : MAX_PHOTOS[mode] - selectedIds.length;
     if (remaining <= 0) {
       toast({
         title: 'Already at the limit',
