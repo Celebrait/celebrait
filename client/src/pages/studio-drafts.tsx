@@ -80,7 +80,7 @@ function PageHeader() {
   return (
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">Drafts</h1>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Drafts</h1>
         <p className="text-sm text-stone-600 mt-1">
           Pick up where you left off — drafts save automatically.
         </p>

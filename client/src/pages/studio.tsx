@@ -833,7 +833,7 @@ function InvitationsTeaser() {
               <PartyPopper className="w-3 h-3" />
               Coming soon
             </div>
-            <h4 className="text-3xl sm:text-4xl font-semibold text-ink leading-[1.1] tracking-tight mb-3">
+            <h4 className="text-3xl sm:text-4xl font-display font-bold text-keeper-ink leading-[1.1] tracking-[-0.015em] mb-3">
               Invitations that feel like <em className="italic text-brand-dark">you</em>.
             </h4>
             <p className="text-sm sm:text-base text-stone-700 leading-relaxed mb-6">
@@ -888,7 +888,7 @@ function DashboardHeader({
 }) {
   return (
     <div className="mb-6 sm:mb-8">
-      <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+      <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
         Hi {name} <span className="text-accent-amber">✨</span>
       </h1>
       {subtitle && <p className="text-sm text-stone-600 mt-1">{subtitle}</p>}

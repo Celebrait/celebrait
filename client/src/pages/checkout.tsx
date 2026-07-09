@@ -302,7 +302,7 @@ export default function CheckoutPage() {
     <CheckoutLayout backHref={backHref}>
       <header className="mb-6 sm:mb-8">
         <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
           {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
         </h1>
       </header>

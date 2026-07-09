@@ -61,7 +61,7 @@ export default function StudioOrders() {
 function PageHeader() {
   return (
     <div className="mb-6 sm:mb-8">
-      <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+      <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
         Orders &amp; delivery
       </h1>
       <p className="text-sm text-stone-600 mt-1">

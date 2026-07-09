@@ -447,7 +447,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           <ArrowLeft className="w-4 h-4" />
           Address book
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">{heading}</h1>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">{heading}</h1>
       </div>
 
       {/* Form */}

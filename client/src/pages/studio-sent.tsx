@@ -40,7 +40,7 @@ function PageHeader() {
   return (
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">Sent</h1>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Sent</h1>
         <p className="text-sm text-stone-600 mt-1">
           Every card you've made — keep them as keepsakes, or reorder in a tap.
         </p>

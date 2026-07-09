@@ -541,7 +541,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 (Review step, Generate pressed) — the 3D card is the
                 subject, we don't want text above it. */}
             {!isRevealMode && (
-              <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
+              <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-display font-bold tracking-[-0.015em] text-keeper-ink mb-5 sm:mb-6">
                 {stepHeadline}
               </h1>
             )}

@@ -745,7 +745,7 @@ function FrontFirstStage({
   // inside-failed
   return (
     <div className="max-w-md mx-auto py-16 text-center space-y-5">
-      <p className="text-lg font-semibold text-ink">The inside didn't come out</p>
+      <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">The inside didn't come out</p>
       <p className="text-sm text-stone-600">
         Your front is safe — let's just try the inside again.
       </p>
@@ -840,7 +840,7 @@ export function StartAgainButton({
 
       <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
         <DialogContent className="max-w-md">
-          <DialogTitle className="text-lg font-semibold text-ink">
+          <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Start again with these details
           </DialogTitle>
           <div className="space-y-3 pt-1">
@@ -940,7 +940,7 @@ function FrontFirstReview({
   return (
     <div className="mx-auto max-w-2xl py-4">
       <div className="mb-4 text-center">
-        <p className="text-lg font-semibold text-ink">{title}</p>
+        <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">{title}</p>
         {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
       </div>
 
@@ -1075,7 +1075,7 @@ function InsideComposeStage({
     return (
       <div className="mx-auto max-w-2xl py-6">
         <div className="mb-6 text-center">
-          <p className="text-lg font-semibold text-ink">
+          <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             {blank ? 'Your inside' : 'Your inside message'}
           </p>
           <p className="mt-0.5 text-sm text-stone-500">
@@ -1137,7 +1137,7 @@ function InsideComposeStage({
   return (
     <div className="mx-auto max-w-2xl py-6">
       <div className="mb-6 text-center">
-        <p className="text-lg font-semibold text-ink">
+        <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
           {isReroll ? 'Edit the inside' : 'Now, the inside'}
         </p>
         <p className="mt-0.5 text-sm text-stone-500">

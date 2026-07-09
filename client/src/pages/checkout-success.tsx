@@ -130,7 +130,7 @@ export default function CheckoutSuccessPage() {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-ink">
+              <h1 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink">
                 Thanks — we've got it
               </h1>
               <p className="text-sm text-stone-600 mt-1">

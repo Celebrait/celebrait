@@ -133,7 +133,7 @@ export function GivingMoment({
             <ArrowLeft className="w-3 h-3" /> Back to card
           </button>
         </div>
-        <h2 className="text-lg font-semibold text-ink">
+        <h2 className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
           How would you like to give it?
         </h2>
         <p className="text-sm text-stone-500 leading-relaxed">

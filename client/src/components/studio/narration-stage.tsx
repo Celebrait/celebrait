@@ -84,7 +84,7 @@ export function NarrationStage({ mode, state }: NarrationStageProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-              className="text-3xl sm:text-4xl md:text-5xl font-semibold text-ink text-center leading-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-[-0.015em] text-keeper-ink text-center leading-tight"
               data-testid={isReady ? 'narration-ready-line' : 'narration-headline'}
               data-beat-id={currentBeat.id}
             >

@@ -104,7 +104,7 @@ export default function StudioAddressBookPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Address book
           </h1>
           {entries.length > 0 && (
@@ -230,7 +230,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <Users className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         This is where the people you send cards to live.
       </h2>
       <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">

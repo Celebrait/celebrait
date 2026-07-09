@@ -138,7 +138,7 @@ export default function StudioRemindersPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
           Reminders
         </h1>
         {!isLoading && reminderCount > 0 && (
@@ -224,7 +224,7 @@ function NoEntriesState() {
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <Users className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add someone to your address book first.
       </h2>
       <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
@@ -250,7 +250,7 @@ function NoDatesState() {
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <CalendarDays className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add a date to someone — we'll remember.
       </h2>
       <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
