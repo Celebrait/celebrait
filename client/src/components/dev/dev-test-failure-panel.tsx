@@ -83,7 +83,9 @@ const FAILURE_KINDS: Array<{
 // Persists in localStorage so the choice survives reloads. Temporary —
 // once the treatment is decided, bake it into index.css :root and delete
 // this control + the switcher.
-const GO_KEY = 'celebrait:go-treatment';
+// v2: reset everyone's sticky pick once — the v1 default was ink, which
+// left early testers stuck on ink after the default moved to purple.
+const GO_KEY = 'celebrait:go-treatment:v2';
 const GO_TREATMENTS: Array<{ key: string; label: string; swatch: string }> = [
   { key: 'ink', label: 'Ink', swatch: '#211D19' },
   { key: 'violet', label: 'Purple', swatch: '#5c57d4' },
