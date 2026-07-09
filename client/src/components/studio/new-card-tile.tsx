@@ -11,19 +11,20 @@
 import { Link } from 'wouter';
 import { Wand2 } from 'lucide-react';
 
-// Default state: brand (violet) — this is the primary CTA in the grid.
-// Hover: flips to cta (green) to signal "go." No emoji — vector icon
-// only per the brand direction.
+// Green (cta) — "New card" is a decided super-important moment (start of
+// the value loop), so the primary grid CTA wears the go colour like the
+// sidebar/gallery New-card buttons. Green tint at rest, deeper on hover.
+// No emoji — vector icon only per the brand direction.
 export function NewCardTile() {
   return (
     <Link
       href="/studio/new-card"
-      className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl bg-brand-muted border-2 border-brand text-brand-dark hover:bg-cta-light hover:border-cta hover:text-cta-hover transition-colors overflow-hidden"
+      className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl bg-cta-light border-2 border-cta text-cta-hover hover:bg-cta hover:border-cta hover:text-white transition-colors overflow-hidden"
       data-testid="new-card-tile"
     >
-      <div className="w-14 h-14 rounded-full bg-white border-2 border-brand group-hover:border-cta flex items-center justify-center mb-3 shadow-sm transition-colors">
+      <div className="w-14 h-14 rounded-full bg-white border-2 border-cta flex items-center justify-center mb-3 shadow-sm transition-colors">
         <Wand2
-          className="w-7 h-7 text-brand group-hover:text-cta-hover transition-colors"
+          className="w-7 h-7 text-cta-hover transition-colors"
           strokeWidth={1.75}
         />
       </div>

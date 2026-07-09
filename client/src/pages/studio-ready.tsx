@@ -63,7 +63,7 @@ function PageHeader() {
       </div>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
+        className="inline-flex items-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
         data-testid="ready-new-card"
       >
         <Wand2 className="w-4 h-4" />
@@ -86,7 +86,7 @@ function ReadyEmpty() {
       </p>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="ready-empty-start-card"
       >
         <Wand2 className="w-4 h-4" />

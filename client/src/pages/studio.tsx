@@ -158,7 +158,7 @@ function EmptyView({ name }: { name: string }) {
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-center lg:items-start gap-3 sm:gap-4 justify-center lg:justify-start">
             <Link
               href="/studio/new-card"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-7 py-3.5 text-base font-semibold transition-colors shadow-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-7 py-3.5 text-base font-semibold transition-colors shadow-sm"
               data-testid="empty-start-card"
             >
               <Wand2 className="w-4 h-4" />
