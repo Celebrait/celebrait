@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2, Sparkle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
@@ -477,16 +477,31 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           />
         </div>
       )}
+      {/* Edit-overlay context banner — makes it unmistakable that this
+          is a focused edit of ONE thing (e.g. the front text), not the
+          normal linear flow, and offers the quick way back (which
+          saves). The primary "Save & back to review" lives in the nav
+          below. (Kevin 2026-07-09: signpost the edit better, inc. CTA.) */}
       {editingStep !== null && (
-        <div className="mb-6 sm:mb-8">
+        <div className="mb-6 sm:mb-8 flex items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand-muted/40 px-4 py-3">
+          <span className="flex min-w-0 items-center gap-2 text-sm text-ink">
+            <Pencil className="w-4 h-4 shrink-0 text-brand" strokeWidth={1.75} />
+            <span className="truncate">
+              <span className="font-semibold">Editing</span>
+              <span className="text-stone-500">
+                {' · '}
+                {CARD_MAKER_STEPS[editingStep]?.label ?? 'this step'}
+              </span>
+            </span>
+          </span>
           <button
             type="button"
             onClick={() => void finishEditing()}
-            className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink transition-colors"
+            className="inline-flex shrink-0 items-center gap-1 text-xs text-stone-500 hover:text-ink transition-colors"
             data-testid="btn-edit-overlay-breadcrumb"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Back to review
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Review
           </button>
         </div>
       )}
@@ -643,7 +658,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
             data-testid="btn-edit-overlay-done"
           >
-            Done — back to review
+            Save &amp; back to review
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>
