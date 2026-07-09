@@ -321,7 +321,7 @@ function PrimaryStyleCard({
       className={`rounded-2xl border-2 transition-all overflow-hidden ${
         active
           ? 'border-brand shadow-md ring-2 ring-brand/20'
-          : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
+          : 'border-keeper-hair hover:border-brand/60 hover:shadow-sm bg-white'
       }`}
       data-testid={`style-${btn.mode}`}
     >
@@ -446,7 +446,7 @@ function CustomStyleDialog({
                 <li>"Pixar 3D animation, warm cinematic lighting"</li>
               </ul>
             </div>
-            <div className="bg-stone-50 rounded-lg p-3 border border-stone-200">
+            <div className="bg-stone-50 rounded-lg p-3 border border-keeper-hair">
               <p className="font-semibold text-stone-500 mb-1">Too vague</p>
               <ul className="space-y-1 text-stone-600">
                 <li>"Cool", "Modern", "Nice"</li>

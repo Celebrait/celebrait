@@ -79,7 +79,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
 
   return (
     <div
-      className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4"
+      className="bg-white rounded-2xl border border-keeper-hair p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4"
       data-testid={`order-row-${order.id}`}
     >
       {/* Thumb — links into the card detail/view. Non-essential visual;
@@ -501,7 +501,7 @@ function OrdersSkeleton() {
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="bg-white rounded-2xl border border-stone-200 p-5 flex gap-4 animate-pulse"
+          className="bg-white rounded-2xl border border-keeper-hair p-5 flex gap-4 animate-pulse"
         >
           <div className="w-16 h-16 rounded-xl bg-stone-100" />
           <div className="flex-1 space-y-2 py-1">

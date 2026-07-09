@@ -102,7 +102,7 @@ export function BrainstormChatDrawer({
         side="right"
         className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col gap-0"
       >
-        <SheetHeader className="px-5 py-4 border-b border-stone-200 text-left">
+        <SheetHeader className="px-5 py-4 border-b border-keeper-hair text-left">
           <SheetTitle className="flex items-center gap-2 text-base font-semibold text-ink">
             <Sparkles className="w-4 h-4 text-brand" strokeWidth={1.75} />
             Brainstorm the scene
@@ -159,7 +159,7 @@ export function BrainstormChatDrawer({
         </div>
 
         {/* Input */}
-        <div className="px-5 py-4 border-t border-stone-200 bg-white">
+        <div className="px-5 py-4 border-t border-keeper-hair bg-white">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -231,7 +231,7 @@ function MessageBubble({ message }: { message: BrainstormMessage }) {
         className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed ${
           isUser
             ? 'bg-brand text-brand-foreground'
-            : 'bg-white border border-stone-200 text-ink'
+            : 'bg-white border border-keeper-hair text-ink'
         }`}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
@@ -244,7 +244,7 @@ function MessageBubble({ message }: { message: BrainstormMessage }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="bg-white border border-stone-200 rounded-2xl px-4 py-3 inline-flex items-center gap-1">
+      <div className="bg-white border border-keeper-hair rounded-2xl px-4 py-3 inline-flex items-center gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-bounce" />
         <span
           className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-bounce"

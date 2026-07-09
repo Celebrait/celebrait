@@ -50,7 +50,7 @@ export function SceneEditor({
         onChange={(e) => onChange(e.target.value)}
         rows={5}
         placeholder="Describe the scene — who's in it, where, the vibe."
-        className="bg-white border-stone-200 focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
+        className="bg-white border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
         data-testid={testIdPrefix}
       />
       <p className="text-[11px] text-ink-soft mt-2 leading-relaxed">
@@ -175,7 +175,7 @@ export function PhotoEditor({
               className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                 isSelected
                   ? 'border-brand ring-2 ring-brand/30'
-                  : 'border-stone-200 hover:border-brand/40'
+                  : 'border-keeper-hair hover:border-brand/40'
               }`}
               data-testid={`${testIdPrefix}-photo-${p.id}`}
             >
@@ -249,7 +249,7 @@ export function StyleEditor({
             className={`w-full text-left px-3 py-2.5 rounded-lg border-2 transition-all ${
               isSelected
                 ? 'border-brand bg-brand/5'
-                : 'border-stone-200 bg-white hover:border-brand/40'
+                : 'border-keeper-hair bg-white hover:border-brand/40'
             }`}
             data-testid={`${testIdPrefix}-${opt.id}`}
           >
@@ -275,7 +275,7 @@ export function StyleEditor({
           onChange={(e) => onCustomChange(e.target.value)}
           placeholder="e.g. watercolour pastel with a hand-drawn feel"
           rows={2}
-          className="mt-2 bg-white border-stone-200 focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
+          className="mt-2 bg-white border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
         />
       )}
     </div>

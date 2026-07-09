@@ -51,7 +51,7 @@ export default function CheckoutDevConfirmPage() {
   return (
     <CheckoutLayout backHref="/studio" backLabel="Cancel">
       <div className="max-w-md mx-auto pt-6 sm:pt-12">
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 space-y-5">
+        <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 space-y-5">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
               Dev stub — no real payment
@@ -62,7 +62,7 @@ export default function CheckoutDevConfirmPage() {
             </p>
           </div>
 
-          <div className="text-xs font-mono bg-stone-50 border border-stone-200 rounded-lg p-3 break-all">
+          <div className="text-xs font-mono bg-stone-50 border border-keeper-hair rounded-lg p-3 break-all">
             {ref || '(no reference)'}
           </div>
 

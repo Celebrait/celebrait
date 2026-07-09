@@ -65,7 +65,7 @@ export function PhotoLibraryDrawer({
                   className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                     isCurrent
                       ? 'border-brand ring-2 ring-brand-light'
-                      : 'border-stone-200 hover:border-stone-400'
+                      : 'border-keeper-hair hover:border-stone-400'
                   }`}
                   data-testid={`photo-library-${p.id}`}
                   title={p.label ?? p.originalFilename}

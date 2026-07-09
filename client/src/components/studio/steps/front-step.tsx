@@ -192,7 +192,7 @@ function WriteField({
 
   return (
     <div
-      className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm"
+      className="bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm"
       data-testid="front-write-field"
     >
       <Label

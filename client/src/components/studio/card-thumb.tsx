@@ -178,7 +178,7 @@ function ThumbChassis({
   }, [isGenerating]);
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden shadow-sm">
       <div className="aspect-square bg-stone-50 relative">
         {/* The image stays MOUNTED across regens + version switches.
             Two wins vs the old AnimatePresence-mode="wait" swap:

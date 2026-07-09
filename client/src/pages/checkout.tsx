@@ -315,7 +315,7 @@ export default function CheckoutPage() {
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
               {/* Preview — capped on mobile so it doesn't dominate the
                   viewport; fills its 2-col grid cell on desktop. */}
-              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden max-w-[220px] mx-auto w-full sm:max-w-none">
+              <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden max-w-[220px] mx-auto w-full sm:max-w-none">
                 <div className="aspect-square bg-stone-50 relative">
                   <AnimatePresence mode="wait">
                     <motion.img
@@ -358,7 +358,7 @@ export default function CheckoutPage() {
                   draft). See isResolved above. */}
               {/* Print-led V1: one product — a printed card that includes
                   a free digital link. No format picker. */}
-              <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6">
+              <div className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6">
                 <h2 className="text-sm font-semibold text-ink mb-1">
                   Printed &amp; posted
                 </h2>
@@ -459,7 +459,7 @@ export default function CheckoutPage() {
                     )}
 
                     {shipTo === 'recipient' && (
-                      <div className="space-y-4 mt-4 pt-4 border-t border-stone-200">
+                      <div className="space-y-4 mt-4 pt-4 border-t border-keeper-hair">
                         <Field label="Gift message (printed inside the envelope)">
                           <Input
                             value={giftMessage}
@@ -528,7 +528,7 @@ export default function CheckoutPage() {
                         className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
                           shippingTier === t.id
                             ? 'border-brand bg-brand-muted/40'
-                            : 'border-stone-200 hover:border-stone-300'
+                            : 'border-keeper-hair hover:border-stone-300'
                         }`}
                         data-testid={`ship-tier-${t.id}`}
                       >
@@ -621,7 +621,7 @@ export default function CheckoutPage() {
 
           {/* RIGHT — sticky summary */}
           <aside className="md:sticky md:top-8 md:self-start">
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-keeper-hair p-5 space-y-4">
               <LineItem
                 icon={<Package className="w-4 h-4" />}
                 label="Printed card"
@@ -644,7 +644,7 @@ export default function CheckoutPage() {
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}
 
-              <div className="border-t border-stone-200 pt-3 flex items-center justify-between">
+              <div className="border-t border-keeper-hair pt-3 flex items-center justify-between">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="text-xl font-semibold text-ink">
                   {formatGBP(totals.total)}
@@ -689,7 +689,7 @@ export default function CheckoutPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-4">
+    <section className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6 space-y-4">
       <h2 className="text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>
@@ -739,7 +739,7 @@ function ShipToOption({
   return (
     <Label
       htmlFor={`ship-${value}`}
-      className="flex items-start gap-3 border border-stone-200 rounded-lg p-3 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
+      className="flex items-start gap-3 border border-keeper-hair rounded-lg p-3 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
     >
       <RadioGroupItem value={value} id={`ship-${value}`} className="mt-1" />
       <div>

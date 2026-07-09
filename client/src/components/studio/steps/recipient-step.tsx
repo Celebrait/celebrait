@@ -297,7 +297,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
             <ul
               id="recipient-name-suggestions"
               role="listbox"
-              className="absolute z-30 left-0 right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg overflow-hidden"
+              className="absolute z-30 left-0 right-0 mt-1 bg-white border border-keeper-hair rounded-xl shadow-lg overflow-hidden"
               data-testid="recipient-typeahead"
             >
               {visibleSuggestions.map((entry, idx) => {
@@ -448,7 +448,7 @@ function OccasionButton({
       className={`relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${
         selected
           ? 'border-brand bg-brand-muted shadow-sm'
-          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
+          : 'border-keeper-hair hover:border-brand hover:bg-brand-muted/40 bg-white'
       } ${wide ? 'w-full' : ''}`}
       data-testid={`btn-occasion-${occasion}`}
     >

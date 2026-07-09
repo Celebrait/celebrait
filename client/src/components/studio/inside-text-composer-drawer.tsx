@@ -214,7 +214,7 @@ export function InsideTextComposerDrawer({
         className="w-full sm:max-w-lg p-0 flex flex-col"
       >
         {/* ── Header ─────────────────────────────────────────────── */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 flex-shrink-0">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b border-keeper-hair flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-muted flex items-center justify-center">
               <Wand2 className="w-4 h-4 text-brand" strokeWidth={1.75} />
@@ -291,7 +291,7 @@ export function InsideTextComposerDrawer({
 
         {/* ── Footer ─────────────────────────────────────────────── */}
         {showingResult && result && (
-          <div className="border-t border-stone-200 px-6 py-4 flex flex-col gap-2 flex-shrink-0 bg-white">
+          <div className="border-t border-keeper-hair px-6 py-4 flex flex-col gap-2 flex-shrink-0 bg-white">
             <Button
               onClick={handleAccept}
               className="w-full bg-cta hover:bg-cta-hover text-white"
@@ -522,7 +522,7 @@ function CardPreview({
       {/* The card preview — cream background to evoke the inside spread.
           Three beats with breathing room so the user can read it as ONE
           message, not three concatenated AI outputs. */}
-      <div className="rounded-lg bg-[#FDFBF6] border border-stone-200/60 px-5 py-5 space-y-4">
+      <div className="rounded-lg bg-[#FDFBF6] border border-keeper-hair/60 px-5 py-5 space-y-4">
         <p
           className="text-sm font-medium text-ink"
           data-testid="composer-preview-greeting"

@@ -63,7 +63,7 @@ export function StepExample({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex items-center gap-3 w-full sm:w-auto rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-left transition-colors hover:border-brand/40 hover:bg-white"
+        className="group flex items-center gap-3 w-full sm:w-auto rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-left transition-colors hover:border-brand/40 hover:bg-white"
         data-testid="step-example-trigger"
       >
         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-muted text-brand shrink-0">

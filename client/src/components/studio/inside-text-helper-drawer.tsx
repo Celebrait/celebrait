@@ -242,7 +242,7 @@ export function InsideTextHelperDrawer({
         className="w-full sm:max-w-lg p-0 flex flex-col"
       >
         {/* ── Header ─────────────────────────────────────────────── */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 flex-shrink-0">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b border-keeper-hair flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-muted flex items-center justify-center">
               <Wand2 className="w-4 h-4 text-brand" strokeWidth={1.75} />
@@ -323,7 +323,7 @@ export function InsideTextHelperDrawer({
         {/* Sticky so the primary action is always reachable even on
             short viewports / long rewrites. */}
         {!isLoading && result && (
-          <div className="border-t border-stone-200 px-6 py-4 flex flex-col gap-2 flex-shrink-0 bg-white">
+          <div className="border-t border-keeper-hair px-6 py-4 flex flex-col gap-2 flex-shrink-0 bg-white">
             <Button
               onClick={handleAccept}
               className="w-full bg-cta hover:bg-cta-hover text-white"
@@ -395,7 +395,7 @@ function ContextStrip({
 
 function DraftPreview({ draft }: { draft: string }) {
   return (
-    <div className="rounded-xl bg-stone-50 border border-stone-200 px-4 py-3">
+    <div className="rounded-xl bg-stone-50 border border-keeper-hair px-4 py-3">
       <p className="text-[10px] uppercase tracking-wider font-semibold text-ink-soft mb-1.5">
         Your draft
       </p>

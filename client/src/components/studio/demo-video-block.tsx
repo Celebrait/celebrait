@@ -88,7 +88,7 @@ export function DemoVideoBlock({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-brand-muted via-white to-accent-coral-light border border-stone-200 overflow-hidden flex items-center justify-center hover:shadow-lg transition-all"
+          className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-brand-muted via-white to-accent-coral-light border border-keeper-hair overflow-hidden flex items-center justify-center hover:shadow-lg transition-all"
           data-testid="btn-open-demo-video"
         >
           {/* Subtle radial glow behind the play icon */}

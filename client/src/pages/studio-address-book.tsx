@@ -137,7 +137,7 @@ export default function StudioAddressBookPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="bg-white rounded-2xl border border-stone-200 p-5 animate-pulse"
+              className="bg-white rounded-2xl border border-keeper-hair p-5 animate-pulse"
             >
               <div className="h-5 w-32 bg-stone-200 rounded mb-3" />
               <div className="h-3 w-48 bg-stone-100 rounded" />
@@ -226,7 +226,7 @@ export default function StudioAddressBookPage() {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl px-6 py-12 sm:py-16 text-center">
+    <div className="bg-white border border-keeper-hair rounded-2xl px-6 py-12 sm:py-16 text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <Users className="w-6 h-6" strokeWidth={1.75} />
       </div>
@@ -300,7 +300,7 @@ function EntryRow({
 
   return (
     <div
-      className="bg-white rounded-2xl border border-stone-200 hover:border-brand transition-colors group"
+      className="bg-white rounded-2xl border border-keeper-hair hover:border-brand transition-colors group"
       data-testid={`address-book-row-${entry.id}`}
     >
       <div className="flex items-start gap-3 p-5">
@@ -315,7 +315,7 @@ function EntryRow({
               so the card art is readable; rounded-md not rounded-full
               because it's a card, not a person photo. See
               next_address_book_reminders_retention.md. */}
-          <div className="w-12 h-12 rounded-md overflow-hidden border border-stone-200 shrink-0 bg-brand-muted/50 text-brand-dark flex items-center justify-center">
+          <div className="w-12 h-12 rounded-md overflow-hidden border border-keeper-hair shrink-0 bg-brand-muted/50 text-brand-dark flex items-center justify-center">
             {entry.lastCard?.frontImageUrl ? (
               <img
                 src={entry.lastCard.frontImageUrl}

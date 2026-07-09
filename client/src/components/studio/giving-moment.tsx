@@ -253,7 +253,7 @@ function DestinationCard({
       className={`relative text-left rounded-xl border-2 p-4 transition-all flex flex-col gap-2 ${
         selected
           ? 'border-brand bg-brand-muted/40 shadow-sm'
-          : 'border-stone-200 bg-white hover:border-brand/50 hover:shadow-sm'
+          : 'border-keeper-hair bg-white hover:border-brand/50 hover:shadow-sm'
       }`}
       data-testid={testId}
     >

@@ -124,7 +124,7 @@ export default function CheckoutSuccessPage() {
   return (
     <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
       <div className="max-w-md mx-auto pt-6 sm:pt-12">
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 space-y-5">
+        <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 space-y-5">
           <div className="flex items-start gap-3">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cta-light text-cta shrink-0">
               <CheckCircle2 className="w-5 h-5" />
@@ -139,7 +139,7 @@ export default function CheckoutSuccessPage() {
             </div>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-stone-200">
+          <div className="space-y-2 pt-2 border-t border-keeper-hair">
             {data.order.includesPrint && (
               <div className="flex items-center gap-2 text-sm text-stone-700">
                 <Package className="w-4 h-4 text-stone-400" />
@@ -160,7 +160,7 @@ export default function CheckoutSuccessPage() {
                 Share link
               </p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 text-xs font-mono bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 truncate">
+                <div className="flex-1 text-xs font-mono bg-stone-50 border border-keeper-hair rounded-lg px-3 py-2 truncate">
                   {fullShareUrl}
                 </div>
                 <Button

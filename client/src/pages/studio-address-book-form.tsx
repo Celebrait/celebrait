@@ -691,7 +691,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 sm:p-6">
+    <div className="bg-white rounded-2xl border border-keeper-hair p-5 sm:p-6">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
         {subtitle && (
@@ -858,7 +858,7 @@ function OccasionRow({
 
   return (
     <div
-      className="border border-stone-200 rounded-xl p-3 sm:p-4"
+      className="border border-keeper-hair rounded-xl p-3 sm:p-4"
       data-testid={`occasion-row-${index}`}
     >
       <div className="flex items-start gap-3">

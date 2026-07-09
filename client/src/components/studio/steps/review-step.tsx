@@ -316,7 +316,7 @@ function TakesStrip({
 
   return (
     <div
-      className="rounded-xl border border-stone-200 bg-stone-50 p-4"
+      className="rounded-xl border border-keeper-hair bg-stone-50 p-4"
       data-testid="takes-strip"
     >
       <div className="mb-3 flex items-baseline justify-between gap-2">
@@ -336,7 +336,7 @@ function TakesStrip({
             className="group flex flex-col items-center gap-1"
             data-testid={`takes-strip-thumb-${t.id}`}
           >
-            <span className="block h-16 w-16 overflow-hidden rounded-lg border border-stone-200 opacity-80 transition-all group-hover:border-brand/40 group-hover:opacity-100">
+            <span className="block h-16 w-16 overflow-hidden rounded-lg border border-keeper-hair opacity-80 transition-all group-hover:border-brand/40 group-hover:opacity-100">
               <img
                 src={t.frontImageUrl!}
                 alt={`Take ${idx + 1}`}
@@ -558,7 +558,7 @@ function SummaryRow({
 }) {
   return (
     <div
-      className="flex items-start gap-3 bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm"
+      className="flex items-start gap-3 bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm"
       data-testid={testId}
     >
       <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-brand-muted text-brand">
@@ -750,7 +750,7 @@ function FrontFirstStage({
         Your front is safe — let's just try the inside again.
       </p>
       {failure && (failure.kind || failure.message) && (
-        <div className="mx-auto max-w-sm rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-left text-xs text-stone-600">
+        <div className="mx-auto max-w-sm rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-left text-xs text-stone-600">
           <p className="font-semibold uppercase tracking-wide text-stone-500">
             {failure.kind ?? 'error'}
           </p>
@@ -951,14 +951,14 @@ function FrontFirstReview({
         {showingPrint ? (
           <div className="w-full">{printVisual}</div>
         ) : (
-          <div className="aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
+          <div className="aspect-square w-full overflow-hidden rounded-lg border border-keeper-hair bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
             {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
           </div>
         )}
         <button
           type="button"
           onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
-          className="absolute -bottom-3 right-2 inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-stone-600 shadow-sm transition-colors hover:border-brand/40 hover:text-brand-dark"
+          className="absolute -bottom-3 right-2 inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white/95 px-3 py-1.5 text-[11px] font-medium text-stone-600 shadow-sm transition-colors hover:border-brand/40 hover:text-brand-dark"
           aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
           data-testid="btn-hero-print-toggle"
         >
@@ -1050,7 +1050,7 @@ function InsideComposeStage({
   // confirmed) in its company.
   const frontThumb = frontUrl && (
     <div className="mx-auto mb-6 flex items-center justify-center gap-3">
-      <div className="aspect-square w-20 overflow-hidden rounded-md border border-stone-200 shadow-sm">
+      <div className="aspect-square w-20 overflow-hidden rounded-md border border-keeper-hair shadow-sm">
         <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
       </div>
       <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
@@ -1063,7 +1063,7 @@ function InsideComposeStage({
   const backButton = (
     <button
       onClick={onBack}
-      className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
+      className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
       data-testid="btn-back-to-front"
     >
       ← Back to the front
@@ -1084,7 +1084,7 @@ function InsideComposeStage({
         </div>
         {frontThumb}
         <div
-          className="mx-auto max-w-md rounded-xl border border-stone-200 bg-stone-50 p-4"
+          className="mx-auto max-w-md rounded-xl border border-keeper-hair bg-stone-50 p-4"
           data-testid="inside-signoff-readback"
         >
           {blank ? (
@@ -1658,7 +1658,7 @@ function CardImage({ url, label }: { url: string; label: string }) {
       <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-2">
         {label}
       </p>
-      <div className="aspect-square rounded-2xl overflow-hidden border border-stone-200 bg-stone-50">
+      <div className="aspect-square rounded-2xl overflow-hidden border border-keeper-hair bg-stone-50">
         <img
           src={url}
           alt={`Generated ${label.toLowerCase()} of card`}

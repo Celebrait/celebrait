@@ -731,7 +731,7 @@ export function RegenEditMode({
                   hard cap (there's nothing left to tweak). */}
               {allEditableCapped ? (
                 <div
-                  className="mb-4 rounded-xl border border-stone-200 bg-stone-50 p-4 text-center"
+                  className="mb-4 rounded-xl border border-keeper-hair bg-stone-50 p-4 text-center"
                   data-testid="regen-all-capped"
                 >
                   <p className="text-sm font-medium text-ink">
@@ -766,7 +766,7 @@ export function RegenEditMode({
                   keyboard. G6: bottom padding adds the safe-area inset so
                   the bar clears the iPhone home indicator / gesture bar
                   instead of sitting under it. */}
-              <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-stone-200">
+              <div className="fixed sm:static bottom-0 inset-x-0 px-4 sm:px-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-0 bg-white/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-0 border-t sm:border-0 border-keeper-hair">
                 <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                   <p
                     className="text-[11px] text-stone-400 hidden sm:block"
@@ -846,7 +846,7 @@ function VersionRail({
             className={`relative w-12 h-12 rounded-md overflow-hidden border-2 transition-all flex-shrink-0 ${
               a.isSelected
                 ? 'border-brand shadow-sm shadow-brand/20'
-                : 'border-stone-200 hover:border-brand/60 opacity-80 hover:opacity-100'
+                : 'border-keeper-hair hover:border-brand/60 opacity-80 hover:opacity-100'
             } disabled:cursor-not-allowed`}
             aria-label={
               a.isSelected

@@ -241,7 +241,7 @@ function ForkCard({
       className={`cursor-pointer text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${
         highlighted
           ? 'border-brand/60 bg-brand-muted/30 hover:border-brand hover:bg-brand-muted/50 hover:shadow-sm'
-          : 'border-stone-200 bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
+          : 'border-keeper-hair bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
       }`}
       data-testid={testid}
     >
@@ -255,7 +255,7 @@ function ForkCard({
       <div className="text-sm font-semibold text-ink">{title}</div>
       <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
       {hint && (
-        <p className="text-[11px] leading-relaxed text-stone-500 border-t border-stone-200/70 pt-2 mt-0.5">
+        <p className="text-[11px] leading-relaxed text-stone-500 border-t border-keeper-hair/70 pt-2 mt-0.5">
           {hint}
         </p>
       )}
@@ -481,7 +481,7 @@ function FieldCard({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm">
+    <div className="bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm">
       <Label
         htmlFor={htmlFor}
         className="flex items-center gap-1.5 text-sm text-ink mb-2"

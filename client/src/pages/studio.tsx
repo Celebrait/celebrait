@@ -177,7 +177,7 @@ function EmptyView({ name }: { name: string }) {
             page background — picks up the same warm tone the
             invitations teaser uses for visual coherence with the rest
             of the studio. */}
-        <div className="order-2 relative w-full h-[36vh] min-h-[280px] sm:h-[44vh] lg:h-[58vh] rounded-3xl bg-gradient-to-br from-brand-muted/40 via-white to-brand-muted/20 border border-stone-200/80 overflow-hidden">
+        <div className="order-2 relative w-full h-[36vh] min-h-[280px] sm:h-[44vh] lg:h-[58vh] rounded-3xl bg-gradient-to-br from-brand-muted/40 via-white to-brand-muted/20 border border-keeper-hair/80 overflow-hidden">
           <Card3DViewer
             frontImageUrl={heroFrontSrc}
             insideImageUrl={heroInsideSrc}
@@ -250,7 +250,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
         subtitle="Pick up where you left off — or start something new."
       />
 
-      <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 mb-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+      <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 mb-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
         <div className="w-12 h-12 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center flex-shrink-0">
           <Sparkles className="w-5 h-5" />
         </div>
@@ -437,7 +437,7 @@ function HeroCarousel({
     >
       <Link
         href={`/studio/card/${current.id}`}
-        className="block bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 hover:border-brand hover:shadow-lg transition-all"
+        className="block bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 hover:border-brand hover:shadow-lg transition-all"
         data-testid={isSent ? 'home-hero-sent' : 'home-hero-ready'}
         data-hero-card-id={current.id}
       >
@@ -561,7 +561,7 @@ function ActivityColumn({
             badge: 'bg-brand text-white',
           }
         : {
-            border: 'border-stone-200',
+            border: 'border-keeper-hair',
             accentBar: '',
             iconColor: 'text-stone-500',
             badge: 'bg-stone-200 text-stone-700',
@@ -741,7 +741,7 @@ function HowItWorks({ compact = false }: { compact?: boolean }) {
         {STEPS.map((s, i) => (
           <div
             key={s.title}
-            className={`bg-white rounded-2xl border border-stone-200 ${
+            className={`bg-white rounded-2xl border border-keeper-hair ${
               compact ? 'p-4' : 'p-5'
             }`}
           >
@@ -802,7 +802,7 @@ const STEPS: Array<{ title: string; body: string }> = [
 
 function InvitationsTeaser() {
   return (
-    <div className="border-t border-stone-200 pt-10">
+    <div className="border-t border-keeper-hair pt-10">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-ink">
           What's next at Celebrait
@@ -813,7 +813,7 @@ function InvitationsTeaser() {
       </div>
 
       <div
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/15 via-accent-coral-light to-accent-amber/20 border border-stone-200"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/15 via-accent-coral-light to-accent-amber/20 border border-keeper-hair"
         data-testid="whats-next-invitations"
       >
         {/* Decorative soft glow in the corner — lifts the block from
@@ -861,7 +861,7 @@ function InvitationsTeaser() {
               in cream / brand / coral to evoke a stack. Hidden on mobile
               so the copy carries alone. */}
           <div className="hidden sm:block relative w-44 h-56">
-            <div className="absolute inset-0 bg-white rounded-xl shadow-lg rotate-[-6deg] border border-stone-200" />
+            <div className="absolute inset-0 bg-white rounded-xl shadow-lg rotate-[-6deg] border border-keeper-hair" />
             <div className="absolute inset-0 bg-gradient-to-br from-brand-muted to-white rounded-xl shadow-lg rotate-[2deg] border border-brand/20 translate-x-2 translate-y-1" />
             <div className="absolute inset-0 bg-gradient-to-br from-accent-coral-light to-white rounded-xl shadow-xl rotate-[-1deg] border border-accent-coral-light translate-x-1 translate-y-3 flex items-center justify-center p-4">
               <p className="text-center text-base italic text-brand-dark leading-tight">
@@ -948,7 +948,7 @@ function UpcomingWidget() {
 
   return (
     <section
-      className="bg-white rounded-2xl border border-stone-200 p-5 sm:p-6 mb-8 sm:mb-10"
+      className="bg-white rounded-2xl border border-keeper-hair p-5 sm:p-6 mb-8 sm:mb-10"
       aria-labelledby="upcoming-heading"
       data-testid="studio-upcoming"
     >

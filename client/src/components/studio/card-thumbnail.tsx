@@ -176,7 +176,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
         )}
         {typeof takesCount === 'number' && takesCount > 1 && (
           <div
-            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-stone-700 text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-stone-200"
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-stone-700 text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-keeper-hair"
             data-testid={`chip-takes-${card.id}`}
           >
             {takesCount} takes
@@ -200,7 +200,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
               // the rest of the grid. Fades to normal once notifiedAt
               // is stamped (user opens it or dismisses the toast).
               'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(122,118,232,0.35)] hover:border-brand-dark'
-            : 'border-stone-200 hover:border-brand'
+            : 'border-keeper-hair hover:border-brand'
         }`}
         data-testid={`card-tile-${card.id}`}
         data-just-finished={isJustFinished ? 'true' : undefined}

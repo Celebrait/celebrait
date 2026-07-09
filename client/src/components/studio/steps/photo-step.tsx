@@ -1290,7 +1290,7 @@ function PhotoTile({
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur border border-stone-200 shadow-sm flex items-center justify-center hover:bg-white transition-colors"
+          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur border border-keeper-hair shadow-sm flex items-center justify-center hover:bg-white transition-colors"
           aria-label="Remove photo"
           data-testid={`${testId}-remove`}
         >
@@ -1324,7 +1324,7 @@ function PhotoTips({ mode }: { mode: PhotoMode }) {
         ];
   return (
     <div
-      className="mb-4 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3"
+      className="mb-4 rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3"
       data-testid="photo-tips"
     >
       <div className="flex items-center gap-1.5 mb-2">
@@ -1376,7 +1376,7 @@ function ModeTile({
       className={`relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${
         selected
           ? 'border-brand bg-brand-muted shadow-sm'
-          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
+          : 'border-keeper-hair hover:border-brand hover:bg-brand-muted/40 bg-white'
       }`}
       data-testid={testId}
     >

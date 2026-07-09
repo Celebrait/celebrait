@@ -349,7 +349,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-                  className="space-y-2 pt-2 border-t border-stone-200"
+                  className="space-y-2 pt-2 border-t border-keeper-hair"
                   data-testid="scene-suggestions"
                 >
                   <p className="text-xs uppercase tracking-wider text-stone-400 font-medium pt-3">
@@ -360,7 +360,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                       key={s.id}
                       type="button"
                       onClick={() => acceptSuggestion(s.text)}
-                      className="block w-full text-left rounded-xl border border-stone-200 bg-white hover:border-brand hover:bg-brand-muted/30 transition-all p-4 text-sm text-ink leading-relaxed shadow-sm hover:shadow"
+                      className="block w-full text-left rounded-xl border border-keeper-hair bg-white hover:border-brand hover:bg-brand-muted/30 transition-all p-4 text-sm text-ink leading-relaxed shadow-sm hover:shadow"
                       data-testid={`scene-suggestion-${s.id}`}
                     >
                       {s.text}

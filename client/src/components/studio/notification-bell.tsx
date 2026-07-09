@@ -102,7 +102,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[0_20px_50px_-16px_rgba(15,23,42,0.3)]"
+          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-keeper-hair bg-white shadow-[0_20px_50px_-16px_rgba(15,23,42,0.3)]"
           role="dialog"
           aria-label="Notifications"
         >
@@ -138,7 +138,7 @@ export function NotificationBell() {
                       data-testid={`notification-row-${n.cardId}`}
                     >
                       {/* Card art leads — presence over metadata. */}
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-keeper-hair bg-stone-100">
                         {n.frontImageUrl ? (
                           <img
                             src={n.frontImageUrl}

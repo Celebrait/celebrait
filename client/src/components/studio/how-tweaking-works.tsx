@@ -74,7 +74,7 @@ export function HowTweakingWorks() {
 
           {/* The two surfaces a tweak can touch. */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+            <div className="rounded-lg border border-keeper-hair bg-stone-50 px-3 py-2.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <ImageIcon
                   className="w-3.5 h-3.5 text-brand"
@@ -89,7 +89,7 @@ export function HowTweakingWorks() {
                 The illustrated scene and any wording on it.
               </p>
             </div>
-            <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+            <div className="rounded-lg border border-keeper-hair bg-stone-50 px-3 py-2.5">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <PenLine
                   className="w-3.5 h-3.5 text-brand"
@@ -143,7 +143,7 @@ export function HowTweakingWorks() {
 
           {/* What you can't change — the photo. The single most important
               expectation to set: a tweak won't swap or improve the face. */}
-          <div className="rounded-lg bg-stone-50 border border-stone-200 px-3 py-2.5">
+          <div className="rounded-lg bg-stone-50 border border-keeper-hair px-3 py-2.5">
             <div className="flex items-start gap-2">
               <X
                 className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5"

@@ -513,7 +513,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         className={
           isRevealMode
             ? 'min-h-[380px]'
-            : 'bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]'
+            : 'bg-white border border-keeper-hair rounded-2xl p-6 sm:p-10 min-h-[380px]'
         }
       >
         {/* Fade-up transition between steps. Outer panel stays put so

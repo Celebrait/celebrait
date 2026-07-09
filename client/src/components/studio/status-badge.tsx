@@ -16,7 +16,7 @@ type StatusVariant = {
 const STATUS_MAP: Record<string, StatusVariant> = {
   draft: {
     label: 'Draft',
-    className: 'bg-stone-100 text-stone-700 border-stone-200',
+    className: 'bg-stone-100 text-stone-700 border-keeper-hair',
   },
   generating: {
     label: 'Generating',
@@ -75,7 +75,7 @@ const STATUS_MAP: Record<string, StatusVariant> = {
   // "Ready" so it's obviously a different state the user can't act on.
   archived: {
     label: 'Archived',
-    className: 'bg-stone-50 text-stone-500 border-stone-200',
+    className: 'bg-stone-50 text-stone-500 border-keeper-hair',
   },
 };
 
@@ -83,7 +83,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
   const key = (status ?? '').toLowerCase();
   const variant = STATUS_MAP[key] ?? {
     label: status ?? 'Unknown',
-    className: 'bg-stone-100 text-stone-700 border-stone-200',
+    className: 'bg-stone-100 text-stone-700 border-keeper-hair',
   };
   return (
     <span

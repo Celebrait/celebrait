@@ -150,7 +150,7 @@ export function FixAndRetryDialog({
             they're editing, not being warned. The red lives back on
             the failure panel; here it's a regular Studio surface with
             just a small "EDITING" eyebrow as the through-line. */}
-        <div className="px-6 pt-6 pb-4 border-b border-stone-200/80">
+        <div className="px-6 pt-6 pb-4 border-b border-keeper-hair/80">
           <DialogTitle className="text-lg font-semibold text-ink">
             Fix and try again
           </DialogTitle>
@@ -213,7 +213,7 @@ export function FixAndRetryDialog({
             any other action surface in the app. Disabled state uses
             `inFlight` (local + parent) so the spinner appears the
             moment the user clicks, not after the round-trip. */}
-        <div className="px-6 py-4 border-t border-stone-200/80 bg-white/40 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-keeper-hair/80 bg-white/40 flex items-center justify-between gap-3">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
@@ -276,7 +276,7 @@ function AlsoUsingTile({
     <button
       type="button"
       onClick={onSwitch}
-      className="text-left px-3 py-2.5 rounded-lg bg-white border border-stone-200 hover:border-brand/40 hover:bg-brand/5 transition-all group"
+      className="text-left px-3 py-2.5 rounded-lg bg-white border border-keeper-hair hover:border-brand/40 hover:bg-brand/5 transition-all group"
       data-testid={`fix-retry-switch-${editor}`}
     >
       <div className="flex items-center gap-1.5 mb-1">

@@ -87,7 +87,7 @@ function PageHeader() {
       </div>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
+        className="inline-flex items-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
         data-testid="drafts-new-card"
       >
         <Wand2 className="w-4 h-4" />
@@ -190,7 +190,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
       className={`group cursor-pointer rounded-2xl border transition-all hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
         isReadyToGenerate
           ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
-          : 'bg-white border-stone-200 hover:border-stone-300'
+          : 'bg-white border-keeper-hair hover:border-stone-300'
       }`}
       data-testid={`draft-list-row-${card.id}`}
     >
@@ -388,7 +388,7 @@ function DraftListSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-stone-200 bg-white p-3 sm:p-4 flex items-center gap-3 sm:gap-4 animate-pulse"
+          className="rounded-2xl border border-keeper-hair bg-white p-3 sm:p-4 flex items-center gap-3 sm:gap-4 animate-pulse"
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-stone-100 flex-shrink-0" />
           <div className="flex-1 space-y-2">
@@ -419,7 +419,7 @@ function DraftsEmpty() {
       </p>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="drafts-empty-start-card"
       >
         <Wand2 className="w-4 h-4" />
