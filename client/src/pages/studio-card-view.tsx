@@ -24,7 +24,7 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import { StartAgainButton } from '@/components/studio/steps/review-step';
-import { familyKey, isGeneratedStatus } from '@/lib/studio-card-buckets';
+import { familyKey } from '@/lib/studio-card-buckets';
 import type { CardGridItem } from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
@@ -519,7 +519,10 @@ function TakesRail({ currentId, famKey }: { currentId: number; famKey: number })
     .filter(
       (c) =>
         familyKey(c) === famKey &&
-        isGeneratedStatus(c.status) &&
+        // Any take with a front (incl. front-ready / inside-ready
+        // restarts) — matches the Review TakesStrip so the family
+        // take-count is identical on both surfaces. Non-completed
+        // clicks redirect to the editor (see the status guard above).
         !!c.frontImageUrl,
     )
     .sort((a, b) => {

@@ -61,7 +61,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
-import { familyKey, isGeneratedStatus } from '@/lib/studio-card-buckets';
+import { familyKey } from '@/lib/studio-card-buckets';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardGridItem } from '@shared/schema';
 
@@ -301,7 +301,9 @@ function TakesStrip({
       (c) =>
         familyKey(c) === familyId &&
         c.id !== currentCardId &&
-        isGeneratedStatus(c.status) &&
+        // Any take that produced a front counts (incl. front-ready /
+        // inside-ready restarts, not just 'completed') — the card view
+        // safely redirects non-completed clicks to the editor.
         !!c.frontImageUrl,
     )
     .sort((a, b) => {
