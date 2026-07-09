@@ -655,7 +655,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           <Button
             onClick={() => void finishEditing()}
             disabled={!isStepReady(editingStep, state)}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
+            className="bg-cta hover:bg-cta-hover text-cta-foreground disabled:opacity-50"
             data-testid="btn-edit-overlay-done"
           >
             Save &amp; back to review
@@ -678,7 +678,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           <Button
             onClick={handleNext}
             disabled={!canAdvance}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
+            className="bg-cta hover:bg-cta-hover text-cta-foreground disabled:opacity-50"
             data-testid="btn-card-maker-next"
           >
             Next

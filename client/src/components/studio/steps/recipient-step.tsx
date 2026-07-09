@@ -457,7 +457,7 @@ function OccasionButton({
           className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${
             selected
               ? 'bg-brand text-brand-foreground'
-              : 'bg-accent-coral-light text-accent-coral-dark'
+              : 'bg-keeper-gold-wash text-keeper-gold'
           }`}
         >
           <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
