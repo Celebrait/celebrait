@@ -463,7 +463,7 @@ function HeroCarousel({
                 <span className="ml-1">✨</span>
               </p>
             ) : (
-              <p className="text-xs font-medium text-keeper-gold uppercase tracking-wider mb-1">
+              <p className="text-xs font-medium text-cta-hover uppercase tracking-wider mb-1">
                 Ready to send
               </p>
             )}

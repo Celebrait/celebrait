@@ -234,7 +234,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
           <div className="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
             <ProgressDots filled={filled} total={VISIBLE_STEP_COUNT} highlight={isReadyToGenerate} />
             {isReadyToGenerate ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-keeper-gold">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cta-hover">
                 <Sparkles className="w-3 h-3" />
                 Ready to generate
               </span>
@@ -282,7 +282,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
         <div className="sm:hidden px-3 pb-3 -mt-1 flex items-center justify-between gap-3">
           <ProgressDots filled={filled} total={VISIBLE_STEP_COUNT} highlight={isReadyToGenerate} />
           {isReadyToGenerate ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-keeper-gold">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cta-hover">
               <Sparkles className="w-3 h-3" />
               Ready
             </span>
@@ -321,14 +321,14 @@ function DraftListRow({ card }: { card: CardGridItem }) {
 }
 
 // ── ProgressDots — six tiny dots, filled left-to-right ───────────────
-// Violet (keeper-gold accent) for filled, hairline for unfilled.
-// Highlighted rows (ready-to-generate) use the saturated gold-deep;
-// in-progress rows use the softer gold. Kevin 2026-07-09 moved these
-// off green: under the Keeper skin, green is reserved for "go" ACTIONS
-// only — a progress status shouldn't borrow the action colour. (This
-// reverses the 2026-04-26 green call, made when the old cool-white
-// chrome + violet accents clashed; the new paper/hairline chrome
-// removes that clash.)
+// Green ("go" tone) for filled, stone for unfilled. Highlighted rows
+// (ready-to-generate) use the saturated cta-hover; in-progress rows
+// use the slightly softer cta. Green reads as "progress toward the
+// finish line" — Kevin's call 2026-04-26, re-confirmed 2026-07-09
+// ("bring the green back for ready-to-gen, it was working") after a
+// brief violet experiment. Green is the readiness ACCENT here; the
+// button-colour system (purple everyday + green commit moments) is a
+// separate axis.
 function ProgressDots({
   filled,
   total,
@@ -348,9 +348,9 @@ function ProgressDots({
             className={`block w-1.5 h-1.5 rounded-full transition-colors ${
               isFilled
                 ? highlight
-                  ? 'bg-keeper-gold-deep'
-                  : 'bg-keeper-gold'
-                : 'bg-keeper-hair'
+                  ? 'bg-cta-hover'
+                  : 'bg-cta'
+                : 'bg-stone-200'
             }`}
           />
         );

@@ -73,12 +73,14 @@ export function AuthForm({
   accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
-  // Primary-button accent classes. Green CTA by default (brand action
-  // colour); /login opts into violet to match the homepage hero.
+  // Primary-button accent classes. Ink pill by default — auth is the
+  // doorway between the Keeper LP (ink CTAs) and the studio, so it
+  // wears the LP's button language to bridge the handoff seam (Kevin
+  // 2026-07-09). /login can still opt into violet via accent='brand'.
   const accentBtn =
     accent === 'brand'
       ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
-      : 'bg-go hover:bg-go-hover text-go-foreground';
+      : 'bg-keeper-ink hover:bg-black text-keeper-paper';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
 
   const [email, setEmail] = useState('');
