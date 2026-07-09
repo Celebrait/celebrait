@@ -92,8 +92,8 @@ const GO_TREATMENTS: Array<{ key: string; label: string; swatch: string }> = [
 
 function useGoTreatment() {
   const [treatment, setTreatment] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'ink';
-    return window.localStorage.getItem(GO_KEY) || 'ink';
+    if (typeof window === 'undefined') return 'violet';
+    return window.localStorage.getItem(GO_KEY) || 'violet';
   });
   useEffect(() => {
     document.documentElement.dataset.go = treatment;

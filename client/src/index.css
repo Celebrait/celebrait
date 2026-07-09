@@ -24,15 +24,17 @@
   --ring: 263 70% 58%;               /* matches primary */
   --radius: 0.5rem;
 
-  /* Action-button treatment ("go" token) — A/B test 2026-07-09.
-     Default = ink (Keeper's button language). Flip live via the
-     Dev-tools "Button colour" switcher, which sets data-go on <html>
-     (presets below). Bake the winner here + retire the switcher once
-     decided. Green is NOT the default here — it lives on as the
-     ready/go STATUS accent (cta token), not the button fill. */
-  --go: #211D19;        /* ink — warm near-black (keeper-ink) */
-  --go-hover: #000000;
-  --go-fg: #FAF8F4;     /* keeper-paper text on ink */
+  /* Everyday action-button treatment ("go" token) — A/B test 2026-07-09.
+     Default = purple (Kevin: ink read too editorial inside the studio;
+     the studio wants brand colour, green reserved for the commit
+     moments). Flip live via the Dev-tools "Button colour" switcher,
+     which sets data-go on <html> (presets below). The true commit
+     buttons (generate / send / pay) are pinned green (cta) regardless
+     of this token, so "purple" = the purple-everyday + green-moments
+     hierarchy. Bake the winner here + retire the switcher once decided. */
+  --go: #5c57d4;        /* brand violet (keeper-gold) */
+  --go-hover: #4a45c0;  /* deeper violet */
+  --go-fg: #ffffff;
 
   /* Celebrait legacy custom colors (kept for existing components) */
   --ethereal-purple: 263 70% 58%;
