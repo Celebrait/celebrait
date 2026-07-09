@@ -458,12 +458,12 @@ function HeroCarousel({
           </div>
           <div className="flex-1 min-w-0">
             {isSent ? (
-              <p className="text-xs font-medium text-accent-amber uppercase tracking-wider mb-1">
+              <p className="text-xs font-medium text-keeper-gold uppercase tracking-wider mb-1">
                 On its way
                 <span className="ml-1">✨</span>
               </p>
             ) : (
-              <p className="text-xs font-medium text-cta-hover uppercase tracking-wider mb-1">
+              <p className="text-xs font-medium text-keeper-gold uppercase tracking-wider mb-1">
                 Ready to send
               </p>
             )}
