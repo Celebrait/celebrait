@@ -263,7 +263,7 @@ export default function PricingPage() {
             ) : (
               <Button
                 onClick={() => openAuth('/studio/new-card')}
-                className="bg-cta hover:bg-cta-hover text-cta-foreground h-12 px-8 text-base font-medium"
+                className="bg-go hover:bg-go-hover text-go-foreground h-12 px-8 text-base font-medium"
               >
                 Make my first card
               </Button>

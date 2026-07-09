@@ -335,7 +335,7 @@ function ActionButtons({
         <Button
           type="button"
           onClick={onAccept}
-          className="bg-cta hover:bg-cta-hover text-cta-foreground text-sm"
+          className="bg-go hover:bg-go-hover text-go-foreground text-sm"
           data-testid="btn-brainstorm-accept"
         >
           <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />

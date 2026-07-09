@@ -14,7 +14,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Primary "go" — green pill.
-        default: "bg-cta text-cta-foreground hover:bg-cta-hover shadow-sm",
+        default: "bg-go text-go-foreground hover:bg-go-hover shadow-sm",
         // The one system-red, for true failures only.
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",

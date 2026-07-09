@@ -117,7 +117,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           href="/studio/new-card"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 w-full bg-cta hover:bg-cta-hover text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 w-full bg-go hover:bg-go-hover text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
           data-testid="nav-new-card-cta"
           data-hint="new-card"
         >

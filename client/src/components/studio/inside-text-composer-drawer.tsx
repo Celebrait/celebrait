@@ -294,7 +294,7 @@ export function InsideTextComposerDrawer({
           <div className="border-t border-keeper-hair px-6 py-4 flex flex-col gap-2 flex-shrink-0 bg-white">
             <Button
               onClick={handleAccept}
-              className="w-full bg-cta hover:bg-cta-hover text-white"
+              className="w-full bg-go hover:bg-go-hover text-white"
               data-testid="btn-composer-accept"
             >
               <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />

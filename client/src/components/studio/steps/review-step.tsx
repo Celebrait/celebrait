@@ -255,7 +255,7 @@ export function ReviewStep({
       <div className="pt-2">
         <Button
           onClick={onGenerate}
-          className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
+          className="w-full bg-go hover:bg-go-hover text-go-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
@@ -762,7 +762,7 @@ function FrontFirstStage({
       )}
       <button
         onClick={() => onStartInsideGeneration?.()}
-        className="rounded-full bg-cta px-6 py-3 text-sm font-medium text-cta-foreground transition-colors hover:bg-cta-hover"
+        className="rounded-full bg-go px-6 py-3 text-sm font-medium text-go-foreground transition-colors hover:bg-go-hover"
       >
         Try the inside again
       </button>
@@ -861,7 +861,7 @@ export function StartAgainButton({
             <Button
               onClick={() => void startAgain()}
               disabled={busy}
-              className="bg-cta hover:bg-cta-hover text-cta-foreground sm:flex-1"
+              className="bg-go hover:bg-go-hover text-go-foreground sm:flex-1"
               data-testid="btn-start-again-confirm"
             >
               {busy ? (
@@ -980,7 +980,7 @@ function FrontFirstReview({
               setBusy(false);
             }
           }}
-          className="inline-flex h-[52px] w-full max-w-[320px] items-center justify-center rounded-full bg-cta px-6 text-[15px] font-semibold text-cta-foreground transition-colors hover:bg-cta-hover disabled:opacity-50 sm:w-80"
+          className="inline-flex h-[52px] w-full max-w-[320px] items-center justify-center rounded-full bg-go px-6 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50 sm:w-80"
         >
           {busy ? 'One sec…' : approveLabel}
         </button>
@@ -1106,7 +1106,7 @@ function InsideComposeStage({
           <button
             disabled={busy}
             onClick={submit}
-            className="w-full max-w-[320px] rounded-full bg-cta px-6 py-3.5 text-[15px] font-medium text-cta-foreground transition-colors hover:bg-cta-hover disabled:opacity-50"
+            className="w-full max-w-[320px] rounded-full bg-go px-6 py-3.5 text-[15px] font-medium text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50"
             data-testid="btn-make-inside"
           >
             {busy
@@ -1633,7 +1633,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
+                    className="bg-go hover:bg-go-hover text-go-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >

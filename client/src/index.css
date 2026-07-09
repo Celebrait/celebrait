@@ -24,12 +24,41 @@
   --ring: 263 70% 58%;               /* matches primary */
   --radius: 0.5rem;
 
+  /* Action-button treatment ("go" token) — A/B test 2026-07-09.
+     Default = ink (Keeper's button language). Flip live via the
+     Dev-tools "Button colour" switcher, which sets data-go on <html>
+     (presets below). Bake the winner here + retire the switcher once
+     decided. Green is NOT the default here — it lives on as the
+     ready/go STATUS accent (cta token), not the button fill. */
+  --go: #211D19;        /* ink — warm near-black (keeper-ink) */
+  --go-hover: #000000;
+  --go-fg: #FAF8F4;     /* keeper-paper text on ink */
+
   /* Celebrait legacy custom colors (kept for existing components) */
   --ethereal-purple: 263 70% 58%;
   --warm-pink: 329 86% 70%;
   --sa-gold: 45 93% 47%;
   --soft-white: 20 6% 98%;
   --slate-gray: 25 5% 45%;
+}
+
+/* Button-colour A/B presets — the Dev-tools switcher sets data-go on
+   <html> to preview each treatment live. Higher specificity than
+   :root, so they override the ink default. */
+[data-go='ink'] {
+  --go: #211D19;
+  --go-hover: #000000;
+  --go-fg: #FAF8F4;
+}
+[data-go='violet'] {
+  --go: #5c57d4;
+  --go-hover: #4a45c0;
+  --go-fg: #ffffff;
+}
+[data-go='green'] {
+  --go: #5fd94a;
+  --go-hover: #4ac437;
+  --go-fg: #ffffff;
 }
 
 /* The body opacity transition that used to live here was removed

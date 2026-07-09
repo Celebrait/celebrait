@@ -199,7 +199,7 @@ export function GivingMoment({
           })
         }
         disabled={!canContinue}
-        className="w-full bg-cta hover:bg-cta-hover text-white"
+        className="w-full bg-go hover:bg-go-hover text-white"
         size="lg"
         data-testid="giving-moment-continue"
       >

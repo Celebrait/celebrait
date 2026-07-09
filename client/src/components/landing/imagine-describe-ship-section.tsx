@@ -494,7 +494,7 @@ function BrainstormScreen({
               <button
                 type="button"
                 onClick={onViewCard}
-                className="w-full max-w-[200px] inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-cta-foreground bg-cta hover:bg-cta-hover px-3 py-2 rounded-full shadow-sm transition-colors duration-200"
+                className="w-full max-w-[200px] inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-go-foreground bg-go hover:bg-go-hover px-3 py-2 rounded-full shadow-sm transition-colors duration-200"
               >
                 <Sparkles className="w-3 h-3" strokeWidth={2.5} />
                 View greetings card

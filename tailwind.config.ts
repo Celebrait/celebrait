@@ -38,10 +38,23 @@ export default {
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          DEFAULT: '#5fd94a',     // bright lime — primary action ("go")
+          DEFAULT: '#5fd94a',     // bright lime — the "ready / go" STATUS accent
           hover: '#4ac437',       // slightly deeper — hover
           light: '#e0f8db',       // pale green — success backgrounds
           foreground: '#ffffff',
+        },
+        // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────
+        // Split out of `cta` so we can A/B the primary-button colour
+        // (ink vs violet vs green) WITHOUT disturbing green where it
+        // earns its place as a status accent (Ready column, ready dots).
+        // CSS-var backed → flip live via the Dev-tools "Button colour"
+        // switcher (sets data-go on <html>); default is ink (index.css).
+        // Once the treatment is decided, bake the winner into index.css
+        // and retire the switcher.
+        go: {
+          DEFAULT: 'var(--go)',
+          hover: 'var(--go-hover)',
+          foreground: 'var(--go-fg)',
         },
         // Accent palette — semantic usage rules (see UX_STUDIO_TONE.md):
         //   coral = emotion / recipient moments (hearts, personal moments)
