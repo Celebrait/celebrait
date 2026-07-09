@@ -249,6 +249,7 @@ export function ReviewStep({
         state={state}
         stepIndexById={stepIndexById}
         onJumpToStep={onJumpToStep}
+        isReroll={isReroll}
       />
 
       <div className="pt-2">
@@ -366,10 +367,16 @@ function SummaryPanel({
   state,
   stepIndexById,
   onJumpToStep,
+  isReroll = false,
 }: {
   state: CardDraftState;
   stepIndexById: Record<StepId, number>;
   onJumpToStep: (stepIndex: number) => void;
+  /** On a reroll, the inside is INHERITED and confirmed post-front, so
+   *  the Review defers it (no pre-front editing) — one inside
+   *  touchpoint, consistent with the first-time flow (Kevin
+   *  2026-07-09). */
+  isReroll?: boolean;
 }) {
   const recipient = state.recipient;
   const scene = state.scene?.description ?? '';
@@ -475,7 +482,18 @@ function SummaryPanel({
           user forgot something). Drafts that already carry a decision
           (resumed pre-re-sequence drafts, or the Buy-dialog recovery
           path) still show it, with the edit link. */}
-      {insideMode === 'blank' ? (
+      {isReroll ? (
+        // Reroll: inside is inherited + confirmed AFTER the front (one
+        // touchpoint). Defer here — no pre-front edit link — so it
+        // isn't asked for twice.
+        <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
+          <div className="text-sm text-stone-600">
+            {insideMode === 'blank'
+              ? "Your blank inside carries over — you'll confirm it after the front."
+              : "Your inside message carries over — you'll confirm it after the front."}
+          </div>
+        </SummaryRow>
+      ) : insideMode === 'blank' ? (
         <SummaryRow
           icon={FileText}
           label="Inside"
@@ -988,6 +1006,7 @@ function InsideComposeStage({
   flushSave,
   onBack,
   onSubmit,
+  isReroll = false,
 }: {
   cardId: number;
   state: CardDraftState;
@@ -998,15 +1017,129 @@ function InsideComposeStage({
   flushSave?: () => Promise<void>;
   onBack: () => void;
   onSubmit: () => Promise<void>;
+  /** Reroll: the inside is INHERITED, so this stage is a SIGN-OFF
+   *  (read the inherited inside back, confirm or edit) rather than a
+   *  fresh authoring task — the message was already written on the
+   *  original take (Kevin 2026-07-09). */
+  isReroll?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
   const ready = isInsideStepReady(state);
   const blank = state.inside?.mode === 'blank';
+  const write = state.inside?.write ?? {};
   const recipientName = state.recipient?.name?.trim();
+  // Sign-off = a reroll whose inside is already decided (blank, or a
+  // written message) and the user hasn't tapped "edit". Reads the
+  // inherited inside back for confirmation instead of re-presenting a
+  // blank authoring form — that's what made it feel like redoing work.
+  const hasDecision =
+    blank || (state.inside?.mode === 'write' && !!write.message?.trim());
+  const signOff = isReroll && hasDecision && !editing;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await onSubmit();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The approved front stays on screen, small — the inside is set (or
+  // confirmed) in its company.
+  const frontThumb = frontUrl && (
+    <div className="mx-auto mb-6 flex items-center justify-center gap-3">
+      <div className="aspect-square w-20 overflow-hidden rounded-md border border-stone-200 shadow-sm">
+        <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
+      </div>
+      <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
+        {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}{' '}
+        We'll design the inside to match.
+      </p>
+    </div>
+  );
+
+  const backButton = (
+    <button
+      onClick={onBack}
+      className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
+      data-testid="btn-back-to-front"
+    >
+      ← Back to the front
+    </button>
+  );
+
+  // ── Sign-off (reroll): read the inherited inside back — confirm or edit ──
+  if (signOff) {
+    return (
+      <div className="mx-auto max-w-2xl py-6">
+        <div className="mb-6 text-center">
+          <p className="text-lg font-semibold text-ink">
+            {blank ? 'Your inside' : 'Your inside message'}
+          </p>
+          <p className="mt-0.5 text-sm text-stone-500">
+            Carried over from your last take — still right for this front?
+          </p>
+        </div>
+        {frontThumb}
+        <div
+          className="mx-auto max-w-md rounded-xl border border-stone-200 bg-stone-50 p-4"
+          data-testid="inside-signoff-readback"
+        >
+          {blank ? (
+            <p className="text-sm text-stone-600">
+              Blank centre with a decorative border — we'll post it to you to
+              handwrite inside.
+            </p>
+          ) : (
+            <div className="space-y-1 text-sm text-stone-700">
+              {write.salutation && <div>{write.salutation}</div>}
+              {write.message && (
+                <div className="whitespace-pre-wrap">{write.message}</div>
+              )}
+              {write.signoff && <div>{write.signoff}</div>}
+            </div>
+          )}
+        </div>
+        <div className="mt-7 flex flex-col items-center gap-3">
+          <button
+            disabled={busy}
+            onClick={submit}
+            className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
+            data-testid="btn-make-inside"
+          >
+            {busy
+              ? 'One sec…'
+              : blank
+                ? 'Finish the card →'
+                : 'Looks good — make the inside →'}
+          </button>
+          <button
+            onClick={() => {
+              // From blank, jump straight into the write form (not the
+              // blank panel) so "add a message" is one tap, not two.
+              if (blank) onChange({ inside: { ...state.inside, mode: 'write' } });
+              setEditing(true);
+            }}
+            className="text-[13px] font-medium text-brand underline underline-offset-4 hover:text-brand-dark"
+            data-testid="btn-edit-inside"
+          >
+            {blank ? 'Add a message instead' : 'Edit the message'}
+          </button>
+          {backButton}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Authoring: first-card fresh write, or a reroll "edit" ──
   return (
     <div className="mx-auto max-w-2xl py-6">
       <div className="mb-6 text-center">
-        <p className="text-lg font-semibold text-ink">Now, the inside</p>
+        <p className="text-lg font-semibold text-ink">
+          {isReroll ? 'Edit the inside' : 'Now, the inside'}
+        </p>
         <p className="mt-0.5 text-sm text-stone-500">
           {recipientName
             ? `This is what ${recipientName} reads when they open it.`
@@ -1014,19 +1147,7 @@ function InsideComposeStage({
         </p>
       </div>
 
-      {/* The approved front stays on screen, small — the whole point of
-          writing HERE is writing in its company. */}
-      {frontUrl && (
-        <div className="mx-auto mb-6 flex items-center justify-center gap-3">
-          <div className="aspect-square w-20 overflow-hidden rounded-md border border-stone-200 shadow-sm">
-            <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
-          </div>
-          <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
-            {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}{' '}
-            We'll design the inside to match.
-          </p>
-        </div>
-      )}
+      {frontThumb}
 
       <InsideStep
         cardId={cardId}
@@ -1039,35 +1160,18 @@ function InsideComposeStage({
       <div className="mt-7 flex flex-col items-center gap-3">
         <button
           disabled={!ready || busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onSubmit();
-            } finally {
-              setBusy(false);
-            }
-          }}
+          onClick={submit}
           className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
           data-testid="btn-make-inside"
         >
-          {busy
-            ? 'One sec…'
-            : blank
-              ? 'Finish the card →'
-              : 'Make the inside →'}
+          {busy ? 'One sec…' : blank ? 'Finish the card →' : 'Make the inside →'}
         </button>
         {!ready && (
           <p className="text-[11.5px] text-stone-400">
             Write your message — or choose to leave it blank — to carry on.
           </p>
         )}
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
-          data-testid="btn-back-to-front"
-        >
-          ← Back to the front
-        </button>
+        {backButton}
       </div>
     </div>
   );
@@ -1283,10 +1387,11 @@ function RevealView({
   // 2026-07-07 — the iterate affordance is now StartAgainButton (clone
   // the inputs, re-roll through the full crafted prompt).
   if (status === 'front-ready') {
-    // Approving the front opens the inside composer (write/blank fork +
-    // message form) — the message is written IN CONTEXT of the approved
-    // front (Kevin's June call, built 2026-07-07). generate-inside only
-    // fires from the composer's own CTA.
+    // Approving the front opens the inside composer. On a FIRST card
+    // that's fresh authoring (write it in context of the front). On a
+    // REROLL the inside is inherited, so the composer is a SIGN-OFF —
+    // read it back, confirm or edit (Kevin 2026-07-09).
+    const isReroll = !!state.rerollOfCardId;
     if (insideComposing) {
       return (
         <InsideComposeStage
@@ -1294,6 +1399,7 @@ function RevealView({
           state={state}
           subject={frontFirstSubject(state)}
           frontUrl={frontUrl}
+          isReroll={isReroll}
           onChange={onChange}
           scheduleSave={scheduleSave}
           flushSave={flushSave}
@@ -1311,7 +1417,9 @@ function RevealView({
         subject={frontFirstSubject(state)}
         heroUrl={frontUrl}
         printVisual={<CardOuterSpread frontUrl={frontUrl} />}
-        approveLabel="Looks good — now the inside →"
+        approveLabel={
+          isReroll ? 'Looks good — confirm the inside →' : 'Looks good — now the inside →'
+        }
         onApprove={async () => setInsideComposing(true)}
         secondary={<StartAgainButton cardId={cardId} pill />}
       />
