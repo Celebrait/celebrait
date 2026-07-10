@@ -528,7 +528,7 @@ function OrdersEmpty() {
       </p>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-cta hover:bg-cta-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 hero-cta bg-cta hover:bg-cta-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="orders-empty-start-card"
       >
         <Wand2 className="w-4 h-4" />

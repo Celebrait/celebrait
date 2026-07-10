@@ -42,6 +42,18 @@
   --slate-gray: 25 5% 45%;
 }
 
+/* Hero-button gradient A/B test (Kevin 2026-07-09) — test the ink→violet
+   gradient (the production bar's) on the super-important buttons vs the
+   default bright green. Dev-tools "Hero button" switcher sets data-hero on
+   <html>; .hero-cta is on every hero button. Bake winner + delete once
+   decided. Specificity (0,2,0)/(0,3,0) beats the bg-cta utilities. */
+[data-hero='gradient'] .hero-cta {
+  background: linear-gradient(90deg, #211d19 0%, #5c57d4 100%);
+}
+[data-hero='gradient'] .hero-cta:hover {
+  background: linear-gradient(90deg, #000000 0%, #4a45c0 100%);
+}
+
 /* The body opacity transition that used to live here was removed
    2026-04-27. No JS in the codebase actively flips body opacity, so
    the rule was only ever triggered by ambient browser state changes

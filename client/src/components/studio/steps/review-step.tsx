@@ -257,7 +257,7 @@ export function ReviewStep({
       <div className="pt-2">
         <Button
           onClick={onGenerate}
-          className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
+          className="w-full hero-cta bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
@@ -1656,7 +1656,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
+                    className="hero-cta bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >

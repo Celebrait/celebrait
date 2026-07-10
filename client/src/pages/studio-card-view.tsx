@@ -478,7 +478,7 @@ function LoadedView({
                     : `/studio/card/${card.id}/give`,
                 )
               }
-              className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
+              className="hero-cta bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
               size="lg"
               data-testid="btn-card-view-buy"
             >

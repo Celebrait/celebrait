@@ -20,7 +20,7 @@
 //
 // Pairs with: server/routes/dev-test-failures.ts
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   ShieldAlert,
@@ -33,6 +33,7 @@ import {
   Loader2,
   Zap,
   Mail,
+  Palette,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +76,28 @@ const FAILURE_KINDS: Array<{
   },
 ];
 
+// ─── Hero-button gradient A/B (Kevin 2026-07-09) ────────────────────────
+// Flip the super-important buttons between bright green (default) and the
+// ink→violet gradient (the production bar's). Sets data-hero on <html>;
+// index.css restyles .hero-cta. Temporary — bake the winner + delete.
+const HERO_KEY = 'celebrait:hero-btn';
+const HERO_OPTS: Array<{ key: string; label: string; swatch: string }> = [
+  { key: 'green', label: 'Green', swatch: '#5fd94a' },
+  { key: 'gradient', label: 'Gradient', swatch: 'linear-gradient(90deg,#211D19,#5c57d4)' },
+];
+
+function useHeroBtn() {
+  const [v, setV] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'green';
+    return window.localStorage.getItem(HERO_KEY) || 'green';
+  });
+  useEffect(() => {
+    document.documentElement.dataset.hero = v;
+    window.localStorage.setItem(HERO_KEY, v);
+  }, [v]);
+  return [v, setV] as const;
+}
+
 export function DevTestFailurePanel() {
   // Always mount; the inner component decides visibility. It shows in
   // local dev, OR wherever the stub-toggle endpoint is enabled
@@ -88,6 +111,7 @@ function DevTestFailurePanelInner() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
+  const [heroBtn, setHeroBtn] = useHeroBtn();
 
   // Fetch current stub-mode state on mount + after toggles
   const stubModeQuery = useQuery({
@@ -234,6 +258,42 @@ function DevTestFailurePanelInner() {
             >
               <ChevronDown className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Hero-button A/B — green vs ink→violet gradient */}
+          <div className="px-4 py-3 border-b border-stone-700">
+            <div className="flex items-center gap-2 mb-2">
+              <Palette className="w-3.5 h-3.5 text-stone-400" />
+              <p className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
+                Hero button
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Hero button style">
+              {HERO_OPTS.map(({ key, label, swatch }) => {
+                const active = heroBtn === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setHeroBtn(key)}
+                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
+                      active
+                        ? 'border-white bg-stone-700 text-white'
+                        : 'border-stone-700 text-stone-400 hover:bg-stone-800'
+                    }`}
+                    data-testid={`dev-hero-${key}`}
+                  >
+                    <span
+                      className="w-3 h-2.5 rounded-full border border-white/20"
+                      style={{ background: swatch }}
+                    />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Stub mode toggle */}

@@ -661,7 +661,7 @@ export default function CheckoutPage() {
               <Button
                 onClick={handlePay}
                 disabled={!canPay}
-                className="w-full bg-cta hover:bg-cta-hover text-cta-foreground"
+                className="w-full hero-cta bg-cta hover:bg-cta-hover text-cta-foreground"
                 size="lg"
                 data-testid="checkout-pay"
               >
