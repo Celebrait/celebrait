@@ -1166,7 +1166,11 @@ function InsideComposeStage({
         </p>
       </div>
 
-      {frontThumb}
+      {/* Front thumb only once a mode is chosen (write/blank) — on the
+          fork picker it's redundant reassurance (the front was approved
+          seconds ago) and added to the mobile clutter (Kevin 2026-07-09).
+          When writing, it earns its place: you see the front you match. */}
+      {state.inside?.mode && frontThumb}
 
       <InsideStep
         cardId={cardId}
