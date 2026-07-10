@@ -1268,7 +1268,13 @@ function PhotoTile({
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${
+          // object-CONTAIN, not cover: group crops are free-aspect
+          // (usually landscape), and the tile is square — object-cover
+          // would re-crop the sides off in the preview, misrepresenting
+          // what's actually sent to the model (the full crop). Contain
+          // shows the true crop, letterboxed on the tile bg. (Solo crops
+          // are 1:1 so they fill the tile with no letterbox.) Kevin 2026-07-09.
+          className={`w-full h-full object-contain transition-opacity duration-300 ${
             isGhost ? 'opacity-50' : 'opacity-100'
           } animate-in fade-in-0`}
           draggable={false}
