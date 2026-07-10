@@ -212,14 +212,18 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-keeper-paper flex">
       {/* ─── Sidebar (desktop, sm and up) ─── */}
-      <aside className="hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
+      <aside className="relative z-40 hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
         <SidebarContent />
       </aside>
 
       {/* ─── Main column ─── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top header — same 16px bar as admin layout, with mobile hamburger */}
-        <header className="h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
+        {/* Top header — same 16px bar as admin layout, with mobile hamburger.
+            `relative z-40` gives the header (and its z-50 notification /
+            what's-new dropdowns) a stacking context ABOVE <main> — otherwise
+            a 3D card's bleeding canvas in the content area paints over the
+            open dropdowns (they're absolute-in-header, not portaled). */}
+        <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
           {/* Hamburger (mobile only) */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -273,7 +277,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
         {/* Production-time notice — every card is printed to order (up to
             72h before dispatch). Kept honest + visible across the whole app
             so the expectation is set well before checkout. */}
-        <div className="bg-white/50 border-b border-keeper-hair px-4 sm:px-6 py-1.5 flex-shrink-0">
+        <div className="relative z-30 bg-white/50 border-b border-keeper-hair px-4 sm:px-6 py-1.5 flex-shrink-0">
           <p className="text-[11px] sm:text-xs text-keeper-stone text-center leading-snug flex items-center justify-center gap-1.5">
             <Truck className="w-3.5 h-3.5 flex-shrink-0 text-keeper-gold" strokeWidth={2} />
             <span>{PRODUCTION_NOTICE}</span>
