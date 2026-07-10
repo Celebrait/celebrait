@@ -889,7 +889,7 @@ function DashboardHeader({
   return (
     <div className="mb-6 sm:mb-8">
       <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
-        Hi {name} <span className="text-accent-amber">✨</span>
+        Hi {name} <span className="text-keeper-gold">✨</span>
       </h1>
       {subtitle && <p className="text-sm text-stone-600 mt-1">{subtitle}</p>}
     </div>

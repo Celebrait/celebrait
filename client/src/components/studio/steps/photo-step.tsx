@@ -902,7 +902,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
               onClick={handleModeSwitchRequest}
               className={`text-xs underline underline-offset-2 ${
                 pendingModeSwitch
-                  ? 'text-accent-coral-dark font-semibold'
+                  ? 'text-keeper-gold-deep font-semibold'
                   : 'text-brand hover:text-brand-dark'
               }`}
               data-testid="btn-mode-switch-from-selected"
@@ -919,7 +919,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             onClick={handleClearRequest}
             className={`text-xs underline underline-offset-2 ${
               pendingClear
-                ? 'text-accent-coral-dark font-semibold'
+                ? 'text-keeper-gold-deep font-semibold'
                 : 'text-stone-500 hover:text-stone-700'
             }`}
             data-testid="btn-change-photo"
@@ -1043,7 +1043,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           affirmation. TODO(solicitor): exact wording + server-side record. */}
       {!photoConsentGiven && (
         <div
-          className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3"
+          className="mb-4 flex items-start gap-2.5 rounded-xl border border-accent-red/25 bg-accent-red-light/60 px-4 py-3"
           data-testid="photo-consent"
         >
           <Checkbox
@@ -1192,7 +1192,7 @@ function FaceWarningBanner({
     warning.suggestedMode === 'group' ? 'Switch to group' : 'Switch to single';
   return (
     <div
-      className="mt-4 w-full max-w-[360px] rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-3 text-[12px] text-amber-900"
+      className="mt-4 w-full max-w-[360px] rounded-xl border border-accent-red/30 bg-accent-red-light px-3.5 py-3 text-[12px] text-accent-red-dark"
       data-testid="face-warning-banner"
     >
       <p className="leading-snug font-semibold mb-1">Choose how to render this</p>
@@ -1209,7 +1209,7 @@ function FaceWarningBanner({
         <button
           type="button"
           onClick={onKeep}
-          className="flex-1 text-[11px] font-semibold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-md py-1.5 px-2"
+          className="flex-1 text-[11px] font-semibold text-accent-red-dark bg-white border border-accent-red/30 hover:bg-accent-red-light rounded-md py-1.5 px-2"
           data-testid="btn-face-warning-keep"
         >
           Keep as {currentModeLabel}
@@ -1340,7 +1340,7 @@ function PhotoTips({ mode }: { mode: PhotoMode }) {
             className="flex items-start gap-2 text-[12.5px] text-stone-600 leading-snug"
           >
             <Check
-              className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"
+              className="w-3.5 h-3.5 text-cta-hover shrink-0 mt-0.5"
               strokeWidth={2.5}
               aria-hidden
             />
@@ -1384,7 +1384,7 @@ function ModeTile({
         className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${
           selected
             ? 'bg-brand text-brand-foreground'
-            : 'bg-accent-coral-light text-accent-coral-dark'
+            : 'bg-keeper-gold-wash text-keeper-gold-deep'
         }`}
       >
         <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />

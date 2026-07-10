@@ -377,7 +377,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
   if (order.paymentStatus === 'failed') {
     return {
       label: 'Payment failed',
-      className: 'bg-red-50 text-red-700',
+      className: 'bg-accent-red-light text-accent-red-dark',
       Icon: XCircle,
     };
   }
@@ -417,25 +417,25 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
     case 'shipped':
       return {
         label: 'In transit',
-        className: 'bg-blue-50 text-blue-700',
+        className: 'bg-keeper-gold-wash text-keeper-gold-deep',
         Icon: Truck,
       };
     case 'printed':
       return {
         label: 'Printed',
-        className: 'bg-indigo-50 text-indigo-700',
+        className: 'bg-keeper-gold-wash text-keeper-gold-deep',
         Icon: Printer,
       };
     case 'submitted':
       return {
         label: 'Printing',
-        className: 'bg-indigo-50 text-indigo-700',
+        className: 'bg-keeper-gold-wash text-keeper-gold-deep',
         Icon: Printer,
       };
     case 'failed':
       return {
         label: 'Fulfilment failed',
-        className: 'bg-red-50 text-red-700',
+        className: 'bg-accent-red-light text-accent-red-dark',
         Icon: XCircle,
       };
     case 'pending':
