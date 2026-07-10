@@ -100,6 +100,29 @@ function useCtaShade() {
   return [shade, setShade] as const;
 }
 
+// ─── Grounding A/B — dark chrome to anchor the "too light" studio ───────
+// Sets data-ground on <html> = none|bar|sidebar|both; index.css restyles
+// the studio banner + sidebar. Temporary — bake the winner + delete.
+const GROUND_KEY = 'celebrait:grounding';
+const GROUND_OPTS: Array<{ key: string; label: string }> = [
+  { key: 'none', label: 'None' },
+  { key: 'bar', label: 'Bar' },
+  { key: 'sidebar', label: 'Sidebar' },
+  { key: 'both', label: 'Both' },
+];
+
+function useGrounding() {
+  const [g, setG] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'none';
+    return window.localStorage.getItem(GROUND_KEY) || 'none';
+  });
+  useEffect(() => {
+    document.documentElement.dataset.ground = g;
+    window.localStorage.setItem(GROUND_KEY, g);
+  }, [g]);
+  return [g, setG] as const;
+}
+
 export function DevTestFailurePanel() {
   // Always mount; the inner component decides visibility. It shows in
   // local dev, OR wherever the stub-toggle endpoint is enabled
@@ -114,6 +137,7 @@ function DevTestFailurePanelInner() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const [ctaShade, setCtaShade] = useCtaShade();
+  const [grounding, setGrounding] = useGrounding();
 
   // Fetch current stub-mode state on mount + after toggles
   const stubModeQuery = useQuery({
@@ -291,6 +315,38 @@ function DevTestFailurePanelInner() {
                       className="w-2.5 h-2.5 rounded-full border border-white/20"
                       style={{ backgroundColor: swatch }}
                     />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Grounding A/B — dark chrome to anchor the studio */}
+          <div className="px-4 py-3 border-b border-stone-700">
+            <div className="flex items-center gap-2 mb-2">
+              <Palette className="w-3.5 h-3.5 text-stone-400" />
+              <p className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
+                Grounding
+              </p>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Grounding">
+              {GROUND_OPTS.map(({ key, label }) => {
+                const active = grounding === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setGrounding(key)}
+                    className={`rounded-lg px-1.5 py-1.5 text-[11px] font-medium border transition-colors ${
+                      active
+                        ? 'border-white bg-stone-700 text-white'
+                        : 'border-stone-700 text-stone-400 hover:bg-stone-800'
+                    }`}
+                    data-testid={`dev-ground-${key}`}
+                  >
                     {label}
                   </button>
                 );
