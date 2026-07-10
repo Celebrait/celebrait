@@ -38,9 +38,14 @@ export default {
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          DEFAULT: '#5fd94a',     // bright lime — the "ready / go" STATUS accent
-          hover: '#4ac437',       // slightly deeper — hover
-          light: '#e0f8db',       // pale green — success backgrounds
+          // Grass green (Kevin 2026-07-09) — deepened + warmed from the old
+          // neon lime #5fd94a, which read too "consumer-app" against the warm
+          // Keeper palette and gave white button text poor contrast. This
+          // one sits with paper+violet and lets white pop. Drives BOTH the
+          // super-important "go" buttons and the green readiness accents.
+          DEFAULT: '#4cb050',     // grass — go actions + readiness accent
+          hover: '#3f9e45',       // deeper grass — hover
+          light: '#e3f1dc',       // pale grass wash — readiness backgrounds
           foreground: '#ffffff',
         },
         // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────

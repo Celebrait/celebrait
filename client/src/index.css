@@ -58,8 +58,8 @@
   --go-fg: #ffffff;
 }
 [data-go='green'] {
-  --go: #5fd94a;
-  --go-hover: #4ac437;
+  --go: #4cb050;
+  --go-hover: #3f9e45;
   --go-fg: #ffffff;
 }
 
