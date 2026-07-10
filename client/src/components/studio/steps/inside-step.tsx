@@ -138,10 +138,9 @@ function InsideForkPicker({
   onWrite: () => void;
   onBlank: () => void;
 }) {
-  // 3D example dialog — opened from the "see an example" link on the
-  // write card. (The blank card gets its own example the moment a real
-  // blank-inside asset exists — see the TODO on that card.)
+  // 3D example dialogs — one per fork card ("see an example" links).
   const [exampleOpen, setExampleOpen] = useState(false);
+  const [blankExampleOpen, setBlankExampleOpen] = useState(false);
   return (
     <div className="space-y-3" data-testid="inside-fork-picker">
       <h3 className="text-base font-semibold text-keeper-ink">
@@ -177,10 +176,6 @@ function InsideForkPicker({
             </button>
           }
         />
-        {/* TODO(asset): add a "See an example →" here too, showing a
-            real blank-mode inside (decorative border, clear centre).
-            Needs one blank-inside generation saved as an asset —
-            ExampleCardDialog is ready for it. */}
         <ForkCard
           icon={FileText}
           title="You handwrite it later"
@@ -188,6 +183,19 @@ function InsideForkPicker({
           hint="The one to pick if the card's coming to you first — write your message in your own hand, then give it over."
           onClick={onBlank}
           testid="inside-fork-blank"
+          exampleSlot={
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setBlankExampleOpen(true);
+              }}
+              className="mt-1 self-start text-xs font-medium text-brand underline underline-offset-2 hover:text-brand-dark"
+              data-testid="inside-fork-blank-example"
+            >
+              See an example →
+            </button>
+          }
         />
       </div>
       <ExampleCardDialog
@@ -196,6 +204,18 @@ function InsideForkPicker({
         eyebrow="Printed Message Example"
         modalTitle="Inside message example"
         modalDescription="Your greeting, message and sign-off are set in type chosen to match the front, so the whole card feels like one piece."
+        show="inside"
+      />
+      {/* Blank/handwrite example. TODO(asset): swap to a dedicated
+          blank-inside render (decorative border, clear centre) once one
+          exists — for now it reuses the inside example and the copy makes
+          clear the handwrite version keeps the middle open. */}
+      <ExampleCardDialog
+        open={blankExampleOpen}
+        onOpenChange={setBlankExampleOpen}
+        eyebrow="Handwrite Example"
+        modalTitle="Blank inside example"
+        modalDescription="We design a decorative border to match your front and leave the centre clear — you fill it in your own hand when the card arrives. (The styling echoes the house look shown here.)"
         show="inside"
       />
     </div>

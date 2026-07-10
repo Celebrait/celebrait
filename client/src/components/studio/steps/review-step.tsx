@@ -65,10 +65,12 @@ import { familyKey } from '@/lib/studio-card-buckets';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardGridItem } from '@shared/schema';
 
-// Approximate generation time for a front + inside pair. Used to size
-// the progress copy ("this usually takes ~45 seconds"). Not a hard
-// timeout — some providers are slower.
-const TYPICAL_GENERATION_SECONDS = 45;
+// Approximate generation time per side (front / inside). Used to size the
+// pre-gen advice copy ("about 90 seconds") so it matches the progress
+// bar's ESTIMATE_MS=90s in generation-wait.tsx — and reality: observed
+// front gens run ~80s (Kevin 2026-07-09), so 45 was under-promising and
+// over-disappointing. Not a hard timeout — some providers are slower.
+const TYPICAL_GENERATION_SECONDS = 90;
 
 interface ReviewStepProps {
   cardId: number;

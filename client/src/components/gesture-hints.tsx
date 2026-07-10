@@ -111,8 +111,22 @@ function Hint({
       <div className="w-9 h-9 flex items-center justify-center text-cta">
         {children}
       </div>
+      {/* Label crossfades when it changes (e.g. Tap to open → Tap to
+          close as the card opens) — fades out the old, fades in the new
+          rather than swapping instantly (Kevin 2026-07-09). */}
       <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
-        {label}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={label}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="block"
+          >
+            {label}
+          </motion.span>
+        </AnimatePresence>
       </span>
     </div>
   );
