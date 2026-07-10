@@ -34,12 +34,42 @@
   --go-hover: #4a45c0;  /* deeper violet */
   --go-fg: #ffffff;
 
+  /* Green "go" colour ("cta" token) — DEFAULT = the original bright lime
+     (Kevin reverted the grass experiment 2026-07-09). A/B the shade via
+     the Dev-tools "Green shade" switcher (sets data-cta on <html>; presets
+     below). Bake the winner here + retire the switcher once decided. */
+  --cta: #5fd94a;       /* bright lime */
+  --cta-hover: #4ac437;
+  --cta-light: #e0f8db;
+  --cta-fg: #ffffff;
+
   /* Celebrait legacy custom colors (kept for existing components) */
   --ethereal-purple: 263 70% 58%;
   --warm-pink: 329 86% 70%;
   --sa-gold: 45 93% 47%;
   --soft-white: 20 6% 98%;
   --slate-gray: 25 5% 45%;
+}
+
+/* Green-shade A/B presets — the Dev-tools "Green shade" switcher sets
+   data-cta on <html> to test each. Default (:root above) = bright. */
+[data-cta='bright'] {
+  --cta: #5fd94a;
+  --cta-hover: #4ac437;
+  --cta-light: #e0f8db;
+  --cta-fg: #ffffff;
+}
+[data-cta='grass'] {
+  --cta: #4cb050;
+  --cta-hover: #3f9e45;
+  --cta-light: #e3f1dc;
+  --cta-fg: #ffffff;
+}
+[data-cta='pastel'] {
+  --cta: #a5e0a0;       /* soft pastel green — dark text for contrast */
+  --cta-hover: #8fd189;
+  --cta-light: #eaf7e8;
+  --cta-fg: #1f5132;
 }
 
 /* The body opacity transition that used to live here was removed
