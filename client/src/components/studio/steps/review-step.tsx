@@ -932,9 +932,11 @@ function FrontFirstReview({
 }) {
   const [busy, setBusy] = useState(false);
   // Toggle the hero between the full card image and the print-ready
-  // spread. The toggle is a CHIP on the hero's corner (was a separate
-  // 120px block below it, which pushed the actions under the fold —
-  // Kevin 2026-07-08).
+  // spread. Shown as a small print-ready THUMBNAIL below the hero
+  // ("Print-ready · tap to view") so the user SEES they're buying a real
+  // printed 4-panel card, not just a digital image — tap swaps it up.
+  // (Restored 2026-07-09 — Kevin: the print-ready view should be visible,
+  // not hidden behind the corner chip that replaced it on 07-08.)
   const [heroView, setHeroView] = useState<'image' | 'print'>('image');
   const showingPrint = heroView === 'print';
   return (
@@ -947,25 +949,41 @@ function FrontFirstReview({
       {/* Fixed square footprint so toggling image ↔ print never moves
           the CTAs below. The landscape print spread centres vertically
           inside the square; the full image fills it. */}
-      <div className="relative mx-auto flex aspect-square w-full max-w-[300px] items-center justify-center">
+      <div className="mx-auto flex aspect-square w-full max-w-[300px] items-center justify-center">
         {showingPrint ? (
           <div className="w-full">{printVisual}</div>
         ) : (
-          <div className="aspect-square w-full overflow-hidden rounded-lg border border-keeper-hair bg-stone-100 shadow-[0_30px_60px_-22px_rgba(15,23,42,0.30)]">
+          <div className="aspect-square w-full overflow-hidden rounded-lg border border-keeper-hair bg-stone-100 shadow-[0_30px_60px_-22px_rgba(33,29,25,0.30)]">
             {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
-          className="absolute -bottom-3 right-2 inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white/95 px-3 py-1.5 text-[11px] font-medium text-stone-600 shadow-sm transition-colors hover:border-brand/40 hover:text-brand-dark"
-          aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
-          data-testid="btn-hero-print-toggle"
-        >
-          <Printer className="h-3 w-3" strokeWidth={1.75} />
-          {showingPrint ? 'Card view' : 'Print view'}
-        </button>
       </div>
+
+      {/* Print-ready preview underneath — the actual 4-panel print layout
+          (or, when showing print, a thumbnail of the full image) so the
+          user can SEE the printed product they're buying. Tap swaps it up
+          into the hero. */}
+      <button
+        type="button"
+        onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
+        className="group mx-auto mt-4 flex flex-col items-center"
+        aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
+        data-testid="btn-hero-print-toggle"
+      >
+        <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm transition-transform group-hover:scale-[1.06]">
+          {showingPrint ? (
+            <div className="aspect-square w-full overflow-hidden rounded-sm bg-stone-100">
+              {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
+            </div>
+          ) : (
+            <div className="w-full">{printVisual}</div>
+          )}
+        </div>
+        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-keeper-stone transition-colors group-hover:text-keeper-ink">
+          <Printer className="h-3 w-3" strokeWidth={1.75} />
+          {showingPrint ? 'Tap for the full image' : 'Print-ready · tap to view'}
+        </span>
+      </button>
 
       {/* Actions — side-by-side on desktop so BOTH choices sit above
           the fold; stacked on mobile with tightened rhythm. */}
