@@ -184,7 +184,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
         )}
       </div>
       <div className="p-3">
-        <p className="text-sm font-medium text-stone-900 truncate">{title}</p>
+        <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
       </div>
     </>
   );
@@ -199,7 +199,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
               // visible enough to draw the eye, not so loud it overwhelms
               // the rest of the grid. Fades to normal once notifiedAt
               // is stamped (user opens it or dismisses the toast).
-              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(122,118,232,0.35)] hover:border-brand-dark'
+              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(92,87,212,0.3)] hover:border-brand-dark'
             : 'border-keeper-hair hover:border-brand'
         }`}
         data-testid={`card-tile-${card.id}`}

@@ -60,7 +60,7 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
               <span
                 className={`hidden md:inline text-xs sm:text-sm truncate transition-colors ${
                   isCurrent
-                    ? 'text-ink font-semibold'
+                    ? 'text-keeper-ink font-semibold'
                     : isDone
                       ? 'text-cta-hover'
                       : 'text-stone-400'
@@ -73,7 +73,7 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
             {pos < VISIBLE_STEPS.length - 1 && (
               <span
                 className={`flex-1 h-px rounded-full transition-colors ${
-                  isDone ? 'bg-cta' : 'bg-stone-200'
+                  isDone ? 'bg-cta' : 'bg-keeper-hair'
                 }`}
               />
             )}
