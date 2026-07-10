@@ -53,7 +53,7 @@ export function SceneEditor({
         className="bg-white border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
         data-testid={testIdPrefix}
       />
-      <p className="text-[11px] text-ink-soft mt-2 leading-relaxed">
+      <p className="text-[11px] text-keeper-stone mt-2 leading-relaxed">
         Tip: avoid named celebrities or copyrighted characters — describe the
         vibe instead (e.g. "a brave island princess" not "Moana").
       </p>
@@ -131,7 +131,7 @@ export function PhotoEditor({
   };
 
   if (photosQuery.isLoading) {
-    return <p className="text-sm text-ink-soft">Loading your photos…</p>;
+    return <p className="text-sm text-keeper-stone">Loading your photos…</p>;
   }
 
   const photos = photosQuery.data ?? [];
@@ -143,7 +143,7 @@ export function PhotoEditor({
           type="button"
           onClick={handlePickFile}
           disabled={uploadMutation.isPending}
-          className="aspect-square rounded-lg border-2 border-dashed border-stone-300 hover:border-brand/60 bg-stone-50 hover:bg-brand/5 flex flex-col items-center justify-center gap-1 text-ink-soft hover:text-brand-dark transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="aspect-square rounded-lg border-2 border-dashed border-stone-300 hover:border-brand/60 bg-stone-50 hover:bg-brand/5 flex flex-col items-center justify-center gap-1 text-keeper-stone hover:text-brand-dark transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           data-testid={`${testIdPrefix}-upload`}
           aria-label="Upload a new photo"
         >
@@ -200,7 +200,7 @@ export function PhotoEditor({
       </div>
 
       {photos.length === 0 && !uploadMutation.isPending && (
-        <p className="text-[11px] text-ink-soft mt-2">
+        <p className="text-[11px] text-keeper-stone mt-2">
           No photos saved yet — upload one to get started.
         </p>
       )}
@@ -262,8 +262,8 @@ export function StyleEditor({
                 {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-ink">{opt.label}</p>
-                <p className="text-[11px] text-ink-soft">{opt.description}</p>
+                <p className="text-sm font-medium text-keeper-ink">{opt.label}</p>
+                <p className="text-[11px] text-keeper-stone">{opt.description}</p>
               </div>
             </div>
           </button>

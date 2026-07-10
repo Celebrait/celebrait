@@ -433,7 +433,7 @@ export function RegenEditMode({
       {/* Header — action title + recipient subtitle + back button */}
       <div className="flex items-start justify-between gap-3 py-4 mb-1">
         <div className="min-w-0">
-          <h1 className="text-lg sm:text-xl font-semibold text-ink leading-tight">
+          <h1 className="text-lg sm:text-xl font-semibold text-keeper-ink leading-tight">
             {title}
           </h1>
           <p className="text-xs text-stone-500 truncate mt-0.5">
@@ -446,7 +446,7 @@ export function RegenEditMode({
           <button
             type="button"
             onClick={onExit}
-            className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-ink transition-colors shrink-0 pt-1"
+            className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-keeper-ink transition-colors shrink-0 pt-1"
             data-testid="btn-regen-exit"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -609,7 +609,7 @@ export function RegenEditMode({
                   <Check className="w-5 h-5" strokeWidth={2.5} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-ink">
+                  <p className="text-base font-semibold text-keeper-ink">
                     Your new version is ready
                   </p>
                   <p className="text-xs text-stone-600 mt-0.5">
@@ -661,7 +661,7 @@ export function RegenEditMode({
               transition={{ duration: 0.25 }}
             >
               {/* Tweak boxes — one per side, blank = leave that side as-is. */}
-              <p className="text-sm text-ink font-medium mb-2">
+              <p className="text-sm text-keeper-ink font-medium mb-2">
                 Tell us what to change.{' '}
                 {hasInside && !lockedSide && (
                   <span className="text-stone-500 font-normal">
@@ -734,7 +734,7 @@ export function RegenEditMode({
                   className="mb-4 rounded-xl border border-keeper-hair bg-stone-50 p-4 text-center"
                   data-testid="regen-all-capped"
                 >
-                  <p className="text-sm font-medium text-ink">
+                  <p className="text-sm font-medium text-keeper-ink">
                     You've taken this design as far as tweaks go.
                   </p>
                   <p className="mt-1 text-xs text-stone-600">
@@ -750,7 +750,7 @@ export function RegenEditMode({
                   </p>
                 </div>
               ) : (
-                <p className="text-[11px] text-ink-soft text-center mb-4">
+                <p className="text-[11px] text-keeper-stone text-center mb-4">
                   Want a different card altogether?{' '}
                   <Link
                     href="/studio/new-card"

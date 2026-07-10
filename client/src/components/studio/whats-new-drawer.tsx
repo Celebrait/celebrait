@@ -108,10 +108,10 @@ export function WhatsNewDrawer() {
                 </span>
                 <span className="text-xs text-stone-400">{a.date}</span>
               </div>
-              <h3 className="text-[15px] font-semibold text-ink leading-snug mb-1.5">
+              <h3 className="text-[15px] font-semibold text-keeper-ink leading-snug mb-1.5">
                 {a.title}
               </h3>
-              <p className="text-sm text-ink-soft leading-relaxed">{a.body}</p>
+              <p className="text-sm text-keeper-stone leading-relaxed">{a.body}</p>
               {a.href &&
                 (a.href.startsWith('/') ? (
                   <Link

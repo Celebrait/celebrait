@@ -441,7 +441,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       <div className="mb-6">
         <Link
           href="/studio/people/address-book"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink mb-3"
+          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-keeper-ink mb-3"
           data-testid="btn-back-to-address-book"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -693,7 +693,7 @@ function FormSection({
   return (
     <div className="bg-white rounded-2xl border border-keeper-hair p-5 sm:p-6">
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+        <h3 className="text-sm font-semibold text-keeper-ink">{title}</h3>
         {subtitle && (
           <p className="text-xs text-stone-500 mt-1 leading-relaxed">{subtitle}</p>
         )}
@@ -728,7 +728,7 @@ function PrivacyFooter() {
           <DialogTrigger asChild>
             <button
               type="button"
-              className="underline underline-offset-2 text-stone-600 hover:text-ink focus:outline-none focus:text-ink"
+              className="underline underline-offset-2 text-stone-600 hover:text-keeper-ink focus:outline-none focus:text-keeper-ink"
               data-testid="btn-ab-privacy-detail"
             >
               What we store
@@ -745,7 +745,7 @@ function PrivacyFooter() {
             </DialogHeader>
             <div className="space-y-4 text-sm text-stone-600 leading-relaxed">
               <div>
-                <p className="font-medium text-ink mb-1">What we keep</p>
+                <p className="font-medium text-keeper-ink mb-1">What we keep</p>
                 <p>
                   Just what you type — names, relationships, occasion
                   dates, contact details, and your private notes. Nothing
@@ -753,7 +753,7 @@ function PrivacyFooter() {
                 </p>
               </div>
               <div>
-                <p className="font-medium text-ink mb-1">What we do with it</p>
+                <p className="font-medium text-keeper-ink mb-1">What we do with it</p>
                 <p>
                   We use it to send <em>you</em> reminders before each
                   occasion, and to pre-fill the recipient step when you
@@ -762,7 +762,7 @@ function PrivacyFooter() {
                 </p>
               </div>
               <div>
-                <p className="font-medium text-ink mb-1">Removing someone</p>
+                <p className="font-medium text-keeper-ink mb-1">Removing someone</p>
                 <p>
                   Hit the ⋯ menu next to anyone in the address book and
                   choose Remove. We delete the entry, their occasions,
@@ -770,13 +770,13 @@ function PrivacyFooter() {
                 </p>
               </div>
               <div>
-                <p className="font-medium text-ink mb-1">Your rights</p>
+                <p className="font-medium text-keeper-ink mb-1">Your rights</p>
                 <p>
                   Under UK GDPR you can ask us to export or delete
                   everything we hold about you — email{' '}
                   <a
                     href="mailto:privacy@celebrait.co.uk"
-                    className="underline underline-offset-2 text-stone-700 hover:text-ink"
+                    className="underline underline-offset-2 text-stone-700 hover:text-keeper-ink"
                   >
                     privacy@celebrait.co.uk
                   </a>{' '}

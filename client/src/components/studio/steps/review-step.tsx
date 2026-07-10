@@ -404,7 +404,7 @@ function SummaryPanel({
         onEdit={() => onJumpToStep(stepIndexById.recipient)}
         testId="summary-recipient"
       >
-        <div className="text-sm text-ink font-medium">
+        <div className="text-sm text-keeper-ink font-medium">
           {recipient?.name || <span className="text-stone-400 font-normal">Not set</span>}
         </div>
         {recipient?.occasion && (
@@ -420,7 +420,7 @@ function SummaryPanel({
         onEdit={() => onJumpToStep(stepIndexById.photo)}
         testId="summary-photo"
       >
-        <div className="text-sm text-ink">
+        <div className="text-sm text-keeper-ink">
           {photoCount === 0 ? (
             <span className="text-stone-400">Not uploaded</span>
           ) : photoCount === 1 ? (
@@ -438,7 +438,7 @@ function SummaryPanel({
         testId="summary-scene"
       >
         {scene ? (
-          <p className="text-sm text-ink leading-relaxed">{scene}</p>
+          <p className="text-sm text-keeper-ink leading-relaxed">{scene}</p>
         ) : (
           <span className="text-sm text-stone-400">Not set</span>
         )}
@@ -457,7 +457,7 @@ function SummaryPanel({
       >
         {frontText ? (
           <>
-            <div className="text-sm text-ink font-medium">{frontText}</div>
+            <div className="text-sm text-keeper-ink font-medium">{frontText}</div>
             {frontTextIsDefault && (
               <div className="text-xs text-stone-500 mt-0.5">
                 Default — tap Edit to change.
@@ -830,7 +830,7 @@ export function StartAgainButton({
         // Dimensions EXACTLY mirror the primary beside it: same fixed
         // height, same fixed sm width (pill pair = w-80 on the
         // sign-off screens, lg pair = w-64 beside Send).
-        className={`inline-flex h-[52px] w-full items-center justify-center border border-stone-300 bg-white text-[15px] font-semibold text-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
+        className={`inline-flex h-[52px] w-full items-center justify-center border border-stone-300 bg-white text-[15px] font-semibold text-keeper-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
           pill ? 'max-w-[320px] rounded-full sm:w-80' : 'rounded-lg sm:w-64'
         } ${className ?? ''}`}
         data-testid="btn-start-again"

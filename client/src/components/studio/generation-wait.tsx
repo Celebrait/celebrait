@@ -259,7 +259,7 @@ export function GenerationWaitStage({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
-                className="relative text-[20px] sm:text-[24px] text-ink leading-[1.5] font-light tracking-[-0.01em]"
+                className="relative text-[20px] sm:text-[24px] text-keeper-ink leading-[1.5] font-light tracking-[-0.01em]"
                 data-testid="celebration-fact"
               >
                 <span

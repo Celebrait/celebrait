@@ -56,7 +56,7 @@ export default function CheckoutDevConfirmPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
               Dev stub — no real payment
             </p>
-            <h1 className="text-xl sm:text-2xl font-semibold text-ink">Confirm payment</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-keeper-ink">Confirm payment</h1>
             <p className="text-sm text-stone-600 mt-1">
               Swap this page for the real gateway once a provider is chosen.
             </p>

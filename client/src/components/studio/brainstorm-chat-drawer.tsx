@@ -103,7 +103,7 @@ export function BrainstormChatDrawer({
         className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col gap-0"
       >
         <SheetHeader className="px-5 py-4 border-b border-keeper-hair text-left">
-          <SheetTitle className="flex items-center gap-2 text-base font-semibold text-ink">
+          <SheetTitle className="flex items-center gap-2 text-base font-semibold text-keeper-ink">
             <Sparkles className="w-4 h-4 text-brand" strokeWidth={1.75} />
             Brainstorm the scene
           </SheetTitle>
@@ -214,7 +214,7 @@ function ProposedSceneCard({ scene }: { scene: string }) {
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-brand-dark mb-1.5">
           Proposed scene
         </p>
-        <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed text-keeper-ink whitespace-pre-wrap">
           {scene}
         </p>
       </div>
@@ -231,7 +231,7 @@ function MessageBubble({ message }: { message: BrainstormMessage }) {
         className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed ${
           isUser
             ? 'bg-brand text-brand-foreground'
-            : 'bg-white border border-keeper-hair text-ink'
+            : 'bg-white border border-keeper-hair text-keeper-ink'
         }`}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
@@ -310,7 +310,7 @@ function ActionButtons({
               key={i}
               type="button"
               onClick={() => onChooseSuggestion(s)}
-              className="text-left text-sm leading-snug px-3 py-2 rounded-lg bg-white border border-brand-light hover:border-brand hover:bg-brand-muted text-ink transition-colors max-w-full"
+              className="text-left text-sm leading-snug px-3 py-2 rounded-lg bg-white border border-brand-light hover:border-brand hover:bg-brand-muted text-keeper-ink transition-colors max-w-full"
               data-testid={`btn-brainstorm-suggestion-${i}`}
             >
               <span className="font-medium text-brand mr-2">

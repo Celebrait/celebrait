@@ -127,14 +127,14 @@ function BeatPartSpan({ part }: { part: BeatPart }) {
       // Rendered with curly quotes so a fragment reads as quoted
       // material, not a typed string.
       return (
-        <span className="italic text-ink/85">
+        <span className="italic text-keeper-ink/85">
           {'\u201C'}
           {part.text}
           {'\u201D'}
         </span>
       );
     case 'em':
-      return <span className="italic text-ink/75">{part.text}</span>;
+      return <span className="italic text-keeper-ink/75">{part.text}</span>;
   }
 }
 

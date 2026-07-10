@@ -79,7 +79,7 @@ export function DemoVideoBlock({
           type="button"
           onClick={handleDismiss}
           aria-label="Hide demo video"
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/80 backdrop-blur text-stone-500 hover:text-ink hover:bg-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/80 backdrop-blur text-stone-500 hover:text-keeper-ink hover:bg-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
           data-testid="btn-dismiss-demo-video"
         >
           <X className="w-3.5 h-3.5" />
@@ -110,7 +110,7 @@ export function DemoVideoBlock({
               />
             </div>
             <p
-              className={`text-sm sm:text-base font-semibold text-ink ${
+              className={`text-sm sm:text-base font-semibold text-keeper-ink ${
                 isHero ? 'sm:text-lg' : ''
               }`}
             >

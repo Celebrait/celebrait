@@ -127,7 +127,7 @@ export function GivingMoment({
           <button
             type="button"
             onClick={goBackToCard}
-            className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-ink"
+            className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-keeper-ink"
             data-testid="giving-moment-back-to-card"
           >
             <ArrowLeft className="w-3 h-3" /> Back to card
@@ -264,7 +264,7 @@ function DestinationCard({
       >
         {icon}
       </span>
-      <span className="text-sm font-semibold text-ink leading-tight">
+      <span className="text-sm font-semibold text-keeper-ink leading-tight">
         {title}
       </span>
       <span className="text-xs text-stone-600 leading-relaxed">{body}</span>

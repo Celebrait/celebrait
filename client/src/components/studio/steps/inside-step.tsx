@@ -144,7 +144,7 @@ function InsideForkPicker({
   const [exampleOpen, setExampleOpen] = useState(false);
   return (
     <div className="space-y-3" data-testid="inside-fork-picker">
-      <h3 className="text-base font-semibold text-ink">
+      <h3 className="text-base font-semibold text-keeper-ink">
         What goes inside the card?
       </h3>
       {/* Either way the inside gets DESIGNED — the fork is only about
@@ -252,7 +252,7 @@ function ForkCard({
       >
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </span>
-      <div className="text-sm font-semibold text-ink">{title}</div>
+      <div className="text-sm font-semibold text-keeper-ink">{title}</div>
       <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
       {hint && (
         <p className="text-[11px] leading-relaxed text-stone-500 border-t border-keeper-hair/70 pt-2 mt-0.5">
@@ -280,7 +280,7 @@ function LeaveBlankCard({ onPick }: { onPick: () => void }) {
         <FileText className="w-4 h-4" strokeWidth={1.75} />
       </span>
       <div>
-        <div className="text-sm font-medium text-ink">
+        <div className="text-sm font-medium text-keeper-ink">
           Leave blank instead
         </div>
         <p className="text-xs text-stone-500 mt-0.5">
@@ -304,7 +304,7 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
           <Check className="w-4 h-4" strokeWidth={3} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">
+          <p className="text-sm font-semibold text-keeper-ink">
             We'll leave the inside blank
           </p>
           <p className="text-xs text-stone-600 mt-0.5">
@@ -484,7 +484,7 @@ function FieldCard({
     <div className="bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm">
       <Label
         htmlFor={htmlFor}
-        className="flex items-center gap-1.5 text-sm text-ink mb-2"
+        className="flex items-center gap-1.5 text-sm text-keeper-ink mb-2"
       >
         <Icon className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
         {label}

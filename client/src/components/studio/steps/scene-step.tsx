@@ -360,7 +360,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                       key={s.id}
                       type="button"
                       onClick={() => acceptSuggestion(s.text)}
-                      className="block w-full text-left rounded-xl border border-keeper-hair bg-white hover:border-brand hover:bg-brand-muted/30 transition-all p-4 text-sm text-ink leading-relaxed shadow-sm hover:shadow"
+                      className="block w-full text-left rounded-xl border border-keeper-hair bg-white hover:border-brand hover:bg-brand-muted/30 transition-all p-4 text-sm text-keeper-ink leading-relaxed shadow-sm hover:shadow"
                       data-testid={`scene-suggestion-${s.id}`}
                     >
                       {s.text}

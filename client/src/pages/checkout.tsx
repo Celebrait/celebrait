@@ -359,14 +359,14 @@ export default function CheckoutPage() {
               {/* Print-led V1: one product — a printed card that includes
                   a free digital link. No format picker. */}
               <div className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6">
-                <h2 className="text-sm font-semibold text-ink mb-1">
+                <h2 className="text-sm font-semibold text-keeper-ink mb-1">
                   Printed &amp; posted
                 </h2>
                 <p className="text-sm text-stone-600 leading-relaxed">
                   A premium 280gsm gloss card, posted in the UK — with a free
                   digital link to share too.
                 </p>
-                <p className="text-lg font-semibold text-ink mt-3">
+                <p className="text-lg font-semibold text-keeper-ink mt-3">
                   {formatGBP(totals.total)}{' '}
                   <span className="text-xs font-normal text-stone-500">
                     inc. postage
@@ -535,8 +535,8 @@ export default function CheckoutPage() {
                         <RadioGroupItem id={`ship-${t.id}`} value={t.id} className="mt-1" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-ink">{t.name}</span>
-                            <span className="text-sm font-semibold text-ink">
+                            <span className="text-sm font-semibold text-keeper-ink">{t.name}</span>
+                            <span className="text-sm font-semibold text-keeper-ink">
                               {formatGBP(t.price)}
                             </span>
                           </div>
@@ -645,8 +645,8 @@ export default function CheckoutPage() {
               )}
 
               <div className="border-t border-keeper-hair pt-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">Total</span>
-                <span className="text-xl font-semibold text-ink">
+                <span className="text-sm font-medium text-keeper-ink">Total</span>
+                <span className="text-xl font-semibold text-keeper-ink">
                   {formatGBP(totals.total)}
                 </span>
               </div>
@@ -690,7 +690,7 @@ export default function CheckoutPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-ink">{title}</h2>
+      <h2 className="text-sm font-semibold text-keeper-ink">{title}</h2>
       {children}
     </section>
   );
@@ -719,7 +719,7 @@ function PreviewTab({
       type="button"
       onClick={onClick}
       className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
-        active ? 'bg-white text-ink shadow-sm' : 'text-stone-500 hover:text-ink'
+        active ? 'bg-white text-keeper-ink shadow-sm' : 'text-stone-500 hover:text-keeper-ink'
       }`}
     >
       {children}
@@ -743,7 +743,7 @@ function ShipToOption({
     >
       <RadioGroupItem value={value} id={`ship-${value}`} className="mt-1" />
       <div>
-        <p className="text-sm font-medium text-ink">{title}</p>
+        <p className="text-sm font-medium text-keeper-ink">{title}</p>
         <p className="text-xs text-stone-500 mt-0.5">{description}</p>
       </div>
     </Label>
@@ -768,13 +768,13 @@ function LineItem({
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <p className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
+          <p className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-keeper-ink'}`}>
             {label}
           </p>
           {sub && <p className="text-xs text-stone-500 mt-0.5">{sub}</p>}
         </div>
       </div>
-      <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
+      <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-keeper-ink'}`}>
         {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>

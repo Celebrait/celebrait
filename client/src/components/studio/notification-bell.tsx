@@ -89,7 +89,7 @@ export function NotificationBell() {
         aria-label={
           unreadCount > 0 ? `Notifications, ${unreadCount} new` : 'Notifications'
         }
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-ink"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-keeper-ink"
         data-testid="notification-bell"
       >
         <Bell className="h-5 w-5" strokeWidth={1.75} />
@@ -107,7 +107,7 @@ export function NotificationBell() {
           aria-label="Notifications"
         >
           <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
-            <p className="text-sm font-semibold text-ink">Notifications</p>
+            <p className="text-sm font-semibold text-keeper-ink">Notifications</p>
             {unreadCount > 0 && (
               <span className="text-[11px] text-stone-400">{unreadCount} new</span>
             )}
@@ -163,7 +163,7 @@ export function NotificationBell() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-medium text-ink">
+                        <p className="truncate text-[13px] font-medium text-keeper-ink">
                           {titleFor(n)}
                         </p>
                         <p className="mt-0.5 text-[12px] text-stone-500">

@@ -56,7 +56,7 @@ export function HowTweakingWorks() {
 
       <DialogContent className="max-w-md gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 text-left">
-          <DialogTitle className="text-base font-semibold text-ink">
+          <DialogTitle className="text-base font-semibold text-keeper-ink">
             How tweaking works
           </DialogTitle>
         </DialogHeader>
@@ -65,10 +65,10 @@ export function HowTweakingWorks() {
           {/* The one idea that matters most. */}
           <p className="text-[13px] text-stone-600 leading-relaxed">
             You're refining{' '}
-            <span className="font-medium text-ink">this design</span>, not
+            <span className="font-medium text-keeper-ink">this design</span>, not
             starting over. Our engine keeps the same composition and likeness
             and only applies the change you describe — so the more{' '}
-            <span className="font-medium text-ink">specific</span> you are, the
+            <span className="font-medium text-keeper-ink">specific</span> you are, the
             more accurate it gets.
           </p>
 
@@ -81,7 +81,7 @@ export function HowTweakingWorks() {
                   strokeWidth={2}
                   aria-hidden
                 />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-keeper-ink">
                   Front
                 </p>
               </div>
@@ -96,7 +96,7 @@ export function HowTweakingWorks() {
                   strokeWidth={2}
                   aria-hidden
                 />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-keeper-ink">
                   Inside
                 </p>
               </div>
@@ -114,7 +114,7 @@ export function HowTweakingWorks() {
                 strokeWidth={2}
                 aria-hidden
               />
-              <p className="text-[12px] font-semibold text-ink">
+              <p className="text-[12px] font-semibold text-keeper-ink">
                 You can change
               </p>
             </div>
@@ -151,7 +151,7 @@ export function HowTweakingWorks() {
                 aria-hidden
               />
               <p className="text-[12.5px] text-stone-600 leading-snug">
-                <span className="font-medium text-ink">
+                <span className="font-medium text-keeper-ink">
                   You can’t change the photo or who’s in it here.
                 </span>{' '}
                 The face stays the person you uploaded — tweaks adjust the
@@ -166,7 +166,7 @@ export function HowTweakingWorks() {
               at the fix they already have: tweak both. See
               next_regen_ux_audit.md (front/inside coherence gap). */}
           <p className="text-[12px] text-stone-500 leading-snug">
-            Changing the <span className="font-medium text-ink">whole look</span>{' '}
+            Changing the <span className="font-medium text-keeper-ink">whole look</span>{' '}
             of the scene? Tweak the inside too, so the two sides still match.
           </p>
 

@@ -114,7 +114,7 @@ export default function StudioGivePage() {
           insideImageUrl={card.insideImageUrl}
         />
         <span className="text-left">
-          <span className="block text-sm font-medium text-ink">
+          <span className="block text-sm font-medium text-keeper-ink">
             {recipientName ? `${recipientName}'s card` : 'Your card'}
           </span>
           <span className="text-xs text-brand group-hover:text-brand-dark">

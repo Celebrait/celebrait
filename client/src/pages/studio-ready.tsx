@@ -79,7 +79,7 @@ function ReadyEmpty() {
       <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4">
         <Package className="w-6 h-6" />
       </div>
-      <p className="text-base font-semibold text-ink mb-1">No cards waiting</p>
+      <p className="text-base font-semibold text-keeper-ink mb-1">No cards waiting</p>
       <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
         Cards that are finished but not yet sent will show here — ready
         for you to print and post.

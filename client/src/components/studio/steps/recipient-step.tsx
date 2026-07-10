@@ -236,7 +236,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
 
       {/* Name */}
       <div className="space-y-2" ref={wrapperRef}>
-        <Label htmlFor="recipient-name" className="text-sm text-ink">
+        <Label htmlFor="recipient-name" className="text-sm text-keeper-ink">
           Name
         </Label>
         <div className="relative">
@@ -327,7 +327,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
                       {entry.name.charAt(0).toUpperCase()}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">
+                      <p className="text-sm font-medium text-keeper-ink truncate">
                         {entry.name}
                       </p>
                       {entry.relationship && (
@@ -349,7 +349,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
 
       {/* Occasion */}
       <div className="space-y-2">
-        <Label className="text-sm text-ink">What's the celebration?</Label>
+        <Label className="text-sm text-keeper-ink">What's the celebration?</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {PRIMARY_OCCASIONS.map((o) => (
             <OccasionButton
@@ -463,7 +463,7 @@ function OccasionButton({
           <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
         </span>
       )}
-      <span className="text-sm font-medium text-ink truncate">
+      <span className="text-sm font-medium text-keeper-ink truncate">
         {label}
       </span>
       {selected && (

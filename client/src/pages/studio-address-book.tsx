@@ -330,7 +330,7 @@ function EntryRow({
             )}
           </div>
           <div className="flex-1 min-w-0 pt-0.5">
-            <p className="text-base font-medium text-ink truncate">
+            <p className="text-base font-medium text-keeper-ink truncate">
               {entry.name}
             </p>
             {subtitle && (
@@ -361,7 +361,7 @@ function EntryRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="w-8 h-8 rounded-full text-stone-400 hover:text-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
+              className="w-8 h-8 rounded-full text-stone-400 hover:text-keeper-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
               aria-label={`Actions for ${entry.name}`}
               data-testid={`address-book-menu-${entry.id}`}
             >

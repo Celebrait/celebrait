@@ -386,7 +386,7 @@ function LoadedView({
         <button
           type="button"
           onClick={() => setLocation(backHref)}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-keeper-ink transition-colors"
           data-testid="btn-card-view-back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -663,7 +663,7 @@ function LoadingView() {
 function NotFoundView() {
   return (
     <div className="max-w-md mx-auto text-center py-16">
-      <p className="text-base font-semibold text-ink mb-2">Card not found</p>
+      <p className="text-base font-semibold text-keeper-ink mb-2">Card not found</p>
       <p className="text-sm text-stone-600 mb-6">
         It might have been deleted, or the link is out of date.
       </p>

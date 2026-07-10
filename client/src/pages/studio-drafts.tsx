@@ -219,7 +219,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
 
           {/* Title + meta */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm sm:text-base font-semibold text-ink truncate">
+            <p className="text-sm sm:text-base font-semibold text-keeper-ink truncate">
               {title}
             </p>
             {metaLine && (
@@ -416,7 +416,7 @@ function DraftsEmpty() {
       <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4">
         <FileEdit className="w-6 h-6" />
       </div>
-      <p className="text-base font-semibold text-ink mb-1">No drafts right now</p>
+      <p className="text-base font-semibold text-keeper-ink mb-1">No drafts right now</p>
       <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
         When you start a card and step away, it'll live here until you come back.
       </p>

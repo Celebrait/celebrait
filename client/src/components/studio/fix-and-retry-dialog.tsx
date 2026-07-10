@@ -166,7 +166,7 @@ export function FixAndRetryDialog({
             <span className="text-[10px] uppercase tracking-[0.18em] text-accent-red-dark font-semibold">
               Editing
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-keeper-ink">
               {(() => {
                 const Icon = EDITOR_META[activeEditor].icon;
                 return <Icon className="w-3.5 h-3.5 text-accent-red-dark" />;
@@ -218,7 +218,7 @@ export function FixAndRetryDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={inFlight}
-            className="text-keeper-stone hover:text-ink"
+            className="text-keeper-stone hover:text-keeper-ink"
           >
             Back
           </Button>
@@ -286,7 +286,7 @@ function AlsoUsingTile({
         </span>
         <ChevronRight className="w-3 h-3 text-stone-300 group-hover:text-brand ml-auto transition-colors" />
       </div>
-      <p className="text-xs text-ink leading-snug truncate">{summary}</p>
+      <p className="text-xs text-keeper-ink leading-snug truncate">{summary}</p>
     </button>
   );
 }

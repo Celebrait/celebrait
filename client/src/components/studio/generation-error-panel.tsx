@@ -309,7 +309,7 @@ export function GenerationErrorPanel({
                 key={chip.stepId}
                 type="button"
                 onClick={() => onJumpToStep(chip.stepId)}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-stone hover:text-ink transition-all shadow-sm"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-stone hover:text-keeper-ink transition-all shadow-sm"
                 data-testid={`error-panel-chip-${chip.stepId}`}
               >
                 <span>{chip.label}</span>

@@ -839,7 +839,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             rise) each time a photo lands. Quiet confirmation beat. */}
         <p
           key={`count-${totalCount}`}
-          className="text-lg font-semibold text-ink mt-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+          className="text-lg font-semibold text-keeper-ink mt-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
         >
           {countLabel}
         </p>
@@ -1009,7 +1009,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 
       {/* Mode decision — card tiles, not a pill. The pair is the first
           real decision on the page, so it gets the weight. */}
-      <p className="text-sm font-medium text-ink mb-2">Who's on the card?</p>
+      <p className="text-sm font-medium text-keeper-ink mb-2">Who's on the card?</p>
       <div
         className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6"
         role="tablist"
@@ -1088,7 +1088,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         <div className="w-12 h-12 rounded-full bg-white border-2 border-brand flex items-center justify-center shadow-sm">
           <Upload className="w-5 h-5 text-brand" strokeWidth={2.25} />
         </div>
-        <p className="text-base font-semibold text-ink">
+        <p className="text-base font-semibold text-keeper-ink">
           {mode === 'one_person' ? 'Upload photos' : 'Upload the group photo'}
         </p>
         <p className="text-xs text-stone-600 max-w-[240px]">
@@ -1104,7 +1104,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             type="button"
             onClick={() => setLibraryOpen(true)}
             disabled={!photoConsentGiven}
-            className="text-xs text-stone-600 hover:text-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-stone-600"
+            className="text-xs text-stone-600 hover:text-keeper-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-stone-600"
             data-testid="btn-pick-from-library"
           >
             <ImageIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
@@ -1329,7 +1329,7 @@ function PhotoTips({ mode }: { mode: PhotoMode }) {
     >
       <div className="flex items-center gap-1.5 mb-2">
         <Lightbulb className="w-3.5 h-3.5 text-brand" strokeWidth={2} aria-hidden />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-keeper-ink">
           Tips for a great result
         </p>
       </div>
@@ -1390,7 +1390,7 @@ function ModeTile({
         <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-medium text-ink truncate">
+        <span className="block text-sm font-medium text-keeper-ink truncate">
           {label}
         </span>
         <span className="block text-[11px] text-stone-500 truncate">

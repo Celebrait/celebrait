@@ -307,7 +307,7 @@ function ReminderRow({
           <Icon className="w-4 h-4" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-medium text-ink">
+          <p className="text-base font-medium text-keeper-ink">
             {reminder.recipientName}
             {reminder.relationship && (
               <span className="ml-1.5 text-xs text-stone-500 font-normal">
@@ -338,7 +338,7 @@ function ReminderRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="text-xs text-stone-500 hover:text-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
+              className="text-xs text-stone-500 hover:text-keeper-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
               aria-label={`Actions for ${reminder.recipientName}'s ${reminder.occasion}`}
               data-testid={`reminder-menu-${reminder.occasionId}`}
             >

@@ -102,7 +102,7 @@ export default function CheckoutSuccessPage() {
     return (
       <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
         <Centered>
-          <p className="text-sm font-medium text-ink mb-2">
+          <p className="text-sm font-medium text-keeper-ink mb-2">
             This is taking longer than usual
           </p>
           <p className="text-xs text-stone-500 mb-6 max-w-xs leading-relaxed">

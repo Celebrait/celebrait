@@ -147,7 +147,7 @@ function EmptyView({ name }: { name: string }) {
             <Sparkles className="w-3 h-3" />
             Your first card
           </p>
-          <h2 className="text-[2.25rem] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold text-ink tracking-tight mb-4 lg:mb-5">
+          <h2 className="text-[2.25rem] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold text-keeper-ink tracking-tight mb-4 lg:mb-5">
             Made-by-heart
             <br />
             <em className="italic text-brand-dark font-normal">cards.</em>
@@ -258,7 +258,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
           <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">
             In progress
           </p>
-          <p className="text-lg sm:text-xl font-semibold text-ink truncate">
+          <p className="text-lg sm:text-xl font-semibold text-keeper-ink truncate">
             Finishing {title}
           </p>
           <p className="text-sm text-stone-600 mt-0.5">
@@ -469,7 +469,7 @@ function HeroCarousel({
             )}
             <p
               key={`title-${current.id}`}
-              className="text-lg sm:text-xl font-semibold text-ink truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-500"
+              className="text-lg sm:text-xl font-semibold text-keeper-ink truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-500"
             >
               {title}
             </p>
@@ -578,7 +578,7 @@ function ActivityColumn({
         />
       )}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+        <div className="flex items-center gap-2 text-sm font-semibold text-keeper-ink">
           <span className={toneClass.iconColor}>{icon}</span>
           {label}
           {cards.length > 0 && (
@@ -645,7 +645,7 @@ function CompactCardRow({ card }: { card: CardGridItem }) {
           </div>
         )}
       </div>
-      <p className="text-sm text-stone-800 truncate flex-1">{title}</p>
+      <p className="text-sm text-keeper-ink truncate flex-1">{title}</p>
     </Link>
   );
 }
@@ -687,7 +687,7 @@ function DraftRow({ card }: { card: CardGridItem }) {
         )}
       </div>
       <div className="flex-1 min-w-0 pt-0.5">
-        <p className="text-sm font-medium text-ink truncate">{title}</p>
+        <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
         {metaLine && (
           <p className="text-[11px] text-stone-500 truncate mt-0.5">
             {metaLine}
@@ -753,7 +753,7 @@ function HowItWorks({ compact = false }: { compact?: boolean }) {
               {i + 1}
             </div>
             <p
-              className={`font-semibold text-ink mb-1 ${
+              className={`font-semibold text-keeper-ink mb-1 ${
                 compact ? 'text-sm' : 'text-sm'
               }`}
             >
@@ -804,7 +804,7 @@ function InvitationsTeaser() {
   return (
     <div className="border-t border-keeper-hair pt-10">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-ink">
+        <h3 className="text-lg font-semibold text-keeper-ink">
           What's next at Celebrait
         </h3>
         <p className="text-sm text-stone-500 mt-1">
@@ -843,7 +843,7 @@ function InvitationsTeaser() {
             </p>
             <button
               type="button"
-              className="inline-flex items-center gap-2 bg-ink hover:bg-ink/85 text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 bg-keeper-ink hover:bg-keeper-ink/85 text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
               disabled
               title="Waitlist capture wires in Week 3"
               data-testid="whats-next-invitations-waitlist"
@@ -955,7 +955,7 @@ function UpcomingWidget() {
       <div className="flex items-center justify-between gap-2 mb-4">
         <h2
           id="upcoming-heading"
-          className="text-sm font-semibold text-ink uppercase tracking-wide"
+          className="text-sm font-semibold text-keeper-ink uppercase tracking-wide"
         >
           Coming up
         </h2>
@@ -1004,7 +1004,7 @@ function UpcomingRow({ reminder }: { reminder: UpcomingReminder }) {
           <Icon className="w-4 h-4" strokeWidth={1.75} />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-ink truncate">{title}</p>
+          <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
           <p className="text-xs text-stone-500">{dayText}</p>
         </div>
       </Link>

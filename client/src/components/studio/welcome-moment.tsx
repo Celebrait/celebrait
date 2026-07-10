@@ -91,7 +91,7 @@ export function WelcomeMoment() {
       {/* Soft backdrop — dim + blur the studio behind so the greeting is
           the focus. Click anywhere outside to dismiss. */}
       <div
-        className="absolute inset-0 bg-ink/30 backdrop-blur-[3px]"
+        className="absolute inset-0 bg-keeper-ink/30 backdrop-blur-[3px]"
         onClick={dismiss}
         aria-hidden
       />
@@ -109,7 +109,7 @@ export function WelcomeMoment() {
           type="button"
           onClick={dismiss}
           aria-label="Close"
-          className="absolute right-4 top-4 rounded-md p-1 text-stone-400 transition-colors hover:text-ink"
+          className="absolute right-4 top-4 rounded-md p-1 text-stone-400 transition-colors hover:text-keeper-ink"
         >
           <X className="h-4 w-4" />
         </button>
@@ -118,10 +118,10 @@ export function WelcomeMoment() {
           <img src={celebraitIcon} alt="" className="h-10 w-10 object-contain" />
         </span>
 
-        <h2 className="text-xl font-semibold text-ink">
+        <h2 className="text-xl font-semibold text-keeper-ink">
           Welcome to your studio
         </h2>
-        <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-ink-soft">
+        <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-keeper-stone">
           Make a card they’ll keep — pick a moment, add a photo, and we’ll
           bring it to life. Start whenever you’re ready.
         </p>
@@ -140,7 +140,7 @@ export function WelcomeMoment() {
           <button
             type="button"
             onClick={dismiss}
-            className="text-[13px] text-stone-400 transition-colors hover:text-ink-soft"
+            className="text-[13px] text-stone-400 transition-colors hover:text-keeper-stone"
           >
             Have a look around first
           </button>

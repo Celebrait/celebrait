@@ -105,7 +105,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
 
       {/* Body — title + meta */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-ink truncate">{title}</p>
+        <p className="text-sm font-semibold text-keeper-ink truncate">{title}</p>
         <p className="text-xs text-stone-500 mt-0.5">
           {typeLabel}
           {amount ? ` · ${amount}` : ''}
@@ -225,7 +225,7 @@ function FulfilmentStepper({ status }: { status: string }) {
             <span
               className={`text-[11px] ${
                 step.done
-                  ? 'text-ink font-medium'
+                  ? 'text-keeper-ink font-medium'
                   : step.active
                     ? 'text-brand-dark font-medium'
                     : 'text-stone-400'
@@ -521,7 +521,7 @@ function OrdersEmpty() {
       <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4">
         <Truck className="w-6 h-6" />
       </div>
-      <p className="text-base font-semibold text-ink mb-1">No orders yet</p>
+      <p className="text-base font-semibold text-keeper-ink mb-1">No orders yet</p>
       <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
         Once you place an order — print or digital — you'll be able to
         track it right here.
