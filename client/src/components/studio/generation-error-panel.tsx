@@ -6,16 +6,18 @@
 // kind-aware copy whether the failure happened during initial gen or a
 // regen.
 //
-// Visual language (refresh 2026-05-09, second pass):
+// Visual language (Keeper pass, 2026-07-09):
 //
-//   First pass leaned amber-only as the warning tone. Kevin's reaction:
-//   "amber is not doing the warning enough — red is definitely needed
-//   but it needs a new red that suits the studio". Generic SaaS error
-//   red (#ef4444) clashes with cream + amber + brand-violet, so we
-//   defined a brand-native warm dusty red instead: `accent-red`
-//   (#b94a44) — brick / terracotta family. Sits next to amber rather
-//   than competing with it; reads as "warning" without going into
-//   destructive-action territory.
+//   History: amber-only → too soft → warm dusty-brick red (#b94a44).
+//   Under the Keeper skin Kevin rejected the brick as muddy on paper,
+//   and picked "Keeper + ember": the panel now sits on keeper-paper +
+//   hairline with a Fraunces title, and the ONE warm accent is the
+//   refined ember terracotta (the `accent-red` token, now #c15b43) on
+//   the top bar + icon disc + kind tag — so a failure still reads
+//   distinct from a normal panel without a siren. The retry CTA is
+//   GREEN (cta) — it fires a re-generation, a "commit" moment in the
+//   button system. Destructive-delete keeps the separate system red;
+//   this ember is warnings/failures only.
 //
 //   • One unified panel for ALL kinds. Kind differentiation comes from
 //     the icon glyph + title + a small "kind tag" pill under the title
@@ -236,7 +238,7 @@ export function GenerationErrorPanel({
 
   return (
     <div
-      className="max-w-md mx-auto rounded-2xl bg-surface-cream border border-accent-red/30 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(185,74,68,0.22)] overflow-hidden"
+      className="max-w-md mx-auto rounded-2xl bg-keeper-paper border border-accent-red/30 shadow-[0_1px_2px_rgba(33,29,25,0.05),0_10px_30px_-18px_rgba(193,91,67,0.28)] overflow-hidden"
       data-testid="generation-error-panel"
       data-failure-kind={kind ?? 'unknown'}
       role="alert"
@@ -258,7 +260,7 @@ export function GenerationErrorPanel({
             lets one unified design serve all five kinds. */}
         <div className="flex flex-col items-center text-center mb-4">
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-accent-red-light ring-1 ring-accent-red/40 ring-offset-2 ring-offset-surface-cream"
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-accent-red-light ring-1 ring-accent-red/40 ring-offset-2 ring-offset-keeper-paper"
             aria-hidden
           >
             <Icon
@@ -267,7 +269,7 @@ export function GenerationErrorPanel({
             />
           </div>
 
-          <h2 className="text-xl font-semibold text-ink leading-tight tracking-tight">
+          <h2 className="text-xl font-display font-bold text-keeper-ink leading-tight tracking-[-0.015em]">
             {cfg.title}
           </h2>
 
@@ -290,7 +292,7 @@ export function GenerationErrorPanel({
             boilerplate ("Your request was rejected by the safety system…")
             that adds nothing for the user. Available in technical details
             for devs / debugging. */}
-        <p className="text-sm text-ink-soft leading-relaxed text-center max-w-sm mx-auto">
+        <p className="text-sm text-keeper-stone leading-relaxed text-center max-w-sm mx-auto">
           {cfg.description(context)}
         </p>
 
@@ -307,7 +309,7 @@ export function GenerationErrorPanel({
                 key={chip.stepId}
                 type="button"
                 onClick={() => onJumpToStep(chip.stepId)}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-ink-soft hover:text-ink transition-all shadow-sm"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-stone hover:text-ink transition-all shadow-sm"
                 data-testid={`error-panel-chip-${chip.stepId}`}
               >
                 <span>{chip.label}</span>
@@ -324,7 +326,7 @@ export function GenerationErrorPanel({
             onClick={() => onRetry()}
             disabled={isRetrying}
             size="lg"
-            className="w-full bg-brand hover:bg-brand-dark text-brand-foreground shadow-md shadow-brand/20"
+            className="w-full bg-cta hover:bg-cta-hover text-cta-foreground shadow-md shadow-cta/20"
             data-testid="error-panel-retry"
           >
             <RefreshCw
@@ -338,7 +340,7 @@ export function GenerationErrorPanel({
             actually fix an auth issue themselves. Light, non-alarming
             mailto so they have a real escalation path. */}
         {cfg.contactLine && (
-          <p className="mt-3 text-[11px] text-ink-soft text-center">
+          <p className="mt-3 text-[11px] text-keeper-stone text-center">
             {cfg.contactLine.lead}{' '}
             <a
               href={`mailto:${cfg.contactLine.email}`}
@@ -357,7 +359,7 @@ export function GenerationErrorPanel({
           <button
             type="button"
             onClick={() => setTechOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11px] text-ink-soft/70 hover:text-ink-soft transition-colors mx-auto"
+            className="flex items-center gap-1 text-[11px] text-keeper-stone/70 hover:text-keeper-stone transition-colors mx-auto"
             data-testid="error-panel-tech-toggle"
           >
             {techOpen ? (
@@ -368,7 +370,7 @@ export function GenerationErrorPanel({
             <span>{techOpen ? 'Hide' : 'Show'} technical details</span>
           </button>
           {techOpen && (
-            <dl className="mt-3 space-y-1 text-[11px] text-ink-soft/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
+            <dl className="mt-3 space-y-1 text-[11px] text-keeper-stone/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
               {kind && <Row label="kind" value={kind} />}
               {provider && <Row label="provider" value={provider} />}
               {code && <Row label="code" value={code} />}
@@ -377,10 +379,10 @@ export function GenerationErrorPanel({
               )}
               {modelExplanation && (
                 <div className="pt-2">
-                  <span className="block text-ink-soft/60">
+                  <span className="block text-keeper-stone/60">
                     model explanation:
                   </span>
-                  <span className="block whitespace-pre-wrap text-ink-soft mt-0.5">
+                  <span className="block whitespace-pre-wrap text-keeper-stone mt-0.5">
                     {modelExplanation}
                   </span>
                 </div>
@@ -396,8 +398,8 @@ export function GenerationErrorPanel({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <span className="text-ink-soft/50 w-20 flex-shrink-0">{label}:</span>
-      <span className="text-ink-soft break-all">{value}</span>
+      <span className="text-keeper-stone/50 w-20 flex-shrink-0">{label}:</span>
+      <span className="text-keeper-stone break-all">{value}</span>
     </div>
   );
 }

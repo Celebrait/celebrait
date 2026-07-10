@@ -75,16 +75,17 @@ export default {
           amber: '#fbbf24',      // sunny amber — celebration, success
           'amber-dark': '#f59e0b', // deeper amber — hover
           'amber-light': '#fef3c7', // pale amber wash
-          // Warm dusty red — designed to live next to cream + amber
-          // without screaming SaaS error. Brick / terracotta family.
-          // Reference points: Hermès orange-red, Aesop earth tones,
-          // Rifle Paper Co botanical reds. Use sparingly: warning /
-          // failure / "wait, look at this" moments only. Never for
-          // destructive ("delete") confirmation — that's a different
-          // visual job and would dilute this signal.
-          red: '#b94a44',        // dusty red — primary warning
-          'red-dark': '#8f3530', // deep oxblood — text/icon glyph
-          'red-light': '#fbece9', // pale rose-cream wash — backgrounds
+          // Ember — refined warm terracotta for warnings/failures under
+          // the Keeper palette (2026-07-09, replaced the muddy dusty-brick
+          // #b94a44 Kevin rejected). Cleaner + brighter, reads warm-but-
+          // intentional on paper. Sits as the ONE warm accent in an
+          // otherwise paper/ink/violet/green system. Use sparingly:
+          // warning / failure / "wait, look at this" only. NEVER for
+          // destructive ("delete") confirmation — that keeps the separate
+          // system danger-red, so this ember doesn't dilute that signal.
+          red: '#c15b43',        // ember terracotta — primary warning
+          'red-dark': '#a6432e', // deep clay — text/icon glyph
+          'red-light': '#f6e7e1', // pale ember wash — backgrounds
         },
         // THE KEEPER landing palette (locked 2026-07-04, judge's pick from
         // the LP panel — see next_lp_keeper_blueprint.md). Gallery

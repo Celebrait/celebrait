@@ -145,16 +145,16 @@ export function FixAndRetryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-surface-cream">
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-keeper-paper">
         {/* Header — neutral chrome. Once the user is in the dialog
             they're editing, not being warned. The red lives back on
             the failure panel; here it's a regular Studio surface with
             just a small "EDITING" eyebrow as the through-line. */}
         <div className="px-6 pt-6 pb-4 border-b border-keeper-hair/80">
-          <DialogTitle className="text-lg font-semibold text-ink">
+          <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Fix and try again
           </DialogTitle>
-          <DialogDescription className="text-sm text-ink-soft mt-1">
+          <DialogDescription className="text-sm text-keeper-stone mt-1">
             Edit what you think went wrong. Anything else look off? Switch to
             it before retrying.
           </DialogDescription>
@@ -190,7 +190,7 @@ export function FixAndRetryDialog({
 
         {/* Also using strip */}
         <div className="px-6 pb-5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-ink-soft font-semibold mb-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-keeper-stone font-semibold mb-2">
             Also using — could one of these be it?
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -218,14 +218,14 @@ export function FixAndRetryDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={inFlight}
-            className="text-ink-soft hover:text-ink"
+            className="text-keeper-stone hover:text-ink"
           >
             Back
           </Button>
           <Button
             onClick={() => void handleRetry()}
             disabled={inFlight}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground"
+            className="bg-cta hover:bg-cta-hover text-cta-foreground"
             data-testid="fix-and-retry-cta"
           >
             <RefreshCw
@@ -280,8 +280,8 @@ function AlsoUsingTile({
       data-testid={`fix-retry-switch-${editor}`}
     >
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon className="w-3 h-3 text-ink-soft" />
-        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-soft font-semibold">
+        <Icon className="w-3 h-3 text-keeper-stone" />
+        <span className="text-[10px] uppercase tracking-[0.14em] text-keeper-stone font-semibold">
           {EDITOR_META[editor].label}
         </span>
         <ChevronRight className="w-3 h-3 text-stone-300 group-hover:text-brand ml-auto transition-colors" />
