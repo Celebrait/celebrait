@@ -541,7 +541,7 @@ function OrdersEmpty() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
-      <p className="text-sm text-red-600 mb-2">Couldn't load your orders.</p>
+      <p className="text-sm text-accent-red-dark mb-2">Couldn't load your orders.</p>
       <p className="text-xs text-stone-500">{message}</p>
     </div>
   );

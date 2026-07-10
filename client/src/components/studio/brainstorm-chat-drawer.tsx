@@ -151,7 +151,7 @@ export function BrainstormChatDrawer({
 
           {chat.isLoading && <TypingIndicator />}
           {chat.error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="text-xs text-accent-red-dark bg-accent-red-light border border-accent-red/25 rounded-lg px-3 py-2">
               {chat.error}
             </div>
           )}

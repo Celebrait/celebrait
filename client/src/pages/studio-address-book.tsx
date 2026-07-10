@@ -148,13 +148,13 @@ export default function StudioAddressBookPage() {
 
       {/* Error */}
       {error && !isLoading && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="bg-accent-red-light border border-accent-red/25 rounded-2xl p-5 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-accent-red-dark shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-900">
+            <p className="text-sm font-medium text-accent-red-dark">
               Couldn't load your address book
             </p>
-            <p className="text-xs text-red-700 mt-0.5">
+            <p className="text-xs text-accent-red-dark mt-0.5">
               {error instanceof Error ? error.message : 'Give it a moment and try again.'}
             </p>
           </div>

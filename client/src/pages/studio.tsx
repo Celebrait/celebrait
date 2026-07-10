@@ -73,7 +73,7 @@ export default function StudioHome() {
       <>
         <DashboardHeader name={displayName} />
         <div className="max-w-md mx-auto text-center py-12">
-          <p className="text-sm text-red-600 mb-2">Couldn't load your cards.</p>
+          <p className="text-sm text-accent-red-dark mb-2">Couldn't load your cards.</p>
           <p className="text-xs text-stone-500">
             {error instanceof Error ? error.message : 'Please try again.'}
           </p>
