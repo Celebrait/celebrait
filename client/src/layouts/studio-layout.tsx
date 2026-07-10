@@ -212,7 +212,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-keeper-paper flex">
       {/* ─── Sidebar (desktop, sm and up) ─── */}
-      <aside data-studio-sidebar className="relative z-40 hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
+      <aside className="relative z-40 hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
         <SidebarContent />
       </aside>
 
@@ -277,9 +277,16 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
         {/* Production-time notice — every card is printed to order (up to
             72h before dispatch). Kept honest + visible across the whole app
             so the expectation is set well before checkout. */}
-        <div data-studio-banner className="relative z-30 bg-white/50 border-b border-keeper-hair px-4 sm:px-6 py-1.5 flex-shrink-0">
-          <p className="text-[11px] sm:text-xs text-keeper-stone text-center leading-snug flex items-center justify-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 flex-shrink-0 text-keeper-gold" strokeWidth={2} />
+        {/* Dark gradient production bar — the studio's grounding anchor,
+            mirroring /keeper's announcement bar (ink → violet). Kevin chose
+            this over a dark sidebar 2026-07-09: enough weight to stop the
+            all-paper studio reading as weightless, plus landing continuity. */}
+        <div
+          className="relative z-30 px-4 sm:px-6 py-2 flex-shrink-0"
+          style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
+        >
+          <p className="text-[11px] sm:text-xs text-white/90 text-center leading-snug flex items-center justify-center gap-1.5">
+            <Truck className="w-3.5 h-3.5 flex-shrink-0 text-white/70" strokeWidth={2} />
             <span>{PRODUCTION_NOTICE}</span>
           </p>
         </div>

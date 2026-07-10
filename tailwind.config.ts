@@ -38,15 +38,13 @@ export default {
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          // Green "go" colour — CSS-var backed so a dev switcher can A/B the
-          // shade (Kevin 2026-07-09: reverted to the original bright lime
-          // #5fd94a as default + wants a pastel option to test). index.css
-          // :root sets the default; [data-cta=…] presets swap it. Drives BOTH
-          // the super-important "go" buttons and the green readiness accents.
-          DEFAULT: 'var(--cta)',
-          hover: 'var(--cta-hover)',
-          light: 'var(--cta-light)',
-          foreground: 'var(--cta-fg)',
+          // Bright lime green — the "go" colour (Kevin locked the original
+          // #5fd94a after A/B-ing grass + pastel 2026-07-09). Drives BOTH the
+          // super-important "go" buttons and the green readiness accents.
+          DEFAULT: '#5fd94a',     // bright lime — go actions + readiness accent
+          hover: '#4ac437',       // slightly deeper — hover
+          light: '#e0f8db',       // pale green — readiness backgrounds
+          foreground: '#ffffff',
         },
         // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────
         // Split out of `cta` so we can A/B the primary-button colour
