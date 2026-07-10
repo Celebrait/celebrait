@@ -143,22 +143,19 @@ function InsideForkPicker({
   const [blankExampleOpen, setBlankExampleOpen] = useState(false);
   return (
     <div className="space-y-3" data-testid="inside-fork-picker">
-      <h3 className="text-base font-semibold text-keeper-ink">
-        What goes inside the card?
-      </h3>
-      {/* Either way the inside gets DESIGNED — the fork is only about
-          whose lettering carries the message (Kevin 2026-07-07: "these
-          two buttons need to be so much clearer"). */}
-      <p className="text-xs text-stone-500 -mt-1">
-        We design the inside to match the front either way — the choice
-        is whose writing goes in it.
+      {/* One framing line only — the wrapper above ("Now, the inside")
+          already sets context; the two cards carry the choice. Kevin
+          2026-07-09: the fork screen was overwhelming on mobile (three
+          restatements of "we match the front" + a second heading). */}
+      <p className="text-sm text-stone-600">
+        Designed to match your front — you just choose whose words go in.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ForkCard
           icon={PenLine}
           title="We print your message"
-          body="Type it now and we set your words into the design — typography chosen to match the front."
-          hint="The one to pick if it's posting straight to them — it arrives ready to read. (Or if you'd just rather we did the writing.)"
+          body="Type it now and we set your words into the design, matched to the front."
+          hint="Best if it's posting straight to them — arrives ready to read."
           onClick={onWrite}
           testid="inside-fork-write"
           highlighted
@@ -179,8 +176,8 @@ function InsideForkPicker({
         <ForkCard
           icon={FileText}
           title="You handwrite it later"
-          body="We print a decorative border matching the front and leave the centre clear — you write your message by hand when the card arrives."
-          hint="The one to pick if the card's coming to you first — write your message in your own hand, then give it over."
+          body="We print a decorative border and leave the centre clear for your own hand."
+          hint="Best if the card's coming to you first."
           onClick={onBlank}
           testid="inside-fork-blank"
           exampleSlot={
@@ -258,9 +255,9 @@ function ForkCard({
           onClick();
         }
       }}
-      className={`cursor-pointer text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${
+      className={`cursor-pointer text-left p-4 rounded-2xl border transition-all flex flex-col gap-1.5 ${
         highlighted
-          ? 'border-brand/60 bg-brand-muted/30 hover:border-brand hover:bg-brand-muted/50 hover:shadow-sm'
+          ? 'border-brand bg-brand-muted/40 hover:bg-brand-muted/60 hover:shadow-sm'
           : 'border-keeper-hair bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
       }`}
       data-testid={testid}
