@@ -748,8 +748,14 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     // Max-width containers: one row of 3 tiles (112px + 8px gap) ≈ 352px;
     // allow ~400 so the add-tile can sit inline when slotCount ≤ 3, and
     // wraps nicely (centred) to a second row once we exceed 3.
-    const maxWidthClass =
-      slotCount === 1
+    // Group crops are free-aspect (usually landscape); one-person crops are
+    // locked 1:1. So group photos render at their NATURAL shape (WYSIWYG —
+    // the preview IS the crop, no square letterboxing), and get a wider
+    // container than a square tile would need.
+    const isNaturalAspect = mode !== 'one_person';
+    const maxWidthClass = isNaturalAspect
+      ? 'max-w-sm'
+      : slotCount === 1
         ? 'max-w-[240px]'
         : slotCount === 2
           ? 'max-w-[320px]'
@@ -788,6 +794,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
               src={`/images/${p.thumbnailPath}`}
               alt={p.label ?? `Photo ${idx + 1}`}
               sizeClass={tileSizeClass}
+              naturalAspect={isNaturalAspect}
               onRemove={mode === 'one_person' && totalCount > 1 ? () => removePhotoAt(idx) : undefined}
               testId={`photo-tile-real-${idx}`}
             />
@@ -799,6 +806,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
               src={pp.previewDataUrl}
               alt="Saving photo"
               sizeClass={tileSizeClass}
+              naturalAspect={isNaturalAspect}
               testId={`photo-tile-ghost-${pp.tempId}`}
             />
           ))}
@@ -1250,6 +1258,7 @@ function PhotoTile({
   sizeClass,
   onRemove,
   testId,
+  naturalAspect = false,
 }: {
   kind: 'real' | 'ghost';
   src: string | null;
@@ -1257,33 +1266,43 @@ function PhotoTile({
   sizeClass: string;
   onRemove?: () => void;
   testId: string;
+  /** WYSIWYG: size the tile to the crop's OWN aspect ratio (no square
+   *  letterboxing) so the preview IS the crop that's sent. Used for
+   *  free-aspect group crops; one-person crops are 1:1 so they use the
+   *  fixed square (`sizeClass`) instead. Kevin 2026-07-09. */
+  naturalAspect?: boolean;
 }) {
   const isGhost = kind === 'ghost';
   return (
     <div
-      className={`relative ${sizeClass} rounded-xl overflow-hidden shadow-sm bg-stone-100`}
+      className={`relative rounded-xl overflow-hidden shadow-sm bg-stone-100 ${
+        naturalAspect ? 'inline-block max-w-full' : sizeClass
+      }`}
       data-testid={testId}
     >
       {src ? (
         <img
           src={src}
           alt={alt}
-          // object-CONTAIN, not cover: group crops are free-aspect
-          // (usually landscape), and the tile is square — object-cover
-          // would re-crop the sides off in the preview, misrepresenting
-          // what's actually sent to the model (the full crop). Contain
-          // shows the true crop, letterboxed on the tile bg. (Solo crops
-          // are 1:1 so they fill the tile with no letterbox.) Kevin 2026-07-09.
-          className={`w-full h-full object-contain transition-opacity duration-300 ${
-            isGhost ? 'opacity-50' : 'opacity-100'
-          } animate-in fade-in-0`}
+          // naturalAspect: the tile hugs the image, so the preview is the
+          // exact crop with no re-cropping and no letterbox. Otherwise the
+          // fixed square fills with object-cover (crop is already 1:1).
+          className={`block transition-opacity duration-300 animate-in fade-in-0 ${
+            naturalAspect
+              ? 'max-h-[340px] w-auto max-w-full'
+              : 'w-full h-full object-cover'
+          } ${isGhost ? 'opacity-50' : 'opacity-100'}`}
           draggable={false}
         />
       ) : (
         // Pulsing surface while the preview crop generates. The
         // animate-pulse on an off-white tile reads as "working on it"
         // rather than "broken / empty".
-        <div className="w-full h-full bg-stone-200 animate-pulse" />
+        <div
+          className={`bg-stone-200 animate-pulse ${
+            naturalAspect ? 'h-56 w-56' : 'w-full h-full'
+          }`}
+        />
       )}
       {isGhost && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
