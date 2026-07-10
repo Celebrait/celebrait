@@ -20,7 +20,7 @@ const STATUS_MAP: Record<string, StatusVariant> = {
   },
   generating: {
     label: 'Generating',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    className: 'bg-keeper-gold-wash text-keeper-gold-deep border-keeper-gold/25',
     animated: true,
   },
   // Front-first generation lifecycle — all read as "Generating" to the
@@ -28,35 +28,35 @@ const STATUS_MAP: Record<string, StatusVariant> = {
   // except a failed inside which is a real failure to retry.
   'generating-front': {
     label: 'Generating',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    className: 'bg-keeper-gold-wash text-keeper-gold-deep border-keeper-gold/25',
     animated: true,
   },
   'front-ready': {
     label: 'Generating',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    className: 'bg-keeper-gold-wash text-keeper-gold-deep border-keeper-gold/25',
     animated: true,
   },
   'generating-inside': {
     label: 'Generating',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    className: 'bg-keeper-gold-wash text-keeper-gold-deep border-keeper-gold/25',
     animated: true,
   },
   'inside-ready': {
     label: 'Generating',
-    className: 'bg-amber-50 text-amber-700 border-amber-200',
+    className: 'bg-keeper-gold-wash text-keeper-gold-deep border-keeper-gold/25',
     animated: true,
   },
   'inside-failed': {
     label: 'Failed',
-    className: 'bg-red-50 text-red-700 border-red-200',
+    className: 'bg-accent-red-light text-accent-red-dark border-accent-red/30',
   },
   completed: {
     label: 'Ready',
-    className: 'bg-cta-light text-green-800 border-green-200',
+    className: 'bg-cta-light text-green-800 border-cta/30',
   },
   ready: {
     label: 'Ready',
-    className: 'bg-cta-light text-green-800 border-green-200',
+    className: 'bg-cta-light text-green-800 border-cta/30',
   },
   paid: {
     label: 'Purchased',
@@ -68,7 +68,7 @@ const STATUS_MAP: Record<string, StatusVariant> = {
   },
   failed: {
     label: 'Failed',
-    className: 'bg-red-50 text-red-700 border-red-200',
+    className: 'bg-accent-red-light text-accent-red-dark border-accent-red/30',
   },
   // Shown when a card's status suggests it's completed but the image
   // isn't viewable (legacy data from before the Studio). Softer than

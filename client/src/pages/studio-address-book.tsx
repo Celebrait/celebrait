@@ -418,14 +418,14 @@ function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
       className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${
         dateLabel
           ? 'bg-brand-muted/60 text-brand-dark'
-          : 'bg-amber-50 text-amber-800 border border-amber-200'
+          : 'bg-accent-red-light text-accent-red-dark border border-accent-red/30'
       }`}
       data-testid={`occasion-chip-${occasion.id}`}
     >
       <Icon className="w-3 h-3" strokeWidth={1.75} />
       <span className="capitalize">{occasion.occasion}</span>
       {dateLabel && <span className="text-stone-500">· {dateLabel}</span>}
-      {!dateLabel && <span className="text-amber-700">· add the date</span>}
+      {!dateLabel && <span className="text-accent-red-dark">· add the date</span>}
     </span>
   );
 }

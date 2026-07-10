@@ -110,7 +110,7 @@ export function HowTweakingWorks() {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Sparkles
-                className="w-3.5 h-3.5 text-emerald-600"
+                className="w-3.5 h-3.5 text-cta-hover"
                 strokeWidth={2}
                 aria-hidden
               />
@@ -131,7 +131,7 @@ export function HowTweakingWorks() {
                   className="flex items-start gap-2 text-[12.5px] text-stone-600 leading-snug"
                 >
                   <Check
-                    className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5"
+                    className="w-3.5 h-3.5 text-cta-hover shrink-0 mt-0.5"
                     strokeWidth={2.5}
                     aria-hidden
                   />

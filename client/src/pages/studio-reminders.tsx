@@ -329,7 +329,7 @@ function ReminderRow({
               it's tight — the honest fallback is the instant digital link.
               Only when not already suppressed. */}
           {!reminder.suppressed && reminder.daysUntil <= 3 && reminder.daysUntil >= 0 && (
-            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mt-2 inline-block">
+            <p className="text-[11px] text-accent-red-dark bg-accent-red-light border border-accent-red/30 rounded-md px-2 py-1 mt-2 inline-block">
               Cutting it fine — pick the fastest delivery; the digital link lands instantly.
             </p>
           )}

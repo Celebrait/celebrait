@@ -391,7 +391,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
   if (order.paymentStatus !== 'paid') {
     return {
       label: 'Awaiting payment',
-      className: 'bg-amber-50 text-amber-800',
+      className: 'bg-accent-red-light text-accent-red-dark',
       Icon: Package,
     };
   }

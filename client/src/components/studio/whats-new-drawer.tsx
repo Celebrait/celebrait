@@ -22,11 +22,13 @@ import {
 const SEEN_KEY = 'celebrait:whatsnew:seen:v1';
 
 // Chip colour per tone. Keep these readable on white.
+// Keeper palette only: green=new/positive, violet=brand update,
+// ember=important/attention, stone=neutral tip. No rainbow.
 const TONE_CHIP: Record<AnnouncementTone, string> = {
-  new: 'bg-emerald-100 text-emerald-700',
+  new: 'bg-cta-light text-green-800',
   update: 'bg-brand-muted text-brand-dark',
-  important: 'bg-amber-100 text-amber-800',
-  tip: 'bg-sky-100 text-sky-700',
+  important: 'bg-accent-red-light text-accent-red-dark',
+  tip: 'bg-stone-100 text-stone-600',
 };
 
 function readSeen(): string | null {
@@ -68,7 +70,7 @@ export function WhatsNewDrawer() {
           <Megaphone className="w-[18px] h-[18px]" strokeWidth={1.9} />
           {unread > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent-coral text-white text-[10px] font-semibold flex items-center justify-center"
+              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-keeper-gold text-white text-[10px] font-semibold flex items-center justify-center"
               data-testid="whats-new-badge"
             >
               {unread > 9 ? '9+' : unread}

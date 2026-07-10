@@ -813,7 +813,7 @@ function InvitationsTeaser() {
       </div>
 
       <div
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/15 via-accent-coral-light to-accent-amber/20 border border-keeper-hair"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/15 via-keeper-gold-wash to-keeper-gold/10 border border-keeper-hair"
         data-testid="whats-next-invitations"
       >
         {/* Decorative soft glow in the corner — lifts the block from
@@ -824,7 +824,7 @@ function InvitationsTeaser() {
         />
         <div
           aria-hidden
-          className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full blur-3xl bg-accent-coral/20 pointer-events-none"
+          className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full blur-3xl bg-keeper-gold/15 pointer-events-none"
         />
 
         <div className="relative px-6 sm:px-10 py-10 sm:py-14 grid sm:grid-cols-[1fr,auto] items-center gap-8">
@@ -863,7 +863,7 @@ function InvitationsTeaser() {
           <div className="hidden sm:block relative w-44 h-56">
             <div className="absolute inset-0 bg-white rounded-xl shadow-lg rotate-[-6deg] border border-keeper-hair" />
             <div className="absolute inset-0 bg-gradient-to-br from-brand-muted to-white rounded-xl shadow-lg rotate-[2deg] border border-brand/20 translate-x-2 translate-y-1" />
-            <div className="absolute inset-0 bg-gradient-to-br from-accent-coral-light to-white rounded-xl shadow-xl rotate-[-1deg] border border-accent-coral-light translate-x-1 translate-y-3 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-keeper-gold-wash to-white rounded-xl shadow-xl rotate-[-1deg] border border-keeper-hair translate-x-1 translate-y-3 flex items-center justify-center p-4">
               <p className="text-center text-base italic text-brand-dark leading-tight">
                 You're invited
               </p>
