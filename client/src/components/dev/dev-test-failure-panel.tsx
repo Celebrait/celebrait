@@ -20,7 +20,7 @@
 //
 // Pairs with: server/routes/dev-test-failures.ts
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   ShieldAlert,
@@ -33,7 +33,6 @@ import {
   Loader2,
   Zap,
   Mail,
-  Palette,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -76,34 +75,6 @@ const FAILURE_KINDS: Array<{
   },
 ];
 
-// ─── Button-colour A/B ("go" treatment) ────────────────────────────────
-// Live-flip the primary-button colour to compare ink vs purple vs green
-// against the Keeper look (Kevin 2026-07-09). Sets data-go on <html>;
-// index.css maps each to the --go CSS vars the `go` Tailwind token reads.
-// Persists in localStorage so the choice survives reloads. Temporary —
-// once the treatment is decided, bake it into index.css :root and delete
-// this control + the switcher.
-// v2: reset everyone's sticky pick once — the v1 default was ink, which
-// left early testers stuck on ink after the default moved to purple.
-const GO_KEY = 'celebrait:go-treatment:v2';
-const GO_TREATMENTS: Array<{ key: string; label: string; swatch: string }> = [
-  { key: 'ink', label: 'Ink', swatch: '#211D19' },
-  { key: 'violet', label: 'Purple', swatch: '#5c57d4' },
-  { key: 'green', label: 'Green', swatch: '#5fd94a' },
-];
-
-function useGoTreatment() {
-  const [treatment, setTreatment] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'violet';
-    return window.localStorage.getItem(GO_KEY) || 'violet';
-  });
-  useEffect(() => {
-    document.documentElement.dataset.go = treatment;
-    window.localStorage.setItem(GO_KEY, treatment);
-  }, [treatment]);
-  return [treatment, setTreatment] as const;
-}
-
 export function DevTestFailurePanel() {
   // Always mount; the inner component decides visibility. It shows in
   // local dev, OR wherever the stub-toggle endpoint is enabled
@@ -117,7 +88,6 @@ function DevTestFailurePanelInner() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
-  const [goTreatment, setGoTreatment] = useGoTreatment();
 
   // Fetch current stub-mode state on mount + after toggles
   const stubModeQuery = useQuery({
@@ -264,42 +234,6 @@ function DevTestFailurePanelInner() {
             >
               <ChevronDown className="w-4 h-4" />
             </button>
-          </div>
-
-          {/* Button-colour A/B — flip the primary "go" button treatment */}
-          <div className="px-4 py-3 border-b border-stone-700">
-            <div className="flex items-center gap-2 mb-2">
-              <Palette className="w-3.5 h-3.5 text-stone-400" />
-              <p className="text-[11px] uppercase tracking-wider text-stone-400 font-semibold">
-                Button colour
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Button colour treatment">
-              {GO_TREATMENTS.map(({ key, label, swatch }) => {
-                const active = goTreatment === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setGoTreatment(key)}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
-                      active
-                        ? 'border-white bg-stone-700 text-white'
-                        : 'border-stone-700 text-stone-400 hover:bg-stone-800'
-                    }`}
-                    data-testid={`dev-go-${key}`}
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-full border border-white/20"
-                      style={{ backgroundColor: swatch }}
-                    />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Stub mode toggle */}

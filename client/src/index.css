@@ -24,14 +24,12 @@
   --ring: 263 70% 58%;               /* matches primary */
   --radius: 0.5rem;
 
-  /* Everyday action-button treatment ("go" token) — A/B test 2026-07-09.
-     Default = purple (Kevin: ink read too editorial inside the studio;
-     the studio wants brand colour, green reserved for the commit
-     moments). Flip live via the Dev-tools "Button colour" switcher,
-     which sets data-go on <html> (presets below). The true commit
-     buttons (generate / send / pay) are pinned green (cta) regardless
-     of this token, so "purple" = the purple-everyday + green-moments
-     hierarchy. Bake the winner here + retire the switcher once decided. */
+  /* Everyday action-button treatment ("go" token) — LOCKED to purple
+     2026-07-09 (Kevin: ink too editorial for the studio; green reserved
+     strictly for the super-important commit moments — New card / Generate
+     / Make the inside / Send / Pay — which are pinned green via `cta`
+     regardless of this token). The A/B switcher was removed once purple
+     won, so everyday buttons can never render green. */
   --go: #5c57d4;        /* brand violet (keeper-gold) */
   --go-hover: #4a45c0;  /* deeper violet */
   --go-fg: #ffffff;
@@ -42,25 +40,6 @@
   --sa-gold: 45 93% 47%;
   --soft-white: 20 6% 98%;
   --slate-gray: 25 5% 45%;
-}
-
-/* Button-colour A/B presets — the Dev-tools switcher sets data-go on
-   <html> to preview each treatment live. Higher specificity than
-   :root, so they override the ink default. */
-[data-go='ink'] {
-  --go: #211D19;
-  --go-hover: #000000;
-  --go-fg: #FAF8F4;
-}
-[data-go='violet'] {
-  --go: #5c57d4;
-  --go-hover: #4a45c0;
-  --go-fg: #ffffff;
-}
-[data-go='green'] {
-  --go: #4cb050;
-  --go-hover: #3f9e45;
-  --go-fg: #ffffff;
 }
 
 /* The body opacity transition that used to live here was removed

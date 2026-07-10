@@ -830,8 +830,8 @@ export function StartAgainButton({
         // Dimensions EXACTLY mirror the primary beside it: same fixed
         // height, same fixed sm width (pill pair = w-80 on the
         // sign-off screens, lg pair = w-64 beside Send).
-        className={`inline-flex h-[52px] w-full items-center justify-center border border-stone-300 bg-white text-[15px] font-semibold text-keeper-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
-          pill ? 'max-w-[320px] rounded-full sm:w-80' : 'rounded-lg sm:w-64'
+        className={`inline-flex h-[52px] w-full items-center justify-center rounded-full border border-keeper-hair bg-white text-[15px] font-semibold text-keeper-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
+          pill ? 'max-w-[320px] sm:w-80' : 'sm:w-64'
         } ${className ?? ''}`}
         data-testid="btn-start-again"
       >
@@ -1179,7 +1179,7 @@ function InsideComposeStage({
         <button
           disabled={!ready || busy}
           onClick={submit}
-          className="w-full max-w-[320px] rounded-full bg-brand px-6 py-3.5 text-[15px] font-medium text-brand-foreground transition-colors hover:bg-brand-dark disabled:opacity-50"
+          className="w-full max-w-[320px] rounded-full bg-cta px-6 py-3.5 text-[15px] font-medium text-cta-foreground transition-colors hover:bg-cta-hover disabled:opacity-50"
           data-testid="btn-make-inside"
         >
           {busy ? 'One sec…' : blank ? 'Finish the card →' : 'Make the inside →'}
@@ -1651,7 +1651,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
+                    className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >
