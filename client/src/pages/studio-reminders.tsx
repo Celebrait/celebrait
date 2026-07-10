@@ -233,7 +233,7 @@ function NoEntriesState() {
       <Button
         asChild
         size="lg"
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
       >
         <Link href="/studio/people/address-book/new">
           <UserPlus className="w-4 h-4 mr-2" />
@@ -259,7 +259,7 @@ function NoDatesState() {
       <Button
         asChild
         size="lg"
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
       >
         <Link href="/studio/people/address-book">
           <ChevronRight className="w-4 h-4 mr-2" />

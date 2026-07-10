@@ -870,7 +870,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           <div className="mt-5 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
             <Button
               onClick={triggerReplacePicker}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground"
+              className="bg-go hover:bg-go-hover text-brand-foreground"
               data-testid="btn-replace-photo"
             >
               <Upload className="w-4 h-4 mr-2" />
@@ -1201,7 +1201,7 @@ function FaceWarningBanner({
         <button
           type="button"
           onClick={onSwitch}
-          className="flex-1 text-[11px] font-semibold text-brand-foreground bg-brand hover:bg-brand-dark rounded-md py-1.5 px-2"
+          className="flex-1 text-[11px] font-semibold text-brand-foreground bg-go hover:bg-go-hover rounded-md py-1.5 px-2"
           data-testid="btn-face-warning-switch"
         >
           {switchLabel}

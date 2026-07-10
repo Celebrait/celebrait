@@ -324,7 +324,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                 type="button"
                 onClick={() => suggestMutation.mutate()}
                 disabled={suggestMutation.isPending || !cardId}
-                className="flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-brand-foreground"
+                className="flex items-center gap-1.5 bg-go hover:bg-go-hover text-brand-foreground"
                 data-testid="btn-scene-suggest-submit"
               >
                 {suggestMutation.isPending ? (

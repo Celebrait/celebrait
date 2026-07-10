@@ -436,13 +436,13 @@ export default function CheckoutPage() {
                         design out this combination upstream.) */}
                     {insideIsBlank && shipTo === 'recipient' && (
                       <div
-                        className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3"
+                        className="mt-3 rounded-lg border border-accent-red/30 bg-accent-red-light px-4 py-3"
                         data-testid="checkout-blank-inside-warning"
                       >
-                        <p className="text-sm font-semibold text-amber-900">
+                        <p className="text-sm font-semibold text-accent-red-dark">
                           Heads up — this card's inside is blank
                         </p>
-                        <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                        <p className="text-xs text-accent-red-dark mt-1 leading-relaxed">
                           You chose to handwrite the message yourself. Posted
                           straight to {recipientName || 'them'}, it'll arrive
                           with nothing written inside.
@@ -450,7 +450,7 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => setShipTo('sender')}
-                          className="mt-2 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                          className="mt-2 text-xs font-semibold text-accent-red-dark underline underline-offset-2 hover:text-accent-red-dark"
                           data-testid="btn-blank-inside-fix"
                         >
                           Send it to me instead, so I can write it
@@ -510,8 +510,8 @@ export default function CheckoutPage() {
                     SHIPPING leg, NOT faster production. We never imply
                     next-day-from-order. */}
                 <Section title="Delivery speed">
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
-                    <p className="text-xs text-amber-900 leading-relaxed">
+                  <div className="rounded-lg border border-accent-red/30 bg-accent-red-light px-4 py-3">
+                    <p className="text-xs text-accent-red-dark leading-relaxed">
                       <span className="font-semibold">Printed to order.</span>{' '}
                       {PRODUCTION_NOTICE}
                     </p>

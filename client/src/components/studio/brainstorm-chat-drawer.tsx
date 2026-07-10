@@ -185,7 +185,7 @@ export function BrainstormChatDrawer({
               type="submit"
               size="icon"
               disabled={!input.trim() || chat.isLoading}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground shrink-0"
+              className="bg-go hover:bg-go-hover text-brand-foreground shrink-0"
               data-testid="btn-brainstorm-send"
             >
               <Send className="w-4 h-4" />

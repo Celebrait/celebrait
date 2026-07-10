@@ -267,7 +267,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
         </div>
         <Link
           href={`/studio/card/${draft.id}/edit`}
-          className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
           data-testid="draft-continue"
         >
           Continue

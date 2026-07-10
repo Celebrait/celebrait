@@ -478,7 +478,7 @@ function LoadedView({
                     : `/studio/card/${card.id}/give`,
                 )
               }
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold h-[52px] rounded-lg w-full sm:w-64"
+              className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
               size="lg"
               data-testid="btn-card-view-buy"
             >
@@ -597,7 +597,7 @@ function PaidActions({
         href={shareUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="btn-card-view-share"
       >
         <Share2 className="w-4 h-4" />

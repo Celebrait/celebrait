@@ -122,7 +122,7 @@ export default function StudioAddressBookPage() {
         {entries.length > 0 && (
           <Link
             href="/studio/people/address-book/new"
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors shrink-0"
+            className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors shrink-0"
             data-testid="btn-add-person"
           >
             <Plus className="w-4 h-4" />
@@ -241,7 +241,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         type="button"
         size="lg"
         onClick={onAdd}
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
         data-testid="btn-empty-add-person"
       >
         <UserPlus className="w-4 h-4 mr-2" />

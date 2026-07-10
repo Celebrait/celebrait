@@ -334,7 +334,7 @@ export function CropDialog({
           <Button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
+            className="bg-go hover:bg-go-hover text-brand-foreground disabled:opacity-50"
             data-testid="btn-crop-confirm"
           >
             Use this crop

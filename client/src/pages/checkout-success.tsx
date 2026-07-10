@@ -185,7 +185,7 @@ export default function CheckoutSuccessPage() {
             </Button>
             {data.shareUrl && (
               <Button
-                className="flex-1 bg-brand hover:bg-brand-dark text-brand-foreground"
+                className="flex-1 bg-go hover:bg-go-hover text-brand-foreground"
                 onClick={() => setLocation(data.shareUrl!)}
               >
                 Open the card

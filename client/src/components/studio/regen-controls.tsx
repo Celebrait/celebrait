@@ -624,7 +624,7 @@ export function RegenEditMode({
                   type="button"
                   size="lg"
                   onClick={onExit}
-                  className="bg-brand hover:bg-brand-dark text-brand-foreground sm:flex-1 shadow-md shadow-brand/20"
+                  className="bg-go hover:bg-go-hover text-brand-foreground sm:flex-1 shadow-md shadow-brand/20"
                   data-testid="btn-decision-use"
                 >
                   <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
@@ -785,7 +785,7 @@ export function RegenEditMode({
                     // regenerate when a change is described.
                     onClick={committing ? onExit : handleSubmit}
                     disabled={anyBusy}
-                    className="bg-brand hover:bg-brand-dark text-brand-foreground w-full sm:w-auto"
+                    className="bg-go hover:bg-go-hover text-brand-foreground w-full sm:w-auto"
                     data-testid={committing ? 'btn-regen-use' : 'btn-regen-submit'}
                   >
                     {anyBusy ? (

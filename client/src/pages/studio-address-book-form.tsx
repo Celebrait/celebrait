@@ -666,7 +666,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           size="lg"
           onClick={handleSubmit}
           disabled={isSubmitting || !name.trim()}
-          className="bg-brand hover:bg-brand-dark text-white sm:w-auto"
+          className="bg-go hover:bg-go-hover text-white sm:w-auto"
           data-testid="btn-ab-save"
         >
           {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

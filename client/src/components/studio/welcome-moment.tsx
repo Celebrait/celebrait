@@ -100,7 +100,7 @@ export function WelcomeMoment() {
         role="dialog"
         aria-modal="true"
         aria-label="Welcome to your studio"
-        className="relative w-full max-w-sm rounded-3xl border border-keeper-hair bg-white p-7 text-center shadow-[0_30px_80px_-24px_rgba(15,23,42,0.45)]"
+        className="relative w-full max-w-sm rounded-3xl border border-keeper-hair bg-white p-7 text-center shadow-[0_30px_80px_-24px_rgba(33,29,25,0.45)]"
         initial={{ opacity: 0, y: 16, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
@@ -133,7 +133,7 @@ export function WelcomeMoment() {
               dismiss();
               navigate('/studio/new-card');
             }}
-            className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-dark"
+            className="w-full rounded-full bg-go px-6 py-3 text-sm font-semibold text-go-foreground transition-colors hover:bg-go-hover"
           >
             Make my first card
           </button>

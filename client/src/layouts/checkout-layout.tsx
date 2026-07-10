@@ -1,8 +1,8 @@
 // client/src/layouts/checkout-layout.tsx
 //
 // Minimal chrome for the three checkout pages. Same header bar as
-// StudioLayout (h-16, bg-white, border-b border-stone-200) + the
-// studio bg-surface page colour, but the sidebar is deliberately
+// StudioLayout (translucent white + keeper-hair hairline) on the
+// keeper-paper page ground, but the sidebar is deliberately
 // gone — a sidebar at a payment moment is a conversion killer.
 //
 // The single piece of chrome that matters: a "← Back" link. On the
