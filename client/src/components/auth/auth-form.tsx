@@ -88,8 +88,10 @@ export function AuthForm({
   const [step, setStepState] = useState<AuthStep>('email');
   const [devBypassActive, setDevBypassActive] = useState(false);
 
-  // Welcome step state — name only.
+  // Welcome step state — name + marketing consent (unticked by default,
+  // GDPR/PECR).
   const [firstName, setFirstName] = useState('');
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Wrapped setStep so onStepChange always fires in sync with the
@@ -201,6 +203,7 @@ export function AuthForm({
     try {
       const profileRes = await apiRequest('PATCH', '/api/user/profile', {
         firstName: trimmedName,
+        marketingOptIn,
       });
       if (!profileRes.ok) {
         const err = await profileRes.json().catch(() => ({}));
@@ -366,6 +369,23 @@ export function AuthForm({
               data-testid="input-welcome-first-name"
             />
           </div>
+
+          {/* Marketing consent — unticked by default (GDPR/PECR). Gates
+              promotional email only; card-reminder + own-card comms are
+              handled separately. */}
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair text-brand focus:ring-keeper-gold/30 accent-brand"
+              data-testid="checkbox-welcome-marketing"
+            />
+            <span className="text-xs leading-snug text-keeper-stone">
+              Email me card reminders and the occasional offer. No spam, and
+              you can unsubscribe anytime.
+            </span>
+          </label>
 
           <Button
             onClick={handleWelcomeSubmit}

@@ -22,7 +22,12 @@ import connectPg from "connect-pg-simple";
 // ─── Session middleware ──────────────────────────────────────────────────────
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  // 30 days + rolling (below): greeting cards are an OCCASIONAL buy, so a
+  // 1-week fixed window meant returning users re-OTP'd constantly. Rolling
+  // extends the window on every visit, so anyone active within 30 days
+  // stays signed in and only genuinely-lapsed users re-auth (Kevin
+  // 2026-07-09). Passwordless stays low-friction for return visits.
+  const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   const isProd = process.env.NODE_ENV === "production";
 
   // Session store strategy:
@@ -61,6 +66,9 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    // Re-issue the cookie (reset maxAge) on each response so an active
+    // user's 30-day window keeps sliding forward — they stay signed in.
+    rolling: true,
     cookie: {
       httpOnly: true,
       // Secure cookies require HTTPS — fine in prod, breaks on localhost.

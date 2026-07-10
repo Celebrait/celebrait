@@ -41,6 +41,10 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   portraitPhotoId: integer("portrait_photo_id"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  // Explicit consent to marketing email (card reminders, occasional
+  // offers). GDPR/PECR: unticked by default → false until the user opts
+  // in at signup. Transactional/own-card emails don't depend on this.
+  marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -158,8 +158,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const { firstName, lastName, portraitPhotoId } = req.body ?? {};
+      const { firstName, lastName, portraitPhotoId, marketingOptIn } = req.body ?? {};
       const updates: Record<string, any> = { updatedAt: new Date() };
+
+      // marketingOptIn: explicit boolean consent from the signup checkbox.
+      // Only accept a real boolean — ignore anything else so a malformed
+      // body can't flip consent.
+      if (typeof marketingOptIn === 'boolean') {
+        updates.marketingOptIn = marketingOptIn;
+      }
 
       // firstName: trim + reject empty strings; null clears the field
       if (firstName !== undefined) {
