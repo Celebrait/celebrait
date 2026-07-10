@@ -22,28 +22,19 @@
 //   • One unified panel for ALL kinds. Kind differentiation comes from
 //     the icon glyph + title + a small "kind tag" pill under the title
 //     — not from per-kind surface tones.
-//   • Surface: warm cream (`surface-cream`) with a red hairline.
-//     A red accent bar sits at the top — flat colour with subtle inner
-//     gradient, reads as a confident stamp rather than a stripe of
-//     siren tape.
-//   • Icon: `accent-red-dark` glyph in a `accent-red-light` disc with
-//     a red inner ring. Kind-specific lucide icon (Shield / Clock /
-//     CloudOff / Settings / HelpCircle).
-//   • Title: kind-specific friendly statement, ink.
-//   • Kind tag: small uppercase pill in the red family ("Safety filter",
-//     "Service busy", etc.) — the lightweight differentiation surface
-//     that lets us keep one unified panel.
-//   • Description: 1–2 line plain-English body in ink-soft.
-//   • Action chips: cream pill that hovers to RED tint (matches the
-//     warning language). Sparkle motif retained in amber as a small
-//     "Studio house style" hold-over — gives the panel a tiny piece of
-//     brand sparkle without the amber competing with the red signal.
-//   • Primary CTA: brand violet "Try again" — same as regen's "Use
-//     this version". Deliberately NOT red; red CTA reads as "delete".
-//     Violet keeps the studio's primary-action language stable.
+//   • Surface: keeper-paper with an ember (accent-red) top bar +
+//     hairline — reads as a confident stamp, not siren tape.
+//   • Icon: `accent-red-dark` (ember) glyph in an `accent-red-light`
+//     disc. Kind-specific lucide icon (Shield / Clock / CloudOff /
+//     Settings / HelpCircle).
+//   • Title: kind-specific friendly statement, Fraunces on keeper-ink.
+//   • Kind tag: small uppercase ember pill ("Safety filter", …).
+//   • Description: 1–2 line plain-English body in keeper-stone.
+//   • Action chips: white pill that hovers to an ember tint.
+//   • Primary CTA: GREEN (cta) "Try again" — it fires a re-generation, a
+//     commit moment in the button system. (Was brand violet pre-Keeper.)
 //   • Disclosable footer: provider · code · attempts + raw model
-//     explanation. Quiet, in the red family for hairlines so the panel
-//     stays in one colour family throughout.
+//     explanation, quiet in the ember family.
 //
 // Copy ladder (description picks based on what we know):
 //   1. Pre-flight matched a known IP term → name it (future, when the

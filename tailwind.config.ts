@@ -74,6 +74,13 @@ export default {
           // semantics, killing the whole custom accent palette).
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          // ⚠️ LEGACY LANDING ONLY — coral + amber below. The STUDIO (Keeper
+          // skin) retired the rainbow: use violet (brand), green (cta), or
+          // ember (accent-red) instead. Do NOT use coral/amber on any studio
+          // surface. These stay only because the OLD landing sections + a few
+          // /keeper-shared sections (faq, imagine-describe-ship) still use
+          // them; slated for removal when /keeper replaces / and those get
+          // re-skinned. See next_studio_keeper_skin + next_lp_keeper_blueprint.
           coral: '#ff9ec7',      // soft coral — emotion, warmth
           'coral-dark': '#ec4899', // saturated coral — hover / emphasis
           'coral-light': '#ffe4ef', // pale coral wash — backgrounds
@@ -115,6 +122,9 @@ export default {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
           card: '#ffffff',        // card backgrounds
           muted: '#f5f5f4',       // stone-100 — subtle differentiation
+          // ⚠️ LEGACY LANDING ONLY — studio uses keeper-paper. `surface-cream`
+          // survives only in the OLD landing sections + parked style-step;
+          // remove when /keeper replaces /. Don't use on studio surfaces.
           cream: '#fef7ed',       // warm cream — step backgrounds, frames
         },
         ink: {
