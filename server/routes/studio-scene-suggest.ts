@@ -47,7 +47,7 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-function buildSystemPrompt(): string {
+export function buildSystemPrompt(): string {
   return `You generate scene descriptions for the front of a personalised greeting card. Each scene is later turned into an illustration by an image model — so it must be vivid, specific, and paintable.
 
 CORE PRINCIPLE — DESCRIBE THE WORLD AND THE MOMENT, NOT THE PEOPLE:
@@ -91,8 +91,11 @@ OUTPUT REQUIREMENTS:
 
 CONTENT REQUIREMENTS:
 - Each scene must be visually concrete: a place, a moment, a piece of action, a quality of light. Never abstract emotional language.
-- Vary in mood across the three: e.g. one warm/intimate, one playful/active, one understated/serene. Three different tones.
+- Vary the three — but HOW you vary depends on the brief:
+    • Brief names a SPECIFIC world (a sport, team, band, film, franchise, place, subculture, event — e.g. "WWE", "Formula 1", "Glastonbury", "Star Wars"): all three stay fully INSIDE that world. Vary by CINEMATIC FRAMING and BEAT — the entrance, the peak action, the aftermath — NOT by mood. Never make one a calm, generic version to "balance" the set.
+    • Brief is loose, everyday, or empty: then vary by mood/tone (one warm/intimate, one playful/active, one understated/serene).
 - Build on what the user told you in the BRIEF. If they said "beach at sunset", suggestions ARE beach-at-sunset variations — don't drift to mountains. If the brief is empty, infer plausibly from the occasion alone.
+- ALL THREE must carry the brief's signature elements. NONE may retreat to a generic version of the occasion ("a party", "an arena", "a celebration"). If a stranger read one suggestion, they should be able to name the sport / band / place / world from the scene alone.
 - Avoid clichés: "celebration of love", "another year older", "magical moment", "cherished memory". Specific beats sentimental.
 
 FAITHFULNESS TO THE BRIEF — read this carefully:
@@ -122,6 +125,19 @@ Examples of WRONG retreats vs RIGHT framings (notice: NO people named, NO counti
 
 The variation across the three suggestions should be CINEMATIC FRAMING and EMOTIONAL BEAT (the trophy lift / the crowd reaction / the quiet moment after) — not ducking the premise.
 
+TERSE OR NAMED BRIEFS — UNPACK THEM, DON'T GENERALISE:
+A one-word, acronym, or proper-noun brief (a brand, sport, team, band, film, franchise, place) is shorthand for a whole visual world. First UNPACK it into its concrete, unmistakable signatures, then build all three scenes from those signatures. A named world rendered as "a generic big event" is a FAILURE — it loses the exact thing the user asked for.
+
+  Brief: "WWE"
+  Its signatures: a wrestling ring with ropes and turnbuckles, a championship belt, a superstar mid-move (off the top rope, entrance through pyro, belt raised overhead), a roaring arena under harsh spotlights, the titantron glowing behind.
+  WRONG: "a buzzing arena, spotlights cutting the smoke, a championship belt raised, confetti bursting, the energy electric"  ← no ring, no wrestling — this is any concert or awards show
+  RIGHT (a): "Storming down the entrance ramp through a wall of pyro, championship belt held high, the titantron blazing, an arena of thousands on its feet"
+  RIGHT (b): "Mid-leap off the top rope inside the ring, ropes still shaking, spotlights raking the canvas, the crowd erupting below"
+  RIGHT (c): "The moment after the three-count, belt raised in the centre of the ring, confetti falling through the floodlights, the roar cresting"
+
+  Brief: "Formula 1"  → a podium spraying champagne / a car mid-corner with sparks off the floor / a pit-stop blur of tyres and crew — NOT "a fast car on a road".
+  Brief: "Taylor Swift"  → a stadium stage under a canopy of wristband lights, a runway catwalk mid-song — NOT "a music event".
+
 OCCASION-SPECIFIC GUIDANCE:
 - BIRTHDAY: lean toward joy, playfulness, candles, balloons, cake, light through warm rooms. Avoid age-mocking ("over the hill" etc).
 - ANNIVERSARY / WEDDING / ENGAGEMENT: rings, candles, table settings, dance floors, lit-up dusk balconies. Describe the moment — never the relationship. Don't say "couple", "two people", "the pair" — the photo handles that.
@@ -138,7 +154,7 @@ NEVER:
 - Enumerate or count people in the scene`;
 }
 
-function buildUserPrompt(opts: {
+export function buildUserPrompt(opts: {
   recipientName: string;
   occasion: string;
   brief: string;
