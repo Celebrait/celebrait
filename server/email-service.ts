@@ -271,9 +271,31 @@ function optOutFooter(): string {
   );
 }
 
+// Keeper palette (matches the studio + landing — warm paper/ink, hairline
+// borders, brand violet). Hex only; email clients don't read CSS vars.
+const EMAIL_PAPER = '#FAF8F4'; // warm paper ground
+const EMAIL_INK = '#211D19'; // warm near-black — headings
+const EMAIL_BODY = '#3a352f'; // warm ink, softened for running text
+const EMAIL_STONE = '#7A7267'; // muted warm grey — footer / captions
+const EMAIL_HAIR = '#E5DFD4'; // hairline border
+const EMAIL_HAIR_SOFT = '#EFEAE1'; // faint inner divider
+const EMAIL_BRAND = '#5c57d4'; // brand violet — CTA + links
+// Serif stack — Fraunces where a client honours web fonts (rare in mail),
+// otherwise a warm serif (Georgia) so headings still read editorial.
+const EMAIL_SERIF = "'Fraunces', Georgia, 'Times New Roman', serif";
+// Logo lives in client/public → served at the app origin. Absolute URL so
+// mail clients can load it; falls back to the "Celebrait" alt when images
+// are blocked. NB: relies on PUBLIC_APP_ORIGIN pointing at a live origin.
+const EMAIL_LOGO_URL = `${PUBLIC_ORIGIN}/email-logo.png`;
+
 function chassis(opts: {
   preheader: string;
   bodyHtml: string;
+  /** Optional serif headline rendered above the body (a Keeper moment). */
+  heading?: string;
+  /** Optional hero image (usually the card art) rendered above the body.
+   *  Caller must pass an ABSOLUTE url — mail clients can't resolve paths. */
+  heroImage?: { src: string; alt: string };
   /** Optional CTA button rendered after bodyHtml. */
   cta?: { label: string; href: string };
   /** Optional secondary line under the CTA (e.g. tracking ref). */
@@ -282,11 +304,29 @@ function chassis(opts: {
    *  email only (reminders / drop-off nudges). */
   footerNote?: string;
 }): string {
+  const headingHtml = opts.heading
+    ? `
+        <tr>
+          <td style="padding: 30px 40px 0 40px;">
+            <h1 style="margin: 0; font-family: ${EMAIL_SERIF}; font-size: 22px; font-weight: 700; color: ${EMAIL_INK}; letter-spacing: -0.015em; line-height: 1.3;">
+              ${escape(opts.heading)}
+            </h1>
+          </td>
+        </tr>`
+    : '';
+  const heroHtml = opts.heroImage
+    ? `
+        <tr>
+          <td style="padding: 24px 40px 0 40px;" align="center">
+            <img src="${escape(opts.heroImage.src)}" alt="${escape(opts.heroImage.alt)}" width="360" style="display: block; width: 100%; max-width: 360px; height: auto; border-radius: 14px; border: 1px solid ${EMAIL_HAIR};">
+          </td>
+        </tr>`
+    : '';
   const ctaHtml = opts.cta
     ? `
         <tr>
-          <td style="padding: 8px 40px 8px 40px;" align="center">
-            <a href="${escape(opts.cta.href)}" style="display: inline-block; background: #7a76e8; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
+          <td style="padding: 24px 40px 8px 40px;" align="center">
+            <a href="${escape(opts.cta.href)}" style="display: inline-block; background: ${EMAIL_BRAND}; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
               ${escape(opts.cta.label)} &rarr;
             </a>
           </td>
@@ -295,7 +335,7 @@ function chassis(opts: {
   const postCtaBlock = opts.postCtaHtml
     ? `
         <tr>
-          <td style="padding: 16px 40px 0 40px; color: #475569; font-size: 14px; line-height: 1.6;">
+          <td style="padding: 16px 40px 0 40px; color: ${EMAIL_STONE}; font-size: 14px; line-height: 1.6;">
             ${opts.postCtaHtml}
           </td>
         </tr>`
@@ -307,27 +347,29 @@ function chassis(opts: {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
       </head>
-      <body style="margin: 0; padding: 0; background: #fafaf9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
+      <body style="margin: 0; padding: 0; background: ${EMAIL_PAPER}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
         <span style="display: none !important; visibility: hidden; opacity: 0; color: transparent; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; overflow: hidden;">${escape(opts.preheader)}</span>
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #fafaf9;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: ${EMAIL_PAPER};">
           <tr>
             <td align="center" style="padding: 48px 24px;">
-              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 20px; box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);">
+              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 16px; border: 1px solid ${EMAIL_HAIR};">
                 <tr>
-                  <td style="padding: 40px 40px 0 40px; text-align: center;">
-                    <span style="font-size: 22px; font-weight: 700; color: #7a76e8; letter-spacing: -0.01em;">Celebrait</span>
+                  <td style="padding: 26px 40px 22px 40px; text-align: center; border-bottom: 1px solid ${EMAIL_HAIR_SOFT};">
+                    <img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="150" style="display: inline-block; width: 150px; max-width: 60%; height: auto;">
                   </td>
                 </tr>
+                ${headingHtml}
+                ${heroHtml}
                 <tr>
-                  <td style="padding: 32px 40px 16px 40px; color: #0f172a; font-size: 16px; line-height: 1.7;">
+                  <td style="padding: ${opts.heading || opts.heroImage ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
                     ${opts.bodyHtml}
                   </td>
                 </tr>
                 ${ctaHtml}
                 ${postCtaBlock}
                 <tr>
-                  <td style="padding: 32px 40px 40px 40px; color: #94a3b8; font-size: 13px;">
-                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}— Celebrait
+                  <td style="padding: 30px 40px 34px 40px; margin-top: 8px; color: ${EMAIL_STONE}; font-size: 13px; border-top: 1px solid ${EMAIL_HAIR_SOFT};">
+                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}&mdash; Celebrait
                   </td>
                 </tr>
               </table>
@@ -397,19 +439,21 @@ export async function sendOtpEmail(email: string, code: string): Promise<boolean
 }
 
 function otpHtml(code: string): string {
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="font-size: 28px; font-weight: 800; color: #7a76e8; margin: 0;">Celebrait</h1>
-      </div>
-      <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Your verification code</h2>
-      <p style="color: #555; margin-bottom: 28px; font-size: 15px;">Enter this to keep going. It expires in 10 minutes.</p>
-      <div style="background: #f2f1fb; border: 2px solid #e5e4f9; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 28px;">
-        <span style="font-size: 42px; font-weight: 900; letter-spacing: 10px; color: #5c57d4;">${code}</span>
-      </div>
-      <p style="color: #888; font-size: 13px; text-align: center;">If you didn't request this, you can safely ignore this email.</p>
+  // Routed through the same chassis as everything else so auth email
+  // carries the Keeper frame (logo, paper, hairlines). The code block is
+  // the body; violet numerals echo the brand.
+  const body = `
+    <p style="margin: 0 0 24px;">Enter this to keep going. It expires in 10 minutes.</p>
+    <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 22px; text-align: center; margin: 0 0 8px;">
+      <span style="font-size: 40px; font-weight: 800; letter-spacing: 10px; color: ${EMAIL_BRAND};">${escape(code)}</span>
     </div>
+    <p style="margin: 20px 0 0; color: ${EMAIL_STONE}; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
   `;
+  return chassis({
+    preheader: 'Your Celebrait verification code (expires in 10 minutes).',
+    heading: 'Your verification code',
+    bodyHtml: body,
+  });
 }
 
 // ── Card ready (sender) ─────────────────────────────────────────────
@@ -423,8 +467,12 @@ export async function sendCardReadyEmail(params: {
   recipientName: string | null;
   occasion: string | null;
   cardId: number;
+  /** Front image of the finished card — shown as the email hero so the
+   *  sender SEES what they made (biggest conversion lever). Absolute or
+   *  app-relative; absolutised here. Null → no hero (copy-only email). */
+  cardImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName, occasion, cardId } = params;
+  const { senderEmail, senderName, recipientName, occasion, cardId, cardImageUrl } = params;
 
   const subjectSubject = recipientName
     ? `${recipientName}'s ${occasion ?? ''} card is ready`.replace(/\s+/g, ' ').trim()
@@ -434,20 +482,36 @@ export async function sendCardReadyEmail(params: {
   const recipientClause = recipientName
     ? `${escape(recipientName)}'s ${escape(occasion ?? '')} card`.replace(/\s+/g, ' ').trim()
     : 'Your card';
+  // Raw (unescaped) variant for the heading + image alt — chassis escapes
+  // those itself, so passing the pre-escaped `recipientClause` would
+  // double-escape ("Father&#39;s"). Body HTML keeps the escaped one.
+  const recipientClauseRaw = recipientName
+    ? `${recipientName}'s ${occasion ?? ''} card`.replace(/\s+/g, ' ').trim()
+    : 'Your card';
 
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      ${recipientClause} just finished rendering. Have a look — if it's right, it's ready to send. If something's a touch off, you can tweak any part of it without starting over.
+      Here's the one you made. Have a look — if it's right, it's ready to send. If something's a touch off, you can tweak any part of it without starting over.
     </p>
     <p style="margin: 0 0 8px;">
       Take your time. Cards are kept in your gallery.
     </p>
   `;
 
+  // Absolutise the front image — mail clients can't resolve app-relative
+  // paths. R2 URLs are already absolute and fall through unchanged.
+  const heroSrc = cardImageUrl
+    ? cardImageUrl.startsWith('http')
+      ? cardImageUrl
+      : `${PUBLIC_ORIGIN}${cardImageUrl}`
+    : null;
+
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
     preheader: 'Have a look — buy it as is, or tweak before you send.',
+    heading: `${recipientClauseRaw} is ready`,
+    heroImage: heroSrc ? { src: heroSrc, alt: recipientClauseRaw } : undefined,
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
   });

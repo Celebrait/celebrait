@@ -878,12 +878,29 @@ async function sendCardReadyEmailForCard(
     user.email.split('@')[0]?.replace(/[._-]+/g, ' ').trim() ||
     null;
 
+  // Front image → email hero. Prefer the stored path (mapped through
+  // publicImageUrl to a canonical R2 URL); fall back to the legacy
+  // absolute url column.
+  const cardRows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+  const cardRow = cardRows[0];
+  const cardImageUrl = cardRow?.frontImagePath
+    ? publicImageUrl(cardRow.frontImagePath)
+    : cardRow?.frontImageUrl ?? null;
+
   await sendCardReadyEmail({
     senderEmail: user.email,
     senderName,
     recipientName: state.recipient?.name?.trim() || null,
     occasion: state.recipient?.occasion?.trim() || null,
     cardId,
+    cardImageUrl,
   });
 }
 

@@ -44,6 +44,7 @@ import {
   users,
   type CardDraftState,
 } from '@shared/schema';
+import { publicImageUrl } from '../image-storage';
 import {
   sendCardReadyEmail,
   sendGenerationFailedEmail,
@@ -104,12 +105,16 @@ async function loadCardContext(cardId: number | undefined): Promise<{
   state: CardDraftState | null;
   ownerEmail: string | null;
   ownerFirstName: string | null;
+  /** Absolute front-image URL for hero previews (null when no card art). */
+  cardImageUrl: string | null;
 } | null> {
   if (!cardId) return null;
   const rows = await db
     .select({
       conversationData: cards.conversationData,
       userId: cards.userId,
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
     })
     .from(cards)
     .where(eq(cards.id, cardId))
@@ -117,8 +122,11 @@ async function loadCardContext(cardId: number | undefined): Promise<{
   const row = rows[0];
   if (!row) return null;
   const state = (row.conversationData as CardDraftState | null) ?? null;
+  const cardImageUrl = row.frontImagePath
+    ? publicImageUrl(row.frontImagePath)
+    : row.frontImageUrl ?? null;
   if (!row.userId) {
-    return { state, ownerEmail: null, ownerFirstName: null };
+    return { state, ownerEmail: null, ownerFirstName: null, cardImageUrl };
   }
   const userRows = await db
     .select({ email: users.email, firstName: users.firstName })
@@ -129,6 +137,7 @@ async function loadCardContext(cardId: number | undefined): Promise<{
     state,
     ownerEmail: userRows[0]?.email ?? null,
     ownerFirstName: userRows[0]?.firstName ?? null,
+    cardImageUrl,
   };
 }
 
@@ -195,17 +204,23 @@ async function dispatchTemplate(
      *  template needs both a recipient AND a sender (e.g. recipient-
      *  card-arrived). */
     adminContact: { email: string; firstName: string | null };
+    /** Absolute front-image URL from the loaded card (null when dummy). */
+    cardImageUrl: string | null;
   },
 ): Promise<boolean> {
-  const { targetTo, vars, cardId, body, adminContact } = args;
+  const { targetTo, vars, cardId, body, adminContact, cardImageUrl } = args;
   switch (template) {
     case 'card-ready': {
+      // Real card art when a cardId is given; a sample front otherwise so
+      // the hero still renders in a dummy preview.
+      const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
       return sendCardReadyEmail({
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         occasion: vars.occasion,
         cardId: cardId ?? 0,
+        cardImageUrl: cardImageUrl ?? `${origin}/hero-card-front.webp`,
       });
     }
     case 'generation-failed': {
@@ -343,6 +358,7 @@ export function registerAdminTestEmailRoutes(app: Express): void {
           cardId,
           body,
           adminContact,
+          cardImageUrl: cardCtx?.cardImageUrl ?? null,
         });
         res.json({ ok: sent, template, to: targetTo, vars });
       } catch (err: any) {
@@ -401,6 +417,7 @@ export function registerAdminTestEmailRoutes(app: Express): void {
             cardId,
             body,
             adminContact,
+            cardImageUrl: cardCtx?.cardImageUrl ?? null,
           }),
         );
         if (!captured) {
