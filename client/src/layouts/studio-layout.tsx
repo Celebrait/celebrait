@@ -111,13 +111,14 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 py-4 overflow-y-auto">
       {/* Pinned primary CTA. Links to the new-card flow — same target as
-          the FAB. Visual weight = solid violet pill so it reads as the
-          primary action regardless of which page the user is on. */}
+          the FAB. Green (cta) — "New card" is a decided super-important
+          moment (start of the value loop), matching the grid tile; reads
+          as the primary action regardless of which page the user is on. */}
       <div className="px-3 mb-4">
         <Link
           href="/studio/new-card"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 w-full bg-go hover:bg-go-hover text-white rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 w-full bg-cta hover:bg-cta-hover text-cta-foreground rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
           data-testid="nav-new-card-cta"
           data-hint="new-card"
         >
