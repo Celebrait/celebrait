@@ -210,23 +210,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
 
   return (
-    <div className="min-h-screen bg-keeper-paper flex flex-col">
-      {/* Dark gradient production bar — full-width at the very TOP (Kevin
-          2026-07-10). The studio's grounding anchor, mirroring /keeper's
-          announcement bar (ink → violet); moved above the chrome so it
-          spans the whole viewport like the landing does. */}
-      <div
-        className="relative z-30 px-4 sm:px-6 py-2 flex-shrink-0"
-        style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
-      >
-        <p className="text-[11px] sm:text-xs text-white/90 text-center leading-snug flex items-center justify-center gap-1.5">
-          <Truck className="w-3.5 h-3.5 flex-shrink-0 text-white/70" strokeWidth={2} />
-          <span>{PRODUCTION_NOTICE}</span>
-        </p>
-      </div>
-
-      {/* App row: sidebar | main column, filling the height below the bar */}
-      <div className="flex flex-1 min-h-0">
+    <div className="min-h-screen bg-keeper-paper flex">
       {/* ─── Sidebar (desktop, sm and up) ─── */}
       <aside className="relative z-40 hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
         <SidebarContent />
@@ -290,6 +274,23 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           </Button>
         </header>
 
+        {/* Production-time notice — every card is printed to order (up to
+            72h before dispatch). Kept honest + visible across the whole app
+            so the expectation is set well before checkout. */}
+        {/* Dark gradient production bar — the studio's grounding anchor,
+            mirroring /keeper's announcement bar (ink → violet). Kevin chose
+            this over a dark sidebar 2026-07-09: enough weight to stop the
+            all-paper studio reading as weightless, plus landing continuity. */}
+        <div
+          className="relative z-30 px-4 sm:px-6 py-2 flex-shrink-0"
+          style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
+        >
+          <p className="text-[11px] sm:text-xs text-white/90 text-center leading-snug flex items-center justify-center gap-1.5">
+            <Truck className="w-3.5 h-3.5 flex-shrink-0 text-white/70" strokeWidth={2} />
+            <span>{PRODUCTION_NOTICE}</span>
+          </p>
+        </div>
+
         {/* Main scroll area. Per-page headers live inside `children`
             (Week 1 dashboard rebuild) — the layout no longer owns the
             greeting h1, so each surface can tune its own copy. */}
@@ -298,7 +299,6 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             {children}
           </div>
         </main>
-      </div>
       </div>
 
       {/* ─── FAB (conditional, outside the column so it's always relative to the viewport) ─── */}
