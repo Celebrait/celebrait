@@ -42,15 +42,15 @@
   --slate-gray: 25 5% 45%;
 }
 
-/* Hero-button gradient A/B test (Kevin 2026-07-09) — test the ink→violet
-   gradient (the production bar's) on the super-important buttons vs the
-   default bright green. Dev-tools "Hero button" switcher sets data-hero on
-   <html>; .hero-cta is on every hero button. Bake winner + delete once
-   decided. Specificity (0,2,0)/(0,3,0) beats the bg-cta utilities. */
-[data-hero='gradient'] .hero-cta {
+/* Hero buttons — the ink→violet gradient (the production bar's). Kevin
+   locked this 2026-07-09: gradient on the super-important buttons + on
+   /keeper's CTAs, with bright GREEN reserved for the two peaks only
+   (Generate + Pay — those keep bg-cta, no .hero-cta). Unlayered, so it
+   beats the `bg-cta` / `bg-keeper-ink` utilities regardless of order. */
+.hero-cta {
   background: linear-gradient(90deg, #211d19 0%, #5c57d4 100%);
 }
-[data-hero='gradient'] .hero-cta:hover {
+.hero-cta:hover {
   background: linear-gradient(90deg, #000000 0%, #4a45c0 100%);
 }
 

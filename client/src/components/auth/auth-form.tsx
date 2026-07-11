@@ -80,7 +80,7 @@ export function AuthForm({
   const accentBtn =
     accent === 'brand'
       ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
-      : 'bg-keeper-ink hover:bg-black text-keeper-paper';
+      : 'hero-cta bg-keeper-ink hover:bg-black text-keeper-paper';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
 
   const [email, setEmail] = useState('');

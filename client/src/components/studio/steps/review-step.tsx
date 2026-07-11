@@ -257,7 +257,7 @@ export function ReviewStep({
       <div className="pt-2">
         <Button
           onClick={onGenerate}
-          className="w-full hero-cta bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
+          className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
           data-testid="btn-generate-card"
         >
           <Sparkles className="w-5 h-5 mr-2" />
