@@ -38,12 +38,15 @@ export default {
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          // Bright lime green — the "go" colour (Kevin locked the original
-          // #5fd94a after A/B-ing grass + pastel 2026-07-09). Drives BOTH the
-          // super-important "go" buttons and the green readiness accents.
-          DEFAULT: '#5fd94a',     // bright lime — go actions + readiness accent
-          hover: '#4ac437',       // slightly deeper — hover
-          light: '#e0f8db',       // pale green — readiness backgrounds
+          // Grounded emerald — the "go" colour. Replaced the bright lime
+          // #5fd94a 2026-07-11 (Kevin: the neon lime read cheap; this
+          // deeper green matches the "ACTIVE" badge + the premium Keeper
+          // tone, and passes white-text contrast where the lime barely
+          // did). Drives BOTH the super-important "go" buttons and the
+          // green readiness accents.
+          DEFAULT: '#2f9e5f',     // emerald — go actions + readiness accent
+          hover: '#268650',       // deeper emerald — hover
+          light: '#e4f3e9',       // pale mint — readiness backgrounds / badge bg
           foreground: '#ffffff',
         },
         // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────
