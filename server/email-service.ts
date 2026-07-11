@@ -293,9 +293,10 @@ function chassis(opts: {
   bodyHtml: string;
   /** Optional serif headline rendered above the body (a Keeper moment). */
   heading?: string;
-  /** Optional hero image (usually the card art) rendered above the body.
-   *  Caller must pass an ABSOLUTE url — mail clients can't resolve paths. */
-  heroImage?: { src: string; alt: string };
+  /** Optional hero image(s) — the card art — rendered above the body,
+   *  stacked with an optional caption over each ("Front" / "Inside").
+   *  Callers must pass ABSOLUTE urls; mail clients can't resolve paths. */
+  heroImages?: Array<{ src: string; alt: string; caption?: string }>;
   /** Optional CTA button rendered after bodyHtml. */
   cta?: { label: string; href: string };
   /** Optional secondary line under the CTA (e.g. tracking ref). */
@@ -314,11 +315,24 @@ function chassis(opts: {
           </td>
         </tr>`
     : '';
-  const heroHtml = opts.heroImage
+  const heroImages = opts.heroImages ?? [];
+  const heroHtml = heroImages.length
     ? `
         <tr>
           <td style="padding: 24px 40px 0 40px;" align="center">
-            <img src="${escape(opts.heroImage.src)}" alt="${escape(opts.heroImage.alt)}" width="360" style="display: block; width: 100%; max-width: 360px; height: auto; border-radius: 14px; border: 1px solid ${EMAIL_HAIR};">
+            ${heroImages
+              .map(
+                (img, i) => `
+              ${
+                img.caption
+                  ? `<div style="margin: ${i === 0 ? '0' : '20'}px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: ${EMAIL_STONE};">${escape(img.caption)}</div>`
+                  : i > 0
+                    ? '<div style="height: 18px; line-height: 18px; font-size: 0;">&nbsp;</div>'
+                    : ''
+              }
+              <img src="${escape(img.src)}" alt="${escape(img.alt)}" width="360" style="display: block; margin: 0 auto; width: 100%; max-width: 360px; height: auto; border-radius: 14px; border: 1px solid ${EMAIL_HAIR};">`,
+              )
+              .join('')}
           </td>
         </tr>`
     : '';
@@ -361,7 +375,7 @@ function chassis(opts: {
                 ${headingHtml}
                 ${heroHtml}
                 <tr>
-                  <td style="padding: ${opts.heading || opts.heroImage ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
+                  <td style="padding: ${opts.heading || heroImages.length ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
                     ${opts.bodyHtml}
                   </td>
                 </tr>
@@ -471,8 +485,12 @@ export async function sendCardReadyEmail(params: {
    *  sender SEES what they made (biggest conversion lever). Absolute or
    *  app-relative; absolutised here. Null → no hero (copy-only email). */
   cardImageUrl?: string | null;
+  /** Inside image — shown beneath the front (labelled Front / Inside) so
+   *  the email previews both sides of the card. */
+  insideImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName, occasion, cardId, cardImageUrl } = params;
+  const { senderEmail, senderName, recipientName, occasion, cardId, cardImageUrl, insideImageUrl } =
+    params;
 
   const subjectSubject = recipientName
     ? `${recipientName}'s ${occasion ?? ''} card is ready`.replace(/\s+/g, ' ').trim()
@@ -499,19 +517,27 @@ export async function sendCardReadyEmail(params: {
     </p>
   `;
 
-  // Absolutise the front image — mail clients can't resolve app-relative
+  // Absolutise the card images — mail clients can't resolve app-relative
   // paths. R2 URLs are already absolute and fall through unchanged.
-  const heroSrc = cardImageUrl
-    ? cardImageUrl.startsWith('http')
-      ? cardImageUrl
-      : `${PUBLIC_ORIGIN}${cardImageUrl}`
-    : null;
+  const absolutise = (u?: string | null) =>
+    u ? (u.startsWith('http') ? u : `${PUBLIC_ORIGIN}${u}`) : null;
+  const frontSrc = absolutise(cardImageUrl);
+  const insideSrc = absolutise(insideImageUrl);
+  // Show both sides when we have them (captioned Front / Inside); a lone
+  // front needs no caption.
+  const heroImages: Array<{ src: string; alt: string; caption?: string }> = [];
+  if (frontSrc && insideSrc) {
+    heroImages.push({ src: frontSrc, alt: `${recipientClauseRaw} — front`, caption: 'Front' });
+    heroImages.push({ src: insideSrc, alt: `${recipientClauseRaw} — inside`, caption: 'Inside' });
+  } else if (frontSrc) {
+    heroImages.push({ src: frontSrc, alt: recipientClauseRaw });
+  }
 
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
     preheader: 'Have a look — buy it as is, or tweak before you send.',
     heading: `${recipientClauseRaw} is ready`,
-    heroImage: heroSrc ? { src: heroSrc, alt: recipientClauseRaw } : undefined,
+    heroImages: heroImages.length ? heroImages : undefined,
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
   });

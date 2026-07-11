@@ -885,6 +885,8 @@ async function sendCardReadyEmailForCard(
     .select({
       frontImagePath: cards.frontImagePath,
       frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
     })
     .from(cards)
     .where(eq(cards.id, cardId))
@@ -893,6 +895,9 @@ async function sendCardReadyEmailForCard(
   const cardImageUrl = cardRow?.frontImagePath
     ? publicImageUrl(cardRow.frontImagePath)
     : cardRow?.frontImageUrl ?? null;
+  const insideImageUrl = cardRow?.insideImagePath
+    ? publicImageUrl(cardRow.insideImagePath)
+    : cardRow?.insideImageUrl ?? null;
 
   await sendCardReadyEmail({
     senderEmail: user.email,
@@ -901,6 +906,7 @@ async function sendCardReadyEmailForCard(
     occasion: state.recipient?.occasion?.trim() || null,
     cardId,
     cardImageUrl,
+    insideImageUrl,
   });
 }
 
