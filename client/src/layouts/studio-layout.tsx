@@ -31,11 +31,12 @@ import {
   Users,
   Bell,
   Truck,
+  Printer,
   Plus,
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { PRODUCTION_NOTICE } from '@shared/pricing';
+import { PRODUCTION_HOURS } from '@shared/pricing';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
@@ -278,18 +279,18 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
         {/* Production-time notice — every card is printed to order (up to
             72h before dispatch). Kept honest + visible across the whole app
             so the expectation is set well before checkout. */}
-        {/* Dark gradient production bar — the studio's grounding anchor,
-            mirroring /keeper's announcement bar (ink → violet). Kevin chose
-            this over a dark sidebar 2026-07-09: enough weight to stop the
-            all-paper studio reading as weightless, plus landing continuity. */}
-        <div
-          className="relative z-30 px-4 sm:px-6 py-2 flex-shrink-0"
-          style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
-        >
-          <p className="text-[11px] sm:text-xs text-white/90 text-center leading-snug flex items-center justify-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 flex-shrink-0 text-white/70" strokeWidth={2} />
-            <span>{PRODUCTION_NOTICE}</span>
-          </p>
+        {/* Production-time notice as a quiet lavender pill floating on the
+            paper (Kevin 2026-07-11 — the dark gradient bar read as "too
+            much"). Still sits right under the header so the 72h expectation
+            is set before checkout, just whisper-weight now. Printer icon
+            (it's about printing, not shipping). */}
+        <div className="relative z-30 flex-shrink-0 flex justify-center px-4 pt-3 sm:pt-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-muted border border-brand-light px-3.5 py-1.5 max-w-[560px]">
+            <Printer className="w-3.5 h-3.5 flex-shrink-0 text-brand-dark" strokeWidth={2} />
+            <span className="text-[11px] sm:text-xs text-brand-dark leading-snug">
+              Printed to order — up to {PRODUCTION_HOURS} hrs production, then your chosen delivery on top.
+            </span>
+          </span>
         </div>
 
         {/* Main scroll area. Per-page headers live inside `children`
