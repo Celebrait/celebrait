@@ -317,7 +317,7 @@ export function GenerationErrorPanel({
             onClick={() => onRetry()}
             disabled={isRetrying}
             size="lg"
-            className="w-full hero-cta bg-cta hover:bg-cta-hover text-cta-foreground shadow-md shadow-cta/20"
+            className="w-full bg-go hover:bg-go-hover text-go-foreground shadow-md shadow-cta/20"
             data-testid="error-panel-retry"
           >
             <RefreshCw

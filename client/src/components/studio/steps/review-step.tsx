@@ -764,7 +764,7 @@ function FrontFirstStage({
       )}
       <button
         onClick={() => onStartInsideGeneration?.()}
-        className="rounded-full bg-cta px-6 py-3 text-sm font-medium text-cta-foreground transition-colors hover:bg-cta-hover"
+        className="rounded-full bg-go px-6 py-3 text-sm font-medium text-go-foreground transition-colors hover:bg-go-hover"
       >
         Try the inside again
       </button>
@@ -1656,7 +1656,7 @@ function RevealView({
                           : `/studio/card/${cardId}/give`,
                       )
                     }
-                    className="hero-cta bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
+                    className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >

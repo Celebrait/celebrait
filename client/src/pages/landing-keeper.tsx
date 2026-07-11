@@ -110,7 +110,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const authed = !isLoading && isAuthenticated;
-  const cls = `inline-flex items-center justify-center rounded-full hero-cta bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
+  const cls = `inline-flex items-center justify-center rounded-full bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
     large ? 'px-9 py-4 text-base' : 'px-7 py-3 text-[15px]'
   }`;
   return authed ? (
@@ -408,7 +408,7 @@ function KeeperHeader() {
             <Link href="/studio">
               <button
                 type="button"
-                className="h-10 rounded-full hero-cta bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
               >
                 <span className="sm:hidden">My studio</span>
                 <span className="hidden sm:inline">Open my studio</span>
@@ -426,7 +426,7 @@ function KeeperHeader() {
               <button
                 type="button"
                 onClick={() => openAuth('/studio/new-card')}
-                className="h-10 rounded-full hero-cta bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
               >
                 <span className="sm:hidden">Make a card</span>
                 <span className="hidden sm:inline">Make my first card</span>
@@ -1015,7 +1015,7 @@ function OccasionCaptureSection() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="h-12 shrink-0 rounded-full hero-cta bg-keeper-ink px-6 text-[14px] font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-50"
+                  className="h-12 shrink-0 rounded-full bg-keeper-ink px-6 text-[14px] font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-50"
                   data-testid="btn-occasion-submit"
                 >
                   {busy ? 'One sec…' : date ? 'Set my nudge' : 'Email me the link'}

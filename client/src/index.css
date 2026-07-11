@@ -42,18 +42,6 @@
   --slate-gray: 25 5% 45%;
 }
 
-/* Hero buttons — the ink→violet gradient (the production bar's). Kevin
-   locked this 2026-07-09: gradient on the super-important buttons + on
-   /keeper's CTAs, with bright GREEN reserved for the two peaks only
-   (Generate + Pay — those keep bg-cta, no .hero-cta). Unlayered, so it
-   beats the `bg-cta` / `bg-keeper-ink` utilities regardless of order. */
-.hero-cta {
-  background: linear-gradient(90deg, #211d19 0%, #5c57d4 100%);
-}
-.hero-cta:hover {
-  background: linear-gradient(90deg, #000000 0%, #4a45c0 100%);
-}
-
 /* The body opacity transition that used to live here was removed
    2026-04-27. No JS in the codebase actively flips body opacity, so
    the rule was only ever triggered by ambient browser state changes

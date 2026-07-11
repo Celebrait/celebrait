@@ -225,7 +225,7 @@ export function FixAndRetryDialog({
           <Button
             onClick={() => void handleRetry()}
             disabled={inFlight}
-            className="hero-cta bg-cta hover:bg-cta-hover text-cta-foreground"
+            className="bg-go hover:bg-go-hover text-go-foreground"
             data-testid="fix-and-retry-cta"
           >
             <RefreshCw
