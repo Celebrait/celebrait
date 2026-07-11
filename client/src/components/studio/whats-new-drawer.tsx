@@ -86,12 +86,16 @@ export function WhatsNewDrawer() {
         className="w-full sm:max-w-md p-0 overflow-y-auto [&>button]:text-white/85 [&>button:hover]:text-white [&>button]:top-5 [&>button]:right-5"
         data-testid="whats-new-drawer"
       >
-        {/* Gradient header (sticky so it stays as the feed scrolls) */}
-        <div className="sticky top-0 z-10 bg-gradient-to-br from-brand to-brand-dark px-6 pt-5 pb-5">
-          <SheetTitle className="text-white text-lg font-semibold">
+        {/* Warm ink header (sticky so it anchors the feed as it scrolls).
+            Replaced the old purple gradient 2026-07-11 (Kevin) — the last
+            gradient in the studio — with the Keeper dark tone. Fraunces on
+            the title (an earned headline moment). The built-in close X is
+            already white-styled above, so it reads on the ink. */}
+        <div className="sticky top-0 z-10 bg-keeper-ink px-6 pt-5 pb-5">
+          <SheetTitle className="text-keeper-paper font-display font-bold tracking-[-0.015em] text-xl">
             What&apos;s new
           </SheetTitle>
-          <p className="text-white/70 text-xs mt-0.5">
+          <p className="text-keeper-paper/60 text-xs mt-1">
             Fresh from the Celebrait workshop
           </p>
         </div>
