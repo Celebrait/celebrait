@@ -788,12 +788,21 @@ function frontFirstSubject(state: CardDraftState): string | null {
 export function StartAgainButton({
   cardId,
   pill = false,
+  quiet = false,
+  label = 'Not quite right?',
   className,
 }: {
   cardId: number;
   /** Match a rounded-full primary (the sign-off screens) instead of
    *  the default rounded-lg (Send rows). */
   pill?: boolean;
+  /** Render as a small underline text link rather than a boxed button —
+   *  used when start-over is the tertiary escape (e.g. under "Change the
+   *  inside" on the inside reveal), not a co-primary. */
+  quiet?: boolean;
+  /** Trigger copy. Defaults to "Not quite right?"; the inside reveal
+   *  passes "Start over completely" since a lighter redo sits above it. */
+  label?: string;
   /** Extra layout classes on the trigger button. */
   className?: string;
 }) {
@@ -824,21 +833,36 @@ export function StartAgainButton({
 
   return (
     <>
-      {/* SAME-SIZE sibling to the primary beside it (Kevin 2026-07-08)
-          — the explanation lives in the module, not the button. */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        // Dimensions EXACTLY mirror the primary beside it: same fixed
-        // height, same fixed sm width (pill pair = w-80 on the
-        // sign-off screens, lg pair = w-64 beside Send).
-        className={`inline-flex h-[52px] w-full items-center justify-center rounded-full border border-keeper-hair bg-white text-[15px] font-semibold text-keeper-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
-          pill ? 'max-w-[320px] sm:w-80' : 'sm:w-64'
-        } ${className ?? ''}`}
-        data-testid="btn-start-again"
-      >
-        Not quite right?
-      </button>
+      {/* Quiet variant: a small underline link for when start-over is the
+          tertiary escape (a lighter redo sits above it). */}
+      {quiet ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`text-[13px] font-medium text-keeper-stone underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-ink ${
+            className ?? ''
+          }`}
+          data-testid="btn-start-again"
+        >
+          {label}
+        </button>
+      ) : (
+        /* SAME-SIZE sibling to the primary beside it (Kevin 2026-07-08)
+           — the explanation lives in the module, not the button. */
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          // Dimensions EXACTLY mirror the primary beside it: same fixed
+          // height, same fixed sm width (pill pair = w-80 on the
+          // sign-off screens, lg pair = w-64 beside Send).
+          className={`inline-flex h-[52px] w-full items-center justify-center rounded-full border border-keeper-hair bg-white text-[15px] font-semibold text-keeper-ink transition-colors hover:border-brand/50 hover:text-brand-dark ${
+            pill ? 'max-w-[320px] sm:w-80' : 'sm:w-64'
+          } ${className ?? ''}`}
+          data-testid="btn-start-again"
+        >
+          {label}
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
         <DialogContent className="max-w-md">
@@ -908,6 +932,74 @@ function ExplainRow({
   );
 }
 
+// ── InsideVersions ───────────────────────────────────────────────────
+// Version switcher for the inside reveal. Each "Change the inside" re-roll
+// appends a card_attempts row (the front is never touched), so this lets
+// the user flip between the insides they've generated and pick the one
+// they love — nothing is thrown away (Kevin 2026-07-11). Shows the actual
+// inside thumbnails (not dots) so you SEE the difference. Hidden until
+// there's more than one — a lone v1 would just duplicate the hero.
+function InsideVersions({
+  attempts,
+  onSelect,
+}: {
+  attempts: CardAttemptDTO[];
+  onSelect?: (attemptId: number) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const versions = attempts.filter((a) => a.side === 'inside' && a.status === 'completed');
+  if (versions.length <= 1) return null;
+  const current = versions.find((a) => a.isSelected);
+  return (
+    <div className="mt-5">
+      <p className="mb-1.5 text-center text-[10px] uppercase tracking-[0.16em] text-stone-400">
+        {current
+          ? `version ${current.attemptNumber} of ${versions.length}`
+          : `${versions.length} versions`}
+      </p>
+      <div className="flex items-center justify-center gap-2">
+        {versions.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            disabled={busy || a.isSelected}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onSelect?.(a.id);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className={`h-12 w-12 overflow-hidden rounded-md border-2 transition-all disabled:cursor-default ${
+              a.isSelected
+                ? 'border-brand shadow-sm'
+                : 'border-keeper-hair opacity-80 hover:border-brand/60 hover:opacity-100'
+            }`}
+            aria-label={
+              a.isSelected
+                ? `Showing inside version ${a.attemptNumber}`
+                : `Switch to inside version ${a.attemptNumber}`
+            }
+            data-testid={`inside-version-${a.attemptNumber}`}
+          >
+            {a.imageUrl ? (
+              <img
+                src={a.imageUrl}
+                alt={`Inside version ${a.attemptNumber}`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-full w-full bg-stone-100" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── FrontFirstReview ─────────────────────────────────────────────────
 // The DEFAULT front-first review surface: big card image (hero) + a small
 // print-ready spread (secondary) + a primary sign-off and a quiet "Make a
@@ -921,6 +1013,11 @@ function FrontFirstReview({
   approveLabel,
   onApprove,
   secondary,
+  frontReference,
+  frontReferenceLabel,
+  printLabel,
+  versionStrip,
+  stackActions = false,
 }: {
   title: string;
   subject: string | null;
@@ -931,6 +1028,22 @@ function FrontFirstReview({
   /** Secondary action under the approve button — the StartAgainButton
    *  (the tweak workbench is parked for Premium, 2026-07-07). */
   secondary?: React.ReactNode;
+  /** Inside reveal only: a print-ready thumbnail of the APPROVED FRONT,
+   *  shown beside the inside's print thumbnail so the user can compare
+   *  front vs inside side by side (Kevin 2026-07-11). */
+  frontReference?: React.ReactNode;
+  /** Caption under the front reference (e.g. "Front · approved"). */
+  frontReferenceLabel?: string;
+  /** Caption on the hero's own print thumbnail. Defaults to the generic
+   *  "Print-ready · tap to view"; the inside reveal passes "Inside" so
+   *  the pair reads Front · Inside. */
+  printLabel?: string;
+  /** Optional node rendered between the print thumbnail(s) and the
+   *  actions — the inside version switcher on the inside reveal. */
+  versionStrip?: React.ReactNode;
+  /** Stack the primary + secondary actions vertically instead of the
+   *  default side-by-side (the inside reveal has three actions). */
+  stackActions?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   // Toggle the hero between the full card image and the print-ready
@@ -962,34 +1075,59 @@ function FrontFirstReview({
       </div>
 
       {/* Print-ready preview underneath — the actual 4-panel print layout
-          (or, when showing print, a thumbnail of the full image) so the
-          user can SEE the printed product they're buying. Tap swaps it up
-          into the hero. */}
-      <button
-        type="button"
-        onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
-        className="group mx-auto mt-4 flex flex-col items-center"
-        aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
-        data-testid="btn-hero-print-toggle"
-      >
-        <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm transition-transform group-hover:scale-[1.06]">
-          {showingPrint ? (
-            <div className="aspect-square w-full overflow-hidden rounded-sm bg-stone-100">
-              {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
+          so the user can SEE the printed product they're buying. On the
+          inside reveal a static print-ready thumbnail of the APPROVED
+          FRONT sits alongside it (frontReference) for side-by-side
+          comparison. Tapping the inside thumbnail swaps it up into the
+          hero. */}
+      <div className="mt-4 flex items-start justify-center gap-4">
+        {frontReference && (
+          <figure className="flex w-[88px] flex-col items-center">
+            <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm">
+              <div className="w-full">{frontReference}</div>
             </div>
-          ) : (
-            <div className="w-full">{printVisual}</div>
-          )}
-        </div>
-        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-keeper-stone transition-colors group-hover:text-keeper-ink">
-          <Printer className="h-3 w-3" strokeWidth={1.75} />
-          {showingPrint ? 'Tap for the full image' : 'Print-ready · tap to view'}
-        </span>
-      </button>
+            <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-stone">
+              {frontReferenceLabel ?? 'Front'}
+            </figcaption>
+          </figure>
+        )}
+        <button
+          type="button"
+          onClick={() => setHeroView((v) => (v === 'print' ? 'image' : 'print'))}
+          className="group flex w-[88px] flex-col items-center"
+          aria-label={showingPrint ? 'Show the full image' : 'Show the print-ready layout'}
+          data-testid="btn-hero-print-toggle"
+        >
+          <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm transition-transform group-hover:scale-[1.06]">
+            {showingPrint ? (
+              <div className="aspect-square w-full overflow-hidden rounded-sm bg-stone-100">
+                {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
+              </div>
+            ) : (
+              <div className="w-full">{printVisual}</div>
+            )}
+          </div>
+          <span className="mt-1.5 inline-flex items-center gap-1 text-center text-[11px] font-medium text-keeper-stone transition-colors group-hover:text-keeper-ink">
+            <Printer className="h-3 w-3" strokeWidth={1.75} />
+            {showingPrint
+              ? 'Tap for the full image'
+              : `${printLabel ?? 'Print-ready'} · tap to view`}
+          </span>
+        </button>
+      </div>
+
+      {/* Inside version switcher (only renders once there's >1 inside). */}
+      {versionStrip}
 
       {/* Actions — side-by-side on desktop so BOTH choices sit above
-          the fold; stacked on mobile with tightened rhythm. */}
-      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:items-center">
+          the fold; stacked on mobile with tightened rhythm. The inside
+          reveal (stackActions) keeps them stacked at every width because
+          it has three: assemble / change the inside / start over. */}
+      <div
+        className={`mt-8 flex flex-col items-center justify-center gap-3 ${
+          stackActions ? '' : 'sm:flex-row sm:items-center'
+        }`}
+      >
         <button
           disabled={busy}
           onClick={async () => {
@@ -1409,31 +1547,41 @@ function RevealView({
   // The tweak workbench (RegenEditMode) was PARKED for Premium
   // 2026-07-07 — the iterate affordance is now StartAgainButton (clone
   // the inputs, re-roll through the full crafted prompt).
+  // Inside composer — reachable from BOTH the front sign-off (write the
+  // inside in front of the approved front) AND the inside reveal ("Change
+  // the inside" — re-do the inside while KEEPING the approved front). The
+  // approved front is never touched; submitting fires an inside-only gen
+  // that appends a new version. Gated to the two reveal states so a stale
+  // `insideComposing` can't hijack the generating / completed views, and
+  // reset on submit so we drop back to the reveal once gen kicks off.
+  if (insideComposing && (status === 'front-ready' || status === 'inside-ready')) {
+    // FIRST card from front-ready = fresh authoring; a reroll clone OR a
+    // re-do from the inside reveal = SIGN-OFF (read it back, confirm/edit).
+    const isReroll = !!state.rerollOfCardId || status === 'inside-ready';
+    return (
+      <InsideComposeStage
+        cardId={cardId}
+        state={state}
+        subject={frontFirstSubject(state)}
+        frontUrl={frontUrl}
+        isReroll={isReroll}
+        onChange={onChange}
+        scheduleSave={scheduleSave}
+        flushSave={flushSave}
+        onBack={() => setInsideComposing(false)}
+        onSubmit={async () => {
+          await flushSave?.();
+          await onStartInsideGeneration?.();
+          setInsideComposing(false);
+        }}
+      />
+    );
+  }
+
   if (status === 'front-ready') {
-    // Approving the front opens the inside composer. On a FIRST card
-    // that's fresh authoring (write it in context of the front). On a
-    // REROLL the inside is inherited, so the composer is a SIGN-OFF —
-    // read it back, confirm or edit (Kevin 2026-07-09).
+    // Approving the front opens the inside composer (above). On a FIRST
+    // card that's fresh authoring; on a REROLL it's a sign-off.
     const isReroll = !!state.rerollOfCardId;
-    if (insideComposing) {
-      return (
-        <InsideComposeStage
-          cardId={cardId}
-          state={state}
-          subject={frontFirstSubject(state)}
-          frontUrl={frontUrl}
-          isReroll={isReroll}
-          onChange={onChange}
-          scheduleSave={scheduleSave}
-          flushSave={flushSave}
-          onBack={() => setInsideComposing(false)}
-          onSubmit={async () => {
-            await flushSave?.();
-            await onStartInsideGeneration?.();
-          }}
-        />
-      );
-    }
     return (
       <FrontFirstReview
         title="Here's the front"
@@ -1450,19 +1598,45 @@ function RevealView({
   }
 
   // Inside-ready: mirror the front step — big inside image + the print
-  // spread. Sign off → finalize → the 3D assemble. The escape hatch is
-  // the same start-again clone (the crafted prompt re-rolls everything;
-  // a surgical inside-only tweak is a Premium-tier problem).
+  // spread, PLUS a print-ready reference of the APPROVED FRONT (compare
+  // front vs inside side by side) and a version switcher across the insides
+  // generated so far. Sign off → finalize → the 3D assemble. "Change the
+  // inside" re-does ONLY the inside, keeping the approved front; "start
+  // over completely" is the quieter full re-roll (Kevin 2026-07-11).
   if (status === 'inside-ready') {
+    const insideAttempts = (attempts ?? []).filter((a) => a.side === 'inside');
     return (
       <FrontFirstReview
         title="Here's the inside"
         subject={frontFirstSubject(state)}
         heroUrl={insideUrl}
         printVisual={<CardInnerSpread insideUrl={insideUrl} />}
+        printLabel="Inside"
+        frontReference={<CardOuterSpread frontUrl={frontUrl} />}
+        frontReferenceLabel="Front · approved"
+        versionStrip={
+          <InsideVersions attempts={insideAttempts} onSelect={onSelectAttempt} />
+        }
         approveLabel="Looks good — assemble the card →"
         onApprove={onFinalize}
-        secondary={<StartAgainButton cardId={cardId} pill />}
+        stackActions
+        secondary={
+          <>
+            <button
+              type="button"
+              onClick={() => setInsideComposing(true)}
+              className="inline-flex h-[52px] w-full max-w-[320px] items-center justify-center rounded-full border border-brand/40 bg-white px-6 text-[15px] font-semibold text-brand-dark transition-colors hover:border-brand hover:bg-brand-muted/40 sm:w-80"
+              data-testid="btn-change-inside"
+            >
+              Change the inside
+            </button>
+            <StartAgainButton
+              cardId={cardId}
+              quiet
+              label="Start over completely (new front too)"
+            />
+          </>
+        }
       />
     );
   }

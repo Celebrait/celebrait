@@ -662,11 +662,14 @@ export function registerStudioDraftRoutes(app: Express): void {
 
   // ── POST /api/studio/drafts/:id/generate-inside ──────────────────
   // Front-first step 2: generate the inside AFTER the user has approved
-  // the front. Only valid from 'front-ready' (or 'inside-failed' to
-  // retry). The inside is built from the already-persisted front, so no
-  // photos/scene re-run — just the inside decision (write+message or
-  // blank). Deliberately SKIPS the daily cap (the front already counted;
-  // committing to the card shouldn't dead-end at the inside).
+  // the front. Valid from 'front-ready', 'inside-failed' (retry), or
+  // 'inside-ready' ("Change the inside" — re-roll the inside, keeping the
+  // approved front; each roll appends+promotes a card_attempts version so
+  // nothing is lost). The inside is built from the already-persisted
+  // front, so no photos/scene re-run — just the inside decision
+  // (write+message or blank). The FIRST inside SKIPS the daily cap
+  // (committing to a card you've started shouldn't dead-end at the
+  // inside); a RE-ROLL from 'inside-ready' is capped like any regen.
   app.post(
     '/api/studio/drafts/:id/generate-inside',
     isAuthenticated,
@@ -693,11 +696,18 @@ export function registerStudioDraftRoutes(app: Express): void {
         if (!row) return res.status(404).json({ message: 'Draft not found' });
         if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
 
-        // Only a front-ready (or previously inside-failed) card can start
-        // the inside. Anything else is the wrong moment.
-        if (row.status !== 'front-ready' && row.status !== 'inside-failed') {
+        // The inside can be generated once the front is ready
+        // ('front-ready'), retried after an inside failure
+        // ('inside-failed'), OR re-rolled from the inside reveal
+        // ('inside-ready' — "Change the inside", keeping the approved
+        // front). Anything else is the wrong moment.
+        if (
+          row.status !== 'front-ready' &&
+          row.status !== 'inside-failed' &&
+          row.status !== 'inside-ready'
+        ) {
           return res.status(409).json({
-            message: `Card is ${row.status}; the inside starts from 'front-ready'`,
+            message: `Card is ${row.status}; the inside can only be made once the front is ready`,
           });
         }
 
@@ -709,6 +719,37 @@ export function registerStudioDraftRoutes(app: Express): void {
         const ready = isInsideDecisionReady(state);
         if (!ready.ok) {
           return res.status(400).json({ message: ready.reason });
+        }
+
+        // Re-rolling the inside (status already 'inside-ready') is a fresh
+        // cost every time, so it's gated like any other regen: a per-side
+        // hard cap, a concurrent-gen guard, and the daily limit. The FIRST
+        // inside (from 'front-ready'/'inside-failed') deliberately skips
+        // all of this — once you've made the front, committing to the card
+        // shouldn't dead-end at the inside (Kevin 2026-07-11).
+        if (row.status === 'inside-ready') {
+          const existing = await db
+            .select({ id: cardAttempts.id, status: cardAttempts.status })
+            .from(cardAttempts)
+            .where(and(eq(cardAttempts.cardId, id), eq(cardAttempts.side, 'inside')));
+          if (existing.length >= REGEN_HARD_CAP_PER_SIDE + 1) {
+            return res.status(429).json({
+              message: `You've reached the re-roll limit for the inside. Assemble your card, or start a fresh one.`,
+            });
+          }
+          if (existing.some((a) => a.status === 'generating')) {
+            return res.status(409).json({
+              message: 'An inside is already generating — hang on a moment.',
+            });
+          }
+          const rate = await checkDailyGenerationLimit(userId);
+          if (!rate.allowed) {
+            return res.status(429).json({
+              message: `You've reached today's generation limit (${rate.used}/${rate.limit}). Try again tomorrow.`,
+              limit: rate.limit,
+              used: rate.used,
+            });
+          }
         }
 
         await db
