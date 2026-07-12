@@ -60,6 +60,7 @@ export function NewCardPage() {
   // (no artificial delay) while a slow path (Neon cold start, etc.) gets
   // the full branded treatment.
   const [showBrandedWait, setShowBrandedWait] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -111,18 +112,39 @@ export function NewCardPage() {
   }
 
   // Slow-path (Neon cold start etc.): branded "booting the studio" state.
-  // Gentle pulse + copy that says "we haven't stalled."
+  // The whole block fades in (no abrupt pop at the 400ms mark) and the
+  // mark BREATHES on a smooth easeInOut loop — replaced the old
+  // `animate-ping`, whose hard per-cycle reset read as a glitchy blink
+  // (Kevin 2026-07-11). On-brand violet; amber sparkle retired.
   return (
-    <div className="max-w-md mx-auto text-center py-24" data-testid="new-card-branded-wait">
-      <div className="relative inline-flex items-center justify-center mb-5">
-        <span className="absolute inline-flex w-20 h-20 rounded-full bg-brand-muted animate-ping opacity-60" />
-        <span className="relative inline-flex w-16 h-16 rounded-full bg-brand-muted border-2 border-brand items-center justify-center">
-          <Sparkle className="w-7 h-7 text-accent-amber" />
+    <motion.div
+      className="max-w-md mx-auto text-center py-24"
+      data-testid="new-card-branded-wait"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+    >
+      <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center">
+        {/* Soft breathing halo — a calm scale+fade loop, no hard reset. */}
+        {!reduced && (
+          <motion.span
+            className="absolute h-16 w-16 rounded-full bg-brand-light"
+            animate={{ scale: [1, 1.28, 1], opacity: [0.5, 0.12, 0.5] }}
+            transition={{ duration: 2.6, ease: 'easeInOut', repeat: Infinity }}
+          />
+        )}
+        <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-brand/25 bg-brand-muted">
+          <motion.span
+            animate={reduced ? undefined : { scale: [1, 1.1, 1], opacity: [0.85, 1, 0.85] }}
+            transition={{ duration: 2.6, ease: 'easeInOut', repeat: Infinity }}
+          >
+            <Sparkle className="h-7 w-7 text-brand" />
+          </motion.span>
         </span>
       </div>
-      <p className="text-base font-semibold text-ink mb-1">Warming up the Studio…</p>
+      <p className="mb-1 text-base font-semibold text-keeper-ink">Warming up the Studio…</p>
       <p className="text-xs text-stone-500">This usually takes a second or two.</p>
-    </div>
+    </motion.div>
   );
 }
 
