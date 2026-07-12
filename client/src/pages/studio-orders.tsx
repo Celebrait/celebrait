@@ -401,7 +401,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
   if (!order.includesPrint && order.includesDigital) {
     return {
       label: 'Delivered (digital)',
-      className: 'bg-green-50 text-green-700',
+      className: 'bg-cta-light text-cta-dark',
       Icon: CheckCircle2,
     };
   }
@@ -411,7 +411,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
     case 'delivered':
       return {
         label: 'Delivered',
-        className: 'bg-green-50 text-green-700',
+        className: 'bg-cta-light text-cta-dark',
         Icon: CheckCircle2,
       };
     case 'shipped':

@@ -25,7 +25,7 @@ const SEEN_KEY = 'celebrait:whatsnew:seen:v1';
 // Keeper palette only: green=new/positive, violet=brand update,
 // ember=important/attention, stone=neutral tip. No rainbow.
 const TONE_CHIP: Record<AnnouncementTone, string> = {
-  new: 'bg-cta-light text-green-800',
+  new: 'bg-cta-light text-cta-dark',
   update: 'bg-brand-muted text-brand-dark',
   important: 'bg-accent-red-light text-accent-red-dark',
   tip: 'bg-stone-100 text-stone-600',

@@ -47,6 +47,7 @@ export default {
           DEFAULT: '#2f9e5f',     // emerald — go actions + readiness accent
           hover: '#268650',       // deeper emerald — hover
           light: '#e4f3e9',       // pale mint — readiness backgrounds / badge bg
+          dark: '#1f7a45',        // forest — deep-green TEXT on the light tint (badges)
           foreground: '#ffffff',
         },
         // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────

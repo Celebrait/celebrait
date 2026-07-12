@@ -199,7 +199,7 @@ export default function AdminPromptsPage() {
                 className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   activeTab === tab
                     ? isProduction
-                      ? 'border-green-600 text-green-700'
+                      ? 'border-cta text-cta-dark'
                       : 'border-violet-600 text-violet-700'
                     : 'border-transparent text-stone-500 hover:text-stone-700'
                 } ${isProduction ? 'ml-auto' : ''}`}
@@ -359,7 +359,7 @@ function SlotPanel({
                       v{v.version}
                     </span>
                     {v.id === data.activeTemplateId && (
-                      <Badge className="bg-green-100 text-green-700 text-[10px] h-5">
+                      <Badge className="bg-cta-light text-cta-dark text-[10px] h-5">
                         ACTIVE
                       </Badge>
                     )}
@@ -528,7 +528,7 @@ function VersionEditor({
             <span>
               {selected.name} <span className="text-stone-400">· v{selected.version}</span>
             </span>
-            {isActive && <Badge className="bg-green-100 text-green-700">ACTIVE</Badge>}
+            {isActive && <Badge className="bg-cta-light text-cta-dark">ACTIVE</Badge>}
             {isDraft && (
               <Badge className="bg-amber-100 text-amber-800">DRAFT (unsaved)</Badge>
             )}
@@ -1203,7 +1203,7 @@ function TestPanel({
                     <Button
                       onClick={() => runMutation.mutate()}
                       disabled={isDisabled}
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-cta hover:bg-cta-hover"
                       data-testid="btn-run-test"
                     >
                       {runMutation.isPending
@@ -1951,7 +1951,7 @@ function EditPanel({
           onClick={() => refineMutation.mutate()}
           disabled={refineMutation.isPending || !instruction.trim()}
           size="sm"
-          className="bg-green-600 hover:bg-green-700 text-xs h-8"
+          className="bg-cta hover:bg-cta-hover text-xs h-8"
         >
           {refineMutation.isPending ? 'Editing...' : 'Apply'}
         </Button>
@@ -2137,12 +2137,12 @@ function DiffView({ left, right }: { left: string; right: string }) {
           </div>
         ))}
       </div>
-      <div className="p-2 bg-green-50/30">
-        <div className="text-xs font-semibold text-green-700 mb-1">Selected</div>
+      <div className="p-2 bg-cta-light/30">
+        <div className="text-xs font-semibold text-cta-dark mb-1">Selected</div>
         {rhs.map((line, i) => (
           <div
             key={i}
-            className={`whitespace-pre-wrap ${line.added ? 'bg-green-100' : ''}`}
+            className={`whitespace-pre-wrap ${line.added ? 'bg-cta-light' : ''}`}
           >
             {line.text || '\u00A0'}
           </div>
@@ -2277,8 +2277,8 @@ function ProductionView() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-green-50/40 border-green-200">
-        <CardContent className="py-3 text-xs text-green-900">
+      <Card className="bg-cta-light/40 border-cta-light">
+        <CardContent className="py-3 text-xs text-cta-dark">
           <strong>This is what customers get.</strong> Changes here take
           effect on the next generation (propagation up to ~60s). The Lab
           tabs above are for iteration — they don't affect production until
@@ -2756,7 +2756,7 @@ function ProductionSlotRow({ slot, variant, config, providers }: ProductionSlotR
             size="sm"
             onClick={() => saveMutation.mutate()}
             disabled={!dirty || templateId == null || saveMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-cta hover:bg-cta-hover text-white"
             data-testid={`btn-production-save-${slot}`}
           >
             {saveMutation.isPending ? 'Saving…' : dirty ? 'Save to production' : 'Saved'}

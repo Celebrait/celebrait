@@ -393,7 +393,7 @@ function LoadedView({
           Back to studio
         </button>
         {hasPaid ? (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-full px-3 py-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-cta-dark bg-cta-light rounded-full px-3 py-1">
             <Package className="w-3.5 h-3.5" />
             Sent
           </div>

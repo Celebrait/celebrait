@@ -52,11 +52,11 @@ const STATUS_MAP: Record<string, StatusVariant> = {
   },
   completed: {
     label: 'Ready',
-    className: 'bg-cta-light text-green-800 border-cta/30',
+    className: 'bg-cta-light text-cta-dark border-cta/30',
   },
   ready: {
     label: 'Ready',
-    className: 'bg-cta-light text-green-800 border-cta/30',
+    className: 'bg-cta-light text-cta-dark border-cta/30',
   },
   paid: {
     label: 'Purchased',
