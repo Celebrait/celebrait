@@ -56,8 +56,11 @@ import {
   sendDropOffRecoveryEmail,
   sendDropOffTweakEmail,
   sendDropOffLastCallEmail,
+  sendReminderEmail,
+  sendOtpEmail,
   renderEmailForPreview,
   sendEmail,
+  type ReminderTier,
 } from '../email-service';
 
 async function isAdmin(req: Request): Promise<boolean> {
@@ -189,6 +192,10 @@ const KNOWN_TEMPLATES = [
   'dropoff-recovery',
   'dropoff-tweak',
   'dropoff-last-call',
+  'reminder-t21',
+  'reminder-t7',
+  'reminder-t3',
+  'otp',
 ] as const;
 
 type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
@@ -319,6 +326,44 @@ async function dispatchTemplate(
         occasion: vars.occasion,
         cardId: cardId ?? 0,
       });
+    }
+    case 'reminder-t21':
+    case 'reminder-t7':
+    case 'reminder-t3': {
+      // Occasion reminders. The tier is encoded in the template name so
+      // no extra input is needed — daysUntil defaults from the tier (a
+      // body.daysUntil override is honoured). lastCardImage = the "last
+      // time you sent this" hero (real card art if a cardId is given,
+      // else a sample).
+      const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+      const tierMap: Record<
+        'reminder-t21' | 'reminder-t7' | 'reminder-t3',
+        { tier: ReminderTier; daysUntil: number }
+      > = {
+        'reminder-t21': { tier: 't_21', daysUntil: 21 },
+        'reminder-t7': { tier: 't_7', daysUntil: 7 },
+        'reminder-t3': { tier: 't_3', daysUntil: 3 },
+      };
+      const { tier, daysUntil } = tierMap[template];
+      const startCardUrl =
+        `${origin}/studio/new-card?recipient=${encodeURIComponent(vars.recipientName)}` +
+        `&occasion=${encodeURIComponent(vars.occasion)}`;
+      return sendReminderEmail({
+        senderEmail: targetTo,
+        senderName: vars.senderName,
+        recipientName: vars.recipientName,
+        occasion: vars.occasion,
+        daysUntil: typeof body.daysUntil === 'number' ? body.daysUntil : daysUntil,
+        tier,
+        startCardUrl,
+        lastCardImageUrl: cardImageUrl ?? `${origin}/hero-card-front.webp`,
+      });
+    }
+    case 'otp': {
+      // A dummy code for the preview; body.code overrides if supplied.
+      const code =
+        typeof body.code === 'string' && body.code.trim() ? body.code.trim() : '204815';
+      return sendOtpEmail(targetTo, code);
     }
     default: {
       // Unreachable — callers gate via isKnownTemplate first.

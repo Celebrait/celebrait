@@ -24,8 +24,9 @@
 // "Send to inbox" still available via the right-pane CTA — fires the
 // existing POST /api/admin/test-email/:template path.
 //
-// NOT included: reminder emails (T-21 / T-7 / T-3) — they need a date
-// + tier param and aren't on the admin-test-email route.
+// Includes the occasion reminders (T-21 / T-7 / T-3, tier encoded in the
+// template name → default day-counts) and the OTP login-code email
+// (dummy code) — added 2026-07-11.
 
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -49,7 +50,11 @@ type EmailTemplate =
   | 'sender-print-delivered'
   | 'dropoff-recovery'
   | 'dropoff-tweak'
-  | 'dropoff-last-call';
+  | 'dropoff-last-call'
+  | 'reminder-t21'
+  | 'reminder-t7'
+  | 'reminder-t3'
+  | 'otp';
 
 interface EmailEntry {
   template: EmailTemplate;
@@ -92,6 +97,20 @@ const EMAIL_GROUPS: EmailGroup[] = [
     groupLabel: 'Recipient',
     emails: [
       { template: 'recipient-card-arrived', label: 'Card arrived (digital)', description: 'Recipient, your digital card is here.', who: 'recipient' },
+    ],
+  },
+  {
+    groupLabel: 'Occasion reminders',
+    emails: [
+      { template: 'reminder-t21', label: 'Reminder — 21 days', description: '"{Recipient}\'s {occasion} is in 21 days"', who: 'sender' },
+      { template: 'reminder-t7', label: 'Reminder — 7 days', description: '"…is in 7 days" — time to make it.', who: 'sender' },
+      { template: 'reminder-t3', label: 'Reminder — 3 days', description: '"…is in 3 days" — pick fast delivery.', who: 'sender' },
+    ],
+  },
+  {
+    groupLabel: 'Auth',
+    emails: [
+      { template: 'otp', label: 'Login code (OTP)', description: 'The 6-digit verification code email.', who: 'sender' },
     ],
   },
 ];
@@ -518,9 +537,9 @@ export default function AdminEmailsPage() {
       </div>
 
       <p className="mt-6 text-xs text-ink-soft">
-        Reminder emails (T-21 / T-7 / T-3 occasion reminders) aren't on this
-        page — they go through a different dispatcher and need a target date
-        + tier.
+        Reminders preview at their default day-counts (21 / 7 / 3); the OTP
+        uses a dummy code. Pass a card ID to ground the reminder's "last
+        time you sent this" image in real card art.
       </p>
     </div>
   );
