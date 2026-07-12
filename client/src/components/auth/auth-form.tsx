@@ -73,14 +73,15 @@ export function AuthForm({
   accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
-  // Primary-button accent classes. Ink pill by default — auth is the
-  // doorway between the Keeper LP (ink CTAs) and the studio, so it
-  // wears the LP's button language to bridge the handoff seam (Kevin
-  // 2026-07-09). /login can still opt into violet via accent='brand'.
+  // Primary-button accent classes. Emerald (cta) by default — auth is the
+  // doorway between the Keeper LP (whose primary CTAs are now emerald) and
+  // the studio's green go-actions, so it wears that green to bridge the
+  // handoff seam (Kevin 2026-07-11, was ink). /login can still opt into
+  // violet via accent='brand'.
   const accentBtn =
     accent === 'brand'
       ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
-      : 'bg-keeper-ink hover:bg-black text-keeper-paper';
+      : 'bg-cta hover:bg-cta-hover text-cta-foreground';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
 
   const [email, setEmail] = useState('');
