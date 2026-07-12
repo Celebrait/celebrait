@@ -1252,11 +1252,23 @@ async function fireFirstOpenedEmailIfNeeded(
     return;
   }
 
+  // Front image for the email hero (reminds the sender what they sent).
+  const cardImgRows = await db
+    .select({ frontImagePath: cards.frontImagePath, frontImageUrl: cards.frontImageUrl })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+  const cardImageUrl = resolveStoredImageUrl(
+    cardImgRows[0]?.frontImagePath ?? null,
+    cardImgRows[0]?.frontImageUrl ?? null,
+  );
+
   const senderName = order.customerName?.split(' ')[0] || 'there';
   const sent = await sendSenderCardOpenedEmail({
     senderEmail: order.customerEmail,
     senderName,
     recipientName: recipientNameFromCard,
+    cardImageUrl,
   });
   console.log(
     `[STUDIO] first-opened email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id}, card ${cardId})`,

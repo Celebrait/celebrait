@@ -859,6 +859,7 @@ async function fireOrderPaidEmails(
         senderEmail: order.customerEmail,
         occasion,
         shareUrl,
+        cardImageUrl: resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl),
       });
       console.log(
         `[STUDIO-CHECKOUT] recipient email ${sent ? 'sent' : 'failed'} → ${recipientEmail} (order ${order.id})`,
@@ -998,14 +999,23 @@ export async function applyFulfillmentUpdate(
 
   // Recipient name from the card draft (for the "X's card" copy).
   let recipientName: string | null = null;
+  let cardImageUrl: string | null = null;
   try {
     const cardRows = await db
-      .select({ conversationData: cards.conversationData })
+      .select({
+        conversationData: cards.conversationData,
+        frontImagePath: cards.frontImagePath,
+        frontImageUrl: cards.frontImageUrl,
+      })
       .from(cards)
       .where(eq(cards.id, order.cardId))
       .limit(1);
     const state = (cardRows[0]?.conversationData as CardDraftState | null) ?? null;
     recipientName = state?.recipient?.name?.trim() || null;
+    cardImageUrl = resolveStoredImageUrl(
+      cardRows[0]?.frontImagePath ?? null,
+      cardRows[0]?.frontImageUrl ?? null,
+    );
   } catch {
     /* non-fatal — email falls back to generic "Your card" copy */
   }
@@ -1026,6 +1036,7 @@ export async function applyFulfillmentUpdate(
         trackingUrl: fresh.trackingUrl || `${publicAppOrigin()}/studio/orders`,
         courier: tier.carrier,
         etaWindow: tier.shippingEstimate,
+        cardImageUrl,
       });
       console.log(
         `[FULFILMENT] shipped email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
@@ -1035,6 +1046,7 @@ export async function applyFulfillmentUpdate(
         senderEmail: order.customerEmail,
         senderName,
         recipientName,
+        cardImageUrl,
       });
       console.log(
         `[FULFILMENT] delivered email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,

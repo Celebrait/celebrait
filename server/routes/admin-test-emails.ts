@@ -224,18 +224,19 @@ async function dispatchTemplate(
   },
 ): Promise<boolean> {
   const { targetTo, vars, cardId, body, adminContact, cardImageUrl, insideImageUrl } = args;
+  // Real card art when a cardId is given; a sample front otherwise so the
+  // hero still renders in a dummy preview.
+  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+  const sampleFront = cardImageUrl ?? `${origin}/hero-card-front.webp`;
   switch (template) {
     case 'card-ready': {
-      // Real card art when a cardId is given; sample front + inside
-      // otherwise so both heroes still render in a dummy preview.
-      const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
       return sendCardReadyEmail({
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         occasion: vars.occasion,
         cardId: cardId ?? 0,
-        cardImageUrl: cardImageUrl ?? `${origin}/hero-card-front.webp`,
+        cardImageUrl: sampleFront,
         insideImageUrl: insideImageUrl ?? `${origin}/hero-card-inside.webp`,
       });
     }
@@ -255,6 +256,7 @@ async function dispatchTemplate(
         senderEmail: body.senderEmail ?? adminContact.email,
         occasion: vars.occasion,
         shareUrl,
+        cardImageUrl: sampleFront,
       });
     }
     case 'sender-order-confirmed': {
@@ -279,6 +281,7 @@ async function dispatchTemplate(
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
+        cardImageUrl: sampleFront,
       });
     }
     case 'sender-print-shipped': {
@@ -291,6 +294,7 @@ async function dispatchTemplate(
           body.trackingUrl ?? 'https://example.com/track/TEST-TRK-1234',
         courier: body.courier ?? 'Aramex',
         etaWindow: body.etaWindow ?? 'Tue–Thu next week',
+        cardImageUrl: sampleFront,
       });
     }
     case 'sender-print-delivered': {
@@ -298,6 +302,7 @@ async function dispatchTemplate(
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
+        cardImageUrl: sampleFront,
       });
     }
     case 'dropoff-recovery': {

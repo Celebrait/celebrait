@@ -395,6 +395,13 @@ function chassis(opts: {
   `;
 }
 
+/** Absolutise an image url for email — mail clients can't resolve
+ *  app-relative paths. R2 urls are already absolute and pass through. */
+function absoluteEmailImage(u?: string | null): string | null {
+  if (!u) return null;
+  return u.startsWith('http') ? u : `${PUBLIC_ORIGIN}${u}`;
+}
+
 // ── Make-your-own link (lead capture from the digital card viewer) ──
 // The recipient of a card said "not right now — email me the link".
 // One warm email, sent immediately, so the intent survives the moment.
@@ -605,6 +612,9 @@ export async function sendRecipientCardArrivedEmail(params: {
   senderEmail: string;
   occasion: string | null;
   shareUrl: string;
+  /** Front of the card — the cover, shown as the hero. Not the inside
+   *  (that's the moment to open for). */
+  cardImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     recipientEmail,
@@ -613,6 +623,7 @@ export async function sendRecipientCardArrivedEmail(params: {
     senderEmail,
     occasion,
     shareUrl,
+    cardImageUrl,
   } = params;
 
   const subject = `${escape(senderName)} sent you a card`;
@@ -631,12 +642,15 @@ export async function sendRecipientCardArrivedEmail(params: {
     </p>
   `;
 
+  const heroSrc = absoluteEmailImage(cardImageUrl);
   const html = chassis({
     preheader,
+    heading: `${senderName} sent you a card`,
+    heroImages: heroSrc ? [{ src: heroSrc, alt: `A card from ${senderName}` }] : undefined,
     bodyHtml: body,
     cta: { label: 'Open your card', href: shareUrl },
     postCtaHtml: `
-      <p style="margin: 0; color: #94a3b8; font-size: 12px;">
+      <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 12px;">
         If the button doesn't work, paste this into your browser:<br>
         <span style="word-break: break-all;">${escape(shareUrl)}</span>
       </p>
@@ -778,13 +792,15 @@ export async function sendSenderCardOpenedEmail(params: {
   senderEmail: string;
   senderName: string;
   recipientName: string | null;
+  cardImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName } = params;
+  const { senderEmail, senderName, recipientName, cardImageUrl } = params;
 
   const who = recipientName ? escape(recipientName) : 'They';
   const subject = recipientName
     ? `${recipientName} just opened your card`
     : `They just opened your card`;
+  const heading = recipientName ? `${recipientName} opened your card` : 'They opened your card';
 
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
@@ -799,8 +815,11 @@ export async function sendSenderCardOpenedEmail(params: {
     </p>
   `;
 
+  const heroSrc = absoluteEmailImage(cardImageUrl);
   const html = chassis({
     preheader: 'Hope they love it.',
+    heading,
+    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
@@ -822,6 +841,7 @@ export async function sendSenderPrintShippedEmail(params: {
   courier: string;
   /** Free-form ETA window, e.g. "Tue–Thu" or "by Friday". */
   etaWindow: string;
+  cardImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -831,12 +851,16 @@ export async function sendSenderPrintShippedEmail(params: {
     trackingUrl,
     courier,
     etaWindow,
+    cardImageUrl,
   } = params;
 
   const who = recipientName ? `${escape(recipientName)}'s` : 'Your';
   const subject = recipientName
     ? `${recipientName}'s card is in the post`
     : `Your printed card is in the post`;
+  const heading = recipientName
+    ? `${recipientName}'s card is in the post`
+    : 'Your card is in the post';
 
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
@@ -845,12 +869,15 @@ export async function sendSenderPrintShippedEmail(params: {
     </p>
   `;
 
+  const heroSrc = absoluteEmailImage(cardImageUrl);
   const html = chassis({
     preheader: `${courier} · expected ${etaWindow}`,
+    heading,
+    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
     bodyHtml: body,
     cta: { label: 'Track delivery', href: trackingUrl },
     postCtaHtml: `
-      <p style="margin: 0; color: #64748b; font-size: 13px;">
+      <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 13px;">
         Tracking ref: <span style="font-family: monospace;">${escape(trackingNumber)}</span>
       </p>
     `,
@@ -868,13 +895,15 @@ export async function sendSenderPrintDeliveredEmail(params: {
   senderEmail: string;
   senderName: string;
   recipientName: string | null;
+  cardImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName } = params;
+  const { senderEmail, senderName, recipientName, cardImageUrl } = params;
 
   const who = recipientName ? escape(recipientName) : 'Your recipient';
   const subject = recipientName
     ? `${recipientName}'s card just arrived`
     : `Your printed card just arrived`;
+  const heading = recipientName ? `${recipientName}'s card arrived` : 'Your card arrived';
 
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
@@ -889,8 +918,11 @@ export async function sendSenderPrintDeliveredEmail(params: {
     </p>
   `;
 
+  const heroSrc = absoluteEmailImage(cardImageUrl);
   const html = chassis({
     preheader: 'Hope it lands well.',
+    heading,
+    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
