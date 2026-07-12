@@ -17,10 +17,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Share2, Package, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Share2, RefreshCw, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { CardOuterSpread, CardInnerSpread } from '@/components/studio/card-print-template';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import { StartAgainButton } from '@/components/studio/steps/review-step';
@@ -138,6 +139,10 @@ function LoadedView({
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [open3D, setOpen3D] = useState(false);
+  // Toggle the stage between the 3D card and the flat print-ready spreads
+  // (front outer + inside inner double-pages), reached via the top-right
+  // "Show print files" button (Kevin 2026-07-11).
+  const [showPrint, setShowPrint] = useState(false);
   // Edit mode flips the surface from "look at the card / buy" to a
   // focused regen workbench. Same pattern as RevealView in the
   // maker — both surfaces stay visually aligned. Only available to
@@ -392,16 +397,20 @@ function LoadedView({
           <ArrowLeft className="w-4 h-4" />
           Back to studio
         </button>
-        {hasPaid ? (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-cta-dark bg-cta-light rounded-full px-3 py-1">
-            <Package className="w-3.5 h-3.5" />
-            Sent
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-cta rounded-full px-3 py-1">
-            Ready to send
-          </div>
-        )}
+        {/* Print-files toggle — swaps the stage between the 3D card and the
+            flat print-ready spreads. Took the old status chip's spot
+            (Kevin 2026-07-11); readiness is carried by the Send button /
+            paid actions below. */}
+        <button
+          type="button"
+          onClick={() => setShowPrint((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-cta-light px-3 py-1 text-xs font-medium text-cta-dark transition-colors hover:bg-cta/20"
+          data-testid="btn-toggle-print-files"
+          aria-pressed={showPrint}
+        >
+          <Printer className="w-3.5 h-3.5" />
+          {showPrint ? 'Back to the card' : 'Show print files'}
+        </button>
       </div>
 
       {/* Card title intentionally NOT rendered here (was an h1 for
@@ -417,42 +426,70 @@ function LoadedView({
           without clipping. Lower z so the header sits above. */}
       <div className="mb-4" />
       <TitleSROnly title={title} />
-      <div className="h-[55vh] sm:h-[62vh] w-full relative z-10">
+      {showPrint ? (
+        /* Print-ready view — the two double-page spreads stacked: front
+           (outer: rear · front) on top, inside (inner) below. This is how
+           the folded card is actually produced. */
         <div
-          className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw]"
-          style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
+          className="relative z-10 mx-auto w-full max-w-md space-y-6 py-2"
+          data-testid="card-view-print-files"
         >
-          <Card3DViewer
-            frontImageUrl={card.frontImageUrl!}
-            insideImageUrl={card.insideImageUrl}
-            open={open3D}
-            onOpenChange={setOpen3D}
-            /* Resting ajar — the site-wide pose (~22°, Kevin's
-               2026-07-07 dial-in on the studio reveal). Orbit gadget
-               removed site-wide the same day: tap to open/close is
-               the whole interaction model. */
-            closedAngle={-0.38}
-            restYaw={-0.12}
-            enableRotate={false}
-            enableZoom={false}
-            className="w-full h-full"
-          />
+          <figure className="space-y-2">
+            <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+              Front — outer spread
+            </figcaption>
+            <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
+          </figure>
+          <figure className="space-y-2">
+            <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+              Inside — inner spread
+            </figcaption>
+            <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
+          </figure>
+          <p className="text-center text-[11px] text-stone-400">
+            How your card prints — folded, front and inside.
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="h-[55vh] sm:h-[62vh] w-full relative z-10">
+          <div
+            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw]"
+            style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
+          >
+            <Card3DViewer
+              frontImageUrl={card.frontImageUrl!}
+              insideImageUrl={card.insideImageUrl}
+              open={open3D}
+              onOpenChange={setOpen3D}
+              /* Resting ajar — the site-wide pose (~22°, Kevin's
+                 2026-07-07 dial-in on the studio reveal). Orbit gadget
+                 removed site-wide the same day: tap to open/close is
+                 the whole interaction model. */
+              closedAngle={-0.38}
+              restYaw={-0.12}
+              enableRotate={false}
+              enableZoom={false}
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="relative z-30 max-w-xl mx-auto px-4 pt-4 text-center flex flex-col items-center gap-5">
         {/* Gesture hints ABOVE the CTAs (Kevin) — they're about the
             3D card, so they sit between it and the actions. Fixed-
             height slot so open/close never moves the page. */}
-        <div className="flex h-14 items-start justify-center">
-          <GestureHints
-            open={open3D}
-            hideRotateHint
-            hideZoomHint
-            openLabel="Tap to close"
-          />
-        </div>
+        {!showPrint && (
+          <div className="flex h-14 items-start justify-center">
+            <GestureHints
+              open={open3D}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
+          </div>
+        )}
 
         {hasPaid ? (
           <PaidActions
