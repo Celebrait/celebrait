@@ -404,7 +404,7 @@ function LoadedView({
         <button
           type="button"
           onClick={() => setShowPrint((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-cta-light px-3 py-1 text-xs font-medium text-cta-dark transition-colors hover:bg-cta/20"
+          className="inline-flex items-center gap-1.5 rounded-full bg-go px-3 py-1 text-xs font-medium text-go-foreground transition-colors hover:bg-go-hover"
           data-testid="btn-toggle-print-files"
           aria-pressed={showPrint}
         >
@@ -426,32 +426,35 @@ function LoadedView({
           without clipping. Lower z so the header sits above. */}
       <div className="mb-4" />
       <TitleSROnly title={title} />
-      {showPrint ? (
-        /* Print-ready view — the two double-page spreads stacked: front
-           (outer: rear · front) on top, inside (inner) below. This is how
-           the folded card is actually produced. */
-        <div
-          className="relative z-10 mx-auto w-full max-w-md space-y-6 py-2"
-          data-testid="card-view-print-files"
-        >
-          <figure className="space-y-2">
-            <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
-              Front — outer spread
-            </figcaption>
-            <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
-          </figure>
-          <figure className="space-y-2">
-            <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
-              Inside — inner spread
-            </figcaption>
-            <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
-          </figure>
-          <p className="text-center text-[11px] text-stone-400">
-            How your card prints — folded, front and inside.
-          </p>
-        </div>
-      ) : (
-        <div className="h-[55vh] sm:h-[62vh] w-full relative z-10">
+      {/* Fixed stage — same height as the 3D reveal so toggling to the
+          print view never shifts the CTAs below (Kevin 2026-07-11). Both
+          views fill this same-sized box. */}
+      <div className="h-[55vh] sm:h-[62vh] w-full relative z-10">
+        {showPrint ? (
+          /* Print-ready view — the two double-page spreads stacked: front
+             (outer: rear · front) on top, inside (inner) below. Fills the
+             fixed stage; scrolls internally if the spreads run tall. */
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-5 overflow-y-auto px-1 py-2"
+            data-testid="card-view-print-files"
+          >
+            <figure className="w-full max-w-[360px] space-y-2">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+                Front — outer spread
+              </figcaption>
+              <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
+            </figure>
+            <figure className="w-full max-w-[360px] space-y-2">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+                Inside — inner spread
+              </figcaption>
+              <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
+            </figure>
+            <p className="text-center text-[11px] text-stone-400">
+              How your card prints — folded, front and inside.
+            </p>
+          </div>
+        ) : (
           <div
             className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
@@ -472,24 +475,27 @@ function LoadedView({
               className="w-full h-full"
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Actions */}
       <div className="relative z-30 max-w-xl mx-auto px-4 pt-4 text-center flex flex-col items-center gap-5">
         {/* Gesture hints ABOVE the CTAs (Kevin) — they're about the
             3D card, so they sit between it and the actions. Fixed-
             height slot so open/close never moves the page. */}
-        {!showPrint && (
-          <div className="flex h-14 items-start justify-center">
+        {/* Keep the fixed-height hint slot even in print view so the CTAs
+            below don't jump when toggling (Kevin 2026-07-11) — only the
+            hint content toggles, not the slot. */}
+        <div className="flex h-14 items-start justify-center">
+          {!showPrint && (
             <GestureHints
               open={open3D}
               hideRotateHint
               hideZoomHint
               openLabel="Tap to close"
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {hasPaid ? (
           <PaidActions
