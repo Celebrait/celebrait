@@ -947,18 +947,28 @@ function OccasionCaptureSection() {
 
   return (
     <section className="px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-2xl text-center">
+      <div className="mx-auto max-w-xl">
         <Rise>
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
-            Whose birthday's next?
-          </h2>
-          <p className="mx-auto mt-4 max-w-[48ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Tell us the date and we'll nudge you in good time — with a card
-            idea ready. Or skip the date and just take the link for later.
-          </p>
-        </Rise>
+          {/* Purple-tinted capture card — the LP's lead-capture moment,
+              given prominence + brand-purple hierarchy (Kevin 2026-07-11):
+              soft violet tint, a purple accent rule up top, purple in the
+              headline + on the action. */}
+          <div
+            className="rounded-[20px] border border-brand-light bg-brand-muted px-6 py-9 text-center sm:px-9"
+            style={{
+              borderTop: '3px solid #5c57d4',
+              boxShadow: '0 22px 44px -26px rgba(92,87,212,0.32)',
+            }}
+          >
+            <h2 className={`text-[clamp(27px,3.6vw,36px)] leading-[1.08] ${DISPLAY}`}>
+              Whose birthday's <span className="text-brand-dark">next?</span>
+            </h2>
+            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-stone">
+              Tell us the date and we'll nudge you in good time — with a card
+              idea ready. Or skip the date and just take the link for later.
+            </p>
 
-        <Rise delay={0.1} className="mt-8">
+            <div className="mt-7">
           {sent ? (
             <div
               className="mx-auto max-w-md rounded-2xl border border-keeper-hair bg-white/80 p-6"
@@ -990,7 +1000,7 @@ function OccasionCaptureSection() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Their name (optional)"
-                  className="h-12 min-w-0 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-name"
                 />
                 <input
@@ -998,7 +1008,7 @@ function OccasionCaptureSection() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   aria-label="Their date (optional)"
-                  className="h-12 min-w-0 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-date"
                 />
               </div>
@@ -1009,13 +1019,13 @@ function OccasionCaptureSection() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-keeper-hair bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/20"
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-email"
                 />
                 <button
                   type="submit"
                   disabled={busy}
-                  className="h-12 shrink-0 rounded-full bg-keeper-ink px-6 text-[14px] font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-50"
+                  className="h-12 shrink-0 rounded-full bg-go px-6 text-[14px] font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50"
                   data-testid="btn-occasion-submit"
                 >
                   {busy ? 'One sec…' : date ? 'Set my nudge' : 'Email me the link'}
@@ -1041,6 +1051,8 @@ function OccasionCaptureSection() {
               </p>
             </form>
           )}
+            </div>
+          </div>
         </Rise>
       </div>
     </section>
