@@ -35,6 +35,7 @@ import { randomBytes } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { users } from '@shared/models/auth';
+import { sendWelcomeEmail } from '../../email-service';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -239,6 +240,10 @@ export function registerGoogleAuthRoutes(app: Express): void {
           })
           .returning();
         user = newUser;
+        // Welcome email — once, on Google signup. Fire-and-forget.
+        sendWelcomeEmail({ email: normalizedEmail, firstName: info.given_name || null }).catch(
+          (err) => console.error('[AUTH] welcome email failed (google):', err),
+        );
       }
 
       // ── Step 4d ─ establish session. Reuse the OTP session key so

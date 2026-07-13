@@ -5,7 +5,7 @@ import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt } from "drizzle-orm";
-import { sendOtpEmail } from "../../email-service";
+import { sendOtpEmail, sendWelcomeEmail } from "../../email-service";
 import { rateLimitHit, rateLimitClear, clientIp } from "../../simple-rate-limit";
 
 // Local dev bypass: when DEV_AUTH_ACCEPT_ANY_CODE=1, the OTP verify endpoint
@@ -214,6 +214,11 @@ export function registerAuthRoutes(app: Express): void {
           lastName: lastName || null,
         }).returning();
         user = newUser;
+        // Welcome email — once, on account creation. Fire-and-forget so it
+        // never blocks or fails sign-in.
+        sendWelcomeEmail({ email: normalizedEmail, firstName: firstName || null }).catch((err) =>
+          console.error("[AUTH] welcome email failed:", err),
+        );
       }
 
       // Establish session. Regenerate first so the pre-auth session ID is

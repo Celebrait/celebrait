@@ -54,7 +54,9 @@ type EmailTemplate =
   | 'reminder-t21'
   | 'reminder-t7'
   | 'reminder-t3'
-  | 'otp';
+  | 'otp'
+  | 'make-your-own'
+  | 'welcome';
 
 interface EmailEntry {
   template: EmailTemplate;
@@ -105,6 +107,13 @@ const EMAIL_GROUPS: EmailGroup[] = [
       { template: 'reminder-t21', label: 'Reminder — 21 days', description: '"{Recipient}\'s {occasion} is in 21 days"', who: 'sender' },
       { template: 'reminder-t7', label: 'Reminder — 7 days', description: '"…is in 7 days" — time to make it.', who: 'sender' },
       { template: 'reminder-t3', label: 'Reminder — 3 days', description: '"…is in 3 days" — pick fast delivery.', who: 'sender' },
+    ],
+  },
+  {
+    groupLabel: 'Acquisition & onboarding',
+    emails: [
+      { template: 'welcome', label: 'Welcome', description: 'New signup — warm hello + make your first card.', who: 'sender' },
+      { template: 'make-your-own', label: 'Make your own (link)', description: 'Lead asked us to email them the link.', who: 'recipient' },
     ],
   },
   {

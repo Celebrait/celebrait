@@ -58,6 +58,8 @@ import {
   sendDropOffLastCallEmail,
   sendReminderEmail,
   sendOtpEmail,
+  sendMakeYourOwnLinkEmail,
+  sendWelcomeEmail,
   renderEmailForPreview,
   sendEmail,
   type ReminderTier,
@@ -196,6 +198,8 @@ const KNOWN_TEMPLATES = [
   'reminder-t7',
   'reminder-t3',
   'otp',
+  'make-your-own',
+  'welcome',
 ] as const;
 
 type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
@@ -373,6 +377,17 @@ async function dispatchTemplate(
       const code =
         typeof body.code === 'string' && body.code.trim() ? body.code.trim() : '204815';
       return sendOtpEmail(targetTo, code);
+    }
+    case 'make-your-own': {
+      // Lead-capture "here's your link" email. body.occasionDate toggles
+      // the occasion-nudge variant.
+      return sendMakeYourOwnLinkEmail(targetTo, {
+        recipientName: vars.recipientName,
+        occasionDate: body.occasionDate ?? null,
+      });
+    }
+    case 'welcome': {
+      return sendWelcomeEmail({ email: targetTo, firstName: vars.senderName });
     }
     default: {
       // Unreachable — callers gate via isKnownTemplate first.

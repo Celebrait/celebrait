@@ -493,6 +493,41 @@ export async function sendMakeYourOwnLinkEmail(
   });
 }
 
+// ── Welcome (fired once on signup) ───────────────────────────────────
+// Warm hello + a nudge to make the first card. Fired from the OTP-verify
+// and Google new-user branches (fire-and-forget). No card hero — they
+// haven't made one yet. firstName may be absent (name is captured on the
+// welcome step, just after account creation).
+export async function sendWelcomeEmail(params: {
+  email: string;
+  firstName?: string | null;
+}): Promise<boolean> {
+  const { email, firstName } = params;
+  const startUrl = `${PUBLIC_ORIGIN}/studio/new-card`;
+  const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      Glad you're here. Celebrait turns a photo into a card worth keeping —
+      upload someone you love, tell us the scene, and we'll paint them into
+      it. Printed, posted, kept.
+    </p>
+    <p style="margin: 0 0 8px;">
+      Free to make — you only pay if you send one. Whenever you're ready,
+      your first card's a tap away.
+    </p>
+  `;
+  const html = chassis({
+    preheader: "You're in — let's make something worth keeping.",
+    heading: 'Welcome to Celebrait',
+    bodyHtml: body,
+    cta: { label: 'Make your first card', href: startUrl },
+  });
+  const text =
+    `${greeting.replace(/<[^>]+>/g, '')}\n\nGlad you're here. Celebrait turns a photo into a card worth keeping — upload someone you love, tell us the scene, and we'll paint them into it. Printed, posted, kept.\n\nFree to make — you only pay if you send one.\n\nMake your first card: ${startUrl}\n\n— Celebrait`;
+  return sendEmail({ to: email, subject: 'Welcome to Celebrait', html, text });
+}
+
 // ── OTP (auth) ───────────────────────────────────────────────────────
 export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
   // Route through sendEmail so it uses the same transport policy (HTTPS API
