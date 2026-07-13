@@ -428,23 +428,24 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
     `<div style="margin: 0 0 6px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: ${EMAIL_STONE};">${t}</div>`;
   const art = (src: string) =>
     `<img src="${escape(src)}" width="${P}" style="display: block; width: ${P}px; max-width: 100%; height: auto;">`;
-  const spread = (leftInner: string, leftBg: string, right: string) => `
+  // Blank panel — white, a faint panel label + the celebrait logo, mirroring
+  // the studio print files. (Mail clients can't reliably overlay a watermark
+  // ON an image — Gmail strips positioning, Outlook has none — so the art
+  // panels stay clean; the logo-on-white branding carries the print look.)
+  const blank = (label: string) => `
+    <div style="text-align: center; line-height: 1.5;">
+      <div style="font-family: ${EMAIL_SERIF}; font-size: 9px; letter-spacing: 0.12em; color: #c9c2b6;">${label}</div>
+      <img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="54" style="display: inline-block; width: 54px; max-width: 70%; height: auto; margin-top: 7px;">
+    </div>`;
+  const spread = (leftInner: string, right: string) => `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="border-collapse: separate; border: 1px solid ${EMAIL_HAIR}; border-radius: 8px; overflow: hidden;">
       <tr>
-        <td valign="middle" align="center" width="${P}" height="${P}" style="width: ${P}px; height: ${P}px; background: ${leftBg}; border-right: 1px dashed ${EMAIL_HAIR};">${leftInner}</td>
+        <td valign="middle" align="center" width="${P}" height="${P}" style="width: ${P}px; height: ${P}px; background: #ffffff; border-right: 1px dashed ${EMAIL_HAIR};">${leftInner}</td>
         <td valign="middle" align="center" width="${P}" style="width: ${P}px;">${right}</td>
       </tr>
     </table>`;
-  const frontBlock = front
-    ? `${cap('Front')}${spread(
-        `<span style="font-family: ${EMAIL_SERIF}; font-size: 10px; color: #b8afa3;">celebrait</span>`,
-        '#ffffff',
-        art(front),
-      )}`
-    : '';
-  const insideBlock = inside
-    ? `${cap('Inside')}${spread('&nbsp;', '#faf7f0', art(inside))}`
-    : '';
+  const frontBlock = front ? `${cap('Front')}${spread(blank('REAR'), art(front))}` : '';
+  const insideBlock = inside ? `${cap('Inside')}${spread(blank('INSIDE'), art(inside))}` : '';
   const gap = front && inside ? '<div style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</div>' : '';
   return `${frontBlock}${gap}${insideBlock}`;
 }

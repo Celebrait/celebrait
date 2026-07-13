@@ -109,12 +109,15 @@ export function CardPrintStrip({
         </div>
         <div className={`${panel} bg-stone-100`}>
           {frontUrl && <img src={frontUrl} alt="" className="h-full w-full object-cover" />}
+          <PanelWatermark label="celebrait" />
         </div>
-        <div className={`${panel} bg-[#faf7f0]`}>
+        <div className={`${panel} flex items-end justify-center bg-white pb-1`}>
           <PanelWatermark label="INSIDE" />
+          <img src={logoSrc} alt="" className="relative h-2 opacity-60" />
         </div>
         <div className={`${panel} bg-stone-100`}>
           {insideUrl && <img src={insideUrl} alt="" className="h-full w-full object-cover" />}
+          <PanelWatermark label="celebrait" />
         </div>
       </div>
       <div className="mt-1 flex gap-1 text-[9px] text-stone-400">
