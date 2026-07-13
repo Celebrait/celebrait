@@ -432,10 +432,10 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
   // the studio print files. (Mail clients can't reliably overlay a watermark
   // ON an image — Gmail strips positioning, Outlook has none — so the art
   // panels stay clean; the logo-on-white branding carries the print look.)
-  const blank = (label: string) => `
+  const blank = (label: string, showLogo: boolean) => `
     <div style="text-align: center; line-height: 1.5;">
       <div style="font-family: ${EMAIL_SERIF}; font-size: 9px; letter-spacing: 0.12em; color: #c9c2b6;">${label}</div>
-      <img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="54" style="display: inline-block; width: 54px; max-width: 70%; height: auto; margin-top: 7px;">
+      ${showLogo ? `<img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="54" style="display: inline-block; width: 54px; max-width: 70%; height: auto; margin-top: 7px;">` : ''}
     </div>`;
   const spread = (leftInner: string, right: string) => `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="border-collapse: separate; border: 1px solid ${EMAIL_HAIR}; border-radius: 8px; overflow: hidden;">
@@ -444,8 +444,10 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
         <td valign="middle" align="center" width="${P}" style="width: ${P}px;">${right}</td>
       </tr>
     </table>`;
-  const frontBlock = front ? `${cap('Front')}${spread(blank('REAR'), art(front))}` : '';
-  const insideBlock = inside ? `${cap('Inside')}${spread(blank('INSIDE'), art(inside))}` : '';
+  // Logo on the REAR panel only (the card's back cover); the inside-left
+  // stays blank (Kevin 2026-07-11).
+  const frontBlock = front ? `${cap('Front')}${spread(blank('REAR', true), art(front))}` : '';
+  const insideBlock = inside ? `${cap('Inside')}${spread(blank('INSIDE', false), art(inside))}` : '';
   const gap = front && inside ? '<div style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</div>' : '';
   return `${frontBlock}${gap}${insideBlock}`;
 }
