@@ -860,6 +860,7 @@ async function fireOrderPaidEmails(
         occasion,
         shareUrl,
         cardImageUrl: resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl),
+        insideImageUrl: resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl),
       });
       console.log(
         `[STUDIO-CHECKOUT] recipient email ${sent ? 'sent' : 'failed'} → ${recipientEmail} (order ${order.id})`,
@@ -1000,12 +1001,15 @@ export async function applyFulfillmentUpdate(
   // Recipient name from the card draft (for the "X's card" copy).
   let recipientName: string | null = null;
   let cardImageUrl: string | null = null;
+  let insideImageUrl: string | null = null;
   try {
     const cardRows = await db
       .select({
         conversationData: cards.conversationData,
         frontImagePath: cards.frontImagePath,
         frontImageUrl: cards.frontImageUrl,
+        insideImagePath: cards.insideImagePath,
+        insideImageUrl: cards.insideImageUrl,
       })
       .from(cards)
       .where(eq(cards.id, order.cardId))
@@ -1015,6 +1019,10 @@ export async function applyFulfillmentUpdate(
     cardImageUrl = resolveStoredImageUrl(
       cardRows[0]?.frontImagePath ?? null,
       cardRows[0]?.frontImageUrl ?? null,
+    );
+    insideImageUrl = resolveStoredImageUrl(
+      cardRows[0]?.insideImagePath ?? null,
+      cardRows[0]?.insideImageUrl ?? null,
     );
   } catch {
     /* non-fatal — email falls back to generic "Your card" copy */
@@ -1037,6 +1045,7 @@ export async function applyFulfillmentUpdate(
         courier: tier.carrier,
         etaWindow: tier.shippingEstimate,
         cardImageUrl,
+        insideImageUrl,
       });
       console.log(
         `[FULFILMENT] shipped email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
@@ -1047,6 +1056,7 @@ export async function applyFulfillmentUpdate(
         senderName,
         recipientName,
         cardImageUrl,
+        insideImageUrl,
       });
       console.log(
         `[FULFILMENT] delivered email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,

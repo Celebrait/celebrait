@@ -402,6 +402,28 @@ function absoluteEmailImage(u?: string | null): string | null {
   return u.startsWith('http') ? u : `${PUBLIC_ORIGIN}${u}`;
 }
 
+/** Build the chassis hero list from a card's images: front + inside
+ *  (captioned Front / Inside) when both are present, a lone image
+ *  uncaptioned otherwise. Both sides shown on every card email so the
+ *  recipient/sender sees the whole card (Kevin 2026-07-11). */
+function cardHeroImages(
+  frontUrl?: string | null,
+  insideUrl?: string | null,
+  altBase = 'Your card',
+): Array<{ src: string; alt: string; caption?: string }> {
+  const front = absoluteEmailImage(frontUrl);
+  const inside = absoluteEmailImage(insideUrl);
+  if (front && inside) {
+    return [
+      { src: front, alt: `${altBase} — front`, caption: 'Front' },
+      { src: inside, alt: `${altBase} — inside`, caption: 'Inside' },
+    ];
+  }
+  if (front) return [{ src: front, alt: altBase }];
+  if (inside) return [{ src: inside, alt: altBase }];
+  return [];
+}
+
 // ── Make-your-own link (lead capture from the digital card viewer) ──
 // The recipient of a card said "not right now — email me the link".
 // One warm email, sent immediately, so the intent survives the moment.
@@ -612,9 +634,9 @@ export async function sendRecipientCardArrivedEmail(params: {
   senderEmail: string;
   occasion: string | null;
   shareUrl: string;
-  /** Front of the card — the cover, shown as the hero. Not the inside
-   *  (that's the moment to open for). */
+  /** Front + inside of the card — both shown as heroes. */
   cardImageUrl?: string | null;
+  insideImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     recipientEmail,
@@ -624,6 +646,7 @@ export async function sendRecipientCardArrivedEmail(params: {
     occasion,
     shareUrl,
     cardImageUrl,
+    insideImageUrl,
   } = params;
 
   const subject = `${escape(senderName)} sent you a card`;
@@ -642,11 +665,11 @@ export async function sendRecipientCardArrivedEmail(params: {
     </p>
   `;
 
-  const heroSrc = absoluteEmailImage(cardImageUrl);
+  const heroes = cardHeroImages(cardImageUrl, insideImageUrl, `A card from ${senderName}`);
   const html = chassis({
     preheader,
     heading: `${senderName} sent you a card`,
-    heroImages: heroSrc ? [{ src: heroSrc, alt: `A card from ${senderName}` }] : undefined,
+    heroImages: heroes.length ? heroes : undefined,
     bodyHtml: body,
     cta: { label: 'Open your card', href: shareUrl },
     postCtaHtml: `
@@ -793,8 +816,9 @@ export async function sendSenderCardOpenedEmail(params: {
   senderName: string;
   recipientName: string | null;
   cardImageUrl?: string | null;
+  insideImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName, cardImageUrl } = params;
+  const { senderEmail, senderName, recipientName, cardImageUrl, insideImageUrl } = params;
 
   const who = recipientName ? escape(recipientName) : 'They';
   const subject = recipientName
@@ -815,11 +839,11 @@ export async function sendSenderCardOpenedEmail(params: {
     </p>
   `;
 
-  const heroSrc = absoluteEmailImage(cardImageUrl);
+  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: 'Hope they love it.',
     heading,
-    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
+    heroImages: heroes.length ? heroes : undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
@@ -842,6 +866,7 @@ export async function sendSenderPrintShippedEmail(params: {
   /** Free-form ETA window, e.g. "Tue–Thu" or "by Friday". */
   etaWindow: string;
   cardImageUrl?: string | null;
+  insideImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -852,6 +877,7 @@ export async function sendSenderPrintShippedEmail(params: {
     courier,
     etaWindow,
     cardImageUrl,
+    insideImageUrl,
   } = params;
 
   const who = recipientName ? `${escape(recipientName)}'s` : 'Your';
@@ -869,11 +895,11 @@ export async function sendSenderPrintShippedEmail(params: {
     </p>
   `;
 
-  const heroSrc = absoluteEmailImage(cardImageUrl);
+  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: `${courier} · expected ${etaWindow}`,
     heading,
-    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
+    heroImages: heroes.length ? heroes : undefined,
     bodyHtml: body,
     cta: { label: 'Track delivery', href: trackingUrl },
     postCtaHtml: `
@@ -896,8 +922,9 @@ export async function sendSenderPrintDeliveredEmail(params: {
   senderName: string;
   recipientName: string | null;
   cardImageUrl?: string | null;
+  insideImageUrl?: string | null;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName, cardImageUrl } = params;
+  const { senderEmail, senderName, recipientName, cardImageUrl, insideImageUrl } = params;
 
   const who = recipientName ? escape(recipientName) : 'Your recipient';
   const subject = recipientName
@@ -918,11 +945,11 @@ export async function sendSenderPrintDeliveredEmail(params: {
     </p>
   `;
 
-  const heroSrc = absoluteEmailImage(cardImageUrl);
+  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: 'Hope it lands well.',
     heading,
-    heroImages: heroSrc ? [{ src: heroSrc, alt: 'Your card' }] : undefined,
+    heroImages: heroes.length ? heroes : undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });

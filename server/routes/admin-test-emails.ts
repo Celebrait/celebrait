@@ -224,10 +224,11 @@ async function dispatchTemplate(
   },
 ): Promise<boolean> {
   const { targetTo, vars, cardId, body, adminContact, cardImageUrl, insideImageUrl } = args;
-  // Real card art when a cardId is given; a sample front otherwise so the
-  // hero still renders in a dummy preview.
+  // Real card art when a cardId is given; sample front + inside otherwise
+  // so both heroes still render in a dummy preview.
   const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
   const sampleFront = cardImageUrl ?? `${origin}/hero-card-front.webp`;
+  const sampleInside = insideImageUrl ?? `${origin}/hero-card-inside.webp`;
   switch (template) {
     case 'card-ready': {
       return sendCardReadyEmail({
@@ -237,7 +238,7 @@ async function dispatchTemplate(
         occasion: vars.occasion,
         cardId: cardId ?? 0,
         cardImageUrl: sampleFront,
-        insideImageUrl: insideImageUrl ?? `${origin}/hero-card-inside.webp`,
+        insideImageUrl: sampleInside,
       });
     }
     case 'generation-failed': {
@@ -257,6 +258,7 @@ async function dispatchTemplate(
         occasion: vars.occasion,
         shareUrl,
         cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'sender-order-confirmed': {
@@ -282,6 +284,7 @@ async function dispatchTemplate(
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'sender-print-shipped': {
@@ -295,6 +298,7 @@ async function dispatchTemplate(
         courier: body.courier ?? 'Aramex',
         etaWindow: body.etaWindow ?? 'Tue–Thu next week',
         cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'sender-print-delivered': {
@@ -303,6 +307,7 @@ async function dispatchTemplate(
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'dropoff-recovery': {
