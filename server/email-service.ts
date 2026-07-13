@@ -1178,6 +1178,9 @@ export async function sendReminderEmail(params: {
    *  with it, the email anchors the act to Celebrait specifically.
    *  May be an absolute URL or a `/images/...` path (we absolutise). */
   lastCardImageUrl?: string | null;
+  /** Inside of that last card — so the memory shows the same small print
+   *  spread as every other card email (Kevin 2026-07-11). */
+  lastInsideImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -1188,31 +1191,24 @@ export async function sendReminderEmail(params: {
     tier,
     startCardUrl,
     lastCardImageUrl,
+    lastInsideImageUrl,
   } = params;
 
   const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
   const occasionLabel = humaniseOccasion(occasion);
 
-  // Absolutise the card image URL — email clients can't resolve
-  // relative paths. Falls through unchanged if already absolute.
-  const absoluteCardImage = lastCardImageUrl
-    ? lastCardImageUrl.startsWith('http')
-      ? lastCardImageUrl
-      : `${PUBLIC_ORIGIN}${lastCardImageUrl}`
-    : null;
-
-  // The memory block — rendered before the body when we have art to
-  // show. Soft caption framing ("last time you sent this") sets up the
-  // body's *"want to do something for this one?"* without being explicit
-  // about the strategic intent. Inline styles only — email clients
-  // strip <style> tags.
-  const memoryBlock = absoluteCardImage
+  // The memory block — the small print-ready spread of the LAST card they
+  // sent this person, framed "last time you sent this" (the retention hook
+  // from next_address_book_reminders_retention.md). Same spread as every
+  // other card email, kept in the body so the framing sits with it.
+  const memorySpread = printSpreadHero(lastCardImageUrl, lastInsideImageUrl);
+  const memoryBlock = memorySpread
     ? `
-      <p style="margin: 0 0 12px; color: #475569; font-size: 14px;">
+      <p style="margin: 0 0 14px; color: ${EMAIL_STONE}; font-size: 14px;">
         Last time you sent ${escape(recipientName)} this&nbsp;&mdash;
       </p>
-      <div style="margin: 0 0 24px; text-align: center;">
-        <img src="${escape(absoluteCardImage)}" alt="The card you sent ${escape(recipientName)}" width="320" style="display: inline-block; max-width: 320px; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08); border: 1px solid rgba(15, 23, 42, 0.04);">
+      <div style="margin: 0 0 24px;">
+        ${memorySpread}
       </div>
     `
     : '';
@@ -1228,7 +1224,7 @@ export async function sendReminderEmail(params: {
   // previous Celebrait card the user made. Without art, copy stays
   // generic. Memory block is rendered first so the image is the first
   // thing visible after the greeting.
-  const hasMemory = !!absoluteCardImage;
+  const hasMemory = !!memorySpread;
 
   if (tier === 't_21') {
     subject = `${recipientName}'s ${occasionLabel} is in 3 weeks`;

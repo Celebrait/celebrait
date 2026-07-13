@@ -364,7 +364,8 @@ async function dispatchTemplate(
         daysUntil: typeof body.daysUntil === 'number' ? body.daysUntil : daysUntil,
         tier,
         startCardUrl,
-        lastCardImageUrl: cardImageUrl ?? `${origin}/hero-card-front.webp`,
+        lastCardImageUrl: sampleFront,
+        lastInsideImageUrl: sampleInside,
       });
     }
     case 'otp': {

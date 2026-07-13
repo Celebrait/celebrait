@@ -215,7 +215,7 @@ export async function runReminderDispatch(
       // cheapest); with it, the email anchors the act to Celebrait
       // specifically — *"this is the card you sent last time"*. See
       // next_address_book_reminders_retention.md.
-      const lastCardImageUrl = await findLastSentCardImageUrl(entry.userId, entry.name);
+      const lastCard = await findLastSentCardImages(entry.userId, entry.name);
       const emailSent = await sendReminderEmail({
         senderEmail: sender.email,
         senderName: sender.firstName,
@@ -224,7 +224,8 @@ export async function runReminderDispatch(
         daysUntil,
         tier: dueTier,
         startCardUrl,
-        lastCardImageUrl,
+        lastCardImageUrl: lastCard.front,
+        lastInsideImageUrl: lastCard.inside,
       });
 
       // Log regardless of send success — prevents retry loops.
@@ -400,16 +401,18 @@ async function isPrintOrderPlaced(
  *  routes/address-book.ts — duplicated rather than shared because the
  *  query is 12 lines and shared/ doesn't have a server-only home for
  *  query helpers yet. If a third caller appears, extract to server/lib/. */
-async function findLastSentCardImageUrl(
+async function findLastSentCardImages(
   userId: string,
   recipientName: string,
-): Promise<string | null> {
+): Promise<{ front: string | null; inside: string | null }> {
   const trimmed = recipientName.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return { front: null, inside: null };
   const rows = await db
     .select({
       frontImagePath: cards.frontImagePath,
       frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
     })
     .from(cards)
     .where(
@@ -422,10 +425,11 @@ async function findLastSentCardImageUrl(
     .orderBy(desc(cards.createdAt))
     .limit(1);
   const row = rows[0];
-  if (!row) return null;
-  return row.frontImagePath
-    ? publicImageUrl(row.frontImagePath)
-    : row.frontImageUrl;
+  if (!row) return { front: null, inside: null };
+  return {
+    front: row.frontImagePath ? publicImageUrl(row.frontImagePath) : row.frontImageUrl,
+    inside: row.insideImagePath ? publicImageUrl(row.insideImagePath) : row.insideImageUrl,
+  };
 }
 
 /** Build the deep-link URL for the reminder email's CTA. Pre-fills
