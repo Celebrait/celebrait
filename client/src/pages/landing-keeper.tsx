@@ -110,7 +110,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const authed = !isLoading && isAuthenticated;
-  const cls = `inline-flex items-center justify-center rounded-full bg-cta font-semibold text-cta-foreground transition-colors hover:bg-cta-hover ${
+  const cls = `inline-flex items-center justify-center rounded-full bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
     large ? 'px-9 py-4 text-base' : 'px-7 py-3 text-[15px]'
   }`;
   return authed ? (
@@ -1054,7 +1054,7 @@ function FinaleSection() {
   const { openAuth } = useAuthModal();
   const authed = !isLoading && isAuthenticated;
   const cls =
-    'inline-flex items-center justify-center rounded-full bg-cta px-9 py-4 text-base font-semibold text-cta-foreground transition-colors hover:bg-cta-hover';
+    'inline-flex items-center justify-center rounded-full bg-keeper-ink px-9 py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black';
   return (
     <section className="bg-keeper-ink px-6 py-20 text-center md:py-28">
       <Rise>
