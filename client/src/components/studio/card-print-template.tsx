@@ -65,20 +65,25 @@ export function CardOuterSpread({ frontUrl }: { frontUrl: string | null }) {
       </div>
       <div className={cell}>
         {frontUrl && <img src={frontUrl} alt="" className="h-full w-full object-cover" />}
+        <PanelWatermark label="celebrait" />
       </div>
     </div>
   );
 }
 
-/** Inside step — inner spread: blank left + the inside artwork right. */
+/** Inside step — inner spread: blank left (white, logo — mirrors the rear)
+ *  + the inside artwork right. Both artwork panels carry a faint celebrait
+ *  watermark. */
 export function CardInnerSpread({ insideUrl }: { insideUrl: string | null }) {
   return (
     <div className={spread}>
-      <div className="relative aspect-square flex-1 overflow-hidden border-r border-dashed border-stone-300 bg-[#faf7f0]">
+      <div className="relative flex aspect-square flex-1 items-end justify-center overflow-hidden border-r border-dashed border-stone-300 bg-white pb-[7%]">
         <PanelWatermark label="INSIDE" />
+        <img src={logoSrc} alt="Celebrait" className="relative h-[7%] min-h-[7px] opacity-60" />
       </div>
       <div className={cell}>
         {insideUrl && <img src={insideUrl} alt="" className="h-full w-full object-cover" />}
+        <PanelWatermark label="celebrait" />
       </div>
     </div>
   );
