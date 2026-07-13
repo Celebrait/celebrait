@@ -257,8 +257,6 @@ async function dispatchTemplate(
         senderEmail: body.senderEmail ?? adminContact.email,
         occasion: vars.occasion,
         shareUrl,
-        cardImageUrl: sampleFront,
-        insideImageUrl: sampleInside,
       });
     }
     case 'sender-order-confirmed': {

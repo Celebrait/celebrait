@@ -297,6 +297,10 @@ function chassis(opts: {
    *  stacked with an optional caption over each ("Front" / "Inside").
    *  Callers must pass ABSOLUTE urls; mail clients can't resolve paths. */
   heroImages?: Array<{ src: string; alt: string; caption?: string }>;
+  /** Optional raw HTML hero block above the body — used for the small
+   *  print-ready spread (see printSpreadHero). Takes precedence over
+   *  heroImages. */
+  heroHtml?: string;
   /** Optional CTA button rendered after bodyHtml. */
   cta?: { label: string; href: string };
   /** Optional secondary line under the CTA (e.g. tracking ref). */
@@ -316,7 +320,14 @@ function chassis(opts: {
         </tr>`
     : '';
   const heroImages = opts.heroImages ?? [];
-  const heroHtml = heroImages.length
+  const heroRow = opts.heroHtml
+    ? `
+        <tr>
+          <td style="padding: 24px 40px 0 40px;" align="center">
+            ${opts.heroHtml}
+          </td>
+        </tr>`
+    : heroImages.length
     ? `
         <tr>
           <td style="padding: 24px 40px 0 40px;" align="center">
@@ -373,9 +384,9 @@ function chassis(opts: {
                   </td>
                 </tr>
                 ${headingHtml}
-                ${heroHtml}
+                ${heroRow}
                 <tr>
-                  <td style="padding: ${opts.heading || heroImages.length ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
+                  <td style="padding: ${opts.heading || heroImages.length || opts.heroHtml ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
                     ${opts.bodyHtml}
                   </td>
                 </tr>
@@ -402,26 +413,40 @@ function absoluteEmailImage(u?: string | null): string | null {
   return u.startsWith('http') ? u : `${PUBLIC_ORIGIN}${u}`;
 }
 
-/** Build the chassis hero list from a card's images: front + inside
- *  (captioned Front / Inside) when both are present, a lone image
- *  uncaptioned otherwise. Both sides shown on every card email so the
- *  recipient/sender sees the whole card (Kevin 2026-07-11). */
-function cardHeroImages(
-  frontUrl?: string | null,
-  insideUrl?: string | null,
-  altBase = 'Your card',
-): Array<{ src: string; alt: string; caption?: string }> {
+/** Build a SMALL print-ready hero: the folded-card spreads stacked —
+ *  front (rear · front) on top, inside (blank · inside) below, split by a
+ *  dashed fold. A compact reminder of the printed product, not a big
+ *  image (Kevin 2026-07-11). Returns '' when there's no art. Email-safe
+ *  tables + inline styles only. NOTE: not used on recipient email — the
+ *  receiver shouldn't see the card before they open it. */
+function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): string {
   const front = absoluteEmailImage(frontUrl);
   const inside = absoluteEmailImage(insideUrl);
-  if (front && inside) {
-    return [
-      { src: front, alt: `${altBase} — front`, caption: 'Front' },
-      { src: inside, alt: `${altBase} — inside`, caption: 'Inside' },
-    ];
-  }
-  if (front) return [{ src: front, alt: altBase }];
-  if (inside) return [{ src: inside, alt: altBase }];
-  return [];
+  if (!front && !inside) return '';
+  const P = 120; // panel size (px) — small on purpose
+  const cap = (t: string) =>
+    `<div style="margin: 0 0 6px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: ${EMAIL_STONE};">${t}</div>`;
+  const art = (src: string) =>
+    `<img src="${escape(src)}" width="${P}" style="display: block; width: ${P}px; max-width: 100%; height: auto;">`;
+  const spread = (leftInner: string, leftBg: string, right: string) => `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="border-collapse: separate; border: 1px solid ${EMAIL_HAIR}; border-radius: 8px; overflow: hidden;">
+      <tr>
+        <td valign="middle" align="center" width="${P}" height="${P}" style="width: ${P}px; height: ${P}px; background: ${leftBg}; border-right: 1px dashed ${EMAIL_HAIR};">${leftInner}</td>
+        <td valign="middle" align="center" width="${P}" style="width: ${P}px;">${right}</td>
+      </tr>
+    </table>`;
+  const frontBlock = front
+    ? `${cap('Front')}${spread(
+        `<span style="font-family: ${EMAIL_SERIF}; font-size: 10px; color: #b8afa3;">celebrait</span>`,
+        '#ffffff',
+        art(front),
+      )}`
+    : '';
+  const insideBlock = inside
+    ? `${cap('Inside')}${spread('&nbsp;', '#faf7f0', art(inside))}`
+    : '';
+  const gap = front && inside ? '<div style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</div>' : '';
+  return `${frontBlock}${gap}${insideBlock}`;
 }
 
 // ── Make-your-own link (lead capture from the digital card viewer) ──
@@ -546,27 +571,11 @@ export async function sendCardReadyEmail(params: {
     </p>
   `;
 
-  // Absolutise the card images — mail clients can't resolve app-relative
-  // paths. R2 URLs are already absolute and fall through unchanged.
-  const absolutise = (u?: string | null) =>
-    u ? (u.startsWith('http') ? u : `${PUBLIC_ORIGIN}${u}`) : null;
-  const frontSrc = absolutise(cardImageUrl);
-  const insideSrc = absolutise(insideImageUrl);
-  // Show both sides when we have them (captioned Front / Inside); a lone
-  // front needs no caption.
-  const heroImages: Array<{ src: string; alt: string; caption?: string }> = [];
-  if (frontSrc && insideSrc) {
-    heroImages.push({ src: frontSrc, alt: `${recipientClauseRaw} — front`, caption: 'Front' });
-    heroImages.push({ src: insideSrc, alt: `${recipientClauseRaw} — inside`, caption: 'Inside' });
-  } else if (frontSrc) {
-    heroImages.push({ src: frontSrc, alt: recipientClauseRaw });
-  }
-
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
     preheader: 'Have a look — buy it as is, or tweak before you send.',
     heading: `${recipientClauseRaw} is ready`,
-    heroImages: heroImages.length ? heroImages : undefined,
+    heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
   });
@@ -634,9 +643,6 @@ export async function sendRecipientCardArrivedEmail(params: {
   senderEmail: string;
   occasion: string | null;
   shareUrl: string;
-  /** Front + inside of the card — both shown as heroes. */
-  cardImageUrl?: string | null;
-  insideImageUrl?: string | null;
 }): Promise<boolean> {
   const {
     recipientEmail,
@@ -645,8 +651,6 @@ export async function sendRecipientCardArrivedEmail(params: {
     senderEmail,
     occasion,
     shareUrl,
-    cardImageUrl,
-    insideImageUrl,
   } = params;
 
   const subject = `${escape(senderName)} sent you a card`;
@@ -665,11 +669,11 @@ export async function sendRecipientCardArrivedEmail(params: {
     </p>
   `;
 
-  const heroes = cardHeroImages(cardImageUrl, insideImageUrl, `A card from ${senderName}`);
+  // No card shown here — this is the RECEIVER's email; the surprise is
+  // theirs to open (Kevin 2026-07-11).
   const html = chassis({
     preheader,
     heading: `${senderName} sent you a card`,
-    heroImages: heroes.length ? heroes : undefined,
     bodyHtml: body,
     cta: { label: 'Open your card', href: shareUrl },
     postCtaHtml: `
@@ -839,11 +843,10 @@ export async function sendSenderCardOpenedEmail(params: {
     </p>
   `;
 
-  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: 'Hope they love it.',
     heading,
-    heroImages: heroes.length ? heroes : undefined,
+    heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
@@ -895,11 +898,10 @@ export async function sendSenderPrintShippedEmail(params: {
     </p>
   `;
 
-  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: `${courier} · expected ${etaWindow}`,
     heading,
-    heroImages: heroes.length ? heroes : undefined,
+    heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
     cta: { label: 'Track delivery', href: trackingUrl },
     postCtaHtml: `
@@ -945,11 +947,10 @@ export async function sendSenderPrintDeliveredEmail(params: {
     </p>
   `;
 
-  const heroes = cardHeroImages(cardImageUrl, insideImageUrl);
   const html = chassis({
     preheader: 'Hope it lands well.',
     heading,
-    heroImages: heroes.length ? heroes : undefined,
+    heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });

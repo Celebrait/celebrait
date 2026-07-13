@@ -859,8 +859,6 @@ async function fireOrderPaidEmails(
         senderEmail: order.customerEmail,
         occasion,
         shareUrl,
-        cardImageUrl: resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl),
-        insideImageUrl: resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl),
       });
       console.log(
         `[STUDIO-CHECKOUT] recipient email ${sent ? 'sent' : 'failed'} → ${recipientEmail} (order ${order.id})`,
