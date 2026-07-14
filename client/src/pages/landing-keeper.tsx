@@ -134,8 +134,14 @@ function CardPair({
   second: string;
   alt: string;
 }) {
+  // Corner radius matches the 3D card's, so the photographed card and the
+  // rendered one read as the same object (Kevin 2026-07-14). The viewer
+  // rounds by CARD_CORNER/CARD_W = 0.025/1.45 ≈ 1.7% of the card's width;
+  // at the hero's ~433px on-screen card that's ~7.5px, and 1.7% of these
+  // ~490px images is ~8.4px — so 8px lands on both the absolute and the
+  // proportional match. (Was rounded-2xl = 16px: twice as round.)
   const img =
-    'w-[92%] sm:w-[55%] rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
+    'w-[92%] sm:w-[55%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
   return (
     <div className="flex flex-col gap-5">
       <img src={first} alt="" loading="lazy" className={`${img} self-start`} />
