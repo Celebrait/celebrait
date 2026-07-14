@@ -607,31 +607,15 @@ function HeroSection() {
             }`}
           >
             <div
-              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-white shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
-              style={{
-                aspectRatio: '1/1',
-                // Blurred LQIP roughly matching the crop — the
-                // polaroid is never a blank white square while the
-                // real jpg downloads.
-                backgroundImage: `url(${HERO_FRONT_LQIP})`,
-                backgroundSize: '220%',
-                backgroundPosition: '66% 18%',
-              }}
+              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
+              style={{ aspectRatio: '1/1' }}
             >
               <img
-                src={heroCardFront}
-                crossOrigin="anonymous"
+                src="/hero-source-photo.webp"
                 alt="Source snapshot of the couple"
                 className="h-full w-full object-cover"
-                style={{
-                  objectPosition: '66% 18%',
-                  transform: 'scale(2.2)',
-                  transformOrigin: '66% 18%',
-                }}
+                style={{ objectPosition: '50% 32%' }}
               />
-              <span className="absolute left-1 top-1 rounded bg-white/85 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-keeper-gold">
-                A2
-              </span>
             </div>
           </div>
           {/* Green tap/click hint — fades out once the card opens.
