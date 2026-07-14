@@ -641,7 +641,7 @@ function HeroSection() {
   );
 }
 
-// ── 2. PROOF — One photo. One line. ──────────────────────────────────
+// ── 2. PROOF — Any scene imaginable ──────────────────────────────────
 
 function ProofSection() {
   return (
@@ -649,11 +649,11 @@ function ProofSection() {
       <div className="mx-auto max-w-4xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            One photo. One line. That's all we need.
+            Put them in any scene imaginable
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            You give us a snapshot and a sentence. We paint the moment. Don't
-            love it? Start again free until you do.
+            Abseiling off Big Ben? DJ-ing in Ibiza? Slow-dancing under the
+            Northern Lights? You dream it up, we'll do the rest.
           </p>
         </Rise>
         <Rise delay={0.1} className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
