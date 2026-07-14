@@ -109,47 +109,35 @@ function AssetSlot({
   );
 }
 
-/** Crossfades between lifestyle shots on a gentle loop (Kevin 2026-07-11).
- *  Both images are stacked; only opacity animates. Static (first image) under
- *  reduced-motion. Source photos are 3:2. */
-function CardCrossfade({
-  images,
+/** Two lifestyle photos slightly overlapped, like prints laid on a table —
+ *  both visible at once (Kevin 2026-07-11). The `front` (open inside) sits
+ *  on top, the `back` (front card) peeks behind. Responsive by percentage
+ *  widths + a gentler rotation on small screens. */
+function CardStack({
+  back,
+  front,
   alt,
-  ratio = '3/2',
-  className,
 }: {
-  images: string[];
+  back: string;
+  front: string;
   alt: string;
-  ratio?: string;
-  className?: string;
 }) {
-  const reduced = useReducedMotion();
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (reduced || images.length < 2) return;
-    const id = window.setInterval(
-      () => setI((v) => (v + 1) % images.length),
-      4200,
-    );
-    return () => window.clearInterval(id);
-  }, [reduced, images.length]);
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl bg-keeper-hair/40 shadow-[0_30px_60px_-30px_rgba(33,29,25,0.35)] ${className ?? ''}`}
-      style={{ aspectRatio: ratio }}
-    >
-      {images.map((src, idx) => (
-        <motion.img
-          key={src}
-          src={src}
-          alt={idx === 0 ? alt : ''}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover"
-          initial={false}
-          animate={{ opacity: idx === i ? 1 : 0 }}
-          transition={{ duration: 1.1, ease: 'easeInOut' }}
-        />
-      ))}
+    <div className="relative mx-auto w-full max-w-[540px] py-[7%]">
+      {/* Back — the front card, rotated + offset left, behind. */}
+      <img
+        src={back}
+        alt=""
+        loading="lazy"
+        className="absolute left-0 top-[14%] w-[66%] -rotate-[5deg] rounded-2xl shadow-[0_20px_44px_-20px_rgba(33,29,25,0.45)] ring-1 ring-black/5 sm:-rotate-[7deg]"
+      />
+      {/* Front — the open inside, on top, offset right. */}
+      <img
+        src={front}
+        alt={alt}
+        loading="lazy"
+        className="relative ml-auto w-[72%] rotate-[3deg] rounded-2xl shadow-[0_28px_56px_-18px_rgba(33,29,25,0.5)] ring-1 ring-black/5 sm:rotate-[4deg]"
+      />
     </div>
   );
 }
@@ -711,8 +699,9 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          <CardCrossfade
-            images={[keeperCardOpen, keeperCardClosed]}
+          <CardStack
+            back={keeperCardClosed}
+            front={keeperCardOpen}
             alt="A Celebrait card on a table — the open inside message and the front"
           />
         </Rise>
