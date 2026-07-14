@@ -687,7 +687,48 @@ function ProofSection() {
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Greetings cards <span className="italic">used</span> to be boring
+            Greetings cards{' '}
+            {/* "used" carries the brand's violet glow — a lighter wave sweeps
+                left-to-right through a violet base while the whole word pulses
+                a soft halo. Violet-based (not ink-based like the hero shimmer)
+                so it reads PURPLE the whole time, not just as the wave passes.
+                Still + unglowing under prefers-reduced-motion. */}
+            <motion.span
+              className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
+              style={{
+                backgroundImage:
+                  'linear-gradient(90deg, #5c57d4 0%, #6f6ae0 30%, #a9a5f7 50%, #6f6ae0 70%, #5c57d4 100%)',
+                backgroundSize: '220% 100%',
+                backgroundRepeat: 'no-repeat',
+              }}
+              initial={{ backgroundPosition: '0% 0%' }}
+              animate={
+                reduced
+                  ? undefined
+                  : {
+                      backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
+                      filter: [
+                        'drop-shadow(0 0 2px rgba(92,87,212,0.25))',
+                        'drop-shadow(0 0 16px rgba(122,118,232,0.6))',
+                        'drop-shadow(0 0 2px rgba(92,87,212,0.25))',
+                      ],
+                    }
+              }
+              transition={
+                reduced
+                  ? undefined
+                  : {
+                      duration: 3.6,
+                      repeat: Infinity,
+                      repeatDelay: 1.8,
+                      ease: 'easeInOut',
+                      times: [0, 0.5, 1],
+                    }
+              }
+            >
+              used
+            </motion.span>{' '}
+            to be boring
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
             Abseiling off Big Ben? Gazing at the Northern Lights? Put them in
