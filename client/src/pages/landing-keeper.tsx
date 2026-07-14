@@ -121,6 +121,52 @@ function AssetSlot({
   );
 }
 
+/** The "Unbinnable" shimmer — the one glow treatment on this page.
+ *  Gradient-clipped text that runs BLACK through PURPLE and back to
+ *  black, with the violet wave sweeping left-to-right every ~8s.
+ *
+ *  Lives here as ONE component because two headlines wear it — the hero's
+ *  rotating persona ("your best mate") and the proof heading's "used" — and
+ *  Kevin's call is that they must match exactly (2026-07-14). Defining the
+ *  gradient twice is how they'd silently drift apart. Still under
+ *  prefers-reduced-motion: the ink-to-violet gradient stays, the wave stops.
+ */
+function ShimmerWord({
+  children,
+  reduced,
+}: {
+  children: string;
+  reduced: boolean;
+}) {
+  return (
+    <motion.span
+      className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
+      style={{
+        backgroundImage:
+          'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
+        backgroundSize: '220% 100%',
+        backgroundRepeat: 'no-repeat',
+      }}
+      initial={{ backgroundPosition: '0% 0%' }}
+      animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
+      transition={
+        reduced
+          ? undefined
+          : {
+              duration: 4,
+              repeat: Infinity,
+              repeatDelay: 4.5,
+              ease: 'easeInOut',
+              delay: 0.8,
+              times: [0, 0.5, 1],
+            }
+      }
+    >
+      {children}
+    </motion.span>
+  );
+}
+
 /** Two lifestyle photos — the front card and the open inside — sat
  *  straight, close but NOT overlapping (Kevin 2026-07-11). Stacked and
  *  staggered off-centre at every width: first hugs left, second hugs
@@ -553,34 +599,7 @@ function HeroSection() {
               className="inline-block whitespace-nowrap transition-opacity duration-300"
               style={{ opacity: visible ? 1 : 0 }}
             >
-              {/* The "Unbinnable" shimmer, verbatim from the old hero:
-                  ink-based gradient-clipped text with a violet wave
-                  sweeping through every ~8s. Fraunces bold, no italic. */}
-              <motion.span
-                className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
-                  backgroundSize: '220% 100%',
-                  backgroundRepeat: 'no-repeat',
-                }}
-                initial={{ backgroundPosition: '0% 0%' }}
-                animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
-                transition={
-                  reduced
-                    ? undefined
-                    : {
-                        duration: 4,
-                        repeat: Infinity,
-                        repeatDelay: 4.5,
-                        ease: 'easeInOut',
-                        delay: 0.8,
-                        times: [0, 0.5, 1],
-                      }
-                }
-              >
-                {PERSONAS[persona]}
-              </motion.span>
+              <ShimmerWord reduced={!!reduced}>{PERSONAS[persona]}</ShimmerWord>
             </span>
             <br />
             in the picture.
@@ -693,48 +712,8 @@ function ProofSection() {
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Greetings cards{' '}
-            {/* "used" carries the brand's violet glow — a lighter wave sweeps
-                left-to-right through a violet base while the whole word pulses
-                a soft halo. Violet-based (not ink-based like the hero shimmer)
-                so it reads PURPLE the whole time, not just as the wave passes.
-                Still + unglowing under prefers-reduced-motion. */}
-            <motion.span
-              className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, #5c57d4 0%, #6f6ae0 30%, #a9a5f7 50%, #6f6ae0 70%, #5c57d4 100%)',
-                backgroundSize: '220% 100%',
-                backgroundRepeat: 'no-repeat',
-              }}
-              initial={{ backgroundPosition: '0% 0%' }}
-              animate={
-                reduced
-                  ? undefined
-                  : {
-                      backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
-                      filter: [
-                        'drop-shadow(0 0 2px rgba(92,87,212,0.25))',
-                        'drop-shadow(0 0 16px rgba(122,118,232,0.6))',
-                        'drop-shadow(0 0 2px rgba(92,87,212,0.25))',
-                      ],
-                    }
-              }
-              transition={
-                reduced
-                  ? undefined
-                  : {
-                      duration: 3.6,
-                      repeat: Infinity,
-                      repeatDelay: 1.8,
-                      ease: 'easeInOut',
-                      times: [0, 0.5, 1],
-                    }
-              }
-            >
-              used
-            </motion.span>{' '}
-            to be boring
+            Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
+            boring
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
             Abseiling off Big Ben? Gazing at the Northern Lights? Put them in
