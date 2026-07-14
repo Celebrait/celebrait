@@ -651,9 +651,8 @@ function ProofSection() {
             Put them in any scene imaginable
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Abseiling off Big Ben? DJ-ing in Ibiza? Slow-dancing under the
-            Northern Lights? You dream the front of the card up, we'll do the
-            rest.
+            Abseiling off Big Ben? Partying in Ibiza? You dream the front of
+            the card up, we'll do the rest.
           </p>
         </Rise>
         {/* Recipe → result: photo + scene + front text → the card, ajar
