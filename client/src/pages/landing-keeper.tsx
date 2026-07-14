@@ -123,7 +123,7 @@ function CardPair({
   alt: string;
 }) {
   const img =
-    'w-[55%] rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
+    'w-[92%] sm:w-[55%] rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
   return (
     <div className="flex flex-col gap-5">
       <img src={first} alt="" loading="lazy" className={`${img} self-start`} />
