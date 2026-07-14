@@ -125,11 +125,9 @@ function CardPair({
   const img =
     'w-[55%] rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
   return (
-    <div className="flex flex-col">
-      {/* Top-left, on top. */}
-      <img src={first} alt="" loading="lazy" className={`${img} relative z-10 self-start`} />
-      {/* Bottom-right, pulled up so its corner tucks under the top-left one. */}
-      <img src={second} alt={alt} loading="lazy" className={`${img} relative z-0 -mt-8 self-end`} />
+    <div className="flex flex-col gap-5">
+      <img src={first} alt="" loading="lazy" className={`${img} self-start`} />
+      <img src={second} alt={alt} loading="lazy" className={`${img} self-end`} />
     </div>
   );
 }
