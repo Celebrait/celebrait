@@ -41,6 +41,9 @@ import { GestureHints } from '@/components/gesture-hints';
 // most of the fix for the white-card beat Kevin screenshotted.
 const heroCardFront = '/hero-card-front.webp';
 const heroCardInside = '/hero-card-inside.webp';
+// Panel C lifestyle shots — same scene, front card + open card — crossfaded.
+const keeperCardClosed = '/keeper-card-closed.webp';
+const keeperCardOpen = '/keeper-card-open.webp';
 // Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
 // BEHIND the hero art — zero network, so there's never blank white
 // card stock while the real jpg downloads.
@@ -102,6 +105,51 @@ function AssetSlot({
         {tag}
       </span>
       <span className="max-w-[26ch] text-[11.5px] leading-snug text-keeper-stone">{note}</span>
+    </div>
+  );
+}
+
+/** Crossfades between lifestyle shots on a gentle loop (Kevin 2026-07-11).
+ *  Both images are stacked; only opacity animates. Static (first image) under
+ *  reduced-motion. Source photos are 3:2. */
+function CardCrossfade({
+  images,
+  alt,
+  ratio = '3/2',
+  className,
+}: {
+  images: string[];
+  alt: string;
+  ratio?: string;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (reduced || images.length < 2) return;
+    const id = window.setInterval(
+      () => setI((v) => (v + 1) % images.length),
+      4200,
+    );
+    return () => window.clearInterval(id);
+  }, [reduced, images.length]);
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl bg-keeper-hair/40 shadow-[0_30px_60px_-30px_rgba(33,29,25,0.35)] ${className ?? ''}`}
+      style={{ aspectRatio: ratio }}
+    >
+      {images.map((src, idx) => (
+        <motion.img
+          key={src}
+          src={src}
+          alt={idx === 0 ? alt : ''}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+          initial={false}
+          animate={{ opacity: idx === i ? 1 : 0 }}
+          transition={{ duration: 1.1, ease: 'easeInOut' }}
+        />
+      ))}
     </div>
   );
 }
@@ -663,10 +711,9 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          <AssetSlot
-            tag="C"
-            ratio="2/1"
-            note="Open card spread — inside message in matching typography + artwork (left panel blank for handwriting)"
+          <CardCrossfade
+            images={[keeperCardOpen, keeperCardClosed]}
+            alt="A Celebrait card on a table — the open inside message and the front"
           />
         </Rise>
       </div>
