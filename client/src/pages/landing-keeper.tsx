@@ -23,7 +23,19 @@
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { Mail, RefreshCw, Send, Truck, ImagePlus, ArrowRight, ArrowDown } from 'lucide-react';
+import {
+  Mail,
+  RefreshCw,
+  Send,
+  Truck,
+  ImagePlus,
+  ArrowRight,
+  ArrowDown,
+  Mountain,
+  Type,
+  PenLine,
+  type LucideIcon,
+} from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
@@ -676,9 +688,12 @@ function ProofSection() {
     />
   );
 
-  const field = (label: string, value: string) => (
+  const field = (Icon: LucideIcon, label: string, value: string) => (
     <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
-      <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">{label}</div>
+      <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
+        <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
+        {label}
+      </div>
       <div className="text-[14px] leading-snug text-keeper-ink">{value}</div>
     </div>
   );
@@ -712,9 +727,10 @@ function ProofSection() {
                   <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
                 </div>
               </div>
-              {field('The scene', 'Dazing at the Northern Lights')}
-              {field('Front text', 'Happy 60th, Mum')}
+              {field(Mountain, 'The scene', 'Dazing at the Northern Lights')}
+              {field(Type, 'Front text', 'Happy 60th, Mum')}
               {field(
+                PenLine,
                 'Inside message',
                 'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
               )}
