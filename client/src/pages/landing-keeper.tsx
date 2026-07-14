@@ -23,7 +23,7 @@
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { Mail, RefreshCw, Send, Truck } from 'lucide-react';
+import { Mail, RefreshCw, Send, Truck, ImagePlus, ArrowRight, ArrowDown } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
@@ -656,16 +656,70 @@ function ProofSection() {
             rest.
           </p>
         </Rise>
-        <Rise delay={0.1} className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
-          <AssetSlot tag="B2" ratio="3/4" note="Source snapshot" className="w-36" />
-          <p className="max-w-[22ch] font-mono text-[13px] leading-relaxed text-keeper-stone">
-            “Mum, 60, on the Plett cliffs with her labrador” →
-          </p>
-          <AssetSlot
-            tag="B"
-            note="The card that exact sentence produced (square, 1:1)"
-            className="w-56"
-          />
+        {/* Recipe → result: photo + scene + front text → the card, ajar
+            (Kevin 2026-07-11). The card uses the page's lazy Card3DViewer so
+            three.js stays off the initial load. */}
+        <Rise delay={0.1} className="mt-14">
+          <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-6 md:flex-row md:gap-10">
+            {/* Inputs — photo + scene + front text */}
+            <div className="flex w-full max-w-[300px] flex-col gap-3 text-left">
+              <div className="flex items-center gap-3">
+                <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white text-brand-dark">
+                  <ImagePlus className="h-6 w-6" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
+                  <div className="text-[12.5px] text-keeper-stone">of the person you love</div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
+                <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
+                  The scene
+                </div>
+                <div className="text-[14px] leading-snug text-keeper-ink">
+                  Mum on the Plett cliffs with her labrador
+                </div>
+              </div>
+              <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
+                <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
+                  Front text
+                </div>
+                <div className="text-[14px] leading-snug text-keeper-ink">Happy 60th, Mum</div>
+              </div>
+            </div>
+
+            {/* Arrow — right on desktop, down on mobile */}
+            <div className="text-keeper-stone/50">
+              <ArrowRight className="hidden h-7 w-7 md:block" strokeWidth={1.5} />
+              <ArrowDown className="h-6 w-6 md:hidden" strokeWidth={1.5} />
+            </div>
+
+            {/* Output — the card front, static + ajar */}
+            <div className="text-center">
+              <div
+                className="pointer-events-none relative mx-auto"
+                style={{ width: 220, height: 220 }}
+              >
+                <Suspense fallback={<div className="h-full w-full rounded-xl bg-keeper-hair/40" />}>
+                  <Card3DViewer
+                    frontImageUrl={heroCardFront}
+                    insideImageUrl={heroCardInside}
+                    open={false}
+                    closedAngle={-0.45}
+                    restYaw={-0.12}
+                    interactive={false}
+                    enableRotate={false}
+                    enableZoom={false}
+                    framingMargin={1.6}
+                    className="h-full w-full"
+                  />
+                </Suspense>
+              </div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-stone-400">
+                Your card front
+              </div>
+            </div>
+          </div>
         </Rise>
       </div>
     </section>
