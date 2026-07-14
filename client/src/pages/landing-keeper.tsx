@@ -643,9 +643,49 @@ function HeroSection() {
 // ── 2. PROOF — Any scene imaginable ──────────────────────────────────
 
 function ProofSection() {
+  const reduced = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+
+  // Defer mounting the ~1.4MB WebGL card until the section is near the
+  // viewport — same gate FreePartSection uses, so the hero is the only
+  // live GL context on first paint.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setNear(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '100% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const flatFallback = (
+    <img
+      src={heroCardFront}
+      crossOrigin="anonymous"
+      alt="Celebrait card front"
+      className="mx-auto h-full w-auto rounded-2xl object-contain drop-shadow-[0_28px_60px_rgba(33,29,25,0.28)]"
+    />
+  );
+
+  const field = (label: string, value: string) => (
+    <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
+      <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">{label}</div>
+      <div className="text-[14px] leading-snug text-keeper-ink">{value}</div>
+    </div>
+  );
+
   return (
     <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-4xl text-center">
+      <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Put them in any scene imaginable
@@ -655,13 +695,14 @@ function ProofSection() {
             front of the card up and we'll do the rest.
           </p>
         </Rise>
-        {/* Recipe → result: photo + scene + front text → the card, ajar
-            (Kevin 2026-07-11). The card uses the page's lazy Card3DViewer so
-            three.js stays off the initial load. */}
+        {/* Recipe → result: photo + scene + front + inside → the real card,
+            openable (Kevin 2026-07-14). Reuses the page's lazy Card3DViewer
+            (open/close only — the locked interaction model, no rotate/zoom)
+            so three.js stays off the initial load. */}
         <Rise delay={0.1} className="mt-14">
-          <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-6 md:flex-row md:gap-10">
-            {/* Inputs — photo + scene + front text */}
-            <div className="flex w-full max-w-[300px] flex-col gap-3 text-left">
+          <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:gap-12">
+            {/* Inputs — photo + scene + front text + inside message */}
+            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
               <div className="flex items-center gap-3">
                 <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white text-brand-dark">
                   <ImagePlus className="h-6 w-6" strokeWidth={1.75} />
@@ -671,48 +712,58 @@ function ProofSection() {
                   <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
                 </div>
               </div>
-              <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
-                <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
-                  The scene
-                </div>
-                <div className="text-[14px] leading-snug text-keeper-ink">
-                  Dazing at the Northern Lights
-                </div>
-              </div>
-              <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
-                <div className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
-                  Front text
-                </div>
-                <div className="text-[14px] leading-snug text-keeper-ink">Happy 60th, Mum</div>
-              </div>
+              {field('The scene', 'Dazing at the Northern Lights')}
+              {field('Front text', 'Happy 60th, Mum')}
+              {field(
+                'Inside message',
+                'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
+              )}
             </div>
 
             {/* Arrow — right on desktop, down on mobile */}
-            <div className="text-keeper-stone/50">
+            <div className="shrink-0 text-keeper-stone/50">
               <ArrowRight className="hidden h-7 w-7 md:block" strokeWidth={1.5} />
               <ArrowDown className="h-6 w-6 md:hidden" strokeWidth={1.5} />
             </div>
 
-            {/* Output — the card front, static + ajar */}
-            <div className="text-center">
-              <div className="pointer-events-none relative mx-auto h-[320px] w-[320px] sm:h-[400px] sm:w-[400px]">
-                <Suspense fallback={<div className="h-full w-full rounded-xl bg-keeper-hair/40" />}>
-                  <Card3DViewer
-                    frontImageUrl={heroCardFront}
-                    insideImageUrl={heroCardInside}
-                    open={false}
-                    closedAngle={-0.45}
-                    restYaw={-0.12}
-                    interactive={false}
-                    enableRotate={false}
-                    enableZoom={false}
-                    framingMargin={1.6}
-                    className="h-full w-full"
-                  />
-                </Suspense>
+            {/* Output — the real card, tap to open/close */}
+            <div className="flex w-full max-w-md flex-col items-center">
+              <div ref={ref} className="relative h-[56vh] min-h-[360px] w-full md:h-[440px]">
+                {near && !reduced ? (
+                  <Suspense fallback={flatFallback}>
+                    {/* Canvas bleeds past the anchor so the swung-open cover
+                        is never clipped; camera fit is height-driven, so the
+                        wider canvas doesn't shrink the card. */}
+                    <div className="absolute inset-x-[-22%] inset-y-[-10%]">
+                      <Card3DViewer
+                        frontImageUrl={heroCardFront}
+                        insideImageUrl={heroCardInside}
+                        open={cardOpen}
+                        onOpenChange={setCardOpen}
+                        enableRotate={false}
+                        enableZoom={false}
+                        framingMargin={1.55}
+                        minDistance={1.6}
+                        dprMax={1.5}
+                        closedAngle={-0.3}
+                        restYaw={-0.1}
+                        className="h-full w-full"
+                      />
+                    </div>
+                  </Suspense>
+                ) : (
+                  flatFallback
+                )}
               </div>
-              <div className="mt-1 text-[11px] uppercase tracking-[0.12em] text-stone-400">
-                Your card front
+              <div className="mt-3 flex h-12 items-start justify-center">
+                {near && !reduced && (
+                  <GestureHints
+                    open={cardOpen}
+                    hideZoomHint
+                    hideRotateHint
+                    openLabel="Tap to close"
+                  />
+                )}
               </div>
             </div>
           </div>
