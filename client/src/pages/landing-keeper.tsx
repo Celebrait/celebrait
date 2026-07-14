@@ -568,9 +568,8 @@ function HeroSection() {
             in the picture.
           </h1>
           <p className="mt-6 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Upload a photo. Celebrait paints the person you love into their own
-            scene — on a real printed card they'll keep. £8.99 posted, free
-            digital link included.
+            Upload a photo. Imagine the scene. Tell them how you feel. Printed
+            and posted from £8.99.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
