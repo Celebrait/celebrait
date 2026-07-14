@@ -123,20 +123,21 @@ function CardStack({
   alt: string;
 }) {
   return (
-    <div className="relative mx-auto w-full max-w-[540px] py-[7%]">
-      {/* Back — the front card, rotated + offset left, behind. */}
+    <div className="relative mx-auto w-full max-w-[560px] py-[6%]">
+      {/* Back — the front card, top-left, clearly visible above/left of the
+          front photo (only a slim overlap). */}
       <img
         src={back}
         alt=""
         loading="lazy"
-        className="absolute left-0 top-[14%] w-[66%] -rotate-[5deg] rounded-2xl shadow-[0_20px_44px_-20px_rgba(33,29,25,0.45)] ring-1 ring-black/5 sm:-rotate-[7deg]"
+        className="absolute left-0 top-0 w-[58%] -rotate-[6deg] rounded-2xl shadow-[0_18px_40px_-20px_rgba(33,29,25,0.45)] ring-1 ring-black/5"
       />
-      {/* Front — the open inside, on top, offset right. */}
+      {/* Front — the open inside, on top, offset down + right. */}
       <img
         src={front}
         alt={alt}
         loading="lazy"
-        className="relative ml-auto w-[72%] rotate-[3deg] rounded-2xl shadow-[0_28px_56px_-18px_rgba(33,29,25,0.5)] ring-1 ring-black/5 sm:rotate-[4deg]"
+        className="relative ml-auto mt-[17%] w-[64%] rotate-[3deg] rounded-2xl shadow-[0_28px_56px_-18px_rgba(33,29,25,0.5)] ring-1 ring-black/5 sm:rotate-[4deg]"
       />
     </div>
   );
