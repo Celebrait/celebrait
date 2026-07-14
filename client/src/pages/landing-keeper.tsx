@@ -109,36 +109,24 @@ function AssetSlot({
   );
 }
 
-/** Two lifestyle photos slightly overlapped, like prints laid on a table —
- *  both visible at once (Kevin 2026-07-11). The `front` (open inside) sits
- *  on top, the `back` (front card) peeks behind. Responsive by percentage
- *  widths + a gentler rotation on small screens. */
-function CardStack({
-  back,
-  front,
+/** Two lifestyle photos — the front card and the open inside — sat
+ *  straight, close together but NOT overlapping (Kevin 2026-07-11). Side
+ *  by side on desktop, stacked on mobile. */
+function CardPair({
+  first,
+  second,
   alt,
 }: {
-  back: string;
-  front: string;
+  first: string;
+  second: string;
   alt: string;
 }) {
+  const img =
+    'w-full rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
   return (
-    <div className="relative mx-auto w-full max-w-[560px] py-[6%]">
-      {/* Back — the front card, top-left, clearly visible above/left of the
-          front photo (only a slim overlap). */}
-      <img
-        src={back}
-        alt=""
-        loading="lazy"
-        className="absolute left-0 top-0 w-[58%] -rotate-[6deg] rounded-2xl shadow-[0_18px_40px_-20px_rgba(33,29,25,0.45)] ring-1 ring-black/5"
-      />
-      {/* Front — the open inside, on top, offset down + right. */}
-      <img
-        src={front}
-        alt={alt}
-        loading="lazy"
-        className="relative ml-auto mt-[17%] w-[64%] rotate-[3deg] rounded-2xl shadow-[0_28px_56px_-18px_rgba(33,29,25,0.5)] ring-1 ring-black/5 sm:rotate-[4deg]"
-      />
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <img src={first} alt="" loading="lazy" className={img} />
+      <img src={second} alt={alt} loading="lazy" className={img} />
     </div>
   );
 }
@@ -700,9 +688,9 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          <CardStack
-            back={keeperCardClosed}
-            front={keeperCardOpen}
+          <CardPair
+            first={keeperCardClosed}
+            second={keeperCardOpen}
             alt="A Celebrait card on a table — the open inside message and the front"
           />
         </Rise>
