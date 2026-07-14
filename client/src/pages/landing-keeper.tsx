@@ -480,50 +480,104 @@ function KeeperHeader() {
 
 // ── 1. HERO — The Transformation ─────────────────────────────────────
 
+// Always 'your SOMETHING' (Kevin's rule) — and short enough that the
+// persona line never wraps at any breakpoint.
+const PERSONAS = ['your mum', 'your best mate', 'your grandad', 'your sister'];
+
 function HeroSection() {
   const reduced = useReducedMotion();
+  const [persona, setPersona] = useState(0);
+  const [visible, setVisible] = useState(true);
   // Card open state lives here (viewer self-manages the hinge; this
   // mirror drives the snapshot fade + the tap hint).
   const [cardOpen, setCardOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (reduced) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    let timer: number | undefined;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && timer === undefined) {
+          timer = window.setInterval(() => {
+            // Background tabs throttle timers, which can batch this
+            // fade-out with its paired fade-in and strand the word at
+            // opacity 0 — skip cycles while hidden.
+            if (document.hidden) return;
+            setVisible(false);
+            window.setTimeout(() => {
+              setPersona((p) => (p + 1) % PERSONAS.length);
+              setVisible(true);
+            }, 260);
+          }, 3500);
+        } else if (!e.isIntersecting && timer !== undefined) {
+          window.clearInterval(timer);
+          timer = undefined;
+        }
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [reduced]);
 
   return (
-    <section className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
+    <section ref={sectionRef} className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
             Unbinnable Greetings Cards
           </p>
+          {/* STRUCTURAL three lines (Kevin's rule: "ALWAYS flows 3 lines
+              on desktop and mobile"): Put / your-something / in the
+              picture. The persona line is nowrap and every persona is
+              short enough to fit at all breakpoints — the layout can
+              never reflow, so the 3D card column never moves. */}
           <h1
-            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}
+            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}
           >
-            Greetings cards <span className="italic">used</span> to be{' '}
-            {/* The "Unbinnable" violet-wave shimmer, verbatim from the old
-                persona hero — now sweeping the punchline word every ~8s. */}
-            <motion.span
-              className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
-                backgroundSize: '220% 100%',
-                backgroundRepeat: 'no-repeat',
-              }}
-              initial={{ backgroundPosition: '0% 0%' }}
-              animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
-              transition={
-                reduced
-                  ? undefined
-                  : {
-                      duration: 4,
-                      repeat: Infinity,
-                      repeatDelay: 4.5,
-                      ease: 'easeInOut',
-                      delay: 0.8,
-                      times: [0, 0.5, 1],
-                    }
-              }
+            Put
+            <br />
+            <span
+              className="inline-block whitespace-nowrap transition-opacity duration-300"
+              style={{ opacity: visible ? 1 : 0 }}
             >
-              boring
-            </motion.span>
+              {/* The "Unbinnable" shimmer, verbatim from the old hero:
+                  ink-based gradient-clipped text with a violet wave
+                  sweeping through every ~8s. Fraunces bold, no italic. */}
+              <motion.span
+                className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
+                  backgroundSize: '220% 100%',
+                  backgroundRepeat: 'no-repeat',
+                }}
+                initial={{ backgroundPosition: '0% 0%' }}
+                animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
+                transition={
+                  reduced
+                    ? undefined
+                    : {
+                        duration: 4,
+                        repeat: Infinity,
+                        repeatDelay: 4.5,
+                        ease: 'easeInOut',
+                        delay: 0.8,
+                        times: [0, 0.5, 1],
+                      }
+                }
+              >
+                {PERSONAS[persona]}
+              </motion.span>
+            </span>
+            <br />
+            in the picture.
           </h1>
           <p className="mt-6 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-stone">
             Upload a photo. Describe the scene. Tell them how you feel. A card
@@ -633,11 +687,11 @@ function ProofSection() {
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Put them in any scene imaginable
+            Greetings cards <span className="italic">used</span> to be boring
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Abseiling off Big Ben? Dazing at the Northern Lights? Dream the
-            front of the card up and let the Celebrait party commence.
+            Abseiling off Big Ben? Gazing at the Northern Lights? Put them in
+            any scene you can think of.
           </p>
         </Rise>
         {/* Recipe → result: photo + scene + front + inside → the real card,
@@ -657,7 +711,7 @@ function ProofSection() {
                   <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
                 </div>
               </div>
-              {field(Mountain, 'The scene', 'Dazing at the Northern Lights')}
+              {field(Mountain, 'The scene', 'Gazing at the Northern Lights')}
               {field(Type, 'Front text', 'Happy 60th, Mum')}
               {field(
                 PenLine,
