@@ -749,6 +749,7 @@ export async function generateStudioCard(
       }
 
       let insideStoredUrl: string | null = null;
+      let insideStoredPath: string | null = null;
       if (resolvedInside) {
         console.log(
           `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
@@ -787,7 +788,29 @@ export async function generateStudioCard(
             'Inside generation',
           );
         }
-        insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside', row.imageKey);
+        // Unique per-roll filename (+ canonical mirror, which print / PDF /
+        // fulfilment read by the stable name).
+        //
+        // "Change the inside" re-rolls the inside on the SAME card, and the
+        // old canonical-only save reused card_X_inside.png every time — so
+        // the URL never changed, the browser served the CACHED previous
+        // image, and the user saw "the exact same card again" even though a
+        // fresh one had been generated (Kevin 2026-07-14). Same class of bug
+        // the regen path already fixed; this path never got it.
+        //
+        // A fresh URL per roll fixes it at the source and survives a page
+        // reload (a client-side cache-bust would not). imagePath is stored
+        // too so path-based readers resolve the exact roll, not the mirror.
+        const roll = Date.now();
+        const saved = await savePngFilesForAttempt(
+          insideImageUrl,
+          cardId,
+          'inside',
+          roll,
+          row.imageKey,
+        );
+        insideStoredUrl = saved.url;
+        insideStoredPath = saved.attemptFilename;
       }
 
       // ── Persist + finalise ───────────────────────────────────────
@@ -802,6 +825,7 @@ export async function generateStudioCard(
         // it from the local var in the combined 'full' path.
         ...(frontStoredUrl && mode === 'full' ? { frontImageUrl: frontStoredUrl } : {}),
         insideImageUrl: insideStoredUrl,
+        ...(insideStoredPath ? { insideImagePath: insideStoredPath } : {}),
         status: finalStatus,
       });
 

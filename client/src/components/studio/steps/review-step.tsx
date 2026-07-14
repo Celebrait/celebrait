@@ -932,73 +932,6 @@ function ExplainRow({
   );
 }
 
-// ── InsideVersions ───────────────────────────────────────────────────
-// Version switcher for the inside reveal. Each "Change the inside" re-roll
-// appends a card_attempts row (the front is never touched), so this lets
-// the user flip between the insides they've generated and pick the one
-// they love — nothing is thrown away (Kevin 2026-07-11). Shows the actual
-// inside thumbnails (not dots) so you SEE the difference. Hidden until
-// there's more than one — a lone v1 would just duplicate the hero.
-function InsideVersions({
-  attempts,
-  onSelect,
-}: {
-  attempts: CardAttemptDTO[];
-  onSelect?: (attemptId: number) => Promise<void>;
-}) {
-  const [busy, setBusy] = useState(false);
-  const versions = attempts.filter((a) => a.side === 'inside' && a.status === 'completed');
-  if (versions.length <= 1) return null;
-  const current = versions.find((a) => a.isSelected);
-  return (
-    <div className="mt-5">
-      <p className="mb-1.5 text-center text-[10px] uppercase tracking-[0.16em] text-stone-400">
-        {current
-          ? `version ${current.attemptNumber} of ${versions.length}`
-          : `${versions.length} versions`}
-      </p>
-      <div className="flex items-center justify-center gap-2">
-        {versions.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            disabled={busy || a.isSelected}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onSelect?.(a.id);
-              } finally {
-                setBusy(false);
-              }
-            }}
-            className={`h-12 w-12 overflow-hidden rounded-md border-2 transition-all disabled:cursor-default ${
-              a.isSelected
-                ? 'border-brand shadow-sm'
-                : 'border-keeper-hair opacity-80 hover:border-brand/60 hover:opacity-100'
-            }`}
-            aria-label={
-              a.isSelected
-                ? `Showing inside version ${a.attemptNumber}`
-                : `Switch to inside version ${a.attemptNumber}`
-            }
-            data-testid={`inside-version-${a.attemptNumber}`}
-          >
-            {a.imageUrl ? (
-              <img
-                src={a.imageUrl}
-                alt={`Inside version ${a.attemptNumber}`}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="h-full w-full bg-stone-100" />
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ── FrontFirstReview ─────────────────────────────────────────────────
 // The DEFAULT front-first review surface: big card image (hero) + a small
@@ -1016,7 +949,6 @@ function FrontFirstReview({
   frontReference,
   frontReferenceLabel,
   printLabel,
-  versionStrip,
   stackActions = false,
 }: {
   title: string;
@@ -1038,9 +970,6 @@ function FrontFirstReview({
    *  "Print-ready · tap to view"; the inside reveal passes "Inside" so
    *  the pair reads Front · Inside. */
   printLabel?: string;
-  /** Optional node rendered between the print thumbnail(s) and the
-   *  actions — the inside version switcher on the inside reveal. */
-  versionStrip?: React.ReactNode;
   /** Stack the primary + secondary actions vertically instead of the
    *  default side-by-side (the inside reveal has three actions). */
   stackActions?: boolean;
@@ -1116,9 +1045,6 @@ function FrontFirstReview({
         </button>
       </div>
 
-      {/* Inside version switcher (only renders once there's >1 inside). */}
-      {versionStrip}
-
       {/* Actions — side-by-side on desktop so BOTH choices sit above
           the fold; stacked on mobile with tightened rhythm. The inside
           reveal (stackActions) keeps them stacked at every width because
@@ -1165,6 +1091,7 @@ function InsideComposeStage({
   onBack,
   onSubmit,
   isReroll = false,
+  textOnly = false,
 }: {
   cardId: number;
   state: CardDraftState;
@@ -1180,6 +1107,12 @@ function InsideComposeStage({
    *  fresh authoring task — the message was already written on the
    *  original take (Kevin 2026-07-09). */
   isReroll?: boolean;
+  /** "Change the inside" from the inside reveal. The WORDS are the only
+   *  thing on the table — the scene/style are fixed (a different design
+   *  means starting again). Goes straight to the form (no read-back) and
+   *  says so plainly. Switching to a blank inside is still allowed, since
+   *  that's a text decision (handwrite it yourself), not a design one. */
+  textOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1223,7 +1156,7 @@ function InsideComposeStage({
       className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
       data-testid="btn-back-to-front"
     >
-      ← Back to the front
+      {textOnly ? '← Back to the inside' : '← Back to the front'}
     </button>
   );
 
@@ -1290,12 +1223,13 @@ function InsideComposeStage({
     );
   }
 
-  // ── Authoring: first-card fresh write, or a reroll "edit" ──
+  // ── Authoring: first-card fresh write, a reroll "edit", or the
+  //    text-only "Change the inside" edit from the inside reveal ──
   return (
     <div className="mx-auto max-w-2xl py-6">
       <div className="mb-6 text-center">
         <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
-          {isReroll ? 'Edit the inside' : 'Now, the inside'}
+          {textOnly ? 'Change the words' : isReroll ? 'Edit the inside' : 'Now, the inside'}
         </p>
         <p className="mt-0.5 text-sm text-stone-500">
           {recipientName
@@ -1303,6 +1237,28 @@ function InsideComposeStage({
             : 'This is what they read when they open it.'}
         </p>
       </div>
+
+      {/* Say plainly what IS and ISN'T on the table here, so nobody re-rolls
+          hoping for a new look and feels cheated when the same design comes
+          back with different words (Kevin 2026-07-14). */}
+      {textOnly && (
+        <div
+          className="mx-auto mb-6 max-w-md rounded-xl border border-keeper-hair bg-stone-50 p-4"
+          data-testid="inside-text-only-notice"
+        >
+          <p className="text-[13px] leading-relaxed text-stone-600">
+            You're changing{' '}
+            <span className="font-semibold text-keeper-ink">the words only</span>. The scene
+            and style stay exactly as they are — if you want a different design, start the
+            card again.
+          </p>
+          <p className="mt-2 text-[12.5px] leading-relaxed text-stone-500">
+            Would you rather write it in your own hand? Pick{' '}
+            <span className="font-medium text-keeper-ink">Leave it blank</span> below and
+            we'll print a decorative border, ready for you to fill in.
+          </p>
+        </div>
+      )}
 
       {/* Front thumb only once a mode is chosen (write/blank) — on the
           fork picker it's redundant reassurance (the front was approved
@@ -1325,7 +1281,13 @@ function InsideComposeStage({
           className="w-full max-w-[320px] rounded-full bg-cta px-6 py-3.5 text-[15px] font-medium text-cta-foreground transition-colors hover:bg-cta-hover disabled:opacity-50"
           data-testid="btn-make-inside"
         >
-          {busy ? 'One sec…' : blank ? 'Finish the card →' : 'Make the inside →'}
+          {busy
+            ? 'One sec…'
+            : textOnly
+              ? 'Update the inside →'
+              : blank
+                ? 'Finish the card →'
+                : 'Make the inside →'}
         </button>
         {!ready && (
           <p className="text-[11.5px] text-stone-400">
@@ -1555,9 +1517,18 @@ function RevealView({
   // `insideComposing` can't hijack the generating / completed views, and
   // reset on submit so we drop back to the reveal once gen kicks off.
   if (insideComposing && (status === 'front-ready' || status === 'inside-ready')) {
-    // FIRST card from front-ready = fresh authoring; a reroll clone OR a
-    // re-do from the inside reveal = SIGN-OFF (read it back, confirm/edit).
-    const isReroll = !!state.rerollOfCardId || status === 'inside-ready';
+    // Three entries, three intents:
+    //   • front-ready, first card  → fresh authoring.
+    //   • front-ready, reroll clone → SIGN-OFF (read the inherited inside
+    //     back, confirm or edit) — the message was written on the last take.
+    //   • inside-ready ("Change the inside") → TEXT-ONLY edit. Straight into
+    //     the form: the whole point of the tap is to change the words, so a
+    //     read-back is pointless indirection (it's what made a re-roll look
+    //     like it did nothing — you'd confirm the SAME text). The design is
+    //     deliberately NOT re-rollable here; a different look = start again.
+    //     (Kevin 2026-07-14)
+    const textOnly = status === 'inside-ready';
+    const isReroll = !!state.rerollOfCardId;
     return (
       <InsideComposeStage
         cardId={cardId}
@@ -1565,6 +1536,7 @@ function RevealView({
         subject={frontFirstSubject(state)}
         frontUrl={frontUrl}
         isReroll={isReroll}
+        textOnly={textOnly}
         onChange={onChange}
         scheduleSave={scheduleSave}
         flushSave={flushSave}
@@ -1604,7 +1576,6 @@ function RevealView({
   // inside" re-does ONLY the inside, keeping the approved front; "start
   // over completely" is the quieter full re-roll (Kevin 2026-07-11).
   if (status === 'inside-ready') {
-    const insideAttempts = (attempts ?? []).filter((a) => a.side === 'inside');
     return (
       <FrontFirstReview
         title="Here's the inside"
@@ -1614,9 +1585,6 @@ function RevealView({
         printLabel="Inside"
         frontReference={<CardOuterSpread frontUrl={frontUrl} />}
         frontReferenceLabel="Front · approved"
-        versionStrip={
-          <InsideVersions attempts={insideAttempts} onSelect={onSelectAttempt} />
-        }
         approveLabel="Looks good — assemble the card →"
         onApprove={onFinalize}
         stackActions
