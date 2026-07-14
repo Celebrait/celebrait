@@ -568,8 +568,8 @@ function HeroSection() {
             in the picture.
           </h1>
           <p className="mt-6 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Upload a photo. Imagine the scene. Tell them how you feel. Printed
-            and posted from £8.99.
+            Upload a photo. Describe the scene. Tell them how you feel. A card
+            they'll keep from £8.99.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
@@ -651,8 +651,8 @@ function ProofSection() {
             Put them in any scene imaginable
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Abseiling off Big Ben? Partying in Ibiza? You dream the front of
-            the card up, we'll do the rest.
+            Abseiling off Big Ben? Dazing at the Northern Lights? Dream the
+            front of the card up and we'll do the rest.
           </p>
         </Rise>
         {/* Recipe → result: photo + scene + front text → the card, ajar
@@ -668,7 +668,7 @@ function ProofSection() {
                 </div>
                 <div>
                   <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
-                  <div className="text-[12.5px] text-keeper-stone">of the person you love</div>
+                  <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
                 </div>
               </div>
               <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
@@ -676,7 +676,7 @@ function ProofSection() {
                   The scene
                 </div>
                 <div className="text-[14px] leading-snug text-keeper-ink">
-                  Mum on the Plett cliffs with her labrador
+                  Dazing at the Northern Lights
                 </div>
               </div>
               <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
@@ -695,10 +695,7 @@ function ProofSection() {
 
             {/* Output — the card front, static + ajar */}
             <div className="text-center">
-              <div
-                className="pointer-events-none relative mx-auto"
-                style={{ width: 220, height: 220 }}
-              >
+              <div className="pointer-events-none relative mx-auto h-[320px] w-[320px] sm:h-[400px] sm:w-[400px]">
                 <Suspense fallback={<div className="h-full w-full rounded-xl bg-keeper-hair/40" />}>
                   <Card3DViewer
                     frontImageUrl={heroCardFront}
