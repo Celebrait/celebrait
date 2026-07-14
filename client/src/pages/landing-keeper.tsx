@@ -28,7 +28,6 @@ import {
   RefreshCw,
   Send,
   Truck,
-  ImagePlus,
   ArrowRight,
   ArrowDown,
   Mountain,
@@ -56,6 +55,14 @@ const heroCardInside = '/hero-card-inside.webp';
 // Panel C lifestyle shots — same scene, front card + open card — crossfaded.
 const keeperCardClosed = '/keeper-card-closed.webp';
 const keeperCardOpen = '/keeper-card-open.webp';
+// Proof section ("Greetings cards used to be boring") — the REAL worked
+// example, so the recipe and the result are the same card end to end:
+// this selfie of Mum + "Gazing at the Northern Lights" + "Happy 60th, Mum"
+// really did produce this front, and the inside message really is the
+// typography on the inside (Kevin's own gen, 2026-07-14).
+const proofSourcePhoto = '/proof-source-photo.webp';
+const proofCardFront = '/proof-card-front.webp';
+const proofCardInside = '/proof-card-inside.webp';
 // Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
 // BEHIND the hero art — zero network, so there's never blank white
 // card stock while the real jpg downloads.
@@ -690,9 +697,9 @@ function ProofSection() {
 
   const flatFallback = (
     <img
-      src={heroCardFront}
+      src={proofCardFront}
       crossOrigin="anonymous"
-      alt="Celebrait card front"
+      alt="The finished card front — Mum under the Northern Lights"
       className="mx-auto h-full w-auto rounded-2xl object-contain drop-shadow-[0_28px_60px_rgba(33,29,25,0.28)]"
     />
   );
@@ -729,8 +736,17 @@ function ProofSection() {
             {/* Inputs — photo + scene + front text + inside message */}
             <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
               <div className="flex items-center gap-3">
-                <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white text-brand-dark">
-                  <ImagePlus className="h-6 w-6" strokeWidth={1.75} />
+                {/* The real source selfie, sat INSIDE the dashed frame — the
+                    cut-out look Kevin wanted kept, now with a face in it. The
+                    p-1 inset is what leaves the dashed edge visible around the
+                    photo rather than the photo covering it. */}
+                <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
+                  <img
+                    src={proofSourcePhoto}
+                    alt="The photo of Mum this card was made from"
+                    loading="lazy"
+                    className="h-full w-full rounded-lg object-cover"
+                  />
                 </div>
                 <div>
                   <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
@@ -762,8 +778,8 @@ function ProofSection() {
                         wider canvas doesn't shrink the card. */}
                     <div className="absolute inset-x-[-22%] inset-y-[-10%]">
                       <Card3DViewer
-                        frontImageUrl={heroCardFront}
-                        insideImageUrl={heroCardInside}
+                        frontImageUrl={proofCardFront}
+                        insideImageUrl={proofCardInside}
                         open={cardOpen}
                         onOpenChange={setCardOpen}
                         enableRotate={false}
