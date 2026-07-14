@@ -110,8 +110,9 @@ function AssetSlot({
 }
 
 /** Two lifestyle photos — the front card and the open inside — sat
- *  straight, close together but NOT overlapping (Kevin 2026-07-11). Side
- *  by side on desktop, stacked on mobile. */
+ *  straight, close but NOT overlapping (Kevin 2026-07-11). Desktop: side by
+ *  side. Mobile: stacked and staggered off-centre (first hugs left, second
+ *  hugs right) so it reads casual rather than dead-centred. */
 function CardPair({
   first,
   second,
@@ -122,11 +123,11 @@ function CardPair({
   alt: string;
 }) {
   const img =
-    'w-full rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
+    'rounded-2xl shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <img src={first} alt="" loading="lazy" className={img} />
-      <img src={second} alt={alt} loading="lazy" className={img} />
+    <div className="flex flex-col gap-5 sm:grid sm:grid-cols-2 sm:gap-3">
+      <img src={first} alt="" loading="lazy" className={`${img} w-[92%] self-start sm:w-full`} />
+      <img src={second} alt={alt} loading="lazy" className={`${img} w-[92%] self-end sm:w-full`} />
     </div>
   );
 }
