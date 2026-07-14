@@ -627,7 +627,7 @@ function HeroSection() {
               FIXED-HEIGHT slot: the hints mount late + unmount on
               open; without a reserved height the column reflows and
               the card clunks down (same bug as the old landing). */}
-          <div className="mt-3 h-14">
+          <div className="mt-7 h-14 sm:mt-3">
             <GestureHints
               open={cardOpen}
               hideRotateHint
