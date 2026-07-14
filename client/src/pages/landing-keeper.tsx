@@ -652,7 +652,8 @@ function ProofSection() {
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
             Abseiling off Big Ben? DJ-ing in Ibiza? Slow-dancing under the
-            Northern Lights? You dream it up, we'll do the rest.
+            Northern Lights? You dream the front of the card up, we'll do the
+            rest.
           </p>
         </Rise>
         <Rise delay={0.1} className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
