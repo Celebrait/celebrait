@@ -439,6 +439,65 @@ function AjarTile({
   );
 }
 
+// Lightweight CSS-3D "ajar" card — the SAME trick as the gallery's AjarTile
+// (two flat images + a cover hinged on rotateY), NO WebGL. Used in the proof
+// coverflow so three cards cost three <img> pairs, not three live GL contexts
+// (Kevin 2026-07-14: "use the same approach as Any face. Any occasion?").
+// Fast to load, and any number can run at once.
+function CssAjarCard({
+  frontUrl,
+  insideUrl,
+  open,
+}: {
+  frontUrl: string;
+  insideUrl: string;
+  open: boolean;
+}) {
+  return (
+    <div className="absolute inset-0" style={{ perspective: '1200px' }}>
+      {/* Inside page — revealed as the cover swings open. */}
+      <div className="absolute inset-0 overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
+        <img
+          src={insideUrl}
+          crossOrigin="anonymous"
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 w-[18%]"
+          style={{ background: 'linear-gradient(90deg, rgba(33,29,25,0.18), transparent)' }}
+        />
+      </div>
+      {/* Cover — hinged on the left edge; rests ajar (-16°), opens (-150°). */}
+      <motion.div
+        className="absolute inset-0"
+        style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
+        initial={false}
+        animate={{ rotateY: open ? -150 : -16 }}
+        transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
+      >
+        <div
+          className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
+          style={{ backfaceVisibility: 'hidden' }}
+        >
+          <img
+            src={frontUrl}
+            crossOrigin="anonymous"
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div
+          className="absolute inset-0 rounded-xl border border-stone-200/60 bg-[#FBF5EA]"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
 // ── 0. HEADER — floating pill nav (memorae-style, Kevin 2026-07-05) ──
 //
 // A single rounded capsule floating over the page instead of a
@@ -749,8 +808,6 @@ const PROOF_EXAMPLES: ProofExample[] = [
 
 function ProofSection() {
   const reduced = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  const [near, setNear] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   // Carousel index. `many` gates every carousel affordance so a lone
   // example renders exactly as before — no arrows, no dots, no hint.
@@ -767,10 +824,13 @@ function ProofSection() {
     setIdx((next + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length);
   };
 
-  // Desktop-only: mount all 3 cards as a live coverflow. On mobile only the
-  // centre card mounts (one WebGL context — three live contexts on a phone
-  // would be a real perf hit).
-  const [wide, setWide] = useState(false);
+  // Desktop shows all three cards (coverflow); mobile shows only the centre
+  // (the neighbours would crowd a phone) + swipe/arrows. Initialise from the
+  // media query SYNCHRONOUSLY so the cards start in the right slot — a
+  // false→true flip after mount made them spring in from the wrong position.
+  const [wide, setWide] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
+  );
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 640px)');
     const sync = () => setWide(mq.matches);
@@ -778,34 +838,6 @@ function ProofSection() {
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
-
-  // Defer mounting the ~1.4MB WebGL card until the section is near the
-  // viewport — same gate FreePartSection uses, so the hero is the only
-  // live GL context on first paint.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setNear(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: '100% 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const flatFallback = (
-    <img
-      src={ex.cardFront}
-      crossOrigin="anonymous"
-      alt={ex.cardAlt}
-      className="mx-auto h-full w-auto rounded-2xl object-contain drop-shadow-[0_28px_60px_rgba(33,29,25,0.28)]"
-    />
-  );
 
   const field = (Icon: LucideIcon, label: string, value: string) => (
     <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
@@ -861,101 +893,64 @@ function ProofSection() {
           {many && swipeHint('mt-5')}
         </Rise>
 
-        {/* COVERFLOW — the focused example is the live 3D card, centred; its
-            neighbours are flat card fronts angled + receding behind it, so the
-            range reads at a glance on desktop (Kevin 2026-07-14). Neighbours are
-            IMAGES on purpose: three live WebGL cards at once would be a real GPU
-            hit. Click a neighbour / edge arrow, or swipe, to bring the next to
-            the front; the recipe caption below updates to match. */}
+        {/* COVERFLOW — the focused example is the centred card; its neighbours
+            recede angled behind it, so the range reads at a glance on desktop.
+            Cards are LIGHTWEIGHT CSS (CssAjarCard — two images + a hinge, no
+            WebGL) so three run fast, the same trick as the gallery (Kevin
+            2026-07-14). Each animates between the left / centre / right slots
+            as a DIRECT child of the one perspective container, so they share a
+            vanishing point → symmetric roll. Centre = tap-to-open; sides =
+            click-to-focus; mobile shows the centre only + swipe/arrows. */}
         <Rise delay={0.1} className="mt-10">
           <div
-            ref={ref}
-            className="relative mx-auto h-[300px] max-w-3xl [perspective:1700px] sm:h-[360px]"
+            className="relative mx-auto h-[320px] max-w-3xl [perspective:1700px] sm:h-[380px]"
             onTouchStart={many ? onTouchStart : undefined}
             onTouchEnd={many ? onTouchEnd : undefined}
           >
-            {/* Every example is a LIVE 3D card. They animate between three
-                slots — left / centre / right — so the carousel physically
-                ROLLS (Kevin 2026-07-14). The cards never remount (stable keys),
-                so navigating just re-targets each card's slot and framer-motion
-                springs it there. Only the centre is interactive (tap-to-open);
-                the sides recede, dimmed + angled, and are click targets. On
-                mobile only the centre mounts — three live WebGL contexts on a
-                phone is a real perf hit; it's one there. */}
-            {near && !reduced ? (
-              <Suspense
-                fallback={
-                  <div className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 sm:w-[300px]">
-                    {flatFallback}
-                  </div>
-                }
-              >
-                {PROOF_EXAMPLES.map((example, i) => {
-                const n = PROOF_EXAMPLES.length;
-                let rel = i - idx;
-                if (rel > n / 2) rel -= n;
-                if (rel < -n / 2) rel += n;
-                const isCenter = rel === 0;
-                if (!wide && !isCenter) return null;
-                // Slot geometry. All cards are absolutely anchored at the
-                // container's centre (left-1/2); `x` both centres the card
-                // (-halfWidth) AND offsets it to its slot (rel * gap). Being a
-                // DIRECT child of the perspective container, every card's
-                // rotateY shares ONE vanishing point → symmetric coverflow.
-                const halfW = wide ? 150 : 130;
-                return (
-                  <motion.div
-                    key={example.id}
-                    className="absolute left-1/2 top-0 h-full w-[260px] sm:w-[300px]"
-                    style={{ zIndex: isCenter ? 20 : 10 }}
-                    initial={false}
-                    animate={{
-                      x: -halfW + rel * 250,
-                      scale: isCenter ? 1 : 0.72,
-                      rotateY: rel * -28,
-                      opacity: isCenter ? 1 : 0.5,
-                    }}
-                    transition={{ type: 'spring', stiffness: 210, damping: 26 }}
+            {PROOF_EXAMPLES.map((example, i) => {
+              const n = PROOF_EXAMPLES.length;
+              let rel = i - idx;
+              if (rel > n / 2) rel -= n;
+              if (rel < -n / 2) rel += n;
+              const isCenter = rel === 0;
+              if (!wide && !isCenter) return null;
+              // `x` centres the card (-halfWidth) then offsets it to its slot
+              // (rel * gap); `y` centres it vertically. All cards share the
+              // container's single perspective → symmetric.
+              const halfW = wide ? 150 : 130;
+              const halfH = wide ? 150 : 130;
+              return (
+                <motion.div
+                  key={example.id}
+                  className="absolute left-1/2 top-1/2 h-[260px] w-[260px] sm:h-[300px] sm:w-[300px]"
+                  style={{ zIndex: isCenter ? 20 : 10 }}
+                  initial={false}
+                  animate={{
+                    x: -halfW + rel * 250,
+                    y: -halfH,
+                    scale: isCenter ? 1 : 0.78,
+                    rotateY: rel * -26,
+                    opacity: isCenter ? 1 : 0.55,
+                  }}
+                  transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 210, damping: 26 }}
+                >
+                  <button
+                    type="button"
+                    onClick={isCenter ? () => setCardOpen((o) => !o) : () => goTo(i)}
+                    aria-label={
+                      isCenter ? (cardOpen ? 'Close card' : 'Open card') : `Show example ${i + 1}`
+                    }
+                    className="relative block h-full w-full"
                   >
-                    {/* Bleed gives the centre's swung-open cover room; the
-                        canvas is transparent so it never masks neighbours. */}
-                    <div className="absolute inset-x-[-80%] inset-y-[-22%]">
-                      <Card3DViewer
-                        frontImageUrl={example.cardFront}
-                        insideImageUrl={example.cardInside}
-                        open={isCenter ? cardOpen : false}
-                        onOpenChange={isCenter ? setCardOpen : undefined}
-                        interactive={isCenter}
-                        enableRotate={false}
-                        enableZoom={false}
-                        framingMargin={1.75}
-                        minDistance={1.6}
-                        dprMax={1.5}
-                        closedAngle={-0.3}
-                        restYaw={-0.1}
-                        className="h-full w-full"
-                      />
-                    </div>
-                    {/* Side card = click-to-focus. An overlay is needed because
-                        the card's own hit-zone would otherwise eat the click;
-                        the centre has no overlay so tap-to-open reaches it. */}
-                    {!isCenter && (
-                      <button
-                        type="button"
-                        onClick={() => goTo(i)}
-                        aria-label={`Show example ${i + 1}`}
-                        className="absolute inset-0 z-40 cursor-pointer"
-                      />
-                    )}
-                  </motion.div>
-                );
-                })}
-              </Suspense>
-            ) : (
-              <div className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 sm:w-[300px]">
-                {flatFallback}
-              </div>
-            )}
+                    <CssAjarCard
+                      frontUrl={example.cardFront}
+                      insideUrl={example.cardInside}
+                      open={isCenter && cardOpen}
+                    />
+                  </button>
+                </motion.div>
+              );
+            })}
 
             {/* Mobile edge arrows — the neighbours are hidden on mobile, so
                 these are the tap targets there (swipe also works). z-30 above
@@ -984,9 +979,7 @@ function ProofSection() {
 
           {/* Tap-to-open hint under the focused card. */}
           <div className="mt-2 flex h-16 items-start justify-center">
-            {near && !reduced && (
-              <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
-            )}
+            <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
           </div>
 
           {/* Dots. mt clears the tap-to-open hint above (its label overflows
