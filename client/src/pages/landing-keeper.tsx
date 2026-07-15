@@ -21,7 +21,7 @@
 // gallery cards · E print macro photo (needs the Prodigi test print).
 // Gallery dialogs use the hero card as a stand-in until D1–6 land.
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
 import { Link } from 'wouter';
 import {
   Mail,
@@ -31,6 +31,8 @@ import {
   ArrowRight,
   ArrowLeft,
   ArrowDown,
+  ChevronsLeft,
+  ChevronsRight,
   Mountain,
   Type,
   PenLine,
@@ -788,6 +790,34 @@ function ProofSection() {
     </div>
   );
 
+  // Green "swipe/tap for more" signpost. Rendered TWICE on mobile — once
+  // above the inputs and once above the card — because the recipe and the
+  // result don't fit one phone screen; the matching signposts tell the user
+  // the two halves are one linked feature they scroll between (Kevin
+  // 2026-07-14). Desktop shows just the top one (the halves sit side by side).
+  const swipeHint = (className = '') => (
+    <div className={`flex justify-center ${className}`}>
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-cta-light px-3 py-1 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-cta-dark">
+        <ChevronsLeft className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+        Tap or swipe to see more
+        <ChevronsRight className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+      </span>
+    </div>
+  );
+
+  // Horizontal swipe → change slide (mobile). A swipe on the card reads as a
+  // drag by the viewer's 4px tap threshold, so it never also toggles open.
+  const touchX = useRef<number | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    touchX.current = e.touches[0]?.clientX ?? null;
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    if (touchX.current == null || !many) return;
+    const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
+    touchX.current = null;
+    if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
+  };
+
   return (
     <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-5xl text-center">
@@ -801,11 +831,9 @@ function ProofSection() {
             the Northern Lights? Put them in any scene imaginable (literally
             though) then personalise the message on the front and inside.
           </p>
-          {many && (
-            <p className="mt-3 text-[13px] font-medium text-keeper-stone">
-              Tap the arrows to see more examples
-            </p>
-          )}
+          {/* Top signpost — the only one on desktop; on mobile it's the
+              "before the photo/text boxes" one. */}
+          {many && swipeHint('mt-5')}
         </Rise>
         {/* Recipe → result: photo + scene + front + inside → the real card,
             openable (Kevin 2026-07-14). Reuses the page's lazy Card3DViewer
@@ -814,7 +842,11 @@ function ProofSection() {
             md:items-start pulls the inputs up to sit level with the top of
             the card rather than centring against its taller stage. */}
         <Rise delay={0.1} className="mt-14">
-          <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:gap-12">
+          <div
+            className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:gap-12"
+            onTouchStart={many ? onTouchStart : undefined}
+            onTouchEnd={many ? onTouchEnd : undefined}
+          >
             {/* Inputs — photo + scene + front text + inside message. Nudged
                 DOWN on desktop so it sits centred-ish against the card rather
                 than level with its top, which made the card feel too low
@@ -854,6 +886,11 @@ function ProofSection() {
                 open cover overlaps the inputs on its way left, exactly like
                 the hero card overlaps its headline (Kevin 2026-07-14). */}
             <div className="relative z-20 flex w-full max-w-md flex-col items-center">
+              {/* Mobile-only second signpost — sits directly above the card so
+                  the reader links it to the inputs above (the feature spans two
+                  phone screens). Hidden on desktop, where one signpost covers
+                  the side-by-side layout. */}
+              {many && swipeHint('mb-5 md:hidden')}
               {/* Card stage. Height fixed (not vh) so the card matches the
                   hero's on-screen size — the hero scales with width, vh made
                   this one bigger on tall phones. Heights tuned for the hero's
