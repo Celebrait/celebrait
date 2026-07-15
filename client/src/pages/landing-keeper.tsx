@@ -876,10 +876,10 @@ function ProofSection() {
             boring
           </h2>
           <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Best mate abseiling off Big Ben? Son ruling the Roman empire? Or
-            mum simply gazing at the glorious Northern Lights? Literally put
-            them in any scene imaginable, then personalise your message on the
-            front and inside.
+            Best mate abseiling off Big Ben? Daughter TikTok'in in downtown
+            NY? Or mum simply gazing at the glorious Northern Lights? Literally
+            put them in any scene imaginable, then personalise your message on
+            the front and inside.
           </p>
           {/* One signpost above the carousel. */}
           {many && swipeHint('mt-5')}
