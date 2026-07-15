@@ -722,9 +722,27 @@ function ProofSection() {
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
           </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Abseiling off Big Ben? Gazing at the Northern Lights? Put them in
-            any scene you can think of.
+          <p className="mx-auto mt-4 max-w-[54ch] text-[17px] leading-[1.6] text-keeper-stone">
+            Abseiling off Big Ben? Leading the Roman empire? Or simply gazing at
+            the Northern Lights? Put them in any scene imaginable (like,
+            literally).
+          </p>
+        </Rise>
+
+        {/* Three-beat recipe line — the how, in one glance, before the visual
+            recipe below shows it for real. Purple arrows (brand accent) pull
+            the eye left-to-right through the steps (Kevin 2026-07-14). */}
+        <Rise delay={0.05} className="mt-8">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[15px] font-medium text-keeper-ink sm:text-[16px]">
+            <span>Pick a photo</span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
+            <span>Dream the scene</span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
+            <span>Craft your message</span>
+          </div>
+          <p className="mt-3 text-[15px] text-keeper-stone">
+            The result? A greetings card they'll{' '}
+            <span className="font-medium text-keeper-ink">probably keep forever</span>.
           </p>
         </Rise>
         {/* Recipe → result: photo + scene + front + inside → the real card,
