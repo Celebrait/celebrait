@@ -29,6 +29,7 @@ import {
   Send,
   Truck,
   ArrowRight,
+  ArrowLeft,
   ArrowDown,
   Mountain,
   Type,
@@ -689,11 +690,59 @@ function HeroSection() {
 
 // ── 2. PROOF — Any scene imaginable ──────────────────────────────────
 
+// Each worked example is a COMPLETE recipe → result: the source photo, the
+// three text inputs, and the openable card those inputs produced. The
+// section cycles through them (see ProofSection) so the "any scene
+// imaginable" claim is shown, not just asserted. Slide 1 is Kevin's real
+// generation; drop 2 more objects here (each with its own /public webp
+// trio + the three strings) and the carousel arrows/dots/hint light up
+// automatically — they're hidden while there's only one example.
+type ProofExample = {
+  id: string;
+  sourcePhoto: string;
+  sourceAlt: string;
+  scene: string;
+  frontText: string;
+  insideMessage: string;
+  cardFront: string;
+  cardInside: string;
+  cardAlt: string;
+};
+
+const PROOF_EXAMPLES: ProofExample[] = [
+  {
+    id: 'northern-lights',
+    sourcePhoto: proofSourcePhoto,
+    sourceAlt: 'The photo of Mum this card was made from',
+    scene: 'Gazing at the Northern Lights',
+    frontText: 'Happy 60th, Mum',
+    insideMessage:
+      'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
+    cardFront: proofCardFront,
+    cardInside: proofCardInside,
+    cardAlt: 'The finished card front — Mum under the Northern Lights',
+  },
+  // TODO(Kevin): 2 more example gens → a 3-slide carousel. Each needs a
+  // source photo + front + inside webp in /public and the three strings.
+];
+
 function ProofSection() {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  // Carousel index. `many` gates every carousel affordance so a lone
+  // example renders exactly as before — no arrows, no dots, no hint.
+  const [idx, setIdx] = useState(0);
+  const many = PROOF_EXAMPLES.length > 1;
+  const ex = PROOF_EXAMPLES[idx];
+
+  const goTo = (next: number) => {
+    // Always land on the CLOSED front — a new slide reads as a new card,
+    // and carrying `open` over would flash the previous card's inside.
+    setCardOpen(false);
+    setIdx((next + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length);
+  };
 
   // Defer mounting the ~1.4MB WebGL card until the section is near the
   // viewport — same gate FreePartSection uses, so the hero is the only
@@ -716,9 +765,9 @@ function ProofSection() {
 
   const flatFallback = (
     <img
-      src={proofCardFront}
+      src={ex.cardFront}
       crossOrigin="anonymous"
-      alt="The finished card front — Mum under the Northern Lights"
+      alt={ex.cardAlt}
       className="mx-auto h-full w-auto rounded-2xl object-contain drop-shadow-[0_28px_60px_rgba(33,29,25,0.28)]"
     />
   );
@@ -746,15 +795,24 @@ function ProofSection() {
             the Northern Lights? Put them in any scene imaginable (literally
             though) then personalise the message on the front and inside.
           </p>
+          {many && (
+            <p className="mt-3 text-[13px] font-medium text-keeper-stone">
+              Tap the arrows to see more examples
+            </p>
+          )}
         </Rise>
         {/* Recipe → result: photo + scene + front + inside → the real card,
             openable (Kevin 2026-07-14). Reuses the page's lazy Card3DViewer
             (open/close only — the locked interaction model, no rotate/zoom)
-            so three.js stays off the initial load. */}
+            so three.js stays off the initial load.
+            md:items-start pulls the inputs up to sit level with the top of
+            the card rather than centring against its taller stage. */}
         <Rise delay={0.1} className="mt-14">
-          <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:gap-12">
-            {/* Inputs — photo + scene + front text + inside message */}
-            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
+          <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:gap-12">
+            {/* Inputs — photo + scene + front text + inside message. mt nudges
+                it down a touch from the very top so it reads level with the
+                card, not floating above it. */}
+            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left md:mt-4">
               <div className="flex items-center gap-3">
                 {/* The real source selfie, sat INSIDE the dashed frame — the
                     cut-out look Kevin wanted kept, now with a face in it. The
@@ -762,8 +820,8 @@ function ProofSection() {
                     photo rather than the photo covering it. */}
                 <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
                   <img
-                    src={proofSourcePhoto}
-                    alt="The photo of Mum this card was made from"
+                    src={ex.sourcePhoto}
+                    alt={ex.sourceAlt}
                     loading="lazy"
                     className="h-full w-full rounded-lg object-cover"
                   />
@@ -773,38 +831,40 @@ function ProofSection() {
                   <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
                 </div>
               </div>
-              {field(Mountain, 'The scene', 'Gazing at the Northern Lights')}
-              {field(Type, 'Front text', 'Happy 60th, Mum')}
-              {field(
-                PenLine,
-                'Inside message',
-                'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
-              )}
+              {field(Mountain, 'The scene', ex.scene)}
+              {field(Type, 'Front text', ex.frontText)}
+              {field(PenLine, 'Inside message', ex.insideMessage)}
             </div>
 
-            {/* Arrow — right on desktop, down on mobile */}
-            <div className="shrink-0 text-keeper-stone/50">
+            {/* Arrow — right on desktop, down on mobile. self-center keeps it
+                mid-height against the top-aligned columns. */}
+            <div className="shrink-0 text-keeper-stone/50 md:mt-32 md:self-start">
               <ArrowRight className="hidden h-7 w-7 md:block" strokeWidth={1.5} />
               <ArrowDown className="h-6 w-6 md:hidden" strokeWidth={1.5} />
             </div>
 
-            {/* Output — the real card, tap to open/close */}
-            <div className="flex w-full max-w-md flex-col items-center">
-              <div ref={ref} className="relative h-[56vh] min-h-[360px] w-full md:h-[440px]">
+            {/* Output — the real card, tap to open/close. z-20 so the swung-
+                open cover overlaps the inputs on its way left, exactly like
+                the hero card overlaps its headline (Kevin 2026-07-14). */}
+            <div className="relative z-20 flex w-full max-w-md flex-col items-center">
+              <div ref={ref} className="relative h-[54vh] min-h-[340px] w-full md:h-[400px]">
                 {near && !reduced ? (
                   <Suspense fallback={flatFallback}>
                     {/* Canvas bleeds past the anchor so the swung-open cover
-                        is never clipped; camera fit is height-driven, so the
-                        wider canvas doesn't shrink the card. */}
-                    <div className="absolute inset-x-[-22%] inset-y-[-10%]">
+                        is never clipped; the extra LEFT bleed is what lets it
+                        reach over the inputs. Camera fit is height-driven, so
+                        the wider canvas doesn't shrink the card. key remounts
+                        the viewer per slide so textures swap cleanly. */}
+                    <div className="absolute inset-x-[-42%] inset-y-[-8%]">
                       <Card3DViewer
-                        frontImageUrl={proofCardFront}
-                        insideImageUrl={proofCardInside}
+                        key={ex.id}
+                        frontImageUrl={ex.cardFront}
+                        insideImageUrl={ex.cardInside}
                         open={cardOpen}
                         onOpenChange={setCardOpen}
                         enableRotate={false}
                         enableZoom={false}
-                        framingMargin={1.55}
+                        framingMargin={1.5}
                         minDistance={1.6}
                         dprMax={1.5}
                         closedAngle={-0.3}
@@ -817,7 +877,9 @@ function ProofSection() {
                   flatFallback
                 )}
               </div>
-              <div className="mt-3 flex h-12 items-start justify-center">
+              {/* Hint sits tight under the card (mirrors the hero) — the
+                  reserved height stops the column reflowing when it toggles. */}
+              <div className="-mt-2 flex h-11 items-start justify-center">
                 {near && !reduced && (
                   <GestureHints
                     open={cardOpen}
@@ -827,6 +889,43 @@ function ProofSection() {
                   />
                 )}
               </div>
+
+              {/* Carousel controls — hidden until there's more than one
+                  example. Arrows below the card (not flanking) so the open
+                  cover never covers them. */}
+              {many && (
+                <div className="mt-1 flex items-center justify-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => goTo(idx - 1)}
+                    aria-label="Previous example"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-keeper-hair bg-white text-brand-dark transition-colors hover:border-brand hover:bg-brand-muted/40"
+                  >
+                    <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {PROOF_EXAMPLES.map((e, i) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onClick={() => goTo(i)}
+                        aria-label={`Example ${i + 1}`}
+                        className={`h-2 w-2 rounded-full transition-colors ${
+                          i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => goTo(idx + 1)}
+                    aria-label="Next example"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-keeper-hair bg-white text-brand-dark transition-colors hover:border-brand hover:bg-brand-muted/40"
+                  >
+                    <ArrowRight className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </Rise>
