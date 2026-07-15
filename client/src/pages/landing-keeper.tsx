@@ -874,12 +874,6 @@ function ProofSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
-            {/* Bracketed kicker — its own line (block), same size as the
-                main line, with "cool AF" carrying the same violet glow as
-                "used". */}
-            <span className="mt-1 block">
-              (now they're <ShimmerWord reduced={!!reduced}>cool AF</ShimmerWord>)
-            </span>
           </h2>
           <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
             Best mate abseiling off Big Ben? Son ruling the Roman empire? Or
