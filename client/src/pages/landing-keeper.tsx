@@ -29,7 +29,6 @@ import {
   Send,
   Truck,
   ArrowRight,
-  ArrowDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -745,6 +744,8 @@ function ProofSection() {
   const [idx, setIdx] = useState(0);
   const many = PROOF_EXAMPLES.length > 1;
   const ex = PROOF_EXAMPLES[idx];
+  const prevIdx = (idx - 1 + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length;
+  const nextIdx = (idx + 1) % PROOF_EXAMPLES.length;
 
   const goTo = (next: number) => {
     // Always land on the CLOSED front — a new slide reads as a new card,
@@ -791,16 +792,15 @@ function ProofSection() {
     </div>
   );
 
-  // Green "swipe/tap for more" signpost. Rendered TWICE on mobile — once
-  // above the inputs and once above the card — because the recipe and the
-  // result don't fit one phone screen; the matching signposts tell the user
-  // the two halves are one linked feature they scroll between (Kevin
-  // 2026-07-14). Desktop shows just the top one (the halves sit side by side).
+  // Green signpost for the carousel. Wording matches the actual gesture per
+  // device — "Tap to see more" on desktop (click a neighbour / edge), "Swipe
+  // to see more" on mobile (Kevin 2026-07-14). Chevrons flag it either way.
   const swipeHint = (className = '') => (
     <div className={`flex justify-center ${className}`}>
       <span className="inline-flex items-center gap-1.5 rounded-full bg-cta-light px-3 py-1 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-cta-dark">
         <ChevronsLeft className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-        Tap or swipe to see more
+        <span className="md:hidden">Swipe to see more</span>
+        <span className="hidden md:inline">Tap to see more</span>
         <ChevronsRight className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
       </span>
     </div>
@@ -832,84 +832,67 @@ function ProofSection() {
             the Northern Lights? Put them in any scene imaginable (literally
             though) then personalise the message on the front and inside.
           </p>
-          {/* Top signpost — the only one on desktop; on mobile it's the
-              "before the photo/text boxes" one. */}
+          {/* One signpost above the carousel. */}
           {many && swipeHint('mt-5')}
         </Rise>
-        {/* Recipe → result: photo + scene + front + inside → the real card,
-            openable (Kevin 2026-07-14). Reuses the page's lazy Card3DViewer
-            (open/close only — the locked interaction model, no rotate/zoom)
-            so three.js stays off the initial load.
-            md:items-start pulls the inputs up to sit level with the top of
-            the card rather than centring against its taller stage. */}
-        <Rise delay={0.1} className="mt-14">
+
+        {/* COVERFLOW — the focused example is the live 3D card, centred; its
+            neighbours are flat card fronts angled + receding behind it, so the
+            range reads at a glance on desktop (Kevin 2026-07-14). Neighbours are
+            IMAGES on purpose: three live WebGL cards at once would be a real GPU
+            hit. Click a neighbour / edge arrow, or swipe, to bring the next to
+            the front; the recipe caption below updates to match. */}
+        <Rise delay={0.1} className="mt-10">
           <div
-            className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:gap-12"
+            className="relative mx-auto h-[300px] max-w-3xl [perspective:1600px] sm:h-[360px]"
             onTouchStart={many ? onTouchStart : undefined}
             onTouchEnd={many ? onTouchEnd : undefined}
           >
-            {/* Inputs — photo + scene + front text + inside message. Nudged
-                DOWN on desktop so it sits centred-ish against the card rather
-                than level with its top, which made the card feel too low
-                (Kevin 2026-07-14). */}
-            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left md:mt-16">
-              <div className="flex items-center gap-3">
-                {/* The real source selfie, sat INSIDE the dashed frame — the
-                    cut-out look Kevin wanted kept, now with a face in it. The
-                    p-1 inset is what leaves the dashed edge visible around the
-                    photo rather than the photo covering it. */}
-                <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
+            {/* Receding neighbours — desktop only (on mobile they'd crowd the
+                card; swipe covers it there). */}
+            {many && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => goTo(prevIdx)}
+                  aria-label="Previous example"
+                  className="absolute left-0 top-1/2 z-10 hidden sm:block"
+                  style={{ transform: 'translateY(-50%) rotateY(32deg) scale(0.78)', transformOrigin: 'left center' }}
+                >
                   <img
-                    src={ex.sourcePhoto}
-                    alt={ex.sourceAlt}
+                    src={PROOF_EXAMPLES[prevIdx].cardFront}
+                    alt=""
                     loading="lazy"
-                    className="h-full w-full rounded-lg object-cover"
+                    className="w-[180px] rounded-xl opacity-55 shadow-[0_22px_48px_-20px_rgba(33,29,25,0.45)] brightness-[0.92] transition-opacity duration-300 hover:opacity-80 lg:w-[210px]"
                   />
-                </div>
-                <div>
-                  <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
-                  <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
-                </div>
-              </div>
-              {field(Mountain, 'The scene', ex.scene)}
-              {field(Type, 'Front text', ex.frontText)}
-              {field(PenLine, 'Inside message', ex.insideMessage)}
-            </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goTo(nextIdx)}
+                  aria-label="Next example"
+                  className="absolute right-0 top-1/2 z-10 hidden sm:block"
+                  style={{ transform: 'translateY(-50%) rotateY(-32deg) scale(0.78)', transformOrigin: 'right center' }}
+                >
+                  <img
+                    src={PROOF_EXAMPLES[nextIdx].cardFront}
+                    alt=""
+                    loading="lazy"
+                    className="w-[180px] rounded-xl opacity-55 shadow-[0_22px_48px_-20px_rgba(33,29,25,0.45)] brightness-[0.92] transition-opacity duration-300 hover:opacity-80 lg:w-[210px]"
+                  />
+                </button>
+              </>
+            )}
 
-            {/* Arrow — right on desktop, down on mobile. self-center keeps it
-                mid-height against the top-aligned columns. */}
-            <div className="shrink-0 text-keeper-stone/50 md:mt-32 md:self-start">
-              <ArrowRight className="hidden h-7 w-7 md:block" strokeWidth={1.5} />
-              <ArrowDown className="h-6 w-6 md:hidden" strokeWidth={1.5} />
-            </div>
-
-            {/* Output — the real card, tap to open/close. z-20 so the swung-
-                open cover overlaps the inputs on its way left, exactly like
-                the hero card overlaps its headline (Kevin 2026-07-14). */}
-            <div className="relative z-20 flex w-full max-w-md flex-col items-center">
-              {/* Mobile-only second signpost — sits directly above the card so
-                  the reader links it to the inputs above (the feature spans two
-                  phone screens). Hidden on desktop, where one signpost covers
-                  the side-by-side layout. */}
-              {many && swipeHint('mb-5 md:hidden')}
-              {/* Card stage. Height fixed (not vh) so the card matches the
-                  hero's on-screen size — the hero scales with width, vh made
-                  this one bigger on tall phones. Heights tuned for the hero's
-                  framing below (fm 1.75 + 24% vertical bleed) so mobile lands
-                  ~264px = the hero (Kevin 2026-07-14). */}
-              <div ref={ref} className="relative h-[326px] w-full md:h-[368px]">
+            {/* Centre — the live, tap-to-open 3D card. */}
+            <div className="absolute left-1/2 top-0 z-20 h-full w-[270px] -translate-x-1/2 sm:w-[300px]">
+              <div ref={ref} className="relative h-full w-full">
                 {near && !reduced ? (
                   <Suspense fallback={flatFallback}>
-                    {/* Canvas bleeds WIDE past the anchor so the swung-open
-                        cover is fully drawn. Match the HERO's framing exactly —
-                        a generous vertical bleed (-24%) + a smaller card-to-
-                        frame ratio (framingMargin 1.75) — so the open cover's
-                        bottom-left corner stays inside the frame instead of
-                        dangling below into the layout (the "bottom-left bleed"
-                        Kevin caught). Camera fit is height-driven, so this
-                        neither shrinks nor shifts the card. key remounts per
-                        slide so textures swap cleanly. */}
-                    <div className="absolute inset-x-[-105%] inset-y-[-24%]">
+                    {/* Bleed gives the swung-open cover room without clipping;
+                        the canvas is transparent so it never hides the
+                        neighbours behind it. HERO framing (fm 1.75 + 24%
+                        vertical) keeps the open cover inside the frame. */}
+                    <div className="absolute inset-x-[-80%] inset-y-[-22%]">
                       <Card3DViewer
                         key={ex.id}
                         frontImageUrl={ex.cardFront}
@@ -930,63 +913,82 @@ function ProofSection() {
                 ) : (
                   flatFallback
                 )}
-
-                {/* Quiet edge arrows — sit on the left/right of the card (=
-                    the screen edges on mobile, where the card is full-width).
-                    z-30 keeps them above the swung-open cover. Subtle by
-                    default, firm up on hover (Kevin 2026-07-14). */}
-                {many && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => goTo(idx - 1)}
-                      aria-label="Previous example"
-                      className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
-                    >
-                      <ChevronLeft className="h-5 w-5" strokeWidth={2} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => goTo(idx + 1)}
-                      aria-label="Next example"
-                      className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
-                    >
-                      <ChevronRight className="h-5 w-5" strokeWidth={2} />
-                    </button>
-                  </>
-                )}
               </div>
-              {/* Hint sits tight under the card (mirrors the hero) — the
-                  reserved height stops the column reflowing when it toggles. */}
-              <div className="-mt-2 flex h-11 items-start justify-center">
-                {near && !reduced && (
-                  <GestureHints
-                    open={cardOpen}
-                    hideZoomHint
-                    hideRotateHint
-                    openLabel="Tap to close"
-                  />
-                )}
-              </div>
-
-              {/* Position dots — the arrows now live on the card's edges
-                  (above), so this is just the indicator. */}
-              {many && (
-                <div className="mt-3 flex items-center justify-center gap-1.5">
-                  {PROOF_EXAMPLES.map((e, i) => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => goTo(i)}
-                      aria-label={`Example ${i + 1}`}
-                      className={`h-2 w-2 rounded-full transition-colors ${
-                        i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
+
+            {/* Mobile edge arrows — the neighbours are hidden on mobile, so
+                these are the tap targets there (swipe also works). z-30 above
+                the open cover. */}
+            {many && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => goTo(prevIdx)}
+                  aria-label="Previous example"
+                  className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:hidden"
+                >
+                  <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goTo(nextIdx)}
+                  aria-label="Next example"
+                  className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:hidden"
+                >
+                  <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Tap-to-open hint under the focused card. */}
+          <div className="mt-2 flex h-11 items-start justify-center">
+            {near && !reduced && (
+              <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
+            )}
+          </div>
+
+          {/* Dots. */}
+          {many && (
+            <div className="flex items-center justify-center gap-1.5">
+              {PROOF_EXAMPLES.map((e, i) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`Example ${i + 1}`}
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Recipe caption — the inputs behind the FOCUSED card, compact and
+              centred beneath it (moved out of the old tall left column so the
+              cards can recede symmetrically). Updates per slide. */}
+          <div className="mx-auto mt-9 flex max-w-sm flex-col gap-2.5 text-left">
+            <p className="text-center text-[11px] uppercase tracking-[0.14em] text-stone-400">
+              Made from
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
+                <img
+                  src={ex.sourcePhoto}
+                  alt={ex.sourceAlt}
+                  loading="lazy"
+                  className="h-full w-full rounded-lg object-cover"
+                />
+              </div>
+              <div>
+                <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
+                <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
+              </div>
+            </div>
+            {field(Mountain, 'The scene', ex.scene)}
+            {field(Type, 'Front text', ex.frontText)}
+            {field(PenLine, 'Inside message', ex.insideMessage)}
           </div>
         </Rise>
       </div>
