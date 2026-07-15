@@ -847,7 +847,10 @@ function ProofSection() {
                 open cover overlaps the inputs on its way left, exactly like
                 the hero card overlaps its headline (Kevin 2026-07-14). */}
             <div className="relative z-20 flex w-full max-w-md flex-col items-center">
-              <div ref={ref} className="relative h-[54vh] min-h-[340px] w-full md:h-[400px]">
+              {/* Mobile height fixed (not vh) so the card matches the hero's
+                  on-screen size — the hero scales with width, vh made this one
+                  bigger on tall phones (Kevin 2026-07-14). Desktop unchanged. */}
+              <div ref={ref} className="relative h-[356px] w-full md:h-[400px]">
                 {near && !reduced ? (
                   <Suspense fallback={flatFallback}>
                     {/* Canvas bleeds past the anchor so the swung-open cover
