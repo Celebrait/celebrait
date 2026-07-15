@@ -395,7 +395,7 @@ function AjarTile({
     >
       <div className="absolute inset-[6%]" style={{ perspective: '1100px' }}>
         {/* Inside page (right-hand spread) */}
-        <div className="absolute inset-0 overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
+        <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
           <img src={heroCardInside}
                 crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
           {/* Soft spine shadow so the inside reads as a page, not a print */}
@@ -416,17 +416,26 @@ function AjarTile({
         >
           {/* Front face */}
           <div
-            className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
+            className="absolute inset-0 overflow-hidden rounded-[6px] shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
             style={{ backfaceVisibility: 'hidden' }}
           >
             <img src={heroCardFront}
                 crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
           </div>
-          {/* Back of the cover — cream paper */}
+          {/* Inside-left (back of the cover) — white stock + celebrait
+              wordmark bottom-centre, matching the 3D render. scaleX(-1)
+              un-mirrors the logo (the face is rotateY(180)). */}
           <div
-            className="absolute inset-0 rounded-xl border border-stone-200/60 bg-[#FBF5EA]"
+            className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[9%]"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          />
+          >
+            <img
+              src={celebraitLogo}
+              alt=""
+              className="w-[42%] opacity-70"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          </div>
         </motion.div>
       </div>
       <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
@@ -456,7 +465,7 @@ function CssAjarCard({
   return (
     <div className="absolute inset-0" style={{ perspective: '1200px' }}>
       {/* Inside page — revealed as the cover swings open. */}
-      <div className="absolute inset-0 overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
+      <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
         <img
           src={insideUrl}
           crossOrigin="anonymous"
@@ -478,7 +487,7 @@ function CssAjarCard({
         transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
       >
         <div
-          className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
+          className="absolute inset-0 overflow-hidden rounded-[6px] shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
           style={{ backfaceVisibility: 'hidden' }}
         >
           <img
@@ -489,10 +498,20 @@ function CssAjarCard({
             className="h-full w-full object-cover"
           />
         </div>
+        {/* Inside-left (back of the cover) — white stock + the celebrait
+            wordmark bottom-centre, exactly like the 3D render's blank panel.
+            scaleX(-1) un-mirrors the logo (the face is rotateY(180)). */}
         <div
-          className="absolute inset-0 rounded-xl border border-stone-200/60 bg-[#FBF5EA]"
+          className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[9%]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-        />
+        >
+          <img
+            src={celebraitLogo}
+            alt=""
+            className="w-[42%] opacity-70"
+            style={{ transform: 'scaleX(-1)' }}
+          />
+        </div>
       </motion.div>
     </div>
   );
