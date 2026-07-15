@@ -868,21 +868,31 @@ function ProofSection() {
   };
 
   return (
-    <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
+    // font-body = Figtree on TRIAL for this section only (headlines keep
+    // font-display/Fraunces). Lets Kevin compare the new body face in
+    // context before any site-wide swap.
+    <section id="proof" className="scroll-mt-32 px-6 py-24 font-body md:py-32">
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
           </h2>
-          <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Best mate abseiling off Big Ben? Daughter TikTok'in in downtown
-            NY? Or mum simply gazing at the glorious Northern Lights? Literally
-            put them in any scene imaginable, then personalise your message on
-            the front and inside.
+          {/* Left-aligned block (centred as a unit) — panel: never centre a
+              paragraph that wraps past one line. Lead line + support, warm
+              charcoal body (keeper-body) a rung below the headline. */}
+          <p className="mx-auto mt-5 max-w-[54ch] text-left text-[17px] leading-[1.6] text-keeper-body">
+            <span className="block font-semibold text-keeper-ink">
+              Put them anywhere. We mean anywhere.
+            </span>
+            <span className="mt-1.5 block">
+              Mate abseiling off Big Ben, mum under the Northern Lights,
+              daughter going viral in Times Square — you describe the scene, we
+              make it real. Then you write the front and the inside.
+            </span>
           </p>
           {/* One signpost above the carousel. */}
-          {many && swipeHint('mt-5')}
+          {many && swipeHint('mt-6')}
         </Rise>
 
         {/* RECIPE SLIDER — each slide is a WHOLE example: the photo + text

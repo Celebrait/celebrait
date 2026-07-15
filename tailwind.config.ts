@@ -24,6 +24,11 @@ export default {
       fontFamily: {
         // `font-display` — Fraunces serif, on TEST for landing headlines.
         display: ['Fraunces', 'Georgia', 'Cambria', 'serif'],
+        // `font-body` — Figtree humanist sans, warmer pairing with Fraunces
+        // than Inter (which was declared but never actually loaded). On
+        // TRIAL in the /keeper proof section before any site-wide swap of
+        // the base Inter body font. See panel opinion 2026-07-15.
+        body: ['Figtree', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         // ── Celebrait brand palette ──────────────────────────────────
@@ -107,8 +112,14 @@ export default {
         // candidate for brand-wide adoption after Kevin sees it live.
         keeper: {
           paper: '#FAF8F4',      // warm paper white — page ground
-          ink: '#211D19',        // warm near-black — text + the one dark band
-          stone: '#7A7267',      // warm secondary text
+          ink: '#211D19',        // warm near-black — headlines + the one dark band
+          // Primary body copy. Warm charcoal, a deliberate rung below `ink`
+          // so headline→body hierarchy survives. ~9:1 on paper (clears AA).
+          // Replaces `stone` for BODY text — stone failed AA at 4.47:1 and
+          // read washed-out. On TRIAL in /keeper proof; roll site-wide next.
+          body: '#3A342E',       // warm charcoal — primary body text
+          stone: '#7A7267',      // warm secondary text (⚠ AA-marginal — demote to ≥14px meta only)
+          meta: '#645C53',       // AA-safe secondary/meta grey (5.6:1) — captions, labels, fine print
           hair: '#E5DFD4',       // hairline borders
           // Accent = the EXISTING brand violet (Kevin killed the judge's
           // marigold on sight, 2026-07-04 — "wtf is that gold"; it also
