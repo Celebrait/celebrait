@@ -904,9 +904,10 @@ function ProofSection() {
             boring
           </h2>
           <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Abseiling off Big Ben? Leading the Roman empire? Or simply gazing at
-            the Northern Lights? Put them in any scene imaginable (literally
-            though) then personalise the message on the front and inside.
+            Best mate abseiling off Big Ben? Son ruling the Roman empire?
+            Mother gazing gloriously at the Northern Lights? Put them in
+            (literally) any scene imaginable, then personalise the message on
+            the front and inside. Cool AF.
           </p>
           {/* One signpost above the carousel. */}
           {many && swipeHint('mt-5')}
