@@ -933,22 +933,30 @@ function ProofSection() {
                         {field(PenLine, 'Inside message', example.insideMessage)}
                       </div>
 
-                      {/* The card it produced — tap to open. z-20 so the swung
-                          cover overlaps the inputs on its way left. */}
-                      <div className="relative z-20 h-[300px] w-[300px] shrink-0 sm:h-[360px] sm:w-[360px]">
-                        <button
-                          type="button"
-                          onClick={() => i === idx && setCardOpen((o) => !o)}
-                          aria-label={cardOpen ? 'Close card' : 'Open card'}
-                          tabIndex={i === idx ? 0 : -1}
-                          className="relative block h-full w-full"
-                        >
-                          <CssAjarCard
-                            frontUrl={example.cardFront}
-                            insideUrl={example.cardInside}
-                            open={i === idx && cardOpen}
-                          />
-                        </button>
+                      {/* The card it produced — tap to open, with the hint
+                          tucked right beneath it (hero-style). z-20 so the
+                          swung cover overlaps the inputs on its way left. */}
+                      <div className="flex shrink-0 flex-col items-center">
+                        <div className="relative z-20 h-[300px] w-[300px] sm:h-[360px] sm:w-[360px]">
+                          <button
+                            type="button"
+                            onClick={() => i === idx && setCardOpen((o) => !o)}
+                            aria-label={cardOpen ? 'Close card' : 'Open card'}
+                            tabIndex={i === idx ? 0 : -1}
+                            className="relative block h-full w-full"
+                          >
+                            <CssAjarCard
+                              frontUrl={example.cardFront}
+                              insideUrl={example.cardInside}
+                              open={i === idx && cardOpen}
+                            />
+                          </button>
+                        </div>
+                        <div className="mt-3 flex h-8 items-start justify-center">
+                          {i === idx && (
+                            <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -979,14 +987,9 @@ function ProofSection() {
             )}
           </div>
 
-          {/* Tap-to-open hint. */}
-          <div className="mt-8 flex h-12 items-start justify-center">
-            <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
-          </div>
-
           {/* Dots. */}
           {many && (
-            <div className="mt-3 flex items-center justify-center gap-1.5">
+            <div className="mt-6 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
