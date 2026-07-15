@@ -121,7 +121,7 @@ export function WelcomeMoment() {
         <h2 className="text-xl font-semibold text-keeper-ink">
           Welcome to your studio
         </h2>
-        <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-keeper-stone">
+        <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-keeper-meta">
           Make a card they’ll keep — pick a moment, add a photo, and we’ll
           bring it to life. Start whenever you’re ready.
         </p>
@@ -140,7 +140,7 @@ export function WelcomeMoment() {
           <button
             type="button"
             onClick={dismiss}
-            className="text-[13px] text-stone-400 transition-colors hover:text-keeper-stone"
+            className="text-[13px] text-stone-400 transition-colors hover:text-keeper-meta"
           >
             Have a look around first
           </button>

@@ -839,7 +839,7 @@ export function StartAgainButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className={`text-[13px] font-medium text-keeper-stone underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-ink ${
+          className={`text-[13px] font-medium text-keeper-meta underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-ink ${
             className ?? ''
           }`}
           data-testid="btn-start-again"
@@ -1015,7 +1015,7 @@ function FrontFirstReview({
             <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm">
               <div className="w-full">{frontReference}</div>
             </div>
-            <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-stone">
+            <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">
               {frontReferenceLabel ?? 'Front'}
             </figcaption>
           </figure>
@@ -1036,7 +1036,7 @@ function FrontFirstReview({
               <div className="w-full">{printVisual}</div>
             )}
           </div>
-          <span className="mt-1.5 inline-flex items-center gap-1 text-center text-[11px] font-medium text-keeper-stone transition-colors group-hover:text-keeper-ink">
+          <span className="mt-1.5 inline-flex items-center gap-1 text-center text-[11px] font-medium text-keeper-meta transition-colors group-hover:text-keeper-ink">
             <Printer className="h-3 w-3" strokeWidth={1.75} />
             {showingPrint
               ? 'Tap for the full image'

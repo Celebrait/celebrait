@@ -37,7 +37,7 @@ export default function CheckoutLayout({
       <header className="h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
         <Link
           href={backHref}
-          className="inline-flex items-center gap-1.5 text-sm text-keeper-stone hover:text-keeper-ink transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink transition-colors"
           data-testid="checkout-back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -54,7 +54,7 @@ export default function CheckoutLayout({
           <div className="w-7 h-7 rounded-full bg-keeper-gold flex items-center justify-center text-white text-xs font-semibold">
             {initials}
           </div>
-          <span className="text-xs text-keeper-stone max-w-[140px] truncate hidden sm:block">
+          <span className="text-xs text-keeper-meta max-w-[140px] truncate hidden sm:block">
             {user?.email}
           </span>
         </div>
@@ -62,7 +62,7 @@ export default function CheckoutLayout({
           variant="ghost"
           size="sm"
           onClick={() => logout()}
-          className="text-keeper-stone hover:text-keeper-ink hover:bg-keeper-gold-wash"
+          className="text-keeper-meta hover:text-keeper-ink hover:bg-keeper-gold-wash"
           data-testid="checkout-logout"
         >
           <LogOut className="w-4 h-4" />

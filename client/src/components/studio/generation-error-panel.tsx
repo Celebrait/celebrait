@@ -283,7 +283,7 @@ export function GenerationErrorPanel({
             boilerplate ("Your request was rejected by the safety system…")
             that adds nothing for the user. Available in technical details
             for devs / debugging. */}
-        <p className="text-sm text-keeper-stone leading-relaxed text-center max-w-sm mx-auto">
+        <p className="text-sm text-keeper-meta leading-relaxed text-center max-w-sm mx-auto">
           {cfg.description(context)}
         </p>
 
@@ -300,7 +300,7 @@ export function GenerationErrorPanel({
                 key={chip.stepId}
                 type="button"
                 onClick={() => onJumpToStep(chip.stepId)}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-stone hover:text-keeper-ink transition-all shadow-sm"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-meta hover:text-keeper-ink transition-all shadow-sm"
                 data-testid={`error-panel-chip-${chip.stepId}`}
               >
                 <span>{chip.label}</span>
@@ -331,7 +331,7 @@ export function GenerationErrorPanel({
             actually fix an auth issue themselves. Light, non-alarming
             mailto so they have a real escalation path. */}
         {cfg.contactLine && (
-          <p className="mt-3 text-[11px] text-keeper-stone text-center">
+          <p className="mt-3 text-[11px] text-keeper-meta text-center">
             {cfg.contactLine.lead}{' '}
             <a
               href={`mailto:${cfg.contactLine.email}`}
@@ -350,7 +350,7 @@ export function GenerationErrorPanel({
           <button
             type="button"
             onClick={() => setTechOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11px] text-keeper-stone/70 hover:text-keeper-stone transition-colors mx-auto"
+            className="flex items-center gap-1 text-[11px] text-keeper-meta/70 hover:text-keeper-meta transition-colors mx-auto"
             data-testid="error-panel-tech-toggle"
           >
             {techOpen ? (
@@ -361,7 +361,7 @@ export function GenerationErrorPanel({
             <span>{techOpen ? 'Hide' : 'Show'} technical details</span>
           </button>
           {techOpen && (
-            <dl className="mt-3 space-y-1 text-[11px] text-keeper-stone/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
+            <dl className="mt-3 space-y-1 text-[11px] text-keeper-meta/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
               {kind && <Row label="kind" value={kind} />}
               {provider && <Row label="provider" value={provider} />}
               {code && <Row label="code" value={code} />}
@@ -370,10 +370,10 @@ export function GenerationErrorPanel({
               )}
               {modelExplanation && (
                 <div className="pt-2">
-                  <span className="block text-keeper-stone/60">
+                  <span className="block text-keeper-meta/60">
                     model explanation:
                   </span>
-                  <span className="block whitespace-pre-wrap text-keeper-stone mt-0.5">
+                  <span className="block whitespace-pre-wrap text-keeper-meta mt-0.5">
                     {modelExplanation}
                   </span>
                 </div>
@@ -389,8 +389,8 @@ export function GenerationErrorPanel({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <span className="text-keeper-stone/50 w-20 flex-shrink-0">{label}:</span>
-      <span className="text-keeper-stone break-all">{value}</span>
+      <span className="text-keeper-meta/50 w-20 flex-shrink-0">{label}:</span>
+      <span className="text-keeper-meta break-all">{value}</span>
     </div>
   );
 }

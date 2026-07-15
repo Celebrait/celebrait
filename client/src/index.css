@@ -112,7 +112,12 @@
   body {
     @apply font-sans antialiased min-h-screen;
     background-color: hsl(var(--background));
-    font-family: 'Inter', sans-serif;
+    /* Figtree — humanist body sans, warmer pairing with Fraunces than the
+       old 'Inter' (which was declared here but never actually loaded, so
+       users fell back to system sans). Kevin approved site-wide 2026-07-15.
+       Loaded in index.html; self-host as woff2 before launch. Inter kept as
+       a fallback. See next_typography_system_pass. */
+    font-family: 'Figtree', 'Inter', system-ui, sans-serif;
   }
 }
 

@@ -46,7 +46,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-1 text-keeper-stone opacity-70 transition-opacity hover:opacity-100 hover:text-keeper-ink focus:outline-none focus:ring-2 focus:ring-keeper-gold/30 disabled:pointer-events-none">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-1 text-keeper-meta opacity-70 transition-opacity hover:opacity-100 hover:text-keeper-ink focus:outline-none focus:ring-2 focus:ring-keeper-gold/30 disabled:pointer-events-none">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -105,7 +105,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-keeper-stone", className)}
+    className={cn("text-sm text-keeper-meta", className)}
     {...props}
   />
 ))

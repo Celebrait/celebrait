@@ -381,7 +381,7 @@ export function AuthForm({
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair text-brand focus:ring-keeper-gold/30 accent-brand"
               data-testid="checkbox-welcome-marketing"
             />
-            <span className="text-xs leading-snug text-keeper-stone">
+            <span className="text-xs leading-snug text-keeper-meta">
               Email me card reminders and the occasional offer. No spam, and
               you can unsubscribe anytime.
             </span>

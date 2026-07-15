@@ -16,7 +16,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           // Keeper skin (2026-07-09): taller h-12, rounded-xl, hairline
           // border on white, soft violet focus ring. (The mobile-readonly
           // hack below is preserved as-is — a separate follow-up.)
-          "flex h-12 w-full rounded-xl border border-keeper-hair bg-white px-4 py-2 text-base file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-keeper-ink placeholder:text-keeper-stone/70 focus-visible:outline-none focus-visible:border-keeper-gold focus-visible:ring-2 focus-visible:ring-keeper-gold/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          "flex h-12 w-full rounded-xl border border-keeper-hair bg-white px-4 py-2 text-base file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-keeper-ink placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-keeper-gold focus-visible:ring-2 focus-visible:ring-keeper-gold/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
           className
         )}
         ref={ref}

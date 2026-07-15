@@ -126,7 +126,7 @@ function AssetSlot({
       <span className="rounded bg-keeper-gold-wash px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
         {tag}
       </span>
-      <span className="max-w-[26ch] text-[11.5px] leading-snug text-keeper-stone">{note}</span>
+      <span className="max-w-[26ch] text-[11.5px] leading-snug text-keeper-meta">{note}</span>
     </div>
   );
 }
@@ -238,7 +238,7 @@ function TrustChips({ center = false }: { center?: boolean }) {
       {TRUST_CHIPS.map(({ icon: Icon, label }) => (
         <span
           key={label}
-          className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-[11px] text-keeper-stone"
+          className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-[11px] text-keeper-meta"
         >
           <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
           {label}
@@ -435,7 +435,7 @@ function AjarTile({
       <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
         {tag}
       </span>
-      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-stone">
+      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-meta">
         {open ? 'tap to close' : 'tap to open'}
       </span>
     </button>
@@ -561,7 +561,7 @@ function KeeperHeader() {
               key={l.id}
               type="button"
               onClick={() => jump(l.id)}
-              className="text-[13px] font-medium text-keeper-stone transition-colors hover:text-keeper-ink"
+              className="text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink"
             >
               {l.label}
             </button>
@@ -585,7 +585,7 @@ function KeeperHeader() {
               <button
                 type="button"
                 onClick={() => openAuth('/studio')}
-                className="hidden px-2 text-[13px] font-medium text-keeper-stone transition-colors hover:text-keeper-ink sm:block"
+                className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block"
               >
                 Sign in
               </button>
@@ -697,7 +697,7 @@ function HeroSection() {
               </span>
               <span className="whitespace-nowrap">Craft your message</span>
             </div>
-            <p className="mt-3 text-[16px] leading-[1.6] text-keeper-stone">
+            <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
               The result? A greetings card they'll{' '}
               <span className="font-medium text-keeper-ink">probably keep</span> — from just
               £8.99.
@@ -705,7 +705,7 @@ function HeroSection() {
           </div>
           <div className="mt-8">
             <PrimaryCta large />
-            <p className="mt-3 text-[12px] text-keeper-stone">
+            <p className="mt-3 text-[12px] text-keeper-meta">
               Free to make. No payment details needed.
             </p>
           </div>
@@ -868,10 +868,7 @@ function ProofSection() {
   };
 
   return (
-    // font-body = Figtree on TRIAL for this section only (headlines keep
-    // font-display/Fraunces). Lets Kevin compare the new body face in
-    // context before any site-wide swap.
-    <section id="proof" className="scroll-mt-32 px-6 py-24 font-body md:py-32">
+    <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
@@ -932,7 +929,7 @@ function ProofSection() {
                           </div>
                           <div>
                             <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
-                            <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
+                            <div className="text-[12.5px] text-keeper-meta">featuring the person you love</div>
                           </div>
                         </div>
                         {field(Mountain, 'The scene', example.scene)}
@@ -1026,7 +1023,7 @@ function InsideSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Your words, in the card's own hand.
           </h2>
-          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-stone">
+          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             Tell us what to write and we set it inside — lettering and artwork
             styled to match the front, same palette, same brush. Or leave it
             blank and write it yourself.
@@ -1055,7 +1052,7 @@ function StatementSection() {
           <br />
           Nobody <em className="italic">gets</em> them.
         </h2>
-        <p className="mt-5 text-[15px] text-keeper-stone">This is the unbinnable kind.</p>
+        <p className="mt-5 text-[15px] text-keeper-body">This is the unbinnable kind.</p>
       </Rise>
     </section>
   );
@@ -1081,7 +1078,7 @@ function GallerySection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
             Any face. Any occasion.
           </h2>
-          <p className="mt-3 text-[15px] text-keeper-stone">
+          <p className="mt-3 text-[15px] text-keeper-body">
             Made in the Studio this month — tap any card to open it.
           </p>
         </Rise>
@@ -1096,7 +1093,7 @@ function GallerySection() {
               />
               <div className="mt-2 flex items-center gap-2">
                 <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
-                <span className="text-[12px] text-keeper-stone">{g.brief}</span>
+                <span className="text-[12px] text-keeper-meta">{g.brief}</span>
               </div>
             </Rise>
           ))}
@@ -1128,24 +1125,24 @@ function ObjectSection() {
             <li>✓ Kraft envelope, recyclable materials</li>
             <li>✓ Printed in the UK</li>
           </ul>
-          <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-stone">
+          <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-meta">
             Every card is printed to order, just for them — allow up to 72
             hours, then it's in the post. Standard £1.95 (Royal Mail 24) ·
             Express £5.95 · Overnight £10.95.
           </p>
-          <p className="mt-4 font-mono text-[12px] text-keeper-stone">
+          <p className="mt-4 font-mono text-[12px] text-keeper-meta">
             Today you make it → within 72 hrs it's printed → then posted from £1.95
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-keeper-hair bg-white/70 p-4">
               <p className="text-[13px] font-semibold text-keeper-ink">Straight to them</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-stone">
+              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-meta">
                 Posted tracked in a kraft envelope, your message printed inside.
               </p>
             </div>
             <div className="rounded-xl border border-keeper-hair bg-white/70 p-4">
               <p className="text-[13px] font-semibold text-keeper-ink">Or to you first</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-stone">
+              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-meta">
                 Sealed with a spare envelope, ready to hand over in person.
               </p>
             </div>
@@ -1164,7 +1161,7 @@ function PriceSection() {
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
           <div className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>£8.99</div>
-          <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
+          <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
             Printed, posted, and free to share. Make and preview unlimited
             cards free — pay only when you post one. Postage from £1.95 ·
             printed to order, allow up to 72 hours.
@@ -1239,7 +1236,7 @@ function OccasionCaptureSection() {
             <h2 className={`text-[clamp(27px,3.6vw,36px)] leading-[1.08] ${DISPLAY}`}>
               Whose birthday's <span className="text-brand-dark">next?</span>
             </h2>
-            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-stone">
+            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-body">
               Tell us the date and we'll nudge you in good time — with a card
               idea ready. Or skip the date and just take the link for later.
             </p>
@@ -1255,7 +1252,7 @@ function OccasionCaptureSection() {
                   ? "Done — we'll nudge you in good time. ✨"
                   : "Done — the link's in your inbox. ✨"}
               </p>
-              <p className="mt-1 text-[12.5px] text-keeper-stone">
+              <p className="mt-1 text-[12.5px] text-keeper-meta">
                 {sent === 'dated'
                   ? 'Your link is in your inbox meanwhile, whenever you fancy a look.'
                   : 'Whenever the moment comes, it takes a few minutes.'}
@@ -1276,7 +1273,7 @@ function OccasionCaptureSection() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Their name (optional)"
-                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-name"
                 />
                 <input
@@ -1284,7 +1281,7 @@ function OccasionCaptureSection() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   aria-label="Their date (optional)"
-                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-date"
                 />
               </div>
@@ -1295,7 +1292,7 @@ function OccasionCaptureSection() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-stone/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-email"
                 />
                 <button
@@ -1315,12 +1312,12 @@ function OccasionCaptureSection() {
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair accent-[#5c57d4]"
                   data-testid="check-occasion-optin"
                 />
-                <span className="text-[11.5px] leading-snug text-keeper-stone">
+                <span className="text-[11.5px] leading-snug text-keeper-meta">
                   Keep me posted now and then — new features and ideas.
                   Unsubscribe anytime.
                 </span>
               </label>
-              <p className="mt-2 text-[10.5px] text-keeper-stone/80">
+              <p className="mt-2 text-[10.5px] text-keeper-meta/80">
                 {date
                   ? 'One nudge before the day + your link now. No spam, ever.'
                   : "We'll send your link straight away. No spam, ever."}

@@ -750,7 +750,7 @@ export function RegenEditMode({
                   </p>
                 </div>
               ) : (
-                <p className="text-[11px] text-keeper-stone text-center mb-4">
+                <p className="text-[11px] text-keeper-meta text-center mb-4">
                   Want a different card altogether?{' '}
                   <Link
                     href="/studio/new-card"

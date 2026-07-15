@@ -115,7 +115,7 @@ export function WhatsNewDrawer() {
               <h3 className="text-[15px] font-semibold text-keeper-ink leading-snug mb-1.5">
                 {a.title}
               </h3>
-              <p className="text-sm text-keeper-stone leading-relaxed">{a.body}</p>
+              <p className="text-sm text-keeper-meta leading-relaxed">{a.body}</p>
               {a.href &&
                 (a.href.startsWith('/') ? (
                   <Link

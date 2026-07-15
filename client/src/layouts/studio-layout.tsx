@@ -132,7 +132,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         <div key={section.label} className="mb-4">
           <div
             className={`px-4 text-[10px] font-semibold uppercase tracking-wider mb-1 ${
-              section.placeholder ? 'text-keeper-stone/50' : 'text-keeper-stone'
+              section.placeholder ? 'text-keeper-meta/50' : 'text-keeper-meta'
             }`}
           >
             {section.label}
@@ -148,7 +148,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
               return (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2 px-3 py-2 mx-2 rounded-lg text-sm text-keeper-stone/50 cursor-not-allowed select-none"
+                  className="flex items-center gap-2 px-3 py-2 mx-2 rounded-lg text-sm text-keeper-meta/50 cursor-not-allowed select-none"
                   data-testid={`nav-disabled-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <Icon className="w-4 h-4" />
@@ -260,7 +260,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             <div className="w-7 h-7 rounded-full bg-keeper-gold flex items-center justify-center text-white text-xs font-semibold">
               {initials}
             </div>
-            <span className="text-xs text-keeper-stone max-w-[140px] truncate hidden sm:block">
+            <span className="text-xs text-keeper-meta max-w-[140px] truncate hidden sm:block">
               {user?.email}
             </span>
           </div>
@@ -268,7 +268,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             variant="ghost"
             size="sm"
             onClick={() => logout()}
-            className="text-keeper-stone hover:text-keeper-ink hover:bg-keeper-gold-wash"
+            className="text-keeper-meta hover:text-keeper-ink hover:bg-keeper-gold-wash"
             data-testid="btn-studio-logout"
           >
             <LogOut className="w-4 h-4" />

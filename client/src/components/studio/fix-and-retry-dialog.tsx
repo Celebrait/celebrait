@@ -154,7 +154,7 @@ export function FixAndRetryDialog({
           <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Fix and try again
           </DialogTitle>
-          <DialogDescription className="text-sm text-keeper-stone mt-1">
+          <DialogDescription className="text-sm text-keeper-meta mt-1">
             Edit what you think went wrong. Anything else look off? Switch to
             it before retrying.
           </DialogDescription>
@@ -190,7 +190,7 @@ export function FixAndRetryDialog({
 
         {/* Also using strip */}
         <div className="px-6 pb-5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-keeper-stone font-semibold mb-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-keeper-meta font-semibold mb-2">
             Also using — could one of these be it?
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -218,7 +218,7 @@ export function FixAndRetryDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={inFlight}
-            className="text-keeper-stone hover:text-keeper-ink"
+            className="text-keeper-meta hover:text-keeper-ink"
           >
             Back
           </Button>
@@ -280,8 +280,8 @@ function AlsoUsingTile({
       data-testid={`fix-retry-switch-${editor}`}
     >
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon className="w-3 h-3 text-keeper-stone" />
-        <span className="text-[10px] uppercase tracking-[0.14em] text-keeper-stone font-semibold">
+        <Icon className="w-3 h-3 text-keeper-meta" />
+        <span className="text-[10px] uppercase tracking-[0.14em] text-keeper-meta font-semibold">
           {EDITOR_META[editor].label}
         </span>
         <ChevronRight className="w-3 h-3 text-stone-300 group-hover:text-brand ml-auto transition-colors" />
