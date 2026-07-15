@@ -911,7 +911,7 @@ function ProofSection() {
               >
                 {PROOF_EXAMPLES.map((example, i) => (
                   <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
-                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-10 md:flex-row md:gap-16">
+                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-12 md:flex-row md:gap-16">
                       {/* The recipe — photo + the three text boxes. */}
                       <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
                         <div className="flex items-center gap-3">
@@ -937,7 +937,7 @@ function ProofSection() {
                           tucked right beneath it (hero-style). z-20 so the
                           swung cover overlaps the inputs on its way left. */}
                       <div className="flex shrink-0 flex-col items-center">
-                        <div className="relative z-20 h-[300px] w-[300px] sm:h-[360px] sm:w-[360px]">
+                        <div className="relative z-20 h-[260px] w-[260px] sm:h-[360px] sm:w-[360px]">
                           <button
                             type="button"
                             onClick={() => i === idx && setCardOpen((o) => !o)}
