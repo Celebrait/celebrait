@@ -923,12 +923,17 @@ function ProofSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
+            {/* Bracketed kicker — always its own line (block), a touch smaller,
+                with "cool AF" carrying the same violet glow as "used". */}
+            <span className="mt-1 block text-[0.62em]">
+              (now they're <ShimmerWord reduced={!!reduced}>cool AF</ShimmerWord>)
+            </span>
           </h2>
           <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
-            Best mate abseiling off Big Ben? Son ruling the Roman empire?
-            Mother gazing gloriously at the Northern Lights? Put them in
-            (literally) any scene imaginable, then personalise the message on
-            the front and inside. Cool AF.
+            Best mate abseiling off Big Ben? Son ruling the Roman empire? Or
+            mum simply gazing at the glorious Northern Lights? Literally put
+            them in any scene imaginable, then personalise your message on the
+            front and inside.
           </p>
           {/* One signpost above the carousel. */}
           {many && swipeHint('mt-5')}
