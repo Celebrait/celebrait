@@ -846,36 +846,39 @@ function ProofSection() {
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  // Responsive fit. The coverflow is laid out at a FIXED design width (so the
-  // card slots never move) and the whole stage is SCALED to fit the available
-  // width. Written straight to the DOM via a ResizeObserver — no React state,
-  // no re-render, so resizing never re-triggers the spring; the stage just
-  // tracks the window smoothly (fixes the "takes a second to catch up" lag —
-  // Kevin 2026-07-15).
+  // Responsive fit. The coverflow is laid out at a FIXED design size (so the
+  // card slots never move, and resizing never re-triggers the framer spring)
+  // and the whole stage is SCALED to fit the available width. Only the scale
+  // TRANSFORM is written — the outer's height comes from a CSS aspect-ratio,
+  // so nothing reflows the page below, and `will-change: transform` keeps the
+  // 3D scene on the GPU. rAF-throttled to one write per frame. Result: the
+  // coverflow tracks the window smoothly with no stutter (Kevin 2026-07-15).
   const outerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const outer = outerRef.current;
     const stage = stageRef.current;
     if (!outer || !stage) return;
-    const fit = () => {
-      const w = window.matchMedia('(min-width: 640px)').matches;
-      const designW = w ? 820 : 320;
-      const designH = w ? 380 : 340;
-      const s = Math.min(1, outer.clientWidth / designW);
-      stage.style.width = `${designW}px`;
-      stage.style.height = `${designH}px`;
-      stage.style.transformOrigin = 'top center';
-      stage.style.transform = `translateX(-50%) scale(${s})`;
-      outer.style.height = `${designH * s}px`;
+    let raf = 0;
+    let w = outer.clientWidth;
+    const apply = () => {
+      raf = 0;
+      const designW = window.matchMedia('(min-width: 640px)').matches ? 820 : 320;
+      stage.style.transform = `translateX(-50%) scale(${Math.min(1, w / designW)})`;
     };
-    fit();
-    const ro = new ResizeObserver(fit);
+    const schedule = (width: number) => {
+      w = width;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    apply();
+    const ro = new ResizeObserver((e) => schedule(e[0].contentRect.width));
     ro.observe(outer);
-    window.addEventListener('resize', fit);
+    const onResize = () => schedule(outer.clientWidth);
+    window.addEventListener('resize', onResize);
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', fit);
+      window.removeEventListener('resize', onResize);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 
@@ -948,14 +951,18 @@ function ProofSection() {
             vanishing point → symmetric roll. Centre = tap-to-open; sides =
             click-to-focus; mobile shows the centre only + swipe/arrows. */}
         <Rise delay={0.1} className="mt-10">
-          {/* Outer measures the available width; the stage below is a fixed
-              design width scaled to fit it (see the ResizeObserver in state) —
-              so the card slots never move on resize and nothing springs; the
-              whole thing just tracks the window smoothly. */}
-          <div ref={outerRef} className="relative mx-auto w-full max-w-4xl overflow-hidden">
+          {/* Outer reserves the space via a CSS aspect-ratio that matches the
+              stage's design ratio (320/340 mobile, 820/380 desktop) — so its
+              height needs no JS and never reflows the page below on resize. The
+              stage (fixed design size) is scaled to fit by the rAF effect. */}
+          <div
+            ref={outerRef}
+            className="relative mx-auto aspect-[320/340] w-full max-w-[820px] overflow-hidden sm:aspect-[820/380]"
+          >
             <div
               ref={stageRef}
-              className="absolute left-1/2 top-0 [perspective:1700px]"
+              className="absolute left-1/2 top-0 h-[340px] w-[320px] [perspective:1700px] sm:h-[380px] sm:w-[820px]"
+              style={{ transformOrigin: 'top center', willChange: 'transform' }}
               onTouchStart={many ? onTouchStart : undefined}
               onTouchEnd={many ? onTouchEnd : undefined}
             >
