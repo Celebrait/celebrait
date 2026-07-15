@@ -854,21 +854,24 @@ function ProofSection() {
                 open cover overlaps the inputs on its way left, exactly like
                 the hero card overlaps its headline (Kevin 2026-07-14). */}
             <div className="relative z-20 flex w-full max-w-md flex-col items-center">
-              {/* Mobile height fixed (not vh) so the card matches the hero's
-                  on-screen size — the hero scales with width, vh made this one
-                  bigger on tall phones (Kevin 2026-07-14). Desktop unchanged. */}
-              <div ref={ref} className="relative h-[356px] w-full md:h-[400px]">
+              {/* Card stage. Height fixed (not vh) so the card matches the
+                  hero's on-screen size — the hero scales with width, vh made
+                  this one bigger on tall phones. Heights tuned for the hero's
+                  framing below (fm 1.75 + 24% vertical bleed) so mobile lands
+                  ~264px = the hero (Kevin 2026-07-14). */}
+              <div ref={ref} className="relative h-[326px] w-full md:h-[368px]">
                 {near && !reduced ? (
                   <Suspense fallback={flatFallback}>
                     {/* Canvas bleeds WIDE past the anchor so the swung-open
-                        cover is fully drawn (a smaller bleed clipped its free
-                        edge at the canvas boundary — Kevin's screenshot). Same
-                        approach as the hero's -105% bleed. Camera fit is
-                        height-driven, so the wider canvas neither shrinks the
-                        card nor moves it; it just gives the cover room to reach
-                        left over the inputs. key remounts per slide so textures
-                        swap cleanly. */}
-                    <div className="absolute inset-x-[-105%] inset-y-[-8%]">
+                        cover is fully drawn. Match the HERO's framing exactly —
+                        a generous vertical bleed (-24%) + a smaller card-to-
+                        frame ratio (framingMargin 1.75) — so the open cover's
+                        bottom-left corner stays inside the frame instead of
+                        dangling below into the layout (the "bottom-left bleed"
+                        Kevin caught). Camera fit is height-driven, so this
+                        neither shrinks nor shifts the card. key remounts per
+                        slide so textures swap cleanly. */}
+                    <div className="absolute inset-x-[-105%] inset-y-[-24%]">
                       <Card3DViewer
                         key={ex.id}
                         frontImageUrl={ex.cardFront}
@@ -877,7 +880,7 @@ function ProofSection() {
                         onOpenChange={setCardOpen}
                         enableRotate={false}
                         enableZoom={false}
-                        framingMargin={1.5}
+                        framingMargin={1.75}
                         minDistance={1.6}
                         dprMax={1.5}
                         closedAngle={-0.3}
