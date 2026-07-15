@@ -809,10 +809,11 @@ function ProofSection() {
             the card rather than centring against its taller stage. */}
         <Rise delay={0.1} className="mt-14">
           <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:gap-12">
-            {/* Inputs — photo + scene + front text + inside message. mt nudges
-                it down a touch from the very top so it reads level with the
-                card, not floating above it. */}
-            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left md:mt-4">
+            {/* Inputs — photo + scene + front text + inside message. Nudged
+                DOWN on desktop so it sits centred-ish against the card rather
+                than level with its top, which made the card feel too low
+                (Kevin 2026-07-14). */}
+            <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left md:mt-16">
               <div className="flex items-center gap-3">
                 {/* The real source selfie, sat INSIDE the dashed frame — the
                     cut-out look Kevin wanted kept, now with a face in it. The
