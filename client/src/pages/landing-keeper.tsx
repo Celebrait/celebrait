@@ -724,14 +724,27 @@ const MUM_EXAMPLE: ProofExample = {
   cardAlt: 'The finished card front — Mum under the Northern Lights',
 };
 
-// Slides 2 + 3 are TEMPORARY clones of the Mum example so the carousel is
-// live and demoable now (Kevin 2026-07-14). Replace each object with a real
-// generation — its own webp trio (/public) + the three strings — when they
-// land; the arrows/dots/hint are already wired.
+// Slides 2 + 3 are TEMPORARY placeholders so the carousel is live now (Kevin
+// 2026-07-14). They reuse the Mum CARD IMAGE (only real asset we have) but
+// carry different recipe TEXT so navigating visibly changes the "Made from"
+// caption — proof the carousel moves. Replace each with a real generation
+// (its own webp trio in /public + strings) and the cards differ too.
 const PROOF_EXAMPLES: ProofExample[] = [
   MUM_EXAMPLE,
-  { ...MUM_EXAMPLE, id: 'placeholder-2' },
-  { ...MUM_EXAMPLE, id: 'placeholder-3' },
+  {
+    ...MUM_EXAMPLE,
+    id: 'placeholder-bigben',
+    scene: 'Abseiling off Big Ben',
+    frontText: 'Happy 40th, Dave',
+    insideMessage: "Forty floors up and still no fear of heights. Happy birthday, mate.",
+  },
+  {
+    ...MUM_EXAMPLE,
+    id: 'placeholder-rome',
+    scene: 'Leading the Roman empire',
+    frontText: 'Hail, Caesar!',
+    insideMessage: 'To the emperor of the whole office — many happy returns.',
+  },
 ];
 
 function ProofSection() {
@@ -942,15 +955,16 @@ function ProofSection() {
           </div>
 
           {/* Tap-to-open hint under the focused card. */}
-          <div className="mt-2 flex h-11 items-start justify-center">
+          <div className="mt-2 flex h-16 items-start justify-center">
             {near && !reduced && (
               <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
             )}
           </div>
 
-          {/* Dots. */}
+          {/* Dots. mt clears the tap-to-open hint above (its label overflows
+              the reserved slot otherwise the dots collide with it). */}
           {many && (
-            <div className="flex items-center justify-center gap-1.5">
+            <div className="mt-5 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
