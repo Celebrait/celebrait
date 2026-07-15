@@ -870,7 +870,7 @@ function ProofSection() {
         <Rise delay={0.1} className="mt-10">
           <div
             ref={ref}
-            className="relative mx-auto h-[300px] max-w-3xl sm:h-[360px]"
+            className="relative mx-auto h-[300px] max-w-3xl [perspective:1700px] sm:h-[360px]"
             onTouchStart={many ? onTouchStart : undefined}
             onTouchEnd={many ? onTouchEnd : undefined}
           >
@@ -897,56 +897,57 @@ function ProofSection() {
                 if (rel < -n / 2) rel += n;
                 const isCenter = rel === 0;
                 if (!wide && !isCenter) return null;
+                // Slot geometry. All cards are absolutely anchored at the
+                // container's centre (left-1/2); `x` both centres the card
+                // (-halfWidth) AND offsets it to its slot (rel * gap). Being a
+                // DIRECT child of the perspective container, every card's
+                // rotateY shares ONE vanishing point → symmetric coverflow.
+                const halfW = wide ? 150 : 130;
                 return (
-                  <div
+                  <motion.div
                     key={example.id}
-                    className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 [perspective:1600px] sm:w-[300px]"
+                    className="absolute left-1/2 top-0 h-full w-[260px] sm:w-[300px]"
                     style={{ zIndex: isCenter ? 20 : 10 }}
+                    initial={false}
+                    animate={{
+                      x: -halfW + rel * 250,
+                      scale: isCenter ? 1 : 0.72,
+                      rotateY: rel * -28,
+                      opacity: isCenter ? 1 : 0.5,
+                    }}
+                    transition={{ type: 'spring', stiffness: 210, damping: 26 }}
                   >
-                    <motion.div
-                      className="relative h-full w-full"
-                      initial={false}
-                      animate={{
-                        x: rel * 232,
-                        scale: isCenter ? 1 : 0.72,
-                        rotateY: rel * -34,
-                        opacity: isCenter ? 1 : 0.5,
-                      }}
-                      transition={{ type: 'spring', stiffness: 210, damping: 26 }}
-                    >
-                      {/* Bleed gives the centre's swung-open cover room; the
-                          canvas is transparent so it never masks neighbours. */}
-                      <div className="absolute inset-x-[-80%] inset-y-[-22%]">
-                        <Card3DViewer
-                          frontImageUrl={example.cardFront}
-                          insideImageUrl={example.cardInside}
-                          open={isCenter ? cardOpen : false}
-                          onOpenChange={isCenter ? setCardOpen : undefined}
-                          interactive={isCenter}
-                          enableRotate={false}
-                          enableZoom={false}
-                          framingMargin={1.75}
-                          minDistance={1.6}
-                          dprMax={1.5}
-                          closedAngle={-0.3}
-                          restYaw={-0.1}
-                          className="h-full w-full"
-                        />
-                      </div>
-                      {/* Side card = click-to-focus. An overlay is needed
-                          because the card's own hit-zone would otherwise eat
-                          the click; the centre has no overlay so tap-to-open
-                          reaches the card. */}
-                      {!isCenter && (
-                        <button
-                          type="button"
-                          onClick={() => goTo(i)}
-                          aria-label={`Show example ${i + 1}`}
-                          className="absolute inset-0 z-40 cursor-pointer"
-                        />
-                      )}
-                    </motion.div>
-                  </div>
+                    {/* Bleed gives the centre's swung-open cover room; the
+                        canvas is transparent so it never masks neighbours. */}
+                    <div className="absolute inset-x-[-80%] inset-y-[-22%]">
+                      <Card3DViewer
+                        frontImageUrl={example.cardFront}
+                        insideImageUrl={example.cardInside}
+                        open={isCenter ? cardOpen : false}
+                        onOpenChange={isCenter ? setCardOpen : undefined}
+                        interactive={isCenter}
+                        enableRotate={false}
+                        enableZoom={false}
+                        framingMargin={1.75}
+                        minDistance={1.6}
+                        dprMax={1.5}
+                        closedAngle={-0.3}
+                        restYaw={-0.1}
+                        className="h-full w-full"
+                      />
+                    </div>
+                    {/* Side card = click-to-focus. An overlay is needed because
+                        the card's own hit-zone would otherwise eat the click;
+                        the centre has no overlay so tap-to-open reaches it. */}
+                    {!isCenter && (
+                      <button
+                        type="button"
+                        onClick={() => goTo(i)}
+                        aria-label={`Show example ${i + 1}`}
+                        className="absolute inset-0 z-40 cursor-pointer"
+                      />
+                    )}
+                  </motion.div>
                 );
                 })}
               </Suspense>
