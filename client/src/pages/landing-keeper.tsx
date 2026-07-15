@@ -912,8 +912,11 @@ function ProofSection() {
                 {PROOF_EXAMPLES.map((example, i) => (
                   <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
                     <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-16 md:flex-row md:gap-16">
-                      {/* The recipe — photo + the three text boxes. */}
-                      <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
+                      {/* The recipe — photo + the three text boxes. Nudged up
+                          32px on desktop so it centres on the CARD, not the
+                          taller card+hint column (transform keeps the dots
+                          spacing below untouched). */}
+                      <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left md:-translate-y-8">
                         <div className="flex items-center gap-3">
                           <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
                             <img
