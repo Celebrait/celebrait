@@ -29,8 +29,9 @@ import {
   Send,
   Truck,
   ArrowRight,
-  ArrowLeft,
   ArrowDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   Mountain,
@@ -929,6 +930,31 @@ function ProofSection() {
                 ) : (
                   flatFallback
                 )}
+
+                {/* Quiet edge arrows — sit on the left/right of the card (=
+                    the screen edges on mobile, where the card is full-width).
+                    z-30 keeps them above the swung-open cover. Subtle by
+                    default, firm up on hover (Kevin 2026-07-14). */}
+                {many && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => goTo(idx - 1)}
+                      aria-label="Previous example"
+                      className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
+                    >
+                      <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goTo(idx + 1)}
+                      aria-label="Next example"
+                      className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
+                    >
+                      <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                    </button>
+                  </>
+                )}
               </div>
               {/* Hint sits tight under the card (mirrors the hero) — the
                   reserved height stops the column reflowing when it toggles. */}
@@ -943,40 +969,21 @@ function ProofSection() {
                 )}
               </div>
 
-              {/* Carousel controls — hidden until there's more than one
-                  example. Arrows below the card (not flanking) so the open
-                  cover never covers them. */}
+              {/* Position dots — the arrows now live on the card's edges
+                  (above), so this is just the indicator. */}
               {many && (
-                <div className="mt-1 flex items-center justify-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => goTo(idx - 1)}
-                    aria-label="Previous example"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-keeper-hair bg-white text-brand-dark transition-colors hover:border-brand hover:bg-brand-muted/40"
-                  >
-                    <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-                  </button>
-                  <div className="flex items-center gap-1.5">
-                    {PROOF_EXAMPLES.map((e, i) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        onClick={() => goTo(i)}
-                        aria-label={`Example ${i + 1}`}
-                        className={`h-2 w-2 rounded-full transition-colors ${
-                          i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => goTo(idx + 1)}
-                    aria-label="Next example"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-keeper-hair bg-white text-brand-dark transition-colors hover:border-brand hover:bg-brand-muted/40"
-                  >
-                    <ArrowRight className="h-4 w-4" strokeWidth={2} />
-                  </button>
+                <div className="mt-3 flex items-center justify-center gap-1.5">
+                  {PROOF_EXAMPLES.map((e, i) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => goTo(i)}
+                      aria-label={`Example ${i + 1}`}
+                      className={`h-2 w-2 rounded-full transition-colors ${
+                        i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
+                      }`}
+                    />
+                  ))}
                 </div>
               )}
             </div>
