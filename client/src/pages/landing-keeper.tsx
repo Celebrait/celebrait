@@ -952,7 +952,7 @@ function ProofSection() {
                             />
                           </button>
                         </div>
-                        <div className="mt-3 flex h-8 items-start justify-center">
+                        <div className="mt-3 flex h-8 items-start justify-center sm:mt-8">
                           {i === idx && (
                             <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
                           )}
