@@ -989,7 +989,7 @@ function ProofSection() {
 
           {/* Dots. */}
           {many && (
-            <div className="mt-6 flex items-center justify-center gap-1.5">
+            <div className="mt-12 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
