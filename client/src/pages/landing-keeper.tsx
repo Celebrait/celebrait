@@ -611,23 +611,26 @@ function HeroSection() {
             <br />
             in the picture.
           </h1>
-          {/* The recipe, three beats, stacked — purple (brand) arrows lead
-              the eye down the steps to the payoff line (Kevin 2026-07-14). */}
-          <div className="mt-6">
-            <div className="flex flex-col gap-1 text-[18px] font-medium text-keeper-ink">
-              <span className="inline-flex items-center gap-2">
+          {/* The recipe in one line — three beats joined by purple (brand)
+              arrows, then the payoff. Inline reads as a single flow rather
+              than a choppy stacked list (Kevin 2026-07-14). Wraps gracefully
+              on narrow columns without ever orphaning an arrow (arrows are
+              glued to the step before them). */}
+          <div className="mt-6 max-w-[30rem]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-medium text-keeper-ink">
+              <span className="whitespace-nowrap">
                 Pick a photo
-                <ArrowRight className="h-4 w-4 shrink-0 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
+                <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
               </span>
-              <span className="inline-flex items-center gap-2">
+              <span className="whitespace-nowrap">
                 Dream the scene
-                <ArrowRight className="h-4 w-4 shrink-0 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
+                <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
               </span>
-              <span>Craft your message</span>
+              <span className="whitespace-nowrap">Craft your message</span>
             </div>
-            <p className="mt-4 max-w-[42ch] text-[16px] leading-[1.6] text-keeper-stone">
+            <p className="mt-3 text-[16px] leading-[1.6] text-keeper-stone">
               The result? A greetings card they'll{' '}
-              <span className="font-medium text-keeper-ink">probably keep</span> from just
+              <span className="font-medium text-keeper-ink">probably keep</span> — from just
               £8.99.
             </p>
           </div>
@@ -738,10 +741,10 @@ function ProofSection() {
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
           </h2>
-          <p className="mx-auto mt-4 max-w-[54ch] text-[17px] leading-[1.6] text-keeper-stone">
+          <p className="mx-auto mt-4 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-stone">
             Abseiling off Big Ben? Leading the Roman empire? Or simply gazing at
-            the Northern Lights? Put them in any scene imaginable (like,
-            literally).
+            the Northern Lights? Put them in any scene imaginable (literally
+            though) then personalise the message on the front and inside.
           </p>
         </Rise>
         {/* Recipe → result: photo + scene + front + inside → the real card,
