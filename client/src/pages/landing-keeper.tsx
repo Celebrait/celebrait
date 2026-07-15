@@ -1231,100 +1231,6 @@ function ObjectSection() {
   );
 }
 
-// ── 6. THE FREE PART — interactive 3D + reminders beat ──────────────
-
-function FreePartSection() {
-  const reduced = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  const [near, setNear] = useState(false);
-  const [cardOpen, setCardOpen] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setNear(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: '100% 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const flatFallback = (
-    <img
-      src={heroCardFront}
-                crossOrigin="anonymous"
-      alt="Celebrait card"
-      className="mx-auto h-full w-auto rounded-2xl object-cover shadow-[0_28px_60px_-24px_rgba(33,29,25,0.3)]"
-    />
-  );
-
-  return (
-    <section className="px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-4xl text-center">
-        <Rise>
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            And this comes free with every card.
-          </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-stone">
-            A link they can open in any browser — the same card, in 3D, no app.
-            Send it the moment you order, while the real one's in the post.
-          </p>
-        </Rise>
-        <div ref={ref} className="relative mx-auto mt-10 h-[52vh] min-h-[380px] max-w-2xl">
-          {near && !reduced ? (
-            <Suspense fallback={flatFallback}>
-              <div className="absolute inset-x-[-14vw] inset-y-[-8vh]">
-                <Card3DViewer
-                  frontImageUrl={heroCardFront}
-                  insideImageUrl={heroCardInside}
-                  open={cardOpen}
-                  onOpenChange={setCardOpen}
-                  enableRotate={false}
-                  enableZoom={false}
-                  framingMargin={1.7}
-                  minDistance={1.6}
-                  dprMax={1.5}
-                  closedAngle={-0.3}
-                  restYaw={-0.1}
-                  className="h-full w-full"
-                />
-              </div>
-            </Suspense>
-          ) : (
-            flatFallback
-          )}
-        </div>
-        <div className="mt-3 flex h-14 items-start justify-center">
-          {near && !reduced && <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />}
-        </div>
-      </div>
-
-      <Rise className="mx-auto mt-16 max-w-3xl text-center">
-        <div className="flex justify-center gap-2">
-          {['21 days', '7 days', '3 days'].map((d) => (
-            <span
-              key={d}
-              className="rounded-full border border-keeper-hair bg-white/70 px-4 py-1.5 font-mono text-[12px] text-keeper-ink"
-            >
-              {d}
-            </span>
-          ))}
-        </div>
-        <p className="mt-4 text-[15px] text-keeper-stone">
-          Add their birthday once. We'll remember, so you're never the one who
-          forgot.
-        </p>
-      </Rise>
-    </section>
-  );
-}
-
 // ── 7. PRICE ─────────────────────────────────────────────────────────
 
 function PriceSection() {
@@ -1597,7 +1503,6 @@ export default function LandingKeeper() {
         <StatementSection />
         <GallerySection />
         <ObjectSection />
-        <FreePartSection />
         <OccasionCaptureSection />
         {/* Imagine it → describe it → send it (animated phone) + the
             demo-walkthrough video slot — restored on Kevin's call. */}
