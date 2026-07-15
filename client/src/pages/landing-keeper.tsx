@@ -911,7 +911,7 @@ function ProofSection() {
               >
                 {PROOF_EXAMPLES.map((example, i) => (
                   <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
-                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-12 md:flex-row md:gap-16">
+                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-16 md:flex-row md:gap-16">
                       {/* The recipe — photo + the three text boxes. */}
                       <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
                         <div className="flex items-center gap-3">
@@ -937,7 +937,7 @@ function ProofSection() {
                           tucked right beneath it (hero-style). z-20 so the
                           swung cover overlaps the inputs on its way left. */}
                       <div className="flex shrink-0 flex-col items-center">
-                        <div className="relative z-20 h-[260px] w-[260px] sm:h-[360px] sm:w-[360px]">
+                        <div className="relative z-20 h-[288px] w-[288px] sm:h-[360px] sm:w-[360px]">
                           <button
                             type="button"
                             onClick={() => i === idx && setCardOpen((o) => !o)}
@@ -971,7 +971,7 @@ function ProofSection() {
                   type="button"
                   onClick={() => goTo(prevIdx)}
                   aria-label="Previous example"
-                  className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
+                  className="absolute -left-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:left-0"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -979,7 +979,7 @@ function ProofSection() {
                   type="button"
                   onClick={() => goTo(nextIdx)}
                   aria-label="Next example"
-                  className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
+                  className="absolute -right-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:right-0"
                 >
                   <ChevronRight className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -989,7 +989,7 @@ function ProofSection() {
 
           {/* Dots. */}
           {many && (
-            <div className="mt-12 flex items-center justify-center gap-1.5">
+            <div className="mt-16 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
