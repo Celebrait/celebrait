@@ -820,7 +820,6 @@ function ProofSection() {
   // example renders exactly as before — no arrows, no dots, no hint.
   const [idx, setIdx] = useState(0);
   const many = PROOF_EXAMPLES.length > 1;
-  const ex = PROOF_EXAMPLES[idx];
   const prevIdx = (idx - 1 + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length;
   const nextIdx = (idx + 1) % PROOF_EXAMPLES.length;
 
@@ -830,57 +829,6 @@ function ProofSection() {
     setCardOpen(false);
     setIdx((next + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length);
   };
-
-  // Desktop shows all three cards (coverflow); mobile shows only the centre
-  // (the neighbours would crowd a phone) + swipe/arrows. Initialise from the
-  // media query SYNCHRONOUSLY so the cards start in the right slot — a
-  // false→true flip after mount made them spring in from the wrong position.
-  const [wide, setWide] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
-  // Responsive fit. The coverflow is laid out at a FIXED design size (so the
-  // card slots never move, and resizing never re-triggers the framer spring)
-  // and the whole stage is SCALED to fit the available width. Only the scale
-  // TRANSFORM is written — the outer's height comes from a CSS aspect-ratio,
-  // so nothing reflows the page below, and `will-change: transform` keeps the
-  // 3D scene on the GPU. rAF-throttled to one write per frame. Result: the
-  // coverflow tracks the window smoothly with no stutter (Kevin 2026-07-15).
-  const outerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const outer = outerRef.current;
-    const stage = stageRef.current;
-    if (!outer || !stage) return;
-    let raf = 0;
-    let w = outer.clientWidth;
-    const apply = () => {
-      raf = 0;
-      const designW = window.matchMedia('(min-width: 640px)').matches ? 820 : 320;
-      stage.style.transform = `translateX(-50%) scale(${Math.min(1, w / designW)})`;
-    };
-    const schedule = (width: number) => {
-      w = width;
-      if (!raf) raf = requestAnimationFrame(apply);
-    };
-    apply();
-    const ro = new ResizeObserver((e) => schedule(e[0].contentRect.width));
-    ro.observe(outer);
-    const onResize = () => schedule(outer.clientWidth);
-    window.addEventListener('resize', onResize);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
 
   const field = (Icon: LucideIcon, label: string, value: string) => (
     <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
@@ -926,9 +874,10 @@ function ProofSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
             boring
-            {/* Bracketed kicker — always its own line (block), a touch smaller,
-                with "cool AF" carrying the same violet glow as "used". */}
-            <span className="mt-1 block text-[0.62em]">
+            {/* Bracketed kicker — its own line (block), same size as the
+                main line, with "cool AF" carrying the same violet glow as
+                "used". */}
+            <span className="mt-1 block">
               (now they're <ShimmerWord reduced={!!reduced}>cool AF</ShimmerWord>)
             </span>
           </h2>
@@ -942,85 +891,79 @@ function ProofSection() {
           {many && swipeHint('mt-5')}
         </Rise>
 
-        {/* COVERFLOW — the focused example is the centred card; its neighbours
-            recede angled behind it, so the range reads at a glance on desktop.
-            Cards are LIGHTWEIGHT CSS (CssAjarCard — two images + a hinge, no
-            WebGL) so three run fast, the same trick as the gallery (Kevin
-            2026-07-14). Each animates between the left / centre / right slots
-            as a DIRECT child of the one perspective container, so they share a
-            vanishing point → symmetric roll. Centre = tap-to-open; sides =
-            click-to-focus; mobile shows the centre only + swipe/arrows. */}
-        <Rise delay={0.1} className="mt-10">
-          {/* Outer reserves the space via a CSS aspect-ratio that matches the
-              stage's design ratio (320/340 mobile, 820/380 desktop) — so its
-              height needs no JS and never reflows the page below on resize. The
-              stage (fixed design size) is scaled to fit by the rAF effect. */}
-          <div
-            ref={outerRef}
-            className="relative mx-auto aspect-[320/340] w-full max-w-[820px] overflow-hidden sm:aspect-[820/380]"
-          >
-            <div
-              ref={stageRef}
-              className="absolute left-1/2 top-0 h-[340px] w-[320px] [perspective:1700px] sm:h-[380px] sm:w-[820px]"
-              style={{ transformOrigin: 'top center', willChange: 'transform' }}
-              onTouchStart={many ? onTouchStart : undefined}
-              onTouchEnd={many ? onTouchEnd : undefined}
-            >
-            {PROOF_EXAMPLES.map((example, i) => {
-              const n = PROOF_EXAMPLES.length;
-              let rel = i - idx;
-              if (rel > n / 2) rel -= n;
-              if (rel < -n / 2) rel += n;
-              const isCenter = rel === 0;
-              if (!wide && !isCenter) return null;
-              // `x` centres the card (-halfWidth) then offsets it to its slot
-              // (rel * gap); `y` centres it vertically. All cards share the
-              // container's single perspective → symmetric.
-              const halfW = wide ? 150 : 130;
-              const halfH = wide ? 150 : 130;
-              return (
-                <motion.div
-                  key={example.id}
-                  className="absolute left-1/2 top-1/2 h-[260px] w-[260px] sm:h-[300px] sm:w-[300px]"
-                  style={{ zIndex: isCenter ? 20 : 10 }}
-                  initial={false}
-                  animate={{
-                    x: -halfW + rel * 250,
-                    y: -halfH,
-                    scale: isCenter ? 1 : 0.78,
-                    rotateY: rel * -26,
-                    opacity: isCenter ? 1 : 0.55,
-                  }}
-                  transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 210, damping: 26 }}
-                >
-                  <button
-                    type="button"
-                    onClick={isCenter ? () => setCardOpen((o) => !o) : () => goTo(i)}
-                    aria-label={
-                      isCenter ? (cardOpen ? 'Close card' : 'Open card') : `Show example ${i + 1}`
-                    }
-                    className="relative block h-full w-full"
-                  >
-                    <CssAjarCard
-                      frontUrl={example.cardFront}
-                      insideUrl={example.cardInside}
-                      open={isCenter && cardOpen}
-                    />
-                  </button>
-                </motion.div>
-              );
-            })}
+        {/* RECIPE SLIDER — each slide is a WHOLE example: the photo + text
+            boxes AND the card they produced, as one unit (Kevin 2026-07-15).
+            Desktop lays the inputs left / card right; mobile stacks inputs
+            over card. Navigating slides the entire unit sideways, bringing in
+            the next example's recipe + card together. Plain translateX track —
+            no perspective, naturally responsive, no resize gremlins. */}
+        <Rise delay={0.1} className="mt-12">
+          <div className="relative">
+            {/* Viewport clips the off-screen slides horizontally; overflow-x
+                CLIP (not hidden) keeps vertical shadows + the open cover from
+                being cut. */}
+            <div className="overflow-x-clip">
+              <div
+                className={`flex ${reduced ? '' : 'transition-transform duration-500 ease-out'}`}
+                style={{ transform: `translateX(-${idx * 100}%)` }}
+                onTouchStart={many ? onTouchStart : undefined}
+                onTouchEnd={many ? onTouchEnd : undefined}
+              >
+                {PROOF_EXAMPLES.map((example, i) => (
+                  <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
+                    <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-8 md:flex-row md:gap-12">
+                      {/* The recipe — photo + the three text boxes. */}
+                      <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
+                            <img
+                              src={example.sourcePhoto}
+                              alt={example.sourceAlt}
+                              loading="lazy"
+                              className="h-full w-full rounded-lg object-cover"
+                            />
+                          </div>
+                          <div>
+                            <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
+                            <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
+                          </div>
+                        </div>
+                        {field(Mountain, 'The scene', example.scene)}
+                        {field(Type, 'Front text', example.frontText)}
+                        {field(PenLine, 'Inside message', example.insideMessage)}
+                      </div>
 
-            {/* Mobile edge arrows — the neighbours are hidden on mobile, so
-                these are the tap targets there (swipe also works). z-30 above
-                the open cover. */}
+                      {/* The card it produced — tap to open. z-20 so the swung
+                          cover overlaps the inputs on its way left. */}
+                      <div className="relative z-20 h-[290px] w-[290px] shrink-0 sm:h-[330px] sm:w-[330px]">
+                        <button
+                          type="button"
+                          onClick={() => i === idx && setCardOpen((o) => !o)}
+                          aria-label={cardOpen ? 'Close card' : 'Open card'}
+                          tabIndex={i === idx ? 0 : -1}
+                          className="relative block h-full w-full"
+                        >
+                          <CssAjarCard
+                            frontUrl={example.cardFront}
+                            insideUrl={example.cardInside}
+                            open={i === idx && cardOpen}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quiet edge arrows flanking the slider. */}
             {many && (
               <>
                 <button
                   type="button"
                   onClick={() => goTo(prevIdx)}
                   aria-label="Previous example"
-                  className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:hidden"
+                  className="absolute left-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -1028,24 +971,22 @@ function ProofSection() {
                   type="button"
                   onClick={() => goTo(nextIdx)}
                   aria-label="Next example"
-                  className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/60 text-keeper-ink/50 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:hidden"
+                  className="absolute right-0 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink"
                 >
                   <ChevronRight className="h-5 w-5" strokeWidth={2} />
                 </button>
               </>
             )}
-            </div>
           </div>
 
-          {/* Tap-to-open hint under the focused card. */}
-          <div className="mt-2 flex h-16 items-start justify-center">
+          {/* Tap-to-open hint. */}
+          <div className="mt-4 flex h-10 items-start justify-center">
             <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
           </div>
 
-          {/* Dots. mt clears the tap-to-open hint above (its label overflows
-              the reserved slot otherwise the dots collide with it). */}
+          {/* Dots. */}
           {many && (
-            <div className="mt-5 flex items-center justify-center gap-1.5">
+            <div className="mt-2 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
@@ -1059,32 +1000,6 @@ function ProofSection() {
               ))}
             </div>
           )}
-
-          {/* Recipe caption — the inputs behind the FOCUSED card, compact and
-              centred beneath it (moved out of the old tall left column so the
-              cards can recede symmetrically). Updates per slide. */}
-          <div className="mx-auto mt-9 flex max-w-sm flex-col gap-2.5 text-left">
-            <p className="text-center text-[11px] uppercase tracking-[0.14em] text-stone-400">
-              Made from
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-xl border-[1.5px] border-dashed border-keeper-stone/35 bg-white p-1">
-                <img
-                  src={ex.sourcePhoto}
-                  alt={ex.sourceAlt}
-                  loading="lazy"
-                  className="h-full w-full rounded-lg object-cover"
-                />
-              </div>
-              <div>
-                <div className="text-[15px] font-medium text-keeper-ink">Upload a photo</div>
-                <div className="text-[12.5px] text-keeper-stone">featuring the person you love</div>
-              </div>
-            </div>
-            {field(Mountain, 'The scene', ex.scene)}
-            {field(Type, 'Front text', ex.frontText)}
-            {field(PenLine, 'Inside message', ex.insideMessage)}
-          </div>
         </Rise>
       </div>
     </section>
