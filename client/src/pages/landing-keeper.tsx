@@ -411,7 +411,7 @@ function AjarTile({
           className="absolute inset-0"
           style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
           initial={false}
-          animate={{ rotateY: open ? -152 : -14 }}
+          animate={{ rotateY: open ? -152 : -22 }}
           transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
         >
           {/* Front face */}
@@ -423,18 +423,12 @@ function AjarTile({
                 crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
           </div>
           {/* Inside-left (back of the cover) — white stock + celebrait
-              wordmark bottom-centre, matching the 3D render. scaleX(-1)
-              un-mirrors the logo (the face is rotateY(180)). */}
+              wordmark small at bottom-centre, matching the 3D render. */}
           <div
-            className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[9%]"
+            className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[10%]"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
-            <img
-              src={celebraitLogo}
-              alt=""
-              className="w-[42%] opacity-70"
-              style={{ transform: 'scaleX(-1)' }}
-            />
+            <img src={celebraitLogo} alt="" className="w-[27%] opacity-70" />
           </div>
         </motion.div>
       </div>
@@ -483,7 +477,7 @@ function CssAjarCard({
         className="absolute inset-0"
         style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
         initial={false}
-        animate={{ rotateY: open ? -150 : -16 }}
+        animate={{ rotateY: open ? -150 : -24 }}
         transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
       >
         <div
@@ -499,18 +493,12 @@ function CssAjarCard({
           />
         </div>
         {/* Inside-left (back of the cover) — white stock + the celebrait
-            wordmark bottom-centre, exactly like the 3D render's blank panel.
-            scaleX(-1) un-mirrors the logo (the face is rotateY(180)). */}
+            wordmark small at bottom-centre, matching the 3D render. */}
         <div
-          className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[9%]"
+          className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[10%]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <img
-            src={celebraitLogo}
-            alt=""
-            className="w-[42%] opacity-70"
-            style={{ transform: 'scaleX(-1)' }}
-          />
+          <img src={celebraitLogo} alt="" className="w-[27%] opacity-70" />
         </div>
       </motion.div>
     </div>
