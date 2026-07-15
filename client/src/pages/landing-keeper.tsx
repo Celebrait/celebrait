@@ -897,7 +897,7 @@ function ProofSection() {
             over card. Navigating slides the entire unit sideways, bringing in
             the next example's recipe + card together. Plain translateX track —
             no perspective, naturally responsive, no resize gremlins. */}
-        <Rise delay={0.1} className="mt-12">
+        <Rise delay={0.1} className="mt-16 md:mt-20">
           <div className="relative">
             {/* Viewport clips the off-screen slides horizontally; overflow-x
                 CLIP (not hidden) keeps vertical shadows + the open cover from
@@ -911,7 +911,7 @@ function ProofSection() {
               >
                 {PROOF_EXAMPLES.map((example, i) => (
                   <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
-                    <div className="mx-auto flex max-w-4xl flex-col items-center justify-center gap-8 md:flex-row md:gap-12">
+                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-10 md:flex-row md:gap-16">
                       {/* The recipe — photo + the three text boxes. */}
                       <div className="flex w-full max-w-[320px] shrink-0 flex-col gap-3 text-left">
                         <div className="flex items-center gap-3">
@@ -935,7 +935,7 @@ function ProofSection() {
 
                       {/* The card it produced — tap to open. z-20 so the swung
                           cover overlaps the inputs on its way left. */}
-                      <div className="relative z-20 h-[290px] w-[290px] shrink-0 sm:h-[330px] sm:w-[330px]">
+                      <div className="relative z-20 h-[300px] w-[300px] shrink-0 sm:h-[360px] sm:w-[360px]">
                         <button
                           type="button"
                           onClick={() => i === idx && setCardOpen((o) => !o)}
@@ -980,13 +980,13 @@ function ProofSection() {
           </div>
 
           {/* Tap-to-open hint. */}
-          <div className="mt-4 flex h-10 items-start justify-center">
+          <div className="mt-8 flex h-12 items-start justify-center">
             <GestureHints open={cardOpen} hideZoomHint hideRotateHint openLabel="Tap to close" />
           </div>
 
           {/* Dots. */}
           {many && (
-            <div className="mt-2 flex items-center justify-center gap-1.5">
+            <div className="mt-3 flex items-center justify-center gap-1.5">
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
