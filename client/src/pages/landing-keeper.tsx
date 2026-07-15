@@ -709,21 +709,27 @@ type ProofExample = {
   cardAlt: string;
 };
 
+const MUM_EXAMPLE: ProofExample = {
+  id: 'northern-lights',
+  sourcePhoto: proofSourcePhoto,
+  sourceAlt: 'The photo of Mum this card was made from',
+  scene: 'Gazing at the Northern Lights',
+  frontText: 'Happy 60th, Mum',
+  insideMessage:
+    'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
+  cardFront: proofCardFront,
+  cardInside: proofCardInside,
+  cardAlt: 'The finished card front — Mum under the Northern Lights',
+};
+
+// Slides 2 + 3 are TEMPORARY clones of the Mum example so the carousel is
+// live and demoable now (Kevin 2026-07-14). Replace each object with a real
+// generation — its own webp trio (/public) + the three strings — when they
+// land; the arrows/dots/hint are already wired.
 const PROOF_EXAMPLES: ProofExample[] = [
-  {
-    id: 'northern-lights',
-    sourcePhoto: proofSourcePhoto,
-    sourceAlt: 'The photo of Mum this card was made from',
-    scene: 'Gazing at the Northern Lights',
-    frontText: 'Happy 60th, Mum',
-    insideMessage:
-      'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
-    cardFront: proofCardFront,
-    cardInside: proofCardInside,
-    cardAlt: 'The finished card front — Mum under the Northern Lights',
-  },
-  // TODO(Kevin): 2 more example gens → a 3-slide carousel. Each needs a
-  // source photo + front + inside webp in /public and the three strings.
+  MUM_EXAMPLE,
+  { ...MUM_EXAMPLE, id: 'placeholder-2' },
+  { ...MUM_EXAMPLE, id: 'placeholder-3' },
 ];
 
 function ProofSection() {
@@ -854,12 +860,15 @@ function ProofSection() {
               <div ref={ref} className="relative h-[356px] w-full md:h-[400px]">
                 {near && !reduced ? (
                   <Suspense fallback={flatFallback}>
-                    {/* Canvas bleeds past the anchor so the swung-open cover
-                        is never clipped; the extra LEFT bleed is what lets it
-                        reach over the inputs. Camera fit is height-driven, so
-                        the wider canvas doesn't shrink the card. key remounts
-                        the viewer per slide so textures swap cleanly. */}
-                    <div className="absolute inset-x-[-42%] inset-y-[-8%]">
+                    {/* Canvas bleeds WIDE past the anchor so the swung-open
+                        cover is fully drawn (a smaller bleed clipped its free
+                        edge at the canvas boundary — Kevin's screenshot). Same
+                        approach as the hero's -105% bleed. Camera fit is
+                        height-driven, so the wider canvas neither shrinks the
+                        card nor moves it; it just gives the cover room to reach
+                        left over the inputs. key remounts per slide so textures
+                        swap cleanly. */}
+                    <div className="absolute inset-x-[-105%] inset-y-[-8%]">
                       <Card3DViewer
                         key={ex.id}
                         frontImageUrl={ex.cardFront}
