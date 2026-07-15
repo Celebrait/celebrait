@@ -767,6 +767,18 @@ function ProofSection() {
     setIdx((next + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length);
   };
 
+  // Desktop-only: mount all 3 cards as a live coverflow. On mobile only the
+  // centre card mounts (one WebGL context — three live contexts on a phone
+  // would be a real perf hit).
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
   // Defer mounting the ~1.4MB WebGL card until the section is near the
   // viewport — same gate FreePartSection uses, so the hero is the only
   // live GL context on first paint.
@@ -857,77 +869,92 @@ function ProofSection() {
             the front; the recipe caption below updates to match. */}
         <Rise delay={0.1} className="mt-10">
           <div
-            className="relative mx-auto h-[300px] max-w-3xl [perspective:1600px] sm:h-[360px]"
+            ref={ref}
+            className="relative mx-auto h-[300px] max-w-3xl sm:h-[360px]"
             onTouchStart={many ? onTouchStart : undefined}
             onTouchEnd={many ? onTouchEnd : undefined}
           >
-            {/* Receding neighbours — desktop only (on mobile they'd crowd the
-                card; swipe covers it there). */}
-            {many && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => goTo(prevIdx)}
-                  aria-label="Previous example"
-                  className="absolute left-0 top-1/2 z-10 hidden sm:block"
-                  style={{ transform: 'translateY(-50%) rotateY(32deg) scale(0.78)', transformOrigin: 'left center' }}
-                >
-                  <img
-                    src={PROOF_EXAMPLES[prevIdx].cardFront}
-                    alt=""
-                    loading="lazy"
-                    className="w-[180px] rounded-xl opacity-55 shadow-[0_22px_48px_-20px_rgba(33,29,25,0.45)] brightness-[0.92] transition-opacity duration-300 hover:opacity-80 lg:w-[210px]"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goTo(nextIdx)}
-                  aria-label="Next example"
-                  className="absolute right-0 top-1/2 z-10 hidden sm:block"
-                  style={{ transform: 'translateY(-50%) rotateY(-32deg) scale(0.78)', transformOrigin: 'right center' }}
-                >
-                  <img
-                    src={PROOF_EXAMPLES[nextIdx].cardFront}
-                    alt=""
-                    loading="lazy"
-                    className="w-[180px] rounded-xl opacity-55 shadow-[0_22px_48px_-20px_rgba(33,29,25,0.45)] brightness-[0.92] transition-opacity duration-300 hover:opacity-80 lg:w-[210px]"
-                  />
-                </button>
-              </>
-            )}
-
-            {/* Centre — the live, tap-to-open 3D card. */}
-            <div className="absolute left-1/2 top-0 z-20 h-full w-[270px] -translate-x-1/2 sm:w-[300px]">
-              <div ref={ref} className="relative h-full w-full">
-                {near && !reduced ? (
-                  <Suspense fallback={flatFallback}>
-                    {/* Bleed gives the swung-open cover room without clipping;
-                        the canvas is transparent so it never hides the
-                        neighbours behind it. HERO framing (fm 1.75 + 24%
-                        vertical) keeps the open cover inside the frame. */}
-                    <div className="absolute inset-x-[-80%] inset-y-[-22%]">
-                      <Card3DViewer
-                        key={ex.id}
-                        frontImageUrl={ex.cardFront}
-                        insideImageUrl={ex.cardInside}
-                        open={cardOpen}
-                        onOpenChange={setCardOpen}
-                        enableRotate={false}
-                        enableZoom={false}
-                        framingMargin={1.75}
-                        minDistance={1.6}
-                        dprMax={1.5}
-                        closedAngle={-0.3}
-                        restYaw={-0.1}
-                        className="h-full w-full"
-                      />
-                    </div>
-                  </Suspense>
-                ) : (
-                  flatFallback
-                )}
+            {/* Every example is a LIVE 3D card. They animate between three
+                slots — left / centre / right — so the carousel physically
+                ROLLS (Kevin 2026-07-14). The cards never remount (stable keys),
+                so navigating just re-targets each card's slot and framer-motion
+                springs it there. Only the centre is interactive (tap-to-open);
+                the sides recede, dimmed + angled, and are click targets. On
+                mobile only the centre mounts — three live WebGL contexts on a
+                phone is a real perf hit; it's one there. */}
+            {near && !reduced ? (
+              <Suspense
+                fallback={
+                  <div className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 sm:w-[300px]">
+                    {flatFallback}
+                  </div>
+                }
+              >
+                {PROOF_EXAMPLES.map((example, i) => {
+                const n = PROOF_EXAMPLES.length;
+                let rel = i - idx;
+                if (rel > n / 2) rel -= n;
+                if (rel < -n / 2) rel += n;
+                const isCenter = rel === 0;
+                if (!wide && !isCenter) return null;
+                return (
+                  <div
+                    key={example.id}
+                    className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 [perspective:1600px] sm:w-[300px]"
+                    style={{ zIndex: isCenter ? 20 : 10 }}
+                  >
+                    <motion.div
+                      className="relative h-full w-full"
+                      initial={false}
+                      animate={{
+                        x: rel * 232,
+                        scale: isCenter ? 1 : 0.72,
+                        rotateY: rel * -34,
+                        opacity: isCenter ? 1 : 0.5,
+                      }}
+                      transition={{ type: 'spring', stiffness: 210, damping: 26 }}
+                    >
+                      {/* Bleed gives the centre's swung-open cover room; the
+                          canvas is transparent so it never masks neighbours. */}
+                      <div className="absolute inset-x-[-80%] inset-y-[-22%]">
+                        <Card3DViewer
+                          frontImageUrl={example.cardFront}
+                          insideImageUrl={example.cardInside}
+                          open={isCenter ? cardOpen : false}
+                          onOpenChange={isCenter ? setCardOpen : undefined}
+                          interactive={isCenter}
+                          enableRotate={false}
+                          enableZoom={false}
+                          framingMargin={1.75}
+                          minDistance={1.6}
+                          dprMax={1.5}
+                          closedAngle={-0.3}
+                          restYaw={-0.1}
+                          className="h-full w-full"
+                        />
+                      </div>
+                      {/* Side card = click-to-focus. An overlay is needed
+                          because the card's own hit-zone would otherwise eat
+                          the click; the centre has no overlay so tap-to-open
+                          reaches the card. */}
+                      {!isCenter && (
+                        <button
+                          type="button"
+                          onClick={() => goTo(i)}
+                          aria-label={`Show example ${i + 1}`}
+                          className="absolute inset-0 z-40 cursor-pointer"
+                        />
+                      )}
+                    </motion.div>
+                  </div>
+                );
+                })}
+              </Suspense>
+            ) : (
+              <div className="absolute left-1/2 top-0 h-full w-[260px] -translate-x-1/2 sm:w-[300px]">
+                {flatFallback}
               </div>
-            </div>
+            )}
 
             {/* Mobile edge arrows — the neighbours are hidden on mobile, so
                 these are the tap targets there (swipe also works). z-30 above
