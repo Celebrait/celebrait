@@ -1181,7 +1181,7 @@ function InsideSection() {
               NB: the old "in the card's own hand" implied handwriting; the
               inside is SET TYPE (see project_inside_message_is_typography). */}
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            The magic's digital. The card isn't.
+            The <ShimmerWord reduced={!!reduced}>magic's</ShimmerWord> digital. The card isn't.
           </h2>
           {/* NB: kraft is the ENVELOPE, not the card — the card is a 280gsm
               gloss-coated art card (HP Indigo). See faq-section, pricing.tsx,
@@ -1192,7 +1192,10 @@ function InsideSection() {
             It's 2026, anyone can write a prompt and conjure up an image with
             AI. But a custom greetings card with a front and inside that belong
             together, print-ready in about five minutes*, pressed onto 280gsm
-            gloss and posted to someone you care about. That's Celebrait.
+            gloss and posted to someone you care about.{' '}
+            <strong className="font-semibold">
+              <ShimmerWord reduced={!!reduced}>That's Celebrait</ShimmerWord>.
+            </strong>{' '}
             Thoughtful, funny, gloriously daft: that's you.
           </p>
           <p className="mt-2 max-w-[46ch] text-[12px] leading-snug text-keeper-meta">
