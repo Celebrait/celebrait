@@ -1046,10 +1046,14 @@ function InsideSection() {
             The magic's digital. The card isn't.
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            Tell us what to write and we set it inside — lettering matched to
-            the front, same palette, same brush. Then it's printed on 280gsm and
-            posted: something real to hold, not a link to click. Or leave the
+            In 2026, anyone can conjure an image. The hard part is everything
+            after: a front and an inside that belong together, print-ready in
+            about five minutes* — then pressed onto 280gsm and posted.
+            Thoughtful, funny, gloriously daft: that part's yours. Or leave the
             inside blank and write it yourself.
+          </p>
+          <p className="mt-2 max-w-[46ch] text-[12px] leading-snug text-keeper-meta">
+            *Possible, but you might prefer to take longer
           </p>
         </Rise>
         <Rise delay={0.1}>
