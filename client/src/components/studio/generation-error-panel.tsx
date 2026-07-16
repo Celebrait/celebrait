@@ -323,7 +323,7 @@ export function GenerationErrorPanel({
             <RefreshCw
               className={`w-4 h-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`}
             />
-            {isRetrying ? 'Resetting…' : 'Try again'}
+            {isRetrying ? 'Trying again…' : 'Try again'}
           </Button>
         </div>
 

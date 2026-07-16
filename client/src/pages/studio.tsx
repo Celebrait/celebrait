@@ -784,7 +784,7 @@ const STEPS: Array<{ title: string; body: string }> = [
   },
   {
     title: 'Write the inside',
-    body: "Your own words, in our hand. We turn what you type into the inside of the card.",
+    body: "Your own words, beautifully set. We turn what you type into the typeset inside of the card.",
   },
   {
     title: 'Print & post',
