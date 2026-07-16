@@ -266,8 +266,8 @@ function optOutFooter(): string {
   const manageUrl = `${PUBLIC_ORIGIN}/studio/people/reminders`;
   return (
     `You're receiving this because you use Celebrait. ` +
-    `<a href="${manageUrl}" style="color:#7a76e8;">Manage reminders</a> · ` +
-    `<a href="mailto:${FROM_EMAIL}?subject=Unsubscribe" style="color:#7a76e8;">Unsubscribe</a>`
+    `<a href="${manageUrl}" style="color:${EMAIL_BRAND};">Manage reminders</a> · ` +
+    `<a href="mailto:${FROM_EMAIL}?subject=Unsubscribe" style="color:${EMAIL_BRAND};">Unsubscribe</a>`
   );
 }
 
@@ -426,8 +426,8 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
   const P = 120; // panel size (px) — small on purpose
   const cap = (t: string) =>
     `<div style="margin: 0 0 6px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: ${EMAIL_STONE};">${t}</div>`;
-  const art = (src: string) =>
-    `<img src="${escape(src)}" width="${P}" style="display: block; width: ${P}px; max-width: 100%; height: auto;">`;
+  const art = (src: string, alt: string) =>
+    `<img src="${escape(src)}" alt="${escape(alt)}" width="${P}" style="display: block; width: ${P}px; max-width: 100%; height: auto;">`;
   // Blank panel — white, a faint panel label + the celebrait logo, mirroring
   // the studio print files. (Mail clients can't reliably overlay a watermark
   // ON an image — Gmail strips positioning, Outlook has none — so the art
@@ -446,8 +446,8 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
     </table>`;
   // Logo on the REAR panel only (the card's back cover); the inside-left
   // stays blank (Kevin 2026-07-11).
-  const frontBlock = front ? `${cap('Front')}${spread(blank('REAR', true), art(front))}` : '';
-  const insideBlock = inside ? `${cap('Inside')}${spread(blank('INSIDE', false), art(inside))}` : '';
+  const frontBlock = front ? `${cap('Front')}${spread(blank('REAR', true), art(front, 'Your card front'))}` : '';
+  const insideBlock = inside ? `${cap('Inside')}${spread(blank('INSIDE', false), art(inside, 'Your card inside'))}` : '';
   const gap = front && inside ? '<div style="height: 16px; line-height: 16px; font-size: 0;">&nbsp;</div>' : '';
   return `${frontBlock}${gap}${insideBlock}`;
 }
@@ -611,7 +611,7 @@ export async function sendCardReadyEmail(params: {
 
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
-    preheader: 'Have a look — buy it as is, or tweak before you send.',
+    preheader: 'Have a look — send it as is, or tweak first.',
     heading: `${recipientClauseRaw} is ready`,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
@@ -652,10 +652,20 @@ export async function sendGenerationFailedEmail(
       bodyHtml: body,
       cta: { label: 'Try again', href: retryUrl },
     });
+    const text = `${userName ? `Hi ${userName},` : 'Hi there,'}
+
+Something tripped up the render mid-flow. It happens occasionally — usually a photo it wasn't sure how to read.
+
+A different shot, or just retrying the same one, almost always clears it. You weren't charged.
+
+Try again: ${retryUrl}
+
+— Celebrait`;
     await sendEmail({
       to: userEmail,
       subject: 'Your card hit a snag — your spot is held',
       html,
+      text,
     });
   } catch (err) {
     console.error('[EMAIL] generation-failed notification failed:', err);
@@ -702,7 +712,7 @@ export async function sendRecipientCardArrivedEmail(params: {
     <p style="margin: 0 0 16px;">
       <strong>${escape(senderName)}</strong> made you a card${occasionClause}. It's quietly waiting, ready when you are.
     </p>
-    <p style="margin: 0 0 8px; color: #475569; font-size: 15px;">
+    <p style="margin: 0 0 8px; color: ${EMAIL_BODY}; font-size: 15px;">
       Take your time with it. It was made to be lingered over.
     </p>
   `;
@@ -809,7 +819,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
   }
   if (includesPrint) {
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — queued for print today. Typically arrives in <strong>3–5 working days</strong>. Tracking lands in your inbox the moment it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed — made to order (<strong>up to 72 hours</strong>), then posted with your chosen delivery on top. Tracking lands in your inbox the moment it ships.</li>`,
     );
   }
 
@@ -825,13 +835,13 @@ export async function sendSenderOrderConfirmedEmail(params: {
       Your card${forWhom}${occasionPart} is sorted.
     </p>
     <p style="margin: 0 0 8px; font-weight: 600;">What you got:</p>
-    <ul style="padding-left: 20px; color: #334155; margin: 0 0 24px;">
+    <ul style="padding-left: 20px; color: ${EMAIL_BODY}; margin: 0 0 24px;">
       ${items.join('\n')}
     </ul>
     <p style="margin: 0 0 4px;">
       Total: <strong>${amount}</strong>
     </p>
-    <p style="margin: 0; color: #64748b; font-size: 14px;">
+    <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
       Order: <span style="font-family: monospace;">${escape(orderId)}</span>
     </p>
   `;
@@ -846,7 +856,34 @@ export async function sendSenderOrderConfirmedEmail(params: {
     cta: { label: ctaLabel, href: ctaHref },
   });
 
-  return sendEmail({ to: senderEmail, subject, html });
+  const textItems: string[] = [];
+  if (includesDigital) {
+    if (scheduledSendAt) {
+      textItems.push(`- Digital — we'll send it to ${recipientName ?? 'them'} on ${formatScheduledDate(scheduledSendAt)} at 8am. We'll ping you the moment they open it.`);
+    } else if (digitalSentToRecipient) {
+      textItems.push(`- Digital — sent to ${recipientName ?? 'them'}'s inbox just now. We'll ping you the moment they open it.`);
+    } else {
+      textItems.push(`- Digital — a private share link is ready on your card. Open it below to view and share.`);
+    }
+  }
+  if (includesPrint) {
+    textItems.push(`- Printed — made to order (up to 72 hours), then posted with your chosen delivery on top. Tracking lands in your inbox the moment it ships.`);
+  }
+  const text = `Hi ${senderName},
+
+Your card${recipientName ? ` to ${recipientName}` : ''}${occasion ? ` — ${occasion}` : ''} is sorted.
+
+What you got:
+${textItems.join('\n')}
+
+Total: ${amount}
+Order: ${orderId}
+
+${ctaLabel}: ${ctaHref}
+
+— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
 }
 
 // ── Sender: "They've opened it" (first-view notification) ────────────
@@ -873,10 +910,10 @@ export async function sendSenderCardOpenedEmail(params: {
     <p style="margin: 0 0 16px;">
       ${who} just opened the card you made${recipientName ? ' for them' : ''}.
     </p>
-    <p style="margin: 0 0 24px; color: #475569; font-size: 15px;">
+    <p style="margin: 0 0 24px; color: ${EMAIL_BODY}; font-size: 15px;">
       Hope it landed.
     </p>
-    <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">
+    <p style="margin: 0 0 8px; color: ${EMAIL_STONE}; font-size: 14px;">
       Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
     </p>
   `;
@@ -889,7 +926,19 @@ export async function sendSenderCardOpenedEmail(params: {
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
 
-  return sendEmail({ to: senderEmail, subject, html });
+  const text = `Hi ${senderName},
+
+${recipientName ?? 'They'} just opened the card you made${recipientName ? ' for them' : ''}.
+
+Hope it landed.
+
+Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
+
+Make another: ${PUBLIC_ORIGIN}/studio
+
+— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
 }
 
 // ── Sender: "Your printed card just shipped" ─────────────────────────
@@ -949,7 +998,16 @@ export async function sendSenderPrintShippedEmail(params: {
     `,
   });
 
-  return sendEmail({ to: senderEmail, subject, html });
+  const text = `Hi ${senderName},
+
+${recipientName ? `${recipientName}'s` : 'Your'} card just shipped. ${courier} have it now — should be with ${recipientName ?? 'them'} ${etaWindow}.
+
+Track delivery: ${trackingUrl}
+Tracking ref: ${trackingNumber}
+
+— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
 }
 
 // ── Sender: "Your printed card was delivered" ────────────────────────
@@ -977,10 +1035,10 @@ export async function sendSenderPrintDeliveredEmail(params: {
     <p style="margin: 0 0 16px;">
       ${who}${recipientName ? "'s" : ''} card was delivered today.
     </p>
-    <p style="margin: 0 0 24px; color: #475569; font-size: 15px;">
+    <p style="margin: 0 0 24px; color: ${EMAIL_BODY}; font-size: 15px;">
       The good bit's coming.
     </p>
-    <p style="margin: 0; color: #64748b; font-size: 14px;">
+    <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
       Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
     </p>
   `;
@@ -993,7 +1051,19 @@ export async function sendSenderPrintDeliveredEmail(params: {
     cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
   });
 
-  return sendEmail({ to: senderEmail, subject, html });
+  const text = `Hi ${senderName},
+
+${recipientName ? `${recipientName}'s` : 'Your recipient'} card was delivered today.
+
+The good bit's coming.
+
+Got someone else coming up? Cards stay in your gallery — duplicate one as a starting point any time.
+
+Make another: ${PUBLIC_ORIGIN}/studio
+
+— Celebrait`;
+
+  return sendEmail({ to: senderEmail, subject, html, text });
 }
 
 // ── Drop-off recovery (sender) — card finished, never bought ─────────
@@ -1030,9 +1100,9 @@ export async function sendDropOffRecoveryEmail(params: {
       ${recipientClause} is still in your gallery. We didn't want it to slip your mind.
     </p>
     <p style="margin: 0 0 16px;">
-      Take another look — buy it as is, or tweak something before you send.
+      Take another look — send it as is, or tweak something first.
     </p>
-    <p style="margin: 0; color: #475569; font-size: 15px;">
+    <p style="margin: 0; color: ${EMAIL_BODY}; font-size: 15px;">
       No rush. Cards stay in your gallery.
     </p>
   `;
@@ -1095,8 +1165,8 @@ export async function sendDropOffTweakEmail(params: {
       pick a new style. Each tweak makes a fresh version — your originals
       stay in your gallery.
     </p>
-    <p style="margin: 0; color: #475569; font-size: 15px;">
-      Or if it's already exactly right, you know where the buy button is.
+    <p style="margin: 0; color: ${EMAIL_BODY}; font-size: 15px;">
+      Or if it's already just right, you know where the Send button is.
     </p>
   `;
 
@@ -1113,7 +1183,7 @@ export async function sendDropOffTweakEmail(params: {
     `Just checking — if ${recipientClause} didn't quite land, you can tweak it without losing what we made.\n\n` +
     `Try a different scene description, swap the reference photo, or pick a new style. Each tweak makes a fresh version — your originals stay in your gallery.\n\n` +
     `Tweak it: ${cardUrl}\n\n` +
-    `Or if it's already exactly right, you know where the buy button is.\n\n— Celebrait`;
+    `Or if it's already just right, you know where the Send button is.\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });
 }
@@ -1156,7 +1226,7 @@ export async function sendDropOffLastCallEmail(params: {
       keep nudging if it's not the right time. You can always come back
       to it from your gallery, no email needed.
     </p>
-    <p style="margin: 0; color: #475569; font-size: 15px;">
+    <p style="margin: 0; color: ${EMAIL_BODY}; font-size: 15px;">
       Buy it, tweak it, or leave it for later. Up to you.
     </p>
   `;
@@ -1275,7 +1345,7 @@ export async function sendReminderEmail(params: {
       <p style="margin: 0 0 16px;">
         ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong>.${hasMemory ? ` Plenty of time to make this year's.` : ` Plenty of time to make them something lovely.`}
       </p>
-      <p style="margin: 0 0 8px; color: #475569;">
+      <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
         Start now and there's room to tweak the scene, the message, the lot.
       </p>
     `;
@@ -1293,7 +1363,7 @@ export async function sendReminderEmail(params: {
       <p style="margin: 0 0 16px;">
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} If you start now, there's comfortable runway to print and post in time for the day.
       </p>
-      <p style="margin: 0 0 8px; color: #475569;">
+      <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
         Every card's printed to order (allow up to 72 hrs) then posted — a week gives it room to arrive with time to spare.
       </p>
     `;
@@ -1314,7 +1384,7 @@ export async function sendReminderEmail(params: {
       <p style="margin: 0 0 16px;">
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Cards are printed to order (up to 72 hrs) then posted, so this close it's tight — pick the fastest delivery at checkout to give the printed card its best shot.
       </p>
-      <p style="margin: 0 0 8px; color: #475569;">
+      <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
         About 5 minutes to make — and every card comes with a free share link that lands the instant it's ready, so you've always got something to send on the day.
       </p>
     `;
