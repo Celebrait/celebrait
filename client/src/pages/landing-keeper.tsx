@@ -106,6 +106,73 @@ function Rise({
   );
 }
 
+/** Auto-advance a carousel, politely. Who wins, in order:
+ *
+ *   1. prefers-reduced-motion — never runs at all.
+ *   2. Off screen — doesn't run. No invisible cycling: the slide you scroll
+ *      back to is the one you left, and we don't burn timers off-screen.
+ *   3. Hover / keyboard focus — pauses, so it can't yank a slide out from
+ *      under someone mid-read or mid-click.
+ *   4. `paused` — the caller's own reason (e.g. the card is open, or there's
+ *      only one example so there's nowhere to go).
+ *   5. Viewer navigates by arrow/dot/swipe — stops for good. Once someone
+ *      takes the wheel we don't grab it back off them.
+ *
+ *  Rules 3 + 5 are also what keeps this the right side of WCAG 2.2.2
+ *  (Pause, Stop, Hide) — the motion is pausable and stoppable, and it's
+ *  decorative either way.
+ */
+function useAutoAdvance({
+  advance,
+  delayMs = 6000,
+  paused = false,
+}: {
+  advance: () => void;
+  delayMs?: number;
+  paused?: boolean;
+}) {
+  const reduced = useReducedMotion();
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [inView, setInView] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  // Hold the latest closure so the interval doesn't restart every render
+  // (and never fires a stale index).
+  const advanceRef = useRef(advance);
+  advanceRef.current = advance;
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(!!entry?.isIntersecting),
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (reduced || stopped || paused || hovered || !inView) return;
+    const timer = window.setInterval(() => advanceRef.current(), delayMs);
+    return () => window.clearInterval(timer);
+  }, [reduced, stopped, paused, hovered, inView, delayMs]);
+
+  return {
+    /** Attach to the carousel root — drives the on-screen check. */
+    hostRef,
+    /** Call from any viewer-initiated navigation. */
+    stop: () => setStopped(true),
+    /** Spread onto the carousel root. */
+    pauseProps: {
+      onMouseEnter: () => setHovered(true),
+      onMouseLeave: () => setHovered(false),
+      onFocusCapture: () => setHovered(true),
+      onBlurCapture: () => setHovered(false),
+    },
+  };
+}
+
 /** Tagged placeholder for a not-yet-generated asset. Cards are SQUARE. */
 function AssetSlot({
   tag,
@@ -835,9 +902,23 @@ function ProofSection() {
     setIdx((next + PROOF_EXAMPLES.length) % PROOF_EXAMPLES.length);
   };
 
+  // Cycle the examples on their own (Kevin 2026-07-16). Paused while a card
+  // is open — sliding the inside away mid-read would be the rudest possible
+  // moment — and while there's only one example to show.
+  const { hostRef, stop, pauseProps } = useAutoAdvance({
+    advance: () => goTo(idx + 1),
+    paused: cardOpen || !many,
+    delayMs: 7000, // each slide carries a recipe to read; don't rush it
+  });
+  /** Viewer-initiated navigation: takes the wheel off the auto-advance. */
+  const userGoTo = (next: number) => {
+    stop();
+    goTo(next);
+  };
+
   const field = (Icon: LucideIcon, label: string, value: string) => (
     <div className="rounded-xl border border-keeper-hair bg-white px-3.5 py-2.5">
-      <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-stone-400">
+      <div className="mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-keeper-meta">
         <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
         {label}
       </div>
@@ -869,7 +950,7 @@ function ProofSection() {
     if (touchX.current == null || !many) return;
     const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
     touchX.current = null;
-    if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
+    if (Math.abs(dx) > 45) userGoTo(dx < 0 ? idx + 1 : idx - 1);
   };
 
   return (
@@ -909,7 +990,7 @@ function ProofSection() {
             the next example's recipe + card together. Plain translateX track —
             no perspective, naturally responsive, no resize gremlins. */}
         <Rise delay={0.1} className="mt-16 md:mt-20">
-          <div className="relative">
+          <div ref={hostRef} {...pauseProps} className="relative">
             {/* Viewport clips the off-screen slides horizontally; overflow-x
                 CLIP (not hidden) keeps vertical shadows + the open cover from
                 being cut. */}
@@ -988,7 +1069,7 @@ function ProofSection() {
               <>
                 <button
                   type="button"
-                  onClick={() => goTo(prevIdx)}
+                  onClick={() => userGoTo(prevIdx)}
                   aria-label="Previous example"
                   className="absolute -left-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-cta-light text-cta-dark ring-1 ring-cta-dark/10 backdrop-blur-sm transition-colors hover:bg-cta hover:text-white sm:left-0"
                 >
@@ -996,7 +1077,7 @@ function ProofSection() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => goTo(nextIdx)}
+                  onClick={() => userGoTo(nextIdx)}
                   aria-label="Next example"
                   className="absolute -right-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-cta-light text-cta-dark ring-1 ring-cta-dark/10 backdrop-blur-sm transition-colors hover:bg-cta hover:text-white sm:right-0"
                 >
@@ -1013,7 +1094,7 @@ function ProofSection() {
                 <button
                   key={e.id}
                   type="button"
-                  onClick={() => goTo(i)}
+                  onClick={() => userGoTo(i)}
                   aria-label={`Example ${i + 1}`}
                   className={`h-2 w-2 rounded-full transition-colors ${
                     i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
@@ -1030,7 +1111,47 @@ function ProofSection() {
 
 // ── 2b. THE INSIDE ───────────────────────────────────────────────────
 
+// Lifestyle examples. A slide is always a PAIR — the same card shot closed
+// (front) and open (inside) — because the pair IS the argument the copy
+// makes: "a front and an inside that belong together". A single photo can't
+// prove that, so never split one across slides.
+//
+// ⚠ ASSETS: only the first pair exists. To add an example, drop a closed +
+// open shot of ANOTHER card (someone holding it, same lighting/treatment)
+// into client/public and add an entry here — the carousel, dots and
+// auto-advance all switch on by themselves at 2+. Deliberately NOT padded
+// with duplicates of the pair below: a carousel cycling the same photo
+// three times reads as broken, not as a carousel.
+const INSIDE_EXAMPLES: Array<{
+  id: string;
+  closed: string;
+  open: string;
+  alt: string;
+}> = [
+  {
+    id: 'mothers-day',
+    closed: keeperCardClosed,
+    open: keeperCardOpen,
+    alt: 'A Celebrait card held open on a table — the inside message and the front',
+  },
+];
+
 function InsideSection() {
+  const reduced = useReducedMotion();
+  const [idx, setIdx] = useState(0);
+  const many = INSIDE_EXAMPLES.length > 1;
+  const goTo = (next: number) =>
+    setIdx((next + INSIDE_EXAMPLES.length) % INSIDE_EXAMPLES.length);
+  const { hostRef, stop, pauseProps } = useAutoAdvance({
+    advance: () => goTo(idx + 1),
+    paused: !many,
+    delayMs: 6000, // photos, not prose — they read faster than the proof slides
+  });
+  const userGoTo = (next: number) => {
+    stop();
+    goTo(next);
+  };
+
   return (
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
@@ -1062,11 +1183,41 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          <CardPair
-            first={keeperCardClosed}
-            second={keeperCardOpen}
-            alt="A Celebrait card on a table — the open inside message and the front"
-          />
+          {/* With one example this renders exactly as it always did — the
+              track never moves and `many` keeps the dots away. */}
+          <div ref={hostRef} {...pauseProps} className="relative">
+            <div className="overflow-x-clip">
+              <div
+                className={`flex ${reduced ? '' : 'transition-transform duration-500 ease-out'}`}
+                style={{ transform: `translateX(-${idx * 100}%)` }}
+              >
+                {INSIDE_EXAMPLES.map((example, i) => (
+                  <div key={example.id} className="w-full shrink-0" aria-hidden={i !== idx}>
+                    <CardPair
+                      first={example.closed}
+                      second={example.open}
+                      alt={example.alt}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {many && (
+              <div className="mt-6 flex items-center justify-center gap-1.5">
+                {INSIDE_EXAMPLES.map((example, i) => (
+                  <button
+                    key={example.id}
+                    type="button"
+                    onClick={() => userGoTo(i)}
+                    aria-label={`Example ${i + 1}`}
+                    className={`h-2 w-2 rounded-full transition-colors ${
+                      i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-meta/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </Rise>
       </div>
     </section>
