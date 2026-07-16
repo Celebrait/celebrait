@@ -875,21 +875,28 @@ function ProofSection() {
   return (
     <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-5xl text-center">
-        <Rise>
-          {/* Headline, body and signpost share ONE left-aligned column
-              (centred as a unit) so their left edges line up — the panel's
-              rule: centre only single-line headlines, left-align the rest
-              (Kevin 2026-07-16). */}
-          <div className="mx-auto max-w-[54ch] text-left">
-            <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-              Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
-              boring
-            </h2>
-            <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
-              Mate abseiling off Big Ben, mum under the Northern Lights,
-              daughter going viral in Times Square — you describe the scene, we
-              make it real. Then you write the front and the inside.
-            </p>
+        {/* px-1 mirrors the slides' own px-1 inset, so this column's left
+            edge lines up with the recipe column's on mobile too (where the
+            recipe left-aligns rather than centres). */}
+        <Rise className="px-1">
+          {/* Headline, body and signpost share ONE left-aligned column,
+              centred at the SAME width as the slider row's content below —
+              recipe (320) + md:gap-16 (64) + card (360) = 744 — so this
+              column's left edge lands exactly on the recipe column's.
+              Keep 744 in step if the card size or the row gap changes.
+              Prose keeps a readable 54ch measure inside (Kevin 2026-07-16). */}
+          <div className="mx-auto max-w-[744px] text-left">
+            <div className="max-w-[54ch]">
+              <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
+                Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
+                boring
+              </h2>
+              <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
+                Mate abseiling off Big Ben, mum under the Northern Lights,
+                daughter going viral in Times Square — you describe the scene, we
+                make it real. Then you write the front and the inside.
+              </p>
+            </div>
             {/* One signpost above the carousel. */}
             {many && swipeHint('mt-6')}
           </div>
@@ -915,7 +922,12 @@ function ProofSection() {
               >
                 {PROOF_EXAMPLES.map((example, i) => (
                   <div key={example.id} className="w-full shrink-0 px-1" aria-hidden={i !== idx}>
-                    <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-16 md:flex-row md:gap-16">
+                    {/* Mobile stacks: items-start so the recipe's left edge
+                        matches the heading/body column above (the card gets
+                        self-center to stay optically centred). Desktop
+                        (md+) switches items-center back to its real job —
+                        vertical centring of the two columns. */}
+                    <div className="mx-auto flex max-w-5xl flex-col items-start justify-center gap-16 md:flex-row md:items-center md:gap-16">
                       {/* The recipe — photo + the three text boxes. Nudged up
                           32px on desktop so it centres on the CARD, not the
                           taller card+hint column (transform keeps the dots
@@ -943,7 +955,7 @@ function ProofSection() {
                       {/* The card it produced — tap to open, with the hint
                           tucked right beneath it (hero-style). z-20 so the
                           swung cover overlaps the inputs on its way left. */}
-                      <div className="flex shrink-0 flex-col items-center">
+                      <div className="flex shrink-0 flex-col items-center self-center md:self-auto">
                         <div className="relative z-20 h-[288px] w-[288px] sm:h-[360px] sm:w-[360px]">
                           <button
                             type="button"
