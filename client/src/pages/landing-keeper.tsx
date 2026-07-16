@@ -1035,13 +1035,21 @@ function InsideSection() {
     <section className="px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <Rise>
+          {/* This section's job is the one thing the page never says outright:
+              the digital process ends as a PHYSICAL object (the visual beside
+              it is a real card on a table). The bin/keep beat belongs to the
+              StatementSection right below ("the unbinnable kind"), so "keep"
+              only lands here as the payoff — it doesn't steal that punch.
+              NB: the old "in the card's own hand" implied handwriting; the
+              inside is SET TYPE (see project_inside_message_is_typography). */}
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Your words, in the card's own hand.
+            The magic's digital. The card isn't.
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            Tell us what to write and we set it inside — lettering and artwork
-            styled to match the front, same palette, same brush. Or leave it
-            blank and write it yourself.
+            Tell us what to write and we set it inside — lettering matched to
+            the front, same palette, same brush. Then it's printed on 280gsm and
+            posted: something real to hold, not a link to click. Or leave the
+            inside blank and write it yourself.
           </p>
         </Rise>
         <Rise delay={0.1}>
