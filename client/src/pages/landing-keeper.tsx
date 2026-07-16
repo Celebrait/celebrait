@@ -1200,16 +1200,24 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          {/* With one example this renders exactly as it always did — the
-              track never moves and `many` keeps the dots away. */}
           <div ref={hostRef} {...pauseProps} className="relative">
-            <div className="overflow-x-clip">
+            {/* The photos are self-start / self-end, i.e. FLUSH with their
+                slide's edges. Sat directly against the clip boundary that
+                meant two artefacts at once: the active photo's own ring +
+                shadow got sliced dead flat, and the neighbouring slide's
+                photo painted right at the seam. So each slide is inset
+                (px-5) to hold its photos off the edge, and the clip box is
+                widened by the same amount (-mx-5) so the photos keep the
+                exact size and position they had before the carousel.
+                Net: 20px of clear air either side for shadows to fall in,
+                and the neighbours stay 20px beyond the clip. */}
+            <div className="-mx-5 overflow-x-clip">
               <div
                 className={`flex ${reduced ? '' : 'transition-transform duration-500 ease-out'}`}
                 style={{ transform: `translateX(-${idx * 100}%)` }}
               >
                 {INSIDE_EXAMPLES.map((example, i) => (
-                  <div key={example.id} className="w-full shrink-0" aria-hidden={i !== idx}>
+                  <div key={example.id} className="w-full shrink-0 px-5" aria-hidden={i !== idx}>
                     <CardPair
                       first={example.closed}
                       second={example.open}
