@@ -66,6 +66,12 @@ const keeperCardOpen = '/keeper-card-open.webp';
 const proofSourcePhoto = '/proof-source-photo.webp';
 const proofCardFront = '/proof-card-front.webp';
 const proofCardInside = '/proof-card-inside.webp';
+// Example 2 — Kevin's own gen (2026-07-16). Same deal end to end: this
+// selfie of Rach + Lulu + "Abseiling off Big Ben" really did produce this
+// front, and the inside message really is the typography on the inside.
+const bigBenSourcePhoto = '/proof-bigben-source.webp';
+const bigBenCardFront = '/proof-bigben-front.webp';
+const bigBenCardInside = '/proof-bigben-inside.webp';
 // Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
 // BEHIND the hero art — zero network, so there's never blank white
 // card stock while the real jpg downloads.
@@ -855,20 +861,29 @@ const MUM_EXAMPLE: ProofExample = {
   cardAlt: 'The finished card front — Mum under the Northern Lights',
 };
 
-// Slides 2 + 3 are TEMPORARY placeholders so the carousel is live now (Kevin
-// 2026-07-14). They reuse the Mum CARD IMAGE (only real asset we have) but
-// carry different recipe TEXT so navigating visibly changes the "Made from"
-// caption — proof the carousel moves. Replace each with a real generation
-// (its own webp trio in /public + strings) and the cards differ too.
+// Example 2 — REAL as of 2026-07-16. Text below is transcribed from the
+// card itself, not written to fit: the front really says "Happy 30th,
+// Rach!" (skywritten) and the inside really is signed "Lulu x".
+const BIG_BEN_EXAMPLE: ProofExample = {
+  id: 'big-ben',
+  sourcePhoto: bigBenSourcePhoto,
+  sourceAlt: 'The selfie of Rach and Lulu this card was made from',
+  scene: 'Abseiling off Big Ben',
+  frontText: 'Happy 30th, Rach!',
+  insideMessage:
+    "Not sure why we're abseiling off Big Ben but it's funny AF. Love you always, Lulu x",
+  cardFront: bigBenCardFront,
+  cardInside: bigBenCardInside,
+  cardAlt: 'The finished card front — Rach and Lulu abseiling off Big Ben',
+};
+
+// ⚠ Slide 3 is still a TEMPORARY placeholder: it reuses the Mum CARD IMAGE
+// with different recipe TEXT, so its text changes but its card doesn't.
+// Replace with a real generation (its own webp trio in /public + strings) —
+// same as BIG_BEN_EXAMPLE above. See next_keeper_assets_needed.
 const PROOF_EXAMPLES: ProofExample[] = [
   MUM_EXAMPLE,
-  {
-    ...MUM_EXAMPLE,
-    id: 'placeholder-bigben',
-    scene: 'Abseiling off Big Ben',
-    frontText: 'Happy 40th, Dave',
-    insideMessage: "Forty floors up and still no fear of heights. Happy birthday, mate.",
-  },
+  BIG_BEN_EXAMPLE,
   {
     ...MUM_EXAMPLE,
     id: 'placeholder-rome',
