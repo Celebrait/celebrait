@@ -440,28 +440,38 @@ function StaticAjarCard({
  *  3D; at tile scale it reads identically to the WebGL card, without
  *  costing six GPU contexts (the real engine stays in the hero + the
  *  free-link section). Hero art is the stand-in until D1–D6 land. */
+/** Gallery tile — a card sitting ajar. Deliberately NOT interactive
+ *  (Kevin 2026-07-16). Tap-to-open was the THIRD outing of that gesture —
+ *  the hero opens a card, the proof opens a card, and then this asked you
+ *  to open six more — and the "inside matches the front" proof it bought
+ *  is now made explicitly and full-size by THE INSIDE section. So these sit
+ *  still and say one thing: any occasion. Breadth is this section's job;
+ *  depth belongs to the hero and the proof.
+ *
+ *  Why only the FRONTS need real art: at -22° the cover still covers
+ *  cos(22°) ≈ 93% of the width, so barely a ~7% strip of the inside page
+ *  is ever visible — a sliver of texture, not something anyone can read.
+ *  Every tile therefore shares one inside image and nobody can tell.
+ *  Ajar rather than flat because that strip + the shadow are what make it
+ *  read as an object instead of a picture (and rest-ajar is the locked
+ *  card language site-wide). */
 function AjarTile({
   tag,
   what,
-  open,
-  onToggle,
+  front,
 }: {
   tag: string;
   what: string;
-  open: boolean;
-  onToggle: () => void;
+  front: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={`relative block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold rounded-2xl ${open ? 'z-20' : 'z-0'}`}
+    <div
+      className="relative w-full"
       style={{ aspectRatio: '1/1' }}
       data-testid={`gallery-card-${tag}`}
-      aria-label={`${what} — ${open ? 'tap to close' : 'tap to open'} the card`}
     >
       <div className="absolute inset-[6%]" style={{ perspective: '1100px' }}>
-        {/* Inside page (right-hand spread) */}
+        {/* Inside page — only its right ~7% ever shows. Shared by all six. */}
         <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
           <img src={heroCardInside}
                 crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
@@ -471,41 +481,24 @@ function AjarTile({
             style={{ background: 'linear-gradient(90deg, rgba(33,29,25,0.18), transparent)' }}
           />
         </div>
-        {/* Cover — hinged on the left edge. Rests slightly ajar (-14°),
-            springs to open (-152°). The paper spring: soft stiffness,
-            a touch underdamped so it settles like card stock. */}
-        <motion.div
-          className="absolute inset-0"
-          style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
-          initial={false}
-          animate={{ rotateY: open ? -152 : -22 }}
-          transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
+        {/* Cover — hinged left, parked ajar. No spring, no state: it never
+            moves, so this is a plain static transform. The cover's BACK
+            face is gone with the tap — past 90° was the only way to see it. */}
+        <div
+          className="absolute inset-0 overflow-hidden rounded-[6px] shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
+          style={{ transformOrigin: 'left center', transform: 'rotateY(-22deg)' }}
         >
-          {/* Front face */}
-          <div
-            className="absolute inset-0 overflow-hidden rounded-[6px] shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
-            style={{ backfaceVisibility: 'hidden' }}
-          >
-            <img src={heroCardFront}
-                crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
-          </div>
-          {/* Inside-left (back of the cover) — white stock + celebrait
-              wordmark small at bottom-centre, matching the 3D render. */}
-          <div
-            className="absolute inset-0 flex items-end justify-center rounded-[6px] border border-stone-200/60 bg-white pb-[10%]"
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          >
-            <img src={celebraitLogo} alt="" className="w-[27%] opacity-70" />
-          </div>
-        </motion.div>
+          {/* The briefs underneath are gone, so the ART carries the
+              occasion — this alt is now the ONLY place it survives for a
+              screen reader. Don't blank it. */}
+          <img src={front}
+                crossOrigin="anonymous" alt={`${what} card`} className="h-full w-full object-cover" />
+        </div>
       </div>
       <span className="absolute left-2 top-2 rounded bg-keeper-gold-wash/90 px-2 py-0.5 font-mono text-[11px] font-semibold text-keeper-gold">
         {tag}
       </span>
-      <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] text-keeper-meta">
-        {open ? 'tap to close' : 'tap to open'}
-      </span>
-    </button>
+    </div>
   );
 }
 
@@ -1294,17 +1287,27 @@ function StatementSection() {
 
 // ── 4. RANGE — The gallery wall (every card clickable) ──────────────
 
-const GALLERY: Array<{ tag: string; what: string; brief: string }> = [
-  { tag: 'D1', what: "Kid's birthday", brief: '“Leo, 7, dinosaur mad”' },
-  { tag: 'D2', what: 'Anniversary', brief: '“25 years since Positano”' },
-  { tag: 'D3', what: 'New baby', brief: '“Welcome, little Ada”' },
-  { tag: 'D4', what: 'Graduation', brief: '“Dr. Patel, at last”' },
-  { tag: 'D5', what: "Father's Day", brief: '“Dad, 60, mad about fishing”' },
-  { tag: 'D6', what: 'Retirement', brief: '“36 years of Mrs. H”' },
+// This section's ONE job is breadth: six occasions in a glance, so
+// Celebrait doesn't read as a birthday-card site. Nothing else on the page
+// makes that argument — OccasionCapture is a lead form, and it's
+// birthday-framed — and it's the argument the whole reminder/repeat-purchase
+// model rests on.
+//
+// ⚠ ASSETS: every `front` below is a PLACEHOLDER — all six currently show
+// the hero card. Kevin to generate SIX FRONTS, one per occasion, and drop
+// each in here. Only fronts: the tiles never open, so the inside is a
+// shared ~7% sliver (see AjarTile). The D-tags are the slot map and come
+// out WITH the real art. See next_keeper_assets_needed.
+const GALLERY: Array<{ tag: string; what: string; front: string }> = [
+  { tag: 'D1', what: "Kid's birthday", front: heroCardFront },
+  { tag: 'D2', what: 'Anniversary', front: heroCardFront },
+  { tag: 'D3', what: 'New baby', front: heroCardFront },
+  { tag: 'D4', what: 'Graduation', front: heroCardFront },
+  { tag: 'D5', what: "Father's Day", front: heroCardFront },
+  { tag: 'D6', what: 'Retirement', front: heroCardFront },
 ];
 
 function GallerySection() {
-  const [active, setActive] = useState<number | null>(null);
   return (
     <section id="gallery" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
@@ -1312,23 +1315,18 @@ function GallerySection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
             Any face. Any occasion.
           </h2>
+          {/* Was "Made in the Studio this month — tap any card to open it."
+              Both halves had to go: the tap is gone, and "this month" is a
+              dated claim on an evergreen page — it has to stay true forever
+              and won't. */}
           <p className="mt-3 text-[15px] text-keeper-body">
-            Made in the Studio this month — tap any card to open it.
+            Real cards, made in the Studio.
           </p>
         </Rise>
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
           {GALLERY.map((g, i) => (
             <Rise key={g.tag} delay={i * 0.08}>
-              <AjarTile
-                tag={g.tag}
-                what={g.what}
-                open={active === i}
-                onToggle={() => setActive(active === i ? null : i)}
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <span className="h-6 w-6 shrink-0 rounded-full border border-dashed border-keeper-hair bg-white/60" />
-                <span className="text-[12px] text-keeper-meta">{g.brief}</span>
-              </div>
+              <AjarTile tag={g.tag} what={g.what} front={g.front} />
             </Rise>
           ))}
         </div>
