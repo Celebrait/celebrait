@@ -892,7 +892,7 @@ function ProofSection() {
                 boring
               </h2>
               <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
-                Best friend abseiling off Big Ben, mum under the Northern
+                Best friends abseiling off Big Ben, mum under the Northern
                 Lights, daughter going viral in Times Square: You describe the
                 scene, we make it real. Then you write the front and the inside.
               </p>
