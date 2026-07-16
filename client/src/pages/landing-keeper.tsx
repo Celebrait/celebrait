@@ -849,7 +849,7 @@ function ProofSection() {
   // device — "Tap to see more" on desktop (click a neighbour / edge), "Swipe
   // to see more" on mobile (Kevin 2026-07-14). Chevrons flag it either way.
   const swipeHint = (className = '') => (
-    <div className={`flex justify-center ${className}`}>
+    <div className={`flex justify-start ${className}`}>
       <span className="inline-flex items-center gap-1.5 rounded-full bg-cta-light px-3 py-1 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-cta-dark">
         <ChevronsLeft className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden="true" />
         <span className="md:hidden">Swipe to see more</span>
@@ -876,25 +876,23 @@ function ProofSection() {
     <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-5xl text-center">
         <Rise>
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
-            boring
-          </h2>
-          {/* Left-aligned block (centred as a unit) — panel: never centre a
-              paragraph that wraps past one line. Lead line + support, warm
-              charcoal body (keeper-body) a rung below the headline. */}
-          <p className="mx-auto mt-5 max-w-[54ch] text-left text-[17px] leading-[1.6] text-keeper-body">
-            <span className="block font-semibold text-keeper-ink">
-              Put them anywhere. We mean anywhere.
-            </span>
-            <span className="mt-1.5 block">
+          {/* Headline, body and signpost share ONE left-aligned column
+              (centred as a unit) so their left edges line up — the panel's
+              rule: centre only single-line headlines, left-align the rest
+              (Kevin 2026-07-16). */}
+          <div className="mx-auto max-w-[54ch] text-left">
+            <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
+              Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
+              boring
+            </h2>
+            <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
               Mate abseiling off Big Ben, mum under the Northern Lights,
               daughter going viral in Times Square — you describe the scene, we
               make it real. Then you write the front and the inside.
-            </span>
-          </p>
-          {/* One signpost above the carousel. */}
-          {many && swipeHint('mt-6')}
+            </p>
+            {/* One signpost above the carousel. */}
+            {many && swipeHint('mt-6')}
+          </div>
         </Rise>
 
         {/* RECIPE SLIDER — each slide is a WHOLE example: the photo + text
@@ -980,7 +978,7 @@ function ProofSection() {
                   type="button"
                   onClick={() => goTo(prevIdx)}
                   aria-label="Previous example"
-                  className="absolute -left-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:left-0"
+                  className="absolute -left-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-cta-light text-cta-dark ring-1 ring-cta-dark/10 backdrop-blur-sm transition-colors hover:bg-cta hover:text-white sm:left-0"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -988,7 +986,7 @@ function ProofSection() {
                   type="button"
                   onClick={() => goTo(nextIdx)}
                   aria-label="Next example"
-                  className="absolute -right-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 text-keeper-ink/55 ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:bg-white hover:text-keeper-ink sm:right-0"
+                  className="absolute -right-4 top-1/2 z-30 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-cta-light text-cta-dark ring-1 ring-cta-dark/10 backdrop-blur-sm transition-colors hover:bg-cta hover:text-white sm:right-0"
                 >
                   <ChevronRight className="h-5 w-5" strokeWidth={2} />
                 </button>
