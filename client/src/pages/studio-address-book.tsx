@@ -108,7 +108,7 @@ export default function StudioAddressBookPage() {
             Address book
           </h1>
           {entries.length > 0 && (
-            <p className="text-sm text-stone-500 mt-1">
+            <p className="text-sm text-keeper-meta mt-1">
               {entries.length} {entries.length === 1 ? 'person' : 'people'}
               {occasionCount > 0 && (
                 <>
@@ -233,7 +233,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         This is where the people you send cards to live.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Make a card and they'll land here automatically. Or add someone
         now — handy when a birthday's creeping up.
       </p>
@@ -334,7 +334,7 @@ function EntryRow({
               {entry.name}
             </p>
             {subtitle && (
-              <p className="text-xs text-stone-500 mt-0.5 truncate">
+              <p className="text-xs text-keeper-meta mt-0.5 truncate">
                 {subtitle}
               </p>
             )}
@@ -351,7 +351,7 @@ function EntryRow({
                 something to before. See
                 next_address_book_reminders_retention.md. */}
             {entry.lastCard && (
-              <p className="text-xs text-stone-400 mt-2.5">
+              <p className="text-xs text-keeper-meta mt-2.5">
                 Last sent {formatLastSentDate(entry.lastCard.sentAt)}
               </p>
             )}
@@ -361,7 +361,7 @@ function EntryRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="w-8 h-8 rounded-full text-stone-400 hover:text-keeper-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
+              className="w-8 h-8 rounded-full text-keeper-meta hover:text-keeper-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
               aria-label={`Actions for ${entry.name}`}
               data-testid={`address-book-menu-${entry.id}`}
             >
@@ -424,7 +424,7 @@ function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
     >
       <Icon className="w-3 h-3" strokeWidth={1.75} />
       <span className="capitalize">{occasion.occasion}</span>
-      {dateLabel && <span className="text-stone-500">· {dateLabel}</span>}
+      {dateLabel && <span className="text-keeper-meta">· {dateLabel}</span>}
       {!dateLabel && <span className="text-accent-red-dark">· add the date</span>}
     </span>
   );

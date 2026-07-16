@@ -234,7 +234,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           data-testid="input-scene-description"
         />
         <div className="flex items-center justify-between mt-1">
-          <p className="text-[11px] text-stone-400">
+          <p className="text-[11px] text-keeper-meta">
             {local.length > 0
               ? `${local.length} characters`
               : "Not sure? Brainstorm it with us."}
@@ -317,7 +317,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               data-testid="input-scene-brief"
             />
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-stone-400">
+              <p className="text-[11px] text-keeper-meta">
                 Optional — leave blank for surprise.
               </p>
               <Button
@@ -352,7 +352,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                   className="space-y-2 pt-2 border-t border-keeper-hair"
                   data-testid="scene-suggestions"
                 >
-                  <p className="text-xs uppercase tracking-wider text-stone-400 font-medium pt-3">
+                  <p className="text-xs uppercase tracking-wider text-keeper-meta font-medium pt-3">
                     Tap one to use it
                   </p>
                   {suggestions.map((s) => (
@@ -370,7 +370,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                     type="button"
                     onClick={() => suggestMutation.mutate()}
                     disabled={suggestMutation.isPending}
-                    className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50 pt-1"
+                    className="inline-flex items-center gap-1.5 text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50 pt-1"
                     data-testid="btn-scene-reroll"
                   >
                     <RefreshCw

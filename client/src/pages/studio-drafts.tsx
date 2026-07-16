@@ -81,7 +81,7 @@ function PageHeader() {
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Drafts</h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-keeper-body mt-1">
           Pick up where you left off — drafts save automatically.
         </p>
       </div>
@@ -223,7 +223,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
               {title}
             </p>
             {metaLine && (
-              <p className="text-[11px] sm:text-xs text-stone-500 truncate mt-0.5">
+              <p className="text-[11px] sm:text-xs text-keeper-meta truncate mt-0.5">
                 {metaLine}
               </p>
             )}
@@ -239,7 +239,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
                 Ready to generate
               </span>
             ) : isOneStepAway ? (
-              <span className="text-[11px] text-stone-500 italic">
+              <span className="text-[11px] text-keeper-meta italic">
                 One step away
               </span>
             ) : null}
@@ -264,7 +264,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
               setConfirmOpen(true);
             }}
             disabled={deleteMutation.isPending}
-            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-stone-400 hover:text-red-600 hover:bg-stone-50 transition-colors disabled:opacity-50 flex-shrink-0"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-keeper-meta hover:text-red-600 hover:bg-stone-50 transition-colors disabled:opacity-50 flex-shrink-0"
             aria-label={`Delete ${title}`}
             data-testid={`btn-delete-draft-${card.id}`}
           >
@@ -287,7 +287,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
               Ready
             </span>
           ) : isOneStepAway ? (
-            <span className="text-[10px] text-stone-500 italic">
+            <span className="text-[10px] text-keeper-meta italic">
               One step away
             </span>
           ) : null}
@@ -417,7 +417,7 @@ function DraftsEmpty() {
         <FileEdit className="w-6 h-6" />
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No drafts right now</p>
-      <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
+      <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
         When you start a card and step away, it'll live here until you come back.
       </p>
       <Link
@@ -436,7 +436,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
       <p className="text-sm text-accent-red-dark mb-2">Couldn't load your drafts.</p>
-      <p className="text-xs text-stone-500">{message}</p>
+      <p className="text-xs text-keeper-meta">{message}</p>
     </div>
   );
 }

@@ -71,7 +71,7 @@ export function NarrationStage({ mode, state }: NarrationStageProps) {
       <div className="relative flex flex-col items-center gap-10 px-6 max-w-[760px] w-full">
         {/* Small label at top — signals this is the making moment,
             not a loading screen. Small caps, barely there. */}
-        <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400 font-medium">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-keeper-meta font-medium">
           Crafting
         </p>
 

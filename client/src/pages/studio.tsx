@@ -74,7 +74,7 @@ export default function StudioHome() {
         <DashboardHeader name={displayName} />
         <div className="max-w-md mx-auto text-center py-12">
           <p className="text-sm text-accent-red-dark mb-2">Couldn't load your cards.</p>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-keeper-meta">
             {error instanceof Error ? error.message : 'Please try again.'}
           </p>
         </div>
@@ -152,7 +152,7 @@ function EmptyView({ name }: { name: string }) {
             <br />
             <em className="italic text-brand-dark font-normal">cards.</em>
           </h2>
-          <p className="text-base sm:text-lg text-stone-600 leading-relaxed mb-7">
+          <p className="text-base sm:text-lg text-keeper-body leading-relaxed mb-7">
             Like the one below — built around someone you love. Upload a photo, tell us the moment, and we'll render a card with them in it. Print it and post it — with a free digital link to share.
           </p>
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-center lg:items-start gap-3 sm:gap-4 justify-center lg:justify-start">
@@ -255,13 +255,13 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
           <Sparkles className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-stone-500 uppercase tracking-wider mb-1">
+          <p className="text-xs font-medium text-keeper-meta uppercase tracking-wider mb-1">
             In progress
           </p>
           <p className="text-lg sm:text-xl font-semibold text-keeper-ink truncate">
             Finishing {title}
           </p>
-          <p className="text-sm text-stone-600 mt-0.5">
+          <p className="text-sm text-keeper-body mt-0.5">
             Come back whenever — your draft is saved.
           </p>
         </div>
@@ -280,7 +280,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
       <div className="text-center mb-12">
         <Link
           href="/studio/new-card"
-          className="inline-flex items-center gap-2 text-sm text-stone-600 hover:text-brand-dark underline underline-offset-4 decoration-stone-300"
+          className="inline-flex items-center gap-2 text-sm text-keeper-body hover:text-brand-dark underline underline-offset-4 decoration-stone-300"
         >
           <Wand2 className="w-4 h-4" />
           Or start a new card
@@ -451,7 +451,7 @@ function HeroCarousel({
                 className="w-full h-full object-cover animate-in fade-in-0 duration-500"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-stone-400">
+              <div className="w-full h-full flex items-center justify-center text-keeper-meta">
                 <ImageIcon className="w-8 h-8" />
               </div>
             )}
@@ -473,13 +473,13 @@ function HeroCarousel({
             >
               {title}
             </p>
-            <p className="text-sm text-stone-600 mt-0.5">
+            <p className="text-sm text-keeper-body mt-0.5">
               {isSent
                 ? 'Track delivery in Orders & delivery.'
                 : 'Ready to print and post.'}
             </p>
           </div>
-          <ArrowRight className="w-5 h-5 text-stone-400 flex-shrink-0 hidden sm:block" />
+          <ArrowRight className="w-5 h-5 text-keeper-meta flex-shrink-0 hidden sm:block" />
         </div>
       </Link>
 
@@ -563,8 +563,8 @@ function ActivityColumn({
         : {
             border: 'border-keeper-hair',
             accentBar: '',
-            iconColor: 'text-stone-500',
-            badge: 'bg-stone-200 text-stone-700',
+            iconColor: 'text-keeper-meta',
+            badge: 'bg-stone-200 text-keeper-body',
           };
 
   return (
@@ -591,14 +591,14 @@ function ActivityColumn({
         </div>
         <Link
           href={seeAllHref}
-          className="text-xs text-stone-500 hover:text-brand-dark underline-offset-4 hover:underline"
+          className="text-xs text-keeper-meta hover:text-brand-dark underline-offset-4 hover:underline"
           data-testid={`see-all-${label.toLowerCase()}`}
         >
           See all
         </Link>
       </div>
       {cards.length === 0 ? (
-        <p className="text-sm text-stone-500 py-6 text-center">{emptyCopy}</p>
+        <p className="text-sm text-keeper-meta py-6 text-center">{emptyCopy}</p>
       ) : (
         <div className="space-y-2">
           {cards.map((c) =>
@@ -640,7 +640,7 @@ function CompactCardRow({ card }: { card: CardGridItem }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-stone-400">
+          <div className="w-full h-full flex items-center justify-center text-keeper-meta">
             <ImageIcon className="w-4 h-4" />
           </div>
         )}
@@ -689,7 +689,7 @@ function DraftRow({ card }: { card: CardGridItem }) {
       <div className="flex-1 min-w-0 pt-0.5">
         <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
         {metaLine && (
-          <p className="text-[11px] text-stone-500 truncate mt-0.5">
+          <p className="text-[11px] text-keeper-meta truncate mt-0.5">
             {metaLine}
           </p>
         )}
@@ -734,7 +734,7 @@ function formatRelativeTime(ts: Date | string | null): string | null {
 function HowItWorks({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? 'mb-12' : 'mb-16'}>
-      <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-4">
+      <h3 className="text-xs font-semibold text-keeper-meta uppercase tracking-wider mb-4">
         How it works
       </h3>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -760,7 +760,7 @@ function HowItWorks({ compact = false }: { compact?: boolean }) {
               {s.title}
             </p>
             <p
-              className={`text-stone-600 leading-relaxed ${
+              className={`text-keeper-body leading-relaxed ${
                 compact ? 'text-xs' : 'text-xs'
               }`}
             >
@@ -807,7 +807,7 @@ function InvitationsTeaser() {
         <h3 className="text-lg font-semibold text-keeper-ink">
           What's next at Celebrait
         </h3>
-        <p className="text-sm text-stone-500 mt-1">
+        <p className="text-sm text-keeper-meta mt-1">
           Something we're working on. Get the nod when it lands.
         </p>
       </div>
@@ -836,7 +836,7 @@ function InvitationsTeaser() {
             <h4 className="text-3xl sm:text-4xl font-display font-bold text-keeper-ink leading-[1.1] tracking-[-0.015em] mb-3">
               Invitations that feel like <em className="italic text-brand-dark">you</em>.
             </h4>
-            <p className="text-sm sm:text-base text-stone-700 leading-relaxed mb-6">
+            <p className="text-sm sm:text-base text-keeper-body leading-relaxed mb-6">
               The same tool you're holding now — tuned for weddings, birthdays,
               baby showers and save-the-dates. Custom scenes, the faces you love
               on the front, envelope-ready. Send one, or a hundred.
@@ -851,7 +851,7 @@ function InvitationsTeaser() {
               Join the waitlist
               <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-xs text-stone-500 mt-3">
+            <p className="text-xs text-keeper-meta mt-3">
               We'll email you the moment it opens. No spam, ever.
             </p>
           </div>
@@ -891,7 +891,7 @@ function DashboardHeader({
       <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
         Hi {name} <span className="text-keeper-gold">✨</span>
       </h1>
-      {subtitle && <p className="text-sm text-stone-600 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-sm text-keeper-body mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -1005,7 +1005,7 @@ function UpcomingRow({ reminder }: { reminder: UpcomingReminder }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
-          <p className="text-xs text-stone-500">{dayText}</p>
+          <p className="text-xs text-keeper-meta">{dayText}</p>
         </div>
       </Link>
     </li>

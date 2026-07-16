@@ -92,7 +92,7 @@ export default function CheckoutSuccessPage() {
       <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
         <Centered>
           <Loader2 className="w-6 h-6 animate-spin text-brand mb-3" />
-          <p className="text-sm text-stone-600">Confirming your order…</p>
+          <p className="text-sm text-keeper-body">Confirming your order…</p>
         </Centered>
       </CheckoutLayout>
     );
@@ -105,7 +105,7 @@ export default function CheckoutSuccessPage() {
           <p className="text-sm font-medium text-keeper-ink mb-2">
             This is taking longer than usual
           </p>
-          <p className="text-xs text-stone-500 mb-6 max-w-xs leading-relaxed">
+          <p className="text-xs text-keeper-meta mb-6 max-w-xs leading-relaxed">
             Your payment may still be going through — we'll email your receipt
             as soon as it confirms. You can also find it under Orders.
           </p>
@@ -133,7 +133,7 @@ export default function CheckoutSuccessPage() {
               <h1 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink">
                 Thanks — we've got it
               </h1>
-              <p className="text-sm text-stone-600 mt-1">
+              <p className="text-sm text-keeper-body mt-1">
                 {formatGBP(data.order.totalAmount)} paid. You'll get a confirmation by email.
               </p>
             </div>
@@ -141,13 +141,13 @@ export default function CheckoutSuccessPage() {
 
           <div className="space-y-2 pt-2 border-t border-keeper-hair">
             {data.order.includesPrint && (
-              <div className="flex items-center gap-2 text-sm text-stone-700">
-                <Package className="w-4 h-4 text-stone-400" />
+              <div className="flex items-center gap-2 text-sm text-keeper-body">
+                <Package className="w-4 h-4 text-keeper-meta" />
                 <span>Printed card is on its way to print.</span>
               </div>
             )}
             {data.order.includesDigital && (
-              <div className="flex items-center gap-2 text-sm text-stone-700">
+              <div className="flex items-center gap-2 text-sm text-keeper-body">
                 <Sparkles className="w-4 h-4 text-brand" />
                 <span>Digital share link ready.</span>
               </div>
@@ -156,7 +156,7 @@ export default function CheckoutSuccessPage() {
 
           {fullShareUrl && (
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.15em] text-stone-500">
+              <p className="text-xs uppercase tracking-[0.15em] text-keeper-meta">
                 Share link
               </p>
               <div className="flex items-center gap-2">

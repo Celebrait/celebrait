@@ -64,7 +64,7 @@ function PageHeader() {
       <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
         Orders &amp; delivery
       </h1>
-      <p className="text-sm text-stone-600 mt-1">
+      <p className="text-sm text-keeper-body mt-1">
         Track what you've sent, and share the digital versions.
       </p>
     </div>
@@ -97,7 +97,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-stone-400">
+          <div className="w-full h-full flex items-center justify-center text-keeper-meta">
             <ImageIcon className="w-6 h-6" />
           </div>
         )}
@@ -106,7 +106,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
       {/* Body — title + meta */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-keeper-ink truncate">{title}</p>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-keeper-meta mt-0.5">
           {typeLabel}
           {amount ? ` · ${amount}` : ''}
           {when ? ` · ${formatWhen(when)}` : ''}
@@ -114,7 +114,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
         <div className="mt-2 flex items-center gap-3 flex-wrap">
           <StatusChip order={order} />
           {order.trackingNumber && (
-            <span className="text-[11px] text-stone-500 font-mono">
+            <span className="text-[11px] text-keeper-meta font-mono">
               {order.trackingNumber}
             </span>
           )}
@@ -151,7 +151,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
             href={order.trackingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-full px-3 py-1.5 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-keeper-body bg-stone-100 hover:bg-stone-200 rounded-full px-3 py-1.5 transition-colors"
             data-testid={`order-tracking-${order.id}`}
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -228,7 +228,7 @@ function FulfilmentStepper({ status }: { status: string }) {
                   ? 'text-keeper-ink font-medium'
                   : step.active
                     ? 'text-brand-dark font-medium'
-                    : 'text-stone-400'
+                    : 'text-keeper-meta'
               }`}
             >
               {step.label}
@@ -280,7 +280,7 @@ function RefreshStatusButton({ order }: { order: StudioOrderListItem }) {
       type="button"
       onClick={refresh}
       disabled={busy}
-      className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-brand rounded-full px-2 py-1.5 transition-colors disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 text-xs font-medium text-keeper-meta hover:text-brand rounded-full px-2 py-1.5 transition-colors disabled:opacity-50"
       aria-label="Refresh delivery status"
       data-testid={`order-refresh-${order.id}`}
     >
@@ -384,7 +384,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
   if (order.paymentStatus === 'refunded') {
     return {
       label: 'Refunded',
-      className: 'bg-stone-100 text-stone-600',
+      className: 'bg-stone-100 text-keeper-body',
       Icon: XCircle,
     };
   }
@@ -442,7 +442,7 @@ function statusForDisplay(order: StudioOrderListItem): StatusView {
     default:
       return {
         label: 'Processing',
-        className: 'bg-stone-100 text-stone-700',
+        className: 'bg-stone-100 text-keeper-body',
         Icon: Package,
       };
   }
@@ -522,7 +522,7 @@ function OrdersEmpty() {
         <Truck className="w-6 h-6" />
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No orders yet</p>
-      <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
+      <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
         Once you place an order — print or digital — you'll be able to
         track it right here.
       </p>
@@ -542,7 +542,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
       <p className="text-sm text-accent-red-dark mb-2">Couldn't load your orders.</p>
-      <p className="text-xs text-stone-500">{message}</p>
+      <p className="text-xs text-keeper-meta">{message}</p>
     </div>
   );
 }

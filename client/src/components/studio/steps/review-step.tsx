@@ -239,7 +239,7 @@ export function ReviewStep({
   const familyId = state.rerollFamilyId ?? cardId;
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <p className="text-sm text-stone-600 leading-relaxed">
+      <p className="text-sm text-keeper-body leading-relaxed">
         {isReroll
           ? 'Same details, clean slate. Sharpen anything below — the scene wording moves the needle most — or roll straight away. Every roll paints a brand-new card, and every take you make is kept.'
           : 'Everything below is still a draft. Tap any section to change it — nothing gets sent until you say so.'}
@@ -269,7 +269,7 @@ export function ReviewStep({
               ? `Generate ${recipientName}'s card`
               : 'Generate my card'}
         </Button>
-        <p className="text-[11px] text-stone-500 text-center mt-2 leading-relaxed">
+        <p className="text-[11px] text-keeper-meta text-center mt-2 leading-relaxed">
           {isReroll
             ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your earlier takes stay in your drafts — nothing here overwrites them.`
             : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free — your card saves as you go.`}
@@ -322,10 +322,10 @@ function TakesStrip({
       data-testid="takes-strip"
     >
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+        <p className="text-xs font-semibold uppercase tracking-wider text-keeper-meta">
           Your takes
         </p>
-        <p className="text-[11px] text-stone-400">
+        <p className="text-[11px] text-keeper-meta">
           Every take is saved — flip back any time.
         </p>
       </div>
@@ -345,7 +345,7 @@ function TakesStrip({
                 className="h-full w-full object-cover"
               />
             </span>
-            <span className="text-[10px] text-stone-400 transition-colors group-hover:text-brand-dark">
+            <span className="text-[10px] text-keeper-meta transition-colors group-hover:text-brand-dark">
               Take {idx + 1}
             </span>
           </button>
@@ -407,10 +407,10 @@ function SummaryPanel({
         testId="summary-recipient"
       >
         <div className="text-sm text-keeper-ink font-medium">
-          {recipient?.name || <span className="text-stone-400 font-normal">Not set</span>}
+          {recipient?.name || <span className="text-keeper-meta font-normal">Not set</span>}
         </div>
         {recipient?.occasion && (
-          <div className="text-xs text-stone-500 capitalize mt-0.5">
+          <div className="text-xs text-keeper-meta capitalize mt-0.5">
             {recipient.occasion}
           </div>
         )}
@@ -424,7 +424,7 @@ function SummaryPanel({
       >
         <div className="text-sm text-keeper-ink">
           {photoCount === 0 ? (
-            <span className="text-stone-400">Not uploaded</span>
+            <span className="text-keeper-meta">Not uploaded</span>
           ) : photoCount === 1 ? (
             '1 photo'
           ) : (
@@ -442,7 +442,7 @@ function SummaryPanel({
         {scene ? (
           <p className="text-sm text-keeper-ink leading-relaxed">{scene}</p>
         ) : (
-          <span className="text-sm text-stone-400">Not set</span>
+          <span className="text-sm text-keeper-meta">Not set</span>
         )}
       </SummaryRow>
 
@@ -461,20 +461,20 @@ function SummaryPanel({
           <>
             <div className="text-sm text-keeper-ink font-medium">{frontText}</div>
             {frontTextIsDefault && (
-              <div className="text-xs text-stone-500 mt-0.5">
+              <div className="text-xs text-keeper-meta mt-0.5">
                 Default — tap Edit to change.
               </div>
             )}
           </>
         ) : frontExplicitlySkipped ? (
           <div>
-            <div className="text-sm text-stone-700">No headline on the front</div>
-            <div className="text-[11px] text-stone-500 mt-0.5">
+            <div className="text-sm text-keeper-body">No headline on the front</div>
+            <div className="text-[11px] text-keeper-meta mt-0.5">
               The scene stands alone.
             </div>
           </div>
         ) : (
-          <span className="text-sm text-stone-400">No text on front</span>
+          <span className="text-sm text-keeper-meta">No text on front</span>
         )}
       </SummaryRow>
 
@@ -489,7 +489,7 @@ function SummaryPanel({
         // touchpoint). Defer here — no pre-front edit link — so it
         // isn't asked for twice.
         <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
-          <div className="text-sm text-stone-600">
+          <div className="text-sm text-keeper-body">
             {insideMode === 'blank'
               ? "Your blank inside carries over — you'll confirm it after the front."
               : "Your inside message carries over — you'll confirm it after the front."}
@@ -503,10 +503,10 @@ function SummaryPanel({
           testId="summary-inside"
         >
           <div>
-            <div className="text-sm text-stone-700">
+            <div className="text-sm text-keeper-body">
               Blank centre with decorative border
             </div>
-            <div className="text-[11px] text-stone-500 mt-0.5">
+            <div className="text-[11px] text-keeper-meta mt-0.5">
               We'll post it to you to handwrite inside.
             </div>
           </div>
@@ -518,7 +518,7 @@ function SummaryPanel({
           onEdit={() => onJumpToStep(stepIndexById.inside)}
           testId="summary-inside"
         >
-          <div className="space-y-0.5 text-sm text-stone-700">
+          <div className="space-y-0.5 text-sm text-keeper-body">
             {insideWrite.salutation && <div>{insideWrite.salutation}</div>}
             {insideWrite.message && (
               <div className="whitespace-pre-wrap">{insideWrite.message}</div>
@@ -528,7 +528,7 @@ function SummaryPanel({
         </SummaryRow>
       ) : (
         <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
-          <div className="text-sm text-stone-600">
+          <div className="text-sm text-keeper-body">
             You'll write the inside once you've seen the front — so you
             know exactly what you're writing in.
           </div>
@@ -568,7 +568,7 @@ function SummaryRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+          <p className="text-[11px] font-semibold text-keeper-meta uppercase tracking-wider">
             {label}
           </p>
           {onEdit && (
@@ -748,17 +748,17 @@ function FrontFirstStage({
   return (
     <div className="max-w-md mx-auto py-16 text-center space-y-5">
       <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">The inside didn't come out</p>
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-keeper-body">
         Your front is safe — let's just try the inside again.
       </p>
       {failure && (failure.kind || failure.message) && (
-        <div className="mx-auto max-w-sm rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-left text-xs text-stone-600">
-          <p className="font-semibold uppercase tracking-wide text-stone-500">
+        <div className="mx-auto max-w-sm rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-left text-xs text-keeper-body">
+          <p className="font-semibold uppercase tracking-wide text-keeper-meta">
             {failure.kind ?? 'error'}
           </p>
           {failure.message && <p className="mt-1 break-words">{failure.message}</p>}
           {failure.modelExplanation && (
-            <p className="mt-1 break-words text-stone-500">{failure.modelExplanation}</p>
+            <p className="mt-1 break-words text-keeper-meta">{failure.modelExplanation}</p>
           )}
         </div>
       )}
@@ -927,7 +927,7 @@ function ExplainRow({
       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark">
         <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
-      <p className="text-sm leading-relaxed text-stone-600">{children}</p>
+      <p className="text-sm leading-relaxed text-keeper-body">{children}</p>
     </div>
   );
 }
@@ -987,7 +987,7 @@ function FrontFirstReview({
     <div className="mx-auto max-w-2xl py-4">
       <div className="mb-4 text-center">
         <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">{title}</p>
-        {subject && <p className="mt-0.5 text-sm text-stone-500">{subject}</p>}
+        {subject && <p className="mt-0.5 text-sm text-keeper-meta">{subject}</p>}
       </div>
 
       {/* Fixed square footprint so toggling image ↔ print never moves
@@ -1144,7 +1144,7 @@ function InsideComposeStage({
       <div className="aspect-square w-20 overflow-hidden rounded-md border border-keeper-hair shadow-sm">
         <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
       </div>
-      <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-stone-500">
+      <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-keeper-meta">
         {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}
       </p>
     </div>
@@ -1153,7 +1153,7 @@ function InsideComposeStage({
   const backButton = (
     <button
       onClick={onBack}
-      className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair px-4 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50"
+      className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair px-4 py-2 text-[13px] text-keeper-body transition-colors hover:bg-stone-50"
       data-testid="btn-back-to-front"
     >
       {textOnly ? '← Back to the inside' : '← Back to the front'}
@@ -1168,7 +1168,7 @@ function InsideComposeStage({
           <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             {blank ? 'Your inside' : 'Your inside message'}
           </p>
-          <p className="mt-0.5 text-sm text-stone-500">
+          <p className="mt-0.5 text-sm text-keeper-meta">
             Carried over from your last take — still right for this front?
           </p>
         </div>
@@ -1178,12 +1178,12 @@ function InsideComposeStage({
           data-testid="inside-signoff-readback"
         >
           {blank ? (
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-keeper-body">
               Blank centre with a decorative border — we'll post it to you to
               handwrite inside.
             </p>
           ) : (
-            <div className="space-y-1 text-sm text-stone-700">
+            <div className="space-y-1 text-sm text-keeper-body">
               {write.salutation && <div>{write.salutation}</div>}
               {write.message && (
                 <div className="whitespace-pre-wrap">{write.message}</div>
@@ -1231,7 +1231,7 @@ function InsideComposeStage({
         <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
           {textOnly ? 'Change the words' : isReroll ? 'Edit the inside' : 'Now, the inside'}
         </p>
-        <p className="mt-0.5 text-sm text-stone-500">
+        <p className="mt-0.5 text-sm text-keeper-meta">
           {recipientName
             ? `This is what ${recipientName} reads when they open it.`
             : 'This is what they read when they open it.'}
@@ -1246,13 +1246,13 @@ function InsideComposeStage({
           className="mx-auto mb-6 max-w-md rounded-xl border border-keeper-hair bg-stone-50 p-4"
           data-testid="inside-text-only-notice"
         >
-          <p className="text-[13px] leading-relaxed text-stone-600">
+          <p className="text-[13px] leading-relaxed text-keeper-body">
             You're changing{' '}
             <span className="font-semibold text-keeper-ink">the words only</span>. The scene
             and style stay exactly as they are — if you want a different design, start the
             card again.
           </p>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-stone-500">
+          <p className="mt-2 text-[12.5px] leading-relaxed text-keeper-meta">
             Would you rather write it in your own hand? Pick{' '}
             <span className="font-medium text-keeper-ink">Leave it blank</span> below and
             we'll print a decorative border, ready for you to fill in.
@@ -1290,7 +1290,7 @@ function InsideComposeStage({
                 : 'Make the inside →'}
         </button>
         {!ready && (
-          <p className="text-[11.5px] text-stone-400">
+          <p className="text-[11.5px] text-keeper-meta">
             Write your message — or choose to leave it blank — to carry on.
           </p>
         )}
@@ -1820,7 +1820,7 @@ function RevealView({
 function CardImage({ url, label }: { url: string; label: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-2">
+      <p className="text-[11px] font-semibold text-keeper-meta uppercase tracking-wider mb-2">
         {label}
       </p>
       <div className="aspect-square rounded-2xl overflow-hidden border border-keeper-hair bg-stone-50">

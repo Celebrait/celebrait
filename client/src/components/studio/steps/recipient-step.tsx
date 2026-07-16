@@ -230,7 +230,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Leading sub-copy — rhythm parity with the other steps (Scene,
           Style, Front, Review all open with a one-line framing note). */}
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-keeper-body">
         A name and a reason — that's all we need to start.
       </p>
 
@@ -331,7 +331,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
                         {entry.name}
                       </p>
                       {entry.relationship && (
-                        <p className="text-[11px] text-stone-500 truncate">
+                        <p className="text-[11px] text-keeper-meta truncate">
                           {entry.relationship}
                         </p>
                       )}
@@ -339,7 +339,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
                   </li>
                 );
               })}
-              <li className="border-t border-stone-100 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-stone-400">
+              <li className="border-t border-stone-100 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-keeper-meta">
                 From your address book
               </li>
             </ul>

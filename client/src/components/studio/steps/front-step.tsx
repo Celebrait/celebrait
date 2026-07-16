@@ -96,7 +96,7 @@ function SkipFrontTextCard({ onPick }: { onPick: () => void }) {
         <div className="text-sm font-medium text-keeper-ink">
           Skip the front text
         </div>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-keeper-meta mt-0.5">
           No headline — the scene speaks for itself.
         </p>
       </div>
@@ -119,7 +119,7 @@ function NoTextPanel({ onUndo }: { onUndo: () => void }) {
           <p className="text-sm font-semibold text-keeper-ink">
             We'll leave the front text-free
           </p>
-          <p className="text-xs text-stone-600 mt-0.5">
+          <p className="text-xs text-keeper-body mt-0.5">
             The scene stands alone — no headline, no greeting overlaid
             on the image.
           </p>
@@ -201,7 +201,7 @@ function WriteField({
       >
         <Type className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
         Front headline
-        <span className="ml-1 text-xs text-stone-400 font-normal">optional</span>
+        <span className="ml-1 text-xs text-keeper-meta font-normal">optional</span>
       </Label>
       <Input
         ref={inputRef}
@@ -214,7 +214,7 @@ function WriteField({
         data-testid="input-front-text"
       />
       <div className="flex items-center justify-between mt-1">
-        <p className="text-[11px] text-stone-400">
+        <p className="text-[11px] text-keeper-meta">
           {local.length > 0
             ? `${local.length} characters`
             : defaultText

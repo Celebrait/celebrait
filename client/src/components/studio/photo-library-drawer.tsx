@@ -49,8 +49,8 @@ export function PhotoLibraryDrawer({
             <Loader2 className="w-5 h-5 animate-spin text-brand" />
           </div>
         ) : !photos || photos.length === 0 ? (
-          <div className="text-center py-12 text-sm text-stone-500">
-            <ImageOff className="w-8 h-8 mx-auto mb-2 text-stone-300" />
+          <div className="text-center py-12 text-sm text-keeper-meta">
+            <ImageOff className="w-8 h-8 mx-auto mb-2 text-keeper-meta" />
             No saved photos yet.
           </div>
         ) : (

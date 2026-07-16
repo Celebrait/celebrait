@@ -147,7 +147,7 @@ function InsideForkPicker({
           already sets context; the two cards carry the choice. Kevin
           2026-07-09: the fork screen was overwhelming on mobile (three
           restatements of "we match the front" + a second heading). */}
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-keeper-body">
         Designed to match your front — you just choose whose words go in.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -270,9 +270,9 @@ function ForkCard({
         <Icon className="w-4 h-4" strokeWidth={1.75} />
       </span>
       <div className="text-sm font-semibold text-keeper-ink">{title}</div>
-      <p className="text-xs text-stone-600 leading-relaxed">{body}</p>
+      <p className="text-xs text-keeper-body leading-relaxed">{body}</p>
       {hint && (
-        <p className="text-[11px] leading-relaxed text-stone-500 border-t border-keeper-hair/70 pt-2 mt-0.5">
+        <p className="text-[11px] leading-relaxed text-keeper-meta border-t border-keeper-hair/70 pt-2 mt-0.5">
           {hint}
         </p>
       )}
@@ -300,7 +300,7 @@ function LeaveBlankCard({ onPick }: { onPick: () => void }) {
         <div className="text-sm font-medium text-keeper-ink">
           Leave blank instead
         </div>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-keeper-meta mt-0.5">
           We'll design a decorative border only — you handwrite the
           message after it arrives.
         </p>
@@ -324,12 +324,12 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
           <p className="text-sm font-semibold text-keeper-ink">
             We'll leave the inside blank
           </p>
-          <p className="text-xs text-stone-600 mt-0.5">
+          <p className="text-xs text-keeper-body mt-0.5">
             We'll design a decorative border that matches your card's
             style. The centre stays clean for you to handwrite your
             message after it arrives.
           </p>
-          <p className="text-[11px] text-stone-500 mt-2 italic">
+          <p className="text-[11px] text-keeper-meta mt-2 italic">
             Best for printed cards — there's no message for a digital
             recipient to read.
           </p>
@@ -506,7 +506,7 @@ function FieldCard({
         <Icon className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
         {label}
         {optional && (
-          <span className="ml-1 text-xs text-stone-400 font-normal">optional</span>
+          <span className="ml-1 text-xs text-keeper-meta font-normal">optional</span>
         )}
       </Label>
       {children}

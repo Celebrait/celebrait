@@ -441,7 +441,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       <div className="mb-6">
         <Link
           href="/studio/people/address-book"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-keeper-ink mb-3"
+          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink mb-3"
           data-testid="btn-back-to-address-book"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -491,8 +491,8 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         >
           {occasionRows.length === 0 ? (
             <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl px-4 py-6 text-center">
-              <Cake className="w-5 h-5 text-stone-400 mx-auto mb-2" />
-              <p className="text-sm text-stone-600 mb-3">
+              <Cake className="w-5 h-5 text-keeper-meta mx-auto mb-2" />
+              <p className="text-sm text-keeper-body mb-3">
                 Pop in a birthday or anniversary — we'll nudge you in good time.
               </p>
               <Button
@@ -695,7 +695,7 @@ function FormSection({
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-keeper-ink">{title}</h3>
         {subtitle && (
-          <p className="text-xs text-stone-500 mt-1 leading-relaxed">{subtitle}</p>
+          <p className="text-xs text-keeper-meta mt-1 leading-relaxed">{subtitle}</p>
         )}
       </div>
       {children}
@@ -719,8 +719,8 @@ function FormSection({
 
 function PrivacyFooter() {
   return (
-    <div className="mt-6 flex items-start gap-2.5 text-xs text-stone-500 leading-relaxed px-1">
-      <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-stone-400" aria-hidden />
+    <div className="mt-6 flex items-start gap-2.5 text-xs text-keeper-meta leading-relaxed px-1">
+      <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-keeper-meta" aria-hidden />
       <p>
         Stored privately — only you can see it. Remove anyone any time from
         the address book menu.{' '}
@@ -728,7 +728,7 @@ function PrivacyFooter() {
           <DialogTrigger asChild>
             <button
               type="button"
-              className="underline underline-offset-2 text-stone-600 hover:text-keeper-ink focus:outline-none focus:text-keeper-ink"
+              className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink focus:outline-none focus:text-keeper-ink"
               data-testid="btn-ab-privacy-detail"
             >
               What we store
@@ -743,7 +743,7 @@ function PrivacyFooter() {
                 them.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 text-sm text-stone-600 leading-relaxed">
+            <div className="space-y-4 text-sm text-keeper-body leading-relaxed">
               <div>
                 <p className="font-medium text-keeper-ink mb-1">What we keep</p>
                 <p>
@@ -776,7 +776,7 @@ function PrivacyFooter() {
                   everything we hold about you — email{' '}
                   <a
                     href="mailto:privacy@celebrait.co.uk"
-                    className="underline underline-offset-2 text-stone-700 hover:text-keeper-ink"
+                    className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink"
                   >
                     privacy@celebrait.co.uk
                   </a>{' '}
@@ -826,7 +826,7 @@ function Field({
         {required && <span className="text-red-500">*</span>}
       </Label>
       <div className="mt-1.5">{children}</div>
-      {hint && <p className="text-[11px] text-stone-500 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-keeper-meta mt-1">{hint}</p>}
     </div>
   );
 }
@@ -910,7 +910,7 @@ function OccasionRow({
               // when they are. Render a small helper line in the slot
               // the date field would have occupied so the layout
               // doesn't jump when the user toggles between occasions.
-              <div className="flex items-center text-[11px] text-stone-500 sm:pt-6 leading-relaxed">
+              <div className="flex items-center text-[11px] text-keeper-meta sm:pt-6 leading-relaxed">
                 <span>{fixedDateNote}</span>
               </div>
             )}
@@ -924,7 +924,7 @@ function OccasionRow({
               />
               <Label
                 htmlFor={`occ-${index}-yearspec`}
-                className="text-xs text-stone-600 font-normal cursor-pointer"
+                className="text-xs text-keeper-body font-normal cursor-pointer"
               >
                 Just this once — a specific year (their 60th, a wedding date)
               </Label>
@@ -942,7 +942,7 @@ function OccasionRow({
         <button
           type="button"
           onClick={onRemove}
-          className="w-8 h-8 rounded-full text-stone-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors"
+          className="w-8 h-8 rounded-full text-keeper-meta hover:text-red-600 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors"
           aria-label="Remove occasion"
           data-testid={`btn-remove-occasion-${index}`}
         >

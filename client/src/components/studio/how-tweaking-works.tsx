@@ -63,7 +63,7 @@ export function HowTweakingWorks() {
 
         <div className="px-5 pb-5 space-y-4">
           {/* The one idea that matters most. */}
-          <p className="text-[13px] text-stone-600 leading-relaxed">
+          <p className="text-[13px] text-keeper-body leading-relaxed">
             You're refining{' '}
             <span className="font-medium text-keeper-ink">this design</span>, not
             starting over. Our engine keeps the same composition and likeness
@@ -85,7 +85,7 @@ export function HowTweakingWorks() {
                   Front
                 </p>
               </div>
-              <p className="text-[12px] text-stone-500 leading-snug">
+              <p className="text-[12px] text-keeper-meta leading-snug">
                 The illustrated scene and any wording on it.
               </p>
             </div>
@@ -100,7 +100,7 @@ export function HowTweakingWorks() {
                   Inside
                 </p>
               </div>
-              <p className="text-[12px] text-stone-500 leading-snug">
+              <p className="text-[12px] text-keeper-meta leading-snug">
                 The printed message your recipient reads.
               </p>
             </div>
@@ -128,7 +128,7 @@ export function HowTweakingWorks() {
               ].map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-2 text-[12.5px] text-stone-600 leading-snug"
+                  className="flex items-start gap-2 text-[12.5px] text-keeper-body leading-snug"
                 >
                   <Check
                     className="w-3.5 h-3.5 text-cta-hover shrink-0 mt-0.5"
@@ -146,11 +146,11 @@ export function HowTweakingWorks() {
           <div className="rounded-lg bg-stone-50 border border-keeper-hair px-3 py-2.5">
             <div className="flex items-start gap-2">
               <X
-                className="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5"
+                className="w-3.5 h-3.5 text-keeper-meta shrink-0 mt-0.5"
                 strokeWidth={2.5}
                 aria-hidden
               />
-              <p className="text-[12.5px] text-stone-600 leading-snug">
+              <p className="text-[12.5px] text-keeper-body leading-snug">
                 <span className="font-medium text-keeper-ink">
                   You can’t change the photo or who’s in it here.
                 </span>{' '}
@@ -165,12 +165,12 @@ export function HowTweakingWorks() {
               inside (styled to match) looking out of step. Point the user
               at the fix they already have: tweak both. See
               next_regen_ux_audit.md (front/inside coherence gap). */}
-          <p className="text-[12px] text-stone-500 leading-snug">
+          <p className="text-[12px] text-keeper-meta leading-snug">
             Changing the <span className="font-medium text-keeper-ink">whole look</span>{' '}
             of the scene? Tweak the inside too, so the two sides still match.
           </p>
 
-          <p className="text-[11.5px] text-stone-400 leading-snug pt-0.5">
+          <p className="text-[11.5px] text-keeper-meta leading-snug pt-0.5">
             Every version is saved and free, so you can flip back any time
             using the row below the card.
           </p>

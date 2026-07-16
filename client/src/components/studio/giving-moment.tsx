@@ -121,13 +121,13 @@ export function GivingMoment({
     <div className="text-left space-y-6" data-testid="giving-moment">
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-keeper-meta font-semibold">
             The giving moment
           </p>
           <button
             type="button"
             onClick={goBackToCard}
-            className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-keeper-ink"
+            className="inline-flex items-center gap-1 text-xs text-keeper-meta hover:text-keeper-ink"
             data-testid="giving-moment-back-to-card"
           >
             <ArrowLeft className="w-3 h-3" /> Back to card
@@ -136,7 +136,7 @@ export function GivingMoment({
         <h2 className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
           How would you like to give it?
         </h2>
-        <p className="text-sm text-stone-500 leading-relaxed">
+        <p className="text-sm text-keeper-meta leading-relaxed">
           Your printed card{recipientName ? ` for ${recipientName}` : ''} —{' '}
           {formatGBP(CARD_TOTAL)} inc. postage, with a free digital link to
           share.
@@ -168,10 +168,10 @@ export function GivingMoment({
           <div className="pt-1">
             <label
               htmlFor="giving-from-line"
-              className="text-xs font-medium text-stone-600"
+              className="text-xs font-medium text-keeper-body"
             >
               A short note for the envelope{' '}
-              <span className="text-stone-400">(optional)</span>
+              <span className="text-keeper-meta">(optional)</span>
             </label>
             <Input
               id="giving-from-line"
@@ -219,7 +219,7 @@ export function GivingMoment({
         )}
       </Button>
       {!canContinue && !submitting && (
-        <p className="text-[11px] text-stone-400 text-center -mt-3">
+        <p className="text-[11px] text-keeper-meta text-center -mt-3">
           Choose where it should go.
         </p>
       )}
@@ -267,7 +267,7 @@ function DestinationCard({
       <span className="text-sm font-semibold text-keeper-ink leading-tight">
         {title}
       </span>
-      <span className="text-xs text-stone-600 leading-relaxed">{body}</span>
+      <span className="text-xs text-keeper-body leading-relaxed">{body}</span>
       {selected && (
         <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand text-white flex items-center justify-center">
           <Check className="w-3 h-3" strokeWidth={3} />

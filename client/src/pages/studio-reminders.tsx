@@ -142,7 +142,7 @@ export default function StudioRemindersPage() {
           Reminders
         </h1>
         {!isLoading && reminderCount > 0 && (
-          <p className="text-sm text-stone-500 mt-1">
+          <p className="text-sm text-keeper-meta mt-1">
             {reminderCount} {reminderCount === 1 ? 'date' : 'dates'} we're watching for you
           </p>
         )}
@@ -193,7 +193,7 @@ export default function StudioRemindersPage() {
         <div className="space-y-8">
           {buckets.map((bucket) => (
             <div key={bucket.label}>
-              <h2 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-stone-400 mb-3">
+              <h2 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-keeper-meta mb-3">
                 {bucket.label}
               </h2>
               <div className="space-y-3">
@@ -227,7 +227,7 @@ function NoEntriesState() {
       <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add someone to your address book first.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Once Mum's there with a date saved, we'll quietly remind you in good time.
       </p>
       <Button
@@ -253,7 +253,7 @@ function NoDatesState() {
       <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add a date to someone — we'll remember.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Open someone in your address book and pop in their birthday or anniversary. We'll nudge you 3 weeks, 1 week, and 3 days before — quietly, without being pushy.
       </p>
       <Button
@@ -300,7 +300,7 @@ function ReminderRow({
         <div
           className={`flex items-center justify-center w-10 h-10 rounded-full shrink-0 ${
             reminder.suppressed
-              ? 'bg-stone-100 text-stone-400'
+              ? 'bg-stone-100 text-keeper-meta'
               : 'bg-brand-muted/50 text-brand-dark'
           }`}
         >
@@ -310,12 +310,12 @@ function ReminderRow({
           <p className="text-base font-medium text-keeper-ink">
             {reminder.recipientName}
             {reminder.relationship && (
-              <span className="ml-1.5 text-xs text-stone-500 font-normal">
+              <span className="ml-1.5 text-xs text-keeper-meta font-normal">
                 · {reminder.relationship}
               </span>
             )}
           </p>
-          <p className="text-sm text-stone-600 mt-0.5">
+          <p className="text-sm text-keeper-body mt-0.5">
             <span className="capitalize">{humaniseOccasion(reminder.occasion)}</span>
             {' · '}
             <span>{occurrenceLabel}</span>
@@ -338,7 +338,7 @@ function ReminderRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="text-xs text-stone-500 hover:text-keeper-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
+              className="text-xs text-keeper-meta hover:text-keeper-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
               aria-label={`Actions for ${reminder.recipientName}'s ${reminder.occasion}`}
               data-testid={`reminder-menu-${reminder.occasionId}`}
             >

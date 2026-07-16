@@ -829,7 +829,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
               }
               data-testid="btn-add-another-photo"
             >
-              <Plus className="w-5 h-5 text-stone-400" strokeWidth={2} />
+              <Plus className="w-5 h-5 text-keeper-meta" strokeWidth={2} />
               {/* When there's already a photo down, label the empty
                   tile so the affordance is louder than just a Plus.
                   In one_person mode only — multi_individual and
@@ -854,7 +854,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 
         {inFlightUploads > 0 && (
           <p
-            className="text-[11px] text-stone-500 mt-1 animate-pulse"
+            className="text-[11px] text-keeper-meta mt-1 animate-pulse"
             data-testid="photo-saving-hint"
           >
             Saving {inFlightUploads}…
@@ -862,7 +862,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         )}
 
         {hintCopy && inFlightUploads === 0 && (
-          <p className="text-[11px] text-stone-500 mt-1 text-center max-w-[280px]">
+          <p className="text-[11px] text-keeper-meta mt-1 text-center max-w-[280px]">
             {hintCopy}
           </p>
         )}
@@ -928,7 +928,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             className={`text-xs underline underline-offset-2 ${
               pendingClear
                 ? 'text-keeper-gold-deep font-semibold'
-                : 'text-stone-500 hover:text-stone-700'
+                : 'text-keeper-meta hover:text-keeper-body'
             }`}
             data-testid="btn-change-photo"
           >
@@ -1009,7 +1009,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 
   return (
     <div className="max-w-2xl mx-auto">
-      <p className="text-xs text-stone-500 mb-4">
+      <p className="text-xs text-keeper-meta mb-4">
         {recipientName
           ? `We'll use this to put ${recipientName} in the card — a clear photo of their face works best.`
           : "We'll use this to put them in the card — a clear photo of their face works best."}
@@ -1063,7 +1063,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             aria-label="I have permission to use these photos and agree to the Terms and Privacy Policy"
             data-testid="photo-consent-checkbox"
           />
-          <span className="text-[12.5px] text-stone-700 leading-snug">
+          <span className="text-[12.5px] text-keeper-body leading-snug">
             I have permission to use these photos, and I agree to the{' '}
             <Link
               href="/terms-of-service"
@@ -1099,7 +1099,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         <p className="text-base font-semibold text-keeper-ink">
           {mode === 'one_person' ? 'Upload photos' : 'Upload the group photo'}
         </p>
-        <p className="text-xs text-stone-600 max-w-[240px]">
+        <p className="text-xs text-keeper-body max-w-[240px]">
           {mode === 'one_person'
             ? `One or several — up to ${MAX_PHOTOS.one_person}.`
             : 'Everyone already together.'}
@@ -1112,7 +1112,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             type="button"
             onClick={() => setLibraryOpen(true)}
             disabled={!photoConsentGiven}
-            className="text-xs text-stone-600 hover:text-keeper-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-stone-600"
+            className="text-xs text-keeper-body hover:text-keeper-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-keeper-body"
             data-testid="btn-pick-from-library"
           >
             <ImageIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
@@ -1123,11 +1123,11 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 
       {/* Standing permission/privacy notice — always visible, even after
           the one-time checkbox is gone. TODO(solicitor): final wording. */}
-      <p className="text-[11px] text-stone-400 mt-4 text-center leading-snug">
+      <p className="text-[11px] text-keeper-meta mt-4 text-center leading-snug">
         We use your photos only to create this card.{' '}
         <Link
           href="/privacy-policy"
-          className="underline underline-offset-2 hover:text-stone-600"
+          className="underline underline-offset-2 hover:text-keeper-body"
         >
           How we handle photos
         </Link>
@@ -1136,7 +1136,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       {/* Tertiary — moved well down, quieter, no false-affordance
           violet. Serves the rare multi-individual case without
           competing for the primary CTA's attention. */}
-      <p className="text-[11px] text-stone-400 mt-10 text-center">
+      <p className="text-[11px] text-keeper-meta mt-10 text-center">
         Multiple people in separate photos? Coming soon.
       </p>
 
@@ -1319,7 +1319,7 @@ function PhotoTile({
           aria-label="Remove photo"
           data-testid={`${testId}-remove`}
         >
-          <X className="w-3.5 h-3.5 text-stone-700" strokeWidth={2.5} />
+          <X className="w-3.5 h-3.5 text-keeper-body" strokeWidth={2.5} />
         </button>
       )}
     </div>
@@ -1362,7 +1362,7 @@ function PhotoTips({ mode }: { mode: PhotoMode }) {
         {tips.map((t) => (
           <li
             key={t}
-            className="flex items-start gap-2 text-[12.5px] text-stone-600 leading-snug"
+            className="flex items-start gap-2 text-[12.5px] text-keeper-body leading-snug"
           >
             <Check
               className="w-3.5 h-3.5 text-cta-hover shrink-0 mt-0.5"
@@ -1418,7 +1418,7 @@ function ModeTile({
         <span className="block text-sm font-medium text-keeper-ink truncate">
           {label}
         </span>
-        <span className="block text-[11px] text-stone-500 truncate">
+        <span className="block text-[11px] text-keeper-meta truncate">
           {explainer}
         </span>
       </span>

@@ -113,13 +113,13 @@ export function CardPrintStrip({
           {insideUrl && <img src={insideUrl} alt="" className="h-full w-full object-cover" />}
         </div>
       </div>
-      <div className="mt-1 flex gap-1 text-[9px] text-stone-400">
+      <div className="mt-1 flex gap-1 text-[9px] text-keeper-meta">
         <span className="w-11 text-center">1 Back</span>
         <span className="w-11 text-center">2 Front</span>
         <span className="w-11 text-center">3 Inside</span>
         <span className="w-11 text-center">4 Inside</span>
       </div>
-      <p className="mt-1.5 text-[11px] text-stone-400">Print file — how it's produced</p>
+      <p className="mt-1.5 text-[11px] text-keeper-meta">Print file — how it's produced</p>
     </div>
   );
 }

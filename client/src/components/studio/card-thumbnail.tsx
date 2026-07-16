@@ -120,7 +120,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
         ) : isGenerating ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-500">
+          <div className="w-full h-full flex flex-col items-center justify-center text-keeper-meta">
             <Loader2 className="w-8 h-8 animate-spin text-brand mb-2" />
             <p className="text-xs">Generating…</p>
           </div>
@@ -128,7 +128,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
           // Orphaned "completed" card with no viewable image. Keep the
           // explicit ImageOff treatment here so the user understands
           // this is a broken state, not a draft they can edit.
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+          <div className="w-full h-full flex flex-col items-center justify-center text-keeper-meta">
             <ImageOff className="w-8 h-8 mb-1" />
             <p className="text-xs">Image unavailable</p>
           </div>
@@ -176,7 +176,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
         )}
         {typeof takesCount === 'number' && takesCount > 1 && (
           <div
-            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-stone-700 text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-keeper-hair"
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-keeper-body text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-keeper-hair"
             data-testid={`chip-takes-${card.id}`}
           >
             {takesCount} takes
@@ -228,7 +228,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
         // taps trigger the (invisible) delete instead of the Link
         // beneath. Kevin caught this 2026-04-27 — "cards only open
         // when clicked on the right".
-        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
+        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-keeper-body hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
         aria-label={`Delete ${title}`}
         data-testid={`btn-delete-card-${card.id}`}
       >

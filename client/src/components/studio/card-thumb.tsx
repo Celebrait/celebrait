@@ -193,7 +193,7 @@ function ThumbChassis({
             className="absolute inset-0 w-full h-full object-contain"
           />
         ) : !isGenerating ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-stone-400">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-keeper-meta">
             <ImageOff className="w-5 h-5" />
             <p className="text-[10px] uppercase tracking-[0.2em]">
               No image yet
@@ -225,7 +225,7 @@ function ThumbChassis({
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={waitStep}
-                    className="text-[10px] uppercase tracking-[0.18em] font-medium text-stone-500 leading-tight"
+                    className="text-[10px] uppercase tracking-[0.18em] font-medium text-keeper-meta leading-tight"
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
@@ -245,7 +245,7 @@ function ThumbChassis({
           parent so it can switch between two thumbs without
           duplicating chrome). Border-top divider matches checkout. */}
       <div className="px-4 py-2 border-t border-stone-100 flex items-center justify-center">
-        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-stone-500">
+        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-keeper-meta">
           {label}
         </p>
       </div>

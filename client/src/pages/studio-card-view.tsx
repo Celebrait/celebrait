@@ -391,7 +391,7 @@ function LoadedView({
         <button
           type="button"
           onClick={() => setLocation(backHref)}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-keeper-ink transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink transition-colors"
           data-testid="btn-card-view-back"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -439,18 +439,18 @@ function LoadedView({
             data-testid="card-view-print-files"
           >
             <figure className="w-full max-w-[360px] space-y-2">
-              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
                 Front — outer spread
               </figcaption>
               <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
             </figure>
             <figure className="w-full max-w-[360px] space-y-2">
-              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-stone-400">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
                 Inside — inner spread
               </figcaption>
               <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
             </figure>
-            <p className="text-center text-[11px] text-stone-400">
+            <p className="text-center text-[11px] text-keeper-meta">
               How your card prints — folded, front and inside.
             </p>
           </div>
@@ -576,7 +576,7 @@ function TakesRail({ currentId, famKey }: { currentId: number; famKey: number })
   if (takes.length < 2) return null;
   return (
     <div className="mt-6" data-testid="takes-rail">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mb-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-keeper-meta mb-2">
         Your takes
       </p>
       <div className="flex flex-wrap items-start justify-center gap-2">
@@ -608,7 +608,7 @@ function TakesRail({ currentId, famKey }: { currentId: number; famKey: number })
               </span>
               <span
                 className={`text-[10px] ${
-                  isCurrent ? 'font-semibold text-brand-dark' : 'text-stone-400'
+                  isCurrent ? 'font-semibold text-brand-dark' : 'text-keeper-meta'
                 }`}
               >
                 Take {idx + 1}
@@ -649,7 +649,7 @@ function PaidActions({
     );
   }
   return (
-    <p className="text-sm text-stone-500">
+    <p className="text-sm text-keeper-meta">
       This card has been sent. Track delivery in Orders &amp; delivery.
     </p>
   );
@@ -698,7 +698,7 @@ function LoadingView() {
   return (
     <div className="max-w-md mx-auto text-center py-16">
       <Loader2 className="w-6 h-6 text-brand animate-spin mx-auto mb-3" />
-      <p className="text-sm text-stone-500">Loading your card…</p>
+      <p className="text-sm text-keeper-meta">Loading your card…</p>
     </div>
   );
 }
@@ -707,7 +707,7 @@ function NotFoundView() {
   return (
     <div className="max-w-md mx-auto text-center py-16">
       <p className="text-base font-semibold text-keeper-ink mb-2">Card not found</p>
-      <p className="text-sm text-stone-600 mb-6">
+      <p className="text-sm text-keeper-body mb-6">
         It might have been deleted, or the link is out of date.
       </p>
       <a

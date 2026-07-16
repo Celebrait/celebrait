@@ -52,7 +52,7 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
                     ? 'bg-brand text-brand-foreground ring-2 ring-brand-light'
                     : isDone
                       ? 'bg-cta text-cta-foreground'
-                      : 'bg-stone-100 text-stone-400 shadow-none'
+                      : 'bg-stone-100 text-keeper-meta shadow-none'
                 }`}
               >
                 {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : pos + 1}
@@ -63,7 +63,7 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
                     ? 'text-keeper-ink font-semibold'
                     : isDone
                       ? 'text-cta-hover'
-                      : 'text-stone-400'
+                      : 'text-keeper-meta'
                 }`}
               >
                 {s.label}

@@ -283,7 +283,7 @@ export function GenerationErrorPanel({
             boilerplate ("Your request was rejected by the safety system…")
             that adds nothing for the user. Available in technical details
             for devs / debugging. */}
-        <p className="text-sm text-keeper-meta leading-relaxed text-center max-w-sm mx-auto">
+        <p className="text-sm text-keeper-body leading-relaxed text-center max-w-sm mx-auto">
           {cfg.description(context)}
         </p>
 

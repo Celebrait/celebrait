@@ -96,7 +96,7 @@ export function NewCardPage() {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't start a new card.</p>
-        <p className="text-xs text-stone-500 mb-6">{error}</p>
+        <p className="text-xs text-keeper-meta mb-6">{error}</p>
         <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
       </div>
     );
@@ -143,7 +143,7 @@ export function NewCardPage() {
         </span>
       </div>
       <p className="mb-1 text-base font-semibold text-keeper-ink">Warming up the Studio…</p>
-      <p className="text-xs text-stone-500">This usually takes a second or two.</p>
+      <p className="text-xs text-keeper-meta">This usually takes a second or two.</p>
     </motion.div>
   );
 }
@@ -372,7 +372,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't load this card.</p>
-        <p className="text-xs text-stone-500 mb-6">{loadError}</p>
+        <p className="text-xs text-keeper-meta mb-6">{loadError}</p>
         <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
       </div>
     );
@@ -470,7 +470,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   return (
     <div>
       {/* ── Top bar: optional Saving indicator + Close ─────────── */}
-      <div className="flex items-center justify-end gap-3 mb-3 text-xs text-stone-500">
+      <div className="flex items-center justify-end gap-3 mb-3 text-xs text-keeper-meta">
         {!isRevealMode && showSaving && (
           <span className="flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -480,7 +480,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         <button
           type="button"
           onClick={() => setLocation('/studio')}
-          className="text-stone-400 hover:text-stone-700 underline underline-offset-2"
+          className="text-keeper-meta hover:text-keeper-body underline underline-offset-2"
           data-testid="link-start-over"
         >
           Close
@@ -506,11 +506,11 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           below. (Kevin 2026-07-09: signpost the edit better, inc. CTA.) */}
       {editingStep !== null && (
         <div className="mb-6 sm:mb-8 flex items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand-muted/40 px-4 py-3">
-          <span className="flex min-w-0 items-center gap-2 text-sm text-ink">
+          <span className="flex min-w-0 items-center gap-2 text-sm text-keeper-ink">
             <Pencil className="w-4 h-4 shrink-0 text-brand" strokeWidth={1.75} />
             <span className="truncate">
               <span className="font-semibold">Editing</span>
-              <span className="text-stone-500">
+              <span className="text-keeper-meta">
                 {' · '}
                 {CARD_MAKER_STEPS[editingStep]?.label ?? 'this step'}
               </span>
@@ -519,7 +519,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           <button
             type="button"
             onClick={() => void finishEditing()}
-            className="inline-flex shrink-0 items-center gap-1 text-xs text-stone-500 hover:text-ink transition-colors"
+            className="inline-flex shrink-0 items-center gap-1 text-xs text-keeper-meta hover:text-keeper-ink transition-colors"
             data-testid="btn-edit-overlay-breadcrumb"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -691,7 +691,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             variant="ghost"
             onClick={handleBack}
             disabled={isFirst}
-            className="text-stone-600"
+            className="text-keeper-body"
             data-testid="btn-card-maker-back"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
@@ -713,7 +713,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           <Button
             variant="ghost"
             onClick={handleBack}
-            className="text-stone-600"
+            className="text-keeper-body"
             data-testid="btn-card-maker-back"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />

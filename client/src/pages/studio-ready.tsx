@@ -57,7 +57,7 @@ function PageHeader() {
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Ready</h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-keeper-body mt-1">
           Finished cards, waiting for you to send them.
         </p>
       </div>
@@ -80,7 +80,7 @@ function ReadyEmpty() {
         <Package className="w-6 h-6" />
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No cards waiting</p>
-      <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
+      <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
         Cards that are finished but not yet sent will show here — ready
         for you to print and post.
       </p>
@@ -100,7 +100,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
       <p className="text-sm text-accent-red-dark mb-2">Couldn't load your cards.</p>
-      <p className="text-xs text-stone-500">{message}</p>
+      <p className="text-xs text-keeper-meta">{message}</p>
     </div>
   );
 }

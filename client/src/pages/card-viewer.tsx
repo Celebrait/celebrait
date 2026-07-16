@@ -110,7 +110,7 @@ export default function CardViewerPage() {
     return (
       <Shell>
         <Centered>
-          <p className="text-sm text-stone-600 mb-4">Couldn't load this card.</p>
+          <p className="text-sm text-keeper-body mb-4">Couldn't load this card.</p>
           <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
         </Centered>
       </Shell>
@@ -120,8 +120,8 @@ export default function CardViewerPage() {
     return (
       <Shell>
         <Centered>
-          <p className="text-sm text-stone-600 mb-2">This card hasn't been generated yet.</p>
-          <p className="text-xs text-stone-500 mb-4">Status: {data.status ?? 'draft'}.</p>
+          <p className="text-sm text-keeper-body mb-2">This card hasn't been generated yet.</p>
+          <p className="text-xs text-keeper-meta mb-4">Status: {data.status ?? 'draft'}.</p>
           <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
             Back to editor
           </Button>
@@ -363,10 +363,10 @@ function MakeYourOwnPanel({
       data-testid="make-your-own-panel"
     >
       {/* 1 — the hook */}
-      <p className="text-xl sm:text-2xl font-semibold text-ink">
+      <p className="text-xl sm:text-2xl font-semibold text-keeper-ink">
         Someone made this just for you.
       </p>
-      <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-stone-600">
+      <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-keeper-body">
         Now put someone you love in the picture — upload a photo, tell us
         the scene, we paint the card. Free to make.
       </p>
@@ -386,7 +386,7 @@ function MakeYourOwnPanel({
         <button
           type="button"
           onClick={onShare}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-stone-500 underline underline-offset-4 transition-colors hover:text-brand-dark"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-meta underline underline-offset-4 transition-colors hover:text-brand-dark"
           data-testid="btn-viewer-share"
         >
           <Share2 className="h-3.5 w-3.5" />
@@ -402,8 +402,8 @@ function MakeYourOwnPanel({
           </p>
         ) : (
           <>
-            <p className="text-sm font-medium text-ink">Not the moment?</p>
-            <p className="mt-0.5 text-xs text-stone-500">
+            <p className="text-sm font-medium text-keeper-ink">Not the moment?</p>
+            <p className="mt-0.5 text-xs text-keeper-meta">
               We'll email you the link for later.
             </p>
             <form
@@ -419,7 +419,7 @@ function MakeYourOwnPanel({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="h-11 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-keeper-ink placeholder:text-keeper-meta focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                 data-testid="input-lead-email"
               />
               <Button
@@ -441,12 +441,12 @@ function MakeYourOwnPanel({
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 accent-[#5c57d4]"
                 data-testid="check-lead-optin"
               />
-              <span className="text-[11.5px] leading-snug text-stone-500">
+              <span className="text-[11.5px] leading-snug text-keeper-meta">
                 Keep me posted now and then — new features and ideas.
                 Unsubscribe anytime.
               </span>
             </label>
-            <p className="mx-auto mt-2 max-w-sm text-[10.5px] text-stone-400">
+            <p className="mx-auto mt-2 max-w-sm text-[10.5px] text-keeper-meta">
               We'll send your link straight away. No spam, ever.
             </p>
           </>
@@ -516,21 +516,21 @@ function ShareDialog({
             label="Copy link"
             color="bg-stone-100"
             onClick={onCopy}
-            icon={<Copy className="w-5 h-5 text-stone-700" />}
-            textColor="text-stone-700"
+            icon={<Copy className="w-5 h-5 text-keeper-body" />}
+            textColor="text-keeper-body"
           />
         </div>
 
         {hasNativeShare && (
           <button
             onClick={onNativeShare}
-            className="mt-4 w-full text-center text-sm text-stone-600 hover:text-brand-dark transition-colors"
+            className="mt-4 w-full text-center text-sm text-keeper-body hover:text-brand-dark transition-colors"
           >
             More sharing options…
           </button>
         )}
 
-        <div className="mt-4 text-xs text-stone-500 text-center truncate px-2">
+        <div className="mt-4 text-xs text-keeper-meta text-center truncate px-2">
           {shareUrl}
         </div>
       </DialogContent>
@@ -554,14 +554,14 @@ function ShareTile({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 text-xs text-stone-600 hover:text-ink transition-colors"
+      className="flex flex-col items-center gap-1.5 text-xs text-keeper-body hover:text-keeper-ink transition-colors"
     >
       <div
         className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center shadow-sm`}
       >
         {icon}
       </div>
-      <span className={textColor ?? 'text-stone-600'}>{label}</span>
+      <span className={textColor ?? 'text-keeper-body'}>{label}</span>
     </button>
   );
 }
@@ -652,7 +652,7 @@ function WelcomeGate({ show, onOpen }: { show: boolean; onOpen: () => void }) {
               </motion.div>
             </motion.button>
 
-            <p className="text-xs uppercase tracking-[0.25em] text-stone-500">
+            <p className="text-xs uppercase tracking-[0.25em] text-keeper-meta">
               Tap to open
             </p>
           </motion.div>
@@ -728,14 +728,14 @@ function Shell({ children }: { children: React.ReactNode }) {
         {isAuthenticated ? (
           <Link
             href="/studio"
-            className="text-sm font-medium text-stone-700 hover:text-brand-dark"
+            className="text-sm font-medium text-keeper-body hover:text-brand-dark"
           >
             My studio
           </Link>
         ) : (
           <Link
             href="/login"
-            className="text-sm font-medium text-stone-700 hover:text-brand-dark"
+            className="text-sm font-medium text-keeper-body hover:text-brand-dark"
           >
             Sign in
           </Link>
@@ -796,7 +796,7 @@ function CardFrontPoster({
         />
       ) : (
         <div className="w-[min(60vw,40vh)] aspect-square rounded-lg bg-stone-100 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-keeper-meta" />
         </div>
       )}
     </div>

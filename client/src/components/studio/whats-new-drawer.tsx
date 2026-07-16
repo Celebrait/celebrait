@@ -28,7 +28,7 @@ const TONE_CHIP: Record<AnnouncementTone, string> = {
   new: 'bg-cta-light text-cta-dark',
   update: 'bg-brand-muted text-brand-dark',
   important: 'bg-accent-red-light text-accent-red-dark',
-  tip: 'bg-stone-100 text-stone-600',
+  tip: 'bg-stone-100 text-keeper-body',
 };
 
 function readSeen(): string | null {
@@ -63,7 +63,7 @@ export function WhatsNewDrawer() {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="relative flex items-center justify-center w-9 h-9 rounded-full text-stone-500 hover:text-brand hover:bg-stone-50 transition-colors"
+          className="relative flex items-center justify-center w-9 h-9 rounded-full text-keeper-meta hover:text-brand hover:bg-stone-50 transition-colors"
           aria-label={unread > 0 ? `What's new (${unread} new)` : "What's new"}
           data-testid="whats-new-trigger"
         >
@@ -110,12 +110,12 @@ export function WhatsNewDrawer() {
                 >
                   {a.category}
                 </span>
-                <span className="text-xs text-stone-400">{a.date}</span>
+                <span className="text-xs text-keeper-meta">{a.date}</span>
               </div>
               <h3 className="text-[15px] font-semibold text-keeper-ink leading-snug mb-1.5">
                 {a.title}
               </h3>
-              <p className="text-sm text-keeper-meta leading-relaxed">{a.body}</p>
+              <p className="text-sm text-keeper-body leading-relaxed">{a.body}</p>
               {a.href &&
                 (a.href.startsWith('/') ? (
                   <Link
@@ -140,7 +140,7 @@ export function WhatsNewDrawer() {
             </article>
           ))}
           {ANNOUNCEMENTS.length === 0 && (
-            <p className="px-6 py-10 text-center text-sm text-stone-400">
+            <p className="px-6 py-10 text-center text-sm text-keeper-meta">
               Nothing new right now.
             </p>
           )}

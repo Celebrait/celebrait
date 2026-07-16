@@ -107,7 +107,7 @@ export function BrainstormChatDrawer({
             <Sparkles className="w-4 h-4 text-brand" strokeWidth={1.75} />
             Brainstorm the scene
           </SheetTitle>
-          <SheetDescription className="text-xs text-stone-500">
+          <SheetDescription className="text-xs text-keeper-meta">
             A few quick questions, and we'll draft a scene paragraph
             you can drop straight in.
           </SheetDescription>

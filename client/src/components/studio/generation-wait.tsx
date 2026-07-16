@@ -232,7 +232,7 @@ export function GenerationWaitStage({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -3 }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="text-[11px] font-medium tracking-wide text-stone-500 whitespace-nowrap"
+              className="text-[11px] font-medium tracking-wide text-keeper-meta whitespace-nowrap"
               aria-live="polite"
               role="status"
               data-testid="generation-stage-copy"
@@ -240,7 +240,7 @@ export function GenerationWaitStage({
             >
               {stepLabel}
               {showSlowHint && (
-                <span className="text-stone-400"> — almost there</span>
+                <span className="text-keeper-meta"> — almost there</span>
               )}
             </motion.p>
           </AnimatePresence>
@@ -293,7 +293,7 @@ export function AssemblingCard() {
     >
       <Loader2 className="w-7 h-7 text-brand animate-spin" aria-hidden />
       <p
-        className="text-sm font-medium text-stone-500 tracking-wide"
+        className="text-sm font-medium text-keeper-meta tracking-wide"
         aria-live="polite"
         role="status"
       >

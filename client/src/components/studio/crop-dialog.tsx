@@ -292,7 +292,7 @@ export function CropDialog({
           {src && !imageReady && (
             <div className="absolute inset-0 flex items-center justify-center bg-stone-900">
               <Loader2
-                className="w-7 h-7 text-stone-500 animate-spin"
+                className="w-7 h-7 text-keeper-meta animate-spin"
                 aria-label="Preparing photo"
               />
             </div>

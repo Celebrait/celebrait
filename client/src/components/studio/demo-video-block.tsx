@@ -79,7 +79,7 @@ export function DemoVideoBlock({
           type="button"
           onClick={handleDismiss}
           aria-label="Hide demo video"
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/80 backdrop-blur text-stone-500 hover:text-keeper-ink hover:bg-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/80 backdrop-blur text-keeper-meta hover:text-keeper-ink hover:bg-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
           data-testid="btn-dismiss-demo-video"
         >
           <X className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ export function DemoVideoBlock({
             >
               {caption}
             </p>
-            <p className="text-xs text-stone-500 -mt-1.5">About 90 seconds</p>
+            <p className="text-xs text-keeper-meta -mt-1.5">About 90 seconds</p>
           </div>
         </button>
       </div>
@@ -148,7 +148,7 @@ export function DemoVideoBlock({
                 />
               )
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 gap-2">
+              <div className="w-full h-full flex flex-col items-center justify-center text-keeper-meta gap-2">
                 <Play className="w-10 h-10" strokeWidth={1.5} />
                 <p className="text-sm">
                   Video coming soon — placeholder for now.

@@ -284,7 +284,7 @@ function AlsoUsingTile({
         <span className="text-[10px] uppercase tracking-[0.14em] text-keeper-meta font-semibold">
           {EDITOR_META[editor].label}
         </span>
-        <ChevronRight className="w-3 h-3 text-stone-300 group-hover:text-brand ml-auto transition-colors" />
+        <ChevronRight className="w-3 h-3 text-keeper-meta group-hover:text-brand ml-auto transition-colors" />
       </div>
       <p className="text-xs text-keeper-ink leading-snug truncate">{summary}</p>
     </button>

@@ -70,7 +70,7 @@ export function StepExample({
           <Lightbulb className="w-4 h-4" strokeWidth={2} aria-hidden />
         </span>
         <span className="min-w-0">
-          <span className="block text-[13px] text-stone-600 leading-snug">
+          <span className="block text-[13px] text-keeper-body leading-snug">
             {assist}
           </span>
           <span className="text-[13px] font-medium text-brand group-hover:text-brand-dark">
@@ -224,10 +224,10 @@ export function ExampleCardDialog({
             </div>
           </div>
 
-          <p className="max-w-[420px] text-center text-[14px] leading-relaxed text-stone-700">
+          <p className="max-w-[420px] text-center text-[14px] leading-relaxed text-keeper-body">
             {modalDescription}
           </p>
-          <p className="text-[11px] text-stone-400">
+          <p className="text-[11px] text-keeper-meta">
             An example of our house style — yours will be your own.
           </p>
         </div>

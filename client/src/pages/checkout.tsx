@@ -286,7 +286,7 @@ export default function CheckoutPage() {
     return (
       <CheckoutLayout backHref={backHref}>
         <Centered>
-          <p className="text-sm text-stone-600 mb-4">This card isn't ready to order yet.</p>
+          <p className="text-sm text-keeper-body mb-4">This card isn't ready to order yet.</p>
           <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
             Back to editor
           </Button>
@@ -301,7 +301,7 @@ export default function CheckoutPage() {
   return (
     <CheckoutLayout backHref={backHref}>
       <header className="mb-6 sm:mb-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-keeper-meta mb-2">Checkout</p>
         <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
           {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
         </h1>
@@ -362,13 +362,13 @@ export default function CheckoutPage() {
                 <h2 className="text-sm font-semibold text-keeper-ink mb-1">
                   Printed &amp; posted
                 </h2>
-                <p className="text-sm text-stone-600 leading-relaxed">
+                <p className="text-sm text-keeper-body leading-relaxed">
                   A premium 280gsm gloss card, posted in the UK — with a free
                   digital link to share too.
                 </p>
                 <p className="text-lg font-semibold text-keeper-ink mt-3">
                   {formatGBP(totals.total)}{' '}
-                  <span className="text-xs font-normal text-stone-500">
+                  <span className="text-xs font-normal text-keeper-meta">
                     inc. postage
                   </span>
                 </p>
@@ -540,8 +540,8 @@ export default function CheckoutPage() {
                               {formatGBP(t.price)}
                             </span>
                           </div>
-                          <p className="text-xs text-stone-600 mt-0.5">{t.carrier}</p>
-                          <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                          <p className="text-xs text-keeper-body mt-0.5">{t.carrier}</p>
+                          <p className="text-xs text-keeper-meta mt-1 leading-relaxed">
                             Ships {t.shippingEstimate} once printed.
                           </p>
                         </div>
@@ -598,7 +598,7 @@ export default function CheckoutPage() {
                     placeholder="them@example.com"
                   />
                 </Field>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-keeper-meta">
                   Leave blank and we'll send the share link to you instead.
                 </p>
               </Section>
@@ -653,7 +653,7 @@ export default function CheckoutPage() {
 
               {/* Honest delivery estimate — production + carrier. */}
               {includesPrint && (
-                <p className="text-[11px] text-stone-500 leading-relaxed">
+                <p className="text-[11px] text-keeper-meta leading-relaxed">
                   {deliveryEstimateCopy(shippingTier)}
                 </p>
               )}
@@ -676,7 +676,7 @@ export default function CheckoutPage() {
               {/* Dev-only notice — never ships to the deployed site
                   (audit 2026-07-02). Remove once a real gateway is live. */}
               {import.meta.env.DEV && (
-                <p className="text-[11px] text-stone-400 text-center">
+                <p className="text-[11px] text-keeper-meta text-center">
                   Payment is in dev stub mode.
                 </p>
               )}
@@ -699,7 +699,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-stone-600">{label}</Label>
+      <Label className="text-xs font-medium text-keeper-body">{label}</Label>
       {children}
     </div>
   );
@@ -719,7 +719,7 @@ function PreviewTab({
       type="button"
       onClick={onClick}
       className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
-        active ? 'bg-white text-keeper-ink shadow-sm' : 'text-stone-500 hover:text-keeper-ink'
+        active ? 'bg-white text-keeper-ink shadow-sm' : 'text-keeper-meta hover:text-keeper-ink'
       }`}
     >
       {children}
@@ -744,7 +744,7 @@ function ShipToOption({
       <RadioGroupItem value={value} id={`ship-${value}`} className="mt-1" />
       <div>
         <p className="text-sm font-medium text-keeper-ink">{title}</p>
-        <p className="text-xs text-stone-500 mt-0.5">{description}</p>
+        <p className="text-xs text-keeper-meta mt-0.5">{description}</p>
       </div>
     </Label>
   );
@@ -768,13 +768,13 @@ function LineItem({
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <p className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-keeper-ink'}`}>
+          <p className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
             {label}
           </p>
-          {sub && <p className="text-xs text-stone-500 mt-0.5">{sub}</p>}
+          {sub && <p className="text-xs text-keeper-meta mt-0.5">{sub}</p>}
         </div>
       </div>
-      <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-keeper-ink'}`}>
+      <span className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
         {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>
