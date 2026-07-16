@@ -1630,13 +1630,15 @@ export default function LandingKeeper() {
         <HeroSection />
         <ProofSection />
         <InsideSection />
+        {/* Imagine it → describe it → send it (animated phone). Moved up to
+            sit directly under THE INSIDE on Kevin's call (2026-07-16) —
+            was down after OccasionCapture, beside the demo video. */}
+        <ImagineDescribeShipSection />
         <StatementSection />
         <GallerySection />
         <ObjectSection />
         <OccasionCaptureSection />
-        {/* Imagine it → describe it → send it (animated phone) + the
-            demo-walkthrough video slot — restored on Kevin's call. */}
-        <ImagineDescribeShipSection />
+        {/* Demo-walkthrough video slot — restored on Kevin's call. */}
         <DemoVideoSection />
         <PriceSection />
         <FaqSection />
