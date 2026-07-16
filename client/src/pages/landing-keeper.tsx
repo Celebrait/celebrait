@@ -1087,17 +1087,27 @@ function ProofSection() {
             )}
           </div>
 
-          {/* Dots. */}
+          {/* Pill pager — same treatment as the studio's hero switcher and
+              the Inside section: long pill for the current example, dots
+              for the rest. */}
           {many && (
-            <div className="mt-16 flex items-center justify-center gap-1.5">
+            <div
+              role="tablist"
+              aria-label="Switch example"
+              className="mt-16 flex items-center justify-center gap-1.5"
+            >
               {PROOF_EXAMPLES.map((e, i) => (
                 <button
                   key={e.id}
                   type="button"
+                  role="tab"
+                  aria-selected={i === idx}
                   onClick={() => userGoTo(i)}
                   aria-label={`Example ${i + 1}`}
-                  className={`h-2 w-2 rounded-full transition-colors ${
-                    i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-stone/50'
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === idx
+                      ? 'w-6 bg-brand-dark'
+                      : 'w-1.5 bg-keeper-hair hover:bg-keeper-meta/50'
                   }`}
                 />
               ))}
@@ -1204,42 +1214,55 @@ function InsideSection() {
         </Rise>
         <Rise delay={0.1}>
           <div ref={hostRef} {...pauseProps} className="relative">
-            {/* The photos are self-start / self-end, i.e. FLUSH with their
-                slide's edges. Sat directly against the clip boundary that
-                meant two artefacts at once: the active photo's own ring +
-                shadow got sliced dead flat, and the neighbouring slide's
-                photo painted right at the seam. So each slide is inset
-                (px-5) to hold its photos off the edge, and the clip box is
-                widened by the same amount (-mx-5) so the photos keep the
-                exact size and position they had before the carousel.
-                Net: 20px of clear air either side for shadows to fall in,
-                and the neighbours stay 20px beyond the clip. */}
-            <div className="-mx-5 overflow-x-clip">
-              <div
-                className={`flex ${reduced ? '' : 'transition-transform duration-500 ease-out'}`}
-                style={{ transform: `translateX(-${idx * 100}%)` }}
-              >
-                {INSIDE_EXAMPLES.map((example, i) => (
-                  <div key={example.id} className="w-full shrink-0 px-5" aria-hidden={i !== idx}>
-                    <CardPair
-                      first={example.closed}
-                      second={example.open}
-                      alt={example.alt}
-                    />
-                  </div>
-                ))}
-              </div>
+            {/* CROSSFADE, not a slide (Kevin 2026-07-16). Every example is
+                stacked in the SAME grid cell (col/row-start-1), so the
+                container sizes itself to the tallest and we just fade
+                between them. That also retires the whole clip rig this
+                used to need: with nothing sliding sideways there's no
+                track to clip, so the photos' shadows fall freely again and
+                the -mx-5/px-5 inset that was holding them off the clip
+                edge is gone with it. */}
+            <div className="grid">
+              {INSIDE_EXAMPLES.map((example, i) => (
+                <motion.div
+                  key={example.id}
+                  className="col-start-1 row-start-1"
+                  animate={{ opacity: i === idx ? 1 : 0 }}
+                  transition={{ duration: reduced ? 0 : 0.7, ease: 'easeInOut' }}
+                  // The faded-out pairs still occupy the cell — take them
+                  // out of hit-testing and the a11y tree.
+                  style={{ pointerEvents: i === idx ? 'auto' : 'none' }}
+                  aria-hidden={i !== idx}
+                >
+                  <CardPair
+                    first={example.closed}
+                    second={example.open}
+                    alt={example.alt}
+                  />
+                </motion.div>
+              ))}
             </div>
+            {/* Pill pager — matches the studio's hero switcher
+                (studio.tsx): long pill for the current example, dots for
+                the rest, width animating between them. */}
             {many && (
-              <div className="mt-6 flex items-center justify-center gap-1.5">
+              <div
+                role="tablist"
+                aria-label="Switch example"
+                className="mt-10 flex items-center justify-center gap-1.5"
+              >
                 {INSIDE_EXAMPLES.map((example, i) => (
                   <button
                     key={example.id}
                     type="button"
+                    role="tab"
+                    aria-selected={i === idx}
                     onClick={() => userGoTo(i)}
                     aria-label={`Example ${i + 1}`}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      i === idx ? 'bg-brand-dark' : 'bg-keeper-hair hover:bg-keeper-meta/50'
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === idx
+                        ? 'w-6 bg-brand-dark'
+                        : 'w-1.5 bg-keeper-hair hover:bg-keeper-meta/50'
                     }`}
                   />
                 ))}
