@@ -1116,12 +1116,15 @@ function ProofSection() {
 // makes: "a front and an inside that belong together". A single photo can't
 // prove that, so never split one across slides.
 //
-// ⚠ ASSETS: only the first pair exists. To add an example, drop a closed +
-// open shot of ANOTHER card (someone holding it, same lighting/treatment)
-// into client/public and add an entry here — the carousel, dots and
-// auto-advance all switch on by themselves at 2+. Deliberately NOT padded
-// with duplicates of the pair below: a carousel cycling the same photo
-// three times reads as broken, not as a carousel.
+// ⚠ ASSETS: only the FIRST pair is real. The two `placeholder-*` entries
+// re-use it so the carousel, dots and auto-advance are visible and
+// reviewable before the real shots land (Kevin's call 2026-07-16). They
+// cycle the SAME photo on purpose — this is scaffolding, not a finished
+// section. DON'T LAUNCH LIKE THIS.
+//
+// To make one real: drop a closed + open shot of ANOTHER card (someone
+// holding it, same lighting/treatment) into client/public and replace a
+// placeholder's two urls + alt. See next_keeper_assets_needed.
 const INSIDE_EXAMPLES: Array<{
   id: string;
   closed: string;
@@ -1130,6 +1133,20 @@ const INSIDE_EXAMPLES: Array<{
 }> = [
   {
     id: 'mothers-day',
+    closed: keeperCardClosed,
+    open: keeperCardOpen,
+    alt: 'A Celebrait card held open on a table — the inside message and the front',
+  },
+  // ⚠ PLACEHOLDER — real pair needed.
+  {
+    id: 'placeholder-2',
+    closed: keeperCardClosed,
+    open: keeperCardOpen,
+    alt: 'A Celebrait card held open on a table — the inside message and the front',
+  },
+  // ⚠ PLACEHOLDER — real pair needed.
+  {
+    id: 'placeholder-3',
     closed: keeperCardClosed,
     open: keeperCardOpen,
     alt: 'A Celebrait card held open on a table — the inside message and the front',
