@@ -447,12 +447,13 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // stay in sync. Failed is included because its "That one didn't land"
   // screen is its own full-page visual — stacking the step h1 above it
   // is just two competing headlines.
-  // Review is step index 5 (it was 6 before the Style step was removed
-  // in the V1 scope cut — this check wasn't updated then, which left
-  // isRevealMode permanently false: the h1 / stepper / panel frame
-  // stopped hiding during the reveal). Fixed 2026-05-19.
+  // Gate on the Review step by ID, not a hardcoded index — the literal
+  // `=== 5` silently broke once already when the Style step was removed
+  // (isRevealMode stuck false, so the h1 / stepper / panel frame stopped
+  // hiding during the reveal; fixed 2026-05-19). stepIndexById.review
+  // tracks the step list automatically.
   const isRevealMode =
-    currentStep === 5 &&
+    currentStep === stepIndexById.review &&
     editingStep === null &&
     (status === 'generating' ||
       status === 'generating-front' ||

@@ -268,6 +268,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             variant="ghost"
             size="sm"
             onClick={() => logout()}
+            aria-label="Log out"
             className="text-keeper-meta hover:text-keeper-ink hover:bg-keeper-gold-wash"
             data-testid="btn-studio-logout"
           >

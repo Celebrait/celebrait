@@ -1083,7 +1083,7 @@ function Card({
 //      something to bite into so the paper doesn't feel "rendered"
 //   4. Thin perimeter edge stroke so the card has a silhouette on a
 //      pure-white background
-//   5. Optional wordmark (credit + celebrait.com) centred
+//   5. Optional wordmark (credit + celebrait.co.uk) centred
 function usePaperTexture(opts: {
   credit?: string;
   anisotropy: number;
@@ -1154,7 +1154,7 @@ function usePaperTexture(opts: {
 
       ctx.fillStyle = '#8a7f6f';
       ctx.font = "300 22px 'Inter', system-ui, sans-serif";
-      ctx.fillText('celebrait.com', size / 2, size / 2 + 34);
+      ctx.fillText('celebrait.co.uk', size / 2, size / 2 + 34);
     }
 
     const tex = new THREE.CanvasTexture(canvas);
