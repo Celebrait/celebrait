@@ -1045,12 +1045,17 @@ function InsideSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             The magic's digital. The card isn't.
           </h2>
+          {/* NB: kraft is the ENVELOPE, not the card — the card is a 280gsm
+              gloss-coated art card (HP Indigo). See faq-section, pricing.tsx,
+              checkout.tsx, shared/pricing.ts. Don't describe the stock as
+              kraft: it's brown and uncoated, and the gloss is exactly what
+              makes the artwork print vividly. */}
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            In 2026, anyone can conjure an image. The hard part is everything
-            after: a front and an inside that belong together, print-ready in
-            about five minutes* — then pressed onto 280gsm and posted.
-            Thoughtful, funny, gloriously daft: that part's yours. Or leave the
-            inside blank and write it yourself.
+            It's 2026, anyone can write a prompt and conjure up an image with
+            AI. But a custom greetings card with a front and inside that belong
+            together, print-ready in about five minutes*, pressed onto 280gsm
+            gloss and posted to someone you care about. That's Celebrait.
+            Thoughtful, funny, gloriously daft: that's you.
           </p>
           <p className="mt-2 max-w-[46ch] text-[12px] leading-snug text-keeper-meta">
             *Possible, but you might prefer to take longer
