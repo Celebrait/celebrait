@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import {
@@ -155,6 +156,23 @@ export default function CheckoutPage() {
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  // Prefill "your details" from the signed-in account. Checkout is only
+  // reachable when authenticated, so the account email is always known —
+  // asking for it again (blank field) both adds friction AND lets the two
+  // emails diverge: card-ready resolves from the ACCOUNT, but order-
+  // confirmed / shipped / delivered all use THIS field. If they differ, the
+  // customer's lifecycle splits across two inboxes (Kevin's E2E, 2026-07-17:
+  // signed in as one address, typed another here, receipts went to the
+  // typed one). Prefill once when the user loads and the field is still
+  // untouched — still editable if someone genuinely wants receipts elsewhere.
+  const { user } = useAuth();
+  const prefilledFromAccount = useRef(false);
+  useEffect(() => {
+    if (prefilledFromAccount.current || !user) return;
+    prefilledFromAccount.current = true;
+    setCustomerEmail((cur) => cur || user.email || '');
+    setCustomerName((cur) => cur || user.firstName || '');
+  }, [user]);
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
   const [shippingTier, setShippingTier] = useState<ShippingTierId>(DEFAULT_SHIPPING_TIER);
   const [line1, setLine1] = useState('');
