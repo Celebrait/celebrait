@@ -884,27 +884,30 @@ const BIG_BEN_EXAMPLE: ProofExample = {
 };
 
 // Example 3 — REAL as of 2026-07-17. Transcribed from the card, not written
-// to fit it. This message is deliberately left FULL-LENGTH even though it's
-// ~4x the other two: real people write long ones, and the recipe box clamps
-// (see `field`) rather than us trimming the truth to fit the layout.
+// to fit it. Inside re-generated shorter (Kevin: "forgot how long it was"),
+// and the recipient is Sarah — the earlier long version was addressed to
+// Lulu, so the alt text follows the artwork.
 const TIMES_SQUARE_EXAMPLE: ProofExample = {
   id: 'times-square',
   sourcePhoto: timesSqSourcePhoto,
-  sourceAlt: 'The selfie of Lulu this card was made from',
+  sourceAlt: 'The selfie of Sarah this card was made from',
   scene: 'Going viral in Times Square',
   frontText: 'Sweet 16 x',
   insideMessage:
-    "We can't believe it's your sweet 16th. We want to tell you how much you mean to us. Time passes so fast. We always value the moments we share. Remember when we visited New York? We laughed so much that holiday. You work hard every day and are born to be a star. We are so proud of all you do and hope your dreams come true. May this next year be your best one yet. With all our love, Mum and Dad x",
+    'Wishing you all the joy in the world today on your sweet 16th. Love, Mum and Dad x',
   cardFront: timesSqCardFront,
   cardInside: timesSqCardInside,
-  cardAlt: 'The finished card front — Lulu going viral in Times Square',
+  cardAlt: 'The finished card front — Sarah going viral in Times Square',
 };
 
-// All three are now REAL worked examples: navigating changes the card, not
-// just the caption.
+// All three are REAL worked examples: navigating changes the card, not just
+// the caption. ORDER MATTERS — it mirrors the body copy above it word for
+// word ("Best friends abseiling off Big Ben, mum under the Northern Lights,
+// daughter going viral in Times Square"), so the first card you see is the
+// first example you just read. Keep the two in step (Kevin 2026-07-17).
 const PROOF_EXAMPLES: ProofExample[] = [
-  MUM_EXAMPLE,
   BIG_BEN_EXAMPLE,
+  MUM_EXAMPLE,
   TIMES_SQUARE_EXAMPLE,
 ];
 
@@ -945,10 +948,13 @@ function ProofSection() {
         <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
         {label}
       </div>
-      {/* line-clamp so a genuinely long inside message (people write them —
-          see TIMES_SQUARE_EXAMPLE) can't stretch the recipe column past the
-          card and unbalance the slide. The DATA stays the real full message;
-          only the display clamps, and the card beside it shows the lot. */}
+      {/* line-clamp guards a layout invariant: the recipe column must stay
+          SHORTER than the card, or it unbalances the slide and breaks the
+          md:-translate-y-8 that centres it on the card. Every example
+          currently fits in 4 lines, so this never fires — it's here because
+          a real inside message can be any length (the first Times Square gen
+          ran ~4x longer and pushed the column to ~450px vs the 360px card).
+          Clamps the DISPLAY only; the card beside it always shows the lot. */}
       <div className="line-clamp-4 text-[14px] leading-snug text-keeper-ink">{value}</div>
     </div>
   );
@@ -999,10 +1005,12 @@ function ProofSection() {
                 Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be
                 boring
               </h2>
+              {/* The examples are listed in the SAME order the carousel plays
+                  them (see PROOF_EXAMPLES) — keep the two in step. */}
               <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
                 Best friends abseiling off Big Ben, mum under the Northern
                 Lights, daughter going viral in Times Square: You describe the
-                scene, we make it real. Then you write the front and the inside.
+                scene and write your message, we make it real.
               </p>
             </div>
             {/* One signpost above the carousel. */}
