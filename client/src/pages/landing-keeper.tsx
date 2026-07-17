@@ -72,6 +72,12 @@ const proofCardInside = '/proof-card-inside.webp';
 const bigBenSourcePhoto = '/proof-bigben-source.webp';
 const bigBenCardFront = '/proof-bigben-front.webp';
 const bigBenCardInside = '/proof-bigben-inside.webp';
+// Example 3 — Kevin's own gen (2026-07-17), and the first one made with the
+// hardened inside prompt (inside_write v5): the inside is pure typography
+// over the NY skyline, with nobody in it.
+const timesSqSourcePhoto = '/proof-timessquare-source.webp';
+const timesSqCardFront = '/proof-timessquare-front.webp';
+const timesSqCardInside = '/proof-timessquare-inside.webp';
 // Tiny blurred stand-in (28px, ~1KB, inline in the bundle) painted
 // BEHIND the hero art — zero network, so there's never blank white
 // card stock while the real jpg downloads.
@@ -877,20 +883,29 @@ const BIG_BEN_EXAMPLE: ProofExample = {
   cardAlt: 'The finished card front — Rach and Lulu abseiling off Big Ben',
 };
 
-// ⚠ Slide 3 is still a TEMPORARY placeholder: it reuses the Mum CARD IMAGE
-// with different recipe TEXT, so its text changes but its card doesn't.
-// Replace with a real generation (its own webp trio in /public + strings) —
-// same as BIG_BEN_EXAMPLE above. See next_keeper_assets_needed.
+// Example 3 — REAL as of 2026-07-17. Transcribed from the card, not written
+// to fit it. This message is deliberately left FULL-LENGTH even though it's
+// ~4x the other two: real people write long ones, and the recipe box clamps
+// (see `field`) rather than us trimming the truth to fit the layout.
+const TIMES_SQUARE_EXAMPLE: ProofExample = {
+  id: 'times-square',
+  sourcePhoto: timesSqSourcePhoto,
+  sourceAlt: 'The selfie of Lulu this card was made from',
+  scene: 'Going viral in Times Square',
+  frontText: 'Sweet 16 x',
+  insideMessage:
+    "We can't believe it's your sweet 16th. We want to tell you how much you mean to us. Time passes so fast. We always value the moments we share. Remember when we visited New York? We laughed so much that holiday. You work hard every day and are born to be a star. We are so proud of all you do and hope your dreams come true. May this next year be your best one yet. With all our love, Mum and Dad x",
+  cardFront: timesSqCardFront,
+  cardInside: timesSqCardInside,
+  cardAlt: 'The finished card front — Lulu going viral in Times Square',
+};
+
+// All three are now REAL worked examples: navigating changes the card, not
+// just the caption.
 const PROOF_EXAMPLES: ProofExample[] = [
   MUM_EXAMPLE,
   BIG_BEN_EXAMPLE,
-  {
-    ...MUM_EXAMPLE,
-    id: 'placeholder-rome',
-    scene: 'Leading the Roman empire',
-    frontText: 'Hail, Caesar!',
-    insideMessage: 'To the emperor of the whole office — many happy returns.',
-  },
+  TIMES_SQUARE_EXAMPLE,
 ];
 
 function ProofSection() {
@@ -930,7 +945,11 @@ function ProofSection() {
         <Icon className="h-3 w-3 shrink-0 text-keeper-gold" aria-hidden="true" />
         {label}
       </div>
-      <div className="text-[14px] leading-snug text-keeper-ink">{value}</div>
+      {/* line-clamp so a genuinely long inside message (people write them —
+          see TIMES_SQUARE_EXAMPLE) can't stretch the recipe column past the
+          card and unbalance the slide. The DATA stays the real full message;
+          only the display clamps, and the card beside it shows the lot. */}
+      <div className="line-clamp-4 text-[14px] leading-snug text-keeper-ink">{value}</div>
     </div>
   );
 
