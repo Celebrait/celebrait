@@ -1255,51 +1255,64 @@ const HANDOVER: Array<{
 
 function HandoverSection() {
   return (
+    // Same chassis as THE INSIDE ("The magic's digital. The card isn't.") —
+    // text left, staggered pair of shots right (Kevin 2026-07-17), so the
+    // two picture-led sections rhyme instead of each inventing a layout.
     <section className="px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-5xl">
-        <Rise className="text-center">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
+        <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Send direct to them, or receive it yourself to handover
           </h2>
-          {/* Headline centres (short, poster-like, sits over a symmetric
-              grid); the paragraph left-aligns inside a centred column —
-              the panel's rule, since it wraps past one line. */}
-          <p className="mx-auto mt-5 max-w-[54ch] text-left text-[17px] leading-[1.6] text-keeper-body">
+          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             Your words, set inside and styled to match the front. Or leave it
             blank: we print the border, you bring the pen. Blank ones always
             come to you first — we're not posting someone an empty card.
           </p>
-        </Rise>
-        <div className="mt-12 grid gap-10 md:mt-16 md:grid-cols-2 md:gap-12">
-          {HANDOVER.map((h, i) => {
-            const Icon = h.icon;
-            return (
-              <Rise key={h.tag} delay={0.1 + i * 0.08}>
-                <div className="flex flex-col">
-                  {/* Icon badge — top rung of this section's hierarchy.
-                      Wears the same green pair as the carousel arrows +
-                      signpost so it reads as "go", not decoration. */}
+          {/* The two destinations, stacked. The icon badge is the hierarchy
+              rung between the headline and the meta copy; it wears the same
+              green pair as the carousel arrows + signpost, so green means
+              "go" everywhere on the page rather than decoration. */}
+          <div className="mt-8 space-y-6">
+            {HANDOVER.map((h) => {
+              const Icon = h.icon;
+              return (
+                <div key={h.tag} className="flex gap-4">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark">
                     <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
                   </span>
-                  {/* Fraunces Bold comes from `.keeper-serif h3` in
-                      index.css (the page makes EVERY heading serif) — don't
-                      add a font-weight here, that rule out-specifies it. */}
-                  <h3 className="mt-4 text-[18px] text-keeper-ink">{h.title}</h3>
-                  <p className="mt-1.5 max-w-[34ch] text-[14px] leading-relaxed text-keeper-meta">
-                    {h.body}
-                  </p>
-                  {/* ⚠ PLACEHOLDER — Kevin to supply (2026-07-17): square
-                      open-card shots, one with the message printed, one
-                      blank with the decorative border. */}
-                  <div className="mt-5">
-                    <AssetSlot tag={h.tag} note={h.shot} />
+                  <div>
+                    {/* Fraunces Bold comes from `.keeper-serif h3` in
+                        index.css (the page makes EVERY heading serif) —
+                        don't add a font-weight, that rule out-specifies it. */}
+                    <h3 className="text-[18px] text-keeper-ink">{h.title}</h3>
+                    <p className="mt-1 max-w-[34ch] text-[14px] leading-relaxed text-keeper-meta">
+                      {h.body}
+                    </p>
                   </div>
                 </div>
-              </Rise>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </Rise>
+        <Rise delay={0.1}>
+          {/* Staggered pair — deliberately the SAME geometry as CardPair
+              (w-[92%] sm:w-[55%], self-start then self-end, gap-5) so this
+              reads as a sibling of the Inside section's visual.
+              ⚠ PLACEHOLDERS — Kevin to supply: F1 open card with the
+              message printed, F2 open card blank with the decorative
+              border. Swap each AssetSlot for the shot when they land. */}
+          <div className="flex flex-col gap-5">
+            {HANDOVER.map((h, i) => (
+              <div
+                key={h.tag}
+                className={`w-[92%] sm:w-[55%] ${i === 0 ? 'self-start' : 'self-end'}`}
+              >
+                <AssetSlot tag={h.tag} ratio="3/2" note={h.shot} />
+              </div>
+            ))}
+          </div>
+        </Rise>
       </div>
     </section>
   );
