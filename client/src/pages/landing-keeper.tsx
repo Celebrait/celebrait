@@ -1156,63 +1156,13 @@ function ProofSection() {
 
 // ── 2b. THE INSIDE ───────────────────────────────────────────────────
 
-// Lifestyle examples. A slide is always a PAIR — the same card shot closed
-// (front) and open (inside) — because the pair IS the argument the copy
-// makes: "a front and an inside that belong together". A single photo can't
-// prove that, so never split one across slides.
-//
-// ⚠ ASSETS: only the FIRST pair is real. The two `placeholder-*` entries
-// re-use it so the carousel, dots and auto-advance are visible and
-// reviewable before the real shots land (Kevin's call 2026-07-16). They
-// cycle the SAME photo on purpose — this is scaffolding, not a finished
-// section. DON'T LAUNCH LIKE THIS.
-//
-// To make one real: drop a closed + open shot of ANOTHER card (someone
-// holding it, same lighting/treatment) into client/public and replace a
-// placeholder's two urls + alt. See next_keeper_assets_needed.
-const INSIDE_EXAMPLES: Array<{
-  id: string;
-  closed: string;
-  open: string;
-  alt: string;
-}> = [
-  {
-    id: 'mothers-day',
-    closed: keeperCardClosed,
-    open: keeperCardOpen,
-    alt: 'A Celebrait card held open on a table — the inside message and the front',
-  },
-  // ⚠ PLACEHOLDER — real pair needed.
-  {
-    id: 'placeholder-2',
-    closed: keeperCardClosed,
-    open: keeperCardOpen,
-    alt: 'A Celebrait card held open on a table — the inside message and the front',
-  },
-  // ⚠ PLACEHOLDER — real pair needed.
-  {
-    id: 'placeholder-3',
-    closed: keeperCardClosed,
-    open: keeperCardOpen,
-    alt: 'A Celebrait card held open on a table — the inside message and the front',
-  },
-];
-
+// ONE pair — the same card shot closed (front) and open (inside). The pair
+// IS the argument the copy makes, "a front and an inside that belong
+// together", so the two photos always travel together; but one example is
+// enough to make it (Kevin 2026-07-17 — the carousel here is gone, and with
+// it the 4 extra lifestyle shots it would have needed).
 function InsideSection() {
   const reduced = useReducedMotion();
-  const [idx, setIdx] = useState(0);
-  const many = INSIDE_EXAMPLES.length > 1;
-  const goTo = (next: number) =>
-    setIdx((next + INSIDE_EXAMPLES.length) % INSIDE_EXAMPLES.length);
-  const { hostRef, stop, pauseProps } = useAutoAdvance({
-    advance: () => goTo(idx + 1),
-    paused: !many,
-    delayMs: 6000, // photos, not prose — they read faster than the proof slides
-  });
-  const userGoTo = (next: number) => {
-    stop();
-    goTo(next);
-  };
 
   return (
     <section className="px-6 py-24 md:py-32">
@@ -1248,62 +1198,11 @@ function InsideSection() {
           </p>
         </Rise>
         <Rise delay={0.1}>
-          <div ref={hostRef} {...pauseProps} className="relative">
-            {/* CROSSFADE, not a slide (Kevin 2026-07-16). Every example is
-                stacked in the SAME grid cell (col/row-start-1), so the
-                container sizes itself to the tallest and we just fade
-                between them. That also retires the whole clip rig this
-                used to need: with nothing sliding sideways there's no
-                track to clip, so the photos' shadows fall freely again and
-                the -mx-5/px-5 inset that was holding them off the clip
-                edge is gone with it. */}
-            <div className="grid">
-              {INSIDE_EXAMPLES.map((example, i) => (
-                <motion.div
-                  key={example.id}
-                  className="col-start-1 row-start-1"
-                  animate={{ opacity: i === idx ? 1 : 0 }}
-                  transition={{ duration: reduced ? 0 : 0.7, ease: 'easeInOut' }}
-                  // The faded-out pairs still occupy the cell — take them
-                  // out of hit-testing and the a11y tree.
-                  style={{ pointerEvents: i === idx ? 'auto' : 'none' }}
-                  aria-hidden={i !== idx}
-                >
-                  <CardPair
-                    first={example.closed}
-                    second={example.open}
-                    alt={example.alt}
-                  />
-                </motion.div>
-              ))}
-            </div>
-            {/* Pill pager — matches the studio's hero switcher
-                (studio.tsx): long pill for the current example, dots for
-                the rest, width animating between them. */}
-            {many && (
-              <div
-                role="tablist"
-                aria-label="Switch example"
-                className="mt-10 flex items-center justify-center gap-1.5"
-              >
-                {INSIDE_EXAMPLES.map((example, i) => (
-                  <button
-                    key={example.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={i === idx}
-                    onClick={() => userGoTo(i)}
-                    aria-label={`Example ${i + 1}`}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === idx
-                        ? 'w-6 bg-brand-dark'
-                        : 'w-1.5 bg-keeper-hair hover:bg-keeper-meta/50'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <CardPair
+            first={keeperCardClosed}
+            second={keeperCardOpen}
+            alt="A Celebrait card held open on a table — the inside message and the front"
+          />
         </Rise>
       </div>
     </section>
