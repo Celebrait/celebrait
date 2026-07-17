@@ -45,6 +45,18 @@ import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 import celebraitLogo from '@/assets/celebrait.png';
 
+// The server writes a display WebP next to every generated PNG (~5–9x
+// smaller — see image-storage.ts storeDisplayWebpSibling). Load THAT as the
+// WebGL texture so the card assembles near-instantly instead of pulling two
+// ~1.7MB PNGs. Only rewrites a `.png` URL; already-WebP urls (the landing
+// hero passes /hero-card-front.webp) pass through untouched. If the webp is
+// missing (legacy card, or the best-effort encode failed) the texture load
+// fails and the Viewer3DBoundary shows the flat PNG — so the PNG stays the
+// safety net (FlatCardFallback still uses the original url).
+function toWebpDisplay(url: string | null | undefined): string | null | undefined {
+  return typeof url === 'string' ? url.replace(/\.png(\?|$)/i, '.webp$1') : url;
+}
+
 // ── Local "airbag" around the 3D canvas ─────────────────────────────
 // A failed texture load (dead image URL, CORS break) or a WebGL crash
 // throws THROUGH the r3f <Canvas> into the parent React tree. Without
@@ -487,7 +499,12 @@ export function Card3DViewer({
               // r3f's useLoader caches FAILED loads too — without
               // clearing, a retry re-throws instantly from cache.
               try {
-                useLoader.clear(THREE.TextureLoader, [frontImageUrl, insideUrl]);
+                // Clear the WebP urls that useTexture actually loaded — not
+                // the original PNGs — or the retry re-throws from cache.
+                useLoader.clear(THREE.TextureLoader, [
+                  toWebpDisplay(frontImageUrl) as string,
+                  toWebpDisplay(insideUrl) as string,
+                ]);
               } catch {
                 /* cache clear is best-effort */
               }
@@ -863,7 +880,12 @@ function Card({
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
   const firstFrameFired = useRef(false);
 
-  const [frontTex, insideTex] = useTexture([frontUrl, insideUrl]);
+  // Textures load the lightweight display WebP; the flat fallback (outer
+  // Viewer3DBoundary) keeps the original PNG url.
+  const [frontTex, insideTex] = useTexture([
+    toWebpDisplay(frontUrl) as string,
+    toWebpDisplay(insideUrl) as string,
+  ]);
   useEffect(() => {
     [frontTex, insideTex].forEach((t) => {
       if (t) {

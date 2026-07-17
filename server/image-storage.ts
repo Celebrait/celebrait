@@ -86,6 +86,48 @@ export interface StoredImage {
 /**
  * Convert base64 image data to PNG file and store it
  */
+/**
+ * Write a display-only WebP sibling next to a just-stored PNG.
+ *
+ * WHY: the model returns ~1.7MB PNGs. Print NEEDS the PNG (Prodigi asset,
+ * lossless) — this never touches it. But the on-screen 3D viewer was
+ * downloading both PNGs (~3.4MB) and uploading them as WebGL textures,
+ * which is the "slow load after generation" beat. A q80 WebP of the same
+ * image is ~5–9x smaller, so the viewer loads near-instantly.
+ *
+ * BEST-EFFORT BY DESIGN: wrapped so a WebP failure can NEVER break the PNG
+ * store or the generation flow — if it throws, we log and move on, and the
+ * viewer just falls back to the PNG. No upscale (source is already ~1024px)
+ * so this is a cheap encode, not the memory-heavy print-res resize that
+ * OOMs small instances.
+ *
+ * Naming convention: `<base>_front.png` → `<base>_front.webp`. The viewer
+ * derives the WebP URL by the same swap (card-3d-viewer.tsx).
+ */
+async function storeDisplayWebpSibling(
+  pngFilename: string,
+  imageBuffer: Buffer,
+): Promise<void> {
+  if (!pngFilename.endsWith('.png')) return;
+  const webpFilename = pngFilename.replace(/\.png$/, '.webp');
+  try {
+    const { default: sharp } = await import('sharp');
+    const webp = await sharp(imageBuffer).webp({ quality: 80 }).toBuffer();
+    if (isR2Enabled()) {
+      await r2Put(webpFilename, webp, 'image/webp');
+    } else {
+      await fs.writeFile(path.join(IMAGES_DIR, webpFilename), webp);
+    }
+    console.log(
+      `[STORAGE] display webp ${webpFilename} (${webp.length} bytes, ` +
+        `${Math.round((1 - webp.length / imageBuffer.length) * 100)}% smaller than png)`,
+    );
+  } catch (err) {
+    // Never fatal — the viewer falls back to the PNG.
+    console.warn(`[STORAGE] display webp skipped for ${pngFilename}:`, (err as Error)?.message ?? err);
+  }
+}
+
 export async function storeImageFromBase64(
   base64Data: string,
   cardId: number,
@@ -103,6 +145,7 @@ export async function storeImageFromBase64(
     if (isR2Enabled()) {
       await r2Put(filename, imageBuffer, 'image/png');
       console.log(`[STORAGE] Stored ${imageType} image for card ${cardId} → R2: ${filename} (${imageBuffer.length} bytes)`);
+      await storeDisplayWebpSibling(filename, imageBuffer);
       return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
     }
 
@@ -114,6 +157,8 @@ export async function storeImageFromBase64(
     const stats = await fs.stat(filepath);
 
     console.log(`[STORAGE] Stored ${imageType} image for card ${cardId}: ${filename} (${stats.size} bytes)`);
+
+    await storeDisplayWebpSibling(filename, imageBuffer);
 
     return {
       filename,
@@ -507,6 +552,7 @@ export async function storeImageToCustomFilename(
   if (isR2Enabled()) {
     await r2Put(filename, imageBuffer, 'image/png');
     console.log(`[STORAGE] Stored ${filename} → R2 (${imageBuffer.length} bytes)`);
+    await storeDisplayWebpSibling(filename, imageBuffer);
     return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
   }
 
@@ -514,6 +560,7 @@ export async function storeImageToCustomFilename(
   await fs.writeFile(filepath, imageBuffer);
   const stats = await fs.stat(filepath);
   console.log(`[STORAGE] Stored ${filename} (${stats.size} bytes)`);
+  await storeDisplayWebpSibling(filename, imageBuffer);
   return { filename, filepath, size: stats.size, format: 'png' };
 }
 
