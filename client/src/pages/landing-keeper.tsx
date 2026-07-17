@@ -1170,10 +1170,13 @@ function InsideSection() {
         <Rise>
           {/* This section's job is the one thing the page never says outright:
               the digital process ends as a PHYSICAL object (the visual beside
-              it is a real card on a table). The bin/keep beat belongs to the
-              StatementSection right below ("the unbinnable kind"), so "keep"
-              only lands here as the payoff — it doesn't steal that punch.
-              NB: the old "in the card's own hand" implied handwriting; the
+              it is a real card on a table).
+              NB: this copy originally held BACK on the bin/keep beat because
+              StatementSection ("This is the unbinnable kind") landed it right
+              below. That section is gone (2026-07-17), so nothing on the page
+              carries that punch now except the hero eyebrow — if it's ever
+              wanted back, here is where it belongs.
+              NB2: the old "in the card's own hand" implied handwriting; the
               inside is SET TYPE (see project_inside_message_is_typography). */}
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             The <ShimmerWord reduced={!!reduced}>magic's</ShimmerWord> digital. The card isn't.
@@ -1209,19 +1212,95 @@ function InsideSection() {
   );
 }
 
-// ── 3. STATEMENT ─────────────────────────────────────────────────────
+// ── 3. THE HANDOVER ──────────────────────────────────────────────────
+//
+// Replaces the old StatementSection ("Everyone gets cards. Nobody gets
+// them. / This is the unbinnable kind.") — Kevin 2026-07-17 wanted this
+// beat made explicit and VISUAL rather than a bare aphorism.
+//
+// The two columns are PRODUCT-TRUE, not a marketing pairing. A blank
+// inside has no giving choice: it's printed and posted to the SENDER,
+// always, because you can't post someone an empty card — that's the
+// blank-card footgun deliberately designed out (see the header comment in
+// components/studio/giving-moment.tsx). Written insides are the ones that
+// get a destination choice. So "your message printed → either
+// destination" / "blank → always to you" is exactly the rule, and the
+// supporting copy says so out loud.
+//
+// This copy previously lived buried at the bottom of ObjectSection as two
+// 13px cards under a spec list — removed from there so the page doesn't
+// make the same point twice.
+const HANDOVER: Array<{
+  icon: LucideIcon;
+  tag: string;
+  title: string;
+  body: string;
+  shot: string;
+}> = [
+  {
+    icon: Send,
+    tag: 'F1',
+    title: 'Straight to them',
+    body: 'Posted tracked in a kraft envelope, your message printed inside.',
+    shot: 'Open card — your message printed inside, styled to match the front.',
+  },
+  {
+    icon: PenLine,
+    tag: 'F2',
+    title: 'Or to you first',
+    body: 'Sealed with a spare envelope, ready to hand over in person.',
+    shot: 'Open card — blank inside with the decorative border, ready to handwrite.',
+  },
+];
 
-function StatementSection() {
+function HandoverSection() {
   return (
-    <section className="flex min-h-[70vh] items-center justify-center px-6">
-      <Rise className="text-center">
-        <h2 className={`text-[clamp(38px,6vw,64px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-          Everyone gets cards.
-          <br />
-          Nobody <em className="italic">gets</em> them.
-        </h2>
-        <p className="mt-5 text-[15px] text-keeper-body">This is the unbinnable kind.</p>
-      </Rise>
+    <section className="px-6 py-24 md:py-32">
+      <div className="mx-auto max-w-5xl">
+        <Rise className="text-center">
+          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
+            Send direct to them, or receive it yourself to handover
+          </h2>
+          {/* Headline centres (short, poster-like, sits over a symmetric
+              grid); the paragraph left-aligns inside a centred column —
+              the panel's rule, since it wraps past one line. */}
+          <p className="mx-auto mt-5 max-w-[54ch] text-left text-[17px] leading-[1.6] text-keeper-body">
+            Your words, set inside and styled to match the front. Or leave it
+            blank: we print the border, you bring the pen. Blank ones always
+            come to you first — we're not posting someone an empty card.
+          </p>
+        </Rise>
+        <div className="mt-12 grid gap-10 md:mt-16 md:grid-cols-2 md:gap-12">
+          {HANDOVER.map((h, i) => {
+            const Icon = h.icon;
+            return (
+              <Rise key={h.tag} delay={0.1 + i * 0.08}>
+                <div className="flex flex-col">
+                  {/* Icon badge — top rung of this section's hierarchy.
+                      Wears the same green pair as the carousel arrows +
+                      signpost so it reads as "go", not decoration. */}
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark">
+                    <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  {/* Fraunces Bold comes from `.keeper-serif h3` in
+                      index.css (the page makes EVERY heading serif) — don't
+                      add a font-weight here, that rule out-specifies it. */}
+                  <h3 className="mt-4 text-[18px] text-keeper-ink">{h.title}</h3>
+                  <p className="mt-1.5 max-w-[34ch] text-[14px] leading-relaxed text-keeper-meta">
+                    {h.body}
+                  </p>
+                  {/* ⚠ PLACEHOLDER — Kevin to supply (2026-07-17): square
+                      open-card shots, one with the message printed, one
+                      blank with the decorative border. */}
+                  <div className="mt-5">
+                    <AssetSlot tag={h.tag} note={h.shot} />
+                  </div>
+                </div>
+              </Rise>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }
@@ -1306,20 +1385,10 @@ function ObjectSection() {
           <p className="mt-4 font-mono text-[12px] text-keeper-meta">
             Today you make it → within 72 hrs it's printed → then posted from £1.95
           </p>
-          <div className="mt-7 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-keeper-hair bg-white/70 p-4">
-              <p className="text-[13px] font-semibold text-keeper-ink">Straight to them</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-meta">
-                Posted tracked in a kraft envelope, your message printed inside.
-              </p>
-            </div>
-            <div className="rounded-xl border border-keeper-hair bg-white/70 p-4">
-              <p className="text-[13px] font-semibold text-keeper-ink">Or to you first</p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-keeper-meta">
-                Sealed with a spare envelope, ready to hand over in person.
-              </p>
-            </div>
-          </div>
+          {/* The "Straight to them / Or to you first" pair used to sit here
+              as two 13px cards. It's now its own section (HandoverSection)
+              where it can carry icons + shots — saying it in both places
+              would spend the point twice. */}
         </Rise>
       </div>
     </section>
@@ -1599,7 +1668,7 @@ export default function LandingKeeper() {
             sit directly under THE INSIDE on Kevin's call (2026-07-16) —
             was down after OccasionCapture, beside the demo video. */}
         <ImagineDescribeShipSection />
-        <StatementSection />
+        <HandoverSection />
         <GallerySection />
         <ObjectSection />
         <OccasionCaptureSection />
