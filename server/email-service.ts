@@ -432,11 +432,20 @@ function printSpreadHero(frontUrl?: string | null, insideUrl?: string | null): s
   // the studio print files. (Mail clients can't reliably overlay a watermark
   // ON an image — Gmail strips positioning, Outlook has none — so the art
   // panels stay clean; the logo-on-white branding carries the print look.)
-  const blank = (label: string, showLogo: boolean) => `
-    <div style="text-align: center; line-height: 1.5;">
-      <div style="font-family: ${EMAIL_SERIF}; font-size: 9px; letter-spacing: 0.12em; color: #c9c2b6;">${label}</div>
-      ${showLogo ? `<img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="54" style="display: inline-block; width: 54px; max-width: 70%; height: auto; margin-top: 7px;">` : ''}
-    </div>`;
+  //
+  // On the REAR (showLogo) side the label sits at the panel's vertical centre
+  // and the logo drops to the foot — a real card-back look — via a full-height
+  // two-row table (email-safe; the outer valign is overridden by this table
+  // filling the P×P cell). The plain INSIDE side stays a simple centred label.
+  const labelStyle = `font-family: ${EMAIL_SERIF}; font-size: 9px; letter-spacing: 0.12em; color: #c9c2b6;`;
+  const blank = (label: string, showLogo: boolean) =>
+    showLogo
+      ? `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="height: ${P}px;">
+      <tr><td height="${Math.round(P * 0.6)}" valign="bottom" align="center" style="${labelStyle}">${label}</td></tr>
+      <tr><td valign="bottom" align="center" style="padding-bottom: 12px;"><img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="54" style="display: inline-block; width: 54px; max-width: 70%; height: auto;"></td></tr>
+    </table>`
+      : `<div style="text-align: center; ${labelStyle}">${label}</div>`;
   const spread = (leftInner: string, right: string) => `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="border-collapse: separate; border: 1px solid ${EMAIL_HAIR}; border-radius: 8px; overflow: hidden;">
       <tr>
