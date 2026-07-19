@@ -611,16 +611,16 @@ export async function sendCardReadyEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Here's the card you made. Have a look — if it looks right, it's ready to send. If anything's not quite right, you can change any part of it without starting over.
+      Here's the card you made. Have a look — if it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.
     </p>
     <p style="margin: 0 0 8px;">
-      No rush. Your cards are saved in your gallery.
+      No rush — every version stays in your gallery.
     </p>
   `;
 
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
-    preheader: 'Have a look — send it as it is, or change it first.',
+    preheader: 'Have a look — send it, or start again with the same details.',
     heading: `${recipientClauseRaw} is ready`,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
@@ -629,9 +629,9 @@ export async function sendCardReadyEmail(params: {
 
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
-    `${recipientClause} is ready. Have a look — if it looks right, it's ready to send. If anything's not quite right, you can change any part of it without starting over.\n\n` +
+    `${recipientClause} is ready. Have a look — if it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.\n\n` +
     `View your card: ${cardUrl}\n\n` +
-    `No rush. Your cards are saved in your gallery.\n\n— Celebrait`;
+    `No rush — every version stays in your gallery.\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject: subjectSubject, html, text });
 }
