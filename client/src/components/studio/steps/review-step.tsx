@@ -867,20 +867,20 @@ export function StartAgainButton({
       <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
         <DialogContent className="max-w-md">
           <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
-            Start again with these details
+            Try another version
           </DialogTitle>
           <div className="space-y-3 pt-1">
             <ExplainRow icon={RotateCcw}>
-              We copy everything across — recipient, photo, scene, your
-              words — into a fresh card you can tweak before rolling.
+              We keep your photo, scene and message. Change anything first,
+              or leave it as it is.
             </ExplainRow>
             <ExplainRow icon={Sparkles}>
-              Generating paints a brand-new take. Every roll comes out
-              different — that's the fun of it.
+              Each version comes out a little different — you might get an
+              even better one.
             </ExplainRow>
             <ExplainRow icon={FileText}>
-              This take stays saved in your drafts, so you can compare
-              and send whichever one you love. Free until you buy.
+              Both versions stay in your drafts, so you can compare them and
+              send your favourite. Free until you buy.
             </ExplainRow>
           </div>
           <div className="flex flex-col gap-2 pt-3 sm:flex-row-reverse">
@@ -893,10 +893,10 @@ export function StartAgainButton({
               {busy ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting up your next take…
+                  Setting up…
                 </>
               ) : (
-                'Start my fresh take →'
+                'Make another →'
               )}
             </Button>
             <Button
@@ -906,7 +906,7 @@ export function StartAgainButton({
               className="border-stone-300 sm:flex-1"
               data-testid="btn-start-again-cancel"
             >
-              Keep this take
+              Keep this one
             </Button>
           </div>
         </DialogContent>
