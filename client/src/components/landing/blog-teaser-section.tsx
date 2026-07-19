@@ -21,7 +21,7 @@ const POSTS: PostTeaser[] = [
   {
     cover: fathersDayFront,
     eyebrow: 'Craft',
-    title: 'Why we paint the words into the picture',
+    title: 'Why the words belong in the picture',
     excerpt:
       'How designed typography on a card differs from text-on-template, and why it matters for the people you send to.',
   },

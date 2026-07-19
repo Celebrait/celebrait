@@ -1010,7 +1010,7 @@ function ProofSection() {
               <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
                 Best friends abseiling off Big Ben, mum under the Northern
                 Lights, daughter going viral in Times Square: You describe the
-                scene and write your message, we make it real.
+                scene. We make it real.
               </p>
             </div>
             {/* One signpost above the carousel. */}
@@ -1599,7 +1599,7 @@ function FinaleSection() {
     <section className="bg-keeper-ink px-6 py-20 text-center md:py-28">
       <Rise>
         <p className="text-[17px] text-keeper-paper/80">
-          You bring the person. We paint the moment.
+          You bring the person. We make it real.
         </p>
         <div className="mt-6 font-display text-[clamp(56px,12vw,140px)] font-bold leading-none tracking-[-0.01em] text-keeper-paper">
           Celebrait

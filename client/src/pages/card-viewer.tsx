@@ -367,8 +367,8 @@ function MakeYourOwnPanel({
         Someone made this just for you.
       </p>
       <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-keeper-body">
-        Now put someone you love in the picture — upload a photo, tell us
-        the scene, we paint the card. Free to make.
+        Now put someone you love in the picture — upload a photo, describe
+        the scene, and we make the card. Free to make.
       </p>
 
       {/* 2 — the act-now path */}

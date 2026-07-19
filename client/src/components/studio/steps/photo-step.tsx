@@ -768,7 +768,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     // After 1 photo: explain the benefit. After 2: still room for one
     // more. After 3: confirm they've hit the sweet spot.
     const hintCopy = editIntent
-      ? 'This is what the card paints from.'
+      ? 'This is what the card is made from.'
       : mode !== 'one_person'
         ? null
         : totalCount === 0

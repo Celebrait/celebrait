@@ -649,7 +649,7 @@ function _legacyBuildNarration(state: CardDraftState): {
   }
 
   // Beat 4 — style
-  preFront.push(`Painting it in a ${styleLabel} style.`);
+  preFront.push(`Giving it a ${styleLabel} style.`);
 
   // Beat 5 — front text
   if (frontText) {
