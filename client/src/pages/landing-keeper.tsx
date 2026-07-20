@@ -1313,7 +1313,7 @@ function HandoverSection() {
             <motion.img
               src="/envelope-seal.png"
               alt="Celebrait envelope seal — only open on your special day"
-              className="pointer-events-none absolute -top-10 right-0 z-20 w-24 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-28 md:-right-6 md:w-32"
+              className="pointer-events-none absolute -top-12 right-0 z-20 w-28 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-32 md:-top-20 md:-right-10 md:w-52 lg:w-60"
               animate={reduced ? undefined : { y: [0, -10, 0], rotate: [-8, -5, -8] }}
               transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
             />
