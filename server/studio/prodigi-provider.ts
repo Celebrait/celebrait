@@ -22,6 +22,14 @@
 //                            method (Budget|Standard|Express|Overnight;
 //                            default "Standard"). The order's chosen speed
 //                            (req.shippingMethod) takes precedence.
+//   PRODIGI_ENVELOPE_STICKER — "on" activates the envelope seal (round
+//                            packaging sticker, DIR orders only). Default off
+//                            until the physical placement test confirms it
+//                            lands on the kraft envelope. Fails soft — a
+//                            sticker error never blocks the card (retry w/o).
+//   PRODIGI_ENVELOPE_STICKER_URL — override the seal image URL. Defaults to
+//                            {PUBLIC_APP_ORIGIN}/envelope-seal.png (must be a
+//                            public https URL Prodigi can fetch).
 //
 // Print asset: GLOBAL-GRE-GLOS-6X6-DIR exposes a SINGLE print area named
 // "default" sized 6732×1712 — a wide four-panel flat spread, NOT separate
@@ -64,6 +72,9 @@ interface ProdigiConfig {
   skuSelfSend: string;
   /** Fallback shipping method when the order doesn't specify one. */
   defaultShippingMethod: string;
+  /** Public URL of the envelope seal sticker, or null when the feature is
+   *  off. Attached (DIR only) as Prodigi order-level `branding`. */
+  envelopeStickerUrl: string | null;
 }
 
 function config(): ProdigiConfig {
@@ -85,7 +96,26 @@ function config(): ProdigiConfig {
     process.env.PRODIGI_BASE_URL ?? "https://api.sandbox.prodigi.com/v4.0"
   ).replace(/\/+$/, "");
   const defaultShippingMethod = process.env.PRODIGI_SHIPPING_METHOD ?? "Standard";
-  return { apiKey, baseUrl, skuDirect, skuSelfSend, defaultShippingMethod };
+  // Envelope seal — a round packaging sticker on the OUTSIDE of the kraft
+  // envelope ("only open on your special day"), attached DIR-only as Prodigi
+  // order-level `branding` (a public image URL Prodigi fetches). OPT-IN via
+  // PRODIGI_ENVELOPE_STICKER=on so a wrong field name/placement can't 400 live
+  // orders before the physical placement test confirms it. URL defaults to the
+  // app's own public asset (client/public/envelope-seal.png); override with
+  // PRODIGI_ENVELOPE_STICKER_URL (e.g. an R2 URL).
+  const envelopeStickerUrl =
+    process.env.PRODIGI_ENVELOPE_STICKER === "on"
+      ? process.env.PRODIGI_ENVELOPE_STICKER_URL ??
+        `${(process.env.PUBLIC_APP_ORIGIN ?? "https://celebrait.co.uk").replace(/\/+$/, "")}/envelope-seal.png`
+      : null;
+  return {
+    apiKey,
+    baseUrl,
+    skuDirect,
+    skuSelfSend,
+    defaultShippingMethod,
+    envelopeStickerUrl,
+  };
 }
 
 async function prodigiFetch(
@@ -178,7 +208,8 @@ export const prodigiPrintProvider: PrintProvider = {
   name: "prodigi",
 
   async submitOrder(req: PrintOrderRequest): Promise<PrintOrderResult> {
-    const { skuDirect, skuSelfSend, defaultShippingMethod } = config();
+    const { skuDirect, skuSelfSend, defaultShippingMethod, envelopeStickerUrl } =
+      config();
 
     // SKU follows the delivery destination, not the inside content:
     //   recipient → -DIR (Kraft envelope, we post it)
@@ -214,7 +245,7 @@ export const prodigiPrintProvider: PrintProvider = {
       { printArea: "default", url: stripUrl },
     ];
 
-    const body = {
+    const body: Record<string, unknown> = {
       // Our order id → Prodigi merchantReference so their webhooks/support
       // can be traced back to us. (We key our own lookup off the returned
       // Prodigi order id, stored as providerOrderId.)
@@ -235,10 +266,41 @@ export const prodigiPrintProvider: PrintProvider = {
       ],
     };
 
-    const json = await prodigiFetch("/Orders", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    // Envelope seal — round packaging sticker on the OUTSIDE of the kraft
+    // envelope. Direct-to-recipient (-DIR) ONLY: the -BLA self-send envelope
+    // is blank and goes to the creator, so a "only open on your special day"
+    // seal makes no sense there. Prodigi fetches the URL, so it must be public
+    // https (skip localhost/relative — Prodigi can't reach it).
+    const attachSticker =
+      req.shipTo !== "sender" &&
+      !!envelopeStickerUrl &&
+      /^https:\/\//i.test(envelopeStickerUrl);
+    if (attachSticker) {
+      body.branding = { sticker_exterior_round: { url: envelopeStickerUrl } };
+    }
+
+    // Never let the envelope seal block a paid card: if the order create fails
+    // WITH branding attached (e.g. Prodigi rejects the field or the fulfilment
+    // site doesn't support inserts), retry once WITHOUT it and log. A 400 means
+    // no order was created, so the retry can't double-submit.
+    let json: any;
+    try {
+      json = await prodigiFetch("/Orders", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      if (!attachSticker) throw err;
+      console.warn(
+        `[PRODIGI] order ${req.studioOrderId} create failed WITH envelope seal — ` +
+          `retrying without it: ${String((err as Error)?.message ?? err).slice(0, 220)}`,
+      );
+      delete body.branding;
+      json = await prodigiFetch("/Orders", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    }
     const order = json?.order;
     const providerOrderId = order?.id;
     if (!providerOrderId) {
