@@ -1254,6 +1254,7 @@ const HANDOVER: Array<{
 ];
 
 function HandoverSection() {
+  const reduced = useReducedMotion();
   return (
     // Same chassis as THE INSIDE ("The magic's digital. The card isn't.") —
     // text left, staggered pair of shots right (Kevin 2026-07-17), so the
@@ -1302,7 +1303,20 @@ function HandoverSection() {
               ⚠ PLACEHOLDERS — Kevin to supply: F1 open card with the
               message printed, F2 open card blank with the decorative
               border. Swap each AssetSlot for the shot when they land. */}
-          <div className="flex flex-col gap-5">
+          <div className="relative flex flex-col gap-5">
+            {/* Floating envelope seal — the "only open on your special day"
+                round sticker that goes on the direct-to-recipient kraft
+                envelope. Signals the sealed D2R option; floats above the card
+                cluster (top-right) like the page's other celebration objects.
+                Static tilt + shadow read it as a real sticker; the gentle
+                bob is dropped under reduced-motion. */}
+            <motion.img
+              src="/envelope-seal.png"
+              alt="Celebrait envelope seal — only open on your special day"
+              className="pointer-events-none absolute -top-10 right-0 z-20 w-24 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-28 md:-right-6 md:w-32"
+              animate={reduced ? undefined : { y: [0, -10, 0], rotate: [-8, -5, -8] }}
+              transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
             {HANDOVER.map((h, i) => (
               <div
                 key={h.tag}
