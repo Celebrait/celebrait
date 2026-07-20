@@ -278,6 +278,16 @@ export const prodigiPrintProvider: PrintProvider = {
     if (attachSticker) {
       body.branding = { sticker_exterior_round: { url: envelopeStickerUrl } };
     }
+    // TEMP debug — REMOVE after the envelope-seal placement test (2026-07-20).
+    // Prints whether the seal attached + the exact branding block sent, or
+    // WHY it was skipped, so the Render logs make the test unambiguous.
+    console.log(
+      `[PRODIGI] order ${req.studioOrderId} envelope seal: ${
+        attachSticker
+          ? `ON → ${JSON.stringify(body.branding)}`
+          : `OFF (shipTo=${req.shipTo}, url=${envelopeStickerUrl ?? "unset"})`
+      }`,
+    );
 
     // Never let the envelope seal block a paid card: if the order create fails
     // WITH branding attached (e.g. Prodigi rejects the field or the fulfilment
