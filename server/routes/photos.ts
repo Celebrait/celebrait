@@ -170,18 +170,25 @@ export function registerPhotoRoutes(app: Express): void {
         thumbSourceBuffer = croppedBuffer;
       }
 
-      // Generate a small square thumbnail from the cropped derivative
-      // when available, otherwise from the original. position:'attention'
-      // does a rough saliency crop which is fine for uncropped originals
-      // but is unnecessary (and mildly incorrect) when we already have a
-      // hand-chosen crop — use 'centre' in that case.
-      await sharp(thumbSourceBuffer)
-        .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
+      // Generate the tile thumbnail from the cropped derivative when
+      // available, otherwise from the original.
+      //   • With a hand-chosen crop: PRESERVE the crop's own aspect ratio
+      //     (fit:'inside'). Group crops are free-aspect (usually landscape),
+      //     and squaring them here (the old fit:'cover') made a landscape
+      //     crop show as a square tile — WYSIWYG broken. one-person crops
+      //     are 1:1, so 'inside' still yields a square for them.
+      //   • Without a crop: rough saliency square (position:'attention') —
+      //     fine for an unframed original.
+      const thumbPipeline = sharp(thumbSourceBuffer);
+      if (validCrop) {
+        thumbPipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'inside' });
+      } else {
+        thumbPipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
           fit: 'cover',
-          position: validCrop ? 'centre' : 'attention',
-        })
-        .jpeg({ quality: 80 })
-        .toFile(thumbAbs);
+          position: 'attention',
+        });
+      }
+      await thumbPipeline.jpeg({ quality: 80 }).toFile(thumbAbs);
 
       // Patch the row with real paths + crop metadata.
       const updated = await storage.updatePhoto(photoId, {

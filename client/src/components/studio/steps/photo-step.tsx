@@ -119,18 +119,27 @@ interface PendingUpload {
  * Takes an uncropped data URL + pixel-space bounds and returns a small
  * cropped JPEG data URL — used for ghost tile previews while the upload
  * resolves. Runs entirely client-side; no round-trip.
+ *
+ * The preview PRESERVES the crop's own aspect ratio (longest side = `size`).
+ * A fixed square canvas squashed free-aspect group crops into a square
+ * ghost, so a landscape crop briefly flashed square before the real
+ * (now also aspect-correct) thumbnail landed — WYSIWYG broken. A 1:1
+ * one-person crop still yields a square, as before.
  */
 async function generateCroppedPreview(
   srcDataUrl: string,
   bounds: { x: number; y: number; width: number; height: number },
-  size = 128,
+  size = 256,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      const aspect = bounds.width / bounds.height;
+      const w = aspect >= 1 ? size : Math.round(size * aspect);
+      const h = aspect >= 1 ? Math.round(size / aspect) : size;
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('canvas 2d context unavailable'));
@@ -145,8 +154,8 @@ async function generateCroppedPreview(
           bounds.height,
           0,
           0,
-          size,
-          size,
+          w,
+          h,
         );
         resolve(canvas.toDataURL('image/jpeg', 0.85));
       } catch (err) {
