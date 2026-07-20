@@ -783,7 +783,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         : totalCount === 0
           ? null // empty state has its own copy elsewhere
           : totalCount === 1
-            ? "Two or three angles help the AI catch what makes them them. One photo's fine — but more = better likeness."
+            ? null // the stronger nudge panel (below) takes over at 1 photo
             : remainingSlots > 0
               ? `One more angle if you've got it — that's the sweet spot.`
               : `That's the sweet spot — three angles is plenty.`;
@@ -875,6 +875,47 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             {hintCopy}
           </p>
         )}
+
+        {/* Stronger single-photo nudge — the biggest likeness lever is
+            input, not prompt tuning, so we push (not gate) a 2nd angle
+            here. Deliberately NON-blocking: the wizard's green Next stays
+            live with one photo, so the one-good-photo cases (memorial,
+            elderly, a baby) are never bounced. Only in one_person mode,
+            once the first photo has saved, and never during the edit-a-
+            photo flow (which has its own replace buttons). */}
+        {mode === 'one_person' &&
+          !editIntent &&
+          totalCount === 1 &&
+          inFlightUploads === 0 && (
+            <div
+              className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+              data-testid="add-angle-nudge"
+            >
+              <p className="text-[13px] font-semibold text-keeper-ink">
+                One more angle = noticeably better likeness
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
+                Two or three angles help the AI catch what makes them{' '}
+                <em>them</em>. One photo works too.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  replaceNextRef.current = false;
+                  triggerFilePicker();
+                }}
+                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
+                data-testid="btn-add-angle-nudge"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} /> Add another angle
+              </button>
+              <p className="mt-2 text-[10.5px] text-keeper-meta">
+                Happy with one? Tap{' '}
+                <span className="font-semibold text-keeper-body">Next</span>{' '}
+                below.
+              </p>
+            </div>
+          )}
 
         {/* EDIT INTENT (from Review): the user came here to CHANGE the
             photo — give them a real button, not a buried text link.
