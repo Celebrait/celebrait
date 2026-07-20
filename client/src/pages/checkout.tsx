@@ -32,6 +32,7 @@ import {
   tierPriceGBP,
   SHIPPING_TIERS,
   getShippingTier,
+  deliverySurchargeGBP,
   DEFAULT_SHIPPING_TIER,
   deliveryEstimateCopy,
   PRODUCTION_NOTICE,
@@ -87,17 +88,20 @@ function formatGBP(minor: number): string {
 }
 
 // Printed card (+ free digital link) + postage for the chosen delivery
-// tier. The server re-derives the same numbers from shared/pricing.ts.
-function totalsFor(tier: ShippingTierId) {
+// tier + the direct-to-recipient surcharge. The server re-derives every
+// pence from shared/pricing.ts, so this must stay in lockstep.
+function totalsFor(tier: ShippingTierId, shipTo: 'sender' | 'recipient') {
   const printAmount = PRINT_PRICE;
   const digitalAmount = 0;
   const shippingAmount = getShippingTier(tier).price;
+  const deliverySurcharge = deliverySurchargeGBP(shipTo);
   return {
     printAmount,
     digitalAmount,
     shippingAmount,
+    deliverySurcharge,
     discount: 0,
-    total: printAmount + shippingAmount,
+    total: printAmount + shippingAmount + deliverySurcharge,
   };
 }
 
@@ -188,7 +192,7 @@ export default function CheckoutPage() {
   // digital link — so digital is always part of the order. (The dead
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
-  const totals = useMemo(() => totalsFor(shippingTier), [shippingTier]);
+  const totals = useMemo(() => totalsFor(shippingTier, shipTo), [shippingTier, shipTo]);
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
@@ -441,7 +445,7 @@ export default function CheckoutPage() {
                         title={
                           recipientName ? `Straight to ${recipientName}` : 'Straight to them'
                         }
-                        description="Posted to their door, tracked. Add a gift message if you like."
+                        description={`Posted to their door, tracked, sealed with our keepsake sticker (+${formatGBP(deliverySurchargeGBP('recipient'))}). Add a gift message if you like.`}
                       />
                     </RadioGroup>
 
@@ -658,6 +662,14 @@ export default function CheckoutPage() {
                 amount={totals.shippingAmount}
                 muted
               />
+              {totals.deliverySurcharge > 0 && (
+                <LineItem
+                  label="Direct delivery"
+                  sub="Sealed & posted straight to them"
+                  amount={totals.deliverySurcharge}
+                  muted
+                />
+              )}
               {totals.discount > 0 && (
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}

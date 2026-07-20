@@ -37,6 +37,7 @@ import type { PrintProviderStatus } from '../studio/print-provider';
 import {
   tierPriceGBP,
   getShippingTier,
+  deliverySurchargeGBP,
   DEFAULT_SHIPPING_TIER,
   type ShippingTierId,
 } from '@shared/pricing';
@@ -154,7 +155,11 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const printAmount = PRINT_PRICE;
         const digitalAmount = 0;
         const shippingAmount = getShippingTier(shippingTier).price;
-        const totalAmount = printAmount + shippingAmount;
+        // Direct-to-recipient premium (£1.50): sealed + addressed + posted
+        // straight to them. Server-derived from shipTo so a crafted POST can't
+        // pick 'recipient' delivery without paying the surcharge.
+        const deliverySurcharge = deliverySurchargeGBP(body.shipTo);
+        const totalAmount = printAmount + shippingAmount + deliverySurcharge;
 
         // Mint a share token up-front for digital orders. Payment
         // hasn't confirmed yet, but the token is meaningless without
@@ -187,6 +192,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             printAmount,
             digitalAmount,
             shippingAmount,
+            deliverySurchargeAmount: deliverySurcharge,
             totalAmount,
           })
           .returning({ id: studioOrders.id });

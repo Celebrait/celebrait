@@ -53,6 +53,12 @@ export const studioOrders = pgTable(
     printAmount: integer("print_amount").notNull().default(0),
     digitalAmount: integer("digital_amount").notNull().default(0),
     shippingAmount: integer("shipping_amount").notNull().default(0),
+    // Direct-to-recipient premium (£1.50) — the sealed+addressed+posted-direct
+    // path. 0 for self-send. Itemised so refunds/reporting can see it apart
+    // from postage. See DIRECT_DELIVERY_SURCHARGE_GBP in shared/pricing.ts.
+    deliverySurchargeAmount: integer("delivery_surcharge_amount")
+      .notNull()
+      .default(0),
     totalAmount: integer("total_amount").notNull(),
 
     // Payment — provider-agnostic. paymentProvider records which
@@ -105,6 +111,7 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   printAmount: true,
   digitalAmount: true,
   shippingAmount: true,
+  deliverySurchargeAmount: true,
   totalAmount: true,
 });
 

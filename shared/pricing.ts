@@ -205,6 +205,22 @@ export const OVERNIGHT_DELIVERY = {
  *  getShippingTier('standard').price. */
 export const UK_SHIPPING_STANDARD_GBP = 195;
 
+/** Direct-to-recipient premium, minor units (pence). Charged ONLY when
+ *  shipTo === 'recipient' — the done-for-you path: we seal the kraft
+ *  envelope with the "only open on your special day" sticker, address it,
+ *  and post it straight to them (the -DIR SKU + the ~£1 Prodigi envelope
+ *  seal). The 'sender' / you-first path has no surcharge. Lives here so the
+ *  client display and the server charge can't drift. */
+export const DIRECT_DELIVERY_SURCHARGE_GBP = 150;
+
+/** The delivery surcharge for a destination — £1.50 direct, £0 self-send.
+ *  Server + client both call this so the shown total equals the charge. */
+export function deliverySurchargeGBP(
+  shipTo: 'sender' | 'recipient' | null | undefined,
+): number {
+  return shipTo === 'recipient' ? DIRECT_DELIVERY_SURCHARGE_GBP : 0;
+}
+
 /** Derive the GBP price of a tier in minor units. Tiny helper so
  *  consumers don't have to remember the price-shape (`.GBP` indexing). */
 export function tierPriceGBP(id: TierId): number {
