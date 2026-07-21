@@ -83,15 +83,6 @@ const OFFSETS = {
 // don't read as white printer paper against the printed scene panels.
 const CREAM_RGB = { r: 251, g: 245, b: 234 };
 
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
 /** Scale a source image to fill a panel (cover semantics — crops edges if
  *  aspect ratios differ). */
 async function panelFromBuffer(src: Buffer): Promise<Buffer> {
@@ -109,61 +100,25 @@ async function blankPanel(): Promise<Buffer> {
     .toBuffer();
 }
 
-/** Inside-left panel — blank cream with the brand logo small at the
- *  bottom, matching the 3D render's cover-back. */
+/** Inside-left panel — clean cream, no branding. (The small celebrait logo
+ *  was removed 2026-07-21 per Kevin so the printed card's inside reads like
+ *  a normal card, not a branded one.) */
 async function insideLeftPanel(): Promise<Buffer> {
+  return blankPanel();
+}
+
+/** Back-of-card panel — a discreet celebrait logo only. The signed
+ *  "DESIGNED WITH CRAFT BY {name} USING CELEBRAIT" credit (and the no-name
+ *  "Made with Celebrait" wordmark) were removed 2026-07-21 (Kevin) so the
+ *  printed card back isn't self-promotional. `senderFirstName` is kept in
+ *  the signature for the caller but no longer rendered. */
+async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
   const logo = await loadLogoOverlay();
   const base = sharp({
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
   if (!logo) return base.png().toBuffer();
   return base.composite([logo]).png().toBuffer();
-}
-
-/** Back-of-card panel — signed credit when the sender has a firstName,
- *  else a "Made with Celebrait" wordmark. Typography via composited SVG.
- *  Brand logo sits small at the bottom in both variants. */
-async function backPanel(senderFirstName: string | null): Promise<Buffer> {
-  const logo = await loadLogoOverlay();
-  const logoLayers = logo ? [logo] : [];
-  const base = sharp({
-    create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
-  });
-
-  if (senderFirstName) {
-    const SMALLCAPS_SIZE = 32;
-    const NAME_SIZE = 88;
-    const SMALL_LINE_GAP = 28;
-    const NAME_LINE_GAP = 36;
-    const BLOCK_HEIGHT =
-      SMALLCAPS_SIZE + SMALL_LINE_GAP + NAME_SIZE + NAME_LINE_GAP + SMALLCAPS_SIZE;
-    const BLOCK_TOP = Math.round((PANEL_H - BLOCK_HEIGHT) / 2);
-    const textSvg = `
-      <svg width="${PANEL_W}" height="${BLOCK_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-        <style>
-          .smallcaps { font-family: Helvetica, Arial, sans-serif; font-size: ${SMALLCAPS_SIZE}px; font-weight: 500; letter-spacing: 4px; fill: #5c4938; text-anchor: middle; }
-          .name { font-family: Georgia, "Times New Roman", serif; font-size: ${NAME_SIZE}px; font-style: italic; font-weight: 400; fill: #2d1f12; text-anchor: middle; }
-        </style>
-        <text x="${PANEL_W / 2}" y="${SMALLCAPS_SIZE}" class="smallcaps">DESIGNED WITH CRAFT BY</text>
-        <text x="${PANEL_W / 2}" y="${SMALLCAPS_SIZE + SMALL_LINE_GAP + NAME_SIZE}" class="name">${escapeXml(senderFirstName)}</text>
-        <text x="${PANEL_W / 2}" y="${SMALLCAPS_SIZE + SMALL_LINE_GAP + NAME_SIZE + NAME_LINE_GAP + SMALLCAPS_SIZE}" class="smallcaps">USING CELEBRAIT</text>
-      </svg>`;
-    return base
-      .composite([{ input: Buffer.from(textSvg), top: BLOCK_TOP, left: 0 }, ...logoLayers])
-      .png()
-      .toBuffer();
-  }
-
-  const WORDMARK_SIZE = 64;
-  const wordmarkSvg = `
-    <svg width="${PANEL_W}" height="${PANEL_H}" xmlns="http://www.w3.org/2000/svg">
-      <style>.wordmark { font-family: Georgia, "Times New Roman", serif; font-size: ${WORDMARK_SIZE}px; font-weight: 700; fill: #5c4938; text-anchor: middle; letter-spacing: 2px; }</style>
-      <text x="${PANEL_W / 2}" y="${PANEL_H / 2}" class="wordmark">Made with Celebrait</text>
-    </svg>`;
-  return base
-    .composite([{ input: Buffer.from(wordmarkSvg), top: 0, left: 0 }, ...logoLayers])
-    .png()
-    .toBuffer();
 }
 
 export interface ComposeStripOpts {
