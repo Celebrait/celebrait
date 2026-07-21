@@ -166,6 +166,45 @@ export function ReviewStep({
   failure,
   onUpdateInputs,
 }: ReviewStepProps) {
+  // ── Blank front-headline confirm (Kevin 2026-07-21) ─────────────────
+  // "Leave the front blank → we use the derived default" is easy to miss
+  // (tiny helper text), so a user can generate with an unintended headline.
+  // If they hit Generate with no headline typed AND a default would be used,
+  // confirm first: keep the default, go text-free, or write one. Text-free
+  // must persist mode='none' BEFORE generating (the server reads the SAVED
+  // draft), so we flushSave then generate via a one-shot effect once the
+  // state has committed — avoids racing the fire-and-forget save.
+  const [frontConfirmOpen, setFrontConfirmOpen] = useState(false);
+  const [pendingTextFreeGen, setPendingTextFreeGen] = useState(false);
+  const defaultFrontText = deriveDefaultFrontText(state);
+  const needsFrontConfirm =
+    state.front?.mode !== 'none' &&
+    !state.front?.text?.trim() &&
+    !!defaultFrontText;
+
+  const handleGenerateClick = () => {
+    if (needsFrontConfirm) setFrontConfirmOpen(true);
+    else onGenerate();
+  };
+  const confirmUseDefault = () => {
+    setFrontConfirmOpen(false);
+    onGenerate();
+  };
+  const confirmTextFree = () => {
+    onChange({ front: { ...state.front, mode: 'none' } });
+    setFrontConfirmOpen(false);
+    setPendingTextFreeGen(true);
+  };
+  useEffect(() => {
+    if (pendingTextFreeGen && state.front?.mode === 'none') {
+      setPendingTextFreeGen(false);
+      void (async () => {
+        await flushSave?.();
+        onGenerate();
+      })();
+    }
+  }, [pendingTextFreeGen, state.front?.mode, flushSave, onGenerate]);
+
   // Collapse the "generating" and "completed" screens into one
   // continuous RevealView — same canvas from Stage 1 (silhouette)
   // through Stage 2 (front arrived, inside pending) to Stage 3
@@ -256,7 +295,7 @@ export function ReviewStep({
 
       <div className="pt-2">
         <Button
-          onClick={onGenerate}
+          onClick={handleGenerateClick}
           className="w-full bg-cta hover:bg-cta-hover text-cta-foreground text-base py-6 shadow-sm hover:shadow-md transition-shadow"
           data-testid="btn-generate-card"
         >
@@ -275,6 +314,49 @@ export function ReviewStep({
             : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free — your card saves as you go.`}
         </p>
       </div>
+
+      {/* Blank front-headline confirm — fires when Generate is pressed with
+          no headline typed and a default would be used. */}
+      <Dialog open={frontConfirmOpen} onOpenChange={setFrontConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
+            No front headline yet
+          </DialogTitle>
+          <p className="pt-1 text-sm text-keeper-body leading-relaxed">
+            You haven't written a headline for the front. We'll add{' '}
+            <strong className="text-keeper-ink">“{defaultFrontText}”</strong> —
+            or the front can stay text-free, just the scene.
+          </p>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button
+              onClick={confirmUseDefault}
+              className="bg-go hover:bg-go-hover text-go-foreground"
+              data-testid="btn-front-confirm-default"
+            >
+              Use “{defaultFrontText}”
+            </Button>
+            <Button
+              variant="outline"
+              onClick={confirmTextFree}
+              className="border-stone-300"
+              data-testid="btn-front-confirm-textfree"
+            >
+              Leave the front text-free
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setFrontConfirmOpen(false);
+                onJumpToStep(stepIndexById.front);
+              }}
+              className="mt-1 text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body"
+              data-testid="btn-front-confirm-write"
+            >
+              Actually, I'll write one
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
