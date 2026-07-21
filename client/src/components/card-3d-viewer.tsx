@@ -777,7 +777,16 @@ function InitialCameraFit({ margin }: { margin: number }) {
   useEffect(() => {
     if (didInit.current) return;
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    didInit.current = true;
+    // Wait for a REAL canvas measurement before the one-shot fit. r3f
+    // reports size 0×0 for the first frame(s) after mount (before its
+    // ResizeObserver fires). Fitting against 0×0 makes `aspect` NaN →
+    // camera.position.z = NaN → the card renders off-screen/blank, and
+    // because `didInit` latches it NEVER recovered (only a window resize
+    // fixed it). This bit hard during the assembling→reveal handoff, when
+    // the Canvas mounts mid-transition and is momentarily unsized
+    // (Kevin 2026-07-21: "reveal is blank until you click"). Defer the
+    // latch until we have a non-zero size so the fit is computed correctly.
+    if (size.width === 0 || size.height === 0) return;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
     // Landing framing — `margin` controls how much empty space surrounds
@@ -789,7 +798,12 @@ function InitialCameraFit({ margin }: { margin: number }) {
     const required = CARD_W * margin;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
-    camera.position.z = Math.max(distByHeight, distByWidth);
+    const z = Math.max(distByHeight, distByWidth);
+    // Only latch once a finite fit is actually applied — never lock in a
+    // NaN/∞ camera (belt-and-suspenders on top of the size guard above).
+    if (!Number.isFinite(z)) return;
+    didInit.current = true;
+    camera.position.z = z;
     camera.updateProjectionMatrix();
     invalidate();
   }, [camera, size, invalidate, margin]);
