@@ -147,12 +147,28 @@ export const stripePaymentProvider: PaymentProvider = {
       }
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
-        // Charge → no session id on hand; surface the PI as the ref so
-        // the caller can match on payment_reference if it stored that.
-        return {
-          paymentReference: String(charge.payment_intent ?? charge.id),
-          status: "refunded",
-        };
+        // Orders store the Checkout Session id as paymentReference, but a
+        // refund only carries the PaymentIntent. Resolve the session from the
+        // PI so the caller can match the order the same way the paid path
+        // does. Falls back to the PI/charge id if the lookup fails.
+        const pi =
+          typeof charge.payment_intent === "string"
+            ? charge.payment_intent
+            : charge.payment_intent?.id;
+        let ref = String(charge.id);
+        if (pi) {
+          ref = pi;
+          try {
+            const sessions = await client().checkout.sessions.list({
+              payment_intent: pi,
+              limit: 1,
+            });
+            if (sessions.data[0]?.id) ref = sessions.data[0].id;
+          } catch {
+            /* session lookup best-effort — fall back to the PI */
+          }
+        }
+        return { paymentReference: ref, status: "refunded" };
       }
       default:
         // Unhandled event — report pending against the event id so the

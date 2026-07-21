@@ -916,6 +916,50 @@ ${ctaLabel}: ${ctaHref}
   return sendEmail({ to: senderEmail, subject, html, text });
 }
 
+// ── Refund confirmation (sender) ─────────────────────────────────────
+// Fired from the Stripe `charge.refunded` webhook once the refund is
+// matched to an order. Reassurance + timing; no CTA.
+export async function sendRefundEmail(params: {
+  customerEmail: string;
+  customerName: string | null;
+  amount: number; // minor units (pence) — the amount refunded
+  currency: string;
+  orderId: string;
+}): Promise<boolean> {
+  const { customerEmail, customerName, amount, currency, orderId } = params;
+  const money = formatMoney(amount, currency);
+  const greeting = customerName ? `Hi ${escape(customerName.split(' ')[0])},` : 'Hi there,';
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      We've refunded <strong>${money}</strong> to your original payment
+      method. Refunds usually land within <strong>5–10 working days</strong>,
+      depending on your bank.
+    </p>
+    <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
+      Order: <span style="font-family: monospace;">${escape(orderId)}</span>
+    </p>
+  `;
+  const html = chassis({
+    preheader: `Your ${money} refund is on its way.`,
+    heading: 'Your refund is on its way',
+    bodyHtml: body,
+  });
+  const text = `${greeting}
+
+We've refunded ${money} to your original payment method. Refunds usually land within 5–10 working days, depending on your bank.
+
+Order: ${orderId}
+
+— Celebrait`;
+  return sendEmail({
+    to: customerEmail,
+    subject: `Your ${money} refund is on its way`,
+    html,
+    text,
+  });
+}
+
 // ── Sender: "They've opened it" (first-view notification) ────────────
 // 2026-04-28 polish: added a soft cross-sell line + secondary CTA.
 // Not pushy — just acknowledges the moment and offers a re-entry path

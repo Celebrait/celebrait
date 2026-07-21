@@ -30,6 +30,7 @@ import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
+  sendRefundEmail,
   sendSenderPrintShippedEmail,
   sendSenderPrintDeliveredEmail,
 } from '../email-service';
@@ -478,10 +479,39 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             status.paymentReference,
           );
         }
+      } else if (status.status === 'refunded') {
+        // The provider resolves the refund's PaymentIntent back to the
+        // Checkout Session id, so we match the order the same way as paid.
+        const rows = await db
+          .select()
+          .from(studioOrders)
+          .where(eq(studioOrders.paymentReference, status.paymentReference))
+          .limit(1);
+        const order = rows[0];
+        if (!order) {
+          console.warn(
+            '[STRIPE-WEBHOOK] refund: no order for payment ref',
+            status.paymentReference,
+          );
+        } else if (order.paymentStatus === 'refunded') {
+          // Idempotent — a re-delivered webhook must not double-email.
+        } else {
+          await db
+            .update(studioOrders)
+            .set({ paymentStatus: 'refunded', updatedAt: new Date() })
+            .where(eq(studioOrders.id, order.id));
+          const sent = await sendRefundEmail({
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            amount: order.totalAmount,
+            currency: order.currency,
+            orderId: order.id,
+          });
+          console.log(
+            `[STRIPE-WEBHOOK] refunded order ${order.id} → refund email ${sent ? 'sent' : 'failed'}`,
+          );
+        }
       }
-      // refunded/failed handling is V1.5 — refund matching needs the
-      // payment_intent→order link, which we don't store yet. Logged in
-      // next_checkout_shipping_robust.md as a gap.
       res.json({ received: true });
     } catch (err: any) {
       console.error('[STRIPE-WEBHOOK] handler error:', err);
