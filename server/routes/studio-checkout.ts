@@ -886,6 +886,12 @@ async function fireOrderPaidEmails(
     currency: order.currency,
     orderId: order.id,
     cardId: order.cardId,
+    // Delivery destination drives the "to you" vs "to {recipient}" copy.
+    shipTo: order.shipTo as 'sender' | 'recipient' | null,
+    // Show the printed card (front + inside) as the small spread, like the
+    // card-ready / shipped / delivered emails.
+    cardImageUrl: resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl),
+    insideImageUrl: resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl),
   });
   console.log(
     `[STUDIO-CHECKOUT] sender confirmation ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,

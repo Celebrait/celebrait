@@ -782,6 +782,13 @@ export async function sendSenderOrderConfirmedEmail(params: {
    *  orderId as if it were a card id → /studio/card/<uuid> → NaN →
    *  redirect home; audit 2026-07-02.) */
   cardId: number;
+  /** Delivery destination — drives "on its way to YOU" (self-send) vs "to
+   *  {recipient}" (direct) copy so the receipt matches what was chosen. */
+  shipTo?: 'sender' | 'recipient' | null;
+  /** Front + inside images — shown as the small print spread (like the other
+   *  sender emails) so the receipt previews the card that's coming. */
+  cardImageUrl?: string | null;
+  insideImageUrl?: string | null;
   /** Null = immediate send (V1 default). Date = scheduled-delivery
    *  case (PR3). When non-null, the digital line says "will be sent
    *  on {date} at 8am" instead of "sent just now". */
@@ -799,14 +806,22 @@ export async function sendSenderOrderConfirmedEmail(params: {
     currency,
     orderId,
     cardId,
+    shipTo,
+    cardImageUrl,
+    insideImageUrl,
     scheduledSendAt,
   } = params;
 
   const forWhom = recipientName ? ` to ${escape(recipientName)}` : '';
   const occasionPart = occasion ? ` — ${escape(occasion)}` : '';
-  const subject = recipientName
-    ? `Your card's on its way to ${recipientName}`
-    : `Your card's on its way`;
+  // Self-send (shipTo='sender') = it's coming to YOU to hand over; otherwise
+  // it's posted straight to the recipient.
+  const toYou = includesPrint && shipTo === 'sender';
+  const subject = toYou
+    ? `Your card's on its way to you`
+    : recipientName
+      ? `Your card's on its way to ${recipientName}`
+      : `Your card's on its way`;
 
   const items: string[] = [];
   if (includesDigital) {
@@ -826,8 +841,11 @@ export async function sendSenderOrderConfirmedEmail(params: {
     }
   }
   if (includesPrint) {
+    const deliveryLine = toYou
+      ? 'posted <strong>to you</strong> to hand over yourself, tracked'
+      : `posted <strong>straight to ${escape(recipientName ?? 'them')}</strong>, tracked`;
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — made to order (<strong>up to 72 hours</strong>), then posted using the delivery you chose. We'll email your tracking as soon as it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed — made to order (<strong>up to 72 hours</strong>), then ${deliveryLine}. We'll email your tracking as soon as it ships.</li>`,
     );
   }
 
@@ -860,6 +878,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
   const ctaLabel = includesDigital ? 'View your card & share link' : 'View your order';
   const html = chassis({
     preheader,
+    heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
     cta: { label: ctaLabel, href: ctaHref },
   });
@@ -875,7 +894,10 @@ export async function sendSenderOrderConfirmedEmail(params: {
     }
   }
   if (includesPrint) {
-    textItems.push(`- Printed — made to order (up to 72 hours), then posted using the delivery you chose. We'll email your tracking as soon as it ships.`);
+    const dl = toYou
+      ? 'posted to you to hand over yourself, tracked'
+      : `posted straight to ${recipientName ?? 'them'}, tracked`;
+    textItems.push(`- Printed — made to order (up to 72 hours), then ${dl}. We'll email your tracking as soon as it ships.`);
   }
   const text = `Hi ${senderName},
 
