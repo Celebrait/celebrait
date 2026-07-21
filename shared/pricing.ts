@@ -108,9 +108,12 @@ export const PRICING_TIERS: PricingTier[] = [
 // deliberately never sell "next day" as next-day-from-order. That honest
 // framing must show up site-wide (production banner).
 //
-// Prices include a small markup over Prodigi's pass-through cost
-// (Prodigi 2026-07-03: Budget £1.45, Standard £1.95, Express £5.70,
-// Overnight £10.75).
+// Prices cover Prodigi's real INC-VAT shipping cost + a small margin.
+// Celebrait is NOT VAT-registered, so we can't reclaim Prodigi's VAT — the
+// true cost is the inc-VAT figure (Kevin 2026-07-21, from live invoices):
+// Standard (RM24) £2.35 ex → £2.82 inc; Express (Evri) £6.45 → £7.74;
+// Overnight (DPD) £10.75 → £12.90. Charging £3.95/£8.95/£13.95 clears cost
+// by ~£1 each (the old £1.95/£5.95/£10.95 sold every tier at a loss).
 // ─────────────────────────────────────────────────────────────────────
 
 /** Worst-case production/dispatch ceiling before the card leaves the lab. */
@@ -138,7 +141,7 @@ export const SHIPPING_TIERS: ShippingTier[] = [
     name: 'Standard',
     carrier: 'Royal Mail 24, tracked',
     prodigiMethod: 'Standard',
-    price: 195,
+    price: 395,
     shippingEstimate: '1–2 working days',
   },
   {
@@ -146,7 +149,7 @@ export const SHIPPING_TIERS: ShippingTier[] = [
     name: 'Express',
     carrier: 'Evri Next Day',
     prodigiMethod: 'Express',
-    price: 595,
+    price: 895,
     shippingEstimate: 'next working day',
   },
   {
@@ -154,7 +157,7 @@ export const SHIPPING_TIERS: ShippingTier[] = [
     name: 'Overnight',
     carrier: 'DPD Local Next Day',
     prodigiMethod: 'Overnight',
-    price: 1095,
+    price: 1395,
     shippingEstimate: 'next working day',
   },
 ];
@@ -178,11 +181,11 @@ export const PRODUCTION_NOTICE = `Every card is printed to order — allow up to
 
 /** Overnight delivery — kept for the /pricing page's add-on callout. The
  *  full picker (SHIPPING_TIERS) is the source of truth at checkout; this
- *  mirrors the overnight tier's price. £10.95 (Prodigi Overnight £10.75 +
- *  small markup). NOTE: "next-day" is the SHIPPING leg — production (up to
+ *  mirrors the overnight tier's price. £13.95 (covers Prodigi Overnight
+ *  £12.90 inc-VAT + a bit). NOTE: "next-day" is the SHIPPING leg — production (up to
  *  72h) still applies first. */
 export const OVERNIGHT_DELIVERY = {
-  price: { GBP: 1095, ZAR: null }, // ZAR null = not available
+  price: { GBP: 1395, ZAR: null }, // ZAR null = not available
   description: 'UK only · next-day courier once printed',
   ukOnly: true,
 } as const;
@@ -203,7 +206,7 @@ export const OVERNIGHT_DELIVERY = {
  *  units (pence). Superseded by SHIPPING_TIERS (the full picker); kept as
  *  the back-compat default when no tier is chosen. Mirrors
  *  getShippingTier('standard').price. */
-export const UK_SHIPPING_STANDARD_GBP = 195;
+export const UK_SHIPPING_STANDARD_GBP = 395;
 
 /** Direct-to-recipient premium, minor units (pence). Charged ONLY when
  *  shipTo === 'recipient' — the done-for-you path: we seal the kraft
