@@ -38,7 +38,7 @@ import type { PrintProviderStatus } from '../studio/print-provider';
 import {
   tierPriceGBP,
   getShippingTier,
-  deliverySurchargeGBP,
+  envelopeStickerGBP,
   DEFAULT_SHIPPING_TIER,
   type ShippingTierId,
 } from '@shared/pricing';
@@ -71,6 +71,8 @@ const checkoutSchema = z.object({
   includesPrint: z.boolean().optional(),
   includesDigital: z.boolean().optional(),
   shipTo: z.enum(['sender', 'recipient']).optional(),
+  // Opt-in wax-seal envelope sticker (direct-to-recipient only).
+  envelopeSticker: z.boolean().optional(),
   shippingTier: z.enum(['standard', 'express', 'overnight']).optional(),
   shippingAddress: shippingAddressSchema.optional(),
   recipientEmail: z.string().email().optional(),
@@ -156,11 +158,16 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const printAmount = PRINT_PRICE;
         const digitalAmount = 0;
         const shippingAmount = getShippingTier(shippingTier).price;
-        // Direct-to-recipient premium (£1.50): sealed + addressed + posted
-        // straight to them. Server-derived from shipTo so a crafted POST can't
-        // pick 'recipient' delivery without paying the surcharge.
-        const deliverySurcharge = deliverySurchargeGBP(body.shipTo);
-        const totalAmount = printAmount + shippingAmount + deliverySurcharge;
+        // Optional wax-seal envelope sticker (£1.50) — an add-on the customer
+        // opts into, and only valid on direct-to-recipient sends (the seal goes
+        // on the kraft envelope WE post). Server-derived so a crafted POST can't
+        // add the sticker without paying, or attach it on a self-send. Direct
+        // delivery itself is free now.
+        const envelopeStickerAmount = envelopeStickerGBP(
+          body.envelopeSticker === true,
+          body.shipTo,
+        );
+        const totalAmount = printAmount + shippingAmount + envelopeStickerAmount;
 
         // Mint a share token up-front for digital orders. Payment
         // hasn't confirmed yet, but the token is meaningless without
@@ -193,7 +200,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             printAmount,
             digitalAmount,
             shippingAmount,
-            deliverySurchargeAmount: deliverySurcharge,
+            envelopeStickerAmount,
             totalAmount,
           })
           .returning({ id: studioOrders.id });
@@ -810,6 +817,8 @@ async function submitPrintOrder(
       frontImageUrl,
       insideImageUrl,
       shipTo: shipTo as 'sender' | 'recipient',
+      // The customer opted into the wax-seal sticker (charge > 0 = chosen).
+      envelopeSticker: (order.envelopeStickerAmount ?? 0) > 0,
       shippingAddress: shippingAddress as ShippingAddress,
       recipientName,
       giftMessage: order.giftMessage ?? undefined,

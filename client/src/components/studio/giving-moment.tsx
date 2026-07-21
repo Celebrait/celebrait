@@ -33,18 +33,14 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  tierPriceGBP,
-  UK_SHIPPING_STANDARD_GBP,
-  deliverySurchargeGBP,
-  DIRECT_DELIVERY_SURCHARGE_GBP,
-} from '@shared/pricing';
+import { tierPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
 import type { CardDraftState } from '@shared/schema';
 
 // ── Pricing (pence) ──────────────────────────────────────────────────
 // Print-led V1: one product — a printed card (+ free digital link) plus
 // standard postage. Sourced from shared/pricing.ts so this can't drift from
-// checkout. Direct-to-recipient adds DIRECT_DELIVERY_SURCHARGE_GBP on top.
+// checkout. Both destinations cost the same; the optional wax-seal sticker
+// is a checkout add-on, not a destination surcharge (Kevin 2026-07-21).
 const CARD_BASE = tierPriceGBP('printed') + UK_SHIPPING_STANDARD_GBP;
 
 type Destination = 'recipient' | 'sender';
@@ -151,7 +147,7 @@ export function GivingMoment({
           <DestinationCard
             icon={<Mail className="w-5 h-5" />}
             title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
-            body={`Sealed with our "only open on your special day" sticker, addressed and posted straight to ${them}, tracked. +${formatGBP(DIRECT_DELIVERY_SURCHARGE_GBP)}.`}
+            body={`We hand-address a kraft envelope and post it straight to ${them}, tracked. Add a wax-seal sticker at checkout if you like.`}
             selected={destination === 'recipient'}
             onSelect={() => setDestination('recipient')}
             testId="giving-dest-recipient"
@@ -159,27 +155,12 @@ export function GivingMoment({
           <DestinationCard
             icon={<HandHeart className="w-5 h-5" />}
             title="To you first"
-            body={`We post the finished card to you — hand it over to ${them} in person. No extra.`}
+            body={`We post the finished card to you — hand it over to ${them} in person.`}
             selected={destination === 'sender'}
             onSelect={() => setDestination('sender')}
             testId="giving-dest-sender"
           />
         </div>
-
-        {/* Why the direct option costs more — shown once it's chosen. */}
-        {destination === 'recipient' && (
-          <p
-            className="text-[11px] text-keeper-meta leading-relaxed pt-0.5"
-            data-testid="giving-surcharge-why"
-          >
-            Direct delivery is {formatGBP(DIRECT_DELIVERY_SURCHARGE_GBP)} more —
-            different packaging: your card is sealed with our keepsake sticker,
-            hand-addressed in a kraft envelope, and posted straight to {them}.
-            Prefer to hand it over yourself? Choose “to you first” at no extra
-            cost.
-          </p>
-        )}
-
       </section>
 
       <Button
@@ -204,7 +185,7 @@ export function GivingMoment({
           <>
             Continue to payment
             <span className="ml-2 font-normal opacity-90">
-              · {formatGBP(CARD_BASE + deliverySurchargeGBP(destination))}
+              · {formatGBP(CARD_BASE)}
             </span>
             <ArrowRight className="w-4 h-4 ml-2" />
           </>

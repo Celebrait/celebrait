@@ -19,7 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Package, Sparkles } from 'lucide-react';
+import { Check, Loader2, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,8 @@ import {
   tierPriceGBP,
   SHIPPING_TIERS,
   getShippingTier,
-  deliverySurchargeGBP,
+  envelopeStickerGBP,
+  ENVELOPE_STICKER_GBP,
   DEFAULT_SHIPPING_TIER,
   deliveryEstimateCopy,
   PRODUCTION_NOTICE,
@@ -87,21 +88,25 @@ function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
 
-// Printed card (+ free digital link) + postage for the chosen delivery
-// tier + the direct-to-recipient surcharge. The server re-derives every
-// pence from shared/pricing.ts, so this must stay in lockstep.
-function totalsFor(tier: ShippingTierId, shipTo: 'sender' | 'recipient') {
+// Printed card (+ free digital link) + postage for the chosen delivery tier
+// + the optional wax-seal sticker (direct sends only). The server re-derives
+// every pence from shared/pricing.ts, so this must stay in lockstep.
+function totalsFor(
+  tier: ShippingTierId,
+  shipTo: 'sender' | 'recipient',
+  addSticker: boolean,
+) {
   const printAmount = PRINT_PRICE;
   const digitalAmount = 0;
   const shippingAmount = getShippingTier(tier).price;
-  const deliverySurcharge = deliverySurchargeGBP(shipTo);
+  const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
   return {
     printAmount,
     digitalAmount,
     shippingAmount,
-    deliverySurcharge,
+    stickerAmount,
     discount: 0,
-    total: printAmount + shippingAmount + deliverySurcharge,
+    total: printAmount + shippingAmount + stickerAmount,
   };
 }
 
@@ -181,6 +186,8 @@ export default function CheckoutPage() {
     setCustomerName((cur) => cur || user.firstName || '');
   }, [user]);
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
+  // Opt-in wax-seal envelope sticker (direct sends only).
+  const [addSticker, setAddSticker] = useState(false);
   const [shippingTier, setShippingTier] = useState<ShippingTierId>(DEFAULT_SHIPPING_TIER);
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
@@ -193,7 +200,10 @@ export default function CheckoutPage() {
   // digital link — so digital is always part of the order. (The dead
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
-  const totals = useMemo(() => totalsFor(shippingTier, shipTo), [shippingTier, shipTo]);
+  const totals = useMemo(
+    () => totalsFor(shippingTier, shipTo, addSticker),
+    [shippingTier, shipTo, addSticker],
+  );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
@@ -236,6 +246,7 @@ export default function CheckoutPage() {
       };
       if (includesPrint) {
         payload.shipTo = shipTo;
+        payload.envelopeSticker = addSticker && shipTo === 'recipient';
         payload.shippingTier = shippingTier;
         payload.shippingAddress = {
           line1: line1.trim(),
@@ -430,7 +441,7 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-xs text-keeper-meta mt-0.5 leading-relaxed max-w-[42ch]">
                           {shipTo === 'recipient'
-                            ? `Sealed with our keepsake sticker, addressed and posted straight to them, tracked (+${formatGBP(deliverySurchargeGBP('recipient'))}).`
+                            ? 'Addressed and posted straight to them, tracked — no extra charge.'
                             : 'Posted to you, ready to hand over in person.'}
                         </p>
                       </div>
@@ -457,6 +468,45 @@ export default function CheckoutPage() {
                     >
                       Choose how to send it
                     </Button>
+                  </Section>
+                )}
+
+                {/* Optional wax-seal sticker — direct-to-recipient only (it
+                    goes on the envelope WE post). Opt-in add-on (Kevin
+                    2026-07-21). */}
+                {isResolved && shipTo === 'recipient' && (
+                  <Section title="Add a keepsake seal?">
+                    <button
+                      type="button"
+                      onClick={() => setAddSticker((v) => !v)}
+                      aria-pressed={addSticker}
+                      className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
+                        addSticker
+                          ? 'border-brand bg-brand/5'
+                          : 'border-keeper-hair hover:border-stone-400'
+                      }`}
+                      data-testid="checkout-add-sticker"
+                    >
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          addSticker
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-stone-300'
+                        }`}
+                      >
+                        {addSticker && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-keeper-ink">
+                          Wax-seal envelope sticker · +{formatGBP(ENVELOPE_STICKER_GBP)}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-keeper-meta leading-relaxed">
+                          A round “only open on your special day” seal on the
+                          outside of the envelope — a little moment before they
+                          even open it.
+                        </span>
+                      </span>
+                    </button>
                   </Section>
                 )}
 
@@ -557,11 +607,11 @@ export default function CheckoutPage() {
                 amount={totals.shippingAmount}
                 muted
               />
-              {totals.deliverySurcharge > 0 && (
+              {totals.stickerAmount > 0 && (
                 <LineItem
-                  label="Direct delivery"
-                  sub="Sealed & posted straight to them"
-                  amount={totals.deliverySurcharge}
+                  label="Envelope sticker"
+                  sub="Wax-seal on the envelope"
+                  amount={totals.stickerAmount}
                   muted
                 />
               )}

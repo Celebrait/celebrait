@@ -22,6 +22,9 @@ export interface PrintOrderRequest {
   // Delivery (-DIR, Kraft envelope, we post it); 'sender' → Self Send
   // (-BLA, cellophane sleeve + spare envelopes, the creator posts it).
   shipTo: "sender" | "recipient";
+  // Customer opted into the wax-seal envelope sticker (direct sends only).
+  // Only then does the provider attach the branding sticker.
+  envelopeSticker?: boolean;
   shippingAddress: ShippingAddress;
   recipientName: string;
   giftMessage?: string;

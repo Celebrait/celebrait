@@ -53,10 +53,13 @@ export const studioOrders = pgTable(
     printAmount: integer("print_amount").notNull().default(0),
     digitalAmount: integer("digital_amount").notNull().default(0),
     shippingAmount: integer("shipping_amount").notNull().default(0),
-    // Direct-to-recipient premium (£1.50) — the sealed+addressed+posted-direct
-    // path. 0 for self-send. Itemised so refunds/reporting can see it apart
-    // from postage. See DIRECT_DELIVERY_SURCHARGE_GBP in shared/pricing.ts.
-    deliverySurchargeAmount: integer("delivery_surcharge_amount")
+    // Optional wax-seal envelope sticker charge (£1.50 when chosen, else 0).
+    // Opt-in add-on on direct-to-recipient sends (Kevin 2026-07-21). Itemised
+    // so refunds/reporting see it apart from postage. See ENVELOPE_STICKER_GBP
+    // in shared/pricing.ts. NB: the DB column is still `delivery_surcharge_amount`
+    // (it began as the direct surcharge) — kept to avoid a migration; >0 means
+    // "sticker chosen", which the fulfilment path reads.
+    envelopeStickerAmount: integer("delivery_surcharge_amount")
       .notNull()
       .default(0),
     totalAmount: integer("total_amount").notNull(),
@@ -111,7 +114,7 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   printAmount: true,
   digitalAmount: true,
   shippingAmount: true,
-  deliverySurchargeAmount: true,
+  envelopeStickerAmount: true,
   totalAmount: true,
 });
 

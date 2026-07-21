@@ -273,6 +273,7 @@ export const prodigiPrintProvider: PrintProvider = {
     // https (skip localhost/relative — Prodigi can't reach it).
     const attachSticker =
       req.shipTo !== "sender" &&
+      req.envelopeSticker === true &&
       !!envelopeStickerUrl &&
       /^https:\/\//i.test(envelopeStickerUrl);
     if (attachSticker) {
@@ -285,7 +286,7 @@ export const prodigiPrintProvider: PrintProvider = {
       `[PRODIGI] order ${req.studioOrderId} envelope seal: ${
         attachSticker
           ? `ON → ${JSON.stringify(body.branding)}`
-          : `OFF (shipTo=${req.shipTo}, url=${envelopeStickerUrl ?? "unset"})`
+          : `OFF (shipTo=${req.shipTo}, chosen=${req.envelopeSticker === true}, url=${envelopeStickerUrl ?? "unset"})`
       }`,
     );
 
