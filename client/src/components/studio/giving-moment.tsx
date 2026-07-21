@@ -33,7 +33,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   tierPriceGBP,
   UK_SHIPPING_STANDARD_GBP,
@@ -87,7 +86,6 @@ export function GivingMoment({
   // Print-led V1: one product (a printed card + free digital link), so
   // there's no format step — the only question is where it should go.
   const [destination, setDestination] = useState<Destination | null>(null);
-  const [fromLine, setFromLine] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Step-1 "Back to card" — leaves the giving flow back to wherever the
@@ -182,27 +180,6 @@ export function GivingMoment({
           </p>
         )}
 
-        {/* Optional "from…" line — only for direct-to-recipient. */}
-        {destination === 'recipient' && (
-          <div className="pt-1">
-            <label
-              htmlFor="giving-from-line"
-              className="text-xs font-medium text-keeper-body"
-            >
-              A short note for the envelope{' '}
-              <span className="text-keeper-meta">(optional)</span>
-            </label>
-            <Input
-              id="giving-from-line"
-              value={fromLine}
-              onChange={(e) => setFromLine(e.target.value)}
-              placeholder="e.g. With love, Sarah"
-              maxLength={120}
-              className="mt-1 border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
-              data-testid="giving-from-line"
-            />
-          </div>
-        )}
       </section>
 
       <Button
@@ -211,10 +188,6 @@ export function GivingMoment({
           commitAndGo({
             format: 'print',
             destination,
-            fromLine:
-              destination === 'recipient' && fromLine.trim()
-                ? fromLine.trim()
-                : undefined,
           })
         }
         disabled={!canContinue}

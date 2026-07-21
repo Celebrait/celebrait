@@ -114,6 +114,12 @@ export default function CheckoutPage() {
   const { data: card, isLoading } = useQuery<CardSummary>({
     queryKey: [`/api/studio/drafts/${cardId}`],
     enabled: Number.isFinite(cardId),
+    // Always refetch on mount: the Giving Moment saves the delivery choice
+    // to the draft immediately before navigating here, so a stale cached
+    // card (without delivery) would drop us into the fallback radio and
+    // silently default to self-send. Read fresh so the choice resolves.
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const recipientName = card?.state?.recipient?.name?.trim() || '';
@@ -138,18 +144,15 @@ export default function CheckoutPage() {
     delivery?.destination ?? (insideIsBlank ? 'sender' : null);
   const isResolved = !!resolvedFormat && !!resolvedDestination;
 
-  // One-shot init: when the card lands, sync the local form state to
-  // the resolved giving choice — including the gift-message pre-fill
-  // from the Giving Moment's "from…" line, if it set one. After this
-  // fires, user changes stick (gift message editable here; product +
-  // ship-to editable only in the fallback radio path).
+  // One-shot init: when the card lands, sync the local ship-to state to
+  // the resolved Giving Moment choice. The destination is decided upstream
+  // (in the Giving Moment) and shown read-only here — not re-asked.
   const initAppliedRef = useRef(false);
   useEffect(() => {
     if (initAppliedRef.current || !card) return;
     if (resolvedDestination) setShipTo(resolvedDestination);
-    if (delivery?.fromLine) setGiftMessage(delivery.fromLine);
     initAppliedRef.current = true;
-  }, [card, resolvedFormat, resolvedDestination, delivery?.fromLine]);
+  }, [card, resolvedFormat, resolvedDestination]);
 
   // Print-led V1: the printed card is the only product (it includes a
   // free digital link). There is no format choice — `choice` is always
@@ -183,8 +186,6 @@ export default function CheckoutPage() {
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
   const [postcode, setPostcode] = useState('');
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [giftMessage, setGiftMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const includesPrint = choice !== 'digital';
@@ -215,15 +216,12 @@ export default function CheckoutPage() {
     line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5;
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
-  // Recipient email is OPTIONAL — a printed card reaches them by post
-  // regardless; if they give it, the recipient also gets the digital
-  // link by email. Valid = blank, or a well-formed address.
-  const recipientEmailValid =
-    recipientEmail.trim() === '' || /.+@.+\..+/.test(recipientEmail);
+  // Print orders must have a resolved delivery destination (chosen in the
+  // Giving Moment) before pay — no silent self-send default. A deep-link
+  // that skipped the choice is sent back to pick (see the section below).
   const canPay =
     contactComplete &&
-    recipientEmailValid &&
-    (!includesPrint || addressComplete) &&
+    (!includesPrint || (addressComplete && isResolved)) &&
     !submitting;
 
   const handlePay = async () => {
@@ -235,7 +233,6 @@ export default function CheckoutPage() {
         customerName,
         includesPrint,
         includesDigital,
-        recipientEmail: recipientEmail.trim() || undefined,
       };
       if (includesPrint) {
         payload.shipTo = shipTo;
@@ -247,9 +244,6 @@ export default function CheckoutPage() {
           postcode: postcode.trim().toUpperCase(),
           country: 'GB',
         };
-        if (shipTo === 'recipient' && giftMessage.trim()) {
-          payload.giftMessage = giftMessage.trim();
-        }
       }
 
       const res = await apiRequest('POST', `/api/studio/cards/${cardId}/checkout`, payload);
@@ -419,89 +413,50 @@ export default function CheckoutPage() {
 
             {includesPrint && (
               <>
-                {/* Ship-to choice — radios only in fallback mode. When
-                    isResolved, the destination is already shown in the
-                    YourChoiceSummary above; the dependent gift-message
-                    + recipient-email fields live in their own
-                    "Send-with" section below for clarity. */}
-                {!isResolved && (
-                  <Section title="How should it reach them?">
-                    <RadioGroup
-                      value={shipTo}
-                      onValueChange={(v) => setShipTo(v as 'sender' | 'recipient')}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                    >
-                      <ShipToOption
-                        value="sender"
-                        title="Send it to me"
-                        description={
-                          insideIsBlank
-                            ? "Blank inside — you'll handwrite your message, then give it yourself."
-                            : 'The finished card comes to you, to give in person.'
-                        }
-                      />
-                      <ShipToOption
-                        value="recipient"
-                        title={
-                          recipientName ? `Straight to ${recipientName}` : 'Straight to them'
-                        }
-                        description={`Posted to their door, tracked, sealed with our keepsake sticker (+${formatGBP(deliverySurchargeGBP('recipient'))}). Add a gift message if you like.`}
-                      />
-                    </RadioGroup>
-
-                    {/* Footgun guard — the user left the inside blank (to
-                        handwrite it) but is about to post the card straight
-                        to the recipient. It would land on their doormat
-                        with nothing written inside. Loud, non-blocking
-                        warning with a one-tap fix. (Only in fallback mode
-                        — the Giving Moment + structural blank-skip
-                        design out this combination upstream.) */}
-                    {insideIsBlank && shipTo === 'recipient' && (
-                      <div
-                        className="mt-3 rounded-lg border border-accent-red/30 bg-accent-red-light px-4 py-3"
-                        data-testid="checkout-blank-inside-warning"
+                {/* Delivery destination is decided ONCE, upstream, in the
+                    Giving Moment — never re-asked here (a second mutable
+                    radio silently defaulted to self-send; Kevin 2026-07-20).
+                    When resolved: a read-only confirmation + "Change" link.
+                    When a deep-link skipped the choice: send them back to
+                    pick, rather than defaulting. Pay is gated on isResolved. */}
+                {isResolved ? (
+                  <Section title="How it's being sent">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-keeper-ink">
+                          {shipTo === 'recipient'
+                            ? `Straight to ${recipientName || 'them'}`
+                            : 'To you first'}
+                        </p>
+                        <p className="text-xs text-keeper-meta mt-0.5 leading-relaxed max-w-[42ch]">
+                          {shipTo === 'recipient'
+                            ? `Sealed with our keepsake sticker, addressed and posted straight to them, tracked (+${formatGBP(deliverySurchargeGBP('recipient'))}).`
+                            : 'Posted to you, ready to hand over in person.'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLocation(`/studio/card/${cardId}/give`)}
+                        className="shrink-0 text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
+                        data-testid="checkout-change-delivery"
                       >
-                        <p className="text-sm font-semibold text-accent-red-dark">
-                          Heads up — this card's inside is blank
-                        </p>
-                        <p className="text-xs text-accent-red-dark mt-1 leading-relaxed">
-                          You chose to handwrite the message yourself. Posted
-                          straight to {recipientName || 'them'}, it'll arrive
-                          with nothing written inside.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setShipTo('sender')}
-                          className="mt-2 text-xs font-semibold text-accent-red-dark underline underline-offset-2 hover:text-accent-red-dark"
-                          data-testid="btn-blank-inside-fix"
-                        >
-                          Send it to me instead, so I can write it
-                        </button>
-                      </div>
-                    )}
-
-                    {shipTo === 'recipient' && (
-                      <div className="space-y-4 mt-4 pt-4 border-t border-keeper-hair">
-                        <Field label="Gift message (printed inside the envelope)">
-                          <Input
-                            value={giftMessage}
-                            onChange={(e) => setGiftMessage(e.target.value)}
-                            placeholder="From…"
-                            maxLength={120}
-                          />
-                        </Field>
-                        {includesDigital && (
-                          <Field label="Their email (optional — sends them the digital link)">
-                            <Input
-                              type="email"
-                              value={recipientEmail}
-                              onChange={(e) => setRecipientEmail(e.target.value)}
-                              placeholder="them@example.com"
-                            />
-                          </Field>
-                        )}
-                      </div>
-                    )}
+                        Change
+                      </button>
+                    </div>
+                  </Section>
+                ) : (
+                  <Section title="How would you like to send it?">
+                    <p className="text-sm text-keeper-body leading-relaxed">
+                      Choose whether we post it straight to them, or send it to
+                      you to hand over — it only takes a second.
+                    </p>
+                    <Button
+                      onClick={() => setLocation(`/studio/card/${cardId}/give`)}
+                      className="mt-3 bg-go hover:bg-go-hover text-go-foreground"
+                      data-testid="checkout-choose-delivery"
+                    >
+                      Choose how to send it
+                    </Button>
                   </Section>
                 )}
 
@@ -572,71 +527,11 @@ export default function CheckoutPage() {
                   </RadioGroup>
                 </Section>
 
-                {/* "Send-with" section — isResolved + recipient-bound
-                    print orders. Holds the gift-message + (for Both)
-                    recipient-email fields the fallback path nests
-                    under its ship-to radios. */}
-                {isResolved && shipTo === 'recipient' && (
-                  <Section
-                    title={`Send-with details for ${recipientName || 'them'}`}
-                  >
-                    <Field label="Gift message (printed inside the envelope)">
-                      <Input
-                        value={giftMessage}
-                        onChange={(e) => setGiftMessage(e.target.value)}
-                        placeholder="From…"
-                        maxLength={120}
-                      />
-                    </Field>
-                    {includesDigital && (
-                      <Field label="Their email (for the digital share link)">
-                        <Input
-                          type="email"
-                          value={recipientEmail}
-                          onChange={(e) => setRecipientEmail(e.target.value)}
-                          placeholder="them@example.com"
-                        />
-                      </Field>
-                    )}
-                  </Section>
-                )}
+                {/* No gift-message or recipient-email fields — the digital
+                    link goes to the CREATOR to forward if they wish (Kevin
+                    2026-07-20: avoids the recipient seeing the link before
+                    the card lands on the day). */}
               </>
-            )}
-
-            {/* Digital-only recipient email. Two modes:
-                 • Fallback (!isResolved): an OPTIONAL field — "leave
-                   blank → goes to you" — same as the legacy UX.
-                 • Resolved + sender: skipped — link goes to the
-                   sender's account email automatically.
-                 • Resolved + recipient: a REQUIRED field, no "leave
-                   blank" copy, since they chose to send straight. */}
-            {choice === 'digital' && !isResolved && (
-              <Section title="Send it to them (optional)">
-                <Field label="Their email">
-                  <Input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="them@example.com"
-                  />
-                </Field>
-                <p className="text-xs text-keeper-meta">
-                  Leave blank and we'll send the share link to you instead.
-                </p>
-              </Section>
-            )}
-
-            {isResolved && choice === 'digital' && shipTo === 'recipient' && (
-              <Section title={`Send the link to ${recipientName || 'them'}`}>
-                <Field label="Their email">
-                  <Input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="them@example.com"
-                  />
-                </Field>
-              </Section>
             )}
 
           </div>
@@ -754,29 +649,6 @@ function PreviewTab({
     >
       {children}
     </button>
-  );
-}
-
-function ShipToOption({
-  value,
-  title,
-  description,
-}: {
-  value: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Label
-      htmlFor={`ship-${value}`}
-      className="flex items-start gap-3 border border-keeper-hair rounded-lg p-3 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
-    >
-      <RadioGroupItem value={value} id={`ship-${value}`} className="mt-1" />
-      <div>
-        <p className="text-sm font-medium text-keeper-ink">{title}</p>
-        <p className="text-xs text-keeper-meta mt-0.5">{description}</p>
-      </div>
-    </Label>
   );
 }
 
