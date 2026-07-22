@@ -117,8 +117,9 @@ export function MarketingFooter() {
       <div className="relative mx-auto max-w-7xl px-6 md:px-10">
         {/* Closing CTA band */}
         <div className="flex flex-col gap-8 border-b border-white/10 py-16 md:flex-row md:items-end md:justify-between md:py-20">
-          <h2 className="max-w-[18ch] font-display text-4xl font-semibold leading-[1.03] tracking-[-0.02em] text-keeper-paper md:text-5xl">
-            Ready to make an unbinnable greetings card?
+          <h2 className="max-w-[16ch] font-display text-4xl font-semibold leading-[1.03] tracking-[-0.02em] text-keeper-paper md:text-6xl">
+            Celebrait good times, come on{' '}
+            <span className="inline-block align-baseline">😉</span>
           </h2>
           <div className="shrink-0">
             <FooterCta />
@@ -134,8 +135,12 @@ export function MarketingFooter() {
               className="mb-4 h-8"
               style={{ filter: 'brightness(0) invert(1)' }}
             />
-            <p className="max-w-[26ch] text-sm leading-relaxed text-keeper-paper/60">
-              AI-illustrated greeting cards for the people who matter.
+            <p className="max-w-[34ch] text-sm leading-relaxed text-keeper-paper/60">
+              Custom greetings card with a front and inside that belong
+              together, print-ready in about five minutes*
+            </p>
+            <p className="mt-1.5 max-w-[34ch] text-[11px] leading-snug text-keeper-paper/40">
+              *Possible, but you might prefer to take longer
             </p>
             <div className="mt-5 flex items-center gap-3">
               <a
