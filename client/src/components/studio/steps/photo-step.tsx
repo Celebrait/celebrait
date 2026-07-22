@@ -40,6 +40,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -252,18 +253,21 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   const [queuedFiles, setQueuedFiles] = useState<
     Array<{ base64: string; filename: string }>
   >([]);
-  // The face-count mismatch warning is now a PROPERTY of the draft
-  // (state.photos.pendingModeReview) rather than local component state,
-  // so (a) autosave carries it across reloads and (b) the step-ready
-  // check in card-maker.tsx can gate the Next button on it. Derived
-  // here into the component-local `faceWarning` shape for rendering.
+  // The face-count nudge is a PROPERTY of the draft
+  // (state.photos.pendingModeReview) rather than local component state, so
+  // autosave carries it across reloads. It's advisory only — it never
+  // gates Next (see isPhotoStepReady). Derived here into the
+  // component-local `faceWarning` shape for rendering.
+  //
+  // Only 'too-many' is surfaced (chose single, looks like several people —
+  // a real footgun worth a gentle heads-up). Any stored 'too-few' from an
+  // older draft is ignored: group-shot under-counting made it a false
+  // alarm, so it's no longer produced or shown.
   const pendingModeReview = state.photos?.pendingModeReview ?? null;
-  const faceWarning: FaceWarning | null = pendingModeReview
-    ? {
-        kind: pendingModeReview,
-        suggestedMode: pendingModeReview === 'too-many' ? 'group' : 'one_person',
-      }
-    : null;
+  const faceWarning: FaceWarning | null =
+    pendingModeReview === 'too-many'
+      ? { kind: 'too-many', suggestedMode: 'group' }
+      : null;
   const setFaceWarning = (next: FaceWarning | null): void => {
     // Build the photos patch from REFS, not the closure's state.photos,
     // so we don't clobber photoIds committed by an in-flight upload
@@ -573,13 +577,22 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         // If this photo is fine but a previous photo set a mismatch,
         // preserve that prior mismatch — the offending photo may still
         // be in photoIds and the user hasn't resolved it yet.
+        //
+        // ONE direction only (2026-07-22): the user's mode choice is
+        // authoritative — they can see their own photo. We only surface a
+        // soft, optional nudge in the case that has a real footgun: they
+        // chose single but there look to be several people, so everyone
+        // but one would be dropped from the card. We deliberately DON'T
+        // warn on group→"only one face": face detection under-counts
+        // group shots constantly (angled/small/side faces), so that path
+        // was a pure false alarm on genuine groups — and group mode on a
+        // truly single photo renders fine anyway. The nudge never blocks
+        // (see isPhotoStepReady); it's advice, not a gate.
         let nextPMR: 'too-many' | 'too-few' | undefined =
           pendingModeReviewRef.current;
         if (detection) {
           if (modeAtCrop === 'one_person' && detection.count >= 2) {
             nextPMR = 'too-many';
-          } else if (modeAtCrop === 'group' && detection.count <= 1) {
-            nextPMR = 'too-few';
           }
         }
         pendingModeReviewRef.current = nextPMR;
@@ -990,23 +1003,15 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           </button>
         </div>
 
-        {faceWarning && (
-          <FaceWarningBanner
-            warning={faceWarning}
-            currentModeLabel={
-              mode === 'one_person'
-                ? recipientName
-                  ? `Just ${recipientName}`
-                  : 'single'
-                : 'group'
-            }
-            onSwitch={() => {
-              setMode(faceWarning.suggestedMode);
-              setFaceWarning(null);
-            }}
-            onKeep={() => setFaceWarning(null)}
-          />
-        )}
+        <FaceModeConfirm
+          open={faceWarning != null}
+          recipientName={recipientName}
+          onUseGroup={() => {
+            if (faceWarning) setMode(faceWarning.suggestedMode);
+            setFaceWarning(null);
+          }}
+          onKeepSingle={() => setFaceWarning(null)}
+        />
 
         {/* Hidden inputs so the "+ Add another" tile can trigger picker.
             `multiple` is one_person-only — group mode is a single photo. */}
@@ -1221,59 +1226,69 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
 }
 
 /**
- * BLOCKING banner shown when the face-count heuristic disagrees with
- * the user's selected mode. User must commit to one of the two choices
- * — Switch or Keep — before they can advance to the next step (the
- * parent's `isPhotoStepReady` checks `state.photos.pendingModeReview`
- * and gates Next on it being cleared). No passive "Dismiss" escape;
- * both actions are deliberate.
+ * Mode-confirm modal — pops only when the user chose single but the photo
+ * looks like it has several people. This is the ONE case with a real
+ * footgun (everyone but one face would be dropped from the card), so it's
+ * worth interrupting for — hence a modal, not an inline hint (Kevin
+ * 2026-07-22).
+ *
+ * It is NOT a blocker and NOT an error: it only ever fires in this single
+ * direction (never the group→"only one face" path, which under-counted
+ * real groups and read as a bug), it's framed as a plain choice, and
+ * dismissing it — outside-click, Esc, or "Keep as single" — simply keeps
+ * the user's original choice and lets them carry on. `isPhotoStepReady`
+ * never gates on it, so there's no way to get stranded.
  */
-function FaceWarningBanner({
-  warning,
-  currentModeLabel,
-  onSwitch,
-  onKeep,
+function FaceModeConfirm({
+  open,
+  recipientName,
+  onUseGroup,
+  onKeepSingle,
 }: {
-  warning: FaceWarning;
-  /** Personalised label of the current mode, e.g. "Just Aidan" or
-   *  "Group photo featuring Aidan" — used on the Keep button so the
-   *  user sees what they're committing to. */
-  currentModeLabel: string;
-  onSwitch: () => void;
-  onKeep: () => void;
+  open: boolean;
+  recipientName: string;
+  onUseGroup: () => void;
+  onKeepSingle: () => void;
 }) {
-  const message =
-    warning.kind === 'too-many'
-      ? 'Looks like more than one person in this shot. Switch to Group photo mode to render everyone, or keep it as-is and only the main face will render.'
-      : 'Only one face in this shot, so Group mode has nothing to work with. Switch to single-person mode for a better render, or keep it as-is.';
-  const switchLabel =
-    warning.suggestedMode === 'group' ? 'Switch to group' : 'Switch to single';
+  const who = recipientName ? `just ${recipientName}` : 'a single person';
   return (
-    <div
-      className="mt-4 w-full max-w-[360px] rounded-xl border border-accent-red/30 bg-accent-red-light px-3.5 py-3 text-[12px] text-accent-red-dark"
-      data-testid="face-warning-banner"
+    <Dialog
+      open={open}
+      // Any dismiss (outside-click / Esc / close) keeps the user's own
+      // choice — single — since that's what they picked. No hard block.
+      onOpenChange={(o) => {
+        if (!o) onKeepSingle();
+      }}
     >
-      <p className="leading-snug font-semibold mb-1">Choose how to render this</p>
-      <p className="leading-snug">{message}</p>
-      <div className="flex gap-2 mt-3">
-        <button
-          type="button"
-          onClick={onSwitch}
-          className="flex-1 text-[11px] font-semibold text-brand-foreground bg-go hover:bg-go-hover rounded-md py-1.5 px-2"
-          data-testid="btn-face-warning-switch"
-        >
-          {switchLabel}
-        </button>
-        <button
-          type="button"
-          onClick={onKeep}
-          className="flex-1 text-[11px] font-semibold text-accent-red-dark bg-white border border-accent-red/30 hover:bg-accent-red-light rounded-md py-1.5 px-2"
-          data-testid="btn-face-warning-keep"
-        >
-          Keep as {currentModeLabel}
-        </button>
-      </div>
-    </div>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
+          More than one person in this photo?
+        </DialogTitle>
+        <p className="pt-1 text-sm text-keeper-body leading-relaxed">
+          You chose{' '}
+          <strong className="text-keeper-ink">{who}</strong>, but this photo
+          looks like it has more than one person in it. Should everyone be on
+          the card, or just <strong className="text-keeper-ink">{recipientName || 'the one person'}</strong>?
+        </p>
+        <div className="flex flex-col gap-2 pt-4">
+          <Button
+            onClick={onUseGroup}
+            className="bg-go hover:bg-go-hover text-go-foreground"
+            data-testid="btn-face-confirm-group"
+          >
+            Put everyone on the card
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onKeepSingle}
+            className="border-stone-300"
+            data-testid="btn-face-confirm-single"
+          >
+            Keep as {who}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1491,7 +1506,12 @@ function ModeTile({
  *     mismatched card).
  */
 export function isPhotoStepReady(state: CardDraftState): boolean {
-  const hasPhotos = (state.photos?.photoIds?.length ?? 0) > 0;
-  const mismatchPending = state.photos?.pendingModeReview != null;
-  return hasPhotos && !mismatchPending;
+  // A photo is all that's required. The face-count nudge is advisory only
+  // (2026-07-22) — it never gates Next. Detection is unreliable on group
+  // shots, so blocking on it stranded users on a false alarm (they'd
+  // uploaded a real group, the model under-counted, and the old red panel
+  // both looked like an error and locked the step). Trust the user's mode
+  // choice; the "looks like several people" nudge is a suggestion they can
+  // ignore.
+  return (state.photos?.photoIds?.length ?? 0) > 0;
 }
