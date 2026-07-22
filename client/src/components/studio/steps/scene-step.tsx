@@ -77,6 +77,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const [brief, setBrief] = useState('');
   const [suggestions, setSuggestions] = useState<SceneSuggestion[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Debounce timer for committing the typed scene to the draft WHILE typing
+  // (not only on blur) so "Next" enables as soon as there's text — the user
+  // no longer has to click out of the box first. Debounced so the
+  // per-change server save (onChange → runSave) doesn't fire per keystroke.
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
 
   // One-shot LLM call returning 3 tailored scene paragraphs. Posts to
@@ -187,11 +192,38 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   }, [shouldAnimate]);
 
   const commit = () => {
+    if (commitTimerRef.current) {
+      clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
     const trimmed = local.trim();
     if (trimmed !== (state.scene?.description ?? '')) {
       onChange({ scene: { ...state.scene, description: trimmed } });
     }
   };
+
+  // Commit on a short debounce as the user types, so `isSceneStepReady`
+  // (which reads state.scene.description) flips true and "Next" enables
+  // without a blur. Fires ~250ms after the last keystroke, so a burst of
+  // typing coalesces into one save.
+  const scheduleCommit = (value: string) => {
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    commitTimerRef.current = setTimeout(() => {
+      commitTimerRef.current = null;
+      const trimmed = value.trim();
+      if (trimmed !== (state.scene?.description ?? '')) {
+        onChange({ scene: { ...state.scene, description: trimmed } });
+      }
+    }, 250);
+  };
+
+  // Clear any pending commit on unmount.
+  useEffect(
+    () => () => {
+      if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    },
+    [],
+  );
 
   // Quick-start example chips were removed 2026-04-24 — the scene step
   // is a creativity surface, and pills nudge users toward a template-y
@@ -209,7 +241,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <div className="mb-3">
           <StepExample
             eyebrow="Front Scene Example"
-            assist="Not sure what to describe?"
+            assist="Curious how it'll look?"
             modalTitle="Front scene example"
             modalDescription="The front of the card is the picture — who's there, where they are, what they're doing. Describe the moment and we'll bring it to life in this style."
             show="front"
@@ -219,15 +251,18 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           ref={textareaRef}
           id="scene-description"
           value={local}
-          onChange={(e) => setLocal(e.target.value)}
+          onChange={(e) => {
+            setLocal(e.target.value);
+            scheduleCommit(e.target.value);
+          }}
           onFocus={() => setFocused(true)}
           onBlur={() => {
             setFocused(false);
             commit();
           }}
           placeholder={placeholderText}
-          rows={5}
-          className="text-base resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+          rows={8}
+          className="min-h-[180px] text-base resize-y border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           // aria-live=off so the animated placeholder doesn't spam
           // screen readers with every keystroke-of-text change.
           aria-live="off"
@@ -237,42 +272,60 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           <p className="text-[11px] text-keeper-meta">
             {local.length > 0
               ? `${local.length} characters`
-              : "Not sure? Brainstorm it with us."}
+              : 'Describe the front-of-card scene — or use a helper below.'}
           </p>
         </div>
       </div>
 
-      {/* Two helpers — escalating depth.
-            Suggest scenes (left): one-shot modal — user types a quick
-            brief, gets three tile suggestions to pick from.
-            Brainstorm (right): multi-turn drawer for a real chat.
-            Both buttons sized up + visually filled by default
-            (2026-04-27, Kevin: "make it look like the hover state") so
-            they read as real CTAs, not afterthoughts. The brainstorm
-            button is the headline action — bg-brand-dark by default
-            with a soft brand glow so it carries the eye. */}
-      <div className="flex flex-wrap gap-2.5">
-        <Button
-          type="button"
-          onClick={openSuggestModal}
-          disabled={!cardId}
-          size="lg"
-          className="h-11 flex items-center gap-2 bg-brand-muted hover:bg-brand-muted/80 text-brand-dark border border-brand/40 shadow-sm hover:shadow"
-          data-testid="btn-scene-suggest"
-        >
-          <Wand2 className="w-4 h-4" />
-          <span className="font-semibold">Suggest scenes</span>
-        </Button>
-        <Button
-          type="button"
-          onClick={() => setBrainstormOpen(true)}
-          size="lg"
-          className="h-11 flex items-center gap-2 bg-brand-dark hover:bg-brand text-brand-foreground shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 transition-shadow"
-          data-testid="btn-scene-ai-help"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span className="font-semibold">Brainstorm the scene</span>
-        </Button>
+      {/* Two helpers, each with a one-line explainer so it's clear what
+            they do and how they differ (Kevin 2026-07-22):
+            • Suggest scenes — one-shot: a few words → three ready scenes.
+            • Brainstorm — a back-and-forth chat to shape an idea.
+            Tapping either opens its tool (the "more info" / action). Both
+            sized up + filled by default so they read as real CTAs; the
+            brainstorm button is the headline action (bg-brand-dark + glow). */}
+      <div className="space-y-2.5">
+        <p className="text-[13px] text-keeper-body">
+          <span className="font-semibold text-keeper-ink">Stuck for ideas?</span>{' '}
+          Two ways we can help you land the scene:
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Button
+              type="button"
+              onClick={openSuggestModal}
+              disabled={!cardId}
+              size="lg"
+              className="w-full h-11 flex items-center justify-center gap-2 bg-brand-muted hover:bg-brand-muted/80 text-brand-dark border border-brand/40 shadow-sm hover:shadow"
+              data-testid="btn-scene-suggest"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span className="font-semibold">Suggest scenes</span>
+            </Button>
+            <p className="px-0.5 text-[11.5px] leading-snug text-keeper-meta">
+              Quickest. Give a few words and we'll offer{' '}
+              <span className="text-keeper-body">three ready-made scenes</span>{' '}
+              — tap one to drop it straight into the box.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Button
+              type="button"
+              onClick={() => setBrainstormOpen(true)}
+              size="lg"
+              className="w-full h-11 flex items-center justify-center gap-2 bg-brand-dark hover:bg-brand text-brand-foreground shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 transition-shadow"
+              data-testid="btn-scene-ai-help"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="font-semibold">Brainstorm the scene</span>
+            </Button>
+            <p className="px-0.5 text-[11.5px] leading-snug text-keeper-meta">
+              Starting from scratch? Have a{' '}
+              <span className="text-keeper-body">back-and-forth chat</span> with
+              us to shape the idea, then pop it into the box.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Scene Helper modal — brief input → tiles → pick → close.
