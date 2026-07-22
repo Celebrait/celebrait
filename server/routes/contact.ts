@@ -4,15 +4,14 @@
 // emails it to the support inbox (CONTACT_EMAIL) via Brevo, with the
 // sender's address as reply-to so a reply goes straight back to them.
 //
-// ⚠️ CONTACT_EMAIL is greetings@celebrait.co.za per Kevin's instruction —
-// note the .co.za (the rest of the site uses .co.uk). Change the constant
-// if that was a typo. Override at runtime with CONTACT_EMAIL env.
+// Support inbox = greetings@celebrait.co.uk. Override at runtime with the
+// CONTACT_EMAIL env var. This inbox must exist for the form to deliver.
 
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { sendEmail } from '../email-service';
 
-const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? 'greetings@celebrait.co.za';
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? 'greetings@celebrait.co.uk';
 
 const REASONS = [
   'Order or delivery',

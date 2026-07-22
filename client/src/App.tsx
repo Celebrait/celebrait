@@ -62,6 +62,7 @@ import NotFound from "@/pages/not-found";
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
 const ContactPage = lazy(() => import("@/pages/contact"));
+const AboutPage = lazy(() => import("@/pages/about"));
 
 // Studio shell + pages
 const StudioLayout = lazy(() => import("@/layouts/studio-layout"));
@@ -138,6 +139,7 @@ function Router() {
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/contact" component={ContactPage} />
+          <Route path="/about" component={AboutPage} />
           <Route path="/studio">
             <RequireAuth>
               <StudioLayout>

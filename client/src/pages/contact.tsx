@@ -23,7 +23,7 @@ const REASONS = [
 
 // The public support address the form emails. Kept in sync with the
 // server's CONTACT_EMAIL for the "or email us directly" fallback.
-const CONTACT_EMAIL = 'greetings@celebrait.co.za';
+const CONTACT_EMAIL = 'greetings@celebrait.co.uk';
 
 export default function ContactPage() {
   const [form, setForm] = useState({
