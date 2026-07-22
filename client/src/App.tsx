@@ -103,6 +103,7 @@ const CheckoutSuccessPage = lazy(() => import("@/pages/checkout-success"));
 const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
 const AdminPromptsPage = lazy(() => import("@/pages/admin-prompts"));
 const AdminCostsPage = lazy(() => import("@/pages/admin-costs"));
+const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
 const AdminEmailsPage = lazy(() => import("@/pages/admin-emails"));
 
 // ---- Suspense fallback -----------------------------------------------------
@@ -279,6 +280,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminCostsPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/customers">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminCustomersPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

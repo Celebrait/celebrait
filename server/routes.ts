@@ -33,6 +33,7 @@ import { registerStudioNotificationRoutes } from "./routes/studio-notifications"
 // next_celebrait_premium.md). File kept in repo for future revival.
 // import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
+import { registerAdminCustomersRoutes } from "./routes/admin-customers";
 import { registerAdminTestEmailRoutes } from "./routes/admin-test-emails";
 import { registerAddressBookRoutes } from "./routes/address-book";
 import { registerRemindersRoutes } from "./routes/reminders";
@@ -384,6 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStudioNotificationRoutes(app);
   // registerStudioInsideTextRoutes(app); // PARKED for Premium tier — see next_celebrait_premium.md
   registerAdminCostsRoutes(app);
+  registerAdminCustomersRoutes(app);
   registerAdminTestEmailRoutes(app);
   registerAddressBookRoutes(app);
   registerRemindersRoutes(app);
