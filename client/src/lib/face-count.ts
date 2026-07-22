@@ -1,7 +1,7 @@
 // client/src/lib/face-count.ts
 //
-// Lightweight wrapper around @vladmandic/face-api's tinyFaceDetector.
-// Used for two things in the Studio photo step:
+// Lightweight wrapper around @vladmandic/face-api. Used for two things in
+// the Studio photo step:
 //
 //   1. Counting faces in an uploaded photo — so we can catch obvious
 //      mode/photo mismatches ("you picked Just Sarah but this looks
@@ -10,16 +10,37 @@
 //      can open pre-zoomed onto the face instead of centre-on-pixels.
 //
 // Design notes:
+//   - Detector: SSD MobileNet v1 (swapped from tinyFaceDetector
+//     2026-07-22). Tiny is fast + tiny (190KB) but under-counts the hard
+//     cases that matter here — angled / occluded / sunglasses / hat /
+//     extreme close-up faces — so a genuine two-person shot slipped past
+//     the "did you mean group?" check. SSD (5.4MB, lazy-loaded only when
+//     the photo step is reached) is materially more accurate on exactly
+//     those faces. It's slower, but detection is a non-blocking
+//     background pass, so the extra ~100-200ms is invisible.
 //   - Dynamic import + module-scoped cache. face-api pulls in tfjs,
 //     which is chunky; we only load it when the photo step is reached.
-//   - Swapped from the original `face-api.js` to @vladmandic/face-api
-//     (actively maintained fork, ESM-native) after the former crashed
-//     under Vite's runtime.
+//   - @vladmandic/face-api (actively maintained, ESM-native fork of the
+//     original face-api.js, which crashed under Vite's runtime).
 //   - Model weights served from /client/public/models/ as static assets.
 //   - Heuristic only. `undefined` / `null` returns mean "don't nag the
 //     user" — detection is best-effort, never blocking.
 
 const MODEL_URL = '/models';
+
+// SSD confidence floor. Lower than the library default (0.5) to catch the
+// harder faces (sunglasses / hats / side-on / partial), which is the
+// whole point of the counting check. The small-face filter below removes
+// the false positives this lets in (distant bystanders, faces on a TV in
+// the background), so recall can be generous without over-flagging.
+const MIN_CONFIDENCE = 0.3;
+
+// A face must be at least this fraction of the image's shorter side to
+// count as a "person on the card". Drops distant background bystanders
+// and incidental faces (posters, screens) so a solo portrait taken in a
+// busy place isn't mis-read as a group. Real co-subjects — the couple
+// selfie, the three friends — are always well above this.
+const MIN_FACE_FRACTION = 0.07;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let faceApiModule: any | null = null;
@@ -31,7 +52,7 @@ async function ensureLoaded(): Promise<void> {
     try {
       const mod = await import('@vladmandic/face-api');
       faceApiModule = mod;
-      await mod.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await mod.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
     } catch (err) {
       faceApiModule = null;
       loadPromise = null;
@@ -114,9 +135,9 @@ export async function detectFaces(dataUrl: string): Promise<FaceDetectionResult 
 
       const detections = await faceapi.detectAllFaces(
         img,
-        new faceapi.TinyFaceDetectorOptions({
-          inputSize: 320,
-          scoreThreshold: 0.4,
+        new faceapi.SsdMobilenetv1Options({
+          minConfidence: MIN_CONFIDENCE,
+          maxResults: 20,
         }),
       );
 
@@ -124,15 +145,33 @@ export async function detectFaces(dataUrl: string): Promise<FaceDetectionResult 
         return { count: 0, primary: null };
       }
 
-      // Pick the largest face by area — the "primary" subject when
-      // there are multiple. The photo step will auto-crop to this in
-      // one_person mode (group mode skips auto-crop — no single hero).
+      // Filter to "prominent" faces — those at least MIN_FACE_FRACTION of
+      // the image's shorter side. Drops distant bystanders and incidental
+      // faces (a face on a TV/poster in the background) so a solo portrait
+      // in a busy place isn't mis-read as a group, while keeping real
+      // co-subjects. Measured against the shorter side so the threshold
+      // behaves the same on portrait and landscape photos.
+      const minSide = Math.min(img.width, img.height);
+      const sizeFloor = minSide * MIN_FACE_FRACTION;
+      const prominent = detections
+        .map((det: { box: { x: number; y: number; width: number; height: number } }) => det.box)
+        .filter((box: { width: number; height: number }) => box.width >= sizeFloor);
+
+      // If the size filter removed everything (e.g. one small but real
+      // face), fall back to the raw detections so we never claim zero
+      // when the detector saw something.
+      const kept = prominent.length > 0 ? prominent : detections.map(
+        (det: { box: { x: number; y: number; width: number; height: number } }) => det.box,
+      );
+
+      // Pick the largest face by area — the "primary" subject when there
+      // are multiple. The photo step auto-crops to this in one_person
+      // mode (group mode skips auto-crop — no single hero).
       let primaryBox:
         | { x: number; y: number; width: number; height: number }
         | null = null;
       let largestArea = 0;
-      for (const det of detections) {
-        const box = det.box; // { x, y, width, height } in image pixels
+      for (const box of kept) {
         const area = box.width * box.height;
         if (area > largestArea) {
           largestArea = area;
@@ -150,7 +189,7 @@ export async function detectFaces(dataUrl: string): Promise<FaceDetectionResult 
             }
           : null;
 
-      return { count: detections.length, primary };
+      return { count: kept.length, primary };
     } catch (err) {
       console.warn('[face-count] detection failed:', err);
       return null;

@@ -8,16 +8,16 @@
 //   • "A group photo"   → group — exactly 1 photo containing everyone.
 //
 // Multi-individual (N photos of N different people) is NOT exposed here;
-// it stays prompt-lab-only until quality is reliable. A tertiary link
-// below the toggle surfaces that case with "coming soon" copy.
+// it stays prompt-lab-only until quality is reliable.
 //
-// Client-side face-count heuristics (tinyFaceDetector, ~190KB) catch the
-// most common mistake modes:
-//   1. "Just them" but the photo has ≥2 faces → suggest switching to group.
-//   2. "Just them" + user adds photo 3+ → hint "same person, different angles".
-//   3. "A group photo" but the photo has ≤1 face → suggest switching to solo.
-// All three are soft banners — never blocking, never mode-switching on
-// the user's behalf.
+// The user's mode choice is authoritative — they can see their own photo.
+// Client-side face detection (SSD MobileNet, see lib/face-count) is used
+// only as a safety net for the ONE mistake that quietly ruins a card:
+// "Just them" chosen, but the photo clearly has several people, so
+// everyone but one would be dropped. That single case pops a soft confirm
+// modal (FaceModeConfirm). Detection never blocks, never switches mode on
+// the user's behalf, and no longer second-guesses a "group" choice (it
+// under-counted real groups → false alarms; removed 2026-07-22).
 //
 // Every upload is cropped to 1:1 via CropDialog (tight head crop survives
 // the 1024× downscale better). Library picker stays single-select for
@@ -1186,13 +1186,6 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         >
           How we handle photos
         </Link>
-      </p>
-
-      {/* Tertiary — moved well down, quieter, no false-affordance
-          violet. Serves the rare multi-individual case without
-          competing for the primary CTA's attention. */}
-      <p className="text-[11px] text-keeper-meta mt-10 text-center">
-        Multiple people in separate photos? Coming soon.
       </p>
 
       <input
