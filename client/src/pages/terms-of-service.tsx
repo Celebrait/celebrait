@@ -1,23 +1,23 @@
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import { MarketingHeader } from "@/components/landing/marketing-header";
+import { MarketingFooter } from "@/components/landing/marketing-footer";
 import { CONTROLLER, TERMS_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function TermsOfService() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      <Header />
+    <div className="min-h-screen bg-keeper-paper">
+      <MarketingHeader />
 
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="backdrop-blur-sm bg-white/80 rounded-2xl border border-white/50 shadow-xl p-8 lg:p-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
+      <div className="container mx-auto px-4 pt-28 pb-20 max-w-4xl">
+        <div className="bg-white rounded-3xl border border-keeper-hair shadow-[0_20px_60px_-24px_rgba(33,29,25,0.22)] p-8 lg:p-12">
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-keeper-ink mb-2 text-center">
             Terms of Service
           </h1>
-          <p className="text-center text-sm text-gray-500 mb-10">
+          <p className="text-center text-sm text-keeper-meta mb-10">
             The agreement between you and {CONTROLLER.tradingAs}
           </p>
 
-          <div className="prose prose-gray max-w-none space-y-8">
-            <div className="text-sm text-gray-600">
+          <div className="prose prose-stone max-w-none space-y-8">
+            <div className="text-sm text-keeper-meta">
               <p>
                 <strong>Last updated:</strong> {LAST_UPDATED}
               </p>
@@ -29,14 +29,14 @@ export default function TermsOfService() {
 
             {/* ── Plain-English summary ───────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 The short version
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-3">
+              <p className="text-keeper-body leading-relaxed mb-3">
                 This summary is for convenience only and is not part of the
                 legal terms below — but here's the gist:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   {CONTROLLER.tradingAs} helps you create personalised greeting
                   cards using AI, and send them digitally or as a printed card in
@@ -67,10 +67,10 @@ export default function TermsOfService() {
 
             {/* ── 1. Who we are & agreement ───────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 1. Who we are and these terms
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 These Terms of Service ("Terms") are a legally binding agreement
                 between you and {CONTROLLER.legalName}, trading as{" "}
                 {CONTROLLER.tradingAs} ("we", "us", "our"), for your use of{" "}
@@ -79,7 +79,7 @@ export default function TermsOfService() {
                 an order, you agree to these Terms. If you do not agree, please
                 do not use the Service.
               </p>
-              <div className="bg-gray-50 p-4 rounded-lg text-gray-700">
+              <div className="bg-brand-muted/30 p-4 rounded-lg text-keeper-body">
                 <p>
                   <strong>{CONTROLLER.legalName}</strong> (trading as{" "}
                   {CONTROLLER.tradingAs})
@@ -88,9 +88,9 @@ export default function TermsOfService() {
                 <p>Company number: {CONTROLLER.companyNumber}</p>
                 <p>Email: {CONTROLLER.contactEmail}</p>
               </div>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 Please also read our{" "}
-                <a href="/privacy-policy" className="text-purple-700 underline">
+                <a href="/privacy-policy" className="text-brand hover:text-brand-dark underline underline-offset-2">
                   Privacy Policy
                 </a>
                 , which explains how we handle your personal information and forms
@@ -100,10 +100,10 @@ export default function TermsOfService() {
 
             {/* ── 2. Eligibility ──────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 2. Eligibility
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 You must be at least 18 years old and able to enter into a
                 legally binding contract to use the Service. By using it, you
                 confirm that you meet these requirements.
@@ -112,14 +112,14 @@ export default function TermsOfService() {
 
             {/* ── 3. Your account ─────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 3. Your account
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 You sign in using your email address and a one-time code we send
                 you — there is no password to remember. You are responsible for:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>keeping access to your email account secure;</li>
                 <li>
                   the accuracy of the information you give us, including delivery
@@ -127,7 +127,7 @@ export default function TermsOfService() {
                 </li>
                 <li>all activity that takes place through your account.</li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 Tell us promptly at {CONTROLLER.contactEmail} if you believe
                 someone has accessed your account without permission.
               </p>
@@ -135,10 +135,10 @@ export default function TermsOfService() {
 
             {/* ── 4. How the Service works ────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 4. How the Service works
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 {CONTROLLER.tradingAs} lets you describe an occasion, add a
                 message, and optionally upload photos, and then uses artificial
                 intelligence to generate greeting-card artwork. You can preview
@@ -147,7 +147,7 @@ export default function TermsOfService() {
                 post. We may also offer optional features such as saved contacts
                 and occasion reminders.
               </p>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 <strong>About the AI:</strong> cards are generated by machine
                 learning and results vary. The same request can produce different
                 results, and output may occasionally be unexpected or imperfect.
@@ -159,10 +159,10 @@ export default function TermsOfService() {
 
             {/* ── 5. Your content & the licence you grant ─────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 5. Your content and the permission you give us
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 "Your Content" means the photos, text, names, messages and other
                 material you provide. <strong>You keep ownership of Your
                 Content.</strong> You grant us a non-exclusive, worldwide,
@@ -175,13 +175,13 @@ export default function TermsOfService() {
                 copies we must keep by law or that remain in routine backups for a
                 limited period.
               </p>
-              <p className="text-gray-700 leading-relaxed mb-2">
+              <p className="text-keeper-body leading-relaxed mb-2">
                 <strong>Your promises about Your Content.</strong> You confirm
                 that, for everything you upload or submit, you either own it or
                 have all necessary rights and permissions, and that it does not
                 infringe anyone's rights. In particular:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Photos of people:</strong> if a photo shows another
                   person, you confirm you have that person's permission to upload
@@ -195,7 +195,7 @@ export default function TermsOfService() {
                   person's likeness, name or privacy.
                 </li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 You are responsible for Your Content. If someone believes their
                 image or work has been used without permission, they can contact
                 us at {CONTROLLER.contactEmail} and we will act promptly,
@@ -205,14 +205,14 @@ export default function TermsOfService() {
 
             {/* ── 6. Acceptable use ───────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 6. Acceptable use
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 You agree not to use the Service to create, upload, or request
                 content that:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>is unlawful, or promotes or facilitates unlawful activity;</li>
                 <li>
                   infringes intellectual property rights — for example,
@@ -240,7 +240,7 @@ export default function TermsOfService() {
                   systems, the AI models, or the operation of the Service.
                 </li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 We use automated and manual checks and{" "}
                 <strong>may refuse, block, or remove</strong> any request or
                 content that we reasonably believe breaches these Terms, and may
@@ -251,13 +251,13 @@ export default function TermsOfService() {
 
             {/* ── 7. Intellectual property ────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 7. Intellectual property
               </h2>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 7.1 Your finished card
               </h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 When you have paid for a card, we grant you a licence to use that
                 finished card — the generated artwork together with your message
                 — for your own personal, non-commercial purposes (such as sending
@@ -268,10 +268,10 @@ export default function TermsOfService() {
                 produced for others. If you want to use a card commercially,
                 contact us first.
               </p>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 7.2 Our intellectual property
               </h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 The Service itself — including the {CONTROLLER.tradingAs} name and
                 branding, the website, software, designs, templates and the
                 prompts and systems behind the AI generation — belongs to us or
@@ -283,10 +283,10 @@ export default function TermsOfService() {
 
             {/* ── 8. Orders, pricing & payment ────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 8. Orders, pricing and payment
               </h2>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   Prices are shown at checkout in pounds sterling (GBP) and, where
                   applicable, include VAT. Any delivery charge for printed cards
@@ -313,17 +313,17 @@ export default function TermsOfService() {
 
             {/* ── 9. Cancellation & refunds ───────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 9. Your right to cancel, and refunds
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Your legal rights as a consumer are important and are not affected
                 by anything in these Terms.
               </p>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.1 Personalised cards
               </h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 {CONTROLLER.tradingAs} cards are made to your specification and
                 personalised to you. Under the Consumer Contracts Regulations
                 2013, the usual 14-day right to change your mind{" "}
@@ -332,19 +332,19 @@ export default function TermsOfService() {
                 a personalised printed card and we begin producing it, it cannot
                 be cancelled simply because you have changed your mind.
               </p>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.2 Digital cards
               </h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 For digital cards, you ask us to make your card available to you
                 immediately after payment. By placing the order you consent to
                 immediate supply and acknowledge that you therefore lose the
                 14-day right to cancel once supply has begun.
               </p>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.3 If something is wrong
               </h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 None of the above affects your statutory rights under the Consumer
                 Rights Act 2015. Your card must be as described, of satisfactory
                 quality, and fit for purpose. If a card arrives faulty, damaged,
@@ -356,10 +356,10 @@ export default function TermsOfService() {
                 your order details and a photo where relevant, and we will put it
                 right.
               </p>
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.4 Failed generations
               </h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 You are never charged for simply generating or previewing a card —
                 you only pay when you order. If a technical failure on our side
                 prevents us from delivering a card you have paid for, we will
@@ -369,10 +369,10 @@ export default function TermsOfService() {
 
             {/* ── 10. Delivery ────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 10. Delivery
               </h2>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Digital cards</strong> are made available by email or a
                   shareable link shortly after your order, usually within a few
@@ -398,10 +398,10 @@ export default function TermsOfService() {
 
             {/* ── 11. Emails & reminders ──────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 11. Emails and reminders
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We send service emails relating to your account, cards and orders
                 (for example, sign-in codes and order updates). If you save people
                 and dates, we may send occasion reminders to help you. You can opt
@@ -412,10 +412,10 @@ export default function TermsOfService() {
 
             {/* ── 12. Availability ────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 12. Availability of the Service
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We aim to keep the Service running smoothly but cannot guarantee
                 it will always be available or uninterrupted. We may update,
                 suspend, or withdraw features, or carry out maintenance, and the
@@ -427,10 +427,10 @@ export default function TermsOfService() {
 
             {/* ── 13. Liability ───────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 13. Our responsibility to you
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 <strong>
                   We do not exclude or limit our liability where it would be
                   unlawful to do so.
@@ -439,11 +439,11 @@ export default function TermsOfService() {
                 negligence, for fraud or fraudulent misrepresentation, and for
                 your statutory rights as a consumer, which remain fully intact.
               </p>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Subject to that, and because the Service is a low-cost consumer
                 product:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   we are not liable for losses that were not reasonably
                   foreseeable, or that arise from your own breach of these Terms
@@ -460,7 +460,7 @@ export default function TermsOfService() {
                   payment was made, to £50).
                 </li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 Other than as set out in these Terms and as required by law, the
                 Service and AI-generated content are provided "as is" without
                 further warranties.
@@ -469,10 +469,10 @@ export default function TermsOfService() {
 
             {/* ── 14. Indemnity ───────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 14. Your responsibility to us
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 If you use the Service in breach of these Terms — for example by
                 uploading content you did not have the right to use — you agree to
                 be responsible for reasonable losses, claims and costs we suffer as
@@ -484,16 +484,16 @@ export default function TermsOfService() {
 
             {/* ── 15. Suspension & termination ────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 15. Suspension and closing your account
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 You can stop using the Service and delete your cards or account at
                 any time. Deleting a card removes its images and details from our
                 storage; see our Privacy Policy for how deletion and retention
                 work.
               </p>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We may suspend or end your access if you seriously or repeatedly
                 breach these Terms, or where we reasonably need to protect the
                 Service, other users, or third parties. Where it is fair to do so,
@@ -505,10 +505,10 @@ export default function TermsOfService() {
 
             {/* ── 16. Changes to these Terms ──────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 16. Changes to these Terms
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We may update these Terms from time to time — for example to
                 reflect new features or changes in the law. The version that
                 applies to an order is the one in force when you place it. If we
@@ -520,10 +520,10 @@ export default function TermsOfService() {
 
             {/* ── 17. Governing law ───────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 17. Governing law and disputes
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 These Terms and any dispute relating to them or the Service are
                 governed by the law of {CONTROLLER.jurisdiction}, and the courts
                 of {CONTROLLER.jurisdiction} will have jurisdiction. If you are a
@@ -537,10 +537,10 @@ export default function TermsOfService() {
 
             {/* ── 18. General ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 18. General
               </h2>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Whole agreement:</strong> these Terms and our Privacy
                   Policy are the entire agreement between us about the Service.
@@ -567,14 +567,14 @@ export default function TermsOfService() {
 
             {/* ── 19. Contact ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 19. Contact us
               </h2>
-              <div className="text-gray-700 leading-relaxed">
+              <div className="text-keeper-body leading-relaxed">
                 <p className="mb-2">
                   Questions about these Terms or your order? Get in touch:
                 </p>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-brand-muted/30 p-4 rounded-lg">
                   <p>
                     <strong>{CONTROLLER.legalName}</strong> (trading as{" "}
                     {CONTROLLER.tradingAs})
@@ -589,7 +589,7 @@ export default function TermsOfService() {
         </div>
       </div>
 
-      <Footer />
+      <MarketingFooter />
     </div>
   );
 }

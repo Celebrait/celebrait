@@ -1,23 +1,23 @@
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import { MarketingHeader } from "@/components/landing/marketing-header";
+import { MarketingFooter } from "@/components/landing/marketing-footer";
 import { CONTROLLER, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      <Header />
+    <div className="min-h-screen bg-keeper-paper">
+      <MarketingHeader />
 
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="backdrop-blur-sm bg-white/80 rounded-2xl border border-white/50 shadow-xl p-8 lg:p-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
+      <div className="container mx-auto px-4 pt-28 pb-20 max-w-4xl">
+        <div className="bg-white rounded-3xl border border-keeper-hair shadow-[0_20px_60px_-24px_rgba(33,29,25,0.22)] p-8 lg:p-12">
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-keeper-ink mb-2 text-center">
             Privacy Policy
           </h1>
-          <p className="text-center text-sm text-gray-500 mb-10">
+          <p className="text-center text-sm text-keeper-meta mb-10">
             How Celebrait handles your personal information
           </p>
 
-          <div className="prose prose-gray max-w-none space-y-8">
-            <div className="text-sm text-gray-600">
+          <div className="prose prose-stone max-w-none space-y-8">
+            <div className="text-sm text-keeper-meta">
               <p>
                 <strong>Last updated:</strong> {LAST_UPDATED}
               </p>
@@ -29,10 +29,10 @@ export default function PrivacyPolicy() {
 
             {/* ── At a glance ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 At a glance
               </h2>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   We collect the details you give us to make and deliver your
                   cards — your email, the words you write, any photos you
@@ -58,16 +58,16 @@ export default function PrivacyPolicy() {
 
             {/* ── 1. Who we are ───────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 1. Who we are
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 {CONTROLLER.legalName}, trading as {CONTROLLER.tradingAs} ("we",
                 "us", "our"), is the data controller responsible for your
                 personal information under the UK General Data Protection
                 Regulation (UK GDPR) and the Data Protection Act 2018.
               </p>
-              <div className="bg-gray-50 p-4 rounded-lg mt-4 text-gray-700">
+              <div className="bg-brand-muted/30 p-4 rounded-lg mt-4 text-keeper-body">
                 <p>
                   <strong>{CONTROLLER.legalName}</strong>
                 </p>
@@ -79,14 +79,14 @@ export default function PrivacyPolicy() {
 
             {/* ── 2. Information we collect ───────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 2. Information we collect
               </h2>
 
-              <h3 className="text-xl font-medium text-gray-800 mb-3">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 2.1 Information you give us
               </h3>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Account details</strong> — your email address (used to
                   sign in via a one-time code) and, optionally, your first and
@@ -114,10 +114,10 @@ export default function PrivacyPolicy() {
                 </li>
               </ul>
 
-              <h3 className="text-xl font-medium text-gray-800 mb-3 mt-6">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3 mt-6">
                 2.2 Information created when you use Celebrait
               </h3>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Generated card images</strong> — the front and inside
                   artwork the AI produces from your inputs.
@@ -135,10 +135,10 @@ export default function PrivacyPolicy() {
                 </li>
               </ul>
 
-              <h3 className="text-xl font-medium text-gray-800 mb-3 mt-6">
+              <h3 className="text-xl font-medium text-keeper-ink mb-3 mt-6">
                 2.3 Payment information
               </h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 When you pay, your card payment is processed by our payment
                 provider (Stripe) on their own secure systems. We do not receive
                 or store your full card number — only a reference to the
@@ -148,10 +148,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 3. Photos of other people ───────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 3. Photos, likenesses and AI generation
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Celebrait is an AI card maker. To create your card, the photos
                 you upload and the text you provide (including the recipient's
                 name and your message) are sent to trusted third-party AI
@@ -162,7 +162,7 @@ export default function PrivacyPolicy() {
                 send your email address, the recipient's contact details, or your
                 payment information to these providers.
               </p>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Because photos often show other people, please only upload images
                 of someone else if you have their permission to do so. You are
                 responsible for having the right to use any photo you upload. If
@@ -170,7 +170,7 @@ export default function PrivacyPolicy() {
                 consent, contact us at {CONTROLLER.privacyEmail} and we will
                 remove it.
               </p>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We do not use your photos to identify people biometrically, to
                 train our own or third parties' AI models for unrelated purposes,
                 or for advertising.
@@ -179,16 +179,16 @@ export default function PrivacyPolicy() {
 
             {/* ── 4. How & why (legal bases) ──────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 4. How and why we use your information
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Under UK GDPR we must have a lawful basis for each use of your
                 data. Our uses and their bases are:
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-700 border border-gray-200 rounded-lg">
-                  <thead className="bg-gray-50 text-gray-800">
+                <table className="w-full text-sm text-left text-keeper-body border border-gray-200 rounded-lg">
+                  <thead className="bg-brand-muted/30 text-keeper-ink">
                     <tr>
                       <th className="px-4 py-2 font-semibold">What we do</th>
                       <th className="px-4 py-2 font-semibold">Lawful basis</th>
@@ -254,17 +254,17 @@ export default function PrivacyPolicy() {
 
             {/* ── 5. Sharing / sub-processors ─────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 5. Who we share your information with
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 We do not sell, rent or trade your personal information. We share
                 it only with the service providers that help us run Celebrait,
                 each acting under contract and only for the purposes below:
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-700 border border-gray-200 rounded-lg">
-                  <thead className="bg-gray-50 text-gray-800">
+                <table className="w-full text-sm text-left text-keeper-body border border-gray-200 rounded-lg">
+                  <thead className="bg-brand-muted/30 text-keeper-ink">
                     <tr>
                       <th className="px-4 py-2 font-semibold">Provider</th>
                       <th className="px-4 py-2 font-semibold">Purpose</th>
@@ -320,7 +320,7 @@ export default function PrivacyPolicy() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 We may also disclose information if required by law, to protect
                 our rights, or in connection with a business sale or
                 reorganisation.
@@ -329,10 +329,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 6. International transfers ───────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 6. International transfers
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 Some of our providers are based outside the UK, including in the
                 United States. Where your information is transferred outside the
                 UK, we rely on appropriate safeguards recognised under UK data
@@ -346,10 +346,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 7. Retention ────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 7. How long we keep your information
               </h2>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   <strong>Sign-in codes</strong> — deleted within minutes of
                   being issued or used.
@@ -372,7 +372,7 @@ export default function PrivacyPolicy() {
                   those purposes.
                 </li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 You can ask us to delete your information sooner at any time (see
                 "Your rights").
               </p>
@@ -380,13 +380,13 @@ export default function PrivacyPolicy() {
 
             {/* ── 8. Your rights ──────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 8. Your rights
               </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <p className="text-keeper-body leading-relaxed mb-4">
                 Under UK data protection law you have the right to:
               </p>
-              <ul className="list-disc pl-6 text-gray-700 space-y-2">
+              <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>access the personal information we hold about you;</li>
                 <li>ask us to correct information that is wrong or incomplete;</li>
                 <li>ask us to delete your information ("right to erasure");</li>
@@ -398,14 +398,14 @@ export default function PrivacyPolicy() {
                   withdraw your consent at any time, where we rely on consent.
                 </li>
               </ul>
-              <p className="text-gray-700 leading-relaxed mt-4">
+              <p className="text-keeper-body leading-relaxed mt-4">
                 To exercise any of these rights, email us at{" "}
                 {CONTROLLER.privacyEmail}. We will respond within one month. You
                 also have the right to complain to the UK's data protection
                 regulator, the Information Commissioner's Office (ICO), at{" "}
                 <a
                   href="https://ico.org.uk"
-                  className="text-purple-700 underline"
+                  className="text-brand hover:text-brand-dark underline underline-offset-2"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -418,10 +418,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 9. Security ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 9. How we protect your information
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We use appropriate technical and organisational measures to
                 protect your information, including encryption in transit
                 (HTTPS), access controls, and reputable infrastructure providers.
@@ -433,10 +433,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 10. Cookies ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 10. Cookies
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We use a single essential cookie to keep you securely signed in.
                 We do not use advertising, analytics or tracking cookies, so no
                 cookie banner is required. You can clear cookies in your browser
@@ -446,10 +446,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 11. Children ────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 11. Children
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 Celebrait is intended for adults. It is not directed at children,
                 and we do not knowingly collect personal information from anyone
                 under 16. If you believe a child has provided us with personal
@@ -459,10 +459,10 @@ export default function PrivacyPolicy() {
 
             {/* ── 12. Changes ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 12. Changes to this policy
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-keeper-body leading-relaxed">
                 We may update this policy from time to time. If we make a
                 significant change, we will update the "Last updated" date above
                 and, where appropriate, let you know by email or in the app.
@@ -471,15 +471,15 @@ export default function PrivacyPolicy() {
 
             {/* ── 13. Contact ─────────────────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 13. Contact us
               </h2>
-              <div className="text-gray-700 leading-relaxed">
+              <div className="text-keeper-body leading-relaxed">
                 <p className="mb-2">
                   For any question about this policy or your personal
                   information, contact us:
                 </p>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-brand-muted/30 p-4 rounded-lg">
                   <p>
                     <strong>{CONTROLLER.legalName}</strong> (trading as{" "}
                     {CONTROLLER.tradingAs})
@@ -494,7 +494,7 @@ export default function PrivacyPolicy() {
         </div>
       </div>
 
-      <Footer />
+      <MarketingFooter />
     </div>
   );
 }
