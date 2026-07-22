@@ -77,6 +77,13 @@ export const stripePaymentProvider: PaymentProvider = {
         },
       ],
       customer_email: req.customerEmail,
+      // Show the "Add promotion code" field on Stripe's hosted checkout so
+      // discount codes work (friends & family testing: a fixed £7.99-off
+      // coupon drops the £8.99 card to £1.00 while shipping + any sticker
+      // stay fully paid, since it's a flat subtraction off the total).
+      // Codes/limits/expiry are all managed in the Stripe dashboard — no
+      // redeploy to add, change, or disable one.
+      allow_promotion_codes: true,
       success_url: req.returnUrl,
       cancel_url: req.cancelUrl,
       // studioOrderId travels on the session AND the resulting
