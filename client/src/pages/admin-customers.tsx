@@ -10,8 +10,12 @@
 // Spec: memory/next_admin_crm.md.
 
 import { useState } from 'react';
+import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3 } from 'lucide-react';
+
+interface GenSide { ok: number; fail: number }
+interface CardGen { front: GenSide; inside: GenSide }
 
 // ── Types (mirror the server payloads) ───────────────────────────────
 interface CustomerRow {
@@ -55,9 +59,11 @@ interface CardRow {
   cardType: string | null;
   status: string | null;
   frontImageUrl: string | null;
+  insideImageUrl: string | null;
   price: number;
   viewToken: string | null;
   createdAt: string | null;
+  gen: CardGen;
 }
 interface LeadRow {
   id: number;
@@ -256,10 +262,23 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 <Stat label="Lifetime spend" value={gbp(data.customer.totalSpent)} />
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-500">
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
               <span>Joined {fmtDate(data.customer.createdAt)}</span>
               <span>·</span>
               <span>Marketing opt-in: {data.customer.marketingOptIn ? 'Yes' : 'No'}</span>
+              <span>·</span>
+              <span>
+                Generations: <span className="font-medium text-stone-700">{data.customer.gen.total}</span>
+                {' '}(<span className="text-green-700">{data.customer.gen.ok} ✓</span>
+                {data.customer.gen.failed > 0 && <span className="text-red-600"> · {data.customer.gen.failed} ✗</span>})
+                {' '}· cost ${(data.customer.gen.costCentsX100 / 10000).toFixed(2)}
+              </span>
+              <Link
+                href="/admin/costs"
+                className="inline-flex items-center gap-1 text-violet-600 hover:underline"
+              >
+                <BarChart3 className="w-3 h-3" /> Cost Ledger
+              </Link>
             </div>
           </div>
 
@@ -283,18 +302,23 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
             {data.cards.length === 0 ? (
               <p className="text-sm text-stone-400">No cards yet.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {data.cards.map((c) => (
                   <div key={c.id} className="rounded-lg border border-stone-200 bg-white p-2">
-                    <div className="aspect-square overflow-hidden rounded bg-stone-100">
-                      {c.frontImageUrl && (
-                        <img src={c.frontImageUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />
-                      )}
+                    <div className="flex gap-1.5">
+                      <CardSideThumb label="Front" url={c.frontImageUrl} />
+                      <CardSideThumb label="Inside" url={c.insideImageUrl} />
                     </div>
-                    <div className="mt-1.5 truncate text-xs font-medium text-stone-700">
-                      #{c.id} · {c.sceneType ?? '—'}
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-medium text-stone-700">
+                        #{c.id} · {c.sceneType ?? '—'}
+                      </span>
+                      <Pill label={c.status ?? '—'} />
                     </div>
-                    <div className="mt-0.5"><Pill label={c.status ?? '—'} /></div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-stone-500">
+                      <GenLine label="Front" side={c.gen.front} />
+                      <GenLine label="Inside" side={c.gen.inside} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -312,6 +336,42 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="font-bold text-stone-900">{value}</div>
       <div className="text-[11px] uppercase tracking-wide text-stone-400">{label}</div>
     </div>
+  );
+}
+
+function CardSideThumb({ label, url }: { label: string; url: string | null }) {
+  return (
+    <div className="relative aspect-square flex-1 overflow-hidden rounded bg-stone-100">
+      {url ? (
+        <img src={url} alt={label} crossOrigin="anonymous" className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-[10px] text-stone-400">
+          no {label.toLowerCase()}
+        </div>
+      )}
+      <span className="absolute left-1 top-1 rounded bg-black/40 px-1 text-[9px] font-medium uppercase text-white">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// One side's generation tally: how many succeeded / failed. "—" when the
+// side was never attempted.
+function GenLine({ label, side }: { label: string; side: GenSide }) {
+  const total = side.ok + side.fail;
+  return (
+    <span>
+      {label}:{' '}
+      {total === 0 ? (
+        <span className="text-stone-400">—</span>
+      ) : (
+        <>
+          <span className="text-green-700">{side.ok}✓</span>
+          {side.fail > 0 && <span className="text-red-600"> {side.fail}✗</span>}
+        </>
+      )}
+    </span>
   );
 }
 

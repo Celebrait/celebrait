@@ -52,6 +52,11 @@ export function registerAdminCustomersRoutes(app: Express): void {
         ? sql`where (u.email ilike ${like} or u.first_name ilike ${like} or u.last_name ilike ${like})`
         : sql``;
 
+      // Aggregate cards and orders in SEPARATE subqueries, then join. A
+      // single query that joins both tables fans out — a user with 3 cards
+      // and 1 order produces 3 rows, so sum(order.total) counts the order
+      // 3× (the £12.94 order that showed as £38.82). Pre-aggregating each
+      // table to one row per user avoids the cartesian product.
       const rows = (
         await db.execute(sql`
           select
@@ -62,15 +67,23 @@ export function registerAdminCustomersRoutes(app: Express): void {
             u.created_at       as "createdAt",
             u.marketing_opt_in as "marketingOptIn",
             u.is_admin         as "isAdmin",
-            count(distinct c.id)                                                     as "cardCount",
-            count(distinct o.id) filter (where o.payment_status = 'paid')            as "paidOrders",
-            coalesce(sum(o.total_amount) filter (where o.payment_status = 'paid'), 0) as "totalSpent",
-            greatest(u.created_at, max(c.created_at), max(o.created_at))             as "lastActivity"
+            coalesce(cc.card_count, 0)   as "cardCount",
+            coalesce(oc.paid_orders, 0)  as "paidOrders",
+            coalesce(oc.total_spent, 0)  as "totalSpent",
+            greatest(u.created_at, cc.last_card, oc.last_order) as "lastActivity"
           from users u
-          left join cards c        on c.user_id = u.id
-          left join studio_orders o on o.user_id = u.id
+          left join (
+            select user_id, count(*) as card_count, max(created_at) as last_card
+            from cards group by user_id
+          ) cc on cc.user_id = u.id
+          left join (
+            select user_id,
+              count(*) filter (where payment_status = 'paid')                    as paid_orders,
+              coalesce(sum(total_amount) filter (where payment_status = 'paid'), 0) as total_spent,
+              max(created_at) as last_order
+            from studio_orders group by user_id
+          ) oc on oc.user_id = u.id
           ${search}
-          group by u.id
           order by "lastActivity" desc nulls last
           limit 500
         `)
@@ -122,12 +135,50 @@ export function registerAdminCustomersRoutes(app: Express): void {
       const cards = (
         await db.execute(sql`
           select id, scene_type as "sceneType", card_type as "cardType",
-                 status, front_image_url as "frontImageUrl", price,
+                 status, front_image_url as "frontImageUrl",
+                 inside_image_url as "insideImageUrl", price,
                  view_token as "viewToken", created_at as "createdAt"
           from cards where user_id = ${id}
           order by created_at desc limit 200
         `)
       ).rows as any[];
+
+      // Generation log per card, split front vs inside and ok vs failed.
+      // Joined through cards so we only see this user's generations. Lab
+      // runs (card_id null) never match. front_scene/front_text = front;
+      // inside_write/inside_blank = inside.
+      const genRows = (
+        await db.execute(sql`
+          select g.card_id as "cardId",
+                 case when g.slot like 'front%' then 'front' else 'inside' end as side,
+                 g.success as "success",
+                 count(*) as n,
+                 coalesce(sum(g.cost_cents_x100), 0) as cost
+          from generation_log g
+          join cards c on c.id = g.card_id
+          where c.user_id = ${id}
+          group by g.card_id, side, g.success
+        `)
+      ).rows as any[];
+
+      // Fold into per-card {front:{ok,fail}, inside:{ok,fail}} + a rollup.
+      const genByCard = new Map<number, any>();
+      let genOk = 0, genFail = 0, genCostX100 = 0;
+      for (const r of genRows) {
+        const cid = Number(r.cardId);
+        const n = Number(r.n);
+        const cost = Number(r.cost);
+        const ok = r.success === true;
+        if (ok) genOk += n; else genFail += n;
+        genCostX100 += cost;
+        const entry = genByCard.get(cid) ?? {
+          front: { ok: 0, fail: 0 },
+          inside: { ok: 0, fail: 0 },
+        };
+        const side = r.side === 'front' ? entry.front : entry.inside;
+        if (ok) side.ok += n; else side.fail += n;
+        genByCard.set(cid, entry);
+      }
 
       const orders = (
         await db.execute(sql`
@@ -162,6 +213,10 @@ export function registerAdminCustomersRoutes(app: Express): void {
           cardCount: cards.length,
           paidOrders: paidOrders.length,
           totalSpent,
+          // Generation rollup (from generation_log — same source as the
+          // Cost Ledger). Distinct from cards/orders: one card can take
+          // several generations, some failed.
+          gen: { ok: genOk, failed: genFail, total: genOk + genFail, costCentsX100: genCostX100 },
         },
         cards: cards.map((c) => ({
           id: c.id,
@@ -169,9 +224,11 @@ export function registerAdminCustomersRoutes(app: Express): void {
           cardType: c.cardType,
           status: c.status,
           frontImageUrl: c.frontImageUrl,
+          insideImageUrl: c.insideImageUrl,
           price: Number(c.price),
           viewToken: c.viewToken,
           createdAt: c.createdAt,
+          gen: genByCard.get(Number(c.id)) ?? { front: { ok: 0, fail: 0 }, inside: { ok: 0, fail: 0 } },
         })),
         orders: orders.map(normalizeOrder),
       });
