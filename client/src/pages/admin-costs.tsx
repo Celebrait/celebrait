@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { genCostUsdX100ToGbp } from '@shared/pricing';
 import {
   Bar,
   BarChart,
@@ -53,13 +54,15 @@ interface CostsResponse {
   recentExpensive: { cardId: number; centsX100: number; rows: number; lastRowAt: string }[];
 }
 
-// costCentsX100 = cents × 100 (so 1340 = $0.134). USD throughout —
-// no per-currency conversion in the dashboard yet.
-function formatUsd(centsX100: number): string {
-  const dollars = centsX100 / 10_000;
-  if (dollars >= 100) return `$${dollars.toFixed(0)}`;
-  if (dollars >= 1) return `$${dollars.toFixed(2)}`;
-  return `$${dollars.toFixed(3)}`;
+// Provider costs are stored in USD (costCentsX100 = USD cents × 100, so
+// 1340 = $0.134). We operate in GBP, so display converts at a fixed
+// approximate rate (see genCostUsdX100ToGbp / USD_TO_GBP in shared/pricing).
+// Approximate by design — a rough £ read beats a precise $ one for Kevin.
+function formatGbp(centsX100: number): string {
+  const pounds = genCostUsdX100ToGbp(centsX100);
+  if (pounds >= 100) return `£${pounds.toFixed(0)}`;
+  if (pounds >= 1) return `£${pounds.toFixed(2)}`;
+  return `£${pounds.toFixed(3)}`;
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -161,7 +164,7 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Avg cost / card"
-          value={formatUsd(data.perCard.avgCentsX100)}
+          value={formatGbp(data.perCard.avgCentsX100)}
           hint={`across ${data.overview.distinctCards.toLocaleString()} cards`}
           tone="primary"
         />
@@ -178,26 +181,26 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
         />
         <MetricCard
           label="Total spend"
-          value={formatUsd(data.overview.totalCentsX100)}
+          value={formatGbp(data.overview.totalCentsX100)}
           hint={`window: ${window}`}
         />
       </section>
 
       {/* Trend charts — daily lines for spend, cards, regen-rate */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Daily spend (USD)" subtitle="Spike here = investigate.">
+        <ChartCard title="Daily spend (~£)" subtitle="Spike here = investigate. Converted from USD.">
           {data.daily.length === 0 ? (
             <EmptyState />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.daily.map((d) => ({ day: d.day, usd: d.centsX100 / 10_000 }))}>
+              <LineChart data={data.daily.map((d) => ({ day: d.day, gbp: genCostUsdX100ToGbp(d.centsX100) }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                 <XAxis dataKey="day" tickFormatter={shortDay} fontSize={11} stroke="#78716c" />
-                <YAxis fontSize={11} stroke="#78716c" tickFormatter={(v) => `$${v.toFixed(2)}`} />
-                <Tooltip formatter={(v: number) => `$${v.toFixed(3)}`} labelFormatter={shortDay} />
+                <YAxis fontSize={11} stroke="#78716c" tickFormatter={(v) => `£${v.toFixed(2)}`} />
+                <Tooltip formatter={(v: number) => `£${v.toFixed(3)}`} labelFormatter={shortDay} />
                 <Line
                   type="monotone"
-                  dataKey="usd"
+                  dataKey="gbp"
                   stroke="#7a76e8"
                   strokeWidth={2}
                   dot={{ r: 2 }}
@@ -251,21 +254,21 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
                 <Pie
                   data={data.byProvider.map((p) => ({
                     name: p.provider,
-                    value: p.centsX100 / 10_000,
+                    value: genCostUsdX100ToGbp(p.centsX100),
                   }))}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={50}
                   outerRadius={80}
                   paddingAngle={2}
-                  label={(entry) => `${entry.name}: $${entry.value.toFixed(2)}`}
+                  label={(entry) => `${entry.name}: £${entry.value.toFixed(2)}`}
                   labelLine={false}
                 >
                   {data.byProvider.map((p) => (
                     <Cell key={p.provider} fill={colorForProvider(p.provider)} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => `$${v.toFixed(3)}`} />
+                <Tooltip formatter={(v: number) => `£${v.toFixed(3)}`} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -277,13 +280,13 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
-                data={data.bySlot.map((s) => ({ slot: s.slot, usd: s.centsX100 / 10_000 }))}
+                data={data.bySlot.map((s) => ({ slot: s.slot, gbp: genCostUsdX100ToGbp(s.centsX100) }))}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
                 <XAxis dataKey="slot" fontSize={11} stroke="#78716c" />
-                <YAxis fontSize={11} stroke="#78716c" tickFormatter={(v) => `$${v.toFixed(2)}`} />
-                <Tooltip formatter={(v: number) => `$${v.toFixed(3)}`} />
-                <Bar dataKey="usd" radius={[6, 6, 0, 0]}>
+                <YAxis fontSize={11} stroke="#78716c" tickFormatter={(v) => `£${v.toFixed(2)}`} />
+                <Tooltip formatter={(v: number) => `£${v.toFixed(3)}`} />
+                <Bar dataKey="gbp" radius={[6, 6, 0, 0]}>
                   {data.bySlot.map((s) => (
                     <Cell key={s.slot} fill={colorForSlot(s.slot)} />
                   ))}
@@ -321,7 +324,7 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
                     </td>
                     <td className="py-2 text-right text-stone-700">{t.rows.toLocaleString()}</td>
                     <td className="py-2 text-right font-medium text-ink">
-                      {formatUsd(t.centsX100)}
+                      {formatGbp(t.centsX100)}
                     </td>
                   </tr>
                 ))}
@@ -362,7 +365,7 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
                     </td>
                     <td className="py-2 text-right text-stone-700">{c.rows}</td>
                     <td className="py-2 text-right font-medium text-ink">
-                      {formatUsd(c.centsX100)}
+                      {formatGbp(c.centsX100)}
                     </td>
                     <td className="py-2 text-right text-xs text-stone-500">
                       {new Date(c.lastRowAt).toLocaleString()}
@@ -383,7 +386,7 @@ function SpendCard({ label, centsX100 }: { label: string; centsX100: number }) {
   return (
     <div className="bg-white border border-stone-200 rounded-xl p-5">
       <p className="text-xs uppercase tracking-wider text-stone-500 mb-1">{label}</p>
-      <p className="text-2xl font-semibold text-ink">{formatUsd(centsX100)}</p>
+      <p className="text-2xl font-semibold text-ink">{formatGbp(centsX100)}</p>
     </div>
   );
 }

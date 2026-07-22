@@ -248,3 +248,16 @@ export function getTier(id: TierId): PricingTier {
   if (!tier) throw new Error(`Unknown tier id: ${id}`);
   return tier;
 }
+
+// ── Provider-cost currency (admin views only) ────────────────────────
+// AI generation is billed by providers in USD, so generation_log costs
+// (and the Cost Ledger) are in USD. We operate in GBP, so the admin views
+// convert for display using a fixed approximate rate. DISPLAY ONLY — never
+// used for customer billing. Bump this when the rate drifts materially.
+export const USD_TO_GBP = 0.79;
+
+/** generation_log.costCentsX100 is USD cents × 100 (1340 = $0.134).
+ *  Returns the approximate cost in GBP pounds. */
+export function genCostUsdX100ToGbp(costCentsX100: number): number {
+  return (costCentsX100 / 10_000) * USD_TO_GBP;
+}

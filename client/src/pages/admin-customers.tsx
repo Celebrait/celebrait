@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3 } from 'lucide-react';
+import { genCostUsdX100ToGbp } from '@shared/pricing';
 
 interface GenSide { ok: number; fail: number }
 interface CardGen { front: GenSide; inside: GenSide }
@@ -271,7 +272,7 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 Generations: <span className="font-medium text-stone-700">{data.customer.gen.total}</span>
                 {' '}(<span className="text-green-700">{data.customer.gen.ok} ✓</span>
                 {data.customer.gen.failed > 0 && <span className="text-red-600"> · {data.customer.gen.failed} ✗</span>})
-                {' '}· cost ${(data.customer.gen.costCentsX100 / 10000).toFixed(2)}
+                {' '}· cost ~£{genCostUsdX100ToGbp(data.customer.gen.costCentsX100).toFixed(2)}
               </span>
               <Link
                 href="/admin/costs"
