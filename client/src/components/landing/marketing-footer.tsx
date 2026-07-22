@@ -118,8 +118,7 @@ export function MarketingFooter() {
         {/* Closing CTA band */}
         <div className="flex flex-col gap-8 border-b border-white/10 py-16 md:flex-row md:items-end md:justify-between md:py-20">
           <h2 className="max-w-[16ch] font-display text-4xl font-semibold leading-[1.03] tracking-[-0.02em] text-keeper-paper md:text-6xl">
-            Celebrait good times, come on{' '}
-            <span className="inline-block align-baseline">😉</span>
+            Celebrait good times, come on
           </h2>
           <div className="shrink-0">
             <FooterCta />

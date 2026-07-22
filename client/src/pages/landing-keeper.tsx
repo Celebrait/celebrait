@@ -47,6 +47,7 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { KeeperHeader } from '@/components/landing/keeper-header';
 import { GestureHints } from '@/components/gesture-hints';
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
@@ -576,106 +577,6 @@ function CssAjarCard({
   );
 }
 
-// ── 0. HEADER — floating pill nav (memorae-style, Kevin 2026-07-05) ──
-//
-// A single rounded capsule floating over the page instead of a
-// full-width bar: warm glass (paper tint + blur) so the celebration
-// backdrop reads through it, hairline border, ink CTA. Scoped to
-// /keeper until Kevin approves it for the rest of the site.
-
-const NAV_LINKS = [
-  { label: 'The proof', id: 'proof' },
-  { label: 'Examples', id: 'gallery' },
-  { label: 'Pricing', id: 'price' },
-] as const;
-
-function KeeperHeader() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
-
-  const jump = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[150]">
-      {/* Production-promise banner — brand violet → CTA green (Kevin
-          2026-07-05). Same 72h copy the ValueStrip carried mid-page;
-          it lives up here now instead. */}
-      <div
-        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
-        style={{
-          // Kevin's final call (after five steps down the gradient
-          // ladder): ink black sweeping into the brand purple, left to
-          // right — the logo's own two colours — white copy on top.
-          background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)',
-        }}
-      >
-        <span className="sm:hidden">
-          Printed to order in 72 hrs — £8.99 + delivery.
-        </span>
-        <span className="hidden sm:inline">
-          Every card is printed to order, just for them — allow up to 72 hrs,
-          then posted. £8.99 + delivery.
-        </span>
-        <Send className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      </div>
-      <div className="px-4 pt-5">
-      <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
-        <Link href="/" className="flex items-center" aria-label="Celebrait home">
-          <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto sm:h-9" />
-        </Link>
-
-        <nav className="hidden items-center gap-6 md:flex">
-          {NAV_LINKS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => jump(l.id)}
-              className="text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink"
-            >
-              {l.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* What's New drawer hidden site-wide (Kevin 2026-07-22 — not needed atm). */}
-          {!isLoading && isAuthenticated ? (
-            <Link href="/studio">
-              <button
-                type="button"
-                className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
-              >
-                <span className="sm:hidden">My studio</span>
-                <span className="hidden sm:inline">Open my studio</span>
-              </button>
-            </Link>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => openAuth('/studio')}
-                className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block"
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => openAuth('/studio/new-card')}
-                className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
-              >
-                <span className="sm:hidden">Make a card</span>
-                <span className="hidden sm:inline">Make my first card</span>
-              </button>
-            </>
-          )}
-        </div>
-      </header>
-      </div>
-    </div>
-  );
-}
 
 // ── 1. HERO — The Transformation ─────────────────────────────────────
 

@@ -1,14 +1,17 @@
-import { MarketingHeader } from "@/components/landing/marketing-header";
+import { KeeperHeader } from "@/components/landing/keeper-header";
+import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
 import { CONTROLLER, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-keeper-paper">
-      <MarketingHeader />
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className="relative pt-32">
 
-      <div className="container mx-auto px-4 pt-28 pb-20 max-w-4xl">
-        <div className="bg-white rounded-3xl border border-keeper-hair shadow-[0_20px_60px_-24px_rgba(33,29,25,0.22)] p-8 lg:p-12">
+      <div className="container mx-auto px-4 pb-20 max-w-4xl">
+        <div className="bg-white/85 backdrop-blur-sm rounded-3xl border border-keeper-hair shadow-[0_20px_60px_-24px_rgba(33,29,25,0.22)] p-8 lg:p-12">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-keeper-ink mb-2 text-center">
             Privacy Policy
           </h1>
@@ -494,6 +497,7 @@ export default function PrivacyPolicy() {
         </div>
       </div>
 
+      </main>
       <MarketingFooter />
     </div>
   );
