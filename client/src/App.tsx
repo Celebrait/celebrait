@@ -45,11 +45,10 @@ import { ErrorBoundary } from "@/components/error-boundary";
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
 import { AuthModalProvider } from "@/components/auth/auth-modal";
-import Landing from "@/pages/landing";
-// THE KEEPER preview — the LP rebuild lives at /keeper while its asset
-// slots are empty; swaps to "/" once Kevin's imagery lands. Lazy: no
-// reason for it in the first-paint chunk.
-const LandingKeeper = lazy(() => import("@/pages/landing-keeper"));
+// THE KEEPER is now the homepage (Kevin 2026-07-22 — old /pages/landing
+// retired). Eager: it's the most-hit public page, so it belongs in the
+// first-paint chunk (its heavy 3D card is separately code-split inside).
+import LandingKeeper from "@/pages/landing-keeper";
 import LoginPage from "@/pages/login";
 import PricingPage from "@/pages/pricing";
 import NotFound from "@/pages/not-found";
@@ -129,7 +128,8 @@ function Router() {
       <ScrollToTop />
       <Suspense fallback={<RouteFallback />}>
         <Switch>
-          <Route path="/" component={Landing} />
+          <Route path="/" component={LandingKeeper} />
+          {/* Legacy /keeper alias → same page, so old links still resolve. */}
           <Route path="/keeper" component={LandingKeeper} />
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/login" component={LoginPage} />

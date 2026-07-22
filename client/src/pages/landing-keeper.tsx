@@ -1595,43 +1595,6 @@ function OccasionCaptureSection() {
   );
 }
 
-// ── 8. FINALE ────────────────────────────────────────────────────────
-
-function FinaleSection() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
-  const authed = !isLoading && isAuthenticated;
-  const cls =
-    'inline-flex items-center justify-center rounded-full bg-keeper-ink px-9 py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black';
-  return (
-    <section className="bg-keeper-ink px-6 py-20 text-center md:py-28">
-      <Rise>
-        <p className="text-[17px] text-keeper-paper/80">
-          You bring the person. We make it real.
-        </p>
-        <div className="mt-6 font-display text-[clamp(56px,12vw,140px)] font-bold leading-none tracking-[-0.01em] text-keeper-paper">
-          Celebrait
-        </div>
-        <div className="mt-10">
-          {authed ? (
-            <Link href="/studio/new-card" className={cls}>
-              Make a card — it's free
-            </Link>
-          ) : (
-            <button type="button" onClick={() => openAuth('/studio/new-card')} className={cls}>
-              Make a card — it's free
-            </button>
-          )}
-        </div>
-        <p className="mt-4 text-[12.5px] text-keeper-paper/60">
-          Free to make. £8.99 to print and post. We'll even remind you before
-          the next birthday.
-        </p>
-      </Rise>
-    </section>
-  );
-}
-
 // ── Floating CTA pill ────────────────────────────────────────────────
 
 function FloatingPill() {
@@ -1697,7 +1660,6 @@ export default function LandingKeeper() {
         <DemoVideoSection />
         <PriceSection />
         <FaqSection />
-        <FinaleSection />
       </main>
       <MarketingFooter />
       <FloatingPill />
