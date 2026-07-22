@@ -63,6 +63,12 @@ export const studioOrders = pgTable(
       .notNull()
       .default(0),
     totalAmount: integer("total_amount").notNull(),
+    // The amount ACTUALLY charged, captured from the gateway on the paid
+    // flip (Stripe: session.amount_total). Differs from totalAmount when a
+    // promotion code discounts the order — e.g. friends-&-family £7.99-off
+    // makes a £12.94 order charge £4.95. NULL for pre-2026-07-22 orders and
+    // any not-yet-paid order; reporting falls back to totalAmount when null.
+    amountPaid: integer("amount_paid"),
 
     // Payment — provider-agnostic. paymentProvider records which
     // gateway processed it (stub|peach|stripe|…); paymentReference is

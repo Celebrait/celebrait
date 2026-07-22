@@ -36,6 +36,11 @@ export interface CreatePaymentResult {
 export interface PaymentStatus {
   paymentReference: string;
   status: "pending" | "paid" | "failed" | "refunded";
+  /** The amount actually charged in minor units (pence), post-discount —
+   *  from the gateway (Stripe: session.amount_total). Present on the paid
+   *  event; undefined otherwise. Stored so reporting reflects real revenue
+   *  when a promo code was applied. */
+  amountPaid?: number;
 }
 
 export interface PaymentProvider {

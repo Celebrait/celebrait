@@ -53,10 +53,10 @@ export function registerAdminCustomersRoutes(app: Express): void {
             (select count(*) from users) as "totalCustomers",
             (select count(*) from cards) as "totalCards",
             count(*) filter (where payment_status = 'paid')                                     as "paidOrders",
-            coalesce(sum(total_amount) filter (where payment_status = 'paid'), 0)               as "revenueAllTime",
-            coalesce(sum(total_amount) filter (where payment_status = 'paid'
+            coalesce(sum(coalesce(amount_paid, total_amount)) filter (where payment_status = 'paid'), 0) as "revenueAllTime",
+            coalesce(sum(coalesce(amount_paid, total_amount)) filter (where payment_status = 'paid'
               and paid_at >= now() - interval '7 days'), 0)                                     as "revenueWeek",
-            coalesce(sum(total_amount) filter (where payment_status = 'paid'
+            coalesce(sum(coalesce(amount_paid, total_amount)) filter (where payment_status = 'paid'
               and paid_at >= date_trunc('month', now() at time zone 'utc')), 0)                 as "revenueMonth",
             count(*) filter (where payment_status = 'paid'
               and created_at >= now() - interval '7 days')                                      as "ordersWeek"
@@ -75,7 +75,8 @@ export function registerAdminCustomersRoutes(app: Express): void {
                  o.customer_name as "customerName", o.customer_email as "customerEmail",
                  o.ship_to as "shipTo", o.shipping_tier as "shippingTier",
                  o.shipping_address as "shippingAddress",
-                 o.total_amount as "totalAmount", o.print_amount as "printAmount",
+                 o.total_amount as "totalAmount", o.amount_paid as "amountPaid",
+                 o.print_amount as "printAmount",
                  o.shipping_amount as "shippingAmount",
                  o.delivery_surcharge_amount as "envelopeStickerAmount",
                  o.currency, o.payment_status as "paymentStatus",
@@ -157,7 +158,7 @@ export function registerAdminCustomersRoutes(app: Express): void {
           left join (
             select user_id,
               count(*) filter (where payment_status = 'paid')                    as paid_orders,
-              coalesce(sum(total_amount) filter (where payment_status = 'paid'), 0) as total_spent,
+              coalesce(sum(coalesce(amount_paid, total_amount)) filter (where payment_status = 'paid'), 0) as total_spent,
               max(created_at) as last_order
             from studio_orders group by user_id
           ) oc on oc.user_id = u.id
@@ -263,7 +264,8 @@ export function registerAdminCustomersRoutes(app: Express): void {
           select id, card_id as "cardId", customer_name as "customerName",
                  customer_email as "customerEmail", ship_to as "shipTo",
                  shipping_tier as "shippingTier", shipping_address as "shippingAddress",
-                 total_amount as "totalAmount", print_amount as "printAmount",
+                 total_amount as "totalAmount", amount_paid as "amountPaid",
+                 print_amount as "printAmount",
                  shipping_amount as "shippingAmount",
                  delivery_surcharge_amount as "envelopeStickerAmount",
                  currency, payment_status as "paymentStatus",
@@ -277,7 +279,10 @@ export function registerAdminCustomersRoutes(app: Express): void {
       ).rows as any[];
 
       const paidOrders = orders.filter((o) => o.paymentStatus === 'paid');
-      const totalSpent = paidOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+      const totalSpent = paidOrders.reduce(
+        (sum, o) => sum + Number(o.amountPaid ?? o.totalAmount),
+        0,
+      );
 
       res.json({
         customer: {
@@ -325,9 +330,23 @@ export function registerAdminCustomersRoutes(app: Express): void {
     try {
       const payment = cleanStatus(req.query.payment);
       const fulfillment = cleanStatus(req.query.fulfillment);
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
       const conds = [];
       if (payment) conds.push(sql`o.payment_status = ${payment}`);
       if (fulfillment) conds.push(sql`o.fulfillment_status = ${fulfillment}`);
+      if (q) {
+        // Match customer name/email, the order ref, the Prodigi order id,
+        // or an exact card id (when q is numeric).
+        const like = `%${q}%`;
+        const cardId = /^\d+$/.test(q) ? Number(q) : null;
+        conds.push(sql`(
+          o.customer_name ilike ${like}
+          or o.customer_email ilike ${like}
+          or o.id::text ilike ${like}
+          or o.provider_order_id ilike ${like}
+          ${cardId != null ? sql`or o.card_id = ${cardId}` : sql``}
+        )`);
+      }
       const where = conds.length
         ? sql`where ${sql.join(conds, sql` and `)}`
         : sql``;
@@ -338,7 +357,8 @@ export function registerAdminCustomersRoutes(app: Express): void {
                  o.customer_name as "customerName", o.customer_email as "customerEmail",
                  o.ship_to as "shipTo", o.shipping_tier as "shippingTier",
                  o.shipping_address as "shippingAddress",
-                 o.total_amount as "totalAmount", o.print_amount as "printAmount",
+                 o.total_amount as "totalAmount", o.amount_paid as "amountPaid",
+                 o.print_amount as "printAmount",
                  o.shipping_amount as "shippingAmount",
                  o.delivery_surcharge_amount as "envelopeStickerAmount",
                  o.currency, o.payment_status as "paymentStatus",
@@ -416,6 +436,8 @@ function normalizeOrder(o: any) {
     shippingTier: o.shippingTier,
     shippingAddress: o.shippingAddress ?? null,
     totalAmount: Number(o.totalAmount),
+    // Actual charged amount (post-discount) when captured; null otherwise.
+    amountPaid: o.amountPaid != null ? Number(o.amountPaid) : null,
     printAmount: Number(o.printAmount ?? 0),
     shippingAmount: Number(o.shippingAmount ?? 0),
     envelopeStickerAmount: Number(o.envelopeStickerAmount ?? 0),

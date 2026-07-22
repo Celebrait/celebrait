@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle, Download } from 'lucide-react';
 import { genCostUsdX100ToGbp } from '@shared/pricing';
 
 interface GenSide { ok: number; fail: number }
@@ -42,6 +42,7 @@ interface OrderRow {
   shippingTier: string | null;
   shippingAddress: any;
   totalAmount: number;
+  amountPaid: number | null;
   printAmount: number;
   shippingAmount: number;
   envelopeStickerAmount: number;
@@ -90,6 +91,25 @@ function fmtDate(iso: string | null): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Build a CSV from headers + rows and trigger a download. Quotes any cell
+// containing a comma/quote/newline. Amounts are exported as plain £ decimals.
+function downloadCsv(filename: string, headers: string[], rows: (string | number | null)[][]) {
+  const esc = (v: string | number | null) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [headers, ...rows].map((r) => r.map(esc).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function pounds(pence: number): string {
+  return (pence / 100).toFixed(2);
 }
 
 const PAY_COLORS: Record<string, string> = {
@@ -168,6 +188,18 @@ function Spinner() {
   );
 }
 
+function ExportButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-40"
+    >
+      <Download className="w-4 h-4" /> Export CSV
+    </button>
+  );
+}
+
 // ── Overview header (health + needs-attention) ───────────────────────
 interface AttentionOrder extends OrderRow { attentionReason: string }
 function OverviewHeader() {
@@ -224,16 +256,36 @@ function CustomersTab({ onSelect }: { onSelect: (id: string) => void }) {
     queryKey: [`/api/admin/customers?q=${encodeURIComponent(q)}`],
   });
 
+  const customers = data?.customers ?? [];
+  const exportCsv = () =>
+    downloadCsv(
+      'celebrait-customers.csv',
+      ['Name', 'Email', 'Cards', 'Paid orders', 'Total spent (£)', 'Joined', 'Last active', 'Marketing opt-in'],
+      customers.map((c) => [
+        fullName(c),
+        c.email ?? '',
+        c.cardCount,
+        c.paidOrders,
+        pounds(c.totalSpent),
+        fmtDate(c.createdAt),
+        fmtDate(c.lastActivity),
+        c.marketingOptIn ? 'yes' : 'no',
+      ]),
+    );
+
   return (
     <div>
-      <div className="relative mb-3 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search name or email…"
-          className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-violet-400 focus:outline-none"
-        />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search name or email…"
+            className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-violet-400 focus:outline-none"
+          />
+        </div>
+        <ExportButton onClick={exportCsv} disabled={customers.length === 0} />
       </div>
 
       {isLoading ? (
@@ -361,9 +413,12 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                       <CardSideThumb label="Inside" url={c.insideImageUrl} />
                     </div>
                     <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-medium text-stone-700">
+                      <a
+                        href={`/studio/card/${c.id}`}
+                        className="truncate text-xs font-medium text-violet-600 hover:underline"
+                      >
                         #{c.id} · {c.sceneType ?? '—'}
-                      </span>
+                      </a>
                       <Pill label={c.status ?? '—'} />
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-stone-500">
@@ -438,11 +493,25 @@ function OrderCard({ o, showCustomer, reason }: { o: OrderRow; showCustomer?: bo
           <Pill label={o.fulfillmentStatus} color={FULFIL_COLORS[o.fulfillmentStatus]} />
           {o.envelopeStickerAmount > 0 && <Pill label="seal" color="bg-amber-50 text-amber-700" />}
           {reason && <Pill label={reason} color="bg-red-100 text-red-800" />}
+          {o.amountPaid != null && o.amountPaid !== o.totalAmount && (
+            <Pill label="discounted" color="bg-violet-100 text-violet-700" />
+          )}
         </div>
-        <div className="font-semibold text-stone-900">{gbp(o.totalAmount)}</div>
+        <div className="text-right">
+          <div className="font-semibold text-stone-900">{gbp(o.amountPaid ?? o.totalAmount)}</div>
+          {o.amountPaid != null && o.amountPaid !== o.totalAmount && (
+            <div className="text-[11px] text-stone-400 line-through">{gbp(o.totalAmount)}</div>
+          )}
+        </div>
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
-        <span>Card #{o.cardId}</span>
+        {o.cardId != null ? (
+          <a href={`/studio/card/${o.cardId}`} className="text-violet-600 hover:underline">
+            Card #{o.cardId}
+          </a>
+        ) : (
+          <span>Card #{o.cardId}</span>
+        )}
         <span>{o.shipTo === 'sender' ? 'To sender' : 'To recipient'} · {o.shippingTier}</span>
         <span>{gbp(o.printAmount)} card + {gbp(o.shippingAmount)} ship{o.envelopeStickerAmount > 0 ? ` + ${gbp(o.envelopeStickerAmount)} seal` : ''}</span>
         <span>{fmtDate(o.paidAt ?? o.createdAt)}</span>
@@ -470,16 +539,27 @@ function OrderCard({ o, showCustomer, reason }: { o: OrderRow; showCustomer?: bo
 function OrdersTab() {
   const [payment, setPayment] = useState('');
   const [fulfillment, setFulfillment] = useState('');
+  const [q, setQ] = useState('');
   const qs = new URLSearchParams();
   if (payment) qs.set('payment', payment);
   if (fulfillment) qs.set('fulfillment', fulfillment);
+  if (q) qs.set('q', q);
   const { data, isLoading } = useQuery<{ orders: OrderRow[] }>({
     queryKey: [`/api/admin/orders?${qs.toString()}`],
   });
 
   return (
     <div>
-      <div className="mb-3 flex gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search email, name, order ref, Prodigi id, card #…"
+            className="w-72 rounded-lg border border-stone-200 py-1.5 pl-8 pr-3 text-sm focus:border-violet-400 focus:outline-none"
+          />
+        </div>
         <select value={payment} onChange={(e) => setPayment(e.target.value)} className="rounded-lg border border-stone-200 px-2 py-1.5 text-sm">
           <option value="">All payments</option>
           <option value="paid">Paid</option>
@@ -496,6 +576,31 @@ function OrdersTab() {
           <option value="delivered">Delivered</option>
           <option value="failed">Failed</option>
         </select>
+        <ExportButton
+          onClick={() =>
+            downloadCsv(
+              'celebrait-orders.csv',
+              ['Order ref', 'Customer', 'Email', 'Card', 'Ship to', 'Tier', 'Charged (£)', 'List (£)', 'Payment', 'Fulfilment', 'Prodigi', 'Tracking', 'Created', 'Paid'],
+              (data?.orders ?? []).map((o) => [
+                o.id,
+                o.customerName,
+                o.customerEmail,
+                o.cardId ?? '',
+                o.shipTo ?? '',
+                o.shippingTier ?? '',
+                pounds(o.amountPaid ?? o.totalAmount),
+                pounds(o.totalAmount),
+                o.paymentStatus,
+                o.fulfillmentStatus,
+                o.providerOrderId ?? '',
+                o.trackingNumber ?? '',
+                fmtDate(o.createdAt),
+                fmtDate(o.paidAt),
+              ]),
+            )
+          }
+          disabled={(data?.orders ?? []).length === 0}
+        />
       </div>
       {isLoading ? (
         <Spinner />

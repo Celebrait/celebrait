@@ -479,7 +479,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           .limit(1);
         const order = rows[0];
         if (order) {
-          await markOrderPaidAndDispatch(order.id);
+          await markOrderPaidAndDispatch(order.id, status.amountPaid);
         } else {
           console.warn(
             '[STRIPE-WEBHOOK] no order found for payment ref',
@@ -731,6 +731,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 // landing together would double-send the receipt.
 async function markOrderPaidAndDispatch(
   orderId: string,
+  amountPaid?: number,
 ): Promise<{ ok: true; alreadyPaid?: boolean }> {
   const updated = await db
     .update(studioOrders)
@@ -738,6 +739,10 @@ async function markOrderPaidAndDispatch(
       paymentStatus: 'paid',
       paidAt: new Date(),
       updatedAt: new Date(),
+      // Real charged amount (post-discount) when the gateway reported it.
+      // Omitted → column stays as-is (null), and reporting falls back to
+      // totalAmount.
+      ...(typeof amountPaid === 'number' ? { amountPaid } : {}),
     })
     .where(
       and(

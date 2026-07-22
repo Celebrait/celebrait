@@ -146,6 +146,10 @@ export const stripePaymentProvider: PaymentProvider = {
         return {
           paymentReference: session.id,
           status: mapSessionStatus(session.payment_status),
+          // amount_total is post-discount — the real charge. Captured so a
+          // promo-coded order reports what was actually paid, not the list
+          // price. Null-safe: undefined when Stripe omits it.
+          amountPaid: session.amount_total ?? undefined,
         };
       }
       case "checkout.session.async_payment_failed": {
