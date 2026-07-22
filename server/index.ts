@@ -34,6 +34,13 @@ app.use((_req, res, next) => {
 app.use(
   express.json({
     limit: "25mb",
+    // Also parse `application/*+json` media types, not just plain
+    // application/json. Prodigi's status webhook is CloudEvents-shaped and
+    // sends `application/cloudevents+json`; the default matcher skipped it,
+    // so req.body came through empty ({}) and every callback 400'd with
+    // "no order id" (fixed 2026-07-22). Stripe still sends application/json,
+    // so it's unaffected.
+    type: ["application/json", "application/*+json"],
     // Stash the raw request body so the Stripe webhook handler can verify
     // the signature against the exact bytes Stripe signed. Re-serialised
     // JSON won't match. Cheap — just keeps a reference to the buffer.

@@ -550,7 +550,32 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         (req as any).rawBody ?? req.body,
       );
     } catch (err: any) {
-      console.error('[PRODIGI-WEBHOOK] parse failed:', err?.message ?? err);
+      // Rich diagnostics: if this still fails after the content-type fix,
+      // the next Prodigi retry shows exactly what's arriving (header +
+      // raw bytes) instead of an opaque "no order id".
+      const rb = (req as any).rawBody;
+      const rawInfo = Buffer.isBuffer(rb)
+        ? `buffer:${rb.length}b`
+        : typeof rb;
+      const sample = Buffer.isBuffer(rb)
+        ? rb.toString('utf8').slice(0, 300)
+        : (() => {
+            try {
+              return JSON.stringify(req.body).slice(0, 300);
+            } catch {
+              return String(req.body).slice(0, 300);
+            }
+          })();
+      console.error(
+        '[PRODIGI-WEBHOOK] parse failed:',
+        err?.message ?? err,
+        '| content-type:',
+        req.headers['content-type'],
+        '| rawBody:',
+        rawInfo,
+        '| sample:',
+        sample,
+      );
       return res.status(400).json({ message: 'Bad payload' });
     }
 
