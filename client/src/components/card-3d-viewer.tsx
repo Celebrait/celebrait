@@ -150,6 +150,12 @@ function FlatCardFallback({
         <img
           src={src}
           alt="Card front"
+          // CORS-mode load so this shares one cache entry with the WebGL
+          // texture loader (which is always crossOrigin). A plain <img>
+          // load of the same URL caches a no-CORS response that then
+          // poisons the texture fetch → "blank until you click". See the
+          // matching crossOrigin on every card-image <img>.
+          crossOrigin="anonymous"
           onError={() => setImgDead(true)}
           style={{
             height: side,
@@ -697,7 +703,6 @@ function Scene({
       />
 
       <InitialCameraFit margin={framingMargin} />
-      <FirstPaintFix />
 
       <Card
         frontUrl={frontUrl}
@@ -808,65 +813,6 @@ function InitialCameraFit({ margin }: { margin: number }) {
     camera.updateProjectionMatrix();
     invalidate();
   }, [camera, size, invalidate, margin]);
-  return null;
-}
-
-// ── FirstPaintFix ────────────────────────────────────────────────────
-// Forces r3f to re-measure its container from the real DOM size for the
-// first few frames after mount, then stops.
-//
-// Why: r3f sizes the Canvas via a ResizeObserver on its container. When
-// the Canvas mounts MID-TRANSITION — the assembling→reveal handoff swaps
-// children through <AnimatePresence mode="wait">, and the reveal wrapper
-// is animating opacity + y at that instant — the observer can report an
-// initial 0×0 and then never re-fire on its own (the element's box size
-// never actually changes afterwards). With size stuck at 0×0, InitialCameraFit
-// refuses to latch (correctly — fitting against 0×0 gives a NaN camera),
-// so the card never paints. A click or window resize forces r3f to
-// re-measure, which is why the reveal was "blank until you click"
-// (Kevin, reported repeatedly through 2026-07). This closes that: we read
-// the container's true bounds each frame for ~0.5s and push them into the
-// r3f store, so `size` becomes real on its own and the camera fit latches
-// with no user gesture. Self-limiting — it stops after the size settles or
-// ~30 frames, whichever comes first.
-function FirstPaintFix() {
-  const gl = useThree((s) => s.gl);
-  const setSize = useThree((s) => s.setSize);
-  const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => {
-    const canvas = gl.domElement;
-    let raf = 0;
-    let frames = 0;
-    let settledFor = 0;
-    const tick = () => {
-      const parent = canvas.parentElement;
-      const rect = parent?.getBoundingClientRect();
-      if (rect && rect.width > 0 && rect.height > 0) {
-        const w = Math.round(rect.width);
-        const h = Math.round(rect.height);
-        const drawnW = Math.round(canvas.clientWidth);
-        const drawnH = Math.round(canvas.clientHeight);
-        if (w !== drawnW || h !== drawnH) {
-          // r3f's measured size is stale (typically stuck at 0×0 from a
-          // mid-transition mount). Push the real size in — this updates the
-          // store, which re-runs InitialCameraFit's size-dependent effect.
-          setSize(w, h);
-          settledFor = 0;
-        } else {
-          settledFor += 1;
-        }
-        invalidate();
-      }
-      frames += 1;
-      // Stop once the size has agreed for a few frames, or after a safety
-      // cap (~30 frames ≈ 0.5s at 60fps) so this never loops indefinitely.
-      if (settledFor < 3 && frames < 30) {
-        raf = requestAnimationFrame(tick);
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [gl, setSize, invalidate]);
   return null;
 }
 

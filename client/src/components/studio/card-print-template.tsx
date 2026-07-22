@@ -64,7 +64,7 @@ export function CardOuterSpread({ frontUrl }: { frontUrl: string | null }) {
         <img src={logoSrc} alt="Celebrait" className="relative h-[7%] min-h-[7px] opacity-60" />
       </div>
       <div className={cell}>
-        {frontUrl && <img src={frontUrl} alt="" className="h-full w-full object-cover" />}
+        {frontUrl && <img src={frontUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ export function CardInnerSpread({ insideUrl }: { insideUrl: string | null }) {
         <PanelWatermark label="INSIDE" />
       </div>
       <div className={cell}>
-        {insideUrl && <img src={insideUrl} alt="" className="h-full w-full object-cover" />}
+        {insideUrl && <img src={insideUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
       </div>
     </div>
   );
@@ -104,13 +104,13 @@ export function CardPrintStrip({
           <img src={logoSrc} alt="" className="relative h-2 opacity-60" />
         </div>
         <div className={`${panel} bg-stone-100`}>
-          {frontUrl && <img src={frontUrl} alt="" className="h-full w-full object-cover" />}
+          {frontUrl && <img src={frontUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
         </div>
         <div className={`${panel} bg-white`}>
           <PanelWatermark label="INSIDE" />
         </div>
         <div className={`${panel} bg-stone-100`}>
-          {insideUrl && <img src={insideUrl} alt="" className="h-full w-full object-cover" />}
+          {insideUrl && <img src={insideUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
         </div>
       </div>
       <div className="mt-1 flex gap-1 text-[9px] text-keeper-meta">

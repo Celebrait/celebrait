@@ -603,6 +603,7 @@ function TakesRail({ currentId, famKey }: { currentId: number; famKey: number })
                 <img
                   src={t.frontImageUrl!}
                   alt={`Take ${idx + 1}`}
+                  crossOrigin="anonymous"
                   className="h-full w-full object-cover"
                 />
               </span>

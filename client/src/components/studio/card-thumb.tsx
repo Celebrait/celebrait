@@ -189,6 +189,7 @@ function ThumbChassis({
           <img
             src={url}
             alt={label}
+            crossOrigin="anonymous"
             onLoad={() => setPaintedUrl(url)}
             className="absolute inset-0 w-full h-full object-contain"
           />

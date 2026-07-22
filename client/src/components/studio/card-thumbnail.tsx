@@ -116,6 +116,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
             src={card.frontImageUrl!}
             alt={title}
             loading="lazy"
+            crossOrigin="anonymous"
             onError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />

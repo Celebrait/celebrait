@@ -786,6 +786,11 @@ function CardFrontPoster({
         <img
           src={frontImageUrl}
           alt=""
+          // Share one CORS-clean cache entry with the 3D viewer's texture
+          // loader (which is crossOrigin). Without this, this flat image —
+          // which loads first — caches a no-CORS response that poisons the
+          // WebGL texture fetch and the 3D card renders blank.
+          crossOrigin="anonymous"
           className="max-w-[min(75vw,55vh)] max-h-[55vh] aspect-square object-cover rounded-lg shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
           // Hint to the browser: front asset is the highest-priority
           // resource on this page. Modern browsers respect fetchpriority
