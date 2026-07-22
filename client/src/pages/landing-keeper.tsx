@@ -42,7 +42,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
-import { WhatsNewDrawer } from '@/components/studio/whats-new-drawer';
 import celebraitLogo from '@/assets/celebrait.png';
 import { FaqSection } from '@/components/landing/faq-section';
 import { DemoVideoSection } from '@/components/landing/demo-video-section';
@@ -641,7 +640,7 @@ function KeeperHeader() {
         </nav>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <WhatsNewDrawer />
+          {/* What's New drawer hidden site-wide (Kevin 2026-07-22 — not needed atm). */}
           {!isLoading && isAuthenticated ? (
             <Link href="/studio">
               <button

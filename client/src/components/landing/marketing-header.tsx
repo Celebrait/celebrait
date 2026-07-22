@@ -13,7 +13,6 @@ import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { Button } from '@/components/ui/button';
-import { WhatsNewDrawer } from '@/components/studio/whats-new-drawer';
 import celebraitLogo from '@/assets/celebrait.png';
 
 export function MarketingHeader({
@@ -54,10 +53,9 @@ export function MarketingHeader({
         </Link>
 
         <div className="flex items-center gap-4 md:gap-6">
-          {/* "What's new" drawer — same component + localStorage watermark
-              as the studio header, so opening it in either place clears the
-              unread badge in both. */}
-          <WhatsNewDrawer />
+          {/* What's New drawer hidden site-wide (Kevin 2026-07-22 — not
+              needed atm). See client/src/components/studio/whats-new-drawer.tsx
+              to re-enable. */}
 
           {!isLoading && isAuthenticated ? (
             <Link

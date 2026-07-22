@@ -45,7 +45,6 @@ import { FabNewCard } from '@/components/studio/fab-new-card';
 import { StudioHints } from '@/components/studio/studio-hints';
 import { WelcomeMoment } from '@/components/studio/welcome-moment';
 import { NotificationBell } from '@/components/studio/notification-bell';
-import { WhatsNewDrawer } from '@/components/studio/whats-new-drawer';
 import { DevTestFailurePanel } from '@/components/dev/dev-test-failure-panel';
 
 interface NavItem {
@@ -253,7 +252,9 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           {/* Spacer pushes the bell + avatar + logout to the right */}
           <div className="flex-1" />
 
-          <WhatsNewDrawer />
+          {/* What's New drawer hidden site-wide (Kevin 2026-07-22 — not
+              needed atm). Component + <WhatsNewDrawer/> import kept for an
+              easy re-enable. */}
           <NotificationBell />
 
           <div className="flex items-center gap-2 bg-white/70 border border-keeper-hair rounded-full pl-1 pr-3 py-1">
