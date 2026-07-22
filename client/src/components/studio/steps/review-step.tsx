@@ -424,6 +424,7 @@ function TakesStrip({
               <img
                 src={t.frontImageUrl!}
                 alt={`Take ${idx + 1}`}
+                crossOrigin="anonymous"
                 className="h-full w-full object-cover"
               />
             </span>
@@ -1063,8 +1064,13 @@ function FrontFirstReview({
   // printed 4-panel card, not just a digital image — tap swaps it up.
   // (Restored 2026-07-09 — Kevin: the print-ready view should be visible,
   // not hidden behind the corner chip that replaced it on 07-08.)
-  const [heroView, setHeroView] = useState<'image' | 'print'>('image');
+  // 'image' = the full card image · 'print' = this side's print spread ·
+  // 'front' = the approved FRONT's print spread (inside reveal only, when a
+  // frontReference is supplied). Tapping either thumbnail swaps its content
+  // up into the hero.
+  const [heroView, setHeroView] = useState<'image' | 'print' | 'front'>('image');
   const showingPrint = heroView === 'print';
+  const showingFront = heroView === 'front';
   return (
     <div className="mx-auto max-w-2xl py-4">
       <div className="mb-4 text-center">
@@ -1076,11 +1082,13 @@ function FrontFirstReview({
           the CTAs below. The landscape print spread centres vertically
           inside the square; the full image fills it. */}
       <div className="mx-auto flex aspect-square w-full max-w-[300px] items-center justify-center">
-        {showingPrint ? (
+        {showingFront && frontReference ? (
+          <div className="w-full">{frontReference}</div>
+        ) : showingPrint ? (
           <div className="w-full">{printVisual}</div>
         ) : (
           <div className="aspect-square w-full overflow-hidden rounded-lg border border-keeper-hair bg-stone-100 shadow-[0_30px_60px_-22px_rgba(33,29,25,0.30)]">
-            {heroUrl && <img src={heroUrl} alt="Your card" className="h-full w-full object-cover" />}
+            {heroUrl && <img src={heroUrl} alt="Your card" crossOrigin="anonymous" className="h-full w-full object-cover" />}
           </div>
         )}
       </div>
@@ -1093,14 +1101,33 @@ function FrontFirstReview({
           hero. */}
       <div className="mt-4 flex items-start justify-center gap-4">
         {frontReference && (
-          <figure className="flex w-[88px] flex-col items-center">
-            <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setHeroView((v) => (v === 'front' ? 'image' : 'front'))}
+            className="group flex w-[88px] flex-col items-center"
+            aria-label={
+              showingFront
+                ? 'Show the inside'
+                : 'Show the approved front print layout'
+            }
+            data-testid="btn-front-reference-toggle"
+          >
+            <div
+              className={`flex aspect-square w-[88px] items-center justify-center rounded-md border p-1 shadow-sm transition-transform group-hover:scale-[1.06] ${
+                showingFront
+                  ? 'border-brand bg-brand-muted/40'
+                  : 'border-keeper-hair bg-white/70'
+              }`}
+            >
               <div className="w-full">{frontReference}</div>
             </div>
-            <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">
-              {frontReferenceLabel ?? 'Front'}
-            </figcaption>
-          </figure>
+            <span className="mt-1.5 inline-flex items-center gap-1 text-center text-[11px] font-medium text-keeper-meta transition-colors group-hover:text-keeper-ink">
+              <Printer className="h-3 w-3" strokeWidth={1.75} />
+              {showingFront
+                ? 'Tap for the inside'
+                : `${frontReferenceLabel ?? 'Front'} · tap to view`}
+            </span>
+          </button>
         )}
         <button
           type="button"
@@ -1112,7 +1139,7 @@ function FrontFirstReview({
           <div className="flex aspect-square w-[88px] items-center justify-center rounded-md border border-keeper-hair bg-white/70 p-1 shadow-sm transition-transform group-hover:scale-[1.06]">
             {showingPrint ? (
               <div className="aspect-square w-full overflow-hidden rounded-sm bg-stone-100">
-                {heroUrl && <img src={heroUrl} alt="" className="h-full w-full object-cover" />}
+                {heroUrl && <img src={heroUrl} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
               </div>
             ) : (
               <div className="w-full">{printVisual}</div>
@@ -1224,7 +1251,7 @@ function InsideComposeStage({
   const frontThumb = frontUrl && (
     <div className="mx-auto mb-6 flex items-center justify-center gap-3">
       <div className="aspect-square w-20 overflow-hidden rounded-md border border-keeper-hair shadow-sm">
-        <img src={frontUrl} alt="Your card front" className="h-full w-full object-cover" />
+        <img src={frontUrl} alt="Your card front" crossOrigin="anonymous" className="h-full w-full object-cover" />
       </div>
       <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-keeper-meta">
         {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}
