@@ -39,6 +39,84 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 }
 
 export function registerAdminCustomersRoutes(app: Express): void {
+  // ── GET /api/admin/overview ─────────────────────────────────────────
+  // At-a-glance business health + the operational "needs attention" list:
+  // orders that are paid but stuck (not submitted / failed at the printer)
+  // or where payment itself failed — the things that silently fall through
+  // the cracks. Revenue is in GBP pence (orders are already GBP).
+  app.get('/api/admin/overview', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const t = (
+        await db.execute(sql`
+          select
+            (select count(*) from users) as "totalCustomers",
+            (select count(*) from cards) as "totalCards",
+            count(*) filter (where payment_status = 'paid')                                     as "paidOrders",
+            coalesce(sum(total_amount) filter (where payment_status = 'paid'), 0)               as "revenueAllTime",
+            coalesce(sum(total_amount) filter (where payment_status = 'paid'
+              and paid_at >= now() - interval '7 days'), 0)                                     as "revenueWeek",
+            coalesce(sum(total_amount) filter (where payment_status = 'paid'
+              and paid_at >= date_trunc('month', now() at time zone 'utc')), 0)                 as "revenueMonth",
+            count(*) filter (where payment_status = 'paid'
+              and created_at >= now() - interval '7 days')                                      as "ordersWeek"
+          from studio_orders
+        `)
+      ).rows[0] as any;
+
+      const paidOrders = Number(t.paidOrders);
+      const revenueAllTime = Number(t.revenueAllTime);
+
+      // Stuck orders. The 'pending' case waits 10 minutes so an order
+      // that's mid-webhook (just paid, submit still running) isn't flagged.
+      const attentionRows = (
+        await db.execute(sql`
+          select o.id, o.card_id as "cardId", o.user_id as "userId",
+                 o.customer_name as "customerName", o.customer_email as "customerEmail",
+                 o.ship_to as "shipTo", o.shipping_tier as "shippingTier",
+                 o.shipping_address as "shippingAddress",
+                 o.total_amount as "totalAmount", o.print_amount as "printAmount",
+                 o.shipping_amount as "shippingAmount",
+                 o.delivery_surcharge_amount as "envelopeStickerAmount",
+                 o.currency, o.payment_status as "paymentStatus",
+                 o.fulfillment_status as "fulfillmentStatus",
+                 o.provider_order_id as "providerOrderId",
+                 o.tracking_number as "trackingNumber", o.tracking_url as "trackingUrl",
+                 o.created_at as "createdAt", o.paid_at as "paidAt",
+                 case
+                   when o.payment_status = 'failed' then 'Payment failed'
+                   when o.fulfillment_status = 'failed' then 'Print/fulfilment failed'
+                   else 'Paid — not yet sent to Prodigi'
+                 end as "attentionReason"
+          from studio_orders o
+          where o.payment_status = 'failed'
+             or (o.payment_status = 'paid' and o.fulfillment_status = 'failed')
+             or (o.payment_status = 'paid' and o.fulfillment_status = 'pending'
+                 and o.created_at < now() - interval '10 minutes')
+          order by o.created_at desc
+          limit 100
+        `)
+      ).rows as any[];
+
+      res.json({
+        totals: {
+          totalCustomers: Number(t.totalCustomers),
+          totalCards: Number(t.totalCards),
+          paidOrders,
+          revenueAllTime,
+          revenueWeek: Number(t.revenueWeek),
+          revenueMonth: Number(t.revenueMonth),
+          ordersWeek: Number(t.ordersWeek),
+          avgOrderValue: paidOrders > 0 ? Math.round(revenueAllTime / paidOrders) : 0,
+        },
+        needsAttention: attentionRows.map((o) => ({ ...normalizeOrder(o), attentionReason: o.attentionReason })),
+      });
+    } catch (err) {
+      console.error('[ADMIN_CUSTOMERS] overview error:', err);
+      res.status(500).json({ message: 'Failed to load overview' });
+    }
+  });
+
   // ── GET /api/admin/customers?q= ─────────────────────────────────────
   // The customer list: one row per registered user with lifetime
   // aggregates (cards made, paid orders, total spent, last activity).

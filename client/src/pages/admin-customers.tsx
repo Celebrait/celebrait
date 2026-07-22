@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3 } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle } from 'lucide-react';
 import { genCostUsdX100ToGbp } from '@shared/pricing';
 
 interface GenSide { ok: number; fail: number }
@@ -132,6 +132,7 @@ export default function AdminCustomersPage() {
         <CustomerDetail id={selectedCustomer} onBack={() => setSelectedCustomer(null)} />
       ) : (
         <>
+          <OverviewHeader />
           <div className="mb-4 flex gap-1 border-b border-stone-200">
             <TabButton icon={Users} label="Customers" active={tab === 'customers'} onClick={() => setTab('customers')} />
             <TabButton icon={Package} label="Orders" active={tab === 'orders'} onClick={() => setTab('orders')} />
@@ -163,6 +164,55 @@ function Spinner() {
   return (
     <div className="flex items-center justify-center py-16 text-stone-400">
       <Loader2 className="w-5 h-5 animate-spin" />
+    </div>
+  );
+}
+
+// ── Overview header (health + needs-attention) ───────────────────────
+interface AttentionOrder extends OrderRow { attentionReason: string }
+function OverviewHeader() {
+  const { data } = useQuery<{ totals: any; needsAttention: AttentionOrder[] }>({
+    queryKey: ['/api/admin/overview'],
+    refetchInterval: 60_000,
+  });
+  if (!data) return null;
+  const t = data.totals;
+  const attn = data.needsAttention ?? [];
+  return (
+    <div className="mb-5 space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <MiniStat label="Customers" value={String(t.totalCustomers)} />
+        <MiniStat label="Paid orders" value={String(t.paidOrders)} />
+        <MiniStat label="Revenue (all-time)" value={gbp(t.revenueAllTime)} />
+        <MiniStat label="This month" value={gbp(t.revenueMonth)} />
+        <MiniStat label="Avg order" value={gbp(t.avgOrderValue)} />
+      </div>
+
+      {attn.length > 0 ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-800">
+            <AlertTriangle className="w-4 h-4" /> Needs attention ({attn.length})
+          </div>
+          <div className="space-y-2">
+            {attn.map((o) => (
+              <OrderCard key={o.id} o={o} showCustomer reason={o.attentionReason} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          ✓ No orders need attention — everything's paid and moving.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-stone-200 bg-white p-3">
+      <div className="text-lg font-bold text-stone-900">{value}</div>
+      <div className="text-[11px] uppercase tracking-wide text-stone-400">{label}</div>
     </div>
   );
 }
@@ -377,16 +427,17 @@ function GenLine({ label, side }: { label: string; side: GenSide }) {
 }
 
 // ── Order card (shared by detail + orders tab) ───────────────────────
-function OrderCard({ o, showCustomer }: { o: OrderRow; showCustomer?: boolean }) {
+function OrderCard({ o, showCustomer, reason }: { o: OrderRow; showCustomer?: boolean; reason?: string }) {
   const addr = o.shippingAddress;
   return (
     <div className="rounded-lg border border-stone-200 bg-white p-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {showCustomer && <span className="font-medium text-stone-800">{o.customerName}</span>}
           <Pill label={o.paymentStatus} color={PAY_COLORS[o.paymentStatus]} />
           <Pill label={o.fulfillmentStatus} color={FULFIL_COLORS[o.fulfillmentStatus]} />
           {o.envelopeStickerAmount > 0 && <Pill label="seal" color="bg-amber-50 text-amber-700" />}
+          {reason && <Pill label={reason} color="bg-red-100 text-red-800" />}
         </div>
         <div className="font-semibold text-stone-900">{gbp(o.totalAmount)}</div>
       </div>
