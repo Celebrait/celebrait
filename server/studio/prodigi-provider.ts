@@ -179,6 +179,16 @@ function toProdigiAddress(a: ShippingAddress) {
 }
 
 /** Extract tracking (if any) from a Prodigi order's first shipment. */
+/** Pull a Prodigi order id from a CloudEvents URL like
+ *  "https://api.prodigi.com/v4.0/Orders/ord_1234". Returns undefined for
+ *  anything that isn't such a URL. Used as a fallback when the webhook
+ *  payload doesn't carry order.id where we expect it. */
+function idFromOrderUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const m = value.match(/\/Orders\/([^/?#]+)/i);
+  return m?.[1];
+}
+
 function trackingFrom(order: any): { trackingNumber?: string; trackingUrl?: string } {
   const t = order?.shipments?.[0]?.tracking;
   return {
@@ -342,14 +352,38 @@ export const prodigiPrintProvider: PrintProvider = {
     _headers: Record<string, string>,
     body: unknown,
   ): Promise<PrintProviderStatus> {
-    const payload =
-      typeof body === "string" ? JSON.parse(body) : (body as any);
+    // The webhook route hands us `req.rawBody` — which the global
+    // express.json({ verify }) captures as a Buffer for EVERY request (it
+    // exists for Stripe's signature check). So `body` here is almost always
+    // a Buffer, not a string or parsed object; decode it before parsing.
+    // Missing this was why every Prodigi callback 400'd with "no order id"
+    // and Prodigi retried forever — the Buffer was used as the payload and
+    // no fields resolved (fixed 2026-07-22).
+    const payload = Buffer.isBuffer(body)
+      ? JSON.parse(body.toString("utf8"))
+      : typeof body === "string"
+        ? JSON.parse(body)
+        : (body as any);
     // Prodigi callback is CloudEvents-shaped: the order lives under
     // data.order. Fall back to a bare order for robustness.
     const order = payload?.data?.order ?? payload?.order ?? payload;
-    const providerOrderId = order?.id;
+    // Order id is usually order.id; as a last resort pull it from the
+    // CloudEvents `source`/`subject`, which is the order's API URL
+    // (…/Orders/ord_xxx) — so a shape we didn't anticipate still resolves.
+    const providerOrderId =
+      order?.id ??
+      idFromOrderUrl(payload?.subject) ??
+      idFromOrderUrl(payload?.source);
     if (!providerOrderId) {
-      throw new Error("Prodigi webhook: no order id in payload");
+      // Include the payload's top-level keys so the logs are diagnostic if
+      // the shape isn't what we expect (rather than an opaque failure).
+      const keys =
+        payload && typeof payload === "object"
+          ? Object.keys(payload).join(",")
+          : typeof payload;
+      throw new Error(
+        `Prodigi webhook: no order id in payload (top-level keys: ${keys})`,
+      );
     }
     return {
       providerOrderId,
