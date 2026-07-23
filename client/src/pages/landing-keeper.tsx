@@ -565,10 +565,6 @@ function CssAjarCard({
 // Always 'your SOMETHING' (Kevin's rule) — and short enough that the
 // persona line never wraps at any breakpoint.
 const PERSONAS = ['your mum', 'your best mate', 'your grandad', 'your sister'];
-// The longest persona — used as an invisible width-reservation so the
-// rotating word never changes the headline's width (and so never reflows
-// the 3D card beside it). Recomputed from the list, so it can't drift.
-const WIDEST_PERSONA = PERSONAS.reduce((a, b) => (b.length > a.length ? b : a), '');
 
 function HeroSection() {
   const reduced = useReducedMotion();
@@ -629,17 +625,23 @@ function HeroSection() {
           >
             Put
             <br />
-            {/* Stack the visible persona over an invisible sizer of the
-                widest persona (same grid cell), so the line width is CONSTANT
-                regardless of which word shows → the headline column, and the
-                3D card beside it, never reflow (Kevin 2026-07-22). */}
+            {/* Stack the visible persona over invisible sizers of EVERY
+                persona (same grid cell) so the line width is fixed at the
+                widest — constant regardless of which word shows → the
+                headline column, and the 3D card beside it, never reflow
+                (Kevin 2026-07-23). The sizers mirror ShimmerWord's box
+                (inline-block + px-1) so they reserve the exact rendered
+                width, minus the shimmer animation. */}
             <span className="relative inline-grid align-baseline">
-              <span
-                aria-hidden
-                className="invisible col-start-1 row-start-1 whitespace-nowrap"
-              >
-                {WIDEST_PERSONA}
-              </span>
+              {PERSONAS.map((p) => (
+                <span
+                  key={p}
+                  aria-hidden
+                  className="invisible col-start-1 row-start-1 inline-block whitespace-nowrap px-1"
+                >
+                  {p}
+                </span>
+              ))}
               <span
                 className="col-start-1 row-start-1 whitespace-nowrap transition-opacity duration-300"
                 style={{ opacity: visible ? 1 : 0 }}
