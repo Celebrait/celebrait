@@ -1393,18 +1393,23 @@ function OccasionCaptureSection() {
               given prominence + brand-purple hierarchy (Kevin 2026-07-11):
               soft violet tint, a purple accent rule up top, purple in the
               headline + on the action. */}
-          <div
-            className="rounded-[20px] border border-brand-light bg-brand-muted px-6 py-9 text-center sm:px-9"
-            style={{
-              borderTop: '3px solid #5c57d4',
-              boxShadow: '0 22px 44px -26px rgba(92,87,212,0.32)',
-            }}
-          >
-            <h2 className={`text-[clamp(27px,3.6vw,36px)] leading-[1.08] ${DISPLAY}`}>
+          {/* Footer-inspired capture card — dark keeper-ink with a warm
+              marigold glow + gold accents, so the lead-capture moment POPS
+              off the warm page (Kevin 2026-07-22). */}
+          <div className="relative isolate overflow-hidden rounded-[28px] bg-keeper-ink px-6 py-12 text-center shadow-[0_36px_90px_-32px_rgba(33,29,25,0.65)] sm:px-12">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[85%] -translate-x-1/2 rounded-[100%] bg-keeper-gold/25 blur-[90px]"
+            />
+            <div className="relative">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-keeper-gold">
+              Save your spot
+            </p>
+            <h2 className={`mt-3 text-[clamp(28px,3.8vw,38px)] leading-[1.06] text-keeper-paper ${DISPLAY}`}>
               Not quite ready to{' '}
-              <span className="text-brand-dark">send a card?</span>
+              <span className="text-keeper-gold">send a card?</span>
             </h2>
-            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-body">
+            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-paper/70">
               Stick your name and email address in below and get cracking when
               you're ready.
             </p>
@@ -1412,15 +1417,15 @@ function OccasionCaptureSection() {
             <div className="mt-7">
           {sent ? (
             <div
-              className="mx-auto max-w-md rounded-2xl border border-keeper-hair bg-white/80 p-6"
+              className="mx-auto max-w-md rounded-2xl border border-white/15 bg-white/10 p-6"
               data-testid="occasion-captured"
             >
-              <p className="text-[15px] font-semibold text-keeper-ink">
+              <p className="text-[15px] font-semibold text-keeper-paper">
                 {sent === 'dated'
                   ? "Done — we'll nudge you in good time. ✨"
                   : "Done — the link's in your inbox. ✨"}
               </p>
-              <p className="mt-1 text-[12.5px] text-keeper-meta">
+              <p className="mt-1 text-[12.5px] text-keeper-paper/60">
                 {sent === 'dated'
                   ? 'Your link is in your inbox meanwhile, whenever you fancy a look.'
                   : 'Whenever the moment comes, it takes a few minutes.'}
@@ -1460,7 +1465,7 @@ function OccasionCaptureSection() {
               <button
                 type="button"
                 onClick={() => setShowReminder((v) => !v)}
-                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-dark transition-colors hover:text-brand"
+                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-gold transition-colors hover:text-keeper-paper"
                 aria-expanded={showReminder}
                 data-testid="toggle-occasion-reminder"
               >
@@ -1481,7 +1486,7 @@ function OccasionCaptureSection() {
                     className="h-12 w-full min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                     data-testid="input-occasion-date"
                   />
-                  <p className="mt-1.5 text-[11.5px] leading-snug text-keeper-meta">
+                  <p className="mt-1.5 text-[11.5px] leading-snug text-keeper-paper/60">
                     We'll nudge you in good time — with a card idea ready.
                   </p>
                 </div>
@@ -1501,21 +1506,22 @@ function OccasionCaptureSection() {
                   type="checkbox"
                   checked={optIn}
                   onChange={(e) => setOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair accent-[#5c57d4]"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 accent-keeper-gold"
                   data-testid="check-occasion-optin"
                 />
-                <span className="text-[11.5px] leading-snug text-keeper-meta">
+                <span className="text-[11.5px] leading-snug text-keeper-paper/60">
                   Keep me posted now and then — new features and ideas.
                   Unsubscribe anytime.
                 </span>
               </label>
-              <p className="mt-2 text-[10.5px] text-keeper-meta/80">
+              <p className="mt-2 text-[10.5px] text-keeper-paper/50">
                 {hasReminder
                   ? 'One nudge before the day + your link now. No spam, ever.'
                   : "We'll send your link straight away. No spam, ever."}
               </p>
             </form>
           )}
+            </div>
             </div>
           </div>
         </Rise>
