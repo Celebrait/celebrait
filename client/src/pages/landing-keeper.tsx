@@ -873,17 +873,29 @@ function ProofSection() {
     </div>
   );
 
-  // Horizontal swipe → change slide (mobile). A swipe on the card reads as a
-  // drag by the viewer's 4px tap threshold, so it never also toggles open.
-  const touchX = useRef<number | null>(null);
+  // Horizontal swipe → change slide (mobile). Track BOTH axes so we only
+  // treat a gesture as a slide-swipe when it's clearly horizontal —
+  // otherwise it was a vertical/diagonal scroll and we leave it to the page.
+  // Paired with touch-action: pan-y on the track (below), which lets the
+  // browser own vertical scrolling and frees horizontal for us, so swiping
+  // and scrolling stop fighting each other (Kevin 2026-07-23).
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (e: ReactTouchEvent) => {
-    touchX.current = e.touches[0]?.clientX ?? null;
+    const t = e.touches[0];
+    touchStart.current = t ? { x: t.clientX, y: t.clientY } : null;
   };
   const onTouchEnd = (e: ReactTouchEvent) => {
-    if (touchX.current == null || !many) return;
-    const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
-    touchX.current = null;
-    if (Math.abs(dx) > 45) userGoTo(dx < 0 ? idx + 1 : idx - 1);
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s || !many) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    // Clearly horizontal: >45px across AND at least ~1.3× the vertical drift.
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      userGoTo(dx < 0 ? idx + 1 : idx - 1);
+    }
   };
 
   return (
@@ -932,7 +944,11 @@ function ProofSection() {
             <div className="overflow-x-clip">
               <div
                 className={`flex ${reduced ? '' : 'transition-transform duration-500 ease-out'}`}
-                style={{ transform: `translateX(-${idx * 100}%)` }}
+                style={{
+                  transform: `translateX(-${idx * 100}%)`,
+                  // Browser owns vertical scroll; horizontal is ours to swipe.
+                  touchAction: many ? 'pan-y' : undefined,
+                }}
                 onTouchStart={many ? onTouchStart : undefined}
                 onTouchEnd={many ? onTouchEnd : undefined}
               >
