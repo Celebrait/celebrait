@@ -552,6 +552,7 @@ export function Card3DViewer({
             restYaw={restYaw}
             instantOpen={instantOpen}
             onFirstFrame={onFirstFrame}
+            interactive={interactive}
           />
         </Canvas>
       </Viewer3DBoundary>
@@ -645,6 +646,7 @@ function Scene({
   restYaw,
   instantOpen,
   onFirstFrame,
+  interactive,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -668,6 +670,11 @@ function Scene({
   restYaw: number;
   instantOpen: boolean;
   onFirstFrame?: () => void;
+  /** false for static embeds (hero, thumbnails) — lets InitialCameraFit
+   *  re-fit on size settle instead of one-shot latching, so the card never
+   *  ends up mis-sized after the canvas finishes measuring. Interactive
+   *  viewers keep the one-shot fit (no re-fit jank mid-interaction). */
+  interactive: boolean;
 }) {
   return (
     <>
@@ -702,7 +709,7 @@ function Scene({
         shadow-camera-bottom={-3}
       />
 
-      <InitialCameraFit margin={framingMargin} />
+      <InitialCameraFit margin={framingMargin} refit={!interactive} />
 
       <Card
         frontUrl={frontUrl}
@@ -770,18 +777,27 @@ function Scene({
 
 // ── InitialCameraFit ─────────────────────────────────────────────────
 // Adapts the camera distance so the card renders at a comfortable
-// size with generous margin, on any viewport aspect. Runs once on
-// mount; subsequent zoom is under user control via OrbitControls.
+// size with generous margin, on any viewport aspect.
 //
-// Without this, a static camera z lands the card at ~90% of a
-// landscape viewport height and clips horizontally on portrait
-// phones (card width > viewport width at narrow aspects). The
-// margin factor controls how much empty space surrounds the card.
-function InitialCameraFit({ margin }: { margin: number }) {
+// Two modes:
+//   • refit=false (interactive viewers, default): fits ONCE, then leaves
+//     the camera to the user (OrbitControls zoom). Latching avoids
+//     fighting a user's zoom.
+//   • refit=true (static embeds — hero, thumbnails): re-fits whenever the
+//     canvas size changes. r3f reports an interim size for the first
+//     frame(s) after mount (its ResizeObserver fires late), so a one-shot
+//     fit can latch to a size that isn't final → the card visibly "snaps"
+//     to its true size a beat later (Kevin 2026-07-22, hero). Re-fitting on
+//     every settle keeps a static card correctly framed with no snap; it's
+//     safe because these embeds are inert (no user zoom to preserve).
+//
+// Without this, a static camera z lands the card at ~90% of a landscape
+// viewport height and clips horizontally on portrait phones.
+function InitialCameraFit({ margin, refit = false }: { margin: number; refit?: boolean }) {
   const { camera, size, invalidate } = useThree();
   const didInit = useRef(false);
   useEffect(() => {
-    if (didInit.current) return;
+    if (didInit.current && !refit) return;
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     // Wait for a REAL canvas measurement before the one-shot fit. r3f
     // reports size 0×0 for the first frame(s) after mount (before its
@@ -812,7 +828,7 @@ function InitialCameraFit({ margin }: { margin: number }) {
     camera.position.z = z;
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, size, invalidate, margin]);
+  }, [camera, size, invalidate, margin, refit]);
   return null;
 }
 
