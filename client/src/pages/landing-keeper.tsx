@@ -366,27 +366,33 @@ function StaticAjarCard({
           height-driven, so the wider canvas doesn't change the card's
           visual size. */}
       <div className="absolute inset-y-[-24%] inset-x-[-105%]">
-        <Suspense fallback={null}>
-          <Card3DViewer
-            frontImageUrl={heroCardFront}
-            insideImageUrl={heroCardInside}
-            open={open}
-            interactive={false}
-            enableRotate={false}
-            enableZoom={false}
-            closedAngle={-0.55}
-            restYaw={-0.12}
-            framingMargin={1.75}
-            minDistance={1.2}
-            dprMax={1.5}
-            // Hold the flat stand-in a beat past the first painted frame so
-            // the static camera re-fit has settled to the final size before
-            // we cross-fade to the 3D — otherwise the card can pop/settle in
-            // view (Kevin 2026-07-22). The 700ms cross-fade then masks the rest.
-            onFirstFrame={() => window.setTimeout(() => setEngineReady(true), 350)}
-            className="h-full w-full"
-          />
-        </Suspense>
+        {/* The 3D card is hidden until its first frame paints, then fades in
+            as the spinner fades out — a clean cross-fade. Without this the
+            card rendered UNDER the spinner, so the spinner lingered on top of
+            an already-visible card (Kevin's video, 2026-07-22). */}
+        <div
+          className={`absolute inset-0 transition-opacity duration-500 ${
+            engineReady ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <Suspense fallback={null}>
+            <Card3DViewer
+              frontImageUrl={heroCardFront}
+              insideImageUrl={heroCardInside}
+              open={open}
+              interactive={false}
+              enableRotate={false}
+              enableZoom={false}
+              closedAngle={-0.55}
+              restYaw={-0.12}
+              framingMargin={1.75}
+              minDistance={1.2}
+              dprMax={1.5}
+              onFirstFrame={() => setEngineReady(true)}
+              className="h-full w-full"
+            />
+          </Suspense>
+        </div>
         {/* Load placeholder — a neutral spinner centred on the card, held
             until the engine's first painted frame (+ a settle beat), then
             cross-faded away to reveal the 3D card. A previous CSS "cover"
