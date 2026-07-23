@@ -29,6 +29,8 @@ import {
   Send,
   Truck,
   ArrowRight,
+  Bell,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -1351,6 +1353,10 @@ function OccasionCaptureSection() {
   const [optIn, setOptIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<null | 'dated' | 'plain'>(null);
+  // Reminders are optional + tucked behind a toggle (Kevin 2026-07-22) —
+  // the main form is just name + email; expand to add an occasion date.
+  const [showReminder, setShowReminder] = useState(false);
+  const hasReminder = showReminder && !!date;
 
   const submit = async () => {
     if (busy || sent) return;
@@ -1361,9 +1367,9 @@ function OccasionCaptureSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          source: date ? 'keeper-occasion' : 'keeper-plain',
+          source: hasReminder ? 'keeper-occasion' : 'keeper-plain',
           recipientName: name || undefined,
-          occasionDate: date || undefined,
+          occasionDate: hasReminder ? date : undefined,
           marketingOptIn: optIn,
         }),
       });
@@ -1371,7 +1377,7 @@ function OccasionCaptureSection() {
         const data = await res.json().catch(() => null);
         throw new Error(data?.message ?? 'Please try again.');
       }
-      setSent(date ? 'dated' : 'plain');
+      setSent(hasReminder ? 'dated' : 'plain');
     } catch {
       setSent(null);
     } finally {
@@ -1395,11 +1401,12 @@ function OccasionCaptureSection() {
             }}
           >
             <h2 className={`text-[clamp(27px,3.6vw,36px)] leading-[1.08] ${DISPLAY}`}>
-              Whose birthday's <span className="text-brand-dark">next?</span>
+              Not quite ready to{' '}
+              <span className="text-brand-dark">send a card?</span>
             </h2>
             <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-body">
-              Tell us the date and we'll nudge you in good time — with a card
-              idea ready. Or skip the date and just take the link for later.
+              Stick your name and email address in below and get cracking when
+              you're ready.
             </p>
 
             <div className="mt-7">
@@ -1428,43 +1435,67 @@ function OccasionCaptureSection() {
               }}
               data-testid="occasion-capture-form"
             >
-              <div className="grid grid-cols-2 gap-2">
+              {/* Main capture — just name + email. */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Their name (optional)"
+                  placeholder="Your name"
                   className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-name"
                 />
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  aria-label="Their date (optional)"
-                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
-                  data-testid="input-occasion-date"
-                />
-              </div>
-              <div className="mt-2 flex gap-2">
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   data-testid="input-occasion-email"
                 />
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="h-12 shrink-0 rounded-full bg-go px-6 text-[14px] font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50"
-                  data-testid="btn-occasion-submit"
-                >
-                  {busy ? 'One sec…' : date ? 'Set my nudge' : 'Email me the link'}
-                </button>
               </div>
+
+              {/* Optional: add a reminder for a birthday/occasion. */}
+              <button
+                type="button"
+                onClick={() => setShowReminder((v) => !v)}
+                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-dark transition-colors hover:text-brand"
+                aria-expanded={showReminder}
+                data-testid="toggle-occasion-reminder"
+              >
+                <Bell className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+                Remind me before a birthday or date
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${showReminder ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
+              {showReminder && (
+                <div className="mt-2 text-left">
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    aria-label="The date to remind you about"
+                    className="h-12 w-full min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                    data-testid="input-occasion-date"
+                  />
+                  <p className="mt-1.5 text-[11.5px] leading-snug text-keeper-meta">
+                    We'll nudge you in good time — with a card idea ready.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="mt-3 h-12 w-full rounded-full bg-go px-6 text-[14px] font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50"
+                data-testid="btn-occasion-submit"
+              >
+                {busy ? 'One sec…' : hasReminder ? 'Set my reminder' : 'Email me the link'}
+              </button>
+
               <label className="mx-auto mt-3 flex max-w-md cursor-pointer items-start gap-2 text-left">
                 <input
                   type="checkbox"
@@ -1479,7 +1510,7 @@ function OccasionCaptureSection() {
                 </span>
               </label>
               <p className="mt-2 text-[10.5px] text-keeper-meta/80">
-                {date
+                {hasReminder
                   ? 'One nudge before the day + your link now. No spam, ever.'
                   : "We'll send your link straight away. No spam, ever."}
               </p>
