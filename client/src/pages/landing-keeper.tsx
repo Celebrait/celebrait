@@ -1162,7 +1162,7 @@ function HandoverSection() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Send direct to them, or receive it yourself to handover
+            Send direct. Or receive it yourself to handover.
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             Your words, set inside and styled to match the front. Or leave it
