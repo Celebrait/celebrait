@@ -21,7 +21,6 @@ interface FooterLink {
 }
 
 const COMPANY: FooterLink[] = [
-  { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ];
 
