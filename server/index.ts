@@ -27,6 +27,29 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Canonical host — redirect the apex (celebrait.co.uk) to www so login
+// sessions, cookies and SEO don't split across two hosts (Kevin 2026-07-23).
+// www is canonical because PUBLIC_APP_ORIGIN points there. Only the listed
+// redirect hosts are touched; www, the onrender.com URL, localhost and PR
+// previews pass straight through. The ACME challenge path is excluded as
+// belt-and-braces (Render terminates TLS at its edge, so the app normally
+// never sees it). Flip the canonical later with CANONICAL_HOST /
+// REDIRECT_HOSTS env vars — no code change.
+const CANONICAL_HOST = process.env.CANONICAL_HOST ?? "www.celebrait.co.uk";
+const REDIRECT_HOSTS = new Set(
+  (process.env.REDIRECT_HOSTS ?? "celebrait.co.uk")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+app.use((req, res, next) => {
+  const host = (req.headers.host ?? "").toLowerCase().split(":")[0];
+  if (REDIRECT_HOSTS.has(host) && !req.path.startsWith("/.well-known/")) {
+    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+  }
+  next();
+});
+
 // 25mb (was 50mb): comfortably fits the largest legit body — a 15mb photo
 // upload is ~20mb as base64-in-JSON, and drafts can carry base64 in
 // conversationData — while halving the abuse ceiling. LLM routes cap their
