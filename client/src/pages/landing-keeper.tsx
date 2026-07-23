@@ -1411,10 +1411,9 @@ function OccasionCaptureSection() {
     }
   };
 
-  // Shared field style — white on the dark card, gold focus to match the
-  // card's accents. No violet border (looked off on the dark surface).
+  // Shared field style — white field on the violet card, violet focus.
   const capInput =
-    'h-12 w-full min-w-0 rounded-xl border border-black/5 bg-white px-4 text-sm text-keeper-ink shadow-sm placeholder:text-keeper-meta focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/40';
+    'h-12 w-full min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink shadow-sm placeholder:text-keeper-meta focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20';
 
   return (
     <section className="px-6 py-24 md:py-32">
@@ -1424,39 +1423,39 @@ function OccasionCaptureSection() {
               given prominence + brand-purple hierarchy (Kevin 2026-07-11):
               soft violet tint, a purple accent rule up top, purple in the
               headline + on the action. */}
-          {/* Footer-inspired capture card — dark keeper-ink with a warm
-              marigold glow + gold accents, so the lead-capture moment POPS
-              off the warm page (Kevin 2026-07-22). */}
-          <div className="relative isolate overflow-hidden rounded-[28px] bg-keeper-ink px-6 py-12 text-center shadow-[0_36px_90px_-32px_rgba(33,29,25,0.65)] sm:px-12">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[85%] -translate-x-1/2 rounded-[100%] bg-keeper-gold/25 blur-[90px]"
-            />
-            <div className="relative">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-keeper-gold">
-              Save your spot
-            </p>
-            <h2 className={`mt-3 text-[clamp(28px,3.8vw,38px)] leading-[1.06] text-keeper-paper ${DISPLAY}`}>
-              Not quite ready to{' '}
-              <span className="text-keeper-gold">send a card?</span>
+          {/* Lead-capture card — OG light violet, with an email icon +
+              black headline for cleaner hierarchy (Kevin 2026-07-22). */}
+          <div
+            className="rounded-[24px] border border-brand-light bg-brand-muted px-6 py-10 text-center sm:px-10"
+            style={{
+              borderTop: '3px solid #5c57d4',
+              boxShadow: '0 22px 44px -26px rgba(92,87,212,0.32)',
+            }}
+          >
+            <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-brand-dark shadow-sm">
+              <Mail className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
+            </span>
+            <h2 className={`text-[clamp(27px,3.6vw,36px)] leading-[1.08] text-keeper-ink ${DISPLAY}`}>
+              Not quite ready?
             </h2>
-            <p className="mx-auto mt-3 max-w-[42ch] text-[15px] leading-[1.55] text-keeper-paper/70">
-              Stick your name and email address in below and get cracking when
-              you're ready.
+            <p className="mx-auto mt-3 max-w-[48ch] text-[15px] leading-[1.55] text-keeper-body">
+              Stick your name and email address in below to join Celebrait. You
+              can also include a day of celebration in the future so we can
+              remind you to create a card closer to the time.
             </p>
 
             <div className="mt-7">
           {sent ? (
             <div
-              className="mx-auto max-w-md rounded-2xl border border-white/15 bg-white/10 p-6"
+              className="mx-auto max-w-md rounded-2xl border border-keeper-hair bg-white/80 p-6"
               data-testid="occasion-captured"
             >
-              <p className="text-[15px] font-semibold text-keeper-paper">
+              <p className="text-[15px] font-semibold text-keeper-ink">
                 {sent === 'dated'
                   ? "Done — we'll nudge you in good time. ✨"
                   : "Done — the link's in your inbox. ✨"}
               </p>
-              <p className="mt-1 text-[12.5px] text-keeper-paper/60">
+              <p className="mt-1 text-[12.5px] text-keeper-meta">
                 {sent === 'dated'
                   ? 'Your link is in your inbox meanwhile, whenever you fancy a look.'
                   : 'Whenever the moment comes, it takes a few minutes.'}
@@ -1496,7 +1495,7 @@ function OccasionCaptureSection() {
               <button
                 type="button"
                 onClick={() => setShowReminder((v) => !v)}
-                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-gold transition-colors hover:text-keeper-paper"
+                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-dark transition-colors hover:text-brand"
                 aria-expanded={showReminder}
                 data-testid="toggle-occasion-reminder"
               >
@@ -1545,7 +1544,7 @@ function OccasionCaptureSection() {
                     className={capInput}
                     data-testid="input-occasion-date"
                   />
-                  <p className="text-[11.5px] leading-snug text-keeper-paper/55">
+                  <p className="text-[11.5px] leading-snug text-keeper-meta">
                     Add the date and we'll email you in good time — no forgetting,
                     no last-minute panic.
                   </p>
@@ -1566,22 +1565,21 @@ function OccasionCaptureSection() {
                   type="checkbox"
                   checked={optIn}
                   onChange={(e) => setOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 accent-keeper-gold"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair accent-[#5c57d4]"
                   data-testid="check-occasion-optin"
                 />
-                <span className="text-[11.5px] leading-snug text-keeper-paper/60">
+                <span className="text-[11.5px] leading-snug text-keeper-meta">
                   Keep me posted now and then — new features and ideas.
                   Unsubscribe anytime.
                 </span>
               </label>
-              <p className="mt-2 text-[10.5px] text-keeper-paper/50">
+              <p className="mt-2 text-[10.5px] text-keeper-meta/80">
                 {hasReminder
                   ? 'One nudge before the day + your link now. No spam, ever.'
                   : "We'll send your link straight away. No spam, ever."}
               </p>
             </form>
           )}
-            </div>
             </div>
           </div>
         </Rise>
