@@ -96,6 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rawDate =
         typeof req.body?.occasionDate === "string" ? req.body.occasionDate.trim() : "";
       const occasionDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+      const occasionType =
+        typeof req.body?.occasionType === "string"
+          ? req.body.occasionType.trim().slice(0, 60) || null
+          : null;
 
       if (existing.length === 0) {
         await db.insert(marketingLeads).values({
@@ -105,6 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           marketingOptIn,
           recipientName,
           occasionDate,
+          occasionType,
         });
         // Fire-and-forget — the lead is stored either way.
         void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>

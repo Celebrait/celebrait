@@ -117,6 +117,12 @@ export const marketingLeads = pgTable("marketing_leads", {
    *  post-launch, a scheduled job emails a card idea ahead of it. */
   recipientName: text("recipient_name"),
   occasionDate: text("occasion_date"),
+  /** Optional celebration type on a reminder lead (Birthday / Anniversary /
+   *  …), captured 2026-07-22 so the post-launch nudge can lead with the
+   *  right occasion. Nullable — plain leads and dateless reminders leave it
+   *  null. ⚠️ needs: ALTER TABLE marketing_leads ADD COLUMN IF NOT EXISTS
+   *  occasion_type text; */
+  occasionType: text("occasion_type"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -379,7 +379,11 @@ function StaticAjarCard({
             framingMargin={1.75}
             minDistance={1.2}
             dprMax={1.5}
-            onFirstFrame={() => setEngineReady(true)}
+            // Hold the flat stand-in a beat past the first painted frame so
+            // the static camera re-fit has settled to the final size before
+            // we cross-fade to the 3D — otherwise the card can pop/settle in
+            // view (Kevin 2026-07-22). The 700ms cross-fade then masks the rest.
+            onFirstFrame={() => window.setTimeout(() => setEngineReady(true), 350)}
             className="h-full w-full"
           />
         </Suspense>
@@ -585,6 +589,10 @@ function CssAjarCard({
 // Always 'your SOMETHING' (Kevin's rule) — and short enough that the
 // persona line never wraps at any breakpoint.
 const PERSONAS = ['your mum', 'your best mate', 'your grandad', 'your sister'];
+// The longest persona — used as an invisible width-reservation so the
+// rotating word never changes the headline's width (and so never reflows
+// the 3D card beside it). Recomputed from the list, so it can't drift.
+const WIDEST_PERSONA = PERSONAS.reduce((a, b) => (b.length > a.length ? b : a), '');
 
 function HeroSection() {
   const reduced = useReducedMotion();
@@ -630,7 +638,7 @@ function HeroSection() {
 
   return (
     <section ref={sectionRef} className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
+      <div className="mx-auto grid max-w-6xl items-start gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
             Unbinnable Greetings Cards
@@ -645,11 +653,23 @@ function HeroSection() {
           >
             Put
             <br />
-            <span
-              className="inline-block whitespace-nowrap transition-opacity duration-300"
-              style={{ opacity: visible ? 1 : 0 }}
-            >
-              <ShimmerWord reduced={!!reduced}>{PERSONAS[persona]}</ShimmerWord>
+            {/* Stack the visible persona over an invisible sizer of the
+                widest persona (same grid cell), so the line width is CONSTANT
+                regardless of which word shows → the headline column, and the
+                3D card beside it, never reflow (Kevin 2026-07-22). */}
+            <span className="relative inline-grid align-baseline">
+              <span
+                aria-hidden
+                className="invisible col-start-1 row-start-1 whitespace-nowrap"
+              >
+                {WIDEST_PERSONA}
+              </span>
+              <span
+                className="col-start-1 row-start-1 whitespace-nowrap transition-opacity duration-300"
+                style={{ opacity: visible ? 1 : 0 }}
+              >
+                <ShimmerWord reduced={!!reduced}>{PERSONAS[persona]}</ShimmerWord>
+              </span>
             </span>
             <br />
             in the picture.
@@ -1354,8 +1374,11 @@ function OccasionCaptureSection() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<null | 'dated' | 'plain'>(null);
   // Reminders are optional + tucked behind a toggle (Kevin 2026-07-22) —
-  // the main form is just name + email; expand to add an occasion date.
+  // the main form is just name + email; expand to add an occasion (whose +
+  // what + when). A date is what makes it nudgeable.
   const [showReminder, setShowReminder] = useState(false);
+  const [whose, setWhose] = useState('');
+  const [occasionType, setOccasionType] = useState('');
   const hasReminder = showReminder && !!date;
 
   const submit = async () => {
@@ -1368,7 +1391,10 @@ function OccasionCaptureSection() {
         body: JSON.stringify({
           email,
           source: hasReminder ? 'keeper-occasion' : 'keeper-plain',
-          recipientName: name || undefined,
+          // On a reminder it's whose-celebration; otherwise the lead's own
+          // name (falls back to the lead's name if "whose" is blank).
+          recipientName: (hasReminder ? whose || name : name) || undefined,
+          occasionType: hasReminder ? occasionType || undefined : undefined,
           occasionDate: hasReminder ? date : undefined,
           marketingOptIn: optIn,
         }),
@@ -1384,6 +1410,11 @@ function OccasionCaptureSection() {
       setBusy(false);
     }
   };
+
+  // Shared field style — white on the dark card, gold focus to match the
+  // card's accents. No violet border (looked off on the dark surface).
+  const capInput =
+    'h-12 w-full min-w-0 rounded-xl border border-black/5 bg-white px-4 text-sm text-keeper-ink shadow-sm placeholder:text-keeper-meta focus:border-keeper-gold focus:outline-none focus:ring-2 focus:ring-keeper-gold/40';
 
   return (
     <section className="px-6 py-24 md:py-32">
@@ -1447,7 +1478,7 @@ function OccasionCaptureSection() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className={capInput}
                   data-testid="input-occasion-name"
                 />
                 <input
@@ -1456,7 +1487,7 @@ function OccasionCaptureSection() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
-                  className="h-12 min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink placeholder:text-keeper-meta/70 focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                  className={capInput}
                   data-testid="input-occasion-email"
                 />
               </div>
@@ -1477,17 +1508,46 @@ function OccasionCaptureSection() {
                 />
               </button>
               {showReminder && (
-                <div className="mt-2 text-left">
+                <div className="mt-2.5 space-y-2 text-left">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <select
+                      value={occasionType}
+                      onChange={(e) => setOccasionType(e.target.value)}
+                      aria-label="What are we celebrating?"
+                      className={`${capInput} ${occasionType ? '' : 'text-keeper-meta'}`}
+                      data-testid="select-occasion-type"
+                    >
+                      <option value="">What's the occasion?</option>
+                      <option>Birthday</option>
+                      <option>Anniversary</option>
+                      <option>Wedding</option>
+                      <option>New baby</option>
+                      <option>Christmas</option>
+                      <option>Valentine's</option>
+                      <option>Mother's Day</option>
+                      <option>Father's Day</option>
+                      <option>Something else</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={whose}
+                      onChange={(e) => setWhose(e.target.value)}
+                      placeholder="Whose is it? (optional)"
+                      className={capInput}
+                      data-testid="input-occasion-whose"
+                    />
+                  </div>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    aria-label="The date to remind you about"
-                    className="h-12 w-full min-w-0 rounded-xl border border-[#cfcbee] bg-white px-4 text-sm text-keeper-ink focus:border-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
+                    aria-label="The date"
+                    className={capInput}
                     data-testid="input-occasion-date"
                   />
-                  <p className="mt-1.5 text-[11.5px] leading-snug text-keeper-paper/60">
-                    We'll nudge you in good time — with a card idea ready.
+                  <p className="text-[11.5px] leading-snug text-keeper-paper/55">
+                    Add the date and we'll email you in good time — no forgetting,
+                    no last-minute panic.
                   </p>
                 </div>
               )}
