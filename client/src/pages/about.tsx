@@ -2,9 +2,12 @@
 //
 // About / manifesto page. Same Keeper chrome as the marketing site
 // (celebration backdrop + KeeperHeader + footer), open sections over the
-// warm paper rather than a boxed card — it's a story, not a form. Voice
-// pulled straight from the landing: unbinnable, "the magic's digital, the
-// card isn't", gloriously daft, honest money, made to be kept.
+// warm paper rather than a boxed card — it's a story, not a form.
+//
+// Voice: bold & funny (Kevin's pick 2026-07-22) — cheeky about naff shop
+// cards, swagger, but real heart underneath. Facts true to the product:
+// 280gsm gloss, kraft envelope, UK-printed, front+inside, blank-to-
+// handwrite, ~5 min, £8.99, pay only when you post.
 
 import { Link, useLocation } from 'wouter';
 import { ArrowRight } from 'lucide-react';
@@ -70,101 +73,83 @@ export default function AboutPage() {
         <div className="mx-auto max-w-2xl px-6">
           {/* ── Hero ── */}
           <section className="pb-16 md:pb-24">
-            <Eyebrow>The whole idea</Eyebrow>
-            <h1 className={`mt-4 text-[clamp(38px,6.5vw,64px)] leading-[1.05] ${DISPLAY}`}>
-              We make the one they don&rsquo;t bin.
+            <Eyebrow>The whole point</Eyebrow>
+            <h1 className={`mt-4 text-[clamp(40px,7vw,68px)] leading-[1.02] ${DISPLAY}`}>
+              Most cards are bin-fodder. We said no.
             </h1>
             <p className="mt-6 text-[18px] leading-[1.6] text-keeper-body">
-              Everyone gets cards. Almost nobody keeps them — a glance, a week
-              on the windowsill, then the recycling. Celebrait exists to make
-              the other kind. The one that ends up in a drawer, a frame, a
-              memory box. <span className="font-medium text-keeper-ink">Kept.</span>
+              £4.50 for a stock wine glass and a pun about turning 40. Read
+              once, propped by the kettle, recycled by Tuesday. The people you
+              love deserve better than the Tuesday bin — so we made the card
+              they <span className="font-medium text-keeper-ink">actually keep</span>.
             </p>
           </section>
 
-          {/* ── The problem ── */}
+          {/* ── The enemy ── */}
           <section className="border-t border-keeper-hair py-14 md:py-20">
             <h2 className={`text-[clamp(28px,4.4vw,40px)] leading-[1.08] ${DISPLAY}`}>
-              Cards got lazy.
+              Greetings cards got lazy.
             </h2>
             <p className="mt-5 text-[17px] leading-[1.65] text-keeper-body">
-              A rack of near-identical jokes and stock roses. A few quid for
-              something forgotten by teatime — while the moment it was meant to
-              mark (the 60th, the new baby, the &ldquo;you actually did
-              it&rdquo;) deserved so much more. A card should be as specific as
-              the person it&rsquo;s for. So we built one that is.
+              A whole aisle of near-identical jokes and stock roses, each one
+              forgotten by teatime — while the moment it was meant to mark (the
+              big 60th, the new baby, the &ldquo;you actually passed&rdquo;)
+              deserved a standing ovation. Somewhere along the line,
+              &ldquo;thinking of you&rdquo; started meaning &ldquo;grabbed
+              whatever was by the till.&rdquo; We&rsquo;re not into that.
             </p>
           </section>
 
-          {/* ── What we do ── */}
+          {/* ── The good bit (product) ── */}
           <section className="border-t border-keeper-hair py-14 md:py-20">
             <h2 className={`text-[clamp(28px,4.4vw,40px)] leading-[1.08] ${DISPLAY}`}>
-              The magic&rsquo;s digital. The card isn&rsquo;t.
+              So here&rsquo;s the good bit.
             </h2>
             <p className="mt-5 text-[17px] leading-[1.65] text-keeper-body">
-              Pick a photo of someone you love. Describe a scene — Mum under the
-              Northern Lights, your best mate abseiling off Big Ben, your
-              daughter going viral in Times Square. We illustrate it: a front
-              and an inside that belong together.
+              Bring a photo of someone you love and a daft idea. We illustrate
+              it — a front and an inside that actually belong together. Your mum
+              gazing at the Northern Lights. Your best mate abseiling off Big
+              Ben (no, we don&rsquo;t know why either). Your dad, finally, on
+              the moon.
             </p>
             <p className="mt-4 text-[17px] leading-[1.65] text-keeper-body">
-              Then it becomes a real thing — pressed onto 280gsm gloss, sealed
-              in a kraft envelope, printed in the UK and posted. Straight to
-              them, or to you to hand over yourself. Your message set
-              beautifully inside, or left blank for your own pen.
+              Then it becomes a proper object: pressed onto 280gsm gloss, tucked
+              in a kraft envelope, printed here in the UK and posted — straight
+              to them, or to you to hand over yourself. Your words set
+              beautifully inside, or left blank for your own questionable
+              handwriting.
             </p>
             <p className="mt-4 text-[17px] leading-[1.65] text-keeper-body">
-              Idea to in-the-post in about five minutes.* From £8.99 — and you
-              only pay when you post one.
+              Five minutes from idea to in-the-post.* £8.99, and nothing to pay
+              until you actually send one.
             </p>
             <p className="mt-1.5 text-[12px] leading-snug text-keeper-meta">
-              *Possible, but you might prefer to take longer.
+              *Or take all night over it. It&rsquo;s your card.
             </p>
-          </section>
-
-          {/* ── Values ── */}
-          <section className="border-t border-keeper-hair py-14 md:py-20">
-            <h2 className={`text-[clamp(28px,4.4vw,40px)] leading-[1.08] ${DISPLAY}`}>
-              What we actually stand for.
-            </h2>
-            <ul className="mt-6 space-y-4">
-              {[
-                ['Personal beats generic.', 'Every single time.'],
-                ['Funny is allowed.', 'Gloriously daft is positively encouraged.'],
-                ['Real paper, real post, real feeling.', 'The internet has never hugged anyone.'],
-                ['Honest money.', 'Free to make, free to change your mind — you only pay when it’s posted.'],
-                ['We’ll nudge you before the next birthday.', 'Because you’ll forget. It’s fine.'],
-              ].map(([bold, rest], i) => (
-                <li key={i} className="flex gap-3 text-[17px] leading-[1.5] text-keeper-body">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-keeper-gold" aria-hidden />
-                  <span>
-                    <span className="font-semibold text-keeper-ink">{bold}</span> {rest}
-                  </span>
-                </li>
-              ))}
-            </ul>
           </section>
 
           {/* ── The new player ── */}
           <section className="border-t border-keeper-hair py-14 md:py-20">
             <h2 className={`text-[clamp(28px,4.4vw,40px)] leading-[1.08] ${DISPLAY}`}>
-              We&rsquo;re the new name on the shelf.
+              We&rsquo;re the new lot.
             </h2>
             <p className="mt-5 text-[17px] leading-[1.65] text-keeper-body">
-              No hundred-year heritage, no warehouse of clip art. We&rsquo;re
-              new, we&rsquo;re small, and we&rsquo;re quietly obsessed with one
-              thing: making the card someone keeps. Classy, funny, a little
-              emotional, occasionally daft.{' '}
+              No hundred-year heritage. No warehouse of clip art. No aisle in
+              the supermarket. Just a small British team, mildly obsessed with
+              one thing: making the card someone physically cannot bring
+              themselves to bin. Classy, a bit funny, occasionally emotional,
+              frequently daft.{' '}
               <span className="font-medium text-keeper-ink">
-                Get that right and we&rsquo;ve done our job.
+                Land on a mantelpiece instead of in a bag for life, and
+                we&rsquo;ve done our job.
               </span>
             </p>
           </section>
 
           {/* ── Closing CTA ── */}
           <section className="border-t border-keeper-hair py-16 text-center md:py-24">
-            <h2 className={`mx-auto max-w-[16ch] text-[clamp(30px,5vw,48px)] leading-[1.05] ${DISPLAY}`}>
-              Put someone you love in the picture.
+            <h2 className={`mx-auto max-w-[18ch] text-[clamp(30px,5vw,48px)] leading-[1.05] ${DISPLAY}`}>
+              Go on. Make their day — and their mantelpiece.
             </h2>
             <div className="mt-8 flex flex-col items-center gap-3">
               <MakeCardCta />
