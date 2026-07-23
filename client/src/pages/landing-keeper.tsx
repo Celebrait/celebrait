@@ -387,51 +387,21 @@ function StaticAjarCard({
             className="h-full w-full"
           />
         </Suspense>
-        {/* CSS-posed stand-in — covers chunk load, GL init AND texture
-            upload; fades only when the engine reports its first
-            painted frame. Crucially it's NOT a flat image: it mimics
-            the 3D card's rest pose (yaw -0.12 rad ≈ -7°, cover ajar
-            -0.55 rad ≈ -31°, white body behind) so the handover reads
-            as the same card gaining depth, not a snap between two
-            different objects. */}
+        {/* Load placeholder — a neutral spinner centred on the card, held
+            until the engine's first painted frame (+ a settle beat), then
+            cross-faded away to reveal the 3D card. A previous CSS "cover"
+            mimic tried to look like the card, but it never lined up exactly
+            with the settled 3D card underneath, so the hand-over read as a
+            jump (measured 2026-07-22: canvas size was stable — the shift was
+            purely mimic-vs-card). A neutral spinner has no shape to
+            misalign, so the reveal is clean. */}
         <div
-          className={`pointer-events-none absolute left-[36%] top-[21%] w-[27%] transition-opacity duration-700 ${
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
             engineReady ? 'opacity-0' : 'opacity-100'
           }`}
-          style={{ perspective: '1400px' }}
         >
-          <div
-            className="relative"
-            style={{
-              aspectRatio: '1/1',
-              transform: 'rotateY(-7deg)',
-              transformStyle: 'preserve-3d',
-            }}
-          >
-            {/* Cover ONLY — front art hinged at the spine, resting
-                ajar, LQIP behind the img so it's never blank. NO white
-                body layer behind it: a flat white square peeking out
-                around the art read as a "white flash in the bg" while
-                the engine loaded (Kevin). The 3D card introduces its
-                body sliver itself when it takes over. */}
-            <div
-              className="absolute inset-0 overflow-hidden rounded-xl shadow-[0_28px_60px_-24px_rgba(33,29,25,0.35)]"
-              style={{
-                transformOrigin: 'left center',
-                transform: 'rotateY(-31deg)',
-                backfaceVisibility: 'hidden',
-                backgroundImage: `url(${HERO_FRONT_LQIP})`,
-                backgroundSize: 'cover',
-              }}
-            >
-              <img
-                src={heroCardFront}
-                crossOrigin="anonymous"
-                alt="Celebrait card"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          </div>
+          <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-keeper-hair border-t-brand" />
         </div>
       </div>
       {/* Our own tap target: the card square. Controlled-open beats
