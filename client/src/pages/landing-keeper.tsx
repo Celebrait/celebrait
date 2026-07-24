@@ -573,10 +573,8 @@ const PERSONAS = [
   'your grandad',
   'your nan',
   'your better half',
-  'your bff',
+  'your auntie',
   'your bride',
-  'the dog',
-  'the milkman',
 ];
 
 /** Shuffle the personas for variety on each load, but PIN 'your mum'
@@ -621,7 +619,7 @@ function HeroSection() {
               setPersona((p) => (p + 1) % order.length);
               setVisible(true);
             }, 260);
-          }, 3000);
+          }, 2600);
         } else if (!e.isIntersecting && timer !== undefined) {
           window.clearInterval(timer);
           timer = undefined;
