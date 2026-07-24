@@ -108,6 +108,7 @@ export default function OgCard() {
               'radial-gradient(circle, rgba(230,180,90,0.10) 0%, rgba(230,180,90,0) 70%)',
           }}
         />
+
         {/* inner hairline frame */}
         <div className="pointer-events-none absolute inset-[22px] rounded-[20px] border border-keeper-hair" />
 
@@ -156,7 +157,7 @@ export default function OgCard() {
             </ul>
 
             <p className="mt-8 font-display text-[26px] font-normal italic text-keeper-ink">
-              Celebrait good times. Come on…
+              The magic's digital. The card isn't.
             </p>
             <p className="mt-3 flex items-center gap-2 text-[16px] font-medium text-keeper-meta">
               <Globe className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
