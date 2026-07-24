@@ -150,6 +150,18 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const recipientName =
           state?.recipient?.name?.trim() || body.customerName;
 
+        // Blank-inside footgun — server backstop. A blank inside can ONLY
+        // be sent to the sender to hand over; we never post someone an
+        // empty card. The UI enforces this (blank skips the giving choice
+        // and goes straight to sender), but a crafted/edge request could
+        // send blank + recipient — reject it so the invariant holds
+        // server-side too.
+        if (state?.inside?.mode === 'blank' && body.shipTo === 'recipient') {
+          return res.status(400).json({
+            message: 'A blank card can only be sent to you to hand over.',
+          });
+        }
+
         // Every order: printed card + free digital link. Digital is £0.
         // Postage is a separate line, priced from the chosen delivery tier
         // (server is the source of truth — a crafted POST can't pick a

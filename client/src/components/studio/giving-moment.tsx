@@ -147,7 +147,7 @@ export function GivingMoment({
           <DestinationCard
             icon={<Mail className="w-5 h-5" />}
             title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
-            body={`We hand-address a kraft envelope and post it straight to ${them}, tracked. Add a wax-seal sticker at checkout if you like.`}
+            body="Posted tracked in a kraft envelope, your message printed inside."
             selected={destination === 'recipient'}
             onSelect={() => setDestination('recipient')}
             testId="giving-dest-recipient"
@@ -155,7 +155,7 @@ export function GivingMoment({
           <DestinationCard
             icon={<HandHeart className="w-5 h-5" />}
             title="To you first"
-            body={`We post the finished card to you — hand it over to ${them} in person.`}
+            body={`Posted to you with a spare envelope, ready to hand over to ${them} in person.`}
             selected={destination === 'sender'}
             onSelect={() => setDestination('sender')}
             testId="giving-dest-sender"
