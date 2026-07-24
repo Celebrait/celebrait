@@ -46,9 +46,50 @@ const heroSourcePhoto = '/hero-source-photo.webp';
 export default function OgCard() {
   // ?bare=1 strips the backdrop + caption so the 1200×630 stage fills a
   // 1200×630 viewport edge-to-edge — for a pixel-exact headless capture.
-  const bare =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).has('bare');
+  const params =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams();
+  const bare = params.has('bare');
+  // ?card=front / ?card=inside → render ONLY that 3D card, large + centred,
+  // on the paper background, so it can be screenshotted on its own and
+  // composited elsewhere.
+  const card = params.get('card');
+  // ?t = transparent background (for exporting a cut-out PNG).
+  const transparent = params.has('t');
+
+  if (card === 'front' || card === 'inside') {
+    return (
+      <div
+        className={`keeper-serif flex min-h-screen items-center justify-center ${
+          transparent ? 'bg-transparent' : 'bg-keeper-paper'
+        }`}
+        style={transparent ? { background: 'transparent' } : undefined}
+      >
+        {transparent && (
+          <style>{`html,body,#root{background:transparent !important;}`}</style>
+        )}
+        <div className="relative" style={{ width: 760, height: 760 }}>
+          <div className="absolute inset-y-[-16%] inset-x-[-80%]">
+            <Card3DViewer
+              frontImageUrl={heroCardFront}
+              insideImageUrl={heroCardInside}
+              open={card === 'inside'}
+              interactive={false}
+              enableRotate={false}
+              enableZoom={false}
+              closedAngle={-0.55}
+              restYaw={-0.12}
+              framingMargin={card === 'inside' ? 1.85 : 1.7}
+              minDistance={1.2}
+              dprMax={2}
+              className="h-full w-full"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -166,7 +207,8 @@ export default function OgCard() {
           </div>
         </div>
 
-        {/* ── Right: the genuine hero 3D card ── */}
+        {/* ── Right: the genuine hero 3D card + the uploaded 'before' photo
+            pinned on its corner (the transform story) ── */}
         <div
           className="absolute"
           style={{ right: 40, top: '50%', width: 470, height: 470, transform: 'translateY(-50%)' }}
@@ -190,9 +232,6 @@ export default function OgCard() {
             </div>
           </div>
 
-          {/* The user's real 'before' photo — the same source-snapshot
-              polaroid the hero pins on the card. Tells the transform story:
-              your photo → the illustrated card. */}
           <div
             className="absolute z-20 overflow-hidden rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
             style={{ top: 14, left: -44, width: 116, aspectRatio: '1/1', transform: 'rotate(-6deg)' }}
