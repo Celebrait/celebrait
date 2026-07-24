@@ -98,7 +98,7 @@ export default function StudioCardViewPage() {
   }
 
   if (error || !data) {
-    return <NotFoundView />;
+    return <NotFoundView error={error} />;
   }
 
   // Unfinished drafts go back into the maker. This includes the
@@ -704,13 +704,21 @@ function LoadingView() {
   );
 }
 
-function NotFoundView() {
+function NotFoundView({ error }: { error?: unknown }) {
+  // Distinguish "belongs to another account" (403) from a genuine
+  // missing/deleted card (404), so a shared raw /studio/card/:id URL
+  // doesn't wrongly read as "deleted". Admins never hit the 403 —
+  // they can view any card (server-side bypass).
+  const msg = (error as { message?: string } | null)?.message ?? '';
+  const notYours = /not your/i.test(msg);
+  const title = notYours ? "This card is on another account" : 'Card not found';
+  const body = notYours
+    ? "It was made on a different account, so it can't be opened here. Ask whoever created it to hit Share and send you the link."
+    : 'It might have been deleted, or the link is out of date.';
   return (
     <div className="max-w-md mx-auto text-center py-16">
-      <p className="text-base font-semibold text-keeper-ink mb-2">Card not found</p>
-      <p className="text-sm text-keeper-body mb-6">
-        It might have been deleted, or the link is out of date.
-      </p>
+      <p className="text-base font-semibold text-keeper-ink mb-2">{title}</p>
+      <p className="text-sm text-keeper-body mb-6">{body}</p>
       <a
         href="/studio"
         className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand-dark underline underline-offset-4"

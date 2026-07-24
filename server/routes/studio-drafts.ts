@@ -22,6 +22,7 @@ import {
   cards,
   cardAttempts,
   orders,
+  users,
   EMPTY_CARD_DRAFT,
   studioOrders,
   type CardDraftState,
@@ -56,6 +57,18 @@ function generateShareToken(): string {
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
   return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
+/** True if the given user id belongs to an admin. Lets admins VIEW any
+ *  card from the CRM (read-only) — write actions stay owner-only. Mirrors
+ *  the is_admin gate used by /admin/* routes. */
+async function isAdminUser(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return rows[0]?.isAdmin === true;
 }
 
 
@@ -283,7 +296,12 @@ export function registerStudioDraftRoutes(app: Express): void {
 
       const row = rows[0];
       if (!row) return res.status(404).json({ message: 'Draft not found' });
-      if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+      // Owner sees their own card; admins can view ANY card (read-only,
+      // for the CRM + grabbing marketing assets). Write routes below stay
+      // strictly owner-only.
+      if (row.userId !== userId && !(await isAdminUser(userId))) {
+        return res.status(403).json({ message: 'Not your draft' });
+      }
 
       // Default empty state if conversationData is null or shaped
       // differently (legacy rows from the old flow).
