@@ -565,16 +565,15 @@ function CssAjarCard({
 // Always 'your SOMETHING' (Kevin's rule) — and short enough that the
 // persona line never wraps at any breakpoint.
 const PERSONAS = [
-  'your mum',
-  'your son',
   'your best mate',
-  'your sister',
-  'your brother',
+  'your first born',
+  'your big sis',
+  'your little bro',
   'your grandad',
   'your nan',
   'your better half',
   'your auntie',
-  'your bride',
+  'your soulmate',
 ];
 
 /** Shuffle the personas for variety on each load, but PIN 'your mum'
@@ -618,8 +617,8 @@ function HeroSection() {
             window.setTimeout(() => {
               setPersona((p) => (p + 1) % order.length);
               setVisible(true);
-            }, 260);
-          }, 2600);
+            }, 200);
+          }, 2200);
         } else if (!e.isIntersecting && timer !== undefined) {
           window.clearInterval(timer);
           timer = undefined;
@@ -669,7 +668,7 @@ function HeroSection() {
                 </span>
               ))}
               <span
-                className="col-start-1 row-start-1 whitespace-nowrap transition-opacity duration-300"
+                className="col-start-1 row-start-1 whitespace-nowrap transition-opacity duration-200"
                 style={{ opacity: visible ? 1 : 0 }}
               >
                 <ShimmerWord reduced={!!reduced}>{order[persona]}</ShimmerWord>
