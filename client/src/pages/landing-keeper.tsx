@@ -564,11 +564,39 @@ function CssAjarCard({
 
 // Always 'your SOMETHING' (Kevin's rule) — and short enough that the
 // persona line never wraps at any breakpoint.
-const PERSONAS = ['your mum', 'your best mate', 'your grandad', 'your sister'];
+const PERSONAS = [
+  'your mum',
+  'your son',
+  'your best mate',
+  'your sister',
+  'your brother',
+  'your grandad',
+  'your nan',
+  'your better half',
+  'your bff',
+  'your bride',
+  'the dog',
+  'the milkman',
+];
+
+/** Shuffle the personas for variety on each load, but PIN 'your mum'
+ *  first — it's the strong universal opener that first paint, crawlers,
+ *  and reduced-motion users all land on. Fisher-Yates on the rest. */
+function shuffledPersonas(): string[] {
+  const rest = PERSONAS.slice(1);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return [PERSONAS[0], ...rest];
+}
 
 function HeroSection() {
   const reduced = useReducedMotion();
   const [persona, setPersona] = useState(0);
+  // Shuffled display order (mum pinned first). Stable for the session —
+  // useState's lazy init runs the shuffle once on mount.
+  const [order] = useState(shuffledPersonas);
   const [visible, setVisible] = useState(true);
   // Card open state lives here (viewer self-manages the hinge; this
   // mirror drives the snapshot fade + the tap hint).
@@ -590,10 +618,10 @@ function HeroSection() {
             if (document.hidden) return;
             setVisible(false);
             window.setTimeout(() => {
-              setPersona((p) => (p + 1) % PERSONAS.length);
+              setPersona((p) => (p + 1) % order.length);
               setVisible(true);
             }, 260);
-          }, 3500);
+          }, 3000);
         } else if (!e.isIntersecting && timer !== undefined) {
           window.clearInterval(timer);
           timer = undefined;
@@ -646,7 +674,7 @@ function HeroSection() {
                 className="col-start-1 row-start-1 whitespace-nowrap transition-opacity duration-300"
                 style={{ opacity: visible ? 1 : 0 }}
               >
-                <ShimmerWord reduced={!!reduced}>{PERSONAS[persona]}</ShimmerWord>
+                <ShimmerWord reduced={!!reduced}>{order[persona]}</ShimmerWord>
               </span>
             </span>
             <br />
