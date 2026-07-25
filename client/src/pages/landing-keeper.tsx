@@ -1202,12 +1202,11 @@ function HandoverSection() {
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
             Send direct. Or receive it yourself, to hand over.
           </h2>
-          <p className="mt-4 max-w-[48ch] text-[17px] leading-[1.6] text-keeper-body">
+          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             A soppy essay, a heartfelt message, a snappy one-liner. Tell them
             how you feel and we'll design the inside to match the front of the
             card. Rather write it yourself? All good — it'll still look the
-            part. Blank ones always come to you first, though — we're not
-            posting someone an empty card.
+            part.
           </p>
           {/* The two destinations, stacked. The icon badge is the hierarchy
               rung between the headline and the meta copy; it wears the same
