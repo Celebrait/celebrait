@@ -46,7 +46,6 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.png';
 import { FaqSection } from '@/components/landing/faq-section';
-import { DemoVideoSection } from '@/components/landing/demo-video-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -1672,10 +1671,13 @@ export default function LandingKeeper() {
         <ImagineDescribeShipSection />
         <HandoverSection />
         <GallerySection />
-        <ObjectSection />
+        {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
+            shot is an unfilled Prodigi-test-print placeholder and its specs
+            already live in FAQ / pricing / the header banner. The function
+            is kept below, ready to re-add once the real print photo exists. */}
         <OccasionCaptureSection />
-        {/* Demo-walkthrough video slot — restored on Kevin's call. */}
-        <DemoVideoSection />
+        {/* DemoVideoSection removed 2026-07-24 (Kevin). Component preserved
+            for easy re-add. */}
         <PriceSection />
         <FaqSection />
       </main>
