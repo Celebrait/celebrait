@@ -149,8 +149,9 @@ function InsideForkPicker({
           restatements of "we match the front" + a second heading). */}
       <p className="text-sm text-keeper-body">
         A soppy essay, a heartfelt message, a snappy one-liner. Tell them how
-        you feel and we'll design the inside to match the front of the card.
-        Rather write it yourself? All good — it'll still look the part.
+        you feel and we'll add it to the inside (styled to match the front).
+        Rather write it yourself with good old ink? All good — it'll still
+        look the part.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ForkCard

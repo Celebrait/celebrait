@@ -1173,21 +1173,24 @@ const HANDOVER: Array<{
   tag: string;
   title: string;
   body: string;
-  shot: string;
+  img: string;
+  alt: string;
 }> = [
   {
     icon: Send,
     tag: 'F1',
     title: 'Straight to them',
     body: 'Posted tracked in a kraft envelope, your message printed inside.',
-    shot: 'Open card — your message printed inside, styled to match the front.',
+    img: '/handover-printed.webp',
+    alt: 'A finished Celebrait birthday card standing on a desk beside its kraft envelope.',
   },
   {
     icon: PenLine,
     tag: 'F2',
     title: 'Or to you first',
     body: 'Posted to you with a spare envelope, ready to hand over in person.',
-    shot: 'Open card — blank inside with the decorative border, ready to handwrite.',
+    img: '/handover-blank.webp',
+    alt: 'An open Celebrait card — blank inside with a decorative floral border, ready to handwrite.',
   },
 ];
 
@@ -1204,9 +1207,9 @@ function HandoverSection() {
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             A soppy essay, a heartfelt message, a snappy one-liner. Tell them
-            how you feel and we'll design the inside to match the front of the
-            card. Rather write it yourself? All good — it'll still look the
-            part.
+            how you feel and we'll add it to the inside (styled to match the
+            front). Rather write it yourself with good old ink? All good —
+            it'll still look the part.
           </p>
           {/* The two destinations, stacked. The icon badge is the hierarchy
               rung between the headline and the meta copy; it wears the same
@@ -1237,10 +1240,9 @@ function HandoverSection() {
         <Rise delay={0.1}>
           {/* Staggered pair — deliberately the SAME geometry as CardPair
               (w-[92%] sm:w-[55%], self-start then self-end, gap-5) so this
-              reads as a sibling of the Inside section's visual.
-              ⚠ PLACEHOLDERS — Kevin to supply: F1 open card with the
-              message printed, F2 open card blank with the decorative
-              border. Swap each AssetSlot for the shot when they land. */}
+              reads as a sibling of the Inside section's visual. F1 = the
+              finished printed card; F2 = the open card, blank inside with
+              the decorative border. */}
           <div className="relative flex flex-col gap-5">
             {/* Envelope seal — the "only open on your special day" round
                 sticker that goes on the direct-to-recipient kraft envelope.
@@ -1252,12 +1254,15 @@ function HandoverSection() {
               className="pointer-events-none absolute -top-12 right-0 z-20 w-28 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-32 md:-top-20 md:-right-10 md:w-52 lg:w-60"
             />
             {HANDOVER.map((h, i) => (
-              <div
+              <img
                 key={h.tag}
-                className={`w-[92%] sm:w-[55%] ${i === 0 ? 'self-start' : 'self-end'}`}
-              >
-                <AssetSlot tag={h.tag} ratio="3/2" note={h.shot} />
-              </div>
+                src={h.img}
+                alt={h.alt}
+                loading="lazy"
+                className={`w-[92%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5 sm:w-[55%] ${
+                  i === 0 ? 'self-start' : 'self-end'
+                }`}
+              />
             ))}
           </div>
         </Rise>
