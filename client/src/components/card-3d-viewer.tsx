@@ -554,6 +554,7 @@ export function Card3DViewer({
             onFirstFrame={onFirstFrame}
             interactive={interactive}
           />
+          <FirstPaintKick />
         </Canvas>
       </Viewer3DBoundary>
       {/* The hit zone — invisible, sits over roughly the card's visible
@@ -829,6 +830,47 @@ function InitialCameraFit({ margin, refit = false }: { margin: number; refit?: b
     camera.updateProjectionMatrix();
     invalidate();
   }, [camera, size, invalidate, margin, refit]);
+  return null;
+}
+
+// Force the first real paint on the assemble→reveal handoff. r3f can mount
+// the Canvas while its container is momentarily 0×0 (during the page
+// transition); it then renders nothing and — because its ResizeObserver
+// doesn't reliably fire for that transition — sits BLANK until a pointer
+// event nudges a re-measure (Kevin: "reveal is blank until you click",
+// recurring 2026-07-21 → 07-24). The size===0 guard in InitialCameraFit
+// stopped the camera latching a permanent blank, but nothing *forced* the
+// re-measure. This does: for a short window after mount, if r3f mounted
+// unsized, read the real container size off the DOM, push it via setSize,
+// and invalidate — so the card paints on its own, no click needed.
+function FirstPaintKick() {
+  const { invalidate, setSize, gl, size } = useThree();
+  useEffect(() => {
+    if (size.width > 0 && size.height > 0) {
+      invalidate();
+      return;
+    }
+    const parent = gl.domElement.parentElement;
+    let raf = 0;
+    let frames = 0;
+    let valid = 0;
+    const tick = () => {
+      const w = Math.round(parent?.clientWidth ?? 0);
+      const h = Math.round(parent?.clientHeight ?? 0);
+      if (w > 0 && h > 0) {
+        setSize(w, h);
+        valid += 1;
+      }
+      invalidate();
+      frames += 1;
+      // Stop once we've pushed a good size a few times, or after ~1s.
+      if (valid < 3 && frames < 60) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // Run once on mount; r3f's invalidate/setSize/gl are stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 }
 
