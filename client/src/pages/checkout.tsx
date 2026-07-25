@@ -19,7 +19,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Loader2, Package, Sparkles } from 'lucide-react';
+import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -648,6 +648,13 @@ export default function CheckoutPage() {
                   `Pay ${formatGBP(totals.total)}`
                 )}
               </Button>
+              {/* Promo codes are entered on Stripe's hosted payment page
+                  (allow_promotion_codes), not here — signpost it so a
+                  code-holder doesn't hunt for the field on this screen. */}
+              <p className="flex items-center justify-center gap-1.5 text-[11px] text-keeper-meta">
+                <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                Got a discount code? Add it on the next page (secure payment).
+              </p>
               {/* Dev-only notice — never ships to the deployed site
                   (audit 2026-07-02). Remove once a real gateway is live. */}
               {import.meta.env.DEV && (
