@@ -57,11 +57,11 @@ import { GestureHints } from '@/components/gesture-hints';
 const heroCardFront = '/hero-card-front.webp';
 const heroCardInside = '/hero-card-inside.webp';
 
-// ⚠️ TEMPORARY (Kevin 2026-07-24, for the F&F test link): hide the WebGL
-// hero card (swap for a flat image) + the placeholder gallery section
-// ("Any face. Any occasion." / "Real cards, made in the Studio." + its
-// 3D tiles). Flip to false to bring all the 3D visuals back.
-const HIDE_3D = true;
+// ⚠️ TEMPORARY (Kevin 2026-07-24, for the F&F test link): hide only the
+// placeholder gallery section ("Any face. Any occasion." / "Real cards,
+// made in the Studio." + its 3D tiles). The hero 3D card STAYS. Flip to
+// false to bring the gallery back.
+const HIDE_GALLERY = true;
 // Panel C lifestyle shots — same scene, front card + open card — crossfaded.
 const keeperCardClosed = '/keeper-card-closed.webp';
 const keeperCardOpen = '/keeper-card-open.webp';
@@ -727,17 +727,7 @@ function HeroSection() {
         {/* z-10: the open cover swings LEFT over the text column —
             Kevin: let it cover that text (don't clip it). */}
         <Rise className="relative z-10">
-          {HIDE_3D ? (
-            <div className="relative w-full" style={{ aspectRatio: '1/1' }}>
-              <img
-                src={heroCardFront}
-                alt="Example Celebrait card"
-                className="absolute inset-0 h-full w-full rounded-[12px] object-cover shadow-[0_30px_60px_-24px_rgba(33,29,25,0.42)] ring-1 ring-black/5"
-              />
-            </div>
-          ) : (
-            <StaticAjarCard open={cardOpen} onToggle={() => setCardOpen((o) => !o)} />
-          )}
+          <StaticAjarCard open={cardOpen} onToggle={() => setCardOpen((o) => !o)} />
           <div
             className={`absolute -left-3 top-1 w-[27%] -rotate-6 transition-opacity duration-500 ${
               cardOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
@@ -759,16 +749,14 @@ function HeroSection() {
               FIXED-HEIGHT slot: the hints mount late + unmount on
               open; without a reserved height the column reflows and
               the card clunks down (same bug as the old landing). */}
-          {!HIDE_3D && (
-            <div className="mt-7 h-14 sm:mt-3">
-              <GestureHints
-                open={cardOpen}
-                hideRotateHint
-                hideZoomHint
-                openLabel="Tap to close"
-              />
-            </div>
-          )}
+          <div className="mt-7 h-14 sm:mt-3">
+            <GestureHints
+              open={cardOpen}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
+          </div>
         </Rise>
       </div>
     </section>
@@ -1688,7 +1676,7 @@ export default function LandingKeeper() {
             was down after OccasionCapture, beside the demo video. */}
         <ImagineDescribeShipSection />
         <HandoverSection />
-        {!HIDE_3D && <GallerySection />}
+        {!HIDE_GALLERY && <GallerySection />}
         {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
             shot is an unfilled Prodigi-test-print placeholder and its specs
             already live in FAQ / pricing / the header banner. The function
