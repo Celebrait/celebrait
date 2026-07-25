@@ -111,13 +111,16 @@ export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flu
         <BlankPanel onUndo={switchToWrite} />
       ) : mode === 'write' ? (
         <>
+          {/* "Leave blank instead" sits ABOVE the inputs (Kevin 2026-07-24)
+              — below the fields it was easy to miss if the user wanted to
+              switch back to handwriting. */}
+          <LeaveBlankCard onPick={switchToBlank} />
           <WriteFields
             state={state}
             onChange={onChange}
             scheduleSave={scheduleSave}
             flushSave={flushSave}
           />
-          <LeaveBlankCard onPick={switchToBlank} />
         </>
       ) : (
         <InsideForkPicker onWrite={switchToWrite} onBlank={switchToBlank} />
@@ -143,16 +146,10 @@ function InsideForkPicker({
   const [blankExampleOpen, setBlankExampleOpen] = useState(false);
   return (
     <div className="space-y-3" data-testid="inside-fork-picker">
-      {/* One framing line only — the wrapper above ("Now, the inside")
-          already sets context; the two cards carry the choice. Kevin
-          2026-07-09: the fork screen was overwhelming on mobile (three
-          restatements of "we match the front" + a second heading). */}
-      <p className="text-sm text-keeper-body">
-        A soppy essay, a heartfelt message, a snappy one-liner. Tell them how
-        you feel and we'll add it to the inside (styled to match the front).
-        Rather write it yourself with good old ink? All good — it'll still
-        look the part.
-      </p>
+      {/* No framing line — the wrapper above ("Now, the inside") sets
+          context and the two cards carry the choice (Kevin 2026-07-24
+          dropped the intro copy here; it still leads the landing's
+          HandoverSection). */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ForkCard
           icon={PenLine}

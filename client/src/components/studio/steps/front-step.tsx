@@ -19,7 +19,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, FileText, PenLine, Type } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { StepExample } from '@/components/studio/step-example';
 import type { CardDraftState } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
 
@@ -54,18 +53,6 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* House-style example — the front of the card, front-on. The
-          guidance that used to sit inline now lives in the module. */}
-      <div>
-        <StepExample
-          eyebrow="Front Text Example"
-          assist="Not sure what to say?"
-          modalTitle="Front text example"
-          modalDescription="A short line that sits with the scene — woven into the artwork or set above it. Keep it brief; a few words read best."
-          show="front"
-        />
-      </div>
-
       {isNone ? (
         <NoTextPanel onUndo={switchToWrite} />
       ) : (
