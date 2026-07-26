@@ -127,10 +127,18 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   };
 
   useEffect(() => {
-    // External changes (e.g. preset fill from future brainstorm-chat)
-    // should update the textarea.
-    if ((state.scene?.description ?? '') !== local) {
-      setLocal(state.scene?.description ?? '');
+    // Adopt EXTERNAL changes (preset/brainstorm fill) into the textarea —
+    // but IGNORE our own debounced commit landing back. That commit stores
+    // the TRIMMED value, so while the user is mid-typing (e.g. a trailing
+    // space between words) `local` is untrimmed and differs from it; a plain
+    // `!==` here would reset `local` to the trimmed value and eat the char
+    // being typed — the "jumps back / deletes while typing" bug (Kevin
+    // 2026-07-24). Comparing against `local.trim()` lets the untrimmed
+    // in-progress value survive, and only a genuinely different (external)
+    // value replaces it.
+    const incoming = state.scene?.description ?? '';
+    if (incoming !== local && incoming !== local.trim()) {
+      setLocal(incoming);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.scene?.description]);
