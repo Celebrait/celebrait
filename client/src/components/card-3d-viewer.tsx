@@ -456,6 +456,14 @@ export function Card3DViewer({
   // = 30) keep the % model and are unaffected.
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [autoSquarePx, setAutoSquarePx] = useState<number | null>(null);
+  // Mount-gate for the WebGL Canvas: only render it once the wrapper has a
+  // real, non-zero size. r3f otherwise mounts unsized during the
+  // assemble→reveal transition and sits BLANK until a pointer event
+  // re-measures it (the recurring "reveal blank until you click" bug —
+  // the FirstPaintKick wasn't forceful enough on real devices). Measuring
+  // FIRST and mounting only then means the Canvas can never mount at 0×0.
+  // Latches true on the first non-zero measurement and stays.
+  const [measured, setMeasured] = useState(false);
   const useAutoHug = typeof hitZoneInsetPercent !== 'number';
   useLayoutEffect(() => {
     if (!useAutoHug) {
@@ -475,6 +483,21 @@ export function Card3DViewer({
     return () => ro.disconnect();
   }, [useAutoHug, framingMargin]);
 
+  // Gate the Canvas mount on a real measurement (see `measured` above).
+  // Runs for every viewer; latches once the wrapper reports non-zero size.
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setMeasured(true);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div
       ref={wrapperRef}
@@ -492,6 +515,7 @@ export function Card3DViewer({
         touchAction: 'pan-y',
       }}
     >
+      {measured ? (
       <Viewer3DBoundary
         fallback={(retry) => (
           <FlatCardFallback
@@ -557,6 +581,15 @@ export function Card3DViewer({
           <FirstPaintKick />
         </Canvas>
       </Viewer3DBoundary>
+      ) : (
+        // Brief holding spinner — only visible if the wrapper is still
+        // 0×0 (mid-transition). In the common case the layout-effect
+        // measurement latches `measured` before paint, so the Canvas
+        // mounts immediately and this never shows.
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-keeper-hair border-t-brand" />
+        </div>
+      )}
       {/* The hit zone — invisible, sits over roughly the card's visible
           area. All pointer/wheel/touch events for OrbitControls + r3f
           mesh raycasting come through this element. Outside it, events
