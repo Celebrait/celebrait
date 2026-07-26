@@ -180,6 +180,15 @@ export function GenerationWaitStage({
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center px-8 gap-6 sm:gap-7 py-8">
+      {/* Expectation-setting note — sets the ~60–90s wait up front and
+          reassures that leaving is safe (Kevin 2026-07-24). Sits above the
+          card animation so it's the first thing read. */}
+      <p className="max-w-[420px] text-center text-[13px] leading-relaxed text-keeper-meta">
+        This usually takes{' '}
+        <span className="font-medium text-keeper-ink">60–90 seconds</span> —
+        hang tight. You can close this if you like: your card will be waiting
+        in your Studio, and we'll email you the moment it's ready.
+      </p>
       {/* Card silhouette — SQUARE, matching the real card chassis. The
           shimmer band sweeps via the keyframe in index.css, clipped to
           the rounded corners. */}
