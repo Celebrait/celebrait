@@ -41,7 +41,7 @@ import { FileText, PenLine, Check, User, AlignLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { StepExample, ExampleCardDialog } from '@/components/studio/step-example';
+import { ExampleCardDialog } from '@/components/studio/step-example';
 import type { CardDraftState } from '@shared/schema';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
@@ -93,20 +93,6 @@ export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flu
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {mode === 'write' && (
-        <div>
-          {/* House-style example — one tap to see how a finished inside
-              reads. Same open-card thumbnail used across the steps. */}
-          <StepExample
-            eyebrow="Inside Text Example"
-            assist="Not sure what to write?"
-            modalTitle="Inside text example"
-            modalDescription="Your greeting, message and sign-off are set in type chosen to match the front, so the whole card feels like one piece. A line or two is plenty — warmth lands harder than length."
-            show="inside"
-          />
-        </div>
-      )}
-
       {mode === 'blank' ? (
         <BlankPanel onUndo={switchToWrite} />
       ) : mode === 'write' ? (
