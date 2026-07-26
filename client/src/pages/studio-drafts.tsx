@@ -209,6 +209,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             {card.frontImageUrl ? (
               <img
                 src={card.frontImageUrl}
+                crossOrigin="anonymous"
                 alt={title}
                 className="w-full h-full object-cover rounded-xl"
               />

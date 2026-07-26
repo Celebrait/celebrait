@@ -319,6 +319,7 @@ function EntryRow({
             {entry.lastCard?.frontImageUrl ? (
               <img
                 src={entry.lastCard.frontImageUrl}
+                crossOrigin="anonymous"
                 alt=""
                 aria-hidden
                 className="w-full h-full object-cover"

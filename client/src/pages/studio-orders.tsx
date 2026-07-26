@@ -93,6 +93,7 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
         {order.frontImageUrl ? (
           <img
             src={order.frontImageUrl}
+            crossOrigin="anonymous"
             alt={title}
             className="w-full h-full object-cover"
           />

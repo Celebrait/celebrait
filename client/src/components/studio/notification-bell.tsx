@@ -142,6 +142,7 @@ export function NotificationBell() {
                         {n.frontImageUrl ? (
                           <img
                             src={n.frontImageUrl}
+                            crossOrigin="anonymous"
                             alt=""
                             className="h-full w-full object-cover"
                           />

@@ -447,6 +447,7 @@ function HeroCarousel({
               <img
                 key={current.id}
                 src={current.frontImageUrl}
+                crossOrigin="anonymous"
                 alt={title}
                 className="w-full h-full object-cover animate-in fade-in-0 duration-500"
               />
@@ -636,6 +637,7 @@ function CompactCardRow({ card }: { card: CardGridItem }) {
         {card.frontImageUrl ? (
           <img
             src={card.frontImageUrl}
+            crossOrigin="anonymous"
             alt={title}
             className="w-full h-full object-cover"
           />
@@ -679,6 +681,7 @@ function DraftRow({ card }: { card: CardGridItem }) {
         {card.frontImageUrl ? (
           <img
             src={card.frontImageUrl}
+            crossOrigin="anonymous"
             alt={title}
             className="w-full h-full object-cover rounded-lg"
           />

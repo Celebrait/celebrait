@@ -579,6 +579,7 @@ export function RegenEditMode({
             <img
               key={`preload-${a.id}`}
               src={a.imageUrl}
+              crossOrigin="anonymous"
               alt=""
               loading="eager"
               decoding="async"
@@ -858,6 +859,7 @@ function VersionRail({
             {a.imageUrl ? (
               <img
                 src={a.imageUrl}
+                crossOrigin="anonymous"
                 alt={`Version ${a.attemptNumber}`}
                 className="w-full h-full object-cover"
                 loading="lazy"

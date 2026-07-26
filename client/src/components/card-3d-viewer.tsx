@@ -464,23 +464,6 @@ export function Card3DViewer({
   // FIRST and mounting only then means the Canvas can never mount at 0×0.
   // Latches true on the first non-zero measurement and stays.
   const [measured, setMeasured] = useState(false);
-  // Temporary diagnostic (behind ?debug3d) for the blank-reveal bug. Sticky
-  // for the session (sessionStorage) so it survives the client-side
-  // assemble→reveal navigation that would otherwise drop the query param —
-  // visit any page once with ?debug3d and the overlay shows everywhere after.
-  const debug3d = (() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      if (new URLSearchParams(window.location.search).has('debug3d')) {
-        sessionStorage.setItem('debug3d', '1');
-        return true;
-      }
-      return sessionStorage.getItem('debug3d') === '1';
-    } catch {
-      return false;
-    }
-  })();
-  const [dbg, setDbg] = useState<DebugData | null>(null);
   const useAutoHug = typeof hitZoneInsetPercent !== 'number';
   useLayoutEffect(() => {
     if (!useAutoHug) {
@@ -600,7 +583,6 @@ export function Card3DViewer({
             interactive={interactive}
           />
           <FirstPaintKick />
-          {debug3d && <DebugProbe onData={setDbg} />}
         </Canvas>
       </Viewer3DBoundary>
       ) : (
@@ -678,31 +660,6 @@ export function Card3DViewer({
         }}
         data-testid="card-3d-hit-zone"
       />
-      {debug3d && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 6,
-            left: 6,
-            zIndex: 60,
-            background: 'rgba(0,0,0,0.82)',
-            color: '#4ade80',
-            font: '11px/1.4 monospace',
-            padding: '6px 9px',
-            borderRadius: 5,
-            pointerEvents: 'none',
-            whiteSpace: 'pre',
-          }}
-        >
-          {[
-            `measured=${measured}`,
-            `frameloop=${dbg?.frameloop ?? '—'}`,
-            `r3f=${dbg?.w ?? '—'}x${dbg?.h ?? '—'}`,
-            `camZ=${dbg?.camZ ?? '—'}`,
-            `frames=${dbg?.frames ?? 0}`,
-          ].join('\n')}
-        </div>
-      )}
     </div>
   );
 }
@@ -951,37 +908,6 @@ function FirstPaintKick() {
     // Run once on mount; r3f's invalidate/setSize/gl are stable refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  return null;
-}
-
-// Diagnostic probe (behind ?debug3d) — reports live r3f state up to the
-// wrapper so we can SEE why the reveal is blank instead of guessing: the
-// real frameloop mode, the canvas size r3f measured, the camera z, and a
-// frame counter. If `frames` climbs on its own the loop is running (blank
-// is a camera/size/texture problem); if it's stuck until a click, the loop
-// is effectively "demand". Temporary — remove once the reveal is fixed.
-type DebugData = {
-  frameloop: string;
-  w: number;
-  h: number;
-  camZ: number;
-  frames: number;
-};
-function DebugProbe({ onData }: { onData: (d: DebugData) => void }) {
-  const { size, camera, frameloop } = useThree();
-  const frames = useRef(0);
-  useFrame(() => {
-    frames.current += 1;
-    if (frames.current <= 3 || frames.current % 15 === 0) {
-      onData({
-        frameloop: String(frameloop),
-        w: Math.round(size.width),
-        h: Math.round(size.height),
-        camZ: Number(camera.position.z.toFixed(2)),
-        frames: frames.current,
-      });
-    }
-  });
   return null;
 }
 
