@@ -32,6 +32,7 @@
 
 import {
   Component,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -464,6 +465,25 @@ export function Card3DViewer({
   // FIRST and mounting only then means the Canvas can never mount at 0×0.
   // Latches true on the first non-zero measurement and stays.
   const [measured, setMeasured] = useState(false);
+  // WebGL context-loss recovery. Chrome hard-caps simultaneous WebGL
+  // contexts (~16); a long single-tab session that mounts many card
+  // canvases (browsing the studio, regenerating, revealing) can push
+  // past it, at which point the browser DESTROYS the oldest context and
+  // that card renders blank — the "reveal blank until you click" report
+  // (the click just happened to force a React re-render). With no
+  // webglcontextlost handler the loss is PERMANENT. Bumping this epoch
+  // remounts the <Canvas> (keyed on it) to acquire a fresh context, and
+  // the GLContextGuard frees the old context on unmount so we don't leak
+  // contexts across the session. Capped so a genuinely wedged GPU can't
+  // remount-loop forever — after the cap the Viewer3DBoundary's flat
+  // image stands in.
+  const [glEpoch, setGlEpoch] = useState(0);
+  const glRemounts = useRef(0);
+  const handleContextLost = useCallback(() => {
+    if (glRemounts.current >= 3) return;
+    glRemounts.current += 1;
+    setGlEpoch((n) => n + 1);
+  }, []);
   const useAutoHug = typeof hitZoneInsetPercent !== 'number';
   useLayoutEffect(() => {
     if (!useAutoHug) {
@@ -544,6 +564,9 @@ export function Card3DViewer({
         )}
       >
         <Canvas
+          // Remount on WebGL context loss to re-acquire a live context
+          // (see glEpoch above) instead of sitting blank until a click.
+          key={glEpoch}
           shadows
           // Explicit continuous rendering. The reveal behaves like "demand"
           // (blank until a pointer event) even though this is the r3f
@@ -583,6 +606,7 @@ export function Card3DViewer({
             interactive={interactive}
           />
           <FirstPaintKick />
+          <GLContextGuard onLost={handleContextLost} />
         </Canvas>
       </Viewer3DBoundary>
       ) : (
@@ -908,6 +932,48 @@ function FirstPaintKick() {
     // Run once on mount; r3f's invalidate/setSize/gl are stable refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  return null;
+}
+
+// Recover from — and stop leaking — WebGL contexts. Two jobs:
+//   1. On `webglcontextlost`, preventDefault (so the browser knows we're
+//      handling it) and ask the parent to remount the <Canvas> with a
+//      fresh context — so a dropped context self-heals instead of leaving
+//      the card blank until a click forces a React re-render (the exact
+//      "reveal blank until you click" symptom; console: THREE.WebGL-
+//      Renderer "Context Lost").
+//   2. On unmount, forceContextLoss()+dispose() to release the GPU context
+//      immediately. Browsers are lazy about freeing WebGL contexts when the
+//      canvas element is removed; across a long single-tab session the
+//      zombies pile up and eventually blow Chrome's ~16-context cap, which
+//      evicts the OLDEST live context (why it got worse the more you
+//      tested). Freeing eagerly keeps the live count near 1.
+// Order matters: remove the listener BEFORE forceContextLoss so the
+// unmount-time forced loss can't re-fire onLost and cause a spurious
+// remount.
+function GLContextGuard({ onLost }: { onLost: () => void }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (e: Event) => {
+      e.preventDefault();
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handleLost, false);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleLost, false);
+      try {
+        gl.forceContextLoss();
+      } catch {
+        /* best-effort — some drivers/headless GL lack the extension */
+      }
+      try {
+        gl.dispose();
+      } catch {
+        /* best-effort */
+      }
+    };
+  }, [gl, onLost]);
   return null;
 }
 
