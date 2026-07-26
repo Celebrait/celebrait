@@ -1240,6 +1240,7 @@ function TestPanel({
               <div className="space-y-2">
                 <img
                   src={lastResult.imageUrl}
+                  crossOrigin="anonymous"
                   alt="Test run result"
                   className="w-full rounded border border-stone-200"
                   data-testid="test-result-image"
@@ -1727,6 +1728,7 @@ function InsideInputsForm({
                     >
                       <img
                         src={run.imageUrl}
+                        crossOrigin="anonymous"
                         alt={run.label}
                         className="w-full h-full object-cover"
                       />
@@ -2069,6 +2071,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
             >
               <img
                 src={run.imageUrl}
+                crossOrigin="anonymous"
                 alt={run.label}
                 className="w-full h-32 object-cover rounded-t"
               />
@@ -2087,6 +2090,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
           <div className="mt-4 pt-4 border-t border-stone-200 grid grid-cols-2 gap-4">
             <img
               src={expanded.imageUrl}
+              crossOrigin="anonymous"
               alt={expanded.label}
               className="w-full rounded border border-stone-200"
             />

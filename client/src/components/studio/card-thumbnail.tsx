@@ -14,6 +14,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { CardImage } from '@/components/card-image';
 import {
   deriveCardTitle,
   isDraftStatus,
@@ -112,11 +113,10 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
     <>
       <div className="aspect-square bg-stone-100 relative overflow-hidden">
         {hasImage ? (
-          <img
+          <CardImage
             src={card.frontImageUrl!}
             alt={title}
             loading="lazy"
-            crossOrigin="anonymous"
             onError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
