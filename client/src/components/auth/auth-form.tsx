@@ -87,6 +87,10 @@ export function AuthForm({
   const [code, setCode] = useState('');
   const [step, setStepState] = useState<AuthStep>('email');
   const [devBypassActive, setDevBypassActive] = useState(false);
+  // True once a send/verify request has been in-flight a few seconds —
+  // usually a cold free-tier server waking up. Drives a "hang on" hint so
+  // a slow first request doesn't read as broken (and get abandoned).
+  const [slowHint, setSlowHint] = useState(false);
 
   // Welcome step state — name + marketing consent (unticked by default,
   // GDPR/PECR).
@@ -147,6 +151,7 @@ export function AuthForm({
       toast({ title: 'Enter a valid email', variant: 'destructive' });
       return;
     }
+    const slowTimer = window.setTimeout(() => setSlowHint(true), 4000);
     try {
       const result = (await sendOtp(trimmed)) as any;
       setDevBypassActive(!!result?.devBypass);
@@ -163,6 +168,9 @@ export function AuthForm({
         description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      window.clearTimeout(slowTimer);
+      setSlowHint(false);
     }
   };
 
@@ -172,6 +180,7 @@ export function AuthForm({
       toast({ title: 'Enter the 6-digit code', variant: 'destructive' });
       return;
     }
+    const slowTimer = window.setTimeout(() => setSlowHint(true), 4000);
     try {
       const result = (await verifyOtp({
         email: email.trim().toLowerCase(),
@@ -189,6 +198,9 @@ export function AuthForm({
         description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      window.clearTimeout(slowTimer);
+      setSlowHint(false);
     }
   };
 
@@ -292,12 +304,22 @@ export function AuthForm({
           </div>
           <Button
             onClick={handleSendCode}
+            // Don't let the tap steal focus from the email input — on
+            // mobile that first tap can just dismiss the keyboard instead
+            // of firing the button. Keeping focus lets the click land first
+            // time. (onClick still fires; input stays focused.)
+            onMouseDown={(e) => e.preventDefault()}
             disabled={isSendingOtp}
             className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-send-code"
           >
             {isSendingOtp ? 'Sending code…' : 'Send me a code'}
           </Button>
+          {slowHint && isSendingOtp && (
+            <p className="text-[11px] text-keeper-meta text-center">
+              Waking things up — this can take a few seconds…
+            </p>
+          )}
         </>
       )}
 
@@ -330,12 +352,18 @@ export function AuthForm({
           </div>
           <Button
             onClick={handleVerifyCode}
+            onMouseDown={(e) => e.preventDefault()}
             disabled={isVerifyingOtp}
             className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-verify-code"
           >
             {isVerifyingOtp ? 'Verifying…' : 'Sign in'}
           </Button>
+          {slowHint && isVerifyingOtp && (
+            <p className="text-[11px] text-keeper-meta text-center">
+              Hang on — this can take a few seconds…
+            </p>
+          )}
           <button
             onClick={() => {
               setStep('email');
