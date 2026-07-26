@@ -69,7 +69,12 @@ export function authHeadingCopy(step: AuthStep, email?: string) {
 export function AuthForm({
   defaultRedirect = '/studio',
   onStepChange,
-  showGoogle = true,
+  // Google sign-in is HIDDEN by default (Kevin 2026-07-24): OAuth isn't
+  // configured on prod yet, so /api/auth/google 503s — a dead button for
+  // testers. Flip back to true (or pass showGoogle) once GOOGLE_CLIENT_ID
+  // / SECRET / REDIRECT_URI are set in Render. Email OTP is the only path
+  // until then.
+  showGoogle = false,
   accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
