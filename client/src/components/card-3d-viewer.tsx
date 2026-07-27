@@ -32,6 +32,7 @@
 
 import {
   Component,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -54,7 +55,13 @@ import celebraitLogo from '@/assets/celebrait.png';
 // missing (legacy card, or the best-effort encode failed) the texture load
 // fails and the Viewer3DBoundary shows the flat PNG — so the PNG stays the
 // safety net (FlatCardFallback still uses the original url).
-function toWebpDisplay(url: string | null | undefined): string | null | undefined {
+// EXPORTED because preloaders MUST warm these exact URLs: drei's texture
+// cache is keyed by url string, so preloading the PNG does nothing for a
+// texture that loads the WEBP. That mismatch (introduced by the Jul-17
+// webp swap) made every reveal SUSPEND → the suspension escaped the Canvas
+// (r3f throws it into the parent tree) → the route-level Suspense blanked
+// the whole page ("white flash / blank until click", root-caused 2026-07-27).
+export function toWebpDisplay(url: string | null | undefined): string | null | undefined {
   return typeof url === 'string' ? url.replace(/\.png(\?|$)/i, '.webp$1') : url;
 }
 
@@ -590,27 +597,40 @@ export function Card3DViewer({
           // they only fire when the user is actually over the card area.
           eventSource={hitEl ?? undefined}
         >
-          <Scene
-            frontUrl={frontImageUrl}
-            insideUrl={insideUrl}
-            backCredit={backCredit}
-            open={open}
-            onOpenChange={setOpen}
-            framingMargin={framingMargin}
-            minDistance={minDistance}
-            orbitDomElement={hitEl ?? undefined}
-            autoRotate={autoRotate}
-            autoRotateSpeed={autoRotateSpeed}
-            enableZoom={enableZoom}
-            enableRotate={enableRotate}
-            openProgress={openProgress}
-            closedAngle={closedAngle}
-            hover={hover}
-            restYaw={restYaw}
-            instantOpen={instantOpen}
-            onFirstFrame={onFirstFrame}
-            interactive={interactive}
-          />
+          {/* CRITICAL: this Suspense must stay INSIDE the Canvas. r3f
+              bridges suspensions OUT of the canvas — its DOM component
+              literally `throw`s the pending promise into the parent React
+              tree — and the only boundary above us is App.tsx's ROUTE-level
+              Suspense. Without this boundary, a suspending useTexture at
+              the reveal blanked the ENTIRE page (sidebar and all) to the
+              route fallback, tore down the GL root (console: "Context
+              Lost" — r3f's own disposal, not the GPU), and left the reveal
+              blank until a re-render remounted it ("blank until you
+              click", root-caused 2026-07-27). With it, a loading texture
+              just means an empty canvas for a beat. */}
+          <Suspense fallback={null}>
+            <Scene
+              frontUrl={frontImageUrl}
+              insideUrl={insideUrl}
+              backCredit={backCredit}
+              open={open}
+              onOpenChange={setOpen}
+              framingMargin={framingMargin}
+              minDistance={minDistance}
+              orbitDomElement={hitEl ?? undefined}
+              autoRotate={autoRotate}
+              autoRotateSpeed={autoRotateSpeed}
+              enableZoom={enableZoom}
+              enableRotate={enableRotate}
+              openProgress={openProgress}
+              closedAngle={closedAngle}
+              hover={hover}
+              restYaw={restYaw}
+              instantOpen={instantOpen}
+              onFirstFrame={onFirstFrame}
+              interactive={interactive}
+            />
+          </Suspense>
           <FirstPaintKick />
           <ContextLossReporter onLost={reportContextLost} />
         </Canvas>

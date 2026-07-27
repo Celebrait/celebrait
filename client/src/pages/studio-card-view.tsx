@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Share2, RefreshCw, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Card3DViewer } from '@/components/card-3d-viewer';
+import { Card3DViewer, toWebpDisplay } from '@/components/card-3d-viewer';
 import { CardOuterSpread, CardInnerSpread } from '@/components/studio/card-print-template';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
@@ -164,9 +164,13 @@ function LoadedView({
   // in parallel with React mounting the viewer chunk. Without this
   // the card visibly pops in ~500ms-1s after the page renders.
   useEffect(() => {
-    const urls = [card.frontImageUrl, card.insideImageUrl].filter(
-      (u): u is string => !!u && u.length > 0,
-    );
+    // MUST warm the .webp display urls — the exact strings useTexture
+    // loads (drei's cache is url-keyed; preloading the .png warms nothing
+    // and the texture suspends → escapes the Canvas → route-level Suspense
+    // blanks the whole page. Root-caused 2026-07-27).
+    const urls = [card.frontImageUrl, card.insideImageUrl]
+      .map((u) => toWebpDisplay(u))
+      .filter((u): u is string => !!u && u.length > 0);
     if (urls.length === 0) return;
 
     const links = urls.map((url) => {

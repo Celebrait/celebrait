@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
-import { Card3DViewer } from '@/components/card-3d-viewer';
+import { Card3DViewer, toWebpDisplay } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
 import {
@@ -1517,9 +1517,15 @@ function RevealView({
   // Combined, the reveal feels noticeably snappier — texture decode
   // overlaps with the 1600ms hold instead of running after it.
   useEffect(() => {
-    const urls = [frontUrl, insideUrl].filter(
-      (u): u is string => !!u && u.length > 0,
-    );
+    // toWebpDisplay is NOT optional here: the 3D viewer's useTexture loads
+    // the .webp display siblings, and drei's cache is keyed by exact URL.
+    // Preloading the .png (as this did between the Jul-17 webp swap and
+    // 2026-07-27) warms NOTHING the texture uses → useTexture suspends at
+    // the reveal → the suspension escapes the Canvas to the route-level
+    // Suspense → whole page blanks ("white flash / blank until click").
+    const urls = [frontUrl, insideUrl]
+      .map((u) => toWebpDisplay(u))
+      .filter((u): u is string => !!u && u.length > 0);
     if (urls.length === 0) return;
 
     // 1. Browser-level preload via <link>.
