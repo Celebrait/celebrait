@@ -61,6 +61,14 @@ export function getSession() {
   // production environment") — that's the intended signal in dev and
   // would be a red flag if it ever shows up in prod logs.
 
+  // Never let the repo-published dev fallback sign production cookies —
+  // a missing/typo'd SESSION_SECRET on Render must fail the boot, not
+  // silently downgrade session security (audit 2026-07-27; the central
+  // launch-guard also checks this — this throw is the local backstop).
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
   return session({
     secret: process.env.SESSION_SECRET || "celebrait-dev-session-secret",
     store: sessionStore,

@@ -5,6 +5,7 @@ import "dotenv/config";
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
 import { registerRoutes } from "./routes";
+import { assertLaunchSafeConfig } from "./launch-guards";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
@@ -105,6 +106,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Refuse to boot production with a config that takes money without
+  // producing a real card (audit 2026-07-27). Throws → the deploy fails
+  // loudly on Render and the previous version stays live.
+  assertLaunchSafeConfig();
+
   const server = await registerRoutes(app);
 
   // Set server timeout for long-running AI processing

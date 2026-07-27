@@ -124,6 +124,11 @@ interface EmailParams {
   text?: string;
   html?: string;
   attachments?: Array<{ name: string; content: string; type: string }>;
+  /** Marketing-class email (drop-off nudges, occasion reminders — anything
+   *  carrying optOutFooter). Sets the RFC 2369 List-Unsubscribe header so
+   *  inbox providers surface their native "Unsubscribe" affordance (also a
+   *  deliverability signal Gmail weighs). PECR audit 2026-07-27. */
+  marketing?: boolean;
 }
 
 // ── Dev email sink ────────────────────────────────────────────────────
@@ -202,6 +207,11 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       text: params.text || 'Email content is available in HTML format.',
     };
     if (params.replyTo) mailOptions.replyTo = params.replyTo;
+    if (params.marketing) {
+      mailOptions.headers = {
+        'List-Unsubscribe': `<mailto:${FROM_EMAIL}?subject=Unsubscribe>`,
+      };
+    }
     if (params.html) mailOptions.html = params.html;
     if (params.attachments?.length) {
       mailOptions.attachments = params.attachments.map((a) => ({
@@ -235,6 +245,11 @@ async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
     };
     if (params.replyTo) {
       msg.replyTo = { email: params.replyTo };
+    }
+    if (params.marketing) {
+      msg.headers = {
+        'List-Unsubscribe': `<mailto:${FROM_EMAIL}?subject=Unsubscribe>`,
+      };
     }
     msg.subject = params.subject;
     msg.textContent = params.text || 'Email content is available in HTML format.';
@@ -1195,7 +1210,7 @@ export async function sendDropOffRecoveryEmail(params: {
     `Have another look: ${cardUrl}\n\n` +
     `No rush — it stays in your gallery.\n\n— Celebrait`;
 
-  return sendEmail({ to: senderEmail, subject, html, text });
+  return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
 
 // ── Drop-off tweak (sender) — Day 4, iteration framing ──────────────
@@ -1258,7 +1273,7 @@ export async function sendDropOffTweakEmail(params: {
     `Change it: ${cardUrl}\n\n` +
     `Or if it's already right, it's ready to send.\n\n— Celebrait`;
 
-  return sendEmail({ to: senderEmail, subject, html, text });
+  return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
 
 // ── Drop-off last call (sender) — Day 10, soft urgency ──────────────
@@ -1319,7 +1334,7 @@ export async function sendDropOffLastCallEmail(params: {
     `View your card: ${cardUrl}\n\n` +
     `Send it, change it, or leave it for later — up to you.\n\n— Celebrait`;
 
-  return sendEmail({ to: senderEmail, subject, html, text });
+  return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
 
 // ── Reminder (sender) — occasion is approaching ──────────────────────
@@ -1482,7 +1497,7 @@ export async function sendReminderEmail(params: {
         : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Cards are printed to order (up to 72 hours) then posted, so it's tight — choose the fastest delivery, and the free digital link arrives instantly either way.`) +
     `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
 
-  return sendEmail({ to: senderEmail, subject, html, text });
+  return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
 
 /** Convert an occasion key (e.g. "birthday", "valentines") into the

@@ -164,16 +164,25 @@ async function runTier(
   };
 
   // Pull eligible cards: completed, older than this tier's cutoff,
-  // never sent THIS tier's email, owned by a real user.
+  // never sent THIS tier's email, owned by a real user WHO OPTED IN.
+  //
+  // The marketingOptIn join is a PECR requirement, not a nicety
+  // (audit 2026-07-27): drop-off nudges are unsolicited direct
+  // marketing, and the sign-up checkbox ("Email me card reminders and
+  // the occasional offer") writes users.marketing_opt_in — which no
+  // send path read until now. Anyone who left it unticked must never
+  // enter this pipeline. Occasion reminders are different (user
+  // explicitly created them) and stay un-gated.
   const eligible = await db
     .select({ card: cards })
     .from(cards)
+    .innerJoin(users, eq(cards.userId, users.id))
     .where(
       and(
         eq(cards.status, 'completed'),
         sql`${cards.createdAt} < ${cutoff}`,
         isNull(tier.stampColumn),
-        sql`${cards.userId} IS NOT NULL`,
+        eq(users.marketingOptIn, true),
       ),
     );
 
