@@ -524,8 +524,7 @@ function OrdersEmpty() {
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No orders yet</p>
       <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
-        Once you place an order — print or digital — you'll be able to
-        track it right here.
+        Once you send a card, you'll track it right here.
       </p>
       <Link
         href="/studio/new-card"

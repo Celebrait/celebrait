@@ -107,6 +107,25 @@ export default function CardViewerPage() {
     );
   }
   if (error || !data) {
+    // Token present = an anonymous RECIPIENT with a broken/expired link —
+    // "Back to Studio" just walked them into a login wall (audit
+    // 2026-07-27). Give them the honest fix + a warm way in instead.
+    if (token) {
+      return (
+        <Shell>
+          <Centered>
+            <p className="text-sm font-medium text-keeper-ink mb-1">
+              This card link isn't working
+            </p>
+            <p className="text-sm text-keeper-body mb-4 max-w-xs text-center">
+              It may not have copied across in full — ask whoever sent it to
+              share the link again.
+            </p>
+            <Button onClick={() => setLocation('/')}>Make your own card</Button>
+          </Centered>
+        </Shell>
+      );
+    }
     return (
       <Shell>
         <Centered>

@@ -99,6 +99,7 @@ const CheckoutDevConfirmPage = lazy(
   () => import("@/pages/checkout-dev-confirm"),
 );
 const CheckoutSuccessPage = lazy(() => import("@/pages/checkout-success"));
+const CheckoutCancelledPage = lazy(() => import("@/pages/checkout-cancelled"));
 
 // Admin shell + pages
 const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
@@ -266,7 +267,9 @@ function Router() {
             </RequireAuth>
           </Route>
           <Route path="/checkout/cancelled">
-            <Redirect to="/studio" />
+            <RequireAuth>
+              <CheckoutCancelledPage />
+            </RequireAuth>
           </Route>
           <Route path="/checkout/:cardId">
             <RequireAuth>

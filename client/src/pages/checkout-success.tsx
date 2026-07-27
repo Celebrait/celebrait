@@ -5,7 +5,7 @@
 // Orders" state), then shows a summary + the digital share link.
 
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Copy, Loader2, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -143,7 +143,17 @@ export default function CheckoutSuccessPage() {
             {data.order.includesPrint && (
               <div className="flex items-center gap-2 text-sm text-keeper-body">
                 <Package className="w-4 h-4 text-keeper-meta" />
-                <span>Printed card is on its way to print.</span>
+                <span>
+                  We'll print it within 72 hours, then post it — track it in{' '}
+                  <Link
+                    href="/studio/orders"
+                    className="text-brand underline underline-offset-2 hover:text-brand-dark"
+                    data-testid="success-orders-link"
+                  >
+                    Orders
+                  </Link>
+                  .
+                </span>
               </div>
             )}
             {data.order.includesDigital && (

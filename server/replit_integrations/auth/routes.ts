@@ -4,7 +4,7 @@ import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, ne } from "drizzle-orm";
 import { sendOtpEmail, sendWelcomeEmail } from "../../email-service";
 import { rateLimitHit, rateLimitClear, clientIp } from "../../simple-rate-limit";
 
@@ -103,21 +103,34 @@ export function registerAuthRoutes(app: Express): void {
       const code = generateOtp();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Delete any existing unused codes for this email
-      await db.delete(otpCodes).where(eq(otpCodes.email, normalizedEmail));
+      // ORDER MATTERS (audit 2026-07-27): insert the NEW code first and
+      // retire old ones only AFTER the new email actually sends. The old
+      // delete-first flow meant an impatient double-request + out-of-order
+      // email delivery invalidated the code the user was holding — they'd
+      // type the code from the first email and get "Invalid code". Letting
+      // codes briefly coexist costs nothing (verify burns all codes for
+      // the email after 5 wrong guesses).
+      const [inserted] = await db
+        .insert(otpCodes)
+        .values({
+          email: normalizedEmail,
+          code,
+          expiresAt,
+        })
+        .returning({ id: otpCodes.id });
 
-      // Insert new code
-      await db.insert(otpCodes).values({
-        email: normalizedEmail,
-        code,
-        expiresAt,
-      });
-
-      // Send email
       const emailSent = await sendOtpEmail(normalizedEmail, code);
       if (!emailSent) {
+        // The new code never reached an inbox — remove it, keep any
+        // previous (possibly delivered) codes valid.
+        await db.delete(otpCodes).where(eq(otpCodes.id, inserted.id)).catch(() => {});
         return res.status(503).json({ message: "Failed to send verification email. Please try again shortly." });
       }
+
+      // New code is in flight — retire the older ones now.
+      await db
+        .delete(otpCodes)
+        .where(and(eq(otpCodes.email, normalizedEmail), ne(otpCodes.id, inserted.id)));
 
       res.json({ success: true, message: "Verification code sent" });
     } catch (error) {

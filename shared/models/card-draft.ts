@@ -165,7 +165,10 @@ export const CARD_MAKER_STEPS = [
   { id: 'scene', label: 'Scene' },
   { id: 'front', label: 'Front text' },
   { id: 'inside', label: 'Inside text' },
-  { id: 'review', label: 'Review & Purchase' },
+  // 'send', not 'purchase' — the chip is visible from step 1 and framed
+  // the whole creative flow as a transaction (audit 2026-07-27); it also
+  // clashed with the reveal CTA "Send this card".
+  { id: 'review', label: 'Review & send' },
 ] as const;
 
 export type StepId = (typeof CARD_MAKER_STEPS)[number]['id'];

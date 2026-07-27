@@ -290,7 +290,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           customerName: body.customerName,
           description: `Celebrait card #${cardId}`,
           returnUrl: `${origin}/checkout/success?orderId=${order.id}`,
-          cancelUrl: `${origin}/checkout/cancelled?orderId=${order.id}`,
+          cancelUrl: `${origin}/checkout/cancelled?orderId=${order.id}&cardId=${cardId}`,
         });
 
         await db

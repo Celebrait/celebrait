@@ -183,7 +183,9 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [],
     contactLine: {
       lead: 'Still happening?',
-      email: 'ip@celebrait.co.uk',
+      // Support mailbox, NOT ip@ — that's the IP/takedown address
+      // (audit 2026-07-27).
+      email: 'greetings@celebrait.co.uk',
     },
     isPanelKind: true,
   },

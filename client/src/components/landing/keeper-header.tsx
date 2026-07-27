@@ -45,7 +45,7 @@ export function KeeperHeader() {
         style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
       >
         <span className="sm:hidden">
-          Printed to order in 72 hrs — £8.99 + delivery.
+          Printed to order within 72 hrs — £8.99 + delivery.
         </span>
         <span className="hidden sm:inline">
           Every card is printed to order, just for them — allow up to 72 hrs,

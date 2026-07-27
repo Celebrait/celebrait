@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
 import { deriveDefaultFrontText } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 import { Card3DViewer, toWebpDisplay } from '@/components/card-3d-viewer';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
@@ -803,6 +804,7 @@ function FrontFirstStage({
   insideMode,
   photoCount,
   onStartInsideGeneration,
+  onEditInsideMessage,
   failure,
 }: {
   status: string;
@@ -810,8 +812,13 @@ function FrontFirstStage({
   insideMode: 'write' | 'blank' | null;
   photoCount?: number;
   onStartInsideGeneration?: () => Promise<void>;
+  /** Jump back to the Inside step so the user can CHANGE the words —
+   *  without this, a safety-rejected message was an infinite loop:
+   *  the only button re-sent the identical text (audit 2026-07-27). */
+  onEditInsideMessage?: () => void;
   failure?: import('@/hooks/use-card-maker').DraftFailureDTO | null;
 }) {
+  const { toast } = useToast();
   if (status === 'generating-front' || status === 'generating-inside') {
     return (
       <div className="h-[60vh] sm:h-[68vh] w-full relative">
@@ -846,11 +853,30 @@ function FrontFirstStage({
         </div>
       )}
       <button
-        onClick={() => onStartInsideGeneration?.()}
+        onClick={() =>
+          onStartInsideGeneration?.().catch((err: any) =>
+            // Un-awaited rejections used to vanish — a cap/limit 429 made
+            // the button a silent no-op (audit 2026-07-27).
+            toast({
+              title: "Couldn't start the inside",
+              description: err?.message ?? 'Try again in a moment.',
+              variant: 'destructive',
+            }),
+          )
+        }
         className="rounded-full bg-go px-6 py-3 text-sm font-medium text-go-foreground transition-colors hover:bg-go-hover"
       >
         Try the inside again
       </button>
+      {onEditInsideMessage && (
+        <button
+          onClick={onEditInsideMessage}
+          className="block mx-auto text-xs text-brand underline underline-offset-2 hover:text-brand-dark"
+          data-testid="inside-failed-edit-message"
+        >
+          Change the message first
+        </button>
+      )}
     </div>
   );
 }
@@ -1057,6 +1083,7 @@ function FrontFirstReview({
    *  default side-by-side (the inside reveal has three actions). */
   stackActions?: boolean;
 }) {
+  const { toast: approveToast } = useToast();
   const [busy, setBusy] = useState(false);
   // Toggle the hero between the full card image and the print-ready
   // spread. Shown as a small print-ready THUMBNAIL below the hero
@@ -1169,6 +1196,14 @@ function FrontFirstReview({
             setBusy(true);
             try {
               await onApprove?.();
+            } catch (err: any) {
+              // Same silent-429 fix as InsideComposeStage.submit
+              // (audit 2026-07-27).
+              approveToast({
+                title: "That didn't go through",
+                description: err?.message ?? 'Try again in a moment.',
+                variant: 'destructive',
+              });
             } finally {
               setBusy(false);
             }
@@ -1223,6 +1258,7 @@ function InsideComposeStage({
    *  that's a text decision (handwrite it yourself), not a design one. */
   textOnly?: boolean;
 }) {
+  const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const ready = isInsideStepReady(state);
@@ -1241,6 +1277,15 @@ function InsideComposeStage({
     setBusy(true);
     try {
       await onSubmit();
+    } catch (err: any) {
+      // Without this catch a 429 (daily cap / re-roll limit) was a
+      // silent busy-blip — the screen just didn't change (audit
+      // 2026-07-27). The server's messages are already friendly.
+      toast({
+        title: "Couldn't update the inside",
+        description: err?.message ?? 'Try again in a moment.',
+        variant: 'destructive',
+      });
     } finally {
       setBusy(false);
     }
@@ -1736,6 +1781,7 @@ function RevealView({
         insideMode={insideMode}
         photoCount={state.photos?.photoIds?.length ?? 0}
         onStartInsideGeneration={onStartInsideGeneration}
+        onEditInsideMessage={onEditInside}
         failure={failure}
       />
     );

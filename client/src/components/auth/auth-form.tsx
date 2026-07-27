@@ -96,6 +96,16 @@ export function AuthForm({
   // usually a cold free-tier server waking up. Drives a "hang on" hint so
   // a slow first request doesn't read as broken (and get abandoned).
   const [slowHint, setSlowHint] = useState(false);
+  // Resend-code countdown (audit 2026-07-27): mirrors the server's 30s
+  // per-email cooldown so the button unlocks exactly when a resend can
+  // actually succeed — without it, a spam-foldered code was a dead end
+  // (going back + resubmitting inside 30s just 429'd).
+  const [resendIn, setResendIn] = useState(0);
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [resendIn > 0]);
 
   // Welcome step state — name + marketing consent (unticked by default,
   // GDPR/PECR).
@@ -161,6 +171,7 @@ export function AuthForm({
       const result = (await sendOtp(trimmed)) as any;
       setDevBypassActive(!!result?.devBypass);
       setStep('code');
+      setResendIn(30);
       toast({
         title: 'Code sent',
         description: result?.devBypass
@@ -369,6 +380,19 @@ export function AuthForm({
               Hang on — this can take a few seconds…
             </p>
           )}
+          <button
+            onClick={() => !isSendingOtp && resendIn === 0 && handleSendCode()}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={isSendingOtp || resendIn > 0}
+            className="w-full text-xs text-brand hover:text-brand-dark disabled:text-keeper-meta disabled:cursor-default"
+            data-testid="btn-resend-code"
+          >
+            {resendIn > 0
+              ? `Resend code in ${resendIn}s`
+              : isSendingOtp
+                ? 'Sending…'
+                : "Didn't get it? Resend code"}
+          </button>
           <button
             onClick={() => {
               setStep('email');

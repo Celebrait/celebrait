@@ -655,6 +655,24 @@ export default function CheckoutPage() {
                 <Tag className="h-3 w-3 shrink-0" aria-hidden />
                 Got a discount code? Add it on the next page (secure payment).
               </p>
+              {/* Pre-contract information (audit 2026-07-27): the ToS's
+                  CCR 2013 personalised-goods exemption existed but the
+                  buyer never saw it before paying — a consumer must see
+                  the terms + the no-cancellation rule pre-contract. */}
+              <p className="text-center text-[11px] text-keeper-meta">
+                By paying you agree to our{' '}
+                <a
+                  href="/terms-of-service"
+                  target="_blank"
+                  rel="noopener"
+                  className="underline underline-offset-2 hover:text-keeper-ink"
+                  data-testid="checkout-terms-link"
+                >
+                  Terms
+                </a>
+                {' '}— personalised cards can't be cancelled once printing
+                begins.
+              </p>
               {/* Dev-only notice — never ships to the deployed site
                   (audit 2026-07-02). Remove once a real gateway is live. */}
               {import.meta.env.DEV && (

@@ -187,7 +187,7 @@ export function GenerationWaitStage({
         This usually takes{' '}
         <span className="font-medium text-keeper-ink">60–90 seconds</span> —
         hang tight. You can close this if you like: your card will be waiting
-        in your Studio, and we'll email you the moment it's ready.
+        in your Studio whenever you come back.
       </p>
       {/* Card silhouette — SQUARE, matching the real card chassis. The
           shimmer band sweeps via the keyframe in index.css, clipped to
