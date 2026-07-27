@@ -472,6 +472,9 @@ function LoadedView({
               restYaw={-0.12}
               enableRotate={false}
               enableZoom={false}
+              // Large bleed canvas → cap dpr near the proven-good hero
+              // footprint so a memory-tight GPU doesn't drop the context.
+              dprMax={1.25}
               className="w-full h-full"
             />
           </div>

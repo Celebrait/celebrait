@@ -32,6 +32,7 @@
 
 import {
   Component,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -469,6 +470,19 @@ export function Card3DViewer({
   // FIRST and mounting only then means the Canvas can never mount at 0×0.
   // Latches true on the first non-zero measurement and stays.
   const [measured, setMeasured] = useState(false);
+  // Graceful degradation for WebGL context loss. The GPU can drop the
+  // context under memory pressure (many tabs, big screen, low VRAM) — the
+  // browser fires `webglcontextlost` and the canvas goes blank. Rather than
+  // show nothing (the old "blank reveal until you click" symptom) OR remount
+  // into a fresh context (a past mistake — it just loses that one too and
+  // thrashes), we flip to the FLAT card image: the reveal always shows the
+  // card, worst case as a still picture instead of the 3D object. Reset per
+  // card so a new card always gets a fresh 3D attempt.
+  const [contextLost, setContextLost] = useState(false);
+  const reportContextLost = useCallback(() => setContextLost(true), []);
+  useEffect(() => {
+    setContextLost(false);
+  }, [frontImageUrl, insideImageUrl]);
   const useAutoHug = typeof hitZoneInsetPercent !== 'number';
   useLayoutEffect(() => {
     if (!useAutoHug) {
@@ -520,7 +534,17 @@ export function Card3DViewer({
         touchAction: 'pan-y',
       }}
     >
-      {measured ? (
+      {measured && contextLost ? (
+        // GPU dropped the WebGL context — degrade to the flat card image so
+        // the reveal is NEVER blank. "Try again" remounts a fresh context
+        // (user-initiated, so no auto-thrash).
+        <FlatCardFallback
+          src={frontImageUrl}
+          framingMargin={framingMargin}
+          showCaption={interactive}
+          onRetry={() => setContextLost(false)}
+        />
+      ) : measured ? (
       <Viewer3DBoundary
         fallback={(retry) => (
           <FlatCardFallback
@@ -588,6 +612,7 @@ export function Card3DViewer({
             interactive={interactive}
           />
           <FirstPaintKick />
+          <ContextLossReporter onLost={reportContextLost} />
         </Canvas>
       </Viewer3DBoundary>
       ) : (
@@ -913,6 +938,26 @@ function FirstPaintKick() {
     // Run once on mount; r3f's invalidate/setSize/gl are stable refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  return null;
+}
+
+// Report a WebGL context loss up to the viewer so it can swap to the flat
+// card image (see `contextLost`). Report-only: it does NOT forceContextLoss
+// or remount — an earlier remount-on-loss attempt just spawned another
+// doomed context and thrashed the canvas to nothing. preventDefault tells
+// the browser we're handling it (suppresses the default permanent-loss
+// error); React then unmounts the Canvas and r3f disposes the context.
+function ContextLossReporter({ onLost }: { onLost: () => void }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handle = (e: Event) => {
+      e.preventDefault();
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handle, false);
+    return () => canvas.removeEventListener('webglcontextlost', handle, false);
+  }, [gl, onLost]);
   return null;
 }
 
