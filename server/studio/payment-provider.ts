@@ -41,6 +41,12 @@ export interface PaymentStatus {
    *  event; undefined otherwise. Stored so reporting reflects real revenue
    *  when a promo code was applied. */
   amountPaid?: number;
+  /** Our order id, echoed back from the gateway's metadata (Stripe: set
+   *  on the Checkout Session at create time). Fallback matcher for the
+   *  webhook when the paymentReference lookup misses — e.g. the
+   *  post-create DB update failed — so a paid event is never dropped
+   *  (audit 2026-07-27). */
+  studioOrderId?: string;
 }
 
 export interface PaymentProvider {
@@ -50,6 +56,11 @@ export interface PaymentProvider {
   // Webhook verification lives inside the provider so callers can't
   // skip the signature check.
   parseWebhook(headers: Record<string, string>, body: unknown): Promise<PaymentStatus>;
+  /** Void a still-payable payment (Stripe: expire the Checkout Session)
+   *  so a superseded order can never be paid from a stale tab. Optional
+   *  + best-effort — a provider without it just can't prevent the
+   *  double-pay window (audit 2026-07-27). */
+  cancelPayment?(paymentReference: string): Promise<void>;
 }
 
 // Stub — hands back a dev-only redirect URL that the checkout page

@@ -161,7 +161,17 @@ export const shippingAddressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),
   city: z.string().min(1),
-  postcode: z.string().min(1),
-  country: z.string().min(2).default("GB"),
+  // Real UK postcode shape (audit 2026-07-27): a typo used to surface
+  // only when Prodigi rejected the order — AFTER payment. Permissive on
+  // spacing/case; the regex covers all live UK formats (A9 9AA…AA9A 9AA).
+  postcode: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/, {
+      message: "Enter a valid UK postcode (e.g. SW1A 1AA)",
+    }),
+  // UK-only product — a crafted POST could previously ship anywhere at
+  // UK shipping prices.
+  country: z.literal("GB").default("GB"),
 });
 export type ShippingAddress = z.infer<typeof shippingAddressSchema>;

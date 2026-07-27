@@ -480,6 +480,7 @@ export function registerStudioDraftRoutes(app: Express): void {
       const rows = await db
         .select({
           id: cards.id,
+          userId: cards.userId,
           status: cards.status,
           conversationData: cards.conversationData,
           frontImageUrl: cards.frontImageUrl,
@@ -527,9 +528,21 @@ export function registerStudioDraftRoutes(app: Express): void {
       // paid digital order, mark first_opened_at and email the sender
       // "they've opened it". Runs after response is sent so we don't
       // block the recipient's viewer load on an email RTT.
-      fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
-        console.error('[STUDIO] first-opened dispatch failed:', err);
-      });
+      //
+      // SKIP when the viewer IS the sender (audit 2026-07-27): senders
+      // routinely test the link they're about to WhatsApp, and that
+      // fired a false "X just opened your card" — burning the one real
+      // "opened" moment on themselves.
+      const viewerId = (req as any).session?.otpUserId;
+      if (typeof viewerId === 'string' && viewerId === row.userId) {
+        console.log(
+          `[STUDIO] card ${id}: sender viewed own share link — first-opened NOT fired`,
+        );
+      } else {
+        fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
+          console.error('[STUDIO] first-opened dispatch failed:', err);
+        });
+      }
     } catch (err: any) {
       console.error('[STUDIO] public view error:', err);
       res.status(500).json({ message: 'Could not load card' });

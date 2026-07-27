@@ -111,7 +111,24 @@ export const stripePaymentProvider: PaymentProvider = {
     return {
       paymentReference,
       status: mapSessionStatus(session.payment_status),
+      // Same post-discount real charge the webhook path reports — without
+      // it, the success-page reconcile (when it wins the race against the
+      // webhook) recorded a discounted order at NULL amount_paid and admin
+      // revenue fell back to full list price (audit 2026-07-27).
+      amountPaid: session.amount_total ?? undefined,
     };
+  },
+
+  async cancelPayment(paymentReference: string): Promise<void> {
+    // Expire a still-open Checkout Session so a superseded order can't be
+    // paid from a stale tab (the double-pay window). Stripe throws if the
+    // session is already completed/expired — both mean "nothing to do".
+    try {
+      await client().checkout.sessions.expire(paymentReference);
+    } catch (err: any) {
+      const msg = String(err?.message ?? err);
+      if (!/expired|completed|cannot be expired/i.test(msg)) throw err;
+    }
   },
 
   async parseWebhook(
@@ -150,6 +167,10 @@ export const stripePaymentProvider: PaymentProvider = {
           // promo-coded order reports what was actually paid, not the list
           // price. Null-safe: undefined when Stripe omits it.
           amountPaid: session.amount_total ?? undefined,
+          // Fallback matcher for a paymentReference lookup miss (audit
+          // 2026-07-27) — set on the session at create time.
+          studioOrderId:
+            (session.metadata?.studioOrderId as string | undefined) ?? undefined,
         };
       }
       case "checkout.session.async_payment_failed": {

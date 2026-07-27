@@ -158,8 +158,14 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 
       const parsed = checkoutSchema.safeParse(req.body);
       if (!parsed.success) {
+        // Lead with the first field message (e.g. the UK-postcode hint)
+        // so the client toast is actionable, not "Invalid checkout
+        // payload" (audit 2026-07-27).
+        const first = parsed.error.issues[0];
         return res.status(400).json({
-          message: 'Invalid checkout payload',
+          message: first?.message
+            ? first.message
+            : 'Invalid checkout payload',
           issues: parsed.error.issues,
         });
       }
@@ -250,6 +256,48 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             .update(cards)
             .set({ viewToken: generateShareToken() })
             .where(eq(cards.id, cardId));
+        }
+
+        // Supersede any still-payable order for this card BEFORE minting a
+        // new one (audit 2026-07-27): two tabs used to mean two live Stripe
+        // sessions — the user could genuinely pay twice. Expire the old
+        // session at the gateway (best-effort; Stripe treats
+        // completed/expired as no-ops) and fail the stale row so exactly
+        // one payable order exists per card.
+        const stalePending = await db
+          .select({
+            id: studioOrders.id,
+            paymentReference: studioOrders.paymentReference,
+          })
+          .from(studioOrders)
+          .where(
+            and(
+              eq(studioOrders.cardId, cardId),
+              eq(studioOrders.paymentStatus, 'pending'),
+            ),
+          );
+        for (const stale of stalePending) {
+          if (stale.paymentReference) {
+            try {
+              await getPaymentProvider().cancelPayment?.(stale.paymentReference);
+            } catch (err: any) {
+              console.warn(
+                `[STUDIO-CHECKOUT] could not expire stale session for order ${stale.id}:`,
+                err?.message ?? err,
+              );
+            }
+          }
+          await db
+            .update(studioOrders)
+            .set({ paymentStatus: 'failed', updatedAt: new Date() })
+            .where(
+              and(
+                eq(studioOrders.id, stale.id),
+                // Never clobber a payment that landed between our SELECT
+                // and now.
+                eq(studioOrders.paymentStatus, 'pending'),
+              ),
+            );
         }
 
         const inserted = await db
@@ -352,7 +400,11 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             if (provider.name === 'stripe') {
               const st = await provider.getStatus(order.paymentReference);
               if (st.status === 'paid') {
-                await markOrderPaidAndDispatch(order.id);
+                // Pass the REAL charged amount — when this reconcile wins
+                // the race against the webhook, a discounted order used to
+                // record amount_paid=NULL and admin revenue reported full
+                // list price (audit 2026-07-27).
+                await markOrderPaidAndDispatch(order.id, st.amountPaid);
                 const refreshed = await db
                   .select()
                   .from(studioOrders)
@@ -549,14 +601,41 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           .from(studioOrders)
           .where(eq(studioOrders.paymentReference, status.paymentReference))
           .limit(1);
-        const order = rows[0];
+        let order = rows[0];
+        // Fallback matcher (audit 2026-07-27): if the post-create DB
+        // update ever failed, the reference lookup misses — but the
+        // session metadata still carries OUR order id. Without this the
+        // webhook 200'd on the miss, Stripe stopped retrying, and a real
+        // payment sat "pending" forever.
+        if (!order && status.studioOrderId) {
+          const byId = await db
+            .select()
+            .from(studioOrders)
+            .where(eq(studioOrders.id, status.studioOrderId))
+            .limit(1);
+          order = byId[0];
+          if (order) {
+            console.warn(
+              `[STRIPE-WEBHOOK] ref lookup missed (${status.paymentReference}) — matched order ${order.id} via session metadata; repairing reference`,
+            );
+            await db
+              .update(studioOrders)
+              .set({ paymentReference: status.paymentReference, updatedAt: new Date() })
+              .where(eq(studioOrders.id, order.id));
+          }
+        }
         if (order) {
           await markOrderPaidAndDispatch(order.id, status.amountPaid);
         } else {
-          console.warn(
-            '[STRIPE-WEBHOOK] no order found for payment ref',
+          console.error(
+            '[STRIPE-WEBHOOK] PAID EVENT WITH NO MATCHING ORDER — money taken, nothing recorded:',
             status.paymentReference,
           );
+          void sendAdminAlertEmail('Stripe paid event matched NO order', [
+            `paymentReference: ${status.paymentReference}`,
+            `metadata order id: ${status.studioOrderId ?? '(none)'}`,
+            'Investigate in the Stripe dashboard — a customer has paid.',
+          ]);
         }
       } else if (status.status === 'refunded') {
         // The provider resolves the refund's PaymentIntent back to the
