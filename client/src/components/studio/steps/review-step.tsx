@@ -1805,12 +1805,6 @@ function RevealView({
                     // hero sits wider at ~31°).
                     closedAngle={-0.38}
                     restYaw={-0.12}
-                    // This reveal canvas renders into a large bleed
-                    // container; 1.25 keeps its GPU buffer near the
-                    // proven-good landing-hero footprint so a memory-tight
-                    // GPU doesn't drop the WebGL context (blank reveal). If
-                    // it's lost anyway, the viewer degrades to the flat card.
-                    dprMax={1.25}
                     className="w-full h-full"
                   />
                 </div>

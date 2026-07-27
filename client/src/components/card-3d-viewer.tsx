@@ -310,15 +310,13 @@ interface Card3DViewerProps {
    *  there, so it never swings. For static open-card displays (e.g. an
    *  example render). Default false; only meaningful alongside `open`. */
   instantOpen?: boolean;
-  /** Cap the canvas devicePixelRatio. Default 1.5 — the reveal + card-view
-   *  canvases render into a large bleed container, and at full retina (dpr
-   *  2) on a big screen the drawing buffer got large enough that the GPU
-   *  DROPPED the WebGL context on mount → the card rendered blank (the
-   *  "reveal blank until you click" bug, root-caused 2026-07-26: console
-   *  `THREE.WebGLRenderer: Context Lost`, canvas torn down). 1.5 is the
-   *  proven-good setting the live landing hero already uses; it cuts the
-   *  buffer ~44% vs 2 with no visible softness on a textured card. Callers
-   *  that render a SMALL, static canvas (e.g. the OG image) can pass 2. */
+  /** Cap the canvas devicePixelRatio. Default 2 (crisp on retina). Drop
+   *  to ~1.5 on large decorative stages (e.g. the landing example card)
+   *  where the bleed canvas is huge and full retina costs frame rate
+   *  during the open/close spring. (A briefly-shipped 1.5/1.25 cap on the
+   *  reveal — part of a disproven GPU-memory theory for the blank-reveal
+   *  bug — visibly softened the card and was reverted 2026-07-27; the
+   *  real cause was Suspense escape, see the Canvas's inner <Suspense>.) */
   dprMax?: number;
   /** Fires ONCE, on the first frame the card actually renders — i.e.
    *  after the three.js chunk, GL context AND textures are all live.
@@ -348,7 +346,7 @@ export function Card3DViewer({
   hover = false,
   restYaw = 0,
   instantOpen = false,
-  dprMax = 1.5,
+  dprMax = 2,
   onFirstFrame,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
