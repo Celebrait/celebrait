@@ -374,6 +374,71 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       reader.readAsDataURL(file);
     });
 
+  /**
+   * Downscale a camera photo BEFORE it becomes a base64 data URL.
+   *
+   * Why (Kevin 2026-07-27, "crop on mobile paused ~10s"): a modern
+   * phone photo is 3–5 MB / 12 MP, and base64 inflates it another ~33%
+   * — so confirm-crop was posting ~7 MB up a mobile uplink (10–20s),
+   * and the crop-preview canvas was decoding 12 MP on the main thread
+   * (UI freeze). None of that resolution ever survives: the server
+   * downsizes to 1024px for the provider anyway.
+   *
+   * MAX_EDGE 1600 keeps plenty of headroom for a tight crop of a face
+   * within the frame while cutting a 5 MB photo to a few hundred KB.
+   * Uses createImageBitmap (off-main-thread decode, and it honours EXIF
+   * orientation) with a plain <img> fallback for older browsers; any
+   * failure falls back to the original bytes so an upload never breaks
+   * because of an optimisation.
+   */
+  const readFileDownscaled = async (file: File): Promise<string> => {
+    const MAX_EDGE = 1600;
+    const QUALITY = 0.9;
+    try {
+      let bitmap: ImageBitmap | HTMLImageElement;
+      let sw: number;
+      let sh: number;
+      if (typeof createImageBitmap === 'function') {
+        bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
+        sw = (bitmap as ImageBitmap).width;
+        sh = (bitmap as ImageBitmap).height;
+      } else {
+        const dataUrl = await readFileAsDataUrl(file);
+        const img = new Image();
+        await new Promise<void>((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => rej(new Error('decode failed'));
+          img.src = dataUrl;
+        });
+        bitmap = img;
+        sw = img.naturalWidth;
+        sh = img.naturalHeight;
+      }
+
+      // Already small enough (and a format the server reads happily) —
+      // don't re-encode, it would only lose quality.
+      if (Math.max(sw, sh) <= MAX_EDGE && file.size <= 1_500_000) {
+        if ('close' in bitmap) (bitmap as ImageBitmap).close();
+        return await readFileAsDataUrl(file);
+      }
+
+      const scale = Math.min(1, MAX_EDGE / Math.max(sw, sh));
+      const w = Math.round(sw * scale);
+      const h = Math.round(sh * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no 2d context');
+      ctx.drawImage(bitmap as CanvasImageSource, 0, 0, w, h);
+      if ('close' in bitmap) (bitmap as ImageBitmap).close();
+      return canvas.toDataURL('image/jpeg', QUALITY);
+    } catch {
+      // Optimisation is best-effort — never block an upload on it.
+      return readFileAsDataUrl(file);
+    }
+  };
+
   const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
@@ -439,7 +504,10 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     try {
       items = await Promise.all(
         toProcess.map(async (f) => ({
-          base64: await readFileAsDataUrl(f),
+          // Downscaled (see readFileDownscaled) — this is the payload the
+          // crop dialog, the preview canvas AND the upload all reuse, so
+          // the saving compounds across the whole path.
+          base64: await readFileDownscaled(f),
           filename: f.name,
         })),
       );

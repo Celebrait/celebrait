@@ -146,6 +146,11 @@ export function registerPhotoRoutes(app: Express): void {
       const thumbAbs = path.join(process.cwd(), 'stored_images', thumbRel);
 
       // Write the original bytes verbatim so we don't re-encode.
+      // The R2 mirror is COLLECTED here and awaited once at the end,
+      // in parallel with the crop + thumb mirrors — three sequential
+      // round-trips to Cloudflare were adding seconds to the response
+      // on a mobile connection (Kevin 2026-07-27).
+      const mirrors: Array<Promise<void>> = [];
       await fs.writeFile(originalAbs, decoded.buffer);
       // Mirror to R2 under the SAME relative key (audit 2026-07-27,
       // P0-1): Render's local disk is wiped on every deploy, and these
@@ -154,7 +159,7 @@ export function registerPhotoRoutes(app: Express): void {
       // is on, the mirror is durable-or-error: an upload that would
       // silently break after the next deploy is worse than a retry.
       if (isR2Enabled()) {
-        await r2Put(originalRel, decoded.buffer, resolvedMime);
+        mirrors.push(r2Put(originalRel, decoded.buffer, resolvedMime));
       }
 
       // If the client supplied a crop, materialise the cropped derivative
@@ -178,7 +183,7 @@ export function registerPhotoRoutes(app: Express): void {
           .toBuffer();
         await fs.writeFile(croppedAbs, croppedBuffer);
         if (isR2Enabled()) {
-          await r2Put(croppedRel, croppedBuffer, 'image/jpeg');
+          mirrors.push(r2Put(croppedRel, croppedBuffer, 'image/jpeg'));
         }
         thumbSourceBuffer = croppedBuffer;
       }
@@ -204,8 +209,12 @@ export function registerPhotoRoutes(app: Express): void {
       const thumbBuffer = await thumbPipeline.jpeg({ quality: 80 }).toBuffer();
       await fs.writeFile(thumbAbs, thumbBuffer);
       if (isR2Enabled()) {
-        await r2Put(thumbRel, thumbBuffer, 'image/jpeg');
+        mirrors.push(r2Put(thumbRel, thumbBuffer, 'image/jpeg'));
       }
+
+      // One parallel wait for all R2 mirrors (still durable-or-error:
+      // a rejection propagates to the catch and the upload 500s).
+      if (mirrors.length > 0) await Promise.all(mirrors);
 
       // Patch the row with real paths + crop metadata.
       const updated = await storage.updatePhoto(photoId, {
