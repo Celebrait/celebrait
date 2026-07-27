@@ -84,6 +84,11 @@ type ProductChoice = 'digital' | 'print' | 'both';
 // priced from the chosen delivery tier (SHIPPING_TIERS).
 const PRINT_PRICE = tierPriceGBP('printed');
 
+// Wax-seal sticker offer — OFF for soft launch. See the comment at the
+// offer's render site (search STICKER_OFFER_ENABLED) for the two
+// conditions required before flipping this back on.
+const STICKER_OFFER_ENABLED = false;
+
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
@@ -473,8 +478,20 @@ export default function CheckoutPage() {
 
                 {/* Optional wax-seal sticker — direct-to-recipient only (it
                     goes on the envelope WE post). Opt-in add-on (Kevin
-                    2026-07-21). */}
-                {isResolved && shipTo === 'recipient' && (
+                    2026-07-21).
+
+                    HIDDEN for soft launch (2026-07-27): the per-order
+                    branding attachment is UNVERIFIED — the stickers seen on
+                    July's live orders came from the Prodigi ACCOUNT-level
+                    default insert, not our API — and the checkout charges
+                    the £1.50 regardless of the PRODIGI_ENVELOPE_STICKER env
+                    gate, so offering it now risks charging for a sticker
+                    that never ships. Flip STICKER_OFFER_ENABLED back to
+                    true ONLY after: (a) Kevin removes the account-level
+                    default insert (Prodigi Settings → Branding), (b) one
+                    DIR test order with the env var on shows OUR per-order
+                    seal correctly placed. */}
+                {STICKER_OFFER_ENABLED && isResolved && shipTo === 'recipient' && (
                   <Section title="Add a keepsake seal?">
                     <button
                       type="button"
