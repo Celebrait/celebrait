@@ -33,6 +33,7 @@ import {
   sendRefundEmail,
   sendSenderPrintShippedEmail,
   sendSenderPrintDeliveredEmail,
+  sendAdminAlertEmail,
 } from '../email-service';
 import type { PrintProviderStatus } from '../studio/print-provider';
 import {
@@ -81,6 +82,65 @@ const checkoutSchema = z.object({
 });
 
 export function registerStudioCheckoutRoutes(app: Express): void {
+  // ── POST /api/admin/orders/:id/resubmit-print ────────────────────
+  // Manual re-drive for a paid order whose Prodigi submission failed or
+  // never ran (audit 2026-07-27, P0-4). Safe to hammer: submitPrintOrder
+  // re-reads providerOrderId and no-ops if the order already submitted.
+  // Same per-request DB admin gate as /admin/customers.
+  app.post(
+    '/api/admin/orders/:id/resubmit-print',
+    async (req: Request, res: Response) => {
+      const otpUserId = (req as any).session?.otpUserId;
+      if (typeof otpUserId !== 'string' || otpUserId.length === 0) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+      const adminRow = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, otpUserId))
+        .limit(1);
+      if (adminRow[0]?.isAdmin !== true) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      // studio_orders.id is a UUID varchar, not an integer.
+      const orderId = String(req.params.id ?? '').trim();
+      if (!orderId) {
+        return res.status(400).json({ message: 'Invalid order id' });
+      }
+      const rows = await db
+        .select()
+        .from(studioOrders)
+        .where(eq(studioOrders.id, orderId))
+        .limit(1);
+      const order = rows[0];
+      if (!order) return res.status(404).json({ message: 'Order not found' });
+      if (order.paymentStatus !== 'paid') {
+        return res.status(400).json({ message: `Order is ${order.paymentStatus}, not paid` });
+      }
+      if (order.providerOrderId) {
+        return res.status(409).json({
+          message: `Already submitted (${order.printProvider}:${order.providerOrderId})`,
+        });
+      }
+
+      await submitPrintOrder(order);
+      const after = await db
+        .select({
+          providerOrderId: studioOrders.providerOrderId,
+          fulfillmentStatus: studioOrders.fulfillmentStatus,
+        })
+        .from(studioOrders)
+        .where(eq(studioOrders.id, orderId))
+        .limit(1);
+      return res.json({
+        ok: !!after[0]?.providerOrderId,
+        providerOrderId: after[0]?.providerOrderId ?? null,
+        fulfillmentStatus: after[0]?.fulfillmentStatus ?? null,
+      });
+    },
+  );
+
   // ── POST /api/studio/cards/:id/checkout ──────────────────────────
   // Create an order + payment intent. Returns { orderId, payment }
   // where `payment` mirrors the PaymentProvider's CreatePaymentResult
@@ -793,10 +853,26 @@ async function markOrderPaidAndDispatch(
 // reflects reality instead of "processing" forever. Best-effort — a
 // submission failure is logged + marked 'failed', never thrown back into
 // the paid-flip.
-async function submitPrintOrder(
+export async function submitPrintOrder(
   order: typeof studioOrders.$inferSelect,
 ): Promise<void> {
   if (!order.includesPrint) return; // nothing to print
+
+  // Double-submit guard: re-read the CURRENT provider id — this function
+  // is now reachable from three places (the paid-flip, the stranded-order
+  // sweeper, and the admin resubmit endpoint; audit 2026-07-27 P0-4), and
+  // a stale `order` snapshot must never create a second Prodigi order.
+  const fresh = await db
+    .select({ providerOrderId: studioOrders.providerOrderId })
+    .from(studioOrders)
+    .where(eq(studioOrders.id, order.id))
+    .limit(1);
+  if (fresh[0]?.providerOrderId) {
+    console.log(
+      `[STUDIO-CHECKOUT] print submit skipped for order ${order.id} — already submitted (${fresh[0].providerOrderId})`,
+    );
+    return;
+  }
 
   const shipTo = order.shipTo;
   const shippingAddress = order.shippingAddress;
@@ -893,6 +969,19 @@ async function submitPrintOrder(
       .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
       .where(eq(studioOrders.id, order.id))
       .catch(() => {});
+    // A paid order with no print MUST reach a human, not just the logs
+    // (audit 2026-07-27 P0-4). The sweeper retries transient failures;
+    // this alert covers the ones that need eyes.
+    void sendAdminAlertEmail(`Print submission FAILED — order ${order.id}`, [
+      `Order: ${order.id} (card ${order.cardId})`,
+      `Customer: ${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`,
+      `Payment status: ${order.paymentStatus}`,
+      `Error: ${err?.message ?? String(err)}`,
+      '',
+      'The stranded-order sweeper retries every 10 minutes. If it keeps',
+      'failing, use POST /api/admin/orders/:id/resubmit-print after fixing',
+      'the cause, or refund in Stripe.',
+    ]);
   }
 }
 

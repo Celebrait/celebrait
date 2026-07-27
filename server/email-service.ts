@@ -270,6 +270,24 @@ async function sendEmailViaBrevoApi(params: EmailParams): Promise<boolean> {
   }
 }
 
+// ── Operator alerts ─────────────────────────────────────────────────
+// Plain-text email to the operator (Kevin) for events that MUST NOT sit
+// silently in Render logs — above all "customer paid but the print
+// submission failed" (audit 2026-07-27, P0-4). No chassis, no marketing
+// flag: this is internal ops mail. Fail-soft like everything else.
+const ADMIN_ALERT_EMAIL = process.env.ADMIN_ALERT_EMAIL ?? FROM_EMAIL;
+
+export async function sendAdminAlertEmail(
+  subject: string,
+  lines: string[],
+): Promise<boolean> {
+  return sendEmail({
+    to: ADMIN_ALERT_EMAIL,
+    subject: `[Celebrait ALERT] ${subject}`,
+    text: lines.join('\n'),
+  });
+}
+
 // ── Shared chassis ──────────────────────────────────────────────────
 // All sender/recipient templates use the same outer table layout so
 // they read as one product. Pass the inner block via `bodyHtml`.

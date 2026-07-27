@@ -15,6 +15,7 @@ import {
 import { getProvider } from './providers/registry';
 import { ProviderError, isProviderError, type ProviderErrorKind } from './providers/errors';
 import { logGeneration } from './prompts/generation-log';
+import { inFlightCards } from './generation-registry';
 import { buildRefineInstruction, REFINE_SLOT } from './prompts/refine-scaffolds';
 import {
   savePngFiles,
@@ -401,6 +402,17 @@ async function generateViaActiveConfig(params: {
 
 
 export async function generateCardInBackground(params: BackgroundGenerationParams): Promise<void> {
+  // Same in-flight registration as generateStudioCard (legacy combined
+  // path — kept registered so a live run is never swept as an orphan).
+  inFlightCards.add(params.cardId);
+  try {
+    return await generateCardInBackgroundInner(params);
+  } finally {
+    inFlightCards.delete(params.cardId);
+  }
+}
+
+async function generateCardInBackgroundInner(params: BackgroundGenerationParams): Promise<void> {
   const { cardId, userEmail, userName, generationType, answers, uploadedPhotoIds } = params;
 
   console.log(`[BG_GEN] Starting background generation for card ${cardId}, type: ${generationType}`);
@@ -559,6 +571,21 @@ export async function finalizeCardArtifacts(
 }
 
 export async function generateStudioCard(
+  cardId: number,
+  mode: 'front' | 'inside' | 'full' = 'full',
+): Promise<void> {
+  // Register BEFORE the first await so the stale-generation sweeper can
+  // never mistake this live run for a crash orphan (it flips orphaned
+  // `generating*` cards to failed — see server/recovery/stale-sweeper.ts).
+  inFlightCards.add(cardId);
+  try {
+    return await generateStudioCardInner(cardId, mode);
+  } finally {
+    inFlightCards.delete(cardId);
+  }
+}
+
+async function generateStudioCardInner(
   cardId: number,
   mode: 'front' | 'inside' | 'full' = 'full',
 ): Promise<void> {

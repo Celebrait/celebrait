@@ -41,6 +41,7 @@ import { registerRemindersRoutes } from "./routes/reminders";
 import { registerDevTestFailureRoutes } from "./routes/dev-test-failures";
 import { scheduleReminderDispatch } from "./reminders/dispatcher";
 import { scheduleDropOffRecoveryDispatch, runDropOffRecoveryDispatch } from "./recovery/dispatcher";
+import { scheduleStaleSweeps } from "./recovery/stale-sweeper";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -407,6 +408,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 1h offset from reminders avoids competing Brevo send-volume bursts.
   // See server/recovery/dispatcher.ts for the dispatch logic.
   scheduleDropOffRecoveryDispatch();
+
+  // Crash-recovery sweeps (audit 2026-07-27): flip generations orphaned
+  // by a restart to failed (so the retry UI takes over), age-out stuck
+  // regen attempts, and re-drive paid orders whose print submission
+  // failed or never ran. First pass 8 min after boot, then every 10 min.
+  // See server/recovery/stale-sweeper.ts.
+  scheduleStaleSweeps();
 
   // Admin manual trigger for drop-off recovery — same shape as the
   // reminders admin endpoint (dryRun + asOfDate query params for
