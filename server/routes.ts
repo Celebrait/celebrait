@@ -272,10 +272,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 3D texture loader), so a redirect fixes <img> but not the 3D
         // card (verified in-browser 2026-07-04: plain img OK, anonymous
         // img FAILED through the redirect). Same-origin bytes work for
-        // every consumer. Strict filename allowlist so this can't fetch
-        // arbitrary bucket keys with odd chars.
+        // every consumer. Strict key allowlist so this can't fetch
+        // arbitrary bucket keys with odd chars. Nested keys are allowed
+        // segment-by-segment (photo mirrors live at photos/<userId>/…,
+        // audit 2026-07-27 P0-1) — every segment must START alphanumeric,
+        // which makes '.'/'..' traversal segments impossible.
         const name = req.path.replace(/^\/+/, '');
-        if (isR2Enabled() && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
+        if (
+          isR2Enabled() &&
+          /^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/.test(name)
+        ) {
           try {
             const upstream = await fetch(r2PublicUrl(name));
             if (upstream.ok) {

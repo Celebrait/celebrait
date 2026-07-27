@@ -236,7 +236,7 @@ export async function runReminderDispatch(
         year,
         emailSent,
         failureReason: emailSent ? null : 'transport returned false',
-      });
+      }).onConflictDoNothing();
 
       if (emailSent) {
         result.fired += 1;
@@ -267,7 +267,7 @@ export async function runReminderDispatch(
           year,
           emailSent: false,
           failureReason: msg.slice(0, 500),
-        });
+        }).onConflictDoNothing();
       } catch (logErr) {
         console.error('[REMINDERS] Failed to write failure log row:', logErr);
       }

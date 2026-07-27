@@ -20,6 +20,7 @@ import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
 import { analyzePhoto } from '../photos/analyze';
+import { isR2Enabled, r2Put, r2Delete } from '../r2-storage';
 
 const PHOTOS_ROOT = path.join(process.cwd(), 'stored_images', 'photos');
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB of raw image data
@@ -146,6 +147,15 @@ export function registerPhotoRoutes(app: Express): void {
 
       // Write the original bytes verbatim so we don't re-encode.
       await fs.writeFile(originalAbs, decoded.buffer);
+      // Mirror to R2 under the SAME relative key (audit 2026-07-27,
+      // P0-1): Render's local disk is wiped on every deploy, and these
+      // files are what generation reads — without the mirror, every
+      // resumed draft/regen after a deploy failed with ENOENT. When R2
+      // is on, the mirror is durable-or-error: an upload that would
+      // silently break after the next deploy is worse than a retry.
+      if (isR2Enabled()) {
+        await r2Put(originalRel, decoded.buffer, resolvedMime);
+      }
 
       // If the client supplied a crop, materialise the cropped derivative
       // now — providers receive this version at generation time, and we
@@ -167,6 +177,9 @@ export function registerPhotoRoutes(app: Express): void {
           .jpeg({ quality: 92 })
           .toBuffer();
         await fs.writeFile(croppedAbs, croppedBuffer);
+        if (isR2Enabled()) {
+          await r2Put(croppedRel, croppedBuffer, 'image/jpeg');
+        }
         thumbSourceBuffer = croppedBuffer;
       }
 
@@ -188,7 +201,11 @@ export function registerPhotoRoutes(app: Express): void {
           position: 'attention',
         });
       }
-      await thumbPipeline.jpeg({ quality: 80 }).toFile(thumbAbs);
+      const thumbBuffer = await thumbPipeline.jpeg({ quality: 80 }).toBuffer();
+      await fs.writeFile(thumbAbs, thumbBuffer);
+      if (isR2Enabled()) {
+        await r2Put(thumbRel, thumbBuffer, 'image/jpeg');
+      }
 
       // Patch the row with real paths + crop metadata.
       const updated = await storage.updatePhoto(photoId, {
@@ -260,6 +277,12 @@ export function registerPhotoRoutes(app: Express): void {
       for (const rel of paths) {
         const abs = path.join(process.cwd(), 'stored_images', rel);
         await fs.unlink(abs).catch(() => {});
+        // Purge the R2 mirror too (uploads mirror there since the
+        // 2026-07-27 durability fix) — a deleted photo must not linger
+        // in the bucket. Best-effort, same as the disk unlink.
+        if (isR2Enabled()) {
+          await r2Delete(rel).catch(() => {});
+        }
       }
 
       await storage.deletePhoto(photoId);

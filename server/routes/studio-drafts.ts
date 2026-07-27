@@ -1193,6 +1193,31 @@ export function registerStudioDraftRoutes(app: Express): void {
       if (!row) return res.status(404).json({ message: 'Card not found' });
       if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
 
+      // PAID-ORDER GUARD (audit 2026-07-27, P0-3): a card with a paid
+      // order is a financial record — payment reference, amount, address,
+      // Prodigi order id — that UK trading rules require us to retain
+      // (and the next Prodigi status webhook needs the row to land on).
+      // Deleting the card used to hard-delete those rows. Refuse instead.
+      // Must run BEFORE deleteCardImages so we don't purge a paid card's
+      // artwork and then refuse. GDPR erasure requests are handled
+      // operator-side (anonymise the card, keep the transaction record).
+      const paidOrders = await db
+        .select({ id: studioOrders.id })
+        .from(studioOrders)
+        .where(
+          and(
+            eq(studioOrders.cardId, id),
+            eq(studioOrders.paymentStatus, 'paid'),
+          ),
+        )
+        .limit(1);
+      if (paidOrders.length > 0) {
+        return res.status(409).json({
+          message:
+            "This card has a completed order, so it can't be deleted — we keep order records for your protection. If something's wrong with the order, get in touch and we'll sort it.",
+        });
+      }
+
       // Erase the actual image files FIRST — every file for this card,
       // canonical + per-attempt, from R2 (or local disk in dev). This is
       // the storage half of "right to erasure": a deleted card must not

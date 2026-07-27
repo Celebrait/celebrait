@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, jsonb, timestamp, varchar, date, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, jsonb, timestamp, varchar, date, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
@@ -226,9 +226,12 @@ export const reminderLog = pgTable(
   },
   (t) => [
     // Hot-path query: "have we already fired tier X for occasion Y in
-    // year Z?" — supported by this composite index. Functions as the
-    // dedup key in app code.
-    index("reminder_log_dedup_idx").on(t.occasionId, t.tier, t.year),
+    // year Z?" — AND the dedup key. UNIQUE (audit 2026-07-27): the
+    // dispatcher's check-then-insert is racy across overlapping passes
+    // (manual admin trigger + cron, or two instances) — a plain index
+    // let both pass the check and double-email. The constraint makes the
+    // DB the arbiter; inserts use onConflictDoNothing.
+    uniqueIndex("reminder_log_dedup_idx").on(t.occasionId, t.tier, t.year),
     // Per-user listing for an admin debug page or future user-facing
     // "reminders I've sent" surface.
     index("reminder_log_user_idx").on(t.userId),

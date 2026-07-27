@@ -99,6 +99,11 @@ export const studioOrders = pgTable(
     index("studio_orders_user_id_idx").on(table.userId),
     index("studio_orders_payment_status_idx").on(table.paymentStatus),
     index("studio_orders_fulfillment_status_idx").on(table.fulfillmentStatus),
+    // Webhook hot paths (audit 2026-07-27): Stripe events look orders up
+    // by payment_reference, Prodigi callbacks by provider_order_id —
+    // both were unindexed sequential scans.
+    index("studio_orders_payment_reference_idx").on(table.paymentReference),
+    index("studio_orders_provider_order_id_idx").on(table.providerOrderId),
   ]
 );
 

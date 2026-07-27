@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -96,7 +96,14 @@ export const cards = pgTable("cards", {
   failureCode: text("failure_code"), // e.g. 'moderation_blocked'
   failureSuggestions: jsonb("failure_suggestions").$type<string[]>(), // static per kind
   failureAt: timestamp("failure_at"), // when the failure was persisted
-});
+}, (t) => [
+  // Hot paths (audit 2026-07-27): the dashboard grid + the 30s
+  // notifications poll both filter on user_id (+ created_at ordering),
+  // and the drop-off cron + stale sweeper scan by status. The table had
+  // ZERO indexes — every one of those was a sequential scan.
+  index("cards_user_id_created_at_idx").on(t.userId, t.createdAt),
+  index("cards_status_idx").on(t.status),
+]);
 
 // Lightweight lead capture — recipients of a digital card who aren't
 // ready to make one on arrival ("email me a link for later", Kevin

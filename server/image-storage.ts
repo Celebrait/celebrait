@@ -173,6 +173,45 @@ export async function storeImageFromBase64(
 }
 
 /**
+ * Read a stored_images-relative file (e.g. a reference photo at
+ * `photos/<userId>/original_<id>.jpg`): local disk first, R2 fallback.
+ *
+ * Why (audit 2026-07-27, P0-1): photo uploads are mirrored to R2 under
+ * the SAME relative key, but Render's local disk is wiped on every
+ * deploy — so any generation resuming a draft after a deploy used to
+ * ENOENT on fs.readFile and fail forever. On an R2 hit the bytes are
+ * re-cached locally (best-effort) so subsequent reads in this process
+ * are fast again. Returns null only when BOTH stores miss.
+ */
+export async function loadStoredFileBuffer(relPath: string): Promise<Buffer | null> {
+  const abs = path.join(process.cwd(), 'stored_images', relPath);
+  try {
+    return await fs.readFile(abs);
+  } catch {
+    /* local miss — fall through to R2 */
+  }
+  if (!isR2Enabled()) return null;
+  try {
+    const buf = await r2Get(relPath);
+    if (buf) {
+      console.log(`[STORAGE] local miss for ${relPath} — recovered from R2 (${buf.length} bytes)`);
+      // Re-cache locally so the rest of this generation (and process
+      // lifetime) reads from disk. Best-effort.
+      try {
+        await fs.mkdir(path.dirname(abs), { recursive: true });
+        await fs.writeFile(abs, buf);
+      } catch {
+        /* cache write is best-effort */
+      }
+    }
+    return buf;
+  } catch (err: any) {
+    console.warn(`[STORAGE] R2 fallback failed for ${relPath}:`, err?.message ?? err);
+    return null;
+  }
+}
+
+/**
  * Get stored image as buffer for serving
  */
 export async function getStoredImage(cardId: number, imageType: 'front' | 'inside', imageKey?: string | null): Promise<Buffer | null> {

@@ -24,7 +24,7 @@ import {
   loadStoredImageAsBase64,
   generatePrintResolutionFiles,
 } from './pipeline/storage/LocalStorageAdapter';
-import { publicImageUrl } from './image-storage';
+import { publicImageUrl, loadStoredFileBuffer } from './image-storage';
 import {
   cards,
   cardAttempts,
@@ -657,12 +657,15 @@ async function generateStudioCardInner(
 
       // Prefer cropped version (tighter on the face → better likeness
       // after the provider's downscale) when available. Photo paths are
-      // relative to stored_images/.
+      // relative to stored_images/; loadStoredFileBuffer falls back to
+      // R2 when the local copy was wiped by a deploy (audit 2026-07-27).
       const referenceImages: string[] = [];
       for (const p of orderedPhotos) {
         const rel = p.croppedStoragePath ?? p.storagePath;
-        const abs = path.join(process.cwd(), 'stored_images', rel);
-        const buf = await fs.readFile(abs);
+        const buf = await loadStoredFileBuffer(rel);
+        if (!buf) {
+          throw new Error(`Reference photo missing from storage: ${rel}`);
+        }
         referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
       }
 
@@ -1310,8 +1313,12 @@ export async function runRegenAttempt(
     const referenceImages: string[] = [];
     for (const p of orderedPhotos) {
       const rel = p.croppedStoragePath ?? p.storagePath;
-      const abs = path.join(process.cwd(), 'stored_images', rel);
-      const buf = await fs.readFile(abs);
+      // Local disk → R2 fallback (photos are mirrored on upload;
+      // Render's disk is wiped every deploy — audit 2026-07-27).
+      const buf = await loadStoredFileBuffer(rel);
+      if (!buf) {
+        throw new Error(`Reference photo missing from storage: ${rel}`);
+      }
       referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
     }
 
