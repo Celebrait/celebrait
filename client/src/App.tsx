@@ -102,8 +102,6 @@ const CheckoutSuccessPage = lazy(() => import("@/pages/checkout-success"));
 const CheckoutCancelledPage = lazy(() => import("@/pages/checkout-cancelled"));
 // Marketing capture stage (unlisted; renders public hero assets only).
 const CardCapturePage = lazy(() => import("@/pages/card-capture"));
-// Self-playing explainer, built to be screen-recorded (unlisted).
-const ExplainerPage = lazy(() => import("@/pages/explainer"));
 
 // Admin shell + pages
 const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
@@ -140,7 +138,6 @@ function Router() {
           <Route path="/keeper" component={LandingKeeper} />
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/card-capture" component={CardCapturePage} />
-          <Route path="/explainer" component={ExplainerPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/pricing" component={PricingPage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
