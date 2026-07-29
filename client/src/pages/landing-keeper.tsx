@@ -614,6 +614,20 @@ function shuffledPersonas(): string[] {
 // vite.config.ts also ends up holding React (Rollup hoists the shared
 // dep into it), so every page statically imports that chunk regardless.
 // Splitting React into its own chunk is the actual fix — separate job.
+/** Warm the browser cache for the reaction clip once, on first intent.
+ *  A bare fetch() populates the HTTP cache the <video> then reads from,
+ *  and `low` priority keeps it from competing with the hero image. */
+let reactionPrefetched = false;
+function prefetchVideo() {
+  if (reactionPrefetched) return;
+  reactionPrefetched = true;
+  try {
+    void fetch('/reaction.mp4', { priority: 'low' } as RequestInit).catch(() => {});
+  } catch {
+    /* prefetch is best-effort — never break the click */
+  }
+}
+
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
 
@@ -664,10 +678,18 @@ function HeroProof() {
         </p>
       </div>
 
-      {/* Watch-her-open-it — secondary to the main CTA on purpose. */}
+      {/* Watch-her-open-it — secondary to the main CTA on purpose.
+          Prefetch on INTENT (hover/touch-start), not page load: the clip
+          is 1.3MB and most visitors never open it, so eagerly fetching
+          it would tax every mobile visit for nothing. Hovering or
+          starting a tap gives a few hundred ms head start, which is
+          usually the whole download. */}
       <div className="mt-10 flex justify-end sm:mt-12">
         <button
           type="button"
+          onPointerEnter={prefetchVideo}
+          onTouchStart={prefetchVideo}
+          onFocus={prefetchVideo}
           onClick={() => setPlaying(true)}
           className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white px-4 py-2.5 text-[13px] font-semibold text-keeper-ink shadow-sm transition-colors hover:border-brand hover:text-brand-dark"
           data-testid="hero-play-reaction"
@@ -705,10 +727,23 @@ function HeroProof() {
           >
             <X className="h-5 w-5" strokeWidth={2.5} />
           </button>
+          {/* poster = the first frame (21KB) so the modal NEVER shows a
+              black box while the video fetches — Kevin saw a black
+              player + spinner for a couple of seconds on mobile
+              (2026-07-29). Paired with the prefetch-on-intent above, the
+              clip is usually already cached by the time this mounts.
+              playsInline is load-bearing on iOS: without it Safari yanks
+              the video fullscreen. muted+autoPlay because iOS BLOCKS
+              unmuted autoplay outright — that block is what produced the
+              tap-to-play state; it starts muted and instant, and the
+              unmute control sits right there in the native chrome. */}
           <video
             src="/reaction.mp4"
+            poster="/reaction-poster.webp"
+            preload="auto"
             controls
             autoPlay
+            muted
             playsInline
             onClick={(e) => e.stopPropagation()}
             className="max-h-[82vh] w-auto max-w-full rounded-xl bg-black shadow-2xl sm:max-w-md"
