@@ -630,11 +630,35 @@ function prefetchVideo() {
 
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
+  // `started` gates the poster overlay + the native controls: the modal
+  // opens on a clean poster, and the chrome only appears once it's
+  // actually playing. Reset on end so the poster + play button come
+  // back for a replay.
+  const [started, setStarted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const startPlayback = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    // Unmuted on purpose — this runs inside the tap's user-gesture
+    // window, which is what permits audio on iOS. If a browser still
+    // refuses, fall back to muted playback rather than a dead button.
+    v.muted = false;
+    v.play().catch(() => {
+      v.muted = true;
+      void v.play().catch(() => {});
+    });
+  };
 
   // Escape closes, and the page behind is locked so a mobile scroll
   // gesture doesn't drift the landing page under the overlay.
   useEffect(() => {
-    if (!playing) return;
+    // Closing resets to the poster + play button, so reopening never
+    // lands on a paused mid-video frame.
+    if (!playing) {
+      setStarted(false);
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setPlaying(false);
     };
@@ -727,27 +751,48 @@ function HeroProof() {
           >
             <X className="h-5 w-5" strokeWidth={2.5} />
           </button>
-          {/* poster = the first frame (21KB) so the modal NEVER shows a
-              black box while the video fetches — Kevin saw a black
-              player + spinner for a couple of seconds on mobile
-              (2026-07-29). Paired with the prefetch-on-intent above, the
-              clip is usually already cached by the time this mounts.
-              playsInline is load-bearing on iOS: without it Safari yanks
-              the video fullscreen. muted+autoPlay because iOS BLOCKS
-              unmuted autoplay outright — that block is what produced the
-              tap-to-play state; it starts muted and instant, and the
-              unmute control sits right there in the native chrome. */}
-          <video
-            src="/reaction.mp4"
-            poster="/reaction-poster.webp"
-            preload="auto"
-            controls
-            autoPlay
-            muted
-            playsInline
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[82vh] w-auto max-w-full rounded-xl bg-black shadow-2xl sm:max-w-md"
-          />
+          {/* TAP-TO-START, WITH SOUND (Kevin's call 2026-07-29). It's a
+              reaction video — the sound is half the moment, so a silent
+              autoplay was the wrong trade.
+              Deliberately NOT autoPlay+muted: iOS blocks unmuted
+              autoplay, so autoplay could only ever be silent. A direct
+              tap on this button IS a user gesture, which is exactly what
+              lets .play() run with audio on iOS.
+              poster (21KB first frame) means the modal opens on a real
+              image, never the black box Kevin saw; combined with the
+              prefetch-on-intent above, playback starts on the tap.
+              playsInline is load-bearing: without it iOS hijacks
+              fullscreen. Controls appear only once playing so the poster
+              stays clean. */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <video
+              ref={videoRef}
+              src="/reaction.mp4"
+              poster="/reaction-poster.webp"
+              preload="auto"
+              controls={started}
+              playsInline
+              onPlay={() => setStarted(true)}
+              onEnded={() => setStarted(false)}
+              className="max-h-[82vh] w-auto max-w-full rounded-xl bg-black shadow-2xl sm:max-w-md"
+            />
+            {!started && (
+              <button
+                type="button"
+                onClick={startPlayback}
+                aria-label="Play video with sound"
+                className="absolute inset-0 flex items-center justify-center rounded-xl transition-colors hover:bg-black/10"
+                data-testid="hero-video-play"
+              >
+                <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-xl transition-transform duration-200 hover:scale-105">
+                  <Play
+                    className="ml-1.5 h-8 w-8 fill-keeper-ink text-keeper-ink"
+                    strokeWidth={0}
+                  />
+                </span>
+              </button>
+            )}
+          </div>
         </div>,
         document.body,
       )}
