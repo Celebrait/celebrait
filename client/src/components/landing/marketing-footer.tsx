@@ -22,6 +22,7 @@ interface FooterLink {
 
 const COMPANY: FooterLink[] = [
   { label: 'Contact', href: '/contact' },
+  { label: 'Blog', href: '/blog' },
 ];
 
 const HELP: FooterLink[] = [

@@ -31,7 +31,8 @@
 // chunk shows the fallback, because wouter doesn't render unmatched
 // branches.
 
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
+import { useSeo } from "@/lib/use-seo";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -62,6 +63,8 @@ import NotFound from "@/pages/not-found";
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
 const ContactPage = lazy(() => import("@/pages/contact"));
+const BlogPage = lazy(() => import("@/pages/blog"));
+const BlogPostPage = lazy(() => import("@/pages/blog-post"));
 const OgCard = lazy(() => import("@/pages/og-card"));
 
 // Studio shell + pages
@@ -127,10 +130,21 @@ function RouteFallback() {
   );
 }
 
+function SeoSync() {
+  const [location] = useLocation();
+  useSeo(location);
+  return null;
+}
+
 function Router() {
   return (
     <>
       <ScrollToTop />
+      {/* Router-level SEO sync: keeps title/description/canonical in
+          step with SPA navigations for every path in shared/seo.ts —
+          the first LOAD gets the same values server-injected
+          (server/seo-inject.ts), so crawlers and users always agree. */}
+      <SeoSync />
       <Suspense fallback={<RouteFallback />}>
         <Switch>
           <Route path="/" component={LandingKeeper} />
@@ -143,6 +157,8 @@ function Router() {
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/contact" component={ContactPage} />
+          <Route path="/blog" component={BlogPage} />
+          <Route path="/blog/:slug" component={BlogPostPage} />
           <Route path="/og" component={OgCard} />
           <Route path="/studio">
             <RequireAuth>

@@ -4,6 +4,7 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
+import { injectSeo } from "./seo-inject";
 
 const viteLogger = createLogger();
 
@@ -99,9 +100,22 @@ export function serveStatic(app: Express) {
     }),
   );
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Fall through to index.html for app routes — with per-path SEO
+  // metadata injected (title/description/canonical/OG from
+  // shared/seo.ts). The template is read once at boot; the transform is
+  // a handful of anchored string replacements per request. See
+  // server/seo-inject.ts for why this exists (the SPA served the
+  // homepage's canonical on EVERY route, telling Google the whole site
+  // was one page).
+  const indexTemplate = fs.readFileSync(
+    path.resolve(distPath, "index.html"),
+    "utf-8",
+  );
+  app.use("*", (req, res) => {
     res.set("Cache-Control", "no-cache");
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res
+      .status(200)
+      .set({ "Content-Type": "text/html" })
+      .end(injectSeo(indexTemplate, req.originalUrl.split("?")[0]));
   });
 }

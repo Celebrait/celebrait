@@ -63,6 +63,24 @@ const FAQS: FaqEntry[] = [
 export function FaqSection() {
   return (
     <section id="faq" className="snap-center relative py-24 md:py-32">
+      {/* FAQPage structured data — generated FROM the visible FAQS array
+          so it can never drift from what's on screen (Google requires
+          schema content to match visible content). Rendered client-side;
+          Google's crawler executes JS and reads injected JSON-LD. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((f) => ({
+              '@type': 'Question',
+              name: f.q,
+              acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+          }),
+        }}
+      />
       <div className="max-w-3xl mx-auto px-6 md:px-10">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent-coral-dark font-semibold mb-4">

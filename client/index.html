@@ -33,6 +33,42 @@
     <meta property="og:image:alt" content="Celebrait — a real photo of a couple turned into a personalised illustrated anniversary greetings card." />
     <meta property="og:locale" content="en_GB" />
 
+    <!-- Structured data: who we are + what we sell, stated plainly for
+         Google. Static (no JS needed to read it). Kept HONEST: no
+         aggregateRating (we have no published reviews yet — faking one
+         is a manual-action risk), price matches shared/pricing.ts. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.celebrait.co.uk/#org",
+          "name": "Celebrait",
+          "url": "https://www.celebrait.co.uk/",
+          "logo": "https://www.celebrait.co.uk/email-logo.png",
+          "sameAs": ["https://instagram.com/celebrait"],
+          "areaServed": "GB"
+        },
+        {
+          "@type": "Product",
+          "name": "Personalised photo greetings card",
+          "description": "A personalised greetings card where the person in your photo becomes the artwork, in any scene you describe. Printed on 280gsm card and posted anywhere in the UK, with a free digital version included.",
+          "image": "https://www.celebrait.co.uk/og-image.jpg",
+          "brand": { "@id": "https://www.celebrait.co.uk/#org" },
+          "offers": {
+            "@type": "Offer",
+            "price": "8.99",
+            "priceCurrency": "GBP",
+            "availability": "https://schema.org/InStock",
+            "url": "https://www.celebrait.co.uk/",
+            "areaServed": "GB"
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Twitter/X large-image card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Celebrait — unbinnable greetings cards" />
