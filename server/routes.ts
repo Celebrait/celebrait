@@ -42,8 +42,15 @@ import { registerDevTestFailureRoutes } from "./routes/dev-test-failures";
 import { scheduleReminderDispatch } from "./reminders/dispatcher";
 import { scheduleDropOffRecoveryDispatch, runDropOffRecoveryDispatch } from "./recovery/dispatcher";
 import { scheduleStaleSweeps } from "./recovery/stale-sweeper";
+import { registerVisitLogging } from "./visit-log";
+import { registerAdminAnalyticsRoutes } from "./routes/admin-analytics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // First-party page-view logging — mounted before everything so it
+  // sees every HTML request. Cookieless, IP-less, bot-filtered,
+  // fire-and-forget. See server/visit-log.ts.
+  registerVisitLogging(app);
 
   // Setup auth BEFORE other routes.
   // Since 2026-04, the only auth system is the email OTP flow. setupAuth
@@ -404,6 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAddressBookRoutes(app);
   registerRemindersRoutes(app);
   registerDevTestFailureRoutes(app);
+  registerAdminAnalyticsRoutes(app);
 
   // Schedule the daily reminder dispatch cron (8am UTC daily).
   // First run fires at the next 8am UTC; subsequent runs 24h later.

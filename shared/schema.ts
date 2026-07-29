@@ -9,6 +9,7 @@ export * from "./models/card-draft";
 export * from "./models/studio-orders";
 export * from "./models/card-attempts";
 export * from "./models/address-book";
+export * from "./models/analytics";
 
 import { users } from "./models/auth";
 

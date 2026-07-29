@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
 import { apiRequest } from "@/lib/queryClient";
+import { getFirstTouch } from "@/lib/attribution";
 
 // Optimistic auth cache. The /api/auth/user fetch takes a beat (~800ms on a
 // cold load), during which the header showed the logged-OUT state and then
@@ -92,7 +93,12 @@ export function useAuth() {
 
   const verifyOtpMutation = useMutation({
     mutationFn: async (params: { email: string; code: string; firstName?: string; lastName?: string }) => {
-      const res = await apiRequest("POST", "/api/auth/otp/verify", params);
+      // First-touch attribution rides along; the server stores it only
+      // when this verify CREATES the account (see auth routes).
+      const res = await apiRequest("POST", "/api/auth/otp/verify", {
+        ...params,
+        attribution: getFirstTouch() ?? undefined,
+      });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || "Verification failed");

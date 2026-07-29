@@ -110,6 +110,7 @@ const CardCapturePage = lazy(() => import("@/pages/card-capture"));
 const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
 const AdminPromptsPage = lazy(() => import("@/pages/admin-prompts"));
 const AdminCostsPage = lazy(() => import("@/pages/admin-costs"));
+const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
 const AdminEmailsPage = lazy(() => import("@/pages/admin-emails"));
 
@@ -299,6 +300,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminPromptsPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/analytics">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminAnalyticsPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

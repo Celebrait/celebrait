@@ -45,6 +45,12 @@ export const users = pgTable("users", {
   // offers). GDPR/PECR: unticked by default → false until the user opts
   // in at signup. Transactional/own-card emails don't depend on this.
   marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
+  /** First-touch attribution captured client-side (UTM/referrer of the
+   *  visit that first brought them here) and stored once at signup —
+   *  the join between traffic sources and actual customers. Shape:
+   *  shared/models/analytics.ts `Attribution`. Null for pre-feature
+   *  users and direct/unknown arrivals. */
+  attribution: jsonb("attribution"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
