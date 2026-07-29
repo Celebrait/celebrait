@@ -19,6 +19,11 @@
 // the user's behalf, and no longer second-guesses a "group" choice (it
 // under-counted real groups → false alarms; removed 2026-07-22).
 //
+// "Never blocks" is literal, and load-bearing: inference is heavy
+// synchronous main-thread work, so it runs OFF the crop-accept path
+// (scheduleFaceHint) and not at all in group mode, where its answer is
+// discarded anyway. Putting it back in line froze phones for ~10s.
+//
 // Every upload is cropped to 1:1 via CropDialog (tight head crop survives
 // the 1024× downscale better). Library picker stays single-select for
 // now; multi-select from library is a follow-up.
@@ -283,6 +288,58 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     });
   };
 
+  // Face-count nudge, deliberately OFF the crop-accept critical path.
+  //
+  // SSD MobileNet inference is heavy SYNCHRONOUS main-thread work — on a
+  // mid-range phone it's seconds, not milliseconds. It used to sit in a
+  // Promise.all beside the upload inside confirmCrop's `.then`, which is
+  // a MICROTASK: it started before the browser could paint the crop
+  // dialog closing, so tapping "Use this crop" locked the UI for 7-10s
+  // (reported on iPhone, 2026-07-29). Awaiting it also gated the upload
+  // commit on a signal the upload doesn't need.
+  //
+  // The nudge is advisory — it never gates Next (see isPhotoStepReady) —
+  // so it has no business blocking anything. Yield to paint first, then
+  // run it. Arriving a beat late is invisible; the dialog is already
+  // closed and the user is looking at their photo landing in the grid.
+  //
+  // ONE direction only (2026-07-22): the user's mode choice is
+  // authoritative — they can see their own photo. We only surface the
+  // case with a real footgun: they chose single but there look to be
+  // several people, so everyone but one would be dropped from the card.
+  // We deliberately DON'T warn on group→"only one face": detection
+  // under-counts group shots constantly (angled/small/side faces), so
+  // that path was a pure false alarm — and group mode on a truly single
+  // photo renders fine anyway.
+  const scheduleFaceHint = (src: string, modeAtCrop: PhotoMode): void => {
+    // Nothing to compute in group mode — see "ONE direction only" above.
+    if (modeAtCrop !== 'one_person') return;
+    const run = () => {
+      void detectFaces(src)
+        .then((detection) => {
+          if (!detection || detection.count < 2) return;
+          // The user may have flipped to group (or cleared everything)
+          // while this ran — modeRef is the live value, so a stale
+          // verdict can't re-open a nudge they've already answered.
+          if (modeRef.current !== 'one_person') return;
+          if (selectedIdsRef.current.length === 0) return;
+          setFaceWarning({ kind: 'too-many', suggestedMode: 'group' });
+        })
+        .catch(() => {
+          // Detection is best-effort; no nudge is the safe failure.
+        });
+    };
+    // requestIdleCallback keeps it out of the frames that matter; the
+    // timeout stops it being starved indefinitely. Safari (iOS) still
+    // lacks it, hence the setTimeout fallback — a macrotask either way,
+    // which is the part that actually lets the paint through.
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 3000 });
+    } else {
+      window.setTimeout(run, 400);
+    }
+  };
+
   // Ghost tiles for uploads in flight. Rendered alongside real photos in
   // the grid so the user sees their cropped frame land immediately — no
   // deferred skeleton, no layout jump. Cleared when the corresponding
@@ -309,17 +366,24 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     };
   }, []);
 
-  // Prefetch face detection for every file waiting in the queue. By the
-  // time each one reaches CropDialog's onImageLoad, the cached result
-  // serves the auto-crop instantly — no per-photo snap delay for
-  // photos 2/3/4/5 in a multi-upload. Only one_person mode uses
-  // auto-crop so we skip the work in group mode.
+  // Prefetch face detection for the photo being cropped AND every file
+  // waiting behind it. By the time each reaches CropDialog's
+  // onImageLoad, the cached result serves the auto-crop instantly — no
+  // per-photo snap delay. Only one_person mode uses auto-crop so we skip
+  // the work in group mode.
+  //
+  // stagedBase64 matters as much as the queue (2026-07-29): this used to
+  // iterate `queuedFiles` alone, but startQueue puts the FIRST file in
+  // stagedBase64 and only `rest` in queuedFiles — so the single-photo
+  // upload, far and away the common case, was never warmed at all and
+  // paid full cold inference later.
   useEffect(() => {
     if (mode !== 'one_person') return;
+    if (stagedBase64) prefetchFaces(stagedBase64);
     for (const item of queuedFiles) {
       prefetchFaces(item.base64);
     }
-  }, [mode, queuedFiles]);
+  }, [mode, stagedBase64, queuedFiles]);
 
   // Replace-intent flag (edit overlay): the NEXT committed photo
   // replaces the current selection instead of appending. Group mode
@@ -596,17 +660,13 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     // appends stay in the order the user cropped the photos.
     uploadQueueRef.current = uploadQueueRef.current.then(async () => {
       try {
-        const [photoRes, detection] = await Promise.all([
-          apiRequest('POST', '/api/photos/upload', {
-            imageBase64: base64ToUpload,
-            filename: filenameToUpload,
-            cropBounds: bounds,
-          }),
-          // Detection on the UNCROPPED image picks up background
-          // bystanders too — the right signal for "did you mean group?".
-          // Hits the cache when prefetchFaces already ran on this URL.
-          detectFaces(srcForDetection),
-        ]);
+        // Upload ONLY. Face detection used to share this Promise.all —
+        // see scheduleFaceHint for why that cost 7-10s of frozen UI.
+        const photoRes = await apiRequest('POST', '/api/photos/upload', {
+          imageBase64: base64ToUpload,
+          filename: filenameToUpload,
+          cropBounds: bounds,
+        });
         const photo = (await photoRes.json()) as Photo;
         // Insert the new photo into the react-query cache synchronously
         // so `selectedPhotos = selectedIds.map(id => photos.find(...))`
@@ -641,29 +701,11 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             : [...currentIds, photo.id].slice(0, MAX_PHOTOS.one_person);
         selectedIdsRef.current = nextIds;
 
-        // Decide the mismatch signal from THIS upload's detection.
-        // If this photo is fine but a previous photo set a mismatch,
-        // preserve that prior mismatch — the offending photo may still
-        // be in photoIds and the user hasn't resolved it yet.
-        //
-        // ONE direction only (2026-07-22): the user's mode choice is
-        // authoritative — they can see their own photo. We only surface a
-        // soft, optional nudge in the case that has a real footgun: they
-        // chose single but there look to be several people, so everyone
-        // but one would be dropped from the card. We deliberately DON'T
-        // warn on group→"only one face": face detection under-counts
-        // group shots constantly (angled/small/side faces), so that path
-        // was a pure false alarm on genuine groups — and group mode on a
-        // truly single photo renders fine anyway. The nudge never blocks
-        // (see isPhotoStepReady); it's advice, not a gate.
-        let nextPMR: 'too-many' | 'too-few' | undefined =
-          pendingModeReviewRef.current;
-        if (detection) {
-          if (modeAtCrop === 'one_person' && detection.count >= 2) {
-            nextPMR = 'too-many';
-          }
-        }
-        pendingModeReviewRef.current = nextPMR;
+        // Carry any prior mismatch through — the offending photo may
+        // still be in photoIds and the user hasn't resolved it yet. THIS
+        // photo's own verdict arrives later, off the critical path, via
+        // scheduleFaceHint.
+        const nextPMR = pendingModeReviewRef.current;
 
         // Single onChange covers both photoIds append and pendingModeReview —
         // separate calls racing through stale closures was the bug.
@@ -692,6 +734,12 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         setInFlightUploads((n) => Math.max(0, n - 1));
       }
     });
+
+    // Last, and off the critical path by design. Detection runs on the
+    // UNCROPPED image so background bystanders still count — that's the
+    // honest signal for "did you mean group?". Hits the warm cache when
+    // prefetchFaces already ran on this URL.
+    scheduleFaceHint(srcForDetection, modeAtCrop);
   };
 
   const pickFromLibrary = (photoId: number) => {
