@@ -39,6 +39,7 @@ import {
   Type,
   PenLine,
   Play,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -615,6 +616,22 @@ function shuffledPersonas(): string[] {
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
 
+  // Escape closes, and the page behind is locked so a mobile scroll
+  // gesture doesn't drift the landing page under the overlay.
+  useEffect(() => {
+    if (!playing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPlaying(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [playing]);
+
   return (
     <div className="relative">
       {/* The object itself — the proof it's not a digital gimmick. */}
@@ -661,30 +678,35 @@ function HeroProof() {
         </button>
       </div>
 
+      {/* z-[200] clears the sticky header (z-[150]) — at z-50 the header
+          sat IN FRONT of the video (Kevin 2026-07-29). The close button is
+          FIXED to the viewport corner, not the video, so it's always
+          reachable on mobile no matter how tall the clip renders; tapping
+          the backdrop and pressing Escape also close. */}
       {playing && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-keeper-ink/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-keeper-ink/85 p-4 backdrop-blur-sm"
           onClick={() => setPlaying(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Recipient opening her card"
         >
-          <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <video
-              src="/reaction.mp4"
-              controls
-              autoPlay
-              playsInline
-              className="w-full rounded-xl bg-black shadow-2xl"
-            />
-            <button
-              type="button"
-              onClick={() => setPlaying(false)}
-              className="absolute -top-10 right-0 text-sm font-medium text-white/90 hover:text-white"
-            >
-              Close ✕
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setPlaying(false)}
+            aria-label="Close video"
+            className="fixed right-4 top-4 z-[201] flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-keeper-ink shadow-lg transition-colors hover:bg-white"
+          >
+            <X className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+          <video
+            src="/reaction.mp4"
+            controls
+            autoPlay
+            playsInline
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[82vh] w-auto max-w-full rounded-xl bg-black shadow-2xl sm:max-w-md"
+          />
         </div>
       )}
     </div>
@@ -799,11 +821,11 @@ function HeroSection() {
           <div className="max-w-[30rem] md:mt-6">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-medium text-keeper-ink">
               <span className="whitespace-nowrap">
-                Choose your photo
+                Start with a photo
                 <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
               </span>
               <span className="whitespace-nowrap">
-                Describe the scene
+                Describe the moment
                 <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
               </span>
               <span className="whitespace-nowrap">Craft your message</span>
@@ -900,15 +922,36 @@ const TIMES_SQUARE_EXAMPLE: ProofExample = {
   cardAlt: 'The finished card front — Sarah going viral in Times Square',
 };
 
-// All three are REAL worked examples: navigating changes the card, not just
+// Example 4 — the couple who used to headline the hero. When the hero
+// became a real printed-card photo (2026-07-29) this card lost its home,
+// and it's too good to retire: it's the only example carrying a whole
+// surprise inside ("Pack a bag — we're going to New York"), which shows
+// the inside message doing real work rather than just signing off.
+const NEW_YORK_EXAMPLE: ProofExample = {
+  id: 'new-york',
+  sourcePhoto: '/hero-source-photo.webp',
+  sourceAlt: 'The pub photo of the couple this card was made from',
+  scene: 'On a rooftop in New York at sunset',
+  frontText: 'Happy Anniversary Baby!',
+  insideMessage:
+    "Happy 10th anniversary, Sarah. Pack a bag — we're going to New York baby! Love you so much x",
+  cardFront: heroCardFront,
+  cardInside: heroCardInside,
+  cardAlt:
+    'The finished card front — the couple toasting on a New York rooftop at sunset',
+};
+
+// All four are REAL worked examples: navigating changes the card, not just
 // the caption. ORDER MATTERS — it mirrors the body copy above it word for
 // word ("Best friends abseiling off Big Ben, mum under the Northern Lights,
-// daughter going viral in Times Square"), so the first card you see is the
-// first example you just read. Keep the two in step (Kevin 2026-07-17).
+// daughter going viral in Times Square, ten years together on a New York
+// rooftop"), so the first card you see is the first example you just read.
+// Keep the two in step (Kevin 2026-07-17).
 const PROOF_EXAMPLES: ProofExample[] = [
   BIG_BEN_EXAMPLE,
   MUM_EXAMPLE,
   TIMES_SQUARE_EXAMPLE,
+  NEW_YORK_EXAMPLE,
 ];
 
 function ProofSection() {
@@ -1021,8 +1064,9 @@ function ProofSection() {
                   them (see PROOF_EXAMPLES) — keep the two in step. */}
               <p className="mt-5 text-[17px] leading-[1.6] text-keeper-body">
                 Best friends abseiling off Big Ben, mum under the Northern
-                Lights, daughter going viral in Times Square: You describe the
-                scene. We make it real.
+                Lights, daughter going viral in Times Square, ten years
+                together on a New York rooftop: You describe the scene. We
+                make it real.
               </p>
             </div>
             {/* One signpost above the carousel. */}
