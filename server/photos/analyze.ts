@@ -42,6 +42,9 @@ import path from 'path';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { photos } from '@shared/schema';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
 
 const ANALYSIS_MODEL = 'gemini-2.5-flash';
 
@@ -141,6 +144,7 @@ export async function analyzePhoto(args: {
     const imageBytes = await fs.readFile(imageAbsPath);
     const inlineBase64 = imageBytes.toString('base64');
 
+    const llmStartedAt = Date.now();
     const response = await client.models.generateContent({
       model: ANALYSIS_MODEL,
       contents: [
@@ -163,6 +167,28 @@ export async function analyzePhoto(args: {
 
     const rawText = response.text ?? '';
     const parsed = parseAnalysisJson(rawText);
+
+    // Cost Ledger (audit 2026-07-29): photo analysis fires on EVERY
+    // upload and was spending unrecorded money. No cardId exists yet at
+    // upload time; the slot itself is the roll-up. Fire-and-forget.
+    const usage = response.usageMetadata;
+    void logGeneration({
+      cardId: null,
+      slot: LLM_SLOTS.PHOTO_ANALYSIS,
+      templateId: null,
+      templateVersion: null,
+      provider: 'gemini',
+      model: ANALYSIS_MODEL,
+      quality: null,
+      costCents: llmCostCents(
+        ANALYSIS_MODEL,
+        usage?.promptTokenCount ?? 0,
+        usage?.candidatesTokenCount ?? 0,
+      ),
+      durationMs: Date.now() - llmStartedAt,
+      success: !!parsed,
+      errorCode: parsed ? null : 'parse_failed',
+    });
 
     if (parsed) {
       await db

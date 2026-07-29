@@ -12,6 +12,9 @@
 import type { Express, Request, Response } from 'express';
 import { openai } from '../utils/shared';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
 import { rateLimitHit } from '../simple-rate-limit';
 
 type Role = 'user' | 'assistant';
@@ -229,12 +232,36 @@ export function registerStudioBrainstormRoutes(app: Express): void {
         { role: 'user', content: contextMessage },
       ];
 
+      const llmStartedAt = Date.now();
+      const LLM_MODEL = 'gpt-4o';
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: LLM_MODEL,
         messages,
         max_tokens: 500,
         temperature: 0.8,
         response_format: { type: 'json_object' },
+      });
+
+      // Cost Ledger (audit 2026-07-29): brainstorm is a CHAT — it bills
+      // per turn, on gpt-4o (~17x gpt-4o-mini), and history is resent
+      // every turn so input tokens grow with the conversation. It was
+      // the most expensive unlogged surface. Booked against the
+      // brainstorm slot; no cardId (this runs before/around a draft).
+      void logGeneration({
+        cardId: null,
+        slot: LLM_SLOTS.BRAINSTORM,
+        templateId: null,
+        templateVersion: null,
+        provider: 'openai',
+        model: LLM_MODEL,
+        quality: null,
+        costCents: llmCostCents(
+          LLM_MODEL,
+          completion.usage?.prompt_tokens ?? 0,
+          completion.usage?.completion_tokens ?? 0,
+        ),
+        durationMs: Date.now() - llmStartedAt,
+        success: true,
       });
 
       const raw = completion.choices[0]?.message?.content ?? '';

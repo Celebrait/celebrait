@@ -44,6 +44,13 @@ interface CostsResponse {
   regen: { avgRowsPerCard: number };
   byProvider: { provider: string; rows: number; centsX100: number }[];
   bySlot: { slot: string; rows: number; centsX100: number }[];
+  /** Card-less LLM spend (photo analysis, scene helper, brainstorm).
+   *  Already inside overview.totalCentsX100 — itemised so it can't hide
+   *  inside the headline (audit 2026-07-29). */
+  llmSpend: {
+    totalCentsX100: number;
+    bySlot: { slot: string; rows: number; centsX100: number }[];
+  };
   topTemplates: {
     templateId: number;
     templateVersion: number | null;
@@ -293,6 +300,68 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </section>
+
+      {/* Card-less LLM spend — the text/vision surfaces. These bill on
+          every use and produce no card, so they were invisible in this
+          ledger until 2026-07-29. Shown separately because they behave
+          differently from image gen: brainstorm bills per chat TURN, and
+          photo analysis fires on every upload including photos that never
+          become a card. */}
+      <section>
+        <ChartCard
+          title="AI helper spend (no card attached)"
+          subtitle="Photo analysis, the scene helper and the brainstorm chat. Included in the totals above, itemised here."
+        >
+          {data.llmSpend.bySlot.length === 0 ? (
+            <div className="py-6 text-center text-sm text-stone-500">
+              No helper spend in this window.
+            </div>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-stone-600">
+                <span className="font-semibold text-stone-900">
+                  £{genCostUsdX100ToGbp(data.llmSpend.totalCentsX100).toFixed(3)}
+                </span>{' '}
+                across {data.llmSpend.bySlot.reduce((n, s) => n + s.rows, 0)} calls
+                {data.overview.totalCentsX100 > 0 && (
+                  <>
+                    {' '}·{' '}
+                    {(
+                      (data.llmSpend.totalCentsX100 / data.overview.totalCentsX100) *
+                      100
+                    ).toFixed(1)}
+                    % of total spend
+                  </>
+                )}
+              </p>
+              <table className="w-full text-sm">
+                <thead className="border-b border-stone-200 text-left text-xs uppercase text-stone-500">
+                  <tr>
+                    <th className="py-2">Surface</th>
+                    <th className="py-2 text-right">Calls</th>
+                    <th className="py-2 text-right">Spend</th>
+                    <th className="py-2 text-right">Avg / call</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.llmSpend.bySlot.map((s) => (
+                    <tr key={s.slot} className="border-b border-stone-100 last:border-0">
+                      <td className="py-2 font-medium text-stone-900">{s.slot}</td>
+                      <td className="py-2 text-right tabular-nums">{s.rows}</td>
+                      <td className="py-2 text-right tabular-nums">
+                        £{genCostUsdX100ToGbp(s.centsX100).toFixed(3)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-stone-500">
+                        £{genCostUsdX100ToGbp(s.rows > 0 ? s.centsX100 / s.rows : 0).toFixed(4)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </ChartCard>
       </section>

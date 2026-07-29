@@ -142,7 +142,7 @@ export function registerAuthRoutes(app: Express): void {
   // Verify OTP code and create session
   app.post("/api/auth/otp/verify", async (req: any, res) => {
     try {
-      const { email, code, firstName, lastName } = req.body;
+      const { email, code, firstName, lastName, attribution } = req.body;
       if (!email || !code) {
         return res.status(400).json({ message: "Email and code required" });
       }
@@ -225,6 +225,13 @@ export function registerAuthRoutes(app: Express): void {
           email: normalizedEmail,
           firstName: firstName || null,
           lastName: lastName || null,
+          // First-touch attribution from the client (see
+          // client/src/lib/attribution.ts). Stored ONCE, at creation —
+          // shape-checked loosely; it's analytics, not trust.
+          attribution:
+            attribution && typeof attribution === 'object' && !Array.isArray(attribution)
+              ? attribution
+              : null,
         }).returning();
         user = newUser;
         // Welcome email — once, on account creation. Fire-and-forget so it

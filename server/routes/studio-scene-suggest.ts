@@ -24,6 +24,9 @@ import { db } from '../db';
 import { cards, type CardDraftState } from '@shared/schema';
 import { openai } from '../utils/shared';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
 
 const requestSchema = z.object({
   cardId: z.number().int().positive(),
@@ -225,9 +228,11 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
       // downstream image model sees the photo at generation time and
       // renders whoever is in it.
 
+      const llmStartedAt = Date.now();
+      const LLM_MODEL = 'gpt-4o-mini';
       try {
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: LLM_MODEL,
           messages: [
             { role: 'system', content: buildSystemPrompt() },
             {
@@ -242,6 +247,27 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
           response_format: { type: 'json_object' },
           temperature: 0.85, // higher = more variety across the three options
           max_tokens: 600,
+        });
+
+        // Cost Ledger (audit 2026-07-29): the scene helper spends real
+        // money on every tap and logged nothing. No cardId — the draft
+        // may not even be saved yet — so it books against the
+        // scene_suggest slot (see CUSTOMER_LLM_SLOTS). Fire-and-forget.
+        void logGeneration({
+          cardId: null,
+          slot: LLM_SLOTS.SCENE_SUGGEST,
+          templateId: null,
+          templateVersion: null,
+          provider: 'openai',
+          model: LLM_MODEL,
+          quality: null,
+          costCents: llmCostCents(
+            LLM_MODEL,
+            completion.usage?.prompt_tokens ?? 0,
+            completion.usage?.completion_tokens ?? 0,
+          ),
+          durationMs: Date.now() - llmStartedAt,
+          success: true,
         });
 
         const raw = completion.choices[0]?.message?.content?.trim();
