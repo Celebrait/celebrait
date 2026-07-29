@@ -38,6 +38,7 @@ import {
   Mountain,
   Type,
   PenLine,
+  Play,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -593,6 +594,103 @@ function shuffledPersonas(): string[] {
   return [PERSONAS[0], ...rest];
 }
 
+// ── HeroProof ────────────────────────────────────────────────────────
+// The hero's right column: a REAL printed card photographed on a desk,
+// with the ordinary phone snap it was made from pinned to its corner as
+// a polaroid. One glance tells the whole story — "that snap became this
+// object" — with no interaction and no WebGL.
+//
+// ASSETS (all real — these ARE the handover photos + a tester's snap):
+//   /hero-real-card.webp   the printed card, standing, on a desk
+//   /hero-real-open.webp   the same card open (spare, for a peek beat)
+//   /hero-real-source.webp the phone snap it came from
+//   /reaction.mp4          recipient opening it
+//                          ⚠ 11MB — MUST be compressed before production
+//
+// PERF NOTE (honest): dropping the 3D hero does NOT by itself remove
+// three.js from this page. The `three-stack` manual chunk in
+// vite.config.ts also ends up holding React (Rollup hoists the shared
+// dep into it), so every page statically imports that chunk regardless.
+// Splitting React into its own chunk is the actual fix — separate job.
+function HeroProof() {
+  const [playing, setPlaying] = useState(false);
+
+  return (
+    <div className="relative">
+      {/* The object itself — the proof it's not a digital gimmick. */}
+      <div className="relative overflow-hidden rounded-2xl bg-white shadow-[0_28px_70px_-24px_rgba(33,29,25,0.45)]">
+        <img
+          src="/hero-real-card.webp"
+          alt="A printed Celebrait card standing on a desk beside its envelope"
+          className="h-full w-full object-cover"
+          width={1100}
+          height={734}
+          fetchPriority="high"
+        />
+      </div>
+
+      {/* The ordinary snap it started as — deliberately small and a
+          little wonky. The gap between this and the card above is the
+          entire pitch. */}
+      <div className="absolute -bottom-6 -left-3 w-[34%] -rotate-6 sm:-bottom-8 sm:-left-6 sm:w-[30%]">
+        <div className="rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_16px_36px_-12px_rgba(33,29,25,0.45)]">
+          <img
+            src="/hero-real-source.webp"
+            alt="The everyday phone photo this card was made from"
+            className="block h-full w-full rounded-sm object-cover"
+            style={{ aspectRatio: '3/4' }}
+          />
+        </div>
+        <p className="mt-2 text-center text-[11px] font-medium leading-tight text-keeper-meta">
+          started as this
+        </p>
+      </div>
+
+      {/* Watch-her-open-it — secondary to the main CTA on purpose. */}
+      <div className="mt-10 flex justify-end sm:mt-12">
+        <button
+          type="button"
+          onClick={() => setPlaying(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white px-4 py-2.5 text-[13px] font-semibold text-keeper-ink shadow-sm transition-colors hover:border-brand hover:text-brand-dark"
+          data-testid="hero-play-reaction"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white">
+            <Play className="ml-[1px] h-3 w-3 fill-current" strokeWidth={0} />
+          </span>
+          Watch her open it
+        </button>
+      </div>
+
+      {playing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-keeper-ink/80 p-4 backdrop-blur-sm"
+          onClick={() => setPlaying(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Recipient opening her card"
+        >
+          <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <video
+              src="/reaction.mp4"
+              controls
+              autoPlay
+              playsInline
+              className="w-full rounded-xl bg-black shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setPlaying(false)}
+              className="absolute -top-10 right-0 text-sm font-medium text-white/90 hover:text-white"
+            >
+              Close ✕
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HeroSection() {
   const reduced = useReducedMotion();
   const [persona, setPersona] = useState(0);
@@ -600,9 +698,6 @@ function HeroSection() {
   // useState's lazy init runs the shuffle once on mount.
   const [order] = useState(shuffledPersonas);
   const [visible, setVisible] = useState(true);
-  // Card open state lives here (viewer self-manages the hinge; this
-  // mirror drives the snapshot fade + the tap hint).
-  const [cardOpen, setCardOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -640,8 +735,13 @@ function HeroSection() {
 
   return (
     <section ref={sectionRef} className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
-      <div className="mx-auto grid max-w-6xl items-start gap-12 md:grid-cols-[1.05fr_0.95fr] md:gap-16">
-        <div>
+      {/* Explicit row/col placement so MOBILE order is
+          headline → the proof photo → copy → CTA. Stacking the columns
+          naively buried the card photo below a full screen of text and
+          the CTA, which wastes the one asset that does the convincing
+          (2026-07-29). Desktop is unchanged: text left, proof right. */}
+      <div className="mx-auto grid max-w-6xl items-start gap-x-16 gap-y-10 md:grid-cols-[1.05fr_0.95fr] md:gap-y-0">
+        <div className="md:col-start-1 md:row-start-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
             Unbinnable Greetings Cards
           </p>
@@ -682,12 +782,21 @@ function HeroSection() {
             <br />
             in the picture.
           </h1>
+        </div>
+
+        {/* THE PROOF — row 1 of the right column on desktop; on mobile it
+            sits directly under the headline (see the grid comment). */}
+        <Rise className="relative z-10 md:col-start-2 md:row-start-1 md:row-span-2">
+          <HeroProof />
+        </Rise>
+
+        <div className="md:col-start-1 md:row-start-2">
           {/* The recipe in one line — three beats joined by purple (brand)
               arrows, then the payoff. Inline reads as a single flow rather
               than a choppy stacked list (Kevin 2026-07-14). Wraps gracefully
               on narrow columns without ever orphaning an arrow (arrows are
               glued to the step before them). */}
-          <div className="mt-6 max-w-[30rem]">
+          <div className="max-w-[30rem] md:mt-6">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-medium text-keeper-ink">
               <span className="whitespace-nowrap">
                 Choose your photo
@@ -719,45 +828,6 @@ function HeroSection() {
           <TrustChips />
         </div>
 
-        {/* The real 3D card, ajar + CLICKABLE (Kevin 2026-07-05) — tap
-            swings it open, the source snapshot fades out (its job is
-            done once the card takes over), green tap hint underneath.
-            Snapshot STAND-IN: a crop of the card art itself (it IS the
-            same people). Swap for the real A2 snapshot when it exists. */}
-        {/* z-10: the open cover swings LEFT over the text column —
-            Kevin: let it cover that text (don't clip it). */}
-        <Rise className="relative z-10">
-          <StaticAjarCard open={cardOpen} onToggle={() => setCardOpen((o) => !o)} />
-          <div
-            className={`absolute -left-3 top-1 w-[27%] -rotate-6 transition-opacity duration-500 ${
-              cardOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
-            }`}
-          >
-            <div
-              className="relative overflow-hidden rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_14px_32px_-12px_rgba(33,29,25,0.4)]"
-              style={{ aspectRatio: '1/1' }}
-            >
-              <img
-                src="/hero-source-photo.webp"
-                alt="Source snapshot of the couple"
-                className="h-full w-full object-cover"
-                style={{ objectPosition: '50% 32%' }}
-              />
-            </div>
-          </div>
-          {/* Green tap/click hint — fades out once the card opens.
-              FIXED-HEIGHT slot: the hints mount late + unmount on
-              open; without a reserved height the column reflows and
-              the card clunks down (same bug as the old landing). */}
-          <div className="mt-7 h-14 sm:mt-3">
-            <GestureHints
-              open={cardOpen}
-              hideRotateHint
-              hideZoomHint
-              openLabel="Tap to close"
-            />
-          </div>
-        </Rise>
       </div>
     </section>
   );

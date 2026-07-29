@@ -10,7 +10,7 @@
 // Pure DOM + framer-motion: CSS perspective does the dolly; the studio card is
 // a live clone (not a screenshot) so it can animate. Isolated /hero-poc.
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   motion,
   useScroll,
@@ -34,7 +34,16 @@ import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ScrollHint } from '@/components/landing/hero-floating-section';
-import { Card3DViewer } from '@/components/card-3d-viewer';
+// LAZY, and it matters far beyond this POC page: landing-keeper.tsx
+// imports CelebrationBackdrop from this module, so a STATIC import here
+// dragged three.js + @react-three (~1.4MB / 366kB gzipped) into the
+// landing page's first paint — even after the 3D hero card was removed
+// (caught 2026-07-29 by checking the real chunk graph, not by assuming).
+// Keep this dynamic, or the landing page silently pays for 3D it never
+// renders.
+const Card3DViewer = lazy(() =>
+  import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),
+);
 import { GestureHints } from '@/components/gesture-hints';
 import revealFront from '@/assets/hero-card-front.jpg';
 import revealInside from '@/assets/hero-card-inside.jpg';
@@ -94,22 +103,24 @@ export function StudioFlowSection() {
                 height deterministically against the fixed hint slot below. */}
             <div className="relative w-full grow min-h-0">
               <div className="absolute bottom-[-12vh] left-[-18vw] right-[-18vw] top-[-12vh]">
-                <Card3DViewer
-                  frontImageUrl={revealFront}
-                  insideImageUrl={revealInside}
-                  open={cardOpen}
-                  onOpenChange={setCardOpen}
-                  enableRotate={false}
-                  enableZoom={false}
-                  framingMargin={1.7}
-                  minDistance={1.6}
-                  dprMax={1.5}
-                  /* Resting ajar + slight yaw — reads as openable, matches
-                     the studio card view's resting pose. */
-                  closedAngle={-0.3}
-                  restYaw={-0.1}
-                  className="h-full w-full"
-                />
+                <Suspense fallback={null}>
+                  <Card3DViewer
+                    frontImageUrl={revealFront}
+                    insideImageUrl={revealInside}
+                    open={cardOpen}
+                    onOpenChange={setCardOpen}
+                    enableRotate={false}
+                    enableZoom={false}
+                    framingMargin={1.7}
+                    minDistance={1.6}
+                    dprMax={1.5}
+                    /* Resting ajar + slight yaw — reads as openable, matches
+                       the studio card view's resting pose. */
+                    closedAngle={-0.3}
+                    restYaw={-0.1}
+                    className="h-full w-full"
+                  />
+                </Suspense>
               </div>
             </div>
             {/* Green tap hint — FIXED-HEIGHT slot (shrink-0) so the hint
