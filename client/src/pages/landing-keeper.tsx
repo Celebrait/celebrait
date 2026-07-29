@@ -22,6 +22,7 @@
 // Gallery dialogs use the hero card as a stand-in until D1–6 land.
 
 import { lazy, Suspense, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'wouter';
 import {
   Mail,
@@ -678,12 +679,17 @@ function HeroProof() {
         </button>
       </div>
 
-      {/* z-[200] clears the sticky header (z-[150]) — at z-50 the header
-          sat IN FRONT of the video (Kevin 2026-07-29). The close button is
-          FIXED to the viewport corner, not the video, so it's always
-          reachable on mobile no matter how tall the clip renders; tapping
-          the backdrop and pressing Escape also close. */}
-      {playing && (
+      {/* PORTALLED TO <body> — and it has to be. This lives inside
+          <Rise className="relative z-10">, which creates a STACKING
+          CONTEXT, so any z-index here (even z-[999]) only ranks within
+          that box and the whole modal still sat at z-10 against the page
+          — behind the z-[150] header (Kevin saw the menu bar over the
+          video on both mobile and desktop, 2026-07-29). Raising the
+          number can't fix a stacking-context problem; escaping the
+          context can. The close button is FIXED to the viewport corner
+          rather than the video, so it stays reachable however tall the
+          clip renders; backdrop-tap and Escape also close. */}
+      {playing && createPortal(
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-keeper-ink/85 p-4 backdrop-blur-sm"
           onClick={() => setPlaying(false)}
@@ -707,7 +713,8 @@ function HeroProof() {
             onClick={(e) => e.stopPropagation()}
             className="max-h-[82vh] w-auto max-w-full rounded-xl bg-black shadow-2xl sm:max-w-md"
           />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
