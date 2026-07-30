@@ -23,7 +23,7 @@
 // bounds stay server-authoritative.
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { ImageOff, Loader2 } from 'lucide-react';
 import ReactCrop, {
   type Crop,
   type PercentCrop,
@@ -177,6 +177,16 @@ export function CropDialog({
   // unframed <img> flashing under a not-yet-mounted crop overlay when
   // the dialog opens — the mounting glitch Kevin flagged 2026-04-24.
   const [imageReady, setImageReady] = useState(false);
+  // The <img> had NO onError, so a photo the browser couldn't decode
+  // left this dialog spinning forever with no way forward and nothing
+  // said (reported on iPhone 2026-07-30). Big HEICs off a modern phone
+  // are the realistic trigger: readFileDownscaled falls back to handing
+  // over the RAW file when createImageBitmap throws, and a multi-MB
+  // decode on a throttled/low-power device is slow at best.
+  const [imageFailed, setImageFailed] = useState(false);
+  // Distinct from failed: still going, just slow. A bare spinner with no
+  // acknowledgement reads as a hang well before it actually is one.
+  const [slowLoad, setSlowLoad] = useState(false);
 
   // Natural (original) image dimensions, captured when the <img> loads.
   // react-image-crop's PixelCrop values are relative to the DISPLAYED
@@ -193,9 +203,19 @@ export function CropDialog({
   // rather than reusing the previous image's ready flag.
   useEffect(() => {
     setImageReady(false);
+    setImageFailed(false);
     setCrop(undefined);
     setCompletedCrop(null);
   }, [src]);
+
+  // Slow-load watchdog. Purely cosmetic — it never cancels the decode or
+  // fails the photo, it just stops a long wait looking like a dead app.
+  useEffect(() => {
+    setSlowLoad(false);
+    if (!src || imageReady || imageFailed) return;
+    const t = window.setTimeout(() => setSlowLoad(true), 4000);
+    return () => window.clearTimeout(t);
+  }, [src, imageReady, imageFailed]);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
@@ -275,7 +295,13 @@ export function CropDialog({
         <DialogHeader>
           <DialogTitle>Crop your photo</DialogTitle>
           <DialogDescription>
-            {autoFace
+            {imageFailed
+              ? "We couldn't open that photo. Pick a different one and we'll try again."
+              : !imageReady
+                ? slowLoad
+                  ? 'Still opening this one — big photos from a phone can take a few seconds.'
+                  : 'Opening your photo…'
+                : autoFace
               ? detectingFace
                 ? 'Finding the face… you can still drag the corners to adjust.'
                 : 'We framed up the face for you. Drag the corners if you want to adjust.'
@@ -289,12 +315,25 @@ export function CropDialog({
           {/* Placeholder shimmer — visible until the image + crop box
               are both ready. Prevents the "image flashes raw then crop
               overlay catches up" glitch on dialog open. */}
-          {src && !imageReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-stone-900">
+          {src && !imageReady && !imageFailed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-stone-900 px-6 text-center">
               <Loader2
                 className="w-7 h-7 text-keeper-meta animate-spin"
                 aria-label="Preparing photo"
               />
+              {slowLoad && (
+                <p className="text-[13px] leading-snug text-keeper-meta">
+                  Still working — this one's a big file.
+                </p>
+              )}
+            </div>
+          )}
+          {src && imageFailed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-stone-900 px-6 text-center">
+              <ImageOff className="w-7 h-7 text-keeper-meta" aria-hidden="true" />
+              <p className="text-[13px] leading-snug text-keeper-meta">
+                This photo wouldn't open on your device.
+              </p>
             </div>
           )}
           {src && (
@@ -318,6 +357,12 @@ export function CropDialog({
                 <img
                   src={src}
                   onLoad={onImageLoad}
+                  // Without this the dialog spins forever on an undecodable
+                  // photo — spinner, no message, no way forward.
+                  onError={() => {
+                    setImageFailed(true);
+                    setImageReady(false);
+                  }}
                   alt="Crop source"
                   className="max-h-[60vh] w-auto select-none"
                   draggable={false}

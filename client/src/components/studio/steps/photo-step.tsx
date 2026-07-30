@@ -374,24 +374,27 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     };
   }, []);
 
-  // Prefetch face detection for the photo being cropped AND every file
-  // waiting behind it. By the time each reaches CropDialog's
-  // onImageLoad, the cached result serves the auto-crop instantly — no
-  // per-photo snap delay. Only one_person mode uses auto-crop so we skip
-  // the work in group mode.
+  // Prefetch face detection for the files WAITING BEHIND the one being
+  // cropped. By the time each reaches CropDialog's onImageLoad, the
+  // cached result serves the auto-crop instantly — no per-photo snap
+  // delay for photos 2/3/4/5. Only one_person mode uses auto-crop so we
+  // skip the work in group mode.
   //
-  // stagedBase64 matters as much as the queue (2026-07-29): this used to
-  // iterate `queuedFiles` alone, but startQueue puts the FIRST file in
-  // stagedBase64 and only `rest` in queuedFiles — so the single-photo
-  // upload, far and away the common case, was never warmed at all and
-  // paid full cold inference later.
+  // The QUEUE only, deliberately. Warming the STAGED photo here looks
+  // like an obvious win and is actively harmful (tried and reverted
+  // 2026-07-30): CropDialog already runs detectFaces on that exact
+  // dataUrl in its own onImageLoad, so it's redundant — and it starts
+  // heavy synchronous inference at the very moment the dialog is trying
+  // to decode and paint that image, delaying the <img> onLoad the user
+  // is staring at a spinner waiting for. The queue works precisely
+  // because those files have idle time to exploit; the staged one has
+  // none.
   useEffect(() => {
     if (mode !== 'one_person') return;
-    if (stagedBase64) prefetchFaces(stagedBase64);
     for (const item of queuedFiles) {
       prefetchFaces(item.base64);
     }
-  }, [mode, stagedBase64, queuedFiles]);
+  }, [mode, queuedFiles]);
 
   // Replace-intent flag (edit overlay): the NEXT committed photo
   // replaces the current selection instead of appending. Group mode
