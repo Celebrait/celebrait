@@ -110,6 +110,87 @@ function parseAnalysisJson(raw: string): AnalysisResult | null {
 }
 
 /**
+ * Run the vision pass over raw image bytes. THE single place the model,
+ * prompt and parsing live.
+ *
+ * Extracted so the admin Photo Lab exercises the EXACT path production
+ * uses (2026-07-30). A lab that reimplements the call is worthless the
+ * moment the two drift — and drift is invisible, because both sides
+ * keep "working". Everything that decides the answer is in here;
+ * analyzePhoto adds only persistence and cost logging on top.
+ *
+ * Returns null `result` when the key is missing or the model's JSON
+ * won't parse. Never throws.
+ */
+export async function runPhotoVision(args: {
+  imageBytes: Buffer;
+  mimeType: string;
+}): Promise<{
+  result: AnalysisResult | null;
+  raw: string;
+  model: string;
+  durationMs: number;
+  promptTokens: number;
+  outputTokens: number;
+  noApiKey?: true;
+}> {
+  const startedAt = Date.now();
+  const client = getClient();
+  if (!client) {
+    return {
+      result: null, raw: '', model: ANALYSIS_MODEL,
+      durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true,
+    };
+  }
+  const response = await client.models.generateContent({
+    model: ANALYSIS_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: ANALYSIS_PROMPT },
+          { inlineData: { mimeType: args.mimeType, data: args.imageBytes.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      // ── This block is why analysis silently failed 100% of the time
+      //    from launch until 2026-07-30. Do not "tidy" it. ────────────
+      //
+      // gemini-2.5-flash is a THINKING model, and thinking tokens are
+      // charged against maxOutputTokens. The prompt's four strict NEVER
+      // rules reliably provoke ~240-360 thinking tokens, which swallowed
+      // the entire 256 budget: the call came back finishReason
+      // MAX_TOKENS with 10 visible tokens — `{"personCount": 2,` — so
+      // the JSON never parsed. 99 photos, 80 attempts, 0 successes, and
+      // it never once surfaced because the failure path just stamps
+      // analyzedAt and moves on.
+      //
+      // thinkingBudget 0 is the right fix rather than simply raising the
+      // ceiling: this is flat extraction, not reasoning, so the thinking
+      // bought nothing — and paying for ~360 thinking tokens on every
+      // single upload is real money for no gain. Measured after the fix:
+      // 0 thinking, ~75 output, finishReason STOP.
+      thinkingConfig: { thinkingBudget: 0 },
+      // Headroom anyway, so a future model that ignores thinkingBudget
+      // degrades to "costs a bit more" rather than "silently broken".
+      maxOutputTokens: 512,
+      // Low temperature — we want consistent factual descriptions.
+      temperature: 0.2,
+    },
+  });
+  const raw = response.text ?? '';
+  return {
+    result: parseAnalysisJson(raw),
+    raw,
+    model: ANALYSIS_MODEL,
+    durationMs: Date.now() - startedAt,
+    promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+  };
+}
+
+/**
  * Analyse a photo and persist the summary onto its row. Resolves
  * regardless of success — failures are logged but never thrown, since
  * this runs as a fire-and-forget after the upload response has already
@@ -127,8 +208,10 @@ export async function analyzePhoto(args: {
   const { photoId, imageAbsPath, mimeType } = args;
 
   try {
-    const client = getClient();
-    if (!client) {
+    const imageBytes = await fs.readFile(imageAbsPath);
+    const vision = await runPhotoVision({ imageBytes, mimeType });
+
+    if (vision.noApiKey) {
       // No GEMINI_API_KEY in this environment. Don't retry endlessly —
       // mark analyzedAt so the row is in a settled state, and bail.
       console.warn(
@@ -141,51 +224,22 @@ export async function analyzePhoto(args: {
       return;
     }
 
-    const imageBytes = await fs.readFile(imageAbsPath);
-    const inlineBase64 = imageBytes.toString('base64');
-
-    const llmStartedAt = Date.now();
-    const response = await client.models.generateContent({
-      model: ANALYSIS_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: ANALYSIS_PROMPT },
-            { inlineData: { mimeType, data: inlineBase64 } },
-          ],
-        },
-      ],
-      config: {
-        // Tight output — analysis is 25-60 words. 256 tokens is plenty
-        // and caps cost in case the model decides to monologue.
-        maxOutputTokens: 256,
-        // Low temperature — we want consistent factual descriptions.
-        temperature: 0.2,
-      },
-    });
-
-    const rawText = response.text ?? '';
-    const parsed = parseAnalysisJson(rawText);
+    const rawText = vision.raw;
+    const parsed = vision.result;
 
     // Cost Ledger (audit 2026-07-29): photo analysis fires on EVERY
     // upload and was spending unrecorded money. No cardId exists yet at
     // upload time; the slot itself is the roll-up. Fire-and-forget.
-    const usage = response.usageMetadata;
     void logGeneration({
       cardId: null,
       slot: LLM_SLOTS.PHOTO_ANALYSIS,
       templateId: null,
       templateVersion: null,
       provider: 'gemini',
-      model: ANALYSIS_MODEL,
+      model: vision.model,
       quality: null,
-      costCents: llmCostCents(
-        ANALYSIS_MODEL,
-        usage?.promptTokenCount ?? 0,
-        usage?.candidatesTokenCount ?? 0,
-      ),
-      durationMs: Date.now() - llmStartedAt,
+      costCents: llmCostCents(vision.model, vision.promptTokens, vision.outputTokens),
+      durationMs: vision.durationMs,
       success: !!parsed,
       errorCode: parsed ? null : 'parse_failed',
     });
