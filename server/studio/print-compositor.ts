@@ -56,17 +56,28 @@ const QR_TARGET = (() => {
 // so modest it won't scan: ~26mm printed is the practical floor for a
 // phone at arm's length.
 const QR_W = Math.round(PANEL_W * 0.2);
-const QR_CAPTION_PX = Math.round(PANEL_H * 0.032);
+// Small on purpose (Kevin 2026-07-30) — a nudge, not a shout. It only
+// has to be legible at arm's length once someone's already looking.
+const QR_CAPTION_PX = Math.round(PANEL_H * 0.022);
+// The QR sits at the FOOT of the back panel, same margin the wordmark
+// used to use, so it reads as a footer mark rather than free-floating.
+const QR_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
 
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
 // panel — matching the 3D render — and on the rear). Sizing mirrors
-// the render's cover-back texture: ~24% of the face width, sitting
-// ~6% off the bottom edge, centred.
+// the render's cover-back texture: ~24% of the face width.
+//
+// Positioning is decided PER PANEL, not here, because the two panels
+// want different things (Kevin 2026-07-30):
+//   inside-left → bottom-centred, because it has to keep matching the
+//                 3D viewer's cover-back or the on-screen preview stops
+//                 agreeing with the printed card.
+//   back        → dead centre of the square, with the QR at the foot.
 const LOGO_W = Math.round(PANEL_W * 0.24);
 const LOGO_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
 
 let logoOverlayPromise:
-  | Promise<{ input: Buffer; top: number; left: number } | null>
+  | Promise<{ input: Buffer; width: number; height: number } | null>
   | null = null;
 
 /** Load + size the celebrait logo once per process. Resolution is
@@ -91,11 +102,7 @@ function loadLogoOverlay() {
         }
         const input = await sharp(file).resize(LOGO_W).png().toBuffer();
         const meta = await sharp(input).metadata();
-        return {
-          input,
-          top: PANEL_H - (meta.height ?? 0) - LOGO_BOTTOM_MARGIN,
-          left: Math.round((PANEL_W - LOGO_W) / 2),
-        };
+        return { input, width: LOGO_W, height: meta.height ?? 0 };
       } catch (err) {
         console.warn("[print-compositor] logo overlay failed — printing unbranded panels", err);
         return null;
@@ -204,7 +211,18 @@ async function insideLeftPanel(): Promise<Buffer> {
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
   if (!logo) return base.png().toBuffer();
-  return base.composite([logo]).png().toBuffer();
+  // Bottom-centred — matches the 3D viewer's cover-back. Don't move this
+  // without moving the render too, or preview and print disagree.
+  return base
+    .composite([
+      {
+        input: logo.input,
+        top: PANEL_H - logo.height - LOGO_BOTTOM_MARGIN,
+        left: Math.round((PANEL_W - logo.width) / 2),
+      },
+    ])
+    .png()
+    .toBuffer();
 }
 
 /** Back-of-card panel — a discreet celebrait logo only. The signed
@@ -219,32 +237,39 @@ async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
   });
 
   const layers: sharp.OverlayOptions[] = [];
-  if (logo) layers.push(logo);
 
-  // Stack UPWARD from the wordmark so the three marks read as one block
-  // pinned to the bottom edge — the way a real card back is laid out —
-  // rather than drifting around the middle of an empty panel.
-  if (qr) {
-    const qrMeta = await sharp(qr).resize(QR_W).png().toBuffer();
-    const { height: qrH = QR_W } = await sharp(qrMeta).metadata();
-    const logoTop = logo?.top ?? PANEL_H - LOGO_BOTTOM_MARGIN;
-    const gap = Math.round(PANEL_H * 0.035);
-
-    const caption = await renderCaption("Scan to make your own", PANEL_W);
-    let cursor = logoTop - gap;
-
-    if (caption) {
-      const { height: capH = 0 } = await sharp(caption).metadata();
-      cursor -= capH;
-      layers.push({ input: caption, top: cursor, left: 0 });
-      cursor -= Math.round(gap * 0.4);
-    }
-    cursor -= qrH;
+  // Wordmark sits dead centre of the square (Kevin 2026-07-30) — it's
+  // the panel's anchor, not a footer.
+  if (logo) {
     layers.push({
-      input: qrMeta,
-      top: cursor,
+      input: logo.input,
+      top: Math.round((PANEL_H - logo.height) / 2),
+      left: Math.round((PANEL_W - logo.width) / 2),
+    });
+  }
+
+  // QR pinned to the FOOT, caption tucked directly above it, so the pair
+  // reads as one small mark at the bottom edge and leaves the centred
+  // wordmark plenty of air.
+  if (qr) {
+    const qrScaled = await sharp(qr).resize(QR_W).png().toBuffer();
+    const { height: qrH = QR_W } = await sharp(qrScaled).metadata();
+    const qrTop = PANEL_H - qrH - QR_BOTTOM_MARGIN;
+    layers.push({
+      input: qrScaled,
+      top: qrTop,
       left: Math.round((PANEL_W - QR_W) / 2),
     });
+
+    const caption = await renderCaption("Scan to make your own", PANEL_W);
+    if (caption) {
+      const { height: capH = 0 } = await sharp(caption).metadata();
+      layers.push({
+        input: caption,
+        top: qrTop - capH - Math.round(PANEL_H * 0.012),
+        left: 0,
+      });
+    }
   }
 
   if (layers.length === 0) return base.png().toBuffer();
