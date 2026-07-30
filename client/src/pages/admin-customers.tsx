@@ -55,6 +55,36 @@ interface OrderRow {
   createdAt: string | null;
   paidAt: string | null;
 }
+interface StudioPhoto {
+  id: number;
+  missing?: boolean;
+  originalFilename?: string;
+  thumbnailPath?: string;
+  storagePath?: string;
+  croppedStoragePath?: string | null;
+  width?: number;
+  height?: number;
+  cropBounds?: { x: number; y: number; width: number; height: number } | null;
+  /** % of the ORIGINAL frame kept by the crop. Small = tight = good for
+   *  likeness. Large = the face is tiny once the provider downscales. */
+  cropAreaPct?: number | null;
+  personCount?: number | null;
+  visualSummary?: string | null;
+}
+/** What the customer actually did in the studio. Read straight off the
+ *  draft we already store — this is the trail for "why doesn't this card
+ *  look like them?". */
+interface StudioTrail {
+  photoMode: string | null;
+  sceneDescription: string | null;
+  occasion: string | null;
+  recipientName: string | null;
+  insideMode: string | null;
+  frontMode: string | null;
+  lastStep: number | null;
+  templates: Array<{ slot: string; templateId: number; templateVersion: number | null; model: string }>;
+  photos: StudioPhoto[];
+}
 interface CardRow {
   id: number;
   sceneType: string | null;
@@ -66,6 +96,7 @@ interface CardRow {
   viewToken: string | null;
   createdAt: string | null;
   gen: CardGen;
+  studio: StudioTrail;
 }
 interface LeadRow {
   id: number;
@@ -425,6 +456,7 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                       <GenLine label="Front" side={c.gen.front} />
                       <GenLine label="Inside" side={c.gen.inside} />
                     </div>
+                    <StudioTrailPanel trail={c.studio} />
                   </div>
                 ))}
               </div>
@@ -432,6 +464,156 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+/** "What they did" — the studio inputs behind one card.
+ *
+ *  Exists because a card that doesn't look like its subject is almost
+ *  always an INPUT problem, and until now none of the inputs reached
+ *  this screen. Collapsed by default so the card grid stays scannable.
+ *
+ *  The crop overlay is the point of the whole panel: seeing how much of
+ *  the frame the customer kept tells you in one glance whether the face
+ *  had enough pixels to survive the provider's 1024px downscale. */
+function StudioTrailPanel({ trail }: { trail: StudioTrail | undefined }) {
+  if (!trail) return null;
+  const modeLabel =
+    trail.photoMode === 'one_person'
+      ? 'Just them (single)'
+      : trail.photoMode === 'group'
+        ? 'Group'
+        : trail.photoMode ?? '—';
+
+  return (
+    <details className="mt-2 border-t border-stone-100 pt-1.5">
+      <summary className="cursor-pointer list-none text-[11px] font-medium text-stone-500 hover:text-stone-700">
+        What they did ▸
+      </summary>
+
+      <dl className="mt-2 space-y-1 text-[11px]">
+        <Row label="Photo mode" value={modeLabel} emphasis />
+        <Row label="Occasion" value={trail.occasion ?? '—'} />
+        <Row label="Recipient" value={trail.recipientName ?? '—'} />
+        <Row label="Inside" value={trail.insideMode ?? '—'} />
+      </dl>
+
+      {trail.sceneDescription && (
+        <div className="mt-2">
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">Scene they asked for</div>
+          <p className="mt-0.5 rounded bg-stone-50 p-1.5 text-[11px] italic leading-snug text-stone-700">
+            “{trail.sceneDescription}”
+          </p>
+        </div>
+      )}
+
+      {trail.photos.length > 0 && (
+        <div className="mt-2 space-y-2">
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">
+            Photo{trail.photos.length > 1 ? 's' : ''} they used
+          </div>
+          {trail.photos.map((p) => (
+            <PhotoTrail key={p.id} photo={p} />
+          ))}
+        </div>
+      )}
+
+      {trail.templates.length > 0 && (
+        <div className="mt-2">
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">Prompt version that ran</div>
+          <ul className="mt-0.5 space-y-0.5">
+            {trail.templates.map((t, i) => (
+              <li key={i} className="text-[11px] text-stone-600">
+                {t.slot} → <span className="font-medium">#{t.templateId} v{t.templateVersion ?? '?'}</span>
+                <span className="text-stone-400"> · {t.model}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </details>
+  );
+}
+
+function PhotoTrail({ photo: p }: { photo: StudioPhoto }) {
+  if (p.missing) {
+    return <p className="text-[11px] text-stone-400">Photo #{p.id} — deleted</p>;
+  }
+  const cb = p.cropBounds;
+  // cropBounds are in ORIGINAL pixel coordinates (server-authoritative,
+  // see crop-dialog) — convert to % so the box lands correctly whatever
+  // size the thumbnail renders at.
+  const box =
+    cb && p.width && p.height
+      ? {
+          left: `${(cb.x / p.width) * 100}%`,
+          top: `${(cb.y / p.height) * 100}%`,
+          width: `${(cb.width / p.width) * 100}%`,
+          height: `${(cb.height / p.height) * 100}%`,
+        }
+      : null;
+  // What actually predicts a weak likeness is the crop's PIXEL size, not
+  // what fraction of the frame it kept. A 73% crop of a 3390px photo is
+  // still ~2900px of face detail; the same 73% of a 720px screenshot is
+  // ~270px, which the provider then upscales to 1024 and invents the
+  // difference. Flagging on percentage marked almost everything (the
+  // default centred crop is 80% wide, so ~64% area) — useless noise.
+  const cropPx =
+    cb && cb.width && cb.height ? { w: Math.round(cb.width), h: Math.round(cb.height) } : null;
+  const lowDetail = cropPx ? Math.min(cropPx.w, cropPx.h) < 600 : false;
+
+  return (
+    <div className="flex gap-2">
+      <div className="relative w-20 shrink-0 overflow-hidden rounded border border-stone-200 bg-stone-50">
+        <img
+          src={`/images/${p.storagePath}`}
+          alt={`Photo ${p.id} as uploaded`}
+          className="block w-full"
+          loading="lazy"
+        />
+        {box && (
+          <div
+            className="pointer-events-none absolute border-2 border-violet-500/90 bg-violet-500/10"
+            style={box}
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 text-[11px] leading-snug text-stone-600">
+        <div>
+          <span className="text-stone-400">#{p.id}</span>{' '}
+          {p.width}×{p.height}
+        </div>
+        {cropPx && (
+          <div className={lowDetail ? 'font-medium text-amber-700' : 'text-stone-500'}>
+            Crop {cropPx.w}×{cropPx.h}
+            {typeof p.cropAreaPct === 'number' && (
+              <span className="text-stone-400"> ({p.cropAreaPct}% of frame)</span>
+            )}
+            {lowDetail && ' — low detail, upscaled'}
+          </div>
+        )}
+        {p.personCount != null && (
+          <div className="text-stone-500">
+            Vision saw {p.personCount === 3 ? '3+' : p.personCount} person
+            {p.personCount === 1 ? '' : 's'}
+          </div>
+        )}
+        {p.visualSummary && (
+          <p className="mt-0.5 italic text-stone-400">{p.visualSummary}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <dt className="text-stone-400">{label}</dt>
+      <dd className={`truncate text-right ${emphasis ? 'font-medium text-stone-800' : 'text-stone-600'}`}>
+        {value}
+      </dd>
     </div>
   );
 }

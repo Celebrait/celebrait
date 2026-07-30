@@ -216,11 +216,59 @@ export function registerAdminCustomersRoutes(app: Express): void {
           select id, scene_type as "sceneType", card_type as "cardType",
                  status, front_image_url as "frontImageUrl",
                  inside_image_url as "insideImageUrl", price,
-                 view_token as "viewToken", created_at as "createdAt"
+                 view_token as "viewToken", created_at as "createdAt",
+                 -- The whole studio journey: photo mode, photo ids, the
+                 -- scene they typed, occasion. Already captured on every
+                 -- card; it just had no way of reaching this screen.
+                 conversation_data as "draft"
           from cards where user_id = ${id}
           order by created_at desc limit 200
         `)
       ).rows as any[];
+
+      // Their photo library, keyed by id so a card's draft.photos.photoIds
+      // can be resolved to real images. Fetching by USER rather than by the
+      // ids inside the drafts keeps it one query and avoids unpacking JSON
+      // in SQL; a user's library is small.
+      const photoRows = (
+        await db.execute(sql`
+          select id, original_filename as "originalFilename",
+                 thumbnail_path as "thumbnailPath",
+                 storage_path as "storagePath",
+                 cropped_storage_path as "croppedStoragePath",
+                 crop_bounds as "cropBounds",
+                 width, height,
+                 person_count as "personCount",
+                 visual_summary as "visualSummary"
+          from photos where user_id = ${id}
+        `)
+      ).rows as any[];
+      const photoById = new Map<number, any>(photoRows.map((p) => [Number(p.id), p]));
+
+      // Which prompt template actually ran, per card. Diagnosing "why does
+      // this card look wrong" needs the template VERSION — prompts are
+      // DB-versioned and change under us, so the live template today may
+      // not be the one that produced a card last week.
+      const tplRows = (
+        await db.execute(sql`
+          select distinct g.card_id as "cardId", g.slot, g.template_id as "templateId",
+                 g.template_version as "templateVersion", g.model
+          from generation_log g
+          join cards c on c.id = g.card_id
+          where c.user_id = ${id} and g.template_id is not null
+        `)
+      ).rows as any[];
+      const tplByCard = new Map<number, any[]>();
+      for (const t of tplRows) {
+        const k = Number(t.cardId);
+        if (!tplByCard.has(k)) tplByCard.set(k, []);
+        tplByCard.get(k)!.push({
+          slot: t.slot,
+          templateId: Number(t.templateId),
+          templateVersion: t.templateVersion == null ? null : Number(t.templateVersion),
+          model: t.model,
+        });
+      }
 
       // Generation log per card, split front vs inside and ok vs failed.
       // Joined through cards so we only see this user's generations. Lab
@@ -301,18 +349,66 @@ export function registerAdminCustomersRoutes(app: Express): void {
           // several generations, some failed.
           gen: { ok: genOk, failed: genFail, total: genOk + genFail, costCentsX100: genCostX100 },
         },
-        cards: cards.map((c) => ({
-          id: c.id,
-          sceneType: c.sceneType,
-          cardType: c.cardType,
-          status: c.status,
-          frontImageUrl: c.frontImageUrl,
-          insideImageUrl: c.insideImageUrl,
-          price: Number(c.price),
-          viewToken: c.viewToken,
-          createdAt: c.createdAt,
-          gen: genByCard.get(Number(c.id)) ?? { front: { ok: 0, fail: 0 }, inside: { ok: 0, fail: 0 } },
-        })),
+        cards: cards.map((c) => {
+          const draft = (c.draft ?? {}) as any;
+          const photoIds: number[] = Array.isArray(draft?.photos?.photoIds)
+            ? draft.photos.photoIds.map(Number)
+            : [];
+          return {
+            id: c.id,
+            sceneType: c.sceneType,
+            cardType: c.cardType,
+            status: c.status,
+            frontImageUrl: c.frontImageUrl,
+            insideImageUrl: c.insideImageUrl,
+            price: Number(c.price),
+            viewToken: c.viewToken,
+            createdAt: c.createdAt,
+            gen: genByCard.get(Number(c.id)) ?? { front: { ok: 0, fail: 0 }, inside: { ok: 0, fail: 0 } },
+            // ── What the customer actually did in the studio ──────────
+            // Flattened out of conversation_data so the client doesn't
+            // have to know the draft's shape. `photoMode` is the answer
+            // to "single or group?" — NOT sceneType, which is a
+            // different thing and easy to mistake for it.
+            studio: {
+              photoMode: draft?.photos?.mode ?? null,
+              sceneDescription: draft?.scene?.description ?? null,
+              occasion: draft?.recipient?.occasion ?? null,
+              recipientName: draft?.recipient?.name ?? null,
+              insideMode: draft?.inside?.mode ?? null,
+              frontMode: draft?.front?.mode ?? null,
+              lastStep: typeof draft?.step === 'number' ? draft.step : null,
+              templates: tplByCard.get(Number(c.id)) ?? [],
+              photos: photoIds.map((pid) => {
+                const p = photoById.get(pid);
+                if (!p) return { id: pid, missing: true };
+                const cb = p.cropBounds as { x: number; y: number; width: number; height: number } | null;
+                // How much of the original frame survived the crop. A
+                // tight crop is good for likeness; a loose one leaves the
+                // face tiny after the provider's 1024px downscale, which
+                // is the usual reason a card doesn't resemble anyone.
+                const cropAreaPct =
+                  cb && p.width && p.height
+                    ? Math.round(((cb.width * cb.height) / (Number(p.width) * Number(p.height))) * 100)
+                    : null;
+                return {
+                  id: pid,
+                  originalFilename: p.originalFilename,
+                  thumbnailPath: p.thumbnailPath,
+                  storagePath: p.storagePath,
+                  croppedStoragePath: p.croppedStoragePath,
+                  width: Number(p.width),
+                  height: Number(p.height),
+                  cropBounds: cb,
+                  cropAreaPct,
+                  // From the existing vision pass (server/photos/analyze.ts).
+                  personCount: p.personCount == null ? null : Number(p.personCount),
+                  visualSummary: p.visualSummary,
+                };
+              }),
+            },
+          };
+        }),
         orders: orders.map(normalizeOrder),
       });
     } catch (err) {
