@@ -152,12 +152,68 @@ export interface FaceAssessment {
   expressionRisk: boolean;
   lighting: 'even' | 'harsh shadow' | 'strong colour cast' | 'backlit' | 'too dark' | 'blown out';
   focus: 'sharp' | 'slightly soft' | 'blurred';
+  /** Head height as a % of image height. Preferred over the coarse
+   *  sizeInFrame bucket for the resolution guard. */
+  headHeightPct?: number;
 }
 export interface LikenessAssessment {
   faces: FaceAssessment[];
   verdict: 'strong' | 'usable' | 'weak';
   reason: string;
   advice: string;
+  /** Roughly how many pixels tall the biggest face is in the ORIGINAL
+   *  file. Populated by the resolution guard below, not the model. */
+  biggestFacePx?: number;
+}
+
+// ── Resolution guard ────────────────────────────────────────────────
+// sizeInFrame is RELATIVE, and on its own it lies. A 168x300 phone
+// screenshot can honestly report "large in frame" while the face is
+// ~100 real pixels — nowhere near enough to rebuild someone, and the
+// model has no reliable sense of absolute scale to catch it.
+//
+// So we convert the relative bucket into approximate real pixels using
+// the image height we already know, and override the verdict when the
+// face is simply too small. Deterministic, and it can only ever
+// DOWNGRADE — the model stays in charge of everything it can actually
+// see (angle, occlusion, expression, lighting).
+// Fallback only — used when the model omits headHeightPct. Bucket
+// midpoints are lossy, which is exactly why the numeric field exists:
+// deriving pixels from a 4-bucket estimate once called a perfectly good
+// 675x900 portrait "weak".
+const FACE_FRACTION: Record<FaceAssessment['sizeInFrame'], number> = {
+  large: 0.35, medium: 0.20, small: 0.07, tiny: 0.03,
+};
+// Thresholds are deliberately FORGIVING. A false "weak" tells someone to
+// re-shoot a photo that would have worked — worse than staying quiet,
+// because it costs them a good card and our credibility. Only flag when
+// the face is genuinely too small to rebuild.
+const FACE_PX_WEAK = 130;
+const FACE_PX_SOFT = 260;
+
+function applyResolutionGuard(a: LikenessAssessment, imageHeight: number | undefined): LikenessAssessment {
+  if (!imageHeight || !a.faces?.length) return a;
+  const px = Math.round(
+    Math.max(
+      ...a.faces.map((f) => {
+        const pct = typeof f.headHeightPct === 'number' && f.headHeightPct > 0
+          ? Math.min(100, f.headHeightPct) / 100
+          : (FACE_FRACTION[f.sizeInFrame] ?? 0.1);
+        return pct * imageHeight;
+      }),
+    ),
+  );
+  const out: LikenessAssessment = { ...a, biggestFacePx: px };
+  if (px < FACE_PX_WEAK) {
+    out.verdict = 'weak';
+    out.reason = `The biggest face is only around ${px}px tall in the original — too little detail to rebuild a likeness, whatever else the photo has going for it.`;
+    out.advice = 'Use the original full-size photo rather than a screenshot or a saved/forwarded copy.';
+  } else if (px < FACE_PX_SOFT && out.verdict === 'strong') {
+    out.verdict = 'usable';
+    out.reason = `The face is only around ${px}px tall in the original, so fine detail will be softened.`;
+    out.advice = 'A closer or larger original would sharpen the likeness.';
+  }
+  return out;
 }
 
 const LIKENESS_PROMPT = `You are judging whether a photo carries enough facial information for an AI image model to recreate each person's LIKENESS in a completely new scene, wearing a NEW expression (usually happy or smiling).
@@ -171,11 +227,23 @@ For EACH person whose face is at least partly visible, return an object:
   "sizeInFrame": "large" | "medium" | "small" | "tiny",
       // how much of the image HEIGHT the head occupies:
       // large >25%, medium 10-25%, small 4-10%, tiny <4%
+  "headHeightPct": number,
+      // The SAME measurement as a number, 1-100: roughly what percentage
+      // of the image's HEIGHT the head occupies, chin to top of hair.
+      // Estimate as precisely as you can — this is multiplied by the
+      // real pixel height to judge whether there is enough detail.
   "angle": "front-on" | "three-quarter" | "profile" | "turned-away",
   "eyesVisible": "both" | "one" | "none",
   "occlusions": string[],
-      // anything hiding facial features: "sunglasses", "hair across face",
-      // "hand", "heavy shadow", "motion blur", "hat brim". [] if none.
+      // ANYTHING hiding identity information, including HAIR. Examples:
+      // "sunglasses", "hair across face", "hand", "heavy shadow",
+      // "motion blur", "hat", "hood up", "headphones over hair",
+      // "hair fully covered", "hairline hidden", "face mask", "scarf".
+      // Hair and hairline matter as much as features: if they are
+      // covered the model has to INVENT hair, which is one of the most
+      // obvious likeness failures. Flag a hood, hat or wrap EVERY time
+      // it hides the hairline, even when the face itself is clear.
+      // [] only if genuinely nothing is obscured.
   "expression": string,
       // what the face is ACTUALLY doing, plainly: "neutral",
       // "natural smile", "big smile", "pouting", "mouth open",
@@ -193,7 +261,8 @@ Then judge the photo overall:
 {
   "verdict": "strong" | "usable" | "weak",
       // strong  = faces large, front-on or three-quarter, unobstructed,
-      //           evenly lit, sharp, neutral or naturally smiling
+      //           evenly lit, sharp, neutral or naturally smiling, and
+      //           hair/hairline visible
       // usable  = recognisable but with one real limitation
       // weak    = likeness is unlikely to survive; say so
   "reason": string,   // ONE plain sentence naming the single biggest limitation
@@ -212,6 +281,9 @@ Output JSON only. No markdown fences, no preamble.`;
 export async function assessPhotoLikeness(args: {
   imageBytes: Buffer;
   mimeType: string;
+  /** Height of the ORIGINAL image in px. Enables the resolution guard —
+   *  without it, relative face size is taken at face value. */
+  imageHeight?: number;
 }): Promise<{
   result: LikenessAssessment | null;
   raw: string;
@@ -252,7 +324,7 @@ export async function assessPhotoLikeness(args: {
     const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
     const parsed = JSON.parse(cleaned);
     if (parsed && Array.isArray(parsed.faces) && typeof parsed.verdict === 'string') {
-      result = parsed as LikenessAssessment;
+      result = applyResolutionGuard(parsed as LikenessAssessment, args.imageHeight);
     }
   } catch {
     /* leave null — caller shows the raw text */

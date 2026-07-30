@@ -21,6 +21,7 @@ interface FaceAssessment {
   expressionRisk: boolean;
   lighting: string;
   focus: string;
+  headHeightPct?: number;
 }
 interface LabResult {
   likeness?: {
@@ -31,6 +32,7 @@ interface LabResult {
     verdict?: 'strong' | 'usable' | 'weak';
     reason?: string;
     advice?: string;
+    biggestFacePx?: number;
   };
   file: {
     mimeType: string;
@@ -276,6 +278,12 @@ function LikenessPanel({ likeness: l }: { likeness: NonNullable<LabResult['liken
         Can a model rebuild these faces?
       </h2>
       <p className="mt-1 text-[15px] font-bold text-stone-900">{label}</p>
+      {typeof l.biggestFacePx === 'number' && (
+        <p className="mt-0.5 text-[12px] text-stone-500">
+          Biggest face ≈ <span className="font-semibold">{l.biggestFacePx}px</span> tall in the
+          original — the number that most predicts likeness.
+        </p>
+      )}
       {l.reason && <p className="mt-0.5 text-[13px] text-stone-700">{l.reason}</p>}
       {l.advice && <p className="mt-1 text-[13px] font-medium text-stone-800">→ {l.advice}</p>}
 

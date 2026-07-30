@@ -113,7 +113,7 @@ export function registerAdminPhotoLabRoutes(app: Express): void {
       // Vision + blur in parallel — one is network-bound, one CPU-bound.
       const [vision, likeness, sharpness] = await Promise.all([
         runPhotoVision({ imageBytes: bytes, mimeType }),
-        assessPhotoLikeness({ imageBytes: bytes, mimeType }),
+        assessPhotoLikeness({ imageBytes: bytes, mimeType, imageHeight: meta.height }),
         sharpnessScore(bytes),
       ]);
 
