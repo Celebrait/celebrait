@@ -19,6 +19,7 @@
 
 import sharp from "sharp";
 import QRCode from "qrcode";
+import opentype from "opentype.js";
 import path from "path";
 import fs from "fs";
 
@@ -55,13 +56,34 @@ const QR_TARGET = (() => {
 // Kept deliberately modest — this is a card back, not a flyer — but not
 // so modest it won't scan: ~26mm printed is the practical floor for a
 // phone at arm's length.
+// ── Back-panel stack: ONE scale, anchored to the QR ────────────────
+// The QR is the only element here with a hard physical constraint —
+// below ~26mm printed, phones stop reading it reliably — so it anchors
+// the scale and everything else is a ratio of it. Change QR_W and the
+// whole block re-proportions together instead of three magic
+// percentages drifting out of relationship with each other.
 const QR_W = Math.round(PANEL_W * 0.2);
-// Small on purpose (Kevin 2026-07-30) — a nudge, not a shout. It only
-// has to be legible at arm's length once someone's already looking.
-const QR_CAPTION_PX = Math.round(PANEL_H * 0.022);
-// The QR sits at the FOOT of the back panel, same margin the wordmark
-// used to use, so it reads as a footer mark rather than free-floating.
-const QR_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
+// Caption is sized by TARGET WIDTH, not font size. Copy on a card back
+// gets rewritten; fitting to a width means a longer line shrinks to fit
+// rather than running off the edge and quietly getting trimmed.
+const CAPTION_W = Math.round(QR_W * 2.7);
+const BACK_LOGO_W = Math.round(QR_W * 1.25);
+const STACK_GAP = Math.round(QR_W * 0.22);
+const STACK_BOTTOM = Math.round(PANEL_H * 0.075);
+
+// Caption reads left-to-right dark → brand violet, the same sweep the
+// celebrait wordmark makes (sampled off the asset: it lands ~#6065dd).
+// Tokens, not eyeballed hexes: keeper-ink and --go from the theme.
+const INK_HEX = "#211D19";
+const VIOLET_HEX = "#5c57d4";
+
+// "Unbinnable" is the brand word, so it carries the brand serif while
+// the rest stays in the body sans (Kevin 2026-07-30).
+const CAPTION_RUNS: Array<{ text: string; font: "figtree" | "fraunces" }> = [
+  { text: "Create your ", font: "figtree" },
+  { text: "Unbinnable", font: "fraunces" },
+  { text: " Greetings Card Now", font: "figtree" },
+];
 
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
 // panel — matching the 3D render — and on the rear). Sizing mirrors
@@ -167,29 +189,105 @@ function loadQrOverlay() {
   return qrOverlayPromise;
 }
 
-/** Caption under the QR. Rendered via SVG, which means the OS fontconfig
- *  has to actually resolve a font — and a container without one would
- *  silently print an EMPTY strip onto a card a customer paid for. So we
- *  render it, then check it actually marked the canvas, and drop it if
- *  not. Blank caption is a cosmetic loss; blank-because-broken shipped
- *  to a customer is not. */
-async function renderCaption(text: string, width: number): Promise<Buffer | null> {
+/** Brand fonts, loaded once. Files live in server/assets/fonts/ rather
+ *  than being resolved out of node_modules — the compositor runs from a
+ *  bundled dist/index.js in prod, and a resolution difference there
+ *  would silently print cards with no call to action at all. Same
+ *  defensive candidate-paths pattern as the logo.
+ *
+ *  Provenance: copied from @fontsource/figtree and @fontsource/fraunces
+ *  (kept in package.json so the version is recorded). Re-copy from there
+ *  if the brand weights ever change. */
+let fontsPromise: Promise<{ figtree: opentype.Font; fraunces: opentype.Font } | null> | null = null;
+function loadFonts() {
+  if (!fontsPromise) {
+    fontsPromise = (async () => {
+      try {
+        const read = (file: string) => {
+          const candidates = [
+            path.resolve(import.meta.dirname, "..", "assets", "fonts", file), // dev: server/studio/
+            path.resolve(import.meta.dirname, "..", "server", "assets", "fonts", file), // prod: dist/
+            path.resolve(process.cwd(), "server", "assets", "fonts", file),
+          ];
+          const found = candidates.find((p) => fs.existsSync(p));
+          if (!found) throw new Error(`font not found: ${file}`);
+          const b = fs.readFileSync(found);
+          return opentype.parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+        };
+        return {
+          figtree: read("figtree-latin-500-normal.woff"),
+          fraunces: read("fraunces-latin-600-normal.woff"),
+        };
+      } catch (err) {
+        console.warn("[print-compositor] brand fonts unavailable — printing back without the caption", err);
+        return null;
+      }
+    })();
+  }
+  return fontsPromise;
+}
+
+/** Render the caption as VECTOR PATHS from the bundled brand fonts.
+ *
+ *  Deliberately NOT <text> in SVG: that hands glyph resolution to the
+ *  container's fontconfig, which we don't control and which differs
+ *  between macOS and Render's image. A missing font there prints an
+ *  EMPTY strip onto a card someone paid for. Converting to outlines
+ *  ourselves means what we measure here is exactly what prints.
+ *
+ *  Mixed runs (sans body + serif brand word) are laid out by advancing
+ *  the pen across runs, then the whole line is scaled to CAPTION_W so
+ *  copy length can never overflow the panel. Fill is a single
+ *  left-to-right gradient across the full line, so the sweep runs
+ *  through the text as one continuous ramp rather than restarting per
+ *  run. */
+async function renderCaption(): Promise<Buffer | null> {
   try {
-    const h = Math.round(QR_CAPTION_PX * 1.6);
-    const svg = `<svg width="${width}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
-            font-family="sans-serif" font-size="${QR_CAPTION_PX}"
-            letter-spacing="${QR_CAPTION_PX * 0.06}" fill="#6B6259">${text}</text>
-    </svg>`;
-    const buf = await sharp(Buffer.from(svg)).png().toBuffer();
-    // Did any glyph actually land? A no-font render is a uniform canvas.
-    const { channels } = await sharp(buf).stats();
-    const inked = channels.some((c) => c.min !== c.max);
-    if (!inked) {
-      console.warn("[print-compositor] caption rendered blank (no usable font) — omitting");
-      return null;
+    const fonts = await loadFonts();
+    if (!fonts) return null;
+
+    // Measure at a nominal size, then solve for the size that lands the
+    // line exactly on CAPTION_W.
+    const NOMINAL = 100;
+    const advance = (r: (typeof CAPTION_RUNS)[number]) =>
+      fonts[r.font].getAdvanceWidth(r.text, NOMINAL);
+    const nominalW = CAPTION_RUNS.reduce((sum, r) => sum + advance(r), 0);
+    if (nominalW <= 0) return null;
+    const scale = CAPTION_W / nominalW;
+    const size = NOMINAL * scale;
+
+    // Vertical extent from the tallest ascender / deepest descender in
+    // play, so a serif's overshoot can't get clipped.
+    const ascent = Math.max(
+      ...CAPTION_RUNS.map((r) => (fonts[r.font].ascender / fonts[r.font].unitsPerEm) * size),
+    );
+    const descent = Math.max(
+      ...CAPTION_RUNS.map((r) => (Math.abs(fonts[r.font].descender) / fonts[r.font].unitsPerEm) * size),
+    );
+    const height = Math.ceil(ascent + descent);
+
+    let penX = 0;
+    const paths: string[] = [];
+    for (const run of CAPTION_RUNS) {
+      const d = fonts[run.font].getPath(run.text, penX, ascent, size).toPathData(2);
+      if (d) paths.push(`<path d="${d}"/>`);
+      penX += fonts[run.font].getAdvanceWidth(run.text, size);
     }
-    return buf;
+    if (paths.length === 0) return null;
+
+    // Centre the line on the panel; gradient spans the TEXT, not the
+    // panel, so the ramp always finishes on the last glyph.
+    const left = Math.round((PANEL_W - penX) / 2);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PANEL_W}" height="${height}">
+  <defs>
+    <linearGradient id="cap" x1="${left}" y1="0" x2="${left + penX}" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="${INK_HEX}"/>
+      <stop offset="1" stop-color="${VIOLET_HEX}"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(${left},0)" fill="url(#cap)">${paths.join("")}</g>
+</svg>`;
+    return await sharp(Buffer.from(svg)).png().toBuffer();
   } catch (err) {
     console.warn("[print-compositor] caption render failed — omitting", err);
     return null;
@@ -236,40 +334,45 @@ async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
 
+  // Bottom-anchored stack, built UPWARD from the wordmark (Kevin
+  // 2026-07-30 — back to the original arrangement, with the sizes now
+  // derived from QR_W rather than set independently):
+  //
+  //        [ QR ]
+  //   Create your Unbinnable…
+  //        celebrait          ← sits on STACK_BOTTOM
+  //
   const layers: sharp.OverlayOptions[] = [];
+  const logoScaled = logo ? await sharp(logo.input).resize(BACK_LOGO_W).png().toBuffer() : null;
+  const logoH = logoScaled ? (await sharp(logoScaled).metadata()).height ?? 0 : 0;
 
-  // Wordmark sits dead centre of the square (Kevin 2026-07-30) — it's
-  // the panel's anchor, not a footer.
-  if (logo) {
+  let cursor = PANEL_H - STACK_BOTTOM;
+
+  if (logoScaled) {
+    cursor -= logoH;
     layers.push({
-      input: logo.input,
-      top: Math.round((PANEL_H - logo.height) / 2),
-      left: Math.round((PANEL_W - logo.width) / 2),
+      input: logoScaled,
+      top: cursor,
+      left: Math.round((PANEL_W - BACK_LOGO_W) / 2),
     });
   }
 
-  // QR pinned to the FOOT, caption tucked directly above it, so the pair
-  // reads as one small mark at the bottom edge and leaves the centred
-  // wordmark plenty of air.
+  const caption = await renderCaption();
+  if (caption) {
+    const { height: capH = 0 } = await sharp(caption).metadata();
+    cursor -= STACK_GAP + capH;
+    layers.push({ input: caption, top: cursor, left: 0 });
+  }
+
   if (qr) {
     const qrScaled = await sharp(qr).resize(QR_W).png().toBuffer();
     const { height: qrH = QR_W } = await sharp(qrScaled).metadata();
-    const qrTop = PANEL_H - qrH - QR_BOTTOM_MARGIN;
+    cursor -= STACK_GAP + qrH;
     layers.push({
       input: qrScaled,
-      top: qrTop,
+      top: cursor,
       left: Math.round((PANEL_W - QR_W) / 2),
     });
-
-    const caption = await renderCaption("Scan to make your own", PANEL_W);
-    if (caption) {
-      const { height: capH = 0 } = await sharp(caption).metadata();
-      layers.push({
-        input: caption,
-        top: qrTop - capH - Math.round(PANEL_H * 0.012),
-        left: 0,
-      });
-    }
   }
 
   if (layers.length === 0) return base.png().toBuffer();
