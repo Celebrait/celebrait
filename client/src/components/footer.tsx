@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import logoSrc from "../assets/Logo2.png";
+import logoSrc from "../assets/logo-mark.webp";
 import { CONTROLLER } from "@/lib/legal";
 
 // Footer used on the legal pages (privacy / terms). UK identity — the

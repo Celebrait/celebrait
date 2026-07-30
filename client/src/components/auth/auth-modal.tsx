@@ -23,7 +23,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import logoSrc from '@/assets/Logo2.png';
+import logoSrc from '@/assets/logo-mark.webp';
 import { AuthForm, authHeadingCopy, type AuthStep } from './auth-form';
 
 const DEFAULT_REDIRECT = '/studio/new-card';

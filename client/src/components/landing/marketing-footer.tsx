@@ -10,7 +10,7 @@
 
 import { Link } from 'wouter';
 import { Instagram, ArrowRight } from 'lucide-react';
-import logoSrc from '@/assets/Logo2.png';
+import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 

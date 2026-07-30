@@ -47,7 +47,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
-import celebraitLogo from '@/assets/celebrait.png';
+import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -287,10 +287,32 @@ function CardPair({
   // proportional match. (Was rounded-2xl = 16px: twice as round.)
   const img =
     'w-[92%] sm:w-[55%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
+  // width/height are the INTRINSIC pixels (all proof art is square
+  // 900×900), not a display size — the CSS width still governs. They
+  // exist so the browser reserves the right box before the bytes land.
+  // Without them these two auto-height images popped in one after the
+  // other and shoved the section around as they decoded: the exact
+  // "staggering, looks cheap" Kevin called out (2026-07-29).
   return (
     <div className="flex flex-col gap-5">
-      <img src={first} alt="" loading="lazy" className={`${img} self-start`} />
-      <img src={second} alt={alt} loading="lazy" className={`${img} self-end`} />
+      <img
+        src={first}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        width={900}
+        height={900}
+        className={`${img} self-start`}
+      />
+      <img
+        src={second}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        width={900}
+        height={900}
+        className={`${img} self-end`}
+      />
     </div>
   );
 }
@@ -681,7 +703,13 @@ function HeroProof() {
           className="h-full w-full object-cover"
           width={1100}
           height={734}
-          fetchPriority="high"
+          // Lowercase, and spread, on purpose. React 18.3 does NOT know
+          // the camelCase `fetchPriority` prop — it warns and DROPS it,
+          // so the hint this line exists for was never reaching the DOM.
+          // Lowercase isn't in React's img typings either, hence the
+          // spread. Revisit when we're on React 19, which supports the
+          // camelCase form natively.
+          {...{ fetchpriority: 'high' }}
         />
       </div>
 
@@ -1454,17 +1482,31 @@ function HandoverSection() {
                 sticker that goes on the direct-to-recipient kraft envelope.
                 Signals the sealed D2R option; sits above the card cluster
                 (top-right). Static tilt + shadow read it as a real sticker. */}
+            {/* Deliberately NOT /envelope-seal.png: that file is the
+                PRODIGI PRINT asset (803×803 PNG, fetched by URL by
+                prodigi-provider.ts) and must not change. It's 804KB —
+                which we were shipping to every visitor to draw a 240px
+                sticker. This is the same art at web size: 28KB, −96%. */}
             <img
-              src="/envelope-seal.png"
+              src="/envelope-seal-web.webp"
               alt="Celebrait envelope seal — only open on your special day"
+              loading="lazy"
+              decoding="async"
+              width={480}
+              height={480}
               className="pointer-events-none absolute -top-12 right-0 z-20 w-28 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-32 md:-top-20 md:-right-10 md:w-52 lg:w-60"
             />
+            {/* Intrinsic 1100×734 — reserves the box so the pair doesn't
+                shove the section as each one decodes (see ProofPair). */}
             {HANDOVER.map((h, i) => (
               <img
                 key={h.tag}
                 src={h.img}
                 alt={h.alt}
                 loading="lazy"
+                decoding="async"
+                width={1100}
+                height={734}
                 className={`w-[92%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5 sm:w-[55%] ${
                   i === 0 ? 'self-start' : 'self-end'
                 }`}

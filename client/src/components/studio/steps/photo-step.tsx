@@ -177,15 +177,6 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Kick off the face-detection model load as soon as this step mounts.
-  // The user spends a few seconds on mode copy + clicking upload before
-  // they'd actually need detection — loading it in parallel with their
-  // reading turns a cold-start wait into an instant snap-to-face. Noop
-  // on re-mount; internal cache dedupes.
-  useEffect(() => {
-    prewarmFaceDetection();
-  }, []);
-
   // Library state — only fetched once a photo picker would be shown.
   const { data: photos } = useQuery<Photo[]>({
     queryKey: ['/api/user/photos'],
@@ -215,6 +206,23 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     .filter((p): p is Photo => !!p);
   const recipientName = state.recipient?.name?.trim() || '';
   const atMax = selectedIds.length >= MAX_PHOTOS[mode];
+
+  // Kick off the face-detection model load once the user is in a mode
+  // that will actually USE it. They spend a few seconds on mode copy +
+  // clicking upload before detection is needed, so loading it alongside
+  // their reading turns a cold start into an instant snap-to-face. Noop
+  // on re-mount; internal cache dedupes.
+  //
+  // Gated on one_person (2026-07-29) because that's the ONLY mode that
+  // consumes it: auto-crop is `autoFace={mode === 'one_person'}` and the
+  // face-count nudge only runs in that direction (see scheduleFaceHint).
+  // Ungated, group mode pulled 1.3MB of JS plus 5.4MB of SSD MobileNet
+  // weights for a result nothing reads — on a phone that's the user's
+  // bandwidth competing with their own photo upload.
+  useEffect(() => {
+    if (mode !== 'one_person') return;
+    prewarmFaceDetection();
+  }, [mode]);
 
   // UI state for the pending upload.
   const [stagedSrc, setStagedSrc] = useState<string | null>(null);

@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AuthForm, authHeadingCopy, type AuthStep } from '@/components/auth/auth-form';
 import { toast } from '@/hooks/use-toast';
-import logoSrc from '@/assets/Logo2.png';
+import logoSrc from '@/assets/logo-mark.webp';
 import heartIcon from '@/assets/icons/heart.png';
 import ringIcon from '@/assets/icons/ring.png';
 import cakeIcon from '@/assets/icons/cake.png';

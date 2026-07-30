@@ -91,15 +91,28 @@
       href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"
       rel="stylesheet"
     />
-    <!-- Hero card art (public/, stable URLs — see landing-keeper.tsx).
+    <!-- Hero art (public/, stable URLs — see landing-keeper.tsx).
          Preloading from the HTML head starts the download in PARALLEL
          with the JS bundle; as bundled assets the fetch couldn't begin
          until the app had loaded and run, which is why the hero showed
-         white card stock for a beat on prod. crossorigin matters: the
-         3D viewer loads the same URLs as anonymous textures, and a
-         non-matching preload would be ignored (double download). -->
-    <link rel="preload" as="image" href="/hero-card-front.webp" fetchpriority="high" crossorigin="anonymous" />
-    <link rel="preload" as="image" href="/hero-card-inside.webp" fetchpriority="low" crossorigin="anonymous" />
+         white card stock for a beat on prod.
+
+         PRIORITIES MUST TRACK THE HERO (fixed 2026-07-29). When the hero
+         was rebuilt around real photographs, these still pointed at the
+         3D card textures — so the browser spent its first, most
+         contended connections on two images that had moved BELOW the
+         fold, while the actual LCP element (hero-real-card.webp) wasn't
+         preloaded at all and queued behind them.
+
+         crossorigin is not decoration, it's cache-key matching: a
+         preload whose CORS mode differs from the eventual fetch is
+         ignored and the file downloads TWICE.
+           - hero-real-*  → plain <img>, no crossOrigin  → omit it.
+           - hero-card-*  → r3f anonymous textures       → keep it. -->
+    <link rel="preload" as="image" href="/hero-real-card.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/hero-real-source.webp" fetchpriority="low" />
+    <!-- Below the fold now: warm the cache, but never ahead of the LCP. -->
+    <link rel="preload" as="image" href="/hero-card-front.webp" fetchpriority="low" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>

@@ -40,7 +40,7 @@ import { PRODUCTION_HOURS } from '@shared/pricing';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
-import logoSrc from '../assets/Logo2.png';
+import logoSrc from '../assets/logo-mark.webp';
 import { FabNewCard } from '@/components/studio/fab-new-card';
 import { StudioHints } from '@/components/studio/studio-hints';
 import { WelcomeMoment } from '@/components/studio/welcome-moment';

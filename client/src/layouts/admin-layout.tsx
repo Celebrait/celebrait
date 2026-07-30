@@ -8,7 +8,7 @@ import { LogOut, ExternalLink, Sparkles, BarChart3, Mail, Users, TrendingUp, typ
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
-import logoSrc from '../assets/Logo2.png';
+import logoSrc from '../assets/logo-mark.webp';
 import type { ReactNode } from 'react';
 
 interface NavItem {

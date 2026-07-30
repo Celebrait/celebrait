@@ -13,7 +13,7 @@ import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { Button } from '@/components/ui/button';
-import celebraitLogo from '@/assets/celebrait.png';
+import celebraitLogo from '@/assets/celebrait.webp';
 
 export function MarketingHeader({
   transparent = false,

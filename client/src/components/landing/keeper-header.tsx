@@ -12,7 +12,7 @@ import { Link, useLocation } from 'wouter';
 import { Send } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
-import celebraitLogo from '@/assets/celebrait.png';
+import celebraitLogo from '@/assets/celebrait.webp';
 
 const NAV_LINKS = [
   { label: 'The proof', id: 'proof' },

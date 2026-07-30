@@ -29,7 +29,7 @@ import {
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import logoSrc from '../assets/Logo2.png';
+import logoSrc from '../assets/logo-mark.webp';
 import type { CardDraftState } from '@shared/schema';
 
 // Card3DViewer lazy-loaded to keep the recipient viewer's first paint

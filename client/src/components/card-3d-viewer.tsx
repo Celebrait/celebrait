@@ -45,7 +45,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
-import celebraitLogo from '@/assets/celebrait.png';
+import celebraitLogo from '@/assets/celebrait.webp';
 
 // The server writes a display WebP next to every generated PNG (~5–9x
 // smaller — see image-storage.ts storeDisplayWebpSibling). Load THAT as the

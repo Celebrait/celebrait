@@ -13,7 +13,7 @@ import { Link } from 'wouter';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import logoSrc from '../assets/Logo2.png';
+import logoSrc from '../assets/logo-mark.webp';
 import type { ReactNode } from 'react';
 
 interface CheckoutLayoutProps {
