@@ -65,24 +65,32 @@ const QR_TARGET = (() => {
 const QR_W = Math.round(PANEL_W * 0.2);
 // Caption is sized by TARGET WIDTH, not font size. Copy on a card back
 // gets rewritten; fitting to a width means a longer line shrinks to fit
-// rather than running off the edge and quietly getting trimmed.
-const CAPTION_W = Math.round(QR_W * 2.7);
+// rather than running off the edge and quietly getting trimmed. The
+// WIDEST line is what gets fitted, so both lines share one size.
+const CAPTION_W = Math.round(QR_W * 1.85);
+const CAPTION_LINE_H = 1.28; // multiple of font size
 const BACK_LOGO_W = Math.round(QR_W * 1.25);
 const STACK_GAP = Math.round(QR_W * 0.22);
 const STACK_BOTTOM = Math.round(PANEL_H * 0.075);
 
-// Caption reads left-to-right dark → brand violet, the same sweep the
+// Gradient reads left-to-right dark → brand violet, the same sweep the
 // celebrait wordmark makes (sampled off the asset: it lands ~#6065dd).
 // Tokens, not eyeballed hexes: keeper-ink and --go from the theme.
 const INK_HEX = "#211D19";
 const VIOLET_HEX = "#5c57d4";
 
-// "Unbinnable" is the brand word, so it carries the brand serif while
-// the rest stays in the body sans (Kevin 2026-07-30).
-const CAPTION_RUNS: Array<{ text: string; font: "figtree" | "fraunces" }> = [
-  { text: "Create your ", font: "figtree" },
-  { text: "Unbinnable", font: "fraunces" },
-  { text: " Greetings Card Now", font: "figtree" },
+// Two lines, and only the brand word is special (Kevin 2026-07-30):
+// "Unbinnable" carries both the brand serif AND the gradient, so it
+// lifts out of a line that's otherwise plain sans in flat ink. Starting
+// the ramp at ink means it emerges from its neighbours rather than
+// sitting there as a detached coloured word.
+type CaptionRun = { text: string; font: "figtree" | "fraunces"; gradient?: boolean };
+const CAPTION_LINES: CaptionRun[][] = [
+  [{ text: "Create your", font: "figtree" }],
+  [
+    { text: "Unbinnable", font: "fraunces", gradient: true },
+    { text: " Greetings Card Now", font: "figtree" },
+  ],
 ];
 
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
@@ -236,56 +244,78 @@ function loadFonts() {
  *  ourselves means what we measure here is exactly what prints.
  *
  *  Mixed runs (sans body + serif brand word) are laid out by advancing
- *  the pen across runs, then the whole line is scaled to CAPTION_W so
- *  copy length can never overflow the panel. Fill is a single
- *  left-to-right gradient across the full line, so the sweep runs
- *  through the text as one continuous ramp rather than restarting per
- *  run. */
+ *  the pen across each line. ONE size is solved for the widest line and
+ *  shared by all of them, so the block stays typographically consistent
+ *  and copy length can never overflow the panel.
+ *
+ *  Fill is per-run: flat ink by default, with a gradient applied only to
+ *  runs that ask for it, each spanning exactly its own glyphs. */
 async function renderCaption(): Promise<Buffer | null> {
   try {
     const fonts = await loadFonts();
     if (!fonts) return null;
 
-    // Measure at a nominal size, then solve for the size that lands the
-    // line exactly on CAPTION_W.
+    // Measure every line at a nominal size, then solve for the size that
+    // lands the WIDEST line on CAPTION_W. Sizing off the widest is what
+    // keeps both lines in one optical block.
     const NOMINAL = 100;
-    const advance = (r: (typeof CAPTION_RUNS)[number]) =>
-      fonts[r.font].getAdvanceWidth(r.text, NOMINAL);
-    const nominalW = CAPTION_RUNS.reduce((sum, r) => sum + advance(r), 0);
-    if (nominalW <= 0) return null;
-    const scale = CAPTION_W / nominalW;
-    const size = NOMINAL * scale;
+    const nominalWidths = CAPTION_LINES.map((line) =>
+      line.reduce((sum, r) => sum + fonts[r.font].getAdvanceWidth(r.text, NOMINAL), 0),
+    );
+    const widest = Math.max(...nominalWidths);
+    if (!(widest > 0)) return null;
+    const size = NOMINAL * (CAPTION_W / widest);
 
     // Vertical extent from the tallest ascender / deepest descender in
     // play, so a serif's overshoot can't get clipped.
+    const allRuns = CAPTION_LINES.flat();
     const ascent = Math.max(
-      ...CAPTION_RUNS.map((r) => (fonts[r.font].ascender / fonts[r.font].unitsPerEm) * size),
+      ...allRuns.map((r) => (fonts[r.font].ascender / fonts[r.font].unitsPerEm) * size),
     );
     const descent = Math.max(
-      ...CAPTION_RUNS.map((r) => (Math.abs(fonts[r.font].descender) / fonts[r.font].unitsPerEm) * size),
+      ...allRuns.map((r) => (Math.abs(fonts[r.font].descender) / fonts[r.font].unitsPerEm) * size),
     );
-    const height = Math.ceil(ascent + descent);
+    const lineH = size * CAPTION_LINE_H;
+    const height = Math.ceil(lineH * (CAPTION_LINES.length - 1) + ascent + descent);
 
-    let penX = 0;
     const paths: string[] = [];
-    for (const run of CAPTION_RUNS) {
-      const d = fonts[run.font].getPath(run.text, penX, ascent, size).toPathData(2);
-      if (d) paths.push(`<path d="${d}"/>`);
-      penX += fonts[run.font].getAdvanceWidth(run.text, size);
-    }
+    const gradients: string[] = [];
+    let gradId = 0;
+
+    CAPTION_LINES.forEach((line, lineIndex) => {
+      const lineW = line.reduce((sum, r) => sum + fonts[r.font].getAdvanceWidth(r.text, size), 0);
+      let penX = (PANEL_W - lineW) / 2; // each line centred independently
+      const baseline = ascent + lineIndex * lineH;
+
+      for (const run of line) {
+        const runW = fonts[run.font].getAdvanceWidth(run.text, size);
+        const d = fonts[run.font].getPath(run.text, penX, baseline, size).toPathData(2);
+        if (d) {
+          let fill = INK_HEX;
+          if (run.gradient) {
+            const id = `g${gradId++}`;
+            // userSpaceOnUse across THIS run only, so the ramp starts and
+            // finishes on the word itself rather than being stretched
+            // across the whole line.
+            gradients.push(
+              `<linearGradient id="${id}" x1="${penX}" y1="0" x2="${penX + runW}" y2="0" gradientUnits="userSpaceOnUse">` +
+                `<stop offset="0" stop-color="${INK_HEX}"/>` +
+                `<stop offset="1" stop-color="${VIOLET_HEX}"/>` +
+                `</linearGradient>`,
+            );
+            fill = `url(#${id})`;
+          }
+          paths.push(`<path d="${d}" fill="${fill}"/>`);
+        }
+        penX += runW;
+      }
+    });
+
     if (paths.length === 0) return null;
 
-    // Centre the line on the panel; gradient spans the TEXT, not the
-    // panel, so the ramp always finishes on the last glyph.
-    const left = Math.round((PANEL_W - penX) / 2);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PANEL_W}" height="${height}">
-  <defs>
-    <linearGradient id="cap" x1="${left}" y1="0" x2="${left + penX}" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="${INK_HEX}"/>
-      <stop offset="1" stop-color="${VIOLET_HEX}"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(${left},0)" fill="url(#cap)">${paths.join("")}</g>
+  <defs>${gradients.join("")}</defs>
+  ${paths.join("")}
 </svg>`;
     return await sharp(Buffer.from(svg)).png().toBuffer();
   } catch (err) {
@@ -334,45 +364,44 @@ async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
 
-  // Bottom-anchored stack, built UPWARD from the wordmark (Kevin
-  // 2026-07-30 — back to the original arrangement, with the sizes now
-  // derived from QR_W rather than set independently):
+  // Layout (Kevin 2026-07-30): the QR + caption travel together as ONE
+  // centred group in the square; the wordmark stays pinned at the foot
+  // as a footer mark.
   //
   //        [ QR ]
-  //   Create your Unbinnable…
+  //      Create your          ← group centred on PANEL_H/2
+  //   Unbinnable Greetings…
+  //
   //        celebrait          ← sits on STACK_BOTTOM
   //
+  // The group is measured before anything is placed, because centring a
+  // stack means knowing its total height first.
   const layers: sharp.OverlayOptions[] = [];
-  const logoScaled = logo ? await sharp(logo.input).resize(BACK_LOGO_W).png().toBuffer() : null;
-  const logoH = logoScaled ? (await sharp(logoScaled).metadata()).height ?? 0 : 0;
 
-  let cursor = PANEL_H - STACK_BOTTOM;
-
-  if (logoScaled) {
-    cursor -= logoH;
+  if (logo) {
+    const logoScaled = await sharp(logo.input).resize(BACK_LOGO_W).png().toBuffer();
+    const { height: logoH = 0 } = await sharp(logoScaled).metadata();
     layers.push({
       input: logoScaled,
-      top: cursor,
+      top: PANEL_H - STACK_BOTTOM - logoH,
       left: Math.round((PANEL_W - BACK_LOGO_W) / 2),
     });
   }
 
   const caption = await renderCaption();
-  if (caption) {
-    const { height: capH = 0 } = await sharp(caption).metadata();
-    cursor -= STACK_GAP + capH;
-    layers.push({ input: caption, top: cursor, left: 0 });
-  }
+  const captionH = caption ? (await sharp(caption).metadata()).height ?? 0 : 0;
+  const qrScaled = qr ? await sharp(qr).resize(QR_W).png().toBuffer() : null;
+  const qrH = qrScaled ? (await sharp(qrScaled).metadata()).height ?? QR_W : 0;
 
-  if (qr) {
-    const qrScaled = await sharp(qr).resize(QR_W).png().toBuffer();
-    const { height: qrH = QR_W } = await sharp(qrScaled).metadata();
-    cursor -= STACK_GAP + qrH;
-    layers.push({
-      input: qrScaled,
-      top: cursor,
-      left: Math.round((PANEL_W - QR_W) / 2),
-    });
+  const groupH = qrH + (qrScaled && caption ? STACK_GAP : 0) + captionH;
+  let cursor = Math.round((PANEL_H - groupH) / 2);
+
+  if (qrScaled) {
+    layers.push({ input: qrScaled, top: cursor, left: Math.round((PANEL_W - QR_W) / 2) });
+    cursor += qrH + (caption ? STACK_GAP : 0);
+  }
+  if (caption) {
+    layers.push({ input: caption, top: cursor, left: 0 });
   }
 
   if (layers.length === 0) return base.png().toBuffer();
