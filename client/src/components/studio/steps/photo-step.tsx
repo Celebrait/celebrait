@@ -45,7 +45,13 @@ import type { LucideIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -411,8 +417,23 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     fileInputRef.current?.click();
   };
 
+  // Briefing gate before the OS picker (Kevin 2026-07-30). The two things
+  // that most often ruin a card are decided BEFORE the file dialog opens,
+  // and nothing was telling anyone:
+  //   · extra people in shot get rendered onto the front
+  //   · one photo is a weaker likeness than two or three angles
+  // Once the picker is open it's too late to say either. Deliberately on
+  // the ADD path only — triggerReplacePicker skips it, since someone
+  // swapping a photo has already read this.
+  const [briefingOpen, setBriefingOpen] = useState(false);
+
   const triggerFilePicker = () => {
     if (atMax) return;
+    setBriefingOpen(true);
+  };
+
+  const proceedToPicker = () => {
+    setBriefingOpen(false);
     fileInputRef.current?.click();
   };
 
@@ -1279,12 +1300,14 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           <Upload className="w-5 h-5 text-brand" strokeWidth={2.25} />
         </div>
         <p className="text-base font-semibold text-keeper-ink">
-          {mode === 'one_person' ? 'Upload photos' : 'Upload the group photo'}
+          {mode === 'one_person' ? 'Upload photos' : 'Upload your group photos'}
         </p>
         <p className="text-xs text-keeper-body max-w-[240px]">
           {mode === 'one_person'
-            ? `One or several — up to ${MAX_PHOTOS.one_person}.`
-            : 'Everyone already together.'}
+            ? `Two or three angles of the same person work best — up to ${MAX_PHOTOS.one_person}.`
+            : MAX_PHOTOS.group > 1
+              ? `Everyone already together. Two or three angles work best — up to ${MAX_PHOTOS.group}.`
+              : 'Everyone already together.'}
         </p>
       </button>
 
@@ -1334,6 +1357,66 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         // above for the rationale).
         aspect={mode === 'one_person' ? 1 : undefined}
       />
+
+      {/* Briefing before the OS picker. Two rules, both decided before the
+          file dialog opens and both invisible until now. Kept to two —
+          a longer list gets skimmed and neither lands. */}
+      <Dialog open={briefingOpen} onOpenChange={setBriefingOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Two things before you pick</DialogTitle>
+          <DialogDescription className="sr-only">
+            How to choose photos that make a good card.
+          </DialogDescription>
+
+          <div className="space-y-4 pt-1">
+            <div className="flex gap-3">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-muted text-[12px] font-bold text-brand">
+                1
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-keeper-ink">
+                  Only the people you want on the card
+                </p>
+                <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
+                  Anyone visible in your photo can end up on the front. If someone else is
+                  in shot, crop them out — you&rsquo;ll get the chance on the next screen.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-muted text-[12px] font-bold text-brand">
+                2
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-keeper-ink">
+                  More angles, better likeness
+                </p>
+                <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
+                  {mode === 'one_person'
+                    ? `Pick two or three of the same person — a straight-on shot and a
+                       different angle beats one photo every time. Up to ${MAX_PHOTOS.one_person}.`
+                    : `Pick two or three of the same people if you have them — different
+                       angles or lighting give us far more to work with.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setBriefingOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={proceedToPicker}
+              className="bg-go hover:bg-go-hover text-brand-foreground"
+              data-testid="btn-briefing-continue"
+            >
+              Choose photos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PhotoLibraryDrawer
         open={libraryOpen}
