@@ -18,6 +18,7 @@
 // provider at order time, sourcing images from R2.
 
 import sharp from "sharp";
+import QRCode from "qrcode";
 import path from "path";
 import fs from "fs";
 
@@ -25,6 +26,37 @@ const CANVAS_W = 6732;
 const CANVAS_H = 1713;
 const PANEL_W = Math.floor(CANVAS_W / 4); // 1683
 const PANEL_H = CANVAS_H;
+
+// ── Card-back QR (Kevin 2026-07-30) ────────────────────────────────
+// The physical card is our only surface that reaches someone who has
+// never heard of us, held at the exact moment it's working. The QR is
+// how that becomes a signup we can actually see.
+//
+// It resolves to the HOMEPAGE, not /login. Whoever scans this is a cold
+// recipient holding someone else's card — a bare sign-in form gives
+// them no reason to care. The homepage explains the thing first.
+//
+// The payload is the SHORT "/c" path, which server/index.ts 302s to the
+// homepage carrying the UTMs. Encoding the full UTM string here made the
+// printed modules ~0.6mm — decodable in a test, marginal in a dim room
+// with a smudged lens. Short payload = fewer modules = roughly double
+// the module size at the same physical footprint. Attribution is
+// unaffected: attribution.ts reads UTMs off location.search after the
+// redirect, feeding users.attribution and /admin/analytics, so we can
+// finally answer "do printed cards bring people back?"
+//
+// KEEP THIS AND THE /c ROUTE IN STEP — a card already in someone's
+// drawer cannot be re-pointed.
+const QR_TARGET = (() => {
+  const origin = (process.env.PUBLIC_APP_ORIGIN ?? "https://www.celebrait.co.uk").replace(/\/+$/, "");
+  return `${origin}/c`;
+})();
+
+// Kept deliberately modest — this is a card back, not a flyer — but not
+// so modest it won't scan: ~26mm printed is the practical floor for a
+// phone at arm's length.
+const QR_W = Math.round(PANEL_W * 0.2);
+const QR_CAPTION_PX = Math.round(PANEL_H * 0.032);
 
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
 // panel — matching the 3D render — and on the rear). Sizing mirrors
@@ -100,11 +132,79 @@ async function blankPanel(): Promise<Buffer> {
     .toBuffer();
 }
 
-/** Inside-left panel — clean cream, no branding. (The small celebrait logo
- *  was removed 2026-07-21 per Kevin so the printed card's inside reads like
- *  a normal card, not a branded one.) */
+/** QR pointing at QR_TARGET, rendered once per process. Same defensive
+ *  contract as the logo: a QR we can't generate must NEVER fail an
+ *  order — we warn and print the panel without it. */
+let qrOverlayPromise: Promise<Buffer | null> | null = null;
+function loadQrOverlay() {
+  if (!qrOverlayPromise) {
+    qrOverlayPromise = (async () => {
+      try {
+        // errorCorrectionLevel M survives the print + a bit of thumb; margin
+        // 1 keeps the quiet zone tight since we place it on clean cream.
+        // Rendered at 2x then downscaled so the module edges stay crisp at
+        // 300dpi rather than aliasing against the panel.
+        return await QRCode.toBuffer(QR_TARGET, {
+          type: "png",
+          errorCorrectionLevel: "M",
+          margin: 1,
+          width: QR_W * 2,
+          color: { dark: "#211D19ff", light: "#FBF5EAff" },
+        });
+      } catch (err) {
+        console.warn("[print-compositor] QR generation failed — printing back without it", err);
+        return null;
+      }
+    })();
+  }
+  return qrOverlayPromise;
+}
+
+/** Caption under the QR. Rendered via SVG, which means the OS fontconfig
+ *  has to actually resolve a font — and a container without one would
+ *  silently print an EMPTY strip onto a card a customer paid for. So we
+ *  render it, then check it actually marked the canvas, and drop it if
+ *  not. Blank caption is a cosmetic loss; blank-because-broken shipped
+ *  to a customer is not. */
+async function renderCaption(text: string, width: number): Promise<Buffer | null> {
+  try {
+    const h = Math.round(QR_CAPTION_PX * 1.6);
+    const svg = `<svg width="${width}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+            font-family="sans-serif" font-size="${QR_CAPTION_PX}"
+            letter-spacing="${QR_CAPTION_PX * 0.06}" fill="#6B6259">${text}</text>
+    </svg>`;
+    const buf = await sharp(Buffer.from(svg)).png().toBuffer();
+    // Did any glyph actually land? A no-font render is a uniform canvas.
+    const { channels } = await sharp(buf).stats();
+    const inked = channels.some((c) => c.min !== c.max);
+    if (!inked) {
+      console.warn("[print-compositor] caption rendered blank (no usable font) — omitting");
+      return null;
+    }
+    return buf;
+  } catch (err) {
+    console.warn("[print-compositor] caption render failed — omitting", err);
+    return null;
+  }
+}
+
+/** Inside-left panel — cream with the small celebrait wordmark at the
+ *  bottom, matching the inside-left of the 3D render.
+ *
+ *  History worth keeping: the logo was REMOVED here 2026-07-21 so the
+ *  inside read like a normal card, then restored 2026-07-30 (Kevin).
+ *  Restoring it also closes a real preview/print mismatch — the 3D
+ *  viewer has been drawing this wordmark on the cover-back the whole
+ *  time (see usePaperTexture's logoUrl), so the card the customer
+ *  approved on screen didn't match the one that arrived. */
 async function insideLeftPanel(): Promise<Buffer> {
-  return blankPanel();
+  const logo = await loadLogoOverlay();
+  const base = sharp({
+    create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
+  });
+  if (!logo) return base.png().toBuffer();
+  return base.composite([logo]).png().toBuffer();
 }
 
 /** Back-of-card panel — a discreet celebrait logo only. The signed
@@ -113,12 +213,42 @@ async function insideLeftPanel(): Promise<Buffer> {
  *  printed card back isn't self-promotional. `senderFirstName` is kept in
  *  the signature for the caller but no longer rendered. */
 async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
-  const logo = await loadLogoOverlay();
+  const [logo, qr] = await Promise.all([loadLogoOverlay(), loadQrOverlay()]);
   const base = sharp({
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
-  if (!logo) return base.png().toBuffer();
-  return base.composite([logo]).png().toBuffer();
+
+  const layers: sharp.OverlayOptions[] = [];
+  if (logo) layers.push(logo);
+
+  // Stack UPWARD from the wordmark so the three marks read as one block
+  // pinned to the bottom edge — the way a real card back is laid out —
+  // rather than drifting around the middle of an empty panel.
+  if (qr) {
+    const qrMeta = await sharp(qr).resize(QR_W).png().toBuffer();
+    const { height: qrH = QR_W } = await sharp(qrMeta).metadata();
+    const logoTop = logo?.top ?? PANEL_H - LOGO_BOTTOM_MARGIN;
+    const gap = Math.round(PANEL_H * 0.035);
+
+    const caption = await renderCaption("Scan to make your own", PANEL_W);
+    let cursor = logoTop - gap;
+
+    if (caption) {
+      const { height: capH = 0 } = await sharp(caption).metadata();
+      cursor -= capH;
+      layers.push({ input: caption, top: cursor, left: 0 });
+      cursor -= Math.round(gap * 0.4);
+    }
+    cursor -= qrH;
+    layers.push({
+      input: qrMeta,
+      top: cursor,
+      left: Math.round((PANEL_W - QR_W) / 2),
+    });
+  }
+
+  if (layers.length === 0) return base.png().toBuffer();
+  return base.composite(layers).png().toBuffer();
 }
 
 export interface ComposeStripOpts {

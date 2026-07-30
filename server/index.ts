@@ -111,6 +111,26 @@ app.use((req, res, next) => {
   // loudly on Render and the previous version stays live.
   assertLaunchSafeConfig();
 
+  // ── /c — the printed card's QR target ────────────────────────────
+  // Registered BEFORE registerRoutes/serveStatic so it 302s instead of
+  // being swallowed by the SPA catch-all.
+  //
+  // Why a redirect instead of putting the full URL in the QR: QR density
+  // scales with payload length, and this code is printed at ~26mm on the
+  // back of a card. Encoding the full UTM string pushed it to ~0.6mm per
+  // module — decodable, but marginal in a dim living room with a smeared
+  // phone lens. "/c" is a fraction of the payload, so the modules come
+  // out roughly twice the size at the same physical footprint.
+  //
+  // The UTMs still land: attribution.ts reads them from
+  // window.location.search on first paint, and a 302 delivers the
+  // browser to "/" with the query intact. 302 (not 301) on purpose —
+  // 301s get cached hard by browsers and ISPs, and these params are the
+  // only way we can tell a card scan from any other visit.
+  const CARD_QR_DESTINATION =
+    "/?utm_source=card&utm_medium=print&utm_campaign=card_back";
+  app.get("/c", (_req, res) => res.redirect(302, CARD_QR_DESTINATION));
+
   const server = await registerRoutes(app);
 
   // Set server timeout for long-running AI processing
