@@ -12,7 +12,26 @@
 import { useCallback, useRef, useState } from 'react';
 import { Loader2, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
+interface FaceAssessment {
+  sizeInFrame: string;
+  angle: string;
+  eyesVisible: string;
+  occlusions: string[];
+  expression: string;
+  expressionRisk: boolean;
+  lighting: string;
+  focus: string;
+}
 interface LabResult {
+  likeness?: {
+    noApiKey: boolean;
+    parsed: boolean;
+    raw?: string;
+    faces?: FaceAssessment[];
+    verdict?: 'strong' | 'usable' | 'weak';
+    reason?: string;
+    advice?: string;
+  };
   file: {
     mimeType: string;
     bytes: number;
@@ -135,6 +154,8 @@ export default function AdminPhotoLabPage() {
 
               {result && (
                 <div className="space-y-4 text-sm">
+                  {result.likeness && <LikenessPanel likeness={result.likeness} />}
+
                   <Section title="Source">
                     <Metric
                       label="Dimensions"
@@ -171,8 +192,9 @@ export default function AdminPhotoLabPage() {
                       />
                     )}
                     <p className="text-[11px] text-stone-400">
-                      Relative measure only. A shallow depth-of-field portrait scores low and is
-                      still a great source — read it next to the photo, not instead of it.
+                      Whole-image measure, so it's only a cross-check — the per-face
+                      &ldquo;focus&rdquo; reading above is the one that matters. A shallow
+                      depth-of-field portrait scores low here and is still a great source.
                     </p>
                   </Section>
 
@@ -216,6 +238,84 @@ export default function AdminPhotoLabPage() {
           </div>
         )}
     </div>
+  );
+}
+
+function LikenessPanel({ likeness: l }: { likeness: NonNullable<LabResult['likeness']> }) {
+  if (l.noApiKey) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
+        GEMINI_API_KEY not set — likeness assessment skipped.
+      </div>
+    );
+  }
+  if (!l.parsed) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800">
+        <p>Assessment didn&rsquo;t parse.</p>
+        {l.raw && <pre className="mt-1 overflow-x-auto text-[11px]">{l.raw}</pre>}
+      </div>
+    );
+  }
+  const tone =
+    l.verdict === 'strong'
+      ? 'border-emerald-300 bg-emerald-50'
+      : l.verdict === 'usable'
+        ? 'border-amber-300 bg-amber-50'
+        : 'border-red-300 bg-red-50';
+  const label =
+    l.verdict === 'strong'
+      ? 'Strong source — likeness should hold'
+      : l.verdict === 'usable'
+        ? 'Usable, with a limitation'
+        : 'Weak — likeness unlikely to survive';
+
+  return (
+    <div className={`rounded-lg border p-3 ${tone}`}>
+      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+        Can a model rebuild these faces?
+      </h2>
+      <p className="mt-1 text-[15px] font-bold text-stone-900">{label}</p>
+      {l.reason && <p className="mt-0.5 text-[13px] text-stone-700">{l.reason}</p>}
+      {l.advice && <p className="mt-1 text-[13px] font-medium text-stone-800">→ {l.advice}</p>}
+
+      {!!l.faces?.length && (
+        <div className="mt-3 space-y-2">
+          {l.faces.map((f, i) => (
+            <div key={i} className="rounded border border-white/70 bg-white/70 p-2 text-[12px]">
+              <div className="font-semibold text-stone-700">Face {i + 1}</div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <Chip label={`${f.sizeInFrame} in frame`} bad={f.sizeInFrame === 'small' || f.sizeInFrame === 'tiny'} />
+                <Chip label={f.angle} bad={f.angle === 'profile' || f.angle === 'turned-away'} />
+                <Chip label={`eyes: ${f.eyesVisible}`} bad={f.eyesVisible !== 'both'} />
+                <Chip label={f.focus} bad={f.focus === 'blurred'} />
+                <Chip label={f.lighting} bad={f.lighting !== 'even'} />
+                <Chip label={f.expression} bad={f.expressionRisk} />
+                {f.occlusions?.map((o, j) => <Chip key={j} label={o} bad />)}
+              </div>
+              {f.expressionRisk && (
+                <p className="mt-1.5 text-[11.5px] leading-snug text-red-700">
+                  This expression distorts the mouth or eyes, so a generated smile would be
+                  guesswork rather than derived from the face.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Chip({ label, bad }: { label: string; bad?: boolean }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] ${
+        bad ? 'bg-red-100 text-red-800' : 'bg-stone-100 text-stone-600'
+      }`}
+    >
+      {label}
+    </span>
   );
 }
 

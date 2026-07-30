@@ -26,7 +26,7 @@ import sharp from 'sharp';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '@shared/schema';
-import { runPhotoVision } from '../photos/analyze';
+import { runPhotoVision, assessPhotoLikeness } from '../photos/analyze';
 
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
@@ -66,7 +66,11 @@ async function sharpnessScore(buf: Buffer): Promise<number | null> {
     const conv = await sharp(buf)
       .greyscale()
       .resize(512, 512, { fit: 'inside', withoutEnlargement: false })
-      .convolve({ width: 3, height: 3, kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0] })
+      // offset 128 is NOT cosmetic. A Laplacian produces mostly negative
+      // values and sharp clamps unsigned output at 0, so without it ~60%
+      // of pixels floor and the deviation collapses — on a real photo it
+      // reported a flat 0. Centring on mid-grey preserves both signs.
+      .convolve({ width: 3, height: 3, kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0], offset: 128 })
       .raw()
       .toBuffer();
     let sum = 0;
@@ -107,8 +111,9 @@ export function registerAdminPhotoLabRoutes(app: Express): void {
       const meta = await sharp(bytes).metadata();
 
       // Vision + blur in parallel — one is network-bound, one CPU-bound.
-      const [vision, sharpness] = await Promise.all([
+      const [vision, likeness, sharpness] = await Promise.all([
         runPhotoVision({ imageBytes: bytes, mimeType }),
+        assessPhotoLikeness({ imageBytes: bytes, mimeType }),
         sharpnessScore(bytes),
       ]);
 
@@ -126,6 +131,16 @@ export function registerAdminPhotoLabRoutes(app: Express): void {
             meta.width && meta.height ? Math.min(meta.width, meta.height) < 1024 : null,
         },
         sharpness,
+        // The question that actually matters: can a model rebuild these
+        // faces in a new scene wearing a new expression?
+        likeness: {
+          noApiKey: likeness.noApiKey ?? false,
+          parsed: !!likeness.result,
+          raw: likeness.result ? undefined : likeness.raw.slice(0, 600),
+          ...(likeness.result ?? {}),
+          model: likeness.model,
+          durationMs: likeness.durationMs,
+        },
         vision: {
           noApiKey: vision.noApiKey ?? false,
           personCount: vision.result?.personCount ?? null,

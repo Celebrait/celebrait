@@ -122,6 +122,151 @@ function parseAnalysisJson(raw: string): AnalysisResult | null {
  * Returns null `result` when the key is missing or the model's JSON
  * won't parse. Never throws.
  */
+// ── Likeness assessment ─────────────────────────────────────────────
+// A DIFFERENT question from the summary above, and the one that
+// actually predicts whether a card works: does this photo carry enough
+// clear, undistorted facial information for an image model to rebuild
+// this person in a new scene — wearing a NEW expression?
+//
+// That last clause is the subtle part (Kevin 2026-07-30). Cards are
+// mostly happy, so the model nearly always has to generate a smile the
+// source doesn't contain. It can only extrapolate that from an
+// undistorted baseline. A pout, a tongue out, a wide-open mouth or a
+// squint all deform the very features it would extrapolate FROM, so the
+// generated smile becomes invention rather than derivation — which is
+// exactly when a face stops looking like the person.
+//
+// Deliberately face-level, not image-level. Image dimensions and
+// whole-frame sharpness say almost nothing: a 4000px photo with a
+// 90px head is useless, and a razor-sharp background behind a motion-
+// blurred face scores well while being unusable.
+export interface FaceAssessment {
+  sizeInFrame: 'large' | 'medium' | 'small' | 'tiny';
+  angle: 'front-on' | 'three-quarter' | 'profile' | 'turned-away';
+  eyesVisible: 'both' | 'one' | 'none';
+  occlusions: string[];
+  expression: string;
+  /** True when the expression deforms the features an image model would
+   *  extrapolate a new expression FROM. Neutral and natural smiles are
+   *  low risk; pouting, tongue-out, gurning and squinting are not. */
+  expressionRisk: boolean;
+  lighting: 'even' | 'harsh shadow' | 'strong colour cast' | 'backlit' | 'too dark' | 'blown out';
+  focus: 'sharp' | 'slightly soft' | 'blurred';
+}
+export interface LikenessAssessment {
+  faces: FaceAssessment[];
+  verdict: 'strong' | 'usable' | 'weak';
+  reason: string;
+  advice: string;
+}
+
+const LIKENESS_PROMPT = `You are judging whether a photo carries enough facial information for an AI image model to recreate each person's LIKENESS in a completely new scene, wearing a NEW expression (usually happy or smiling).
+
+This is NOT about whether the photo is attractive, flattering or well composed. It is only about whether each FACE carries enough clear, undistorted information to rebuild that person recognisably.
+
+Judge the FACE, not the image. A large photo with a tiny head is poor. A sharp background behind a blurred face is poor.
+
+For EACH person whose face is at least partly visible, return an object:
+{
+  "sizeInFrame": "large" | "medium" | "small" | "tiny",
+      // how much of the image HEIGHT the head occupies:
+      // large >25%, medium 10-25%, small 4-10%, tiny <4%
+  "angle": "front-on" | "three-quarter" | "profile" | "turned-away",
+  "eyesVisible": "both" | "one" | "none",
+  "occlusions": string[],
+      // anything hiding facial features: "sunglasses", "hair across face",
+      // "hand", "heavy shadow", "motion blur", "hat brim". [] if none.
+  "expression": string,
+      // what the face is ACTUALLY doing, plainly: "neutral",
+      // "natural smile", "big smile", "pouting", "mouth open",
+      // "tongue out", "squinting", "mid-speech", "grimace"
+  "expressionRisk": boolean,
+      // TRUE if the expression DISTORTS the mouth/eyes enough that
+      // generating a DIFFERENT expression would be guesswork — pouting,
+      // tongue out, wide-open mouth, heavy squint, exaggerated faces.
+      // Neutral and natural smiles are FALSE.
+  "lighting": "even" | "harsh shadow" | "strong colour cast" | "backlit" | "too dark" | "blown out",
+  "focus": "sharp" | "slightly soft" | "blurred"
+}
+
+Then judge the photo overall:
+{
+  "verdict": "strong" | "usable" | "weak",
+      // strong  = faces large, front-on or three-quarter, unobstructed,
+      //           evenly lit, sharp, neutral or naturally smiling
+      // usable  = recognisable but with one real limitation
+      // weak    = likeness is unlikely to survive; say so
+  "reason": string,   // ONE plain sentence naming the single biggest limitation
+  "advice": string    // ONE plain sentence on what would work better. "" if strong.
+}
+
+Rules: NEVER identify or name anyone. NEVER comment on attractiveness, body, or ethnicity. Judge only what limits facial reconstruction.
+
+Return ONE JSON object: { "faces": [...], "verdict": ..., "reason": ..., "advice": ... }
+Output JSON only. No markdown fences, no preamble.`;
+
+/** Run the likeness assessment. Same model and same defensive contract
+ *  as runPhotoVision; separate prompt because it answers a separate
+ *  question. Exported so the Photo Lab and (later) the studio's
+ *  pre-generation warning share ONE implementation and cannot drift. */
+export async function assessPhotoLikeness(args: {
+  imageBytes: Buffer;
+  mimeType: string;
+}): Promise<{
+  result: LikenessAssessment | null;
+  raw: string;
+  model: string;
+  durationMs: number;
+  promptTokens: number;
+  outputTokens: number;
+  noApiKey?: true;
+}> {
+  const startedAt = Date.now();
+  const client = getClient();
+  if (!client) {
+    return { result: null, raw: '', model: ANALYSIS_MODEL, durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true };
+  }
+  const response = await client.models.generateContent({
+    model: ANALYSIS_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: LIKENESS_PROMPT },
+          { inlineData: { mimeType: args.mimeType, data: args.imageBytes.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      // Same thinking trap as runPhotoVision — see the note there. This
+      // prompt is longer and more rule-heavy, so it would provoke MORE
+      // thinking, not less.
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 900,
+      temperature: 0.1,
+    },
+  });
+  const raw = response.text ?? '';
+  let result: LikenessAssessment | null = null;
+  try {
+    const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed && Array.isArray(parsed.faces) && typeof parsed.verdict === 'string') {
+      result = parsed as LikenessAssessment;
+    }
+  } catch {
+    /* leave null — caller shows the raw text */
+  }
+  return {
+    result,
+    raw,
+    model: ANALYSIS_MODEL,
+    durationMs: Date.now() - startedAt,
+    promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+  };
+}
+
 export async function runPhotoVision(args: {
   imageBytes: Buffer;
   mimeType: string;
