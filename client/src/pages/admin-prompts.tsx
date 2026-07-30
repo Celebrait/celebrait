@@ -129,7 +129,7 @@ const FRONT_VARIANT_LABELS: Record<FrontVariant, string> = {
 const FRONT_VARIANT_BLURBS: Record<FrontVariant, string> = {
   one_person: 'Single subject, optionally multi-angle reference photos.',
   multi_individual: 'Several people, one reference photo per person, all rendered together.',
-  group: 'One reference photo that already contains multiple people.',
+  group: 'One or more photos of the SAME people, each showing everyone.',
 };
 
 const SLOT_LABELS: Record<SlotId, string> = {
@@ -1347,7 +1347,13 @@ function FrontInputsForm({
   //   group: 1 (single photo that already contains everyone)
   // Gemini supports up to 14 refs natively; 5 is the practical
   // quality cliff. OpenAI handles multi-image via image[] array.
-  const maxPhotos = isGroup ? 1 : 5;
+  // Group used to be hard-capped at 1 ("the photo already contains
+  // everyone"). Raised to 3 so group v7 — which teaches the prompt that
+  // multiple photos are the SAME people from different angles — can
+  // actually be tested here before the studio is allowed to send more
+  // than one. 3, not 5: every extra reference costs input tokens on
+  // every generation, and past 3 angles the likeness gain flattens.
+  const maxPhotos = isGroup ? 3 : 5;
 
   // Clear excess photos when switching modes
   const setPhotoMode = (mode: PhotoMode) => {
@@ -1568,7 +1574,7 @@ function FrontInputsForm({
           <input
             type="file"
             accept="image/*"
-            multiple={isOnePerson || isMultiIndividual}
+            multiple
             onChange={(e) => onPhotosAdd(e.target.files)}
             className="text-xs mt-1 block w-full"
             data-testid="input-photo"
@@ -1580,7 +1586,7 @@ function FrontInputsForm({
             ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
             : isMultiIndividual
             ? 'Upload one clean portrait per person. The model anchors each identity from its own photo and composites them into the scene.'
-            : 'Upload one photo with all people visible. The model preserves each face from a single image.'}
+            : 'Upload photos with all people visible. Extra angles of the SAME group sharpen likeness — check the cast count is right, not doubled.'}
         </p>
       </div>
     </>
