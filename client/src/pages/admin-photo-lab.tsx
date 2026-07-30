@@ -281,7 +281,7 @@ function LikenessPanel({ likeness: l }: { likeness: NonNullable<LabResult['liken
       {typeof l.biggestFacePx === 'number' && (
         <p className="mt-0.5 text-[12px] text-stone-500">
           Biggest face ≈ <span className="font-semibold">{l.biggestFacePx}px</span> tall in the
-          original — the number that most predicts likeness.
+          original. Context only — small faces often still work.
         </p>
       )}
       {l.reason && <p className="mt-0.5 text-[13px] text-stone-700">{l.reason}</p>}

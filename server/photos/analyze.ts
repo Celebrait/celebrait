@@ -166,32 +166,29 @@ export interface LikenessAssessment {
   biggestFacePx?: number;
 }
 
-// ── Resolution guard ────────────────────────────────────────────────
-// sizeInFrame is RELATIVE, and on its own it lies. A 168x300 phone
-// screenshot can honestly report "large in frame" while the face is
-// ~100 real pixels — nowhere near enough to rebuild someone, and the
-// model has no reliable sense of absolute scale to catch it.
+// ── Face size, reported but NOT judged ──────────────────────────────
+// This used to force the verdict to "weak" below ~130px of face. Kevin
+// pushed back and he's right (2026-07-30): his club selfie is small,
+// low-res, harshly colour-cast AND pouting, and it still produced good
+// likeness on half its rolls. Face pixels are simply not the binding
+// constraint these models operate under — they lift an identity
+// embedding, not per-pixel detail.
 //
-// So we convert the relative bucket into approximate real pixels using
-// the image height we already know, and override the verdict when the
-// face is simply too small. Deterministic, and it can only ever
-// DOWNGRADE — the model stays in charge of everything it can actually
-// see (angle, occlusion, expression, lighting).
-// Fallback only — used when the model omits headHeightPct. Bucket
-// midpoints are lossy, which is exactly why the numeric field exists:
-// deriving pixels from a 4-bucket estimate once called a perfectly good
-// 675x900 portrait "weak".
+// It was also redundant. Before the guard existed the model already
+// called a genuinely tiny face "weak, too small and blurred" unprompted,
+// so the only thing the guard added was false negatives on photos that
+// demonstrably work — and a false "weak" tells someone to re-shoot a
+// good photo, which costs them a card and costs us trust.
+//
+// The number is still worth showing: it's useful context when a photo
+// fails for other reasons. It just doesn't get a vote. What DOES drive
+// the verdict is what we have evidence for — angle, occlusion, focus,
+// lighting and expression.
 const FACE_FRACTION: Record<FaceAssessment['sizeInFrame'], number> = {
   large: 0.35, medium: 0.20, small: 0.07, tiny: 0.03,
 };
-// Thresholds are deliberately FORGIVING. A false "weak" tells someone to
-// re-shoot a photo that would have worked — worse than staying quiet,
-// because it costs them a good card and our credibility. Only flag when
-// the face is genuinely too small to rebuild.
-const FACE_PX_WEAK = 130;
-const FACE_PX_SOFT = 260;
 
-function applyResolutionGuard(a: LikenessAssessment, imageHeight: number | undefined): LikenessAssessment {
+function attachFaceSize(a: LikenessAssessment, imageHeight: number | undefined): LikenessAssessment {
   if (!imageHeight || !a.faces?.length) return a;
   const px = Math.round(
     Math.max(
@@ -203,17 +200,7 @@ function applyResolutionGuard(a: LikenessAssessment, imageHeight: number | undef
       }),
     ),
   );
-  const out: LikenessAssessment = { ...a, biggestFacePx: px };
-  if (px < FACE_PX_WEAK) {
-    out.verdict = 'weak';
-    out.reason = `The biggest face is only around ${px}px tall in the original — too little detail to rebuild a likeness, whatever else the photo has going for it.`;
-    out.advice = 'Use the original full-size photo rather than a screenshot or a saved/forwarded copy.';
-  } else if (px < FACE_PX_SOFT && out.verdict === 'strong') {
-    out.verdict = 'usable';
-    out.reason = `The face is only around ${px}px tall in the original, so fine detail will be softened.`;
-    out.advice = 'A closer or larger original would sharpen the likeness.';
-  }
-  return out;
+  return { ...a, biggestFacePx: px };
 }
 
 const LIKENESS_PROMPT = `You are judging whether a photo carries enough facial information for an AI image model to recreate each person's LIKENESS in a completely new scene, wearing a NEW expression (usually happy or smiling).
@@ -324,7 +311,7 @@ export async function assessPhotoLikeness(args: {
     const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
     const parsed = JSON.parse(cleaned);
     if (parsed && Array.isArray(parsed.faces) && typeof parsed.verdict === 'string') {
-      result = applyResolutionGuard(parsed as LikenessAssessment, args.imageHeight);
+      result = attachFaceSize(parsed as LikenessAssessment, args.imageHeight);
     }
   } catch {
     /* leave null — caller shows the raw text */
