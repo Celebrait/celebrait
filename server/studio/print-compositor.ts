@@ -53,9 +53,6 @@ const QR_TARGET = (() => {
   return `${origin}/c`;
 })();
 
-// Kept deliberately modest — this is a card back, not a flyer — but not
-// so modest it won't scan: ~26mm printed is the practical floor for a
-// phone at arm's length.
 // ── Back-panel stack: ONE scale, anchored to the QR ────────────────
 // The QR is the only element here with a hard physical constraint —
 // below ~26mm printed, phones stop reading it reliably — so it anchors
@@ -69,9 +66,8 @@ const QR_W = Math.round(PANEL_W * 0.2);
 // WIDEST line is what gets fitted, so both lines share one size.
 const CAPTION_W = Math.round(QR_W * 1.85);
 const CAPTION_LINE_H = 1.28; // multiple of font size
-const BACK_LOGO_W = Math.round(QR_W * 1.25);
 const STACK_GAP = Math.round(QR_W * 0.22);
-const STACK_BOTTOM = Math.round(PANEL_H * 0.075);
+const STACK_BOTTOM = Math.round(PANEL_H * 0.05);
 
 // Gradient reads left-to-right dark → brand violet, the same sweep the
 // celebrait wordmark makes (sampled off the asset: it lands ~#6065dd).
@@ -86,23 +82,31 @@ const VIOLET_HEX = "#5c57d4";
 // sitting there as a detached coloured word.
 type CaptionRun = { text: string; font: "figtree" | "fraunces"; gradient?: boolean };
 const CAPTION_LINES: CaptionRun[][] = [
-  [{ text: "Create your", font: "figtree" }],
+  [{ text: "Create your own", font: "figtree" }],
   [
     { text: "Unbinnable", font: "fraunces", gradient: true },
-    { text: " Greetings Card Now", font: "figtree" },
+    { text: " Greetings Card", font: "figtree" },
   ],
 ];
+
+// The back carries the ICON alone, centred (Kevin 2026-07-30) — the
+// full wordmark lockup stays on the inside-left. Square, so it's sized
+// off QR_W directly rather than reusing the lockup's width ratio.
+//
+// Deliberately well under QR_W: the icon is centred on PANEL_H/2 while
+// the foot block is tall, so at parity with the QR the two collided
+// into one blob with ~2mm between them. At 0.6 they read as two
+// separate marks with room to breathe.
+const BACK_ICON_W = Math.round(QR_W * 0.6);
 
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
 // panel — matching the 3D render — and on the rear). Sizing mirrors
 // the render's cover-back texture: ~24% of the face width.
 //
-// Positioning is decided PER PANEL, not here, because the two panels
-// want different things (Kevin 2026-07-30):
-//   inside-left → bottom-centred, because it has to keep matching the
-//                 3D viewer's cover-back or the on-screen preview stops
-//                 agreeing with the printed card.
-//   back        → dead centre of the square, with the QR at the foot.
+// Only the INSIDE-LEFT uses this lockup now — the back carries the icon
+// alone (see BACK_ICON_W). Bottom-centred there, and it must stay that
+// way: it mirrors the 3D viewer's cover-back, and moving one without
+// the other makes the on-screen preview disagree with the printed card.
 const LOGO_W = Math.round(PANEL_W * 0.24);
 const LOGO_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
 
@@ -140,6 +144,35 @@ function loadLogoOverlay() {
     })();
   }
   return logoOverlayPromise;
+}
+
+/** The envelope mark on its own (no wordmark), for the card back.
+ *  Cropped from celebrait.png and committed as its own asset rather
+ *  than extracted at runtime — runtime crop coordinates silently
+ *  produce garbage the day the logo file changes. Same fail-soft
+ *  contract as everything else here. */
+let iconOverlayPromise: Promise<Buffer | null> | null = null;
+function loadIconOverlay() {
+  if (!iconOverlayPromise) {
+    iconOverlayPromise = (async () => {
+      try {
+        const candidates = [
+          path.resolve(import.meta.dirname, "..", "..", "client", "src", "assets", "celebrait-icon.png"),
+          path.resolve(import.meta.dirname, "..", "client", "src", "assets", "celebrait-icon.png"),
+        ];
+        const file = candidates.find((p) => fs.existsSync(p));
+        if (!file) {
+          console.warn("[print-compositor] celebrait-icon.png not found — back printed without the mark");
+          return null;
+        }
+        return await sharp(file).resize(BACK_ICON_W).png().toBuffer();
+      } catch (err) {
+        console.warn("[print-compositor] icon overlay failed — back printed without the mark", err);
+        return null;
+      }
+    })();
+  }
+  return iconOverlayPromise;
 }
 const OFFSETS = {
   outerRear: 0,
@@ -359,32 +392,31 @@ async function insideLeftPanel(): Promise<Buffer> {
  *  printed card back isn't self-promotional. `senderFirstName` is kept in
  *  the signature for the caller but no longer rendered. */
 async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
-  const [logo, qr] = await Promise.all([loadLogoOverlay(), loadQrOverlay()]);
+  const [icon, qr] = await Promise.all([loadIconOverlay(), loadQrOverlay()]);
   const base = sharp({
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
 
-  // Layout (Kevin 2026-07-30): the QR + caption travel together as ONE
-  // centred group in the square; the wordmark stays pinned at the foot
-  // as a footer mark.
+  // Layout (Kevin 2026-07-30): the envelope ICON alone sits dead centre
+  // of the square; the QR + caption sit together at the foot.
   //
-  //        [ QR ]
-  //      Create your          ← group centred on PANEL_H/2
-  //   Unbinnable Greetings…
+  //          [icon]           ← centred on PANEL_H/2
   //
-  //        celebrait          ← sits on STACK_BOTTOM
+  //          [ QR ]
+  //      Create your own      ← block ends on STACK_BOTTOM
+  //   Unbinnable Greetings Card
   //
-  // The group is measured before anything is placed, because centring a
-  // stack means knowing its total height first.
+  // The foot block is measured before placing, because bottom-anchoring
+  // a stack means knowing its total height first.
   const layers: sharp.OverlayOptions[] = [];
 
-  if (logo) {
-    const logoScaled = await sharp(logo.input).resize(BACK_LOGO_W).png().toBuffer();
-    const { height: logoH = 0 } = await sharp(logoScaled).metadata();
+  if (icon) {
+    const { width: iconW = BACK_ICON_W, height: iconH = BACK_ICON_W } =
+      await sharp(icon).metadata();
     layers.push({
-      input: logoScaled,
-      top: PANEL_H - STACK_BOTTOM - logoH,
-      left: Math.round((PANEL_W - BACK_LOGO_W) / 2),
+      input: icon,
+      top: Math.round((PANEL_H - iconH) / 2),
+      left: Math.round((PANEL_W - iconW) / 2),
     });
   }
 
@@ -393,8 +425,8 @@ async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
   const qrScaled = qr ? await sharp(qr).resize(QR_W).png().toBuffer() : null;
   const qrH = qrScaled ? (await sharp(qrScaled).metadata()).height ?? QR_W : 0;
 
-  const groupH = qrH + (qrScaled && caption ? STACK_GAP : 0) + captionH;
-  let cursor = Math.round((PANEL_H - groupH) / 2);
+  const footH = qrH + (qrScaled && caption ? STACK_GAP : 0) + captionH;
+  let cursor = PANEL_H - STACK_BOTTOM - footH;
 
   if (qrScaled) {
     layers.push({ input: qrScaled, top: cursor, left: Math.round((PANEL_W - QR_W) / 2) });
