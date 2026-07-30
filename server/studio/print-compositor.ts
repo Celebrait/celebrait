@@ -64,9 +64,9 @@ const QR_W = Math.round(PANEL_W * 0.2);
 // gets rewritten; fitting to a width means a longer line shrinks to fit
 // rather than running off the edge and quietly getting trimmed. The
 // WIDEST line is what gets fitted, so both lines share one size.
-const CAPTION_W = Math.round(QR_W * 1.85);
+const CAPTION_W = Math.round(QR_W * 1.3);
 const CAPTION_LINE_H = 1.28; // multiple of font size
-const STACK_GAP = Math.round(QR_W * 0.22);
+const STACK_GAP = Math.round(QR_W * 0.15);
 const STACK_BOTTOM = Math.round(PANEL_H * 0.05);
 
 // Gradient reads left-to-right dark → brand violet, the same sweep the
@@ -89,24 +89,19 @@ const CAPTION_LINES: CaptionRun[][] = [
   ],
 ];
 
-// The back carries the ICON alone, centred (Kevin 2026-07-30) — the
-// full wordmark lockup stays on the inside-left. Square, so it's sized
-// off QR_W directly rather than reusing the lockup's width ratio.
-//
-// Deliberately well under QR_W: the icon is centred on PANEL_H/2 while
-// the foot block is tall, so at parity with the QR the two collided
-// into one blob with ~2mm between them. At 0.6 they read as two
-// separate marks with room to breathe.
-const BACK_ICON_W = Math.round(QR_W * 0.6);
-
 // ── Brand logo overlay (Kevin 2026-07-05: logo on the inside-left
 // panel — matching the 3D render — and on the rear). Sizing mirrors
 // the render's cover-back texture: ~24% of the face width.
 //
-// Only the INSIDE-LEFT uses this lockup now — the back carries the icon
-// alone (see BACK_ICON_W). Bottom-centred there, and it must stay that
-// way: it mirrors the 3D viewer's cover-back, and moving one without
-// the other makes the on-screen preview disagree with the printed card.
+// BOTH panels use this lockup, at the SAME size and the SAME distance
+// off the bottom edge (Kevin 2026-07-30: "in line with inside left").
+// That's the point — fold the card and the two marks sit on one line.
+// Change LOGO_W or LOGO_BOTTOM_MARGIN and both move together, which is
+// the only way they stay in register.
+//
+// It also has to keep mirroring the 3D viewer's cover-back: move this
+// without moving the render and the on-screen preview stops agreeing
+// with the printed card.
 const LOGO_W = Math.round(PANEL_W * 0.24);
 const LOGO_BOTTOM_MARGIN = Math.round(PANEL_H * 0.06);
 
@@ -146,34 +141,6 @@ function loadLogoOverlay() {
   return logoOverlayPromise;
 }
 
-/** The envelope mark on its own (no wordmark), for the card back.
- *  Cropped from celebrait.png and committed as its own asset rather
- *  than extracted at runtime — runtime crop coordinates silently
- *  produce garbage the day the logo file changes. Same fail-soft
- *  contract as everything else here. */
-let iconOverlayPromise: Promise<Buffer | null> | null = null;
-function loadIconOverlay() {
-  if (!iconOverlayPromise) {
-    iconOverlayPromise = (async () => {
-      try {
-        const candidates = [
-          path.resolve(import.meta.dirname, "..", "..", "client", "src", "assets", "celebrait-icon.png"),
-          path.resolve(import.meta.dirname, "..", "client", "src", "assets", "celebrait-icon.png"),
-        ];
-        const file = candidates.find((p) => fs.existsSync(p));
-        if (!file) {
-          console.warn("[print-compositor] celebrait-icon.png not found — back printed without the mark");
-          return null;
-        }
-        return await sharp(file).resize(BACK_ICON_W).png().toBuffer();
-      } catch (err) {
-        console.warn("[print-compositor] icon overlay failed — back printed without the mark", err);
-        return null;
-      }
-    })();
-  }
-  return iconOverlayPromise;
-}
 const OFFSETS = {
   outerRear: 0,
   outerFront: PANEL_W,
@@ -392,41 +359,43 @@ async function insideLeftPanel(): Promise<Buffer> {
  *  printed card back isn't self-promotional. `senderFirstName` is kept in
  *  the signature for the caller but no longer rendered. */
 async function backPanel(_senderFirstName: string | null): Promise<Buffer> {
-  const [icon, qr] = await Promise.all([loadIconOverlay(), loadQrOverlay()]);
+  const [logo, qr] = await Promise.all([loadLogoOverlay(), loadQrOverlay()]);
   const base = sharp({
     create: { width: PANEL_W, height: PANEL_H, channels: 3, background: CREAM_RGB },
   });
 
-  // Layout (Kevin 2026-07-30): the envelope ICON alone sits dead centre
-  // of the square; the QR + caption sit together at the foot.
-  //
-  //          [icon]           ← centred on PANEL_H/2
+  // Layout (Kevin 2026-07-30): QR + caption centred as one group; the
+  // full wordmark at the foot, IN LINE with the inside-left panel.
   //
   //          [ QR ]
-  //      Create your own      ← block ends on STACK_BOTTOM
+  //      Create your own       ← group centred on PANEL_H/2
   //   Unbinnable Greetings Card
   //
-  // The foot block is measured before placing, because bottom-anchoring
-  // a stack means knowing its total height first.
+  //         celebrait          ← identical size + margin to inside-left
+  //
+  // The wordmark deliberately reuses LOGO_W / LOGO_BOTTOM_MARGIN rather
+  // than its own constants — that's what keeps the two panels' marks on
+  // the same line when the card is folded. Give the back its own sizing
+  // and they drift apart the first time either is touched.
   const layers: sharp.OverlayOptions[] = [];
 
-  if (icon) {
-    const { width: iconW = BACK_ICON_W, height: iconH = BACK_ICON_W } =
-      await sharp(icon).metadata();
+  if (logo) {
     layers.push({
-      input: icon,
-      top: Math.round((PANEL_H - iconH) / 2),
-      left: Math.round((PANEL_W - iconW) / 2),
+      input: logo.input,
+      top: PANEL_H - logo.height - LOGO_BOTTOM_MARGIN,
+      left: Math.round((PANEL_W - logo.width) / 2),
     });
   }
 
+  // Measure the whole group before placing anything — centring a stack
+  // means knowing its total height first.
   const caption = await renderCaption();
   const captionH = caption ? (await sharp(caption).metadata()).height ?? 0 : 0;
   const qrScaled = qr ? await sharp(qr).resize(QR_W).png().toBuffer() : null;
   const qrH = qrScaled ? (await sharp(qrScaled).metadata()).height ?? QR_W : 0;
 
-  const footH = qrH + (qrScaled && caption ? STACK_GAP : 0) + captionH;
-  let cursor = PANEL_H - STACK_BOTTOM - footH;
+  const groupH = qrH + (qrScaled && caption ? STACK_GAP : 0) + captionH;
+  let cursor = Math.round((PANEL_H - groupH) / 2);
 
   if (qrScaled) {
     layers.push({ input: qrScaled, top: cursor, left: Math.round((PANEL_W - QR_W) / 2) });
