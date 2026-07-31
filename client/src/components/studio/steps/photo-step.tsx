@@ -64,6 +64,7 @@ import {
 } from '@/lib/face-count';
 import type { CardDraftState, PhotoMode } from '@shared/schema';
 import type { CropBounds, Photo } from '@shared/models/photos';
+import { likenessNoteForSet } from '@/lib/photo-likeness';
 
 interface PhotoStepProps {
   state: CardDraftState;
@@ -186,6 +187,20 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   // Library state — only fetched once a photo picker would be shown.
   const { data: photos } = useQuery<Photo[]>({
     queryKey: ['/api/user/photos'],
+    // Poll briefly after an upload: the likeness assessment lands
+    // server-side a few seconds behind the upload response, and the
+    // point-of-upload nudge (Kevin 2026-07-31) is only useful if the
+    // verdict arrives while the user is still standing on this step.
+    // analyzedAt set = analysis settled (either way) → stop polling.
+    //
+    // Decided from the QUERY DATA ALONE, deliberately. TanStack calls
+    // this synchronously inside useQuery's setup, i.e. BEFORE anything
+    // declared below this line exists — a first cut that read
+    // selectedIdsRef here threw "Cannot access before initialization"
+    // and error-boundaried the whole photo step. Any photo still
+    // unanalysed means a recent upload; that's a fine proxy for "ours".
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((p) => p.analyzedAt == null) ? 2500 : false,
   });
   const hasLibrary = (photos?.length ?? 0) > 0;
 
@@ -1110,6 +1125,27 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             )}
           </div>
         )}
+
+        {/* Point-of-upload likeness nudge (Kevin 2026-07-31). Same
+            policy + copy as the review-step banner (lib/photo-likeness)
+            so the two surfaces can never disagree; this one appears the
+            moment the verdict lands, while swapping a photo is still a
+            one-tap action rather than a backtrack. Review keeps its
+            copy as the safety net for people who advanced before the
+            analysis finished. Advisory only — Next is never gated. */}
+        {(() => {
+          const note = likenessNoteForSet(selectedPhotos, mode);
+          if (!note) return null;
+          return (
+            <div
+              className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5"
+              data-testid="photo-quality-note-upload"
+            >
+              <p className="text-sm font-semibold text-keeper-ink">{note.headline}</p>
+              <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">{note.detail}</p>
+            </div>
+          );
+        })()}
 
         <div className="flex flex-col items-center gap-1.5 mt-4">
           {/* Mode-switch link — lets the user self-correct without
