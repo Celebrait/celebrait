@@ -2096,7 +2096,10 @@ function PhotoQualityNote({
     .map((id) => photos.find((p) => p.id === id))
     .filter((p): p is Photo => !!p);
   const note = likenessNoteForSet(selected, state.photos?.mode ?? 'one_person');
-  if (!note) return null;
+  // Review renders WARNINGS only. The green confirmation lives on the
+  // photo step, where it answers the just-uploaded question — repeating
+  // it here would be noise on a screen that's already a summary.
+  if (!note || note.tone !== 'warn') return null;
   return (
     <div
       className="rounded-xl border border-amber-200 bg-amber-50 p-4"

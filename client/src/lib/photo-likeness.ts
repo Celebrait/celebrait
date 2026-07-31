@@ -24,8 +24,27 @@ import type { Photo } from '@shared/models/photos';
 import type { PhotoMode } from '@shared/schema';
 
 export interface PhotoSetNote {
+  /** 'good' renders green (positive confirmation); 'warn' renders amber. */
+  tone: 'good' | 'warn';
   headline: string;
   detail: string;
+}
+
+/** The dominant reason a weak set is weak, read deterministically off
+ *  the per-face fields the model already returns. Different causes need
+ *  DIFFERENT advice (Kevin 2026-07-31): a profile shot usually still
+ *  resembles the person — side-on, holding the photo's pose — which is
+ *  nothing like the right message for a blurred face. */
+function dominantWeakCause(
+  assessed: Array<NonNullable<Photo['likeness']>>,
+): 'angle' | 'blur' | 'occlusion' | 'lighting' | 'expression' | 'other' {
+  const faces = assessed.flatMap((l) => l.faces ?? []);
+  if (faces.some((f) => f.angle === 'profile' || f.angle === 'turned-away')) return 'angle';
+  if (faces.some((f) => f.focus === 'blurred')) return 'blur';
+  if (faces.some((f) => (f.occlusions?.length ?? 0) > 0)) return 'occlusion';
+  if (faces.some((f) => f.lighting && f.lighting !== 'even')) return 'lighting';
+  if (faces.some((f) => f.expressionRisk)) return 'expression';
+  return 'other';
 }
 
 export function likenessNoteForSet(
@@ -36,48 +55,88 @@ export function likenessNoteForSet(
     .map((p) => p.likeness)
     .filter((l): l is NonNullable<typeof l> => !!l && typeof l.verdict === 'string');
 
-  // Warn only when EVERY photo in the set has been assessed. An
+  // Speak only when EVERY photo in the set has been assessed. An
   // unassessed photo (legacy upload, analysis still landing) might be a
-  // perfectly strong source — warning around an unknown is guessing,
+  // perfectly strong source — judging around an unknown is guessing,
   // and the whole policy is "silence unless we actually know".
   if (assessed.length === 0 || assessed.length < selected.length) return null;
 
-  // Any non-weak photo carries the set.
-  if (assessed.some((l) => l.verdict !== 'weak')) return null;
+  const plural = selected.length > 1;
 
-  // Everything assessed is weak. Prefer the model's own reason from the
-  // least-bad photo (they're all weak; first is fine — reasons across a
-  // weak set are usually the same complaint).
+  // ── Green light (Kevin 2026-07-31) ────────────────────────────────
+  // A good photo used to resolve to SILENCE, which after an "Analysing…"
+  // spinner read as the check having gone nowhere. Positive confirmation
+  // also makes the amber warnings mean something when they do appear.
+  if (assessed.some((l) => l.verdict !== 'weak')) {
+    const best = assessed.some((l) => l.verdict === 'strong') ? 'strong' : 'usable';
+    if (best === 'strong') {
+      return {
+        tone: 'good',
+        headline: plural ? 'Great photos — likeness looks strong' : 'Great photo — likeness looks strong',
+        detail:
+          mode === 'one_person' && !plural
+            ? 'This will work well. A second angle can sharpen it further, but you’re good to go.'
+            : 'Clear faces, good light — exactly what the AI needs. You’re good to go.',
+      };
+    }
+    // Best is "usable": positive, with the model's one limitation named.
+    const usableReason = assessed.find((l) => l.verdict === 'usable')?.reason?.trim();
+    return {
+      tone: 'good',
+      headline: plural ? 'These photos should work' : 'This photo should work',
+      detail:
+        (usableReason ? `One small thing: ${usableReason} ` : '') +
+        'Good to go — likeness should come through.',
+    };
+  }
+
+  // ── Everything assessed weak: warn, with CAUSE-SPECIFIC advice ────
+  // Wording is deliberately DIRECT (Kevin: "harder messaging when
+  // there's a clear issue") but honest about what actually happens.
+  // Still advisory: nothing gates, continuing is allowed and priced.
   const reason = assessed[0].reason?.trim();
+  const cause = dominantWeakCause(assessed);
 
-  // Wording is deliberately DIRECT (Kevin 2026-07-31: "harder messaging
-  // when there's a clear issue"). We only reach this branch when every
-  // photo assessed weak, so hedging reads as indecision — say what to do.
-  // Still advisory: nothing gates, and the copy says continuing is
-  // allowed, just honestly costed.
-  if (mode === 'group') {
+  // Profile shots get their own truth (Kevin 2026-07-31): they often DO
+  // resemble the person — side-on, keeping the photo's pose — because
+  // the model reproduces what it saw and invents what it didn't. That's
+  // a different promise from "won't look like them".
+  if (cause === 'angle') {
     return {
-      headline: 'This photo won’t give a good likeness',
+      tone: 'warn',
+      headline: plural
+        ? 'These photos only show their faces from the side'
+        : 'This photo only shows their face from the side',
       detail:
-        (reason ? `${reason} ` : '') +
-        'Swap it for a clearer shot — everyone facing the camera, in decent light. You can continue with this one, but faces are unlikely to look right.',
+        'The card may well come out side-on too — the AI redraws the view it was given, and a front-on happy face would be half-invented. If you’re happy with a side-on card, carry on. For their full face, ' +
+        (mode === 'group'
+          ? 'use a shot where everyone’s looking at the camera.'
+          : 'add a photo where they’re looking at the camera.'),
     };
   }
 
-  if (selected.length === 1) {
-    return {
-      headline: 'This photo isn’t enough on its own',
-      detail:
-        (reason ? `${reason} ` : '') +
-        'Use a different photo, or add a clearer angle — front-on, good light. You can continue with just this one, but the likeness will suffer.',
-    };
-  }
+  const fix =
+    cause === 'blur'
+      ? 'That blur becomes the card’s idea of their face. Use a sharper photo — likeness is unlikely to survive this one.'
+      : cause === 'occlusion'
+        ? 'Whatever’s covering them, the AI has to make up what’s underneath. A photo with the face and hair fully visible will land far better.'
+        : cause === 'lighting'
+          ? 'Harsh light hides the detail the AI reads a face from. A photo in even, decent light will land far better.'
+          : cause === 'expression'
+            ? 'That expression bends the features the AI builds a new face from, so a happy version becomes guesswork. A relaxed or naturally smiling photo works much better.'
+            : (mode === 'group'
+                ? 'Swap it for a clearer shot — everyone facing the camera, in decent light.'
+                : 'Use a clearer photo — front-on, good light.');
 
   return {
-    headline: 'These photos won’t give a good likeness',
-    detail:
-      (reason ? `${reason} ` : '') +
-      'Add one clear, front-on shot — that usually fixes it. You can continue as-is, but faces are unlikely to look right.',
+    tone: 'warn',
+    headline:
+      mode === 'group'
+        ? 'This photo will hurt the likeness'
+        : plural
+          ? 'These photos will hurt the likeness'
+          : 'This photo isn’t enough on its own',
+    detail: (reason ? `${reason} ` : '') + fix + ' You can continue anyway — your call.',
   };
 }
 

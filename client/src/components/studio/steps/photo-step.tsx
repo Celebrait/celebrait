@@ -1088,6 +1088,20 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           }
 
           const note = likenessNoteForSet(selectedPhotos, mode);
+          if (note && note.tone === 'good') {
+            return (
+              <div
+                className="mt-5 w-full max-w-[340px] rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                data-testid="photo-quality-good"
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />
+                  <p className="text-[13px] font-bold text-keeper-ink">{note.headline}</p>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-keeper-body">{note.detail}</p>
+              </div>
+            );
+          }
           if (note) {
             const single = totalCount === 1;
             return (
