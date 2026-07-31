@@ -38,6 +38,27 @@ export class ErrorBoundary extends Component<Props, State> {
       error,
       info.componentStack,
     );
+    // Report home (2026-07-31). Customers were seeing this screen on
+    // prod and we had no trace — the stack died in their console.
+    // Fire-and-forget, and guarded so the REPORTER can never become a
+    // second crash.
+    try {
+      void fetch('/api/client-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: this.props.label ?? 'app',
+          path: window.location.pathname,
+          message: error?.message ?? String(error),
+          stack: error?.stack ?? '',
+          componentStack: info.componentStack ?? '',
+        }),
+        // Let the report survive an imminent reload tap.
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* never throw from the boundary */
+    }
   }
 
   render() {

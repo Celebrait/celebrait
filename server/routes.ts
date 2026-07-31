@@ -35,6 +35,7 @@ import { registerStudioNotificationRoutes } from "./routes/studio-notifications"
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
 import { registerAdminCustomersRoutes } from "./routes/admin-customers";
 import { registerAdminPhotoLabRoutes } from "./routes/admin-photo-lab";
+import { registerClientErrorRoutes } from "./routes/client-errors";
 import { registerContactRoutes } from "./routes/contact";
 import { registerAdminTestEmailRoutes } from "./routes/admin-test-emails";
 import { registerAddressBookRoutes } from "./routes/address-book";
@@ -408,6 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminCostsRoutes(app);
   registerAdminCustomersRoutes(app);
   registerAdminPhotoLabRoutes(app);
+  registerClientErrorRoutes(app);
   registerContactRoutes(app);
   registerAdminTestEmailRoutes(app);
   registerAddressBookRoutes(app);
