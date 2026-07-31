@@ -83,7 +83,8 @@ SQL via the Neon SQL Editor (give him idempotent `IF NOT EXISTS` SQL).
 - Comments explain **why**, not what — especially the non-obvious constraint
   a line protects. Match surrounding density.
 - Copy voice: warm, wry, British, honest. Never over-promise delivery
-  ("up to 72 hrs, then posted"), never invent stats.
+  ("up to 72 hrs, then posted"), never invent stats. Customer-facing
+  copy says **"we"**, never "the AI" / "the model" (Kevin 2026-07-31).
 - Admin pages: per-request DB `is_admin` check in the route (client
   `RequireAdmin` is UX only). Pattern: `server/routes/admin-*.ts`.
 - Analytics/SEO metadata is registry-driven — `shared/seo.ts` and
