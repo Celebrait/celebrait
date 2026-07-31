@@ -1104,9 +1104,14 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           }
           if (note) {
             const single = totalCount === 1;
+            const blocked = note.tone === 'block' && !state.photos?.qualityOverride;
             return (
               <div
-                className="mt-5 w-full max-w-[340px] rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-4 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                className={`mt-5 w-full max-w-[340px] rounded-2xl border-2 px-4 py-4 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300 ${
+                  note.tone === 'block'
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-amber-400 bg-amber-50'
+                }`}
                 data-testid="photo-quality-note-upload"
               >
                 <p className="text-[14px] font-bold text-keeper-ink">{note.headline}</p>
@@ -1134,6 +1139,27 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                     </>
                   )}
                 </button>
+                {blocked && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      // Through the refs, matching setFaceWarning — a
+                      // closure-captured state.photos here can clobber
+                      // ids committed by an in-flight upload.
+                      onChange({
+                        photos: {
+                          mode: modeRef.current,
+                          photoIds: selectedIdsRef.current,
+                          qualityOverride: true,
+                        },
+                      })
+                    }
+                    className="mt-2 block w-full text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body"
+                    data-testid="btn-quality-override"
+                  >
+                    I understand — use this photo anyway
+                  </button>
+                )}
               </div>
             );
           }
@@ -1810,7 +1836,12 @@ function ModeTile({
  */
 export function isPhotoStepReady(
   state: CardDraftState,
-  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>,
+  photoRows?: Array<{
+    id: number;
+    analyzedAt: unknown;
+    createdAt: unknown;
+    likeness?: Photo['likeness'];
+  }>,
 ): boolean {
   // A photo is required. The face-count nudge stays advisory (2026-07-22:
   // blocking on unreliable detection stranded users on false alarms).
@@ -1825,6 +1856,16 @@ export function isPhotoStepReady(
       .map((id) => photoRows.find((p) => p.id === id))
       .filter((p): p is NonNullable<typeof p> => !!p);
     if (analysisBlocking(selected)) return false;
+    // A BLOCKING verdict (heavy blur) holds Next until the photo is
+    // swapped or the user explicitly overrides. Advisory tones don't
+    // gate — only 'block'.
+    if (!state.photos?.qualityOverride) {
+      const note = likenessNoteForSet(
+        selected as Array<Pick<Photo, 'likeness'>>,
+        state.photos?.mode ?? 'one_person',
+      );
+      if (note?.tone === 'block') return false;
+    }
   }
   return true;
 }

@@ -71,6 +71,13 @@ export interface CardDraftState {
      *  the current mode. Gates advancing to the next step until the
      *  user resolves it, so we never silently render a mismatched card. */
     pendingModeReview?: 'too-many' | 'too-few';
+    /** User explicitly chose to continue past a BLOCKING photo-quality
+     *  verdict (heavy blur — see lib/photo-likeness). Deliberate act,
+     *  not a default: the red state holds Next until they either swap
+     *  the photo or set this. Dropped automatically whenever the photos
+     *  patch is rebuilt without it (i.e. any photo change re-arms the
+     *  block), which is the behaviour we want. */
+    qualityOverride?: boolean;
   };
   front?: {
     /** Whether the user wants a front headline at all.

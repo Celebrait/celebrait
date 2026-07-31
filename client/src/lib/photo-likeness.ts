@@ -24,8 +24,11 @@ import type { Photo } from '@shared/models/photos';
 import type { PhotoMode } from '@shared/schema';
 
 export interface PhotoSetNote {
-  /** 'good' renders green (positive confirmation); 'warn' renders amber. */
-  tone: 'good' | 'warn';
+  /** 'good' = green confirmation · 'warn' = amber advice, Next stays
+   *  live · 'block' = red, Next is HELD until the photo is swapped or
+   *  the user explicitly overrides (Kevin 2026-07-31: a heavily blurred
+   *  face prints as a face-shaped smear at £8.99 — that one we stop). */
+  tone: 'good' | 'warn' | 'block';
   headline: string;
   detail: string;
 }
@@ -79,8 +82,25 @@ export function likenessNoteForSet(
             : 'Clear faces, good light — exactly what we need. You’re good to go.',
       };
     }
-    // Best is "usable": positive, with the model's one limitation named.
-    const usableReason = assessed.find((l) => l.verdict === 'usable')?.reason?.trim();
+    // Best is "usable". A tick next to a hefty caveat reads
+    // contradictory (Kevin's hat-and-hand example got "the hat and hand
+    // obscure important information… good to go"), so usable-with-
+    // visible-obstructions drops to amber advice; clean usable stays
+    // green.
+    const usable = assessed.find((l) => l.verdict === 'usable');
+    const usableReason = usable?.reason?.trim();
+    const obstructed = (usable?.faces ?? []).some(
+      (f) => (f.occlusions?.length ?? 0) > 0 || f.expressionRisk,
+    );
+    if (obstructed) {
+      return {
+        tone: 'warn',
+        headline: 'This photo can work, but something’s in the way',
+        detail:
+          (usableReason ? `${usableReason} ` : '') +
+          'A shot with the face and hair fully visible would land better. Your call — you can continue with this one.',
+      };
+    }
     return {
       tone: 'good',
       headline: plural ? 'These photos should work' : 'This photo should work',
@@ -115,10 +135,25 @@ export function likenessNoteForSet(
     };
   }
 
+  // Heavy blur is the one cause we BLOCK on: it's the model's most
+  // certain judgement, and the output is reliably a smear. Everything
+  // else stays advisory. The UI pairs this with an explicit
+  // "use it anyway" override — blocking by friction, not by wall,
+  // because the only-photo-of-a-late-relative case is real and the
+  // 2026-07-22 lesson (hard-blocking on an imperfect detector strands
+  // users on false alarms) still applies.
+  if (cause === 'blur') {
+    return {
+      tone: 'block',
+      headline: 'This photo is too blurred to work from',
+      detail:
+        (reason ? `${reason} ` : '') +
+        'A blurred face gives us nothing to rebuild from — the card would get a guess, not them. Please use a sharper photo.',
+    };
+  }
+
   const fix =
-    cause === 'blur'
-      ? 'That blur becomes the card’s idea of their face. Use a sharper photo — likeness is unlikely to survive this one.'
-      : cause === 'occlusion'
+    cause === 'occlusion'
         ? 'Whatever’s covering them, we have to make up what’s underneath. A photo with the face and hair fully visible will land far better.'
         : cause === 'lighting'
           ? 'Harsh light hides the detail we read a face from. A photo in even, decent light will land far better.'

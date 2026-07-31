@@ -371,7 +371,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // "Rendered more hooks than during the previous render" and
   // error-boundaried the whole card maker.
   const { data: photoRows } = useQuery<
-    Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>
+    Array<{ id: number; analyzedAt: unknown; createdAt: unknown; likeness?: any }>
   >({ queryKey: ['/api/user/photos'] });
 
   // Fail-open backstop for the analysis gate: if a stuck analysis stops
@@ -782,7 +782,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 function isStepReady(
   stepIndex: number,
   state: CardDraftState,
-  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>,
+  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown; likeness?: any }>,
 ): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
   if (stepIndex === 1) return isPhotoStepReady(state, photoRows);
