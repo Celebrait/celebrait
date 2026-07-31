@@ -76,7 +76,7 @@ export function likenessNoteForSet(
         detail:
           mode === 'one_person' && !plural
             ? 'This will work well. A second angle can sharpen it further, but you’re good to go.'
-            : 'Clear faces, good light — exactly what the AI needs. You’re good to go.',
+            : 'Clear faces, good light — exactly what we need. You’re good to go.',
       };
     }
     // Best is "usable": positive, with the model's one limitation named.
@@ -108,7 +108,7 @@ export function likenessNoteForSet(
         ? 'These photos only show their faces from the side'
         : 'This photo only shows their face from the side',
       detail:
-        'The card may well come out side-on too — the AI redraws the view it was given, and a front-on happy face would be half-invented. If you’re happy with a side-on card, carry on. For their full face, ' +
+        'The card may well come out side-on too — we redraw the view we’re given, and a front-on happy face would be half-invented. If you’re happy with a side-on card, carry on. For their full face, ' +
         (mode === 'group'
           ? 'use a shot where everyone’s looking at the camera.'
           : 'add a photo where they’re looking at the camera.'),
@@ -119,11 +119,11 @@ export function likenessNoteForSet(
     cause === 'blur'
       ? 'That blur becomes the card’s idea of their face. Use a sharper photo — likeness is unlikely to survive this one.'
       : cause === 'occlusion'
-        ? 'Whatever’s covering them, the AI has to make up what’s underneath. A photo with the face and hair fully visible will land far better.'
+        ? 'Whatever’s covering them, we have to make up what’s underneath. A photo with the face and hair fully visible will land far better.'
         : cause === 'lighting'
-          ? 'Harsh light hides the detail the AI reads a face from. A photo in even, decent light will land far better.'
+          ? 'Harsh light hides the detail we read a face from. A photo in even, decent light will land far better.'
           : cause === 'expression'
-            ? 'That expression bends the features the AI builds a new face from, so a happy version becomes guesswork. A relaxed or naturally smiling photo works much better.'
+            ? 'That expression bends the features we build a new face from, so a happy version becomes guesswork. A relaxed or naturally smiling photo works much better.'
             : (mode === 'group'
                 ? 'Swap it for a clearer shot — everyone facing the camera, in decent light.'
                 : 'Use a clearer photo — front-on, good light.');

@@ -1153,7 +1153,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                   One more angle = noticeably better likeness
                 </p>
                 <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
-                  Two or three angles help the AI catch what makes them{' '}
+                  Two or three angles help us catch what makes them{' '}
                   <em>them</em>. One photo works too.
                 </p>
                 <button
