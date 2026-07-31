@@ -64,7 +64,7 @@ import {
 } from '@/lib/face-count';
 import type { CardDraftState, PhotoMode } from '@shared/schema';
 import type { CropBounds, Photo } from '@shared/models/photos';
-import { likenessNoteForSet } from '@/lib/photo-likeness';
+import { likenessNoteForSet, analysisBlocking } from '@/lib/photo-likeness';
 
 interface PhotoStepProps {
   state: CardDraftState;
@@ -1052,46 +1052,117 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           </p>
         )}
 
-        {/* Stronger single-photo nudge — the biggest likeness lever is
-            input, not prompt tuning, so we push (not gate) a 2nd angle
-            here. Deliberately NON-blocking: the wizard's green Next stays
-            live with one photo, so the one-good-photo cases (memorial,
-            elderly, a baby) are never bounced. Only in one_person mode,
-            once the first photo has saved, and never during the edit-a-
-            photo flow (which has its own replace buttons). */}
-        {mode === 'one_person' &&
-          !editIntent &&
-          totalCount === 1 &&
-          inFlightUploads === 0 && (
-            <div
-              className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
-              data-testid="add-angle-nudge"
-            >
-              <p className="text-[13px] font-semibold text-keeper-ink">
-                One more angle = noticeably better likeness
-              </p>
-              <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
-                Two or three angles help the AI catch what makes them{' '}
-                <em>them</em>. One photo works too.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  replaceNextRef.current = false;
-                  triggerFilePicker();
-                }}
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
-                data-testid="btn-add-angle-nudge"
+        {/* ── Photo-guidance slot: ONE box, three states ─────────────
+            (Kevin 2026-07-31: the weak-photo warning must REPLACE the
+            generic angle encouragement, not stack under it — two boxes
+            compete and both get skimmed.)
+              1. analysing  — any selected photo's assessment still in
+                              flight; the poll above refreshes this.
+              2. weak       — every photo assessed weak: a prominent,
+                              plainly-worded warning with the fix as a
+                              button. Still NON-blocking; Next stays live.
+              3. encourage  — the original add-an-angle nudge, unchanged
+                              conditions (one_person, first photo, not
+                              edit-intent). */}
+        {(() => {
+          const analysisPending =
+            selectedPhotos.some((p) => p.analyzedAt == null) && inFlightUploads === 0;
+          if (analysisPending) {
+            return (
+              <div
+                className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-4 text-center animate-in fade-in-0 duration-300"
+                data-testid="photo-analysing-hint"
               >
-                <Plus className="h-4 w-4" strokeWidth={2.5} /> Add another angle
-              </button>
-              <p className="mt-2 text-[10.5px] text-keeper-meta">
-                Happy with one? Tap{' '}
-                <span className="font-semibold text-keeper-body">Next</span>{' '}
-                below.
-              </p>
-            </div>
-          )}
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                  <p className="text-[13px] font-semibold text-keeper-ink">
+                    Analysing your photo…
+                  </p>
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
+                  A few seconds — we’re checking it’ll give a strong likeness.
+                  Next unlocks when it’s done.
+                </p>
+              </div>
+            );
+          }
+
+          const note = likenessNoteForSet(selectedPhotos, mode);
+          if (note) {
+            const single = totalCount === 1;
+            return (
+              <div
+                className="mt-5 w-full max-w-[340px] rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-4 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                data-testid="photo-quality-note-upload"
+              >
+                <p className="text-[14px] font-bold text-keeper-ink">{note.headline}</p>
+                <p className="mt-1 text-[12px] leading-snug text-keeper-body">{note.detail}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (single) {
+                      triggerReplacePicker();
+                    } else {
+                      replaceNextRef.current = false;
+                      triggerFilePicker();
+                    }
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
+                  data-testid="btn-photo-note-fix"
+                >
+                  {single ? (
+                    <>
+                      <Upload className="h-4 w-4" strokeWidth={2.5} /> Use a different photo
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" strokeWidth={2.5} /> Add a clearer angle
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          }
+
+          if (
+            mode === 'one_person' &&
+            !editIntent &&
+            totalCount === 1 &&
+            inFlightUploads === 0
+          ) {
+            return (
+              <div
+                className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                data-testid="add-angle-nudge"
+              >
+                <p className="text-[13px] font-semibold text-keeper-ink">
+                  One more angle = noticeably better likeness
+                </p>
+                <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
+                  Two or three angles help the AI catch what makes them{' '}
+                  <em>them</em>. One photo works too.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    replaceNextRef.current = false;
+                    triggerFilePicker();
+                  }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
+                  data-testid="btn-add-angle-nudge"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} /> Add another angle
+                </button>
+                <p className="mt-2 text-[10.5px] text-keeper-meta">
+                  Happy with one? Tap{' '}
+                  <span className="font-semibold text-keeper-body">Next</span>{' '}
+                  below.
+                </p>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* EDIT INTENT (from Review): the user came here to CHANGE the
             photo — give them a real button, not a buried text link.
@@ -1125,27 +1196,6 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             )}
           </div>
         )}
-
-        {/* Point-of-upload likeness nudge (Kevin 2026-07-31). Same
-            policy + copy as the review-step banner (lib/photo-likeness)
-            so the two surfaces can never disagree; this one appears the
-            moment the verdict lands, while swapping a photo is still a
-            one-tap action rather than a backtrack. Review keeps its
-            copy as the safety net for people who advanced before the
-            analysis finished. Advisory only — Next is never gated. */}
-        {(() => {
-          const note = likenessNoteForSet(selectedPhotos, mode);
-          if (!note) return null;
-          return (
-            <div
-              className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3.5"
-              data-testid="photo-quality-note-upload"
-            >
-              <p className="text-sm font-semibold text-keeper-ink">{note.headline}</p>
-              <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">{note.detail}</p>
-            </div>
-          );
-        })()}
 
         <div className="flex flex-col items-center gap-1.5 mt-4">
           {/* Mode-switch link — lets the user self-correct without
@@ -1744,13 +1794,23 @@ function ModeTile({
  *     before we let them move on — otherwise they silently render a
  *     mismatched card).
  */
-export function isPhotoStepReady(state: CardDraftState): boolean {
-  // A photo is all that's required. The face-count nudge is advisory only
-  // (2026-07-22) — it never gates Next. Detection is unreliable on group
-  // shots, so blocking on it stranded users on a false alarm (they'd
-  // uploaded a real group, the model under-counted, and the old red panel
-  // both looked like an error and locked the step). Trust the user's mode
-  // choice; the "looks like several people" nudge is a suggestion they can
-  // ignore.
-  return (state.photos?.photoIds?.length ?? 0) > 0;
+export function isPhotoStepReady(
+  state: CardDraftState,
+  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>,
+): boolean {
+  // A photo is required. The face-count nudge stays advisory (2026-07-22:
+  // blocking on unreliable detection stranded users on false alarms).
+  const ids = state.photos?.photoIds ?? [];
+  if (ids.length === 0) return false;
+  // With photo rows available, hold Next while a selected photo's
+  // likeness analysis is still in flight — fails open after 30s so a
+  // stuck analysis can never strand anyone (see analysisBlocking).
+  // The VERDICT itself never gates; only the brief wait for it.
+  if (photoRows) {
+    const selected = ids
+      .map((id) => photoRows.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
+    if (analysisBlocking(selected)) return false;
+  }
+  return true;
 }

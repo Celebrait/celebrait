@@ -50,28 +50,55 @@ export function likenessNoteForSet(
   // weak set are usually the same complaint).
   const reason = assessed[0].reason?.trim();
 
+  // Wording is deliberately DIRECT (Kevin 2026-07-31: "harder messaging
+  // when there's a clear issue"). We only reach this branch when every
+  // photo assessed weak, so hedging reads as indecision — say what to do.
+  // Still advisory: nothing gates, and the copy says continuing is
+  // allowed, just honestly costed.
   if (mode === 'group') {
     return {
-      headline: 'This photo may make likeness tricky',
+      headline: 'This photo won’t give a good likeness',
       detail:
         (reason ? `${reason} ` : '') +
-        'A clearer shot of everyone facing the camera usually lands much better — but it’s your call, and you can always roll again.',
+        'Swap it for a clearer shot — everyone facing the camera, in decent light. You can continue with this one, but faces are unlikely to look right.',
     };
   }
 
   if (selected.length === 1) {
     return {
-      headline: 'One photo, and a tricky one',
+      headline: 'This photo isn’t enough on its own',
       detail:
         (reason ? `${reason} ` : '') +
-        'Adding one or two more angles of them gives us much more to work with — it matters most when we only have a single photo.',
+        'Use a different photo, or add a clearer angle — front-on, good light. You can continue with just this one, but the likeness will suffer.',
     };
   }
 
   return {
-    headline: 'These photos may make likeness tricky',
+    headline: 'These photos won’t give a good likeness',
     detail:
       (reason ? `${reason} ` : '') +
-      'One clear, front-on shot added to the set usually does it — but you can generate as-is and see.',
+      'Add one clear, front-on shot — that usually fixes it. You can continue as-is, but faces are unlikely to look right.',
   };
+}
+
+// ── Analysis gate ───────────────────────────────────────────────────
+// Next is held while a selected photo's analysis is still in flight
+// (Kevin 2026-07-31) — the verdict is the whole point of the step, so
+// advancing before it lands defeats it. But the gate FAILS OPEN after
+// 30s: analysis is a background job against a third-party API, and if
+// it hangs (outage, deploy mid-flight) a hard gate would strand a
+// paying customer on the photo step with no way forward. Blocking on
+// pending-AND-RECENT means a stuck analysis costs 30 seconds, not a
+// customer. Legacy never-analysed photos are old → never block.
+export const ANALYSIS_GATE_MS = 30_000;
+
+export function analysisBlocking(
+  selected: Array<{ analyzedAt: unknown; createdAt: unknown }>,
+): boolean {
+  const now = Date.now();
+  return selected.some((p) => {
+    if (p.analyzedAt != null) return false;
+    const created = p.createdAt ? new Date(p.createdAt as string | Date).getTime() : 0;
+    return Number.isFinite(created) && now - created < ANALYSIS_GATE_MS;
+  });
 }

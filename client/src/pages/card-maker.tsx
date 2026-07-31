@@ -12,11 +12,12 @@
 // Both render under StudioLayout so the sidebar + header stay. The
 // FAB is auto-hidden on these routes by StudioLayout's HIDE_FAB_ON.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useReducer } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, Pencil, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { useCardMaker } from '@/hooks/use-card-maker';
@@ -360,6 +361,32 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return () => window.clearTimeout(t);
   }, [isSaving]);
 
+
+  // Photo rows for the photo-step gate. Shares the react-query cache
+  // with PhotoStep's polled query, so this adds no extra fetching.
+  //
+  // HOOKS ONLY here — this block MUST stay above the isLoading/loadError
+  // early returns. The first cut sat below them; on the isLoading render
+  // the hooks never ran, on the next render they did, and React threw
+  // "Rendered more hooks than during the previous render" and
+  // error-boundaried the whole card maker.
+  const { data: photoRows } = useQuery<
+    Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>
+  >({ queryKey: ['/api/user/photos'] });
+
+  // Fail-open backstop for the analysis gate: if a stuck analysis stops
+  // the polled data changing, nothing re-renders at the 30s boundary —
+  // force one tick just past it. Armed from the same raw inputs the gate
+  // reads (not canAdvance, which is derived after the early returns).
+  const [, forceTick] = useReducer((x: number) => x + 1, 0);
+  const photoIdCount = state.photos?.photoIds?.length ?? 0;
+  useEffect(() => {
+    if (currentStep === 1 && photoIdCount > 0) {
+      const t = setTimeout(forceTick, 31_000);
+      return () => clearTimeout(t);
+    }
+  }, [currentStep, photoIdCount]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -418,7 +445,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   const furthestStep = Math.max(currentStep, state.step ?? 0);
 
   // Gate the Next button on the current step being complete.
-  const canAdvance = isStepReady(currentStep, state);
+  const canAdvance = isStepReady(currentStep, state, photoRows);
 
   // Auto-advance on steps that have a clear "done" signal (Recipient
   // picks + name, Style pick/custom confirm). The trigger fires from
@@ -752,9 +779,13 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 // as each step arrives it gains its own isXStepReady check here.
 // Step indexes follow CARD_MAKER_STEPS (V1 — Style step removed):
 //   0 recipient, 1 photo, 2 scene, 3 front, 4 inside, 5 review
-function isStepReady(stepIndex: number, state: CardDraftState): boolean {
+function isStepReady(
+  stepIndex: number,
+  state: CardDraftState,
+  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown }>,
+): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
-  if (stepIndex === 1) return isPhotoStepReady(state);
+  if (stepIndex === 1) return isPhotoStepReady(state, photoRows);
   if (stepIndex === 2) return isSceneStepReady(state);
   if (stepIndex === 3) return isFrontStepReady(state);
   if (stepIndex === 4) return isInsideStepReady(state);
