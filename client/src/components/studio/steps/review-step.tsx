@@ -63,6 +63,8 @@ import {
 } from '@/components/ui/dialog';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
 import { familyKey } from '@/lib/studio-card-buckets';
+import { likenessNoteForSet } from '@/lib/photo-likeness';
+import type { Photo } from '@shared/models/photos';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardGridItem } from '@shared/schema';
 
@@ -293,6 +295,8 @@ export function ReviewStep({
         onJumpToStep={onJumpToStep}
         isReroll={isReroll}
       />
+
+      <PhotoQualityNote state={state} onJumpToStep={onJumpToStep} stepIndexById={stepIndexById} />
 
       <div className="pt-2">
         <Button
@@ -2070,4 +2074,44 @@ function FailedView({
  *  own in-component gate on the POST. */
 export function isReviewStepReady(_state: CardDraftState): boolean {
   return true;
+}
+
+/** Advisory nudge when EVERY selected photo assessed weak for likeness
+ *  (see lib/photo-likeness for the policy). Renders nothing for strong
+ *  sets, unassessed legacy photos, or while analysis is still landing —
+ *  silence is the default, and it NEVER gates generation. */
+function PhotoQualityNote({
+  state,
+  onJumpToStep,
+  stepIndexById,
+}: {
+  state: CardDraftState;
+  onJumpToStep: (index: number) => void;
+  stepIndexById: Record<StepId, number>;
+}) {
+  const { data: photos } = useQuery<Photo[]>({ queryKey: ['/api/user/photos'] });
+  const ids = state.photos?.photoIds ?? [];
+  if (!photos || ids.length === 0) return null;
+  const selected = ids
+    .map((id) => photos.find((p) => p.id === id))
+    .filter((p): p is Photo => !!p);
+  const note = likenessNoteForSet(selected, state.photos?.mode ?? 'one_person');
+  if (!note) return null;
+  return (
+    <div
+      className="rounded-xl border border-amber-200 bg-amber-50 p-4"
+      data-testid="photo-quality-note"
+    >
+      <p className="text-sm font-semibold text-keeper-ink">{note.headline}</p>
+      <p className="mt-1 text-[13px] leading-snug text-keeper-body">{note.detail}</p>
+      <button
+        type="button"
+        onClick={() => onJumpToStep(stepIndexById.photo)}
+        className="mt-2 text-[13px] font-medium text-brand underline underline-offset-2"
+        data-testid="btn-photo-note-change"
+      >
+        Change or add photos
+      </button>
+    </div>
+  );
 }

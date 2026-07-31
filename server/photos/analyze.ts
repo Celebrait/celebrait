@@ -37,6 +37,7 @@
 //   helper handles "no summary" gracefully.
 
 import { GoogleGenAI } from '@google/genai';
+import sharp from 'sharp';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { eq } from 'drizzle-orm';
@@ -47,6 +48,17 @@ import { llmCostCents } from '../prompts/llm-cost';
 import { LLM_SLOTS } from '@shared/schema';
 
 const ANALYSIS_MODEL = 'gemini-2.5-flash';
+
+/** Dimensions of an image buffer; null on decode failure (analysis then
+ *  proceeds without the resolution context — fail-soft like the rest). */
+async function sharpMeta(buf: Buffer): Promise<{ width?: number; height?: number } | null> {
+  try {
+    const m = await sharp(buf).metadata();
+    return { width: m.width, height: m.height };
+  } catch {
+    return null;
+  }
+}
 
 let _client: GoogleGenAI | null = null;
 
@@ -413,7 +425,41 @@ export async function analyzePhoto(args: {
 
   try {
     const imageBytes = await fs.readFile(imageAbsPath);
-    const vision = await runPhotoVision({ imageBytes, mimeType });
+    // Both passes in parallel — summary (for the inside-text helper) and
+    // likeness (for the review-step nudge). The image is the CROPPED
+    // derivative when one exists, which is exactly what generation sends
+    // the provider — so the likeness verdict judges what the model will
+    // actually see. Height read from the bytes because the caller only
+    // has the ORIGINAL's dimensions, not the crop's.
+    const cropMeta = await sharpMeta(imageBytes);
+    const [vision, likeness] = await Promise.all([
+      runPhotoVision({ imageBytes, mimeType }),
+      assessPhotoLikeness({ imageBytes, mimeType, imageHeight: cropMeta?.height }),
+    ]);
+
+    // Persist + cost-log the likeness pass independently of the summary
+    // pass: either can fail without taking the other down.
+    if (likeness.result) {
+      await db
+        .update(photos)
+        .set({ likeness: likeness.result })
+        .where(eq(photos.id, photoId));
+    }
+    if (!likeness.noApiKey) {
+      void logGeneration({
+        cardId: null,
+        slot: LLM_SLOTS.PHOTO_ANALYSIS,
+        templateId: null,
+        templateVersion: null,
+        provider: 'gemini',
+        model: likeness.model,
+        quality: null,
+        costCents: llmCostCents(likeness.model, likeness.promptTokens, likeness.outputTokens),
+        durationMs: likeness.durationMs,
+        success: !!likeness.result,
+        errorCode: likeness.result ? null : 'parse_failed',
+      });
+    }
 
     if (vision.noApiKey) {
       // No GEMINI_API_KEY in this environment. Don't retry endlessly —
