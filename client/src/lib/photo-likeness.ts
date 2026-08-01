@@ -89,8 +89,17 @@ export function likenessNoteForSet(
     // green.
     const usable = assessed.find((l) => l.verdict === 'usable');
     const usableReason = usable?.reason?.trim();
+    // Demote usable→amber only when the obstruction threatens IDENTITY:
+    // eyes not fully visible, two-plus things in the way, or a
+    // distorting expression. A single wisp of hair with both eyes clear
+    // stays green (Kevin's calibration 2026-08-01: the hair-across-
+    // forehead portrait "would be fine — yellow too heavy"), while
+    // yesterday's hat-AND-hand case (two occlusions) stays amber.
     const obstructed = (usable?.faces ?? []).some(
-      (f) => (f.occlusions?.length ?? 0) > 0 || f.expressionRisk,
+      (f) =>
+        f.eyesVisible !== 'both' ||
+        (f.occlusions?.length ?? 0) >= 2 ||
+        f.expressionRisk,
     );
     if (obstructed) {
       return {
@@ -149,6 +158,26 @@ export function likenessNoteForSet(
       detail:
         (reason ? `${reason} ` : '') +
         'A blurred face gives us nothing to rebuild from — the card would get a guess, not them. Please use a sharper photo.',
+    };
+  }
+
+  // Sunglasses are the profile-truth pattern again (Kevin 2026-08-01):
+  // the honest consequence isn't "bad likeness" — it's that the card
+  // may well come out WEARING them, or with eyes we had to invent.
+  // Some people will be perfectly happy with a sunglasses card; tell
+  // them the actual trade and let them choose. (Ordinary glasses are
+  // IDENTITY and never flagged — this matches sunglasses/shades only.)
+  const sunglasses = assessed.some((l) =>
+    (l.faces ?? []).some((f) =>
+      (f.occlusions ?? []).some((o) => /sunglass|shades|tinted/i.test(o)),
+    ),
+  );
+  if (cause === 'occlusion' && sunglasses) {
+    return {
+      tone: 'warn',
+      headline: 'Sunglasses on — the card may keep them on',
+      detail:
+        'We can’t see their eyes, so the card will likely come out wearing the sunglasses too — or with eyes we’ve had to guess. If shades-on is the look, carry on. For their full face, use a photo without them.',
     };
   }
 
