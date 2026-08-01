@@ -128,6 +128,31 @@ interface PendingUpload {
   /** The cropped preview at ~128px. `null` while the canvas op is in
    *  flight (should be ~50ms max) — tile pulses empty in that window. */
   previewDataUrl: string | null;
+  /** This upload REPLACES the current selection (single-photo change /
+   *  group swap). Drives the render: the outgoing tile is hidden the
+   *  moment this ghost exists, so the switch reads as one motion
+   *  instead of old-hangs-then-jumps (Kevin 2026-08-01). */
+  willReplace?: boolean;
+}
+
+/** Async canvas→JPEG. canvas.toDataURL is a SYNCHRONOUS encode on the
+ *  main thread — on a 1600px photo it's the visible freeze between
+ *  picking a file and the crop dialog opening (Kevin 2026-08-01:
+ *  "staggery"). toBlob does the identical work without blocking paint. */
+function canvasToJpegDataUrl(canvas: HTMLCanvasElement, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error('encode failed'));
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error('read failed'));
+        r.readAsDataURL(blob);
+      },
+      'image/jpeg',
+      quality,
+    );
+  });
 }
 
 /**
@@ -172,7 +197,7 @@ async function generateCroppedPreview(
           w,
           h,
         );
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        canvasToJpegDataUrl(canvas, 0.85).then(resolve, reject);
       } catch (err) {
         reject(err);
       }
@@ -545,7 +570,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       if (!ctx) throw new Error('no 2d context');
       ctx.drawImage(bitmap as CanvasImageSource, 0, 0, w, h);
       if ('close' in bitmap) (bitmap as ImageBitmap).close();
-      return canvas.toDataURL('image/jpeg', QUALITY);
+      return await canvasToJpegDataUrl(canvas, QUALITY);
     } catch {
       // Optimisation is best-effort — never block an upload on it.
       return readFileAsDataUrl(file);
@@ -682,7 +707,10 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     // Register a ghost tile immediately — the user sees their crop
     // "land" in the grid before the CropDialog even closes on the last
     // photo. Preview fills in ~50ms later via the canvas op below.
-    setPending((p) => [...p, { tempId, previewDataUrl: null }]);
+    setPending((p) => [
+      ...p,
+      { tempId, previewDataUrl: null, willReplace: replaceNextRef.current || modeAtCrop === 'group' },
+    ]);
     setInFlightUploads((n) => n + 1);
 
     // Advance the CropDialog to the next file (or close it) IMMEDIATELY
@@ -766,7 +794,21 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           },
         });
 
-        // Drop the ghost tile — the real one renders from selectedPhotos.
+        // Drop the ghost only once the real thumbnail is already in the
+        // browser cache — swapping to an unfetched /images/ URL painted
+        // a blank tile for a beat (the end-of-upload "clunk"). Preload,
+        // then swap: both frames are ready and the switch is invisible.
+        // Capped wait so a slow/failed thumb can't strand the ghost.
+        await new Promise<void>((done) => {
+          const img = new Image();
+          const finish = () => done();
+          const t = window.setTimeout(finish, 1500);
+          img.onload = img.onerror = () => {
+            window.clearTimeout(t);
+            finish();
+          };
+          img.src = `/images/${photo.thumbnailPath}`;
+        });
         setPending((p) => p.filter((pp) => pp.tempId !== tempId));
       } catch (err: any) {
         console.error('[PHOTO_STEP] upload failed:', err);
@@ -974,7 +1016,10 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         <div
           className={`flex flex-wrap justify-center gap-2 ${maxWidthClass}`}
         >
-          {selectedPhotos.map((p, idx) => (
+          {/* A replacement in flight HIDES the outgoing photo(s): the
+              ghost (which shows the new crop within ~50ms) takes their
+              place immediately, so the change reads as one motion. */}
+          {!pending.some((pp) => pp.willReplace) && selectedPhotos.map((p, idx) => (
             <PhotoTile
               key={`real-${p.id}`}
               kind="real"
