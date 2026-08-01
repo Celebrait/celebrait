@@ -24,8 +24,10 @@
 // (scheduleFaceHint) and not at all in group mode, where its answer is
 // discarded anyway. Putting it back in line froze phones for ~10s.
 //
-// Every upload is cropped to 1:1 via CropDialog (tight head crop survives
-// the 1024× downscale better). Library picker stays single-select for
+// Every upload passes through CropDialog. Free aspect in both modes
+// since 2026-08-01 (the 1:1 single-person lock rested on a face-pixels
+// belief the likeness evidence overturned); auto-face still suggests a
+// face-centred box in one_person mode. Library picker stays single-select for
 // now; multi-select from library is a follow-up.
 
 import { useEffect, useRef, useState } from 'react';
@@ -1303,12 +1305,15 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           onCancel={cancelStaged}
           onConfirm={confirmCrop}
           autoFace={mode === 'one_person'}
-          // Group photos: drop the square lock. They're almost always
-          // wider than tall, and forcing 1:1 either cuts people off
-          // at the edges or shrinks everyone to fit. Single-person
-          // crops stay 1:1 — tight face crops survive the provider's
-          // downscale better.
-          aspect={mode === 'one_person' ? 1 : undefined}
+          // Free aspect for BOTH modes (Kevin 2026-08-01). The 1:1 lock
+          // on single-person was built on "tight face crops survive the
+          // downscale better" — a belief the likeness work just
+          // dismantled (face pixels aren't the binding constraint; the
+          // club-selfie evidence). The auto-face snap still opens on a
+          // square-ish face box as a smart DEFAULT; the user can now
+          // drag it to any shape, and the post-crop likeness verdict
+          // catches genuinely bad framing either way.
+          aspect={undefined}
         />
         {/* Library drawer must mount HERE too — the edit overlay's
             "Choose from your library" sets libraryOpen from the
@@ -1479,9 +1484,8 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         onCancel={cancelStaged}
         onConfirm={confirmCrop}
         autoFace={mode === 'one_person'}
-        // Group photos: free aspect (see the other CropDialog mount
-        // above for the rationale).
-        aspect={mode === 'one_person' ? 1 : undefined}
+        // Free aspect for both modes — see the edit-overlay mount above.
+        aspect={undefined}
       />
 
       {/* Briefing before the OS picker. Two rules, both decided before the

@@ -3,17 +3,15 @@
 // Crop step for uploaded photos. Two flavours, picked by the caller
 // via the `aspect` prop:
 //
-//   • aspect=1 (default) — locked 1:1 square crop. Used for one-person
-//     uploads where tight face crops materially improve likeness after
-//     the provider's 1024× downscale. Pairs with autoFace=true so the
-//     initial box snaps to the detected face.
+//   • aspect=1 — locked 1:1 square crop. No caller uses this since
+//     2026-08-01 (the face-pixels rationale didn't survive the likeness
+//     evidence), but the capability stays for anything that genuinely
+//     needs a square (print-area pickers etc.).
 //
-//   • aspect=undefined — free aspect, user drags any rectangle.
-//     Used for group photos where the natural framing is almost always
-//     wider than tall — forcing a square either cut people off at the
-//     edges or shrank everyone to fit. Kevin flagged 2026-05-14:
-//     "group photo cropping asks for square which does not work."
-//     Pairs with autoFace=false (no single hero face to snap to).
+//   • aspect=undefined — free aspect, user drags any rectangle. Now
+//     BOTH modes (group since 2026-05-14: "square does not work";
+//     one_person since 2026-08-01). one_person pairs with autoFace=true,
+//     which opens the box snapped to the face as a starting suggestion.
 //
 // Uses react-image-crop for the familiar draggable-corner-handle UX
 // over a fixed image (what users expect from iPhone crop, Instagram,
@@ -54,10 +52,9 @@ interface CropDialogProps {
    *  the initial crop box onto the primary face. Turn off for group
    *  photos (no single hero face — centred default is better). */
   autoFace?: boolean;
-  /** Aspect ratio to lock the crop box to. Default `1` (square, suits
-   *  one-person face crops). Pass `undefined` for free aspect (user
-   *  drags any rectangle) — the right choice for group photos which
-   *  are almost always wider than tall. */
+  /** Aspect ratio to lock the crop box to, or undefined for free
+   *  aspect (any rectangle). All studio callers pass undefined since
+   *  2026-08-01. */
   aspect?: number | undefined;
 }
 
