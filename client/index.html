@@ -55,14 +55,46 @@
           "name": "Personalised photo greetings card",
           "description": "A personalised greetings card where the person in your photo becomes the artwork, in any scene you describe. Printed on 280gsm card and posted anywhere in the UK, with a free digital version included.",
           "image": "https://www.celebrait.co.uk/og-image.jpg",
-          "brand": { "@id": "https://www.celebrait.co.uk/#org" },
+          "brand": { "@type": "Brand", "name": "Celebrait" },
           "offers": {
             "@type": "Offer",
             "price": "8.99",
             "priceCurrency": "GBP",
             "availability": "https://schema.org/InStock",
             "url": "https://www.celebrait.co.uk/",
-            "areaServed": "GB"
+            "areaServed": "GB",
+            "shippingDetails": {
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": "3.95",
+                "currency": "GBP"
+              },
+              "shippingDestination": {
+                "@type": "DefinedRegion",
+                "addressCountry": "GB"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 3,
+                  "unitCode": "DAY"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 2,
+                  "unitCode": "DAY"
+                }
+              }
+            },
+            "hasMerchantReturnPolicy": {
+              "@type": "MerchantReturnPolicy",
+              "applicableCountry": "GB",
+              "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+            }
           }
         }
       ]
