@@ -50,6 +50,7 @@ import {
   occasionLabel,
 } from '@/lib/moments';
 import { ProgressRing } from '@/components/studio/moment-ring';
+import { MomentIcon } from '@/components/studio/moment-icon';
 
 export default function StudioMomentsPage() {
   // The 15-second sheet replaces every link to the address-book ADMIN
@@ -194,9 +195,7 @@ export default function StudioMomentsPage() {
               data-testid={`moment-${r.occasionId}`}
             >
               {/* The person, present — initial-avatar until photos land. */}
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-muted text-lg font-bold text-brand-dark">
-                {r.recipientName.slice(0, 1).toUpperCase()}
-              </div>
+              <MomentIcon occasion={r.occasion} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-semibold text-keeper-ink">
                   {r.recipientName}
@@ -239,9 +238,7 @@ export default function StudioMomentsPage() {
             className="flex items-center gap-4 rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-4"
             data-testid={`national-${n.label}`}
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white border border-stone-200">
-              <CalendarHeart className="h-5 w-5 text-keeper-meta" />
-            </div>
+            <MomentIcon occasion={n.label} />
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-keeper-ink">{n.label}</p>
               <p className="text-[12.5px] text-keeper-meta">

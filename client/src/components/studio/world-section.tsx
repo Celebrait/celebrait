@@ -17,10 +17,10 @@ import {
   nextNationalMoments,
   fmtMomentDate,
   countdownLabel,
-  personGradient,
   occasionLabel,
 } from '@/lib/moments';
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
+import { MomentIcon } from '@/components/studio/moment-icon';
 
 function timeGreeting(): string {
   const h = new Date().getHours();
@@ -60,7 +60,7 @@ export function WorldSection({ name }: { name: string }) {
     <section className="mb-12" data-testid="world-section">
       {/* Greeting + the single most relevant fact in their world. */}
       <p className="text-[15px] text-keeper-meta">
-        {timeGreeting()}, {name} ☀️
+        {timeGreeting()}, {name}
       </p>
       <h1 className="mt-1 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.015em] text-keeper-ink text-balance">
         {next ? (
@@ -83,14 +83,7 @@ export function WorldSection({ name }: { name: string }) {
       {/* Hero — the nearest moment as a physical thing with a door in. */}
       {next && (
         <div className="mt-5 flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_10px_24px_-18px_rgba(33,29,25,.4)]">
-          <div
-            className="relative h-[86px] w-[86px] shrink-0 overflow-hidden rounded-xl"
-            style={{ background: personGradient(next.recipientName) }}
-          >
-            <span className="absolute inset-x-0 bottom-1.5 text-center font-display text-[11px] font-bold uppercase tracking-[0.14em] text-white [text-shadow:0_1px_4px_rgba(0,0,0,.35)]">
-              {next.recipientName.slice(0, 8)}
-            </span>
-          </div>
+          <MomentIcon occasion={next.occasion} size="lg" />
           <div className="min-w-0">
             <p className="text-[16px] font-semibold text-keeper-ink">
               {next.recipientName} · {occasionLabel(next.occasion)}
@@ -165,10 +158,7 @@ export function WorldSection({ name }: { name: string }) {
                 key={r.occasionId}
                 className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-3.5 py-2.5"
               >
-                <div
-                  className="h-[46px] w-[46px] shrink-0 rounded-xl"
-                  style={{ background: personGradient(r.recipientName) }}
-                />
+                <MomentIcon occasion={r.occasion} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14.5px] font-semibold text-keeper-ink">
                     {r.recipientName}
@@ -184,9 +174,7 @@ export function WorldSection({ name }: { name: string }) {
             ))}
             {invite && (
               <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-stone-300 bg-stone-50/60 px-3.5 py-2.5">
-                <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-xl">
-                  {invite.label === 'Christmas' ? '🎄' : invite.label === "Valentine's Day" ? '💌' : '💐'}
-                </div>
+                <MomentIcon occasion={invite.label} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[14.5px] font-semibold text-keeper-ink">{invite.label}</p>
                   <p className="text-[11.5px] text-keeper-meta">{invite.prompt}</p>
