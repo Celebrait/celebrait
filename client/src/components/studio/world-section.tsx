@@ -117,6 +117,7 @@ export function WorldSection({
       {/* The free-card band — a gift being mentioned, not a banner. */}
       <div
         className="mt-3.5 flex items-center gap-3 rounded-2xl bg-brand-muted/60 px-4 py-3"
+        data-hint="free-card"
         data-testid="world-ring-band"
       >
         {unlocked ? (

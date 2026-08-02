@@ -39,25 +39,32 @@ interface HintDef {
 // Order = the sequence they're offered in. A hint only shows once its
 // target is visible, so on mobile (sidebar tucked in a sheet) the
 // sidebar-anchored ones simply wait rather than misfire.
+// Rewritten for the world-led home (Kevin 2026-08-01). Three beats,
+// in the order the page argues them: the gift, the year, the craft.
+// The old first tip anchored the New-card button and physically covered
+// the hero headline — the new first tip anchors the free-card band,
+// which sits below the hero and IS the thing worth coaching.
 const HINTS: HintDef[] = [
   {
+    id: 'free-card',
+    title: 'A gift to start',
+    body: 'Add three dates that matter — birthdays, anniversaries, any day — and your first card is free.',
+  },
+  {
+    id: 'moments',
+    title: 'Your year, watched',
+    body: 'Every date you add lives in Moments. We nudge you before each one — no more last-minute scrambles.',
+  },
+  {
     id: 'new-card',
-    title: 'Start here',
-    body: "Make a card they'll keep — pick a moment, add a photo, and we bring it to life.",
-  },
-  {
-    id: 'people',
-    title: 'Your people',
-    body: "Save the people you care about and we'll remind you before their big day.",
-  },
-  {
-    id: 'drafts',
-    title: 'Pick up any time',
-    body: "Half-finished cards wait for you here — nothing's ever lost.",
+    title: 'When a moment comes',
+    body: 'Pick the person, add a photo, and we make a card they’ll keep.',
   },
 ];
 
-const STORAGE_KEY = 'celebrait:hints:v1';
+// v2 (2026-08-01): key bumped so everyone sees the rewritten tour ONCE —
+// the old one described the pre-Moments studio.
+const STORAGE_KEY = 'celebrait:hints:v2';
 // Start after the welcome greeting (1.2s) has had its moment.
 const START_DELAY_MS = 2800;
 // Routes where a coachmark would distract from the task at hand.

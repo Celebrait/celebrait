@@ -89,7 +89,7 @@ const NAV_SECTIONS: NavSection[] = [
       // Reminders in the nav. Both old pages stay routable — Moments
       // links to them for management — but the sidebar sells the idea,
       // not the furniture.
-      { label: 'Moments', href: '/studio/moments', icon: CalendarHeart, hint: 'people' },
+      { label: 'Moments', href: '/studio/moments', icon: CalendarHeart, hint: 'moments' },
     ],
   },
   {
