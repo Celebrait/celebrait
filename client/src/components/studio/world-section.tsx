@@ -29,7 +29,18 @@ function timeGreeting(): string {
   return 'Evening';
 }
 
-export function WorldSection({ name }: { name: string }) {
+export function WorldSection({
+  name,
+  showRiver = true,
+}: {
+  name: string;
+  /** The river earns its place only when there's nothing else on the
+   *  page (zero-card accounts — the data-capture audience). For anyone
+   *  with cards in play it pushed Ready-to-send below the fold on
+   *  mobile (Kevin 2026-08-01), and the hero + "See your whole year"
+   *  already cover the moments. */
+  showRiver?: boolean;
+}) {
   const [addOpen, setAddOpen] = useState(false);
   const [preset, setPreset] = useState<string | undefined>(undefined);
   const openAdd = (occasion?: string) => {
@@ -146,8 +157,8 @@ export function WorldSection({ name }: { name: string }) {
         </p>
       </div>
 
-      {/* Condensed river. */}
-      {(rest.length > 0 || invite) && (
+      {/* Condensed river — zero-card accounts only, see prop doc. */}
+      {showRiver && (rest.length > 0 || invite) && (
         <>
           <p className="mt-6 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-keeper-meta">
             Coming up in your world

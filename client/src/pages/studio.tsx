@@ -101,7 +101,7 @@ export default function StudioHome() {
     );
   return (
     <>
-      <WorldSection name={displayName} />
+      <WorldSection name={displayName} showRiver={cards.length === 0} />
       {stateView}
     </>
   );
