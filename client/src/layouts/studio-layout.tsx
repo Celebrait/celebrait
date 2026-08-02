@@ -22,6 +22,7 @@
 
 import { Link, useLocation } from 'wouter';
 import {
+  CalendarHeart,
   LogOut,
   Menu,
   Home as HomeIcon,
@@ -84,8 +85,11 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'People',
     items: [
       // Week 2 (2026-04-29): Address book + Reminders both live.
-      { label: 'Address book', href: '/studio/people/address-book', icon: Users, hint: 'people' },
-      { label: 'Reminders', href: '/studio/people/reminders', icon: Bell },
+      // One roof (Kevin 2026-08-01): Moments replaces Address book +
+      // Reminders in the nav. Both old pages stay routable — Moments
+      // links to them for management — but the sidebar sells the idea,
+      // not the furniture.
+      { label: 'Moments', href: '/studio/moments', icon: CalendarHeart, hint: 'people' },
     ],
   },
   {

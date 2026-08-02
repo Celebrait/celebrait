@@ -111,6 +111,7 @@ const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
 const AdminPromptsPage = lazy(() => import("@/pages/admin-prompts"));
 const AdminCostsPage = lazy(() => import("@/pages/admin-costs"));
 const AdminPhotoLabPage = lazy(() => import("@/pages/admin-photo-lab"));
+const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
 const AdminEmailsPage = lazy(() => import("@/pages/admin-emails"));
@@ -204,6 +205,13 @@ function Router() {
               paths share a single form component with a `mode` prop. The
               "/new" route is registered BEFORE the parameterised "/:id/edit"
               so wouter doesn't greedily match new as ":id='new'". */}
+          <Route path="/studio/moments">
+            <RequireAuth>
+              <StudioLayout>
+                <StudioMomentsPage />
+              </StudioLayout>
+            </RequireAuth>
+          </Route>
           <Route path="/studio/people/address-book">
             <RequireAuth>
               <StudioLayout>
