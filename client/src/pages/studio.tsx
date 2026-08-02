@@ -23,6 +23,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { WorldSection } from '@/components/studio/world-section';
 import { Link } from 'wouter';
 import {
   ArrowRight,
@@ -86,18 +87,24 @@ export default function StudioHome() {
   const { drafts, ready, sent } = bucketCards(cards);
 
   // State selection. Empty > Draft > Has-activity.
-  if (ready.length > 0 || sent.length > 0) {
-    return (
-      <HasActivityView
-        name={displayName}
-        drafts={drafts}
-        ready={ready}
-        sent={sent}
-      />
+  // Redesign step B (2026-08-01): "your world" leads the home for every
+  // state — greeting, next moment, the free-card band, a two-item river.
+  // The per-state content follows without its own greeting header, and
+  // without the old UpcomingWidget (the river replaces it).
+  const stateView =
+    ready.length > 0 || sent.length > 0 ? (
+      <HasActivityView name={displayName} drafts={drafts} ready={ready} sent={sent} />
+    ) : drafts.length > 0 ? (
+      <DraftPendingView name={displayName} draft={drafts[0]} />
+    ) : (
+      <EmptyView name={displayName} />
     );
-  }
-  if (drafts.length > 0) return <DraftPendingView name={displayName} draft={drafts[0]} />;
-  return <EmptyView name={displayName} />;
+  return (
+    <>
+      <WorldSection name={displayName} />
+      {stateView}
+    </>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -131,7 +138,6 @@ export default function StudioHome() {
 function EmptyView({ name }: { name: string }) {
   return (
     <>
-      <DashboardHeader name={name} subtitle="Let's make something lovely." />
 
       {/* Hero — split on lg+, stacked on smaller. lg breakpoint chosen
           deliberately: at md (768px) the card is too narrow for the 3D
@@ -201,7 +207,6 @@ function EmptyView({ name }: { name: string }) {
           empty-state users it'll be invisible (no recipients yet);
           appears the moment they add someone via the address book or
           finish a card. */}
-      <UpcomingWidget />
 
       <HowItWorks />
       {/* Invitations teaser intentionally OMITTED on the empty state
@@ -245,10 +250,6 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
 
   return (
     <>
-      <DashboardHeader
-        name={name}
-        subtitle="Pick up where you left off — or start something new."
-      />
 
       <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 mb-8 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
         <div className="w-12 h-12 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center flex-shrink-0">
@@ -287,7 +288,6 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
         </Link>
       </div>
 
-      <UpcomingWidget />
 
       <DemoVideoBlock />
       <HowItWorks compact />
@@ -333,7 +333,6 @@ function HasActivityView({
 
   return (
     <>
-      <DashboardHeader name={name} subtitle="Here's what's on the go." />
 
       {heroCards.length > 0 && (
         <HeroCarousel cards={heroCards} bucket={heroBucket} />
@@ -344,7 +343,6 @@ function HasActivityView({
           audit's discoverability fix: don't bury it below the activity
           columns. Renders nothing when no upcoming items in 60 days,
           so users with recipients-but-nothing-soon don't see clutter. */}
-      <UpcomingWidget />
 
       {/* Three-column activity summary. Accent hierarchy reflects
           priority: Ready gets the loudest CTA-green treatment (revenue

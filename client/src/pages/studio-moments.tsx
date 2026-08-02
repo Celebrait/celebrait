@@ -42,115 +42,14 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import type { AddressBookEntry } from '@shared/schema';
-
-interface UpcomingReminder {
-  occasionId: number;
-  entryId: number;
-  recipientName: string;
-  relationship: string | null;
-  occasion: string;
-  occurrenceDate: string;
-  daysUntil: number;
-  suppressed: boolean;
-  suppressedUntil: string | null;
-}
-
-// ── National moments ─────────────────────────────────────────────────
-// Public-fact dates, resolved client-side. Movable feasts are a lookup
-// table (Mothering Sunday tracks Easter; Father's Day is the third
-// Sunday of June) — a table is auditable at a glance, a computation of
-// Easter is not. Extend before 2030.
-const NATIONAL_TABLE: Record<string, string[]> = {
-  "Mother's Day": ['2026-03-15', '2027-03-07', '2028-03-26', '2029-03-11', '2030-03-31'],
-  "Father's Day": ['2026-06-21', '2027-06-20', '2028-06-18', '2029-06-17', '2030-06-16'],
-};
-
-interface NationalMoment {
-  label: string;
-  occurrenceDate: string;
-  daysUntil: number;
-  prompt: string;
-}
-
-function nextNationalMoments(today: Date): NationalMoment[] {
-  const out: NationalMoment[] = [];
-  const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const days = (iso: string) =>
-    Math.round((new Date(iso + 'T00:00:00').getTime() - midnight.getTime()) / 86_400_000);
-
-  for (const [label, dates] of Object.entries(NATIONAL_TABLE)) {
-    const next = dates.find((d) => days(d) >= 0);
-    if (next) {
-      out.push({
-        label,
-        occurrenceDate: next,
-        daysUntil: days(next),
-        prompt:
-          label === "Mother's Day"
-            ? 'Who’s your Mother’s Day card for?'
-            : 'Who’s your Father’s Day card for?',
-      });
-    }
-  }
-  // Fixed-date pair: next occurrence this year or roll to next.
-  for (const [label, mmdd, prompt] of [
-    ["Valentine's Day", '02-14', 'Someone in mind?'],
-    ['Christmas', '12-25', 'Who gets the first card of Christmas?'],
-  ] as const) {
-    const thisYear = `${today.getFullYear()}-${mmdd}`;
-    const iso = days(thisYear) >= 0 ? thisYear : `${today.getFullYear() + 1}-${mmdd}`;
-    out.push({ label, occurrenceDate: iso, daysUntil: days(iso), prompt });
-  }
-  return out.sort((a, b) => a.daysUntil - b.daysUntil);
-}
-
-// ── The ring ─────────────────────────────────────────────────────────
-function ProgressRing({ filled }: { filled: number }) {
-  // Three arcs on a circle, gapped, filled clockwise as dates land.
-  const R = 44;
-  const C = 2 * Math.PI * R;
-  const seg = C / 3;
-  const gap = 8;
-  return (
-    <svg viewBox="0 0 110 110" className="h-28 w-28 -rotate-90">
-      {[0, 1, 2].map((i) => (
-        <circle
-          key={i}
-          cx="55"
-          cy="55"
-          r={R}
-          fill="none"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${seg - gap} ${C - seg + gap}`}
-          strokeDashoffset={-i * seg}
-          className={
-            i < filled
-              ? 'stroke-go transition-all duration-700'
-              : 'stroke-stone-200'
-          }
-        />
-      ))}
-    </svg>
-  );
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-  });
-}
-
-function countdownLabel(days: number): string {
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Tomorrow';
-  if (days < 30) return `${days} days`;
-  if (days < 60) return 'Next month';
-  return new Date(Date.now() + days * 86_400_000).toLocaleDateString('en-GB', {
-    month: 'long',
-  });
-}
+import {
+  type UpcomingReminder,
+  nextNationalMoments,
+  fmtMomentDate,
+  countdownLabel,
+  occasionLabel,
+} from '@/lib/moments';
+import { ProgressRing } from '@/components/studio/moment-ring';
 
 export default function StudioMomentsPage() {
   // The 15-second sheet replaces every link to the address-book ADMIN
@@ -303,11 +202,11 @@ export default function StudioMomentsPage() {
                   {r.recipientName}
                   <span className="font-normal text-keeper-body">
                     {' '}
-                    · {r.occasion}
+                    · {occasionLabel(r.occasion)}
                   </span>
                 </p>
                 <p className="text-[12.5px] text-keeper-meta">
-                  {fmtDate(r.occurrenceDate)}
+                  {fmtMomentDate(r.occurrenceDate)}
                   {!near && ' — we’ll nudge you in plenty of time'}
                 </p>
               </div>
@@ -346,7 +245,7 @@ export default function StudioMomentsPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-semibold text-keeper-ink">{n.label}</p>
               <p className="text-[12.5px] text-keeper-meta">
-                {fmtDate(n.occurrenceDate)} · {n.prompt}
+                {fmtMomentDate(n.occurrenceDate)} · {n.prompt}
               </p>
             </div>
             <button
