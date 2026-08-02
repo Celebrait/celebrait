@@ -39,6 +39,8 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import type { AddressBookEntry } from '@shared/schema';
 
 interface UpcomingReminder {
@@ -151,6 +153,14 @@ function countdownLabel(days: number): string {
 }
 
 export default function StudioMomentsPage() {
+  // The 15-second sheet replaces every link to the address-book ADMIN
+  // form on this page (Kevin's audit: the add flow IS the product).
+  const [addOpen, setAddOpen] = useState(false);
+  const [preset, setPreset] = useState<string | undefined>(undefined);
+  const openAdd = (occasion?: string) => {
+    setPreset(occasion);
+    setAddOpen(true);
+  };
   const { data: reminders, isLoading: remindersLoading } = useQuery<UpcomingReminder[]>({
     queryKey: ['/api/user/reminders'],
   });
@@ -187,15 +197,14 @@ export default function StudioMomentsPage() {
             The dates that matter, watched for you.
           </p>
         </div>
-        <Link href="/studio/people/address-book/new">
-          <Button
-            className="bg-go hover:bg-go-hover text-go-foreground rounded-full"
-            data-testid="btn-add-moment"
-          >
-            <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.5} />
-            Add a date
-          </Button>
-        </Link>
+        <Button
+          onClick={() => openAdd()}
+          className="bg-go hover:bg-go-hover text-go-foreground rounded-full"
+          data-testid="btn-add-moment"
+        >
+          <Plus className="mr-1.5 h-4 w-4" strokeWidth={2.5} />
+          Add someone's day
+        </Button>
       </div>
 
       {/* ── The free-card ring ─────────────────────────────────── */}
@@ -340,14 +349,18 @@ export default function StudioMomentsPage() {
                 {fmtDate(n.occurrenceDate)} · {n.prompt}
               </p>
             </div>
-            <Link href="/studio/people/address-book/new">
-              <span className="inline-flex shrink-0 items-center rounded-full border border-stone-300 px-3 py-1 text-[12px] font-medium text-keeper-body hover:border-brand hover:text-brand">
-                <Plus className="mr-1 h-3.5 w-3.5" /> Add them
-              </span>
-            </Link>
+            <button
+              type="button"
+              onClick={() => openAdd(n.label)}
+              className="inline-flex shrink-0 items-center rounded-full border border-stone-300 px-3 py-1 text-[12px] font-medium text-keeper-body hover:border-brand hover:text-brand"
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" /> Add them
+            </button>
           </div>
         ))}
       </div>
+
+      <QuickAddMoment open={addOpen} onOpenChange={setAddOpen} presetOccasion={preset} />
 
       {/* Quiet doors to the old management surfaces — nothing is lost. */}
       <div className="mt-10 flex items-center justify-center gap-6 text-[12.5px] text-keeper-meta">
