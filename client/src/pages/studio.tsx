@@ -34,14 +34,11 @@ import {
   Package,
 } from 'lucide-react';
 import { CardGridSkeleton } from '@/components/studio/card-grid';
-import { Card3DViewer } from '@/components/card-3d-viewer';
 // Hero asset for the empty-state. Real Celebrait-rendered example
 // (Father's Day occasion) — chosen to demonstrate the photoreal output
 // to a brand-new user immediately, rather than showing a blank
 // metaphor card. Swap if Kevin curates a different "first impression"
 // occasion later.
-import heroFrontSrc from '@/assets/fathers-day-front.jpg';
-import heroInsideSrc from '@/assets/fathers-day-inside-new.jpg';
 import { useAuth } from '@/hooks/use-auth';
 import { bucketCards, collapseFamilies, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
@@ -93,119 +90,16 @@ export default function StudioHome() {
       <HasActivityView name={displayName} drafts={drafts} ready={ready} sent={sent} />
     ) : drafts.length > 0 ? (
       <DraftPendingView name={displayName} draft={drafts[0]} />
-    ) : (
-      <EmptyView name={displayName} />
-    );
+    ) : null;
+  // Empty state renders NO extra section — the world section above
+  // (headline, free-card band, quick-add, river) IS the empty home.
+  // The Made-by-heart hero + sample 3D card removed entirely
+  // (Kevin 2026-08-03): a fresh signup's story is dates-first, and the
+  // sidebar/new-card affordances still cover starting a card.
   return (
     <>
       <WorldSection name={displayName} showRiver={cards.length === 0} />
       {stateView}
-    </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// State 1 — zero cards
-//
-// Hero Card pattern per HERO_CARD.md + next_studio_dashboard_scope.md
-// §1. Iterations:
-//   • 2026-04-24 first pass: demo video block as hero. Reverted —
-//     `VIDEO_SRC` was null (stub), the empty state was hollow.
-//   • 2026-04-28 first attempt: 3D card with card-blank.svg + side
-//     copy. Mobile was poor (card swallowed the screen, CTA below the
-//     fold) and showed metaphor not product.
-//   • 2026-04-28 SECOND attempt (this one): real photoreal example
-//     card (Father's Day) in the 3D viewer. Mobile-first responsive:
-//     copy + CTA above the fold; card sits below as the proof beat.
-//     On lg+ desktop, classic split layout — copy left, card right at
-//     the same vertical level so eye lands on the product.
-//
-// Mobile-first is non-negotiable here — this is a brand-new user's
-// FIRST authenticated screen. CTA must be above the fold. Three.js on
-// mobile is fine for a slow autoRotate (low frame budget); we cap card
-// height at 36vh on phones so it sits as a proof beat below the CTA,
-// not the dominant visual.
-//
-// The "Watch how it works (30s)" secondary link is gated on a real
-// VIDEO_SRC being set in DemoVideoBlock. Today VIDEO_SRC is null, so
-// the link is hidden. When Kevin wires a real video, set the export
-// in demo-video-block.tsx and the link appears here automatically.
-// ─────────────────────────────────────────────────────────────────────
-
-function EmptyView({ name }: { name: string }) {
-  return (
-    <>
-
-      {/* Hero — split on lg+, stacked on smaller. lg breakpoint chosen
-          deliberately: at md (768px) the card is too narrow for the 3D
-          viewer to read. Stack until 1024px. */}
-      <section className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-14 lg:mb-20">
-        {/* Copy column.
-            On mobile (default): text-center, full-width, comes FIRST
-            (order-1) so headline + CTA land above the fold.
-            On lg+: text-left, card sits to the right at the same
-            vertical level. */}
-        <div className="order-1 lg:order-1 text-center lg:text-left max-w-md mx-auto lg:mx-0 lg:max-w-none">
-          <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] font-semibold text-brand-dark bg-brand-muted/60 rounded-full px-2.5 py-1 mb-5">
-            <Sparkles className="w-3 h-3" />
-            Your first card
-          </p>
-          <h2 className="text-[2.25rem] leading-[1.05] sm:text-5xl lg:text-6xl font-semibold text-keeper-ink tracking-tight mb-4 lg:mb-5">
-            Made-by-heart
-            <br />
-            <em className="italic text-brand-dark font-normal">cards.</em>
-          </h2>
-          <p className="text-base sm:text-lg text-keeper-body leading-relaxed mb-7">
-            Like the one below — built around someone you love. Upload a photo, tell us the moment, and we'll render a card with them in it. Print it and post it — with a free digital link to share.
-          </p>
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-center lg:items-start gap-3 sm:gap-4 justify-center lg:justify-start">
-            <Link
-              href="/studio/new-card"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-7 py-3.5 text-base font-semibold transition-colors shadow-sm"
-              data-testid="empty-start-card"
-            >
-              <Wand2 className="w-4 h-4" />
-              Start your first card
-            </Link>
-          </div>
-        </div>
-
-        {/* 3D card column.
-            Sits BELOW the copy on mobile (order-2). Height capped to
-            36vh on phones (proof beat, not dominant visual) and
-            allowed to grow into 50–58vh on larger viewports.
-            Wrapped in a brand-tinted soft gradient backdrop so the
-            card has somewhere to "sit" instead of floating against
-            page background — picks up the same warm tone the
-            invitations teaser uses for visual coherence with the rest
-            of the studio. */}
-        <div className="order-2 relative w-full h-[36vh] min-h-[280px] sm:h-[44vh] lg:h-[58vh] rounded-3xl bg-gradient-to-br from-brand-muted/40 via-white to-brand-muted/20 border border-keeper-hair/80 overflow-hidden">
-          <Card3DViewer
-            frontImageUrl={heroFrontSrc}
-            insideImageUrl={heroInsideSrc}
-            backCredit="Made with Celebrait"
-            framingMargin={1.5}
-            minDistance={2.1}
-            /* Was autoRotate — the spinning card was the "fancy
-               gadget" Kevin removed site-wide 2026-07-07. Rests ajar
-               in the standard pose instead. */
-            enableRotate={false}
-            enableZoom={false}
-            closedAngle={-0.38}
-            restYaw={-0.12}
-            className="w-full h-full"
-          />
-        </div>
-      </section>
-
-      {/* Upcoming widget — only renders if the user has at least one
-          recipient with a date in the next 60 days. For most brand-new
-          empty-state users it'll be invisible (no recipients yet);
-          appears the moment they add someone via the address book or
-          finish a card. */}
-
-      {/* Promo blocks removed from the home (Kevin 2026-08-01) — the
-          world-led home explains itself. */}
     </>
   );
 }
