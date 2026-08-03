@@ -40,6 +40,7 @@ import { CardGridSkeleton } from '@/components/studio/card-grid';
 // metaphor card. Swap if Kevin curates a different "first impression"
 // occasion later.
 import { useAuth } from '@/hooks/use-auth';
+import { CardArtImg } from '@/components/studio/card-art-img';
 import { bucketCards, collapseFamilies, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
@@ -299,19 +300,12 @@ function HeroCarousel({
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
           <div className="w-20 h-20 rounded-xl bg-stone-100 overflow-hidden flex-shrink-0">
-            {current.frontImageUrl ? (
-              <img
-                key={current.id}
-                src={current.frontImageUrl}
-                crossOrigin="anonymous"
-                alt={title}
-                className="w-full h-full object-cover animate-in fade-in-0 duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-keeper-meta">
-                <ImageIcon className="w-8 h-8" />
-              </div>
-            )}
+            <CardArtImg
+              key={current.id}
+              src={current.frontImageUrl}
+              alt={title}
+              className="w-full h-full object-cover animate-in fade-in-0 duration-500"
+            />
           </div>
           <div className="flex-1 min-w-0">
             {isSent ? (
@@ -490,18 +484,12 @@ function CompactCardRow({ card }: { card: CardGridItem }) {
       data-testid={`compact-card-${card.id}`}
     >
       <div className="w-10 h-10 rounded bg-stone-100 overflow-hidden flex-shrink-0">
-        {card.frontImageUrl ? (
-          <img
-            src={card.frontImageUrl}
-            crossOrigin="anonymous"
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-keeper-meta">
-            <ImageIcon className="w-4 h-4" />
-          </div>
-        )}
+        <CardArtImg
+          src={card.frontImageUrl}
+          alt={deriveCardTitle(card)}
+          className="w-full h-full object-cover"
+          compact
+        />
       </div>
       <p className="text-sm text-keeper-ink truncate flex-1">{title}</p>
     </Link>
@@ -535,11 +523,12 @@ function DraftRow({ card }: { card: CardGridItem }) {
     >
       <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center text-brand-dark">
         {card.frontImageUrl ? (
-          <img
+          <CardArtImg
             src={card.frontImageUrl}
-            crossOrigin="anonymous"
             alt={title}
             className="w-full h-full object-cover rounded-lg"
+            fallbackClassName="flex h-full w-full items-center justify-center rounded-lg bg-stone-100 text-stone-400"
+            compact
           />
         ) : (
           <Icon className="w-5 h-5" strokeWidth={1.75} />

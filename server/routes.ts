@@ -308,7 +308,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
           }
         }
-        if (!res.headersSent) res.status(404).send('Image not found');
+        if (!res.headersSent) {
+          // NEVER let a miss inherit the 1-year cache header set upstream —
+          // a transient 404 was being remembered by browsers for a year,
+          // leaving a permanently "broken" thumbnail on that device even
+          // after the image existed (audit 2026-08-03).
+          res.setHeader('Cache-Control', 'no-store');
+          res.status(404).send('Image not found');
+        }
       }
     });
   });

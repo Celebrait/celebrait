@@ -11,6 +11,7 @@
 // through as generic "Processing".
 
 import { useState } from 'react';
+import { CardArtImg } from '@/components/studio/card-art-img';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
@@ -91,11 +92,11 @@ function OrderRow({ order }: { order: StudioOrderListItem }) {
         aria-label={`View ${title}`}
       >
         {order.frontImageUrl ? (
-          <img
+          <CardArtImg
             src={order.frontImageUrl}
-            crossOrigin="anonymous"
             alt={title}
             className="w-full h-full object-cover"
+            compact
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-keeper-meta">
