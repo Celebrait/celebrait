@@ -27,6 +27,7 @@ import { Link } from 'wouter';
 import { Check, Heart, Truck, Zap } from 'lucide-react';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
+import { TickerBanner } from '@/components/landing/ticker-banner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
@@ -183,9 +184,12 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-surface-card">
-      <MarketingHeader />
+      <div className="fixed inset-x-0 top-0 z-[160]">
+        <TickerBanner />
+      </div>
+      <MarketingHeader topClass="top-10" />
 
-      <main className="pt-32 md:pt-36 pb-24 md:pb-32">
+      <main className="pt-40 md:pt-44 pb-24 md:pb-32">
         <div className="max-w-7xl mx-auto px-6 md:px-10">
           {/* Header */}
           <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">

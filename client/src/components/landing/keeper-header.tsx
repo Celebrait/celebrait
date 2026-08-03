@@ -9,10 +9,11 @@
 // it, hairline border, ink CTA.
 
 import { Link, useLocation } from 'wouter';
-import { Send } from 'lucide-react';
+
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import celebraitLogo from '@/assets/celebrait.webp';
+import { TickerBanner } from '@/components/landing/ticker-banner';
 
 const NAV_LINKS = [
   { label: 'The proof', id: 'proof' },
@@ -39,20 +40,9 @@ export function KeeperHeader() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[150]">
-      {/* Production-promise banner — ink black sweeping into brand violet. */}
-      <div
-        className="pointer-events-auto flex h-10 items-center justify-center px-4 text-center font-sans text-[11.5px] font-medium text-white sm:text-[12.5px]"
-        style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
-      >
-        <span className="sm:hidden">
-          Printed to order within 72 hrs — £8.99 + delivery.
-        </span>
-        <span className="hidden sm:inline">
-          Every card is printed to order, just for them — allow up to 72 hrs,
-          then posted. £8.99 + delivery.
-        </span>
-        <Send className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      </div>
+      {/* Rolling banner — free-card offer + production promise
+          (Kevin 2026-08-03, news-ticker style). */}
+      <TickerBanner />
       <div className="px-4 pt-5">
         <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
           <Link href="/" className="flex items-center" aria-label="Celebrait home">

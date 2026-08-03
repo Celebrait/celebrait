@@ -25,6 +25,7 @@ import { X, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
+import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { ProgressRing } from '@/components/studio/moment-ring';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
@@ -54,6 +55,22 @@ export function FreeCardInvite() {
   const timerRef = useRef<number | null>(null);
 
   const signedOut = !isLoading && !user;
+
+  // The ticker banner's free-card item opens the invite directly.
+  useEffect(() => {
+    const onClaim = () => {
+      if (!signedOut) return;
+      setAutoShown(true);
+      setOpen(true);
+      try {
+        localStorage.setItem(SEEN_KEY, String(Date.now()));
+      } catch {
+        /* non-fatal */
+      }
+    };
+    window.addEventListener(CLAIM_EVENT, onClaim);
+    return () => window.removeEventListener(CLAIM_EVENT, onClaim);
+  }, [signedOut]);
 
   // Never coexist with the sign-in dialog — someone mid-OTP must not get
   // a second overlay stacking behind/over it (Kevin 2026-08-03). If they
