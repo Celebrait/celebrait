@@ -52,6 +52,7 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
+import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { GestureHints } from '@/components/gesture-hints';
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
@@ -1932,6 +1933,9 @@ export default function LandingKeeper() {
       </main>
       <MarketingFooter />
       <FloatingPill />
+      {/* Free-first-card capture — auto-shows once, pill thereafter.
+          Signed-in visitors never see it (they have the world band). */}
+      <FreeCardInvite />
     </div>
   );
 }

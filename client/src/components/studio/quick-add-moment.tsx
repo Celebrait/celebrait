@@ -9,7 +9,7 @@
 // The reward for finishing is visible elsewhere on the page: the query
 // invalidation makes the free-card ring fill LIVE as the sheet closes.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   Dialog,
@@ -21,9 +21,26 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Check } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
+import { isFixedDateOccasion } from '@shared/fixed-occasions';
 
-const RELATIONSHIPS = ['Mum', 'Dad', 'Partner', 'Friend', 'Nan', 'Grandad', 'Sister', 'Brother'];
-const OCCASIONS = ['Birthday', 'Anniversary', 'Christmas'];
+// Occasion chips carry the STORED slug alongside the display label —
+// the fixed-date ones (Christmas, Mother's/Father's Day, Valentine's)
+// must land in the DB as their canonical slugs ('mothers_day' etc.) so
+// the reminder feed + free-card key-date count resolve their dates from
+// the calendar. Storing the pretty label broke that (and wrongly asked
+// for a date the calendar already knows) — Kevin 2026-08-03.
+const OCCASIONS: Array<{ label: string; slug: string }> = [
+  { label: 'Birthday', slug: 'birthday' },
+  { label: 'Anniversary', slug: 'anniversary' },
+  { label: 'Christmas', slug: 'christmas' },
+  { label: "Mother's Day", slug: 'mothers_day' },
+  { label: "Father's Day", slug: 'fathers_day' },
+  { label: "Valentine's Day", slug: 'valentines' },
+];
+
+function slugFor(label: string): string {
+  return OCCASIONS.find((o) => o.label === label)?.slug ?? label.toLowerCase();
+}
 
 export function QuickAddMoment({
   open,
@@ -36,20 +53,31 @@ export function QuickAddMoment({
   presetOccasion?: string;
 }) {
   const [name, setName] = useState('');
-  const [relationship, setRelationship] = useState<string | null>(null);
+  // Free-text — preset chips were pure restriction (Kevin 2026-08-03).
+  const [relationship, setRelationship] = useState('');
   const [occasion, setOccasion] = useState<string>(presetOccasion ?? 'Birthday');
   const [customOccasion, setCustomOccasion] = useState('');
   const [date, setDate] = useState('');
   const [saved, setSaved] = useState(false);
 
-  const finalOccasion = (occasion === 'other' ? customOccasion : occasion).trim();
-  // Christmas needs no date picked — it knows its own.
-  const isChristmas = finalOccasion.toLowerCase() === 'christmas';
-  const ready = name.trim().length > 0 && finalOccasion.length > 0 && (isChristmas || date);
+  // Apply the preset each time the sheet opens — useState's initial
+  // value only runs once per mount, so a national tile's preset was
+  // silently ignored on the first open.
+  useEffect(() => {
+    if (open) setOccasion(presetOccasion ?? 'Birthday');
+  }, [open, presetOccasion]);
+
+  // What we show ("Mother's Day") vs what we store ('mothers_day').
+  const displayOccasion = (occasion === 'other' ? customOccasion : occasion).trim();
+  const storedOccasion =
+    occasion === 'other' ? customOccasion.trim().toLowerCase() : slugFor(occasion);
+  // Fixed-date occasions need no date picked — the calendar knows them.
+  const isFixed = isFixedDateOccasion(storedOccasion);
+  const ready = name.trim().length > 0 && displayOccasion.length > 0 && (isFixed || date);
 
   const reset = () => {
     setName('');
-    setRelationship(null);
+    setRelationship('');
     setOccasion(presetOccasion ?? 'Birthday');
     setCustomOccasion('');
     setDate('');
@@ -60,11 +88,11 @@ export function QuickAddMoment({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/user/address-book', {
         name: name.trim(),
-        relationship,
+        relationship: relationship.trim() || null,
         occasions: [
           {
-            occasion: finalOccasion.toLowerCase(),
-            date: isChristmas ? null : date,
+            occasion: storedOccasion,
+            date: isFixed ? null : date,
             yearSpecific: false,
           },
         ],
@@ -112,7 +140,7 @@ export function QuickAddMoment({
               <Check className="h-6 w-6 text-go" strokeWidth={3} />
             </div>
             <p className="font-display text-lg font-semibold text-keeper-ink">
-              {name.trim()}’s {finalOccasion.toLowerCase()} — watched.
+              {name.trim()}’s {displayOccasion} — watched.
             </p>
             <p className="text-[13px] text-keeper-meta">We’ll never let you miss it.</p>
           </div>
@@ -136,22 +164,13 @@ export function QuickAddMoment({
                   className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[15px] text-keeper-ink outline-none focus:border-brand"
                   data-testid="quick-add-name"
                 />
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {RELATIONSHIPS.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRelationship(relationship === r ? null : r)}
-                      className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                        relationship === r
-                          ? 'bg-brand text-brand-foreground'
-                          : 'bg-stone-100 text-keeper-body hover:bg-stone-200'
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  value={relationship}
+                  onChange={(e) => setRelationship(e.target.value)}
+                  placeholder="Mum, best mate, colleague… (optional)"
+                  className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[14px] text-keeper-ink outline-none focus:border-brand"
+                  data-testid="quick-add-relationship"
+                />
               </div>
 
               <div>
@@ -161,16 +180,16 @@ export function QuickAddMoment({
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {OCCASIONS.map((o) => (
                     <button
-                      key={o}
+                      key={o.slug}
                       type="button"
-                      onClick={() => setOccasion(o)}
+                      onClick={() => setOccasion(o.label)}
                       className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-                        occasion === o
+                        occasion === o.label
                           ? 'bg-brand text-brand-foreground'
                           : 'bg-stone-100 text-keeper-body hover:bg-stone-200'
                       }`}
                     >
-                      {o}
+                      {o.label}
                     </button>
                   ))}
                   <button
@@ -195,7 +214,7 @@ export function QuickAddMoment({
                 )}
               </div>
 
-              {!isChristmas && (
+              {!isFixed && (
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-keeper-meta">
                     When
