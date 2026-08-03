@@ -241,20 +241,3 @@
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
 }
-
-/* ── Ticker banner (landing/marketing top strip) ─────────────────────
-   Track renders its content twice; -50% is exactly one copy, so the
-   loop is seamless. Hover pauses; reduced-motion stops it. */
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.animate-ticker {
-  animation: ticker-scroll 36s linear infinite;
-}
-.ticker-wrap:hover .animate-ticker {
-  animation-play-state: paused;
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-ticker { animation: none; }
-}
