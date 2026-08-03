@@ -21,6 +21,7 @@ import {
 } from '@/lib/moments';
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
+import { ProgressRing } from '@/components/studio/moment-ring';
 
 function timeGreeting(): string {
   const h = new Date().getHours();
@@ -131,15 +132,14 @@ export function WorldSection({
         {unlocked ? (
           <Gift className="h-9 w-9 shrink-0 text-brand" strokeWidth={1.75} />
         ) : (
-          <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-            style={{
-              background: `conic-gradient(var(--brand, #5c57d4) 0 ${Math.round((Math.min(3, keyDates) / 3) * 100)}%, #dcd6f4 0 100%)`,
-            }}
-          >
-            <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#eceafb] text-[11px] font-bold text-keeper-ink">
-              {Math.min(3, keyDates)}/3
-            </span>
+          <div className="relative h-12 w-12 shrink-0">
+            <ProgressRing filled={keyDates} size={48} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[11px] font-bold text-keeper-ink">
+                {Math.min(3, keyDates)}
+                <span className="font-semibold text-keeper-meta">/3</span>
+              </span>
+            </div>
           </div>
         )}
         <p className="text-[12.5px] leading-snug text-keeper-body">

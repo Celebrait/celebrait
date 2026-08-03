@@ -32,6 +32,10 @@ interface AuthModalContextValue {
   /** Open the auth modal. Pass the post-auth destination (defaults to the
    *  new-card studio flow). */
   openAuth: (redirect?: string) => void;
+  /** Whether the auth dialog is currently showing — lets other overlays
+   *  (the landing free-card invite) yield instead of stacking on top of
+   *  someone mid-sign-in (Kevin 2026-08-03). */
+  authOpen: boolean;
 }
 
 const AuthModalContext = createContext<AuthModalContextValue | null>(null);
@@ -60,7 +64,7 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   }, [location]);
 
   return (
-    <AuthModalContext.Provider value={{ openAuth }}>
+    <AuthModalContext.Provider value={{ openAuth, authOpen: open }}>
       {children}
       <AuthDialog open={open} onOpenChange={setOpen} redirect={redirect} />
     </AuthModalContext.Provider>

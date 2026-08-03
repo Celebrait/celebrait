@@ -24,33 +24,15 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
+import { ProgressRing } from '@/components/studio/moment-ring';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
 
-/** The three-segment ring, full — the earned shape, shown as the promise. */
+/** The shared ring, shown full — the earned shape as the promise. */
 function InviteRing() {
-  const r = 30;
-  const c = 2 * Math.PI * r;
-  const seg = c / 3;
-  const gap = 4;
   return (
     <div className="relative h-20 w-20">
-      <svg viewBox="0 0 72 72" className="h-20 w-20 -rotate-90">
-        {[0, 1, 2].map((i) => (
-          <circle
-            key={i}
-            cx="36"
-            cy="36"
-            r={r}
-            fill="none"
-            stroke="var(--brand, #5c57d4)"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={`${seg - gap} ${c - seg + gap}`}
-            strokeDashoffset={-i * seg}
-          />
-        ))}
-      </svg>
+      <ProgressRing filled={3} size={80} />
       <div className="absolute inset-0 flex items-center justify-center">
         <Gift className="h-7 w-7 text-brand" strokeWidth={1.75} />
       </div>
@@ -60,16 +42,24 @@ function InviteRing() {
 
 export function FreeCardInvite() {
   const { user, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
+  const { openAuth, authOpen } = useAuthModal();
   const [open, setOpen] = useState(false);
   const [autoShown, setAutoShown] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   const signedOut = !isLoading && !user;
 
-  // Auto-show once: 9s dwell or 45% scroll, whichever first.
+  // Never coexist with the sign-in dialog — someone mid-OTP must not get
+  // a second overlay stacking behind/over it (Kevin 2026-08-03). If they
+  // close auth without signing in, the auto-show effect re-arms below.
   useEffect(() => {
-    if (!signedOut || autoShown) return;
+    if (authOpen) setOpen(false);
+  }, [authOpen]);
+
+  // Auto-show once: 9s dwell or 45% scroll, whichever first. Paused
+  // entirely while the auth dialog is up.
+  useEffect(() => {
+    if (!signedOut || autoShown || authOpen) return;
     let done = false;
     try {
       if (localStorage.getItem(SEEN_KEY)) {
@@ -91,16 +81,22 @@ export function FreeCardInvite() {
       }
     };
     timerRef.current = window.setTimeout(fire, 9000);
+    // Scroll trigger measures MOVEMENT from where the page loaded, not
+    // absolute position — browser scroll restoration replays the old
+    // position as a scroll event on load, which used to fire the modal
+    // instantly on refresh.
+    const startY = window.scrollY;
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      if (max > 0 && window.scrollY / max > 0.45) fire();
+      const travelled = window.scrollY - startY > window.innerHeight * 0.6;
+      if (max > 0 && travelled && window.scrollY / max > 0.45) fire();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [signedOut, autoShown]);
+  }, [signedOut, autoShown, authOpen]);
 
   // Scroll-lock + Escape while open.
   useEffect(() => {
@@ -200,7 +196,7 @@ export function FreeCardInvite() {
       {/* The quiet, permanent way back in — bottom-right, REPLACING the
           old "make your own" FloatingPill (Kevin 2026-08-03): capture
           beats commerce for the not-ready-to-buy majority. */}
-      {!open && autoShown && (
+      {!open && autoShown && !authOpen && (
         <button
           type="button"
           onClick={() => setOpen(true)}

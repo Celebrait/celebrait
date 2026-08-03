@@ -1,27 +1,84 @@
-// Three-segment progress ring for the free-card mechanic. Shared by the
-// studio home's world section and /studio/moments so the two can't
-// drift. `size` in px; stroke colours via currentColor-adjacent classes.
-export function ProgressRing({ filled, size = 112 }: { filled: number; size?: number }) {
-  const R = 44;
+// The free-card progress ring — the ONE ring, shared by the studio
+// home's world band, /studio/moments and the landing invite so the
+// visual language can't drift (Kevin 2026-08-03: the old chunky
+// three-segment version "read as a loading spinner").
+//
+// The redesign's idea: a fine jewellery-weight track, a single
+// continuous arc that grows as dates land, and three small "stones" at
+// the third-points — each date you add sets one. Full ring = all three
+// stones lit. Calm at rest, legible from 44px up.
+
+import { useId } from 'react';
+
+export function ProgressRing({
+  filled,
+  size = 112,
+}: {
+  /** Key dates added, 0–3. */
+  filled: number;
+  size?: number;
+}) {
+  const gid = useId();
+  const n = Math.max(0, Math.min(3, filled));
+  const R = 46;
   const C = 2 * Math.PI * R;
-  const seg = C / 3;
-  const gap = 8;
+  // Stones sit at the third-points, measured clockwise from the top.
+  // Stone k lights once the arc has reached it (filled > k), with the
+  // top stone (k=2, a full lap) lighting only at 3/3.
+  const stoneAngle = (k: number) => ((k + 1) / 3) * 2 * Math.PI - Math.PI / 2;
+
   return (
-    <svg viewBox="0 0 110 110" style={{ width: size, height: size }} className="-rotate-90">
-      {[0, 1, 2].map((i) => (
+    <svg
+      viewBox="0 0 110 110"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`${n} of 3 dates added`}
+    >
+      <defs>
+        <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#5c57d4" />
+          <stop offset="100%" stopColor="#8B87E8" />
+        </linearGradient>
+      </defs>
+
+      {/* Track — hairline, barely-there lavender. */}
+      <circle cx="55" cy="55" r={R} fill="none" stroke="#E9E6F8" strokeWidth="3" />
+
+      {/* Progress — one continuous arc from the top, clockwise. */}
+      {n > 0 && (
         <circle
-          key={i}
           cx="55"
           cy="55"
           r={R}
           fill="none"
-          strokeWidth="8"
+          stroke={`url(#${gid})`}
+          strokeWidth="4"
           strokeLinecap="round"
-          strokeDasharray={`${seg - gap} ${C - seg + gap}`}
-          strokeDashoffset={-i * seg}
-          className={i < filled ? 'stroke-brand transition-all duration-700' : 'stroke-stone-200'}
+          strokeDasharray={`${(C * n) / 3} ${C}`}
+          transform="rotate(-90 55 55)"
+          className="transition-all duration-700 ease-out"
         />
-      ))}
+      )}
+
+      {/* The three stones. Lit = a date is set. */}
+      {[0, 1, 2].map((k) => {
+        const a = stoneAngle(k);
+        const x = 55 + R * Math.cos(a);
+        const y = 55 + R * Math.sin(a);
+        const lit = n > k;
+        return (
+          <circle
+            key={k}
+            cx={x}
+            cy={y}
+            r="5"
+            fill={lit ? '#5c57d4' : '#FFFDF9'}
+            stroke={lit ? '#FFFDF9' : '#D9D5F0'}
+            strokeWidth={lit ? 2 : 1.5}
+            className="transition-all duration-500"
+          />
+        );
+      })}
     </svg>
   );
 }
