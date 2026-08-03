@@ -95,8 +95,17 @@ function writeSeen(set: Set<string>): void {
  *  desktop-aside / mobile-sheet markers by skipping zero-size / off-screen
  *  ones). */
 function findVisibleTarget(id: string): DOMRect | null {
+  // A Radix modal (the mobile nav sheet) locks body pointer-events while
+  // open. A hint anchored to anything OUTSIDE it floats over the dimmed
+  // backdrop with dead buttons — so during a modal, only targets inside
+  // the open dialog count (the sheet's own nav items).
+  const bodyLocked = document.body.style.pointerEvents === 'none';
+  const openDialog = bodyLocked
+    ? document.querySelector('[role="dialog"][data-state="open"]')
+    : null;
   const els = document.querySelectorAll<HTMLElement>(`[data-hint="${id}"]`);
   for (const el of Array.from(els)) {
+    if (bodyLocked && !(openDialog && openDialog.contains(el))) continue;
     const r = el.getBoundingClientRect();
     const onScreen =
       r.width > 0 &&
@@ -115,13 +124,24 @@ type Placement = 'right' | 'left' | 'top' | 'bottom';
 function placementFor(r: DOMRect): Placement {
   const w = window.innerWidth;
   const h = window.innerHeight;
+  // Full-width targets (the free-card band on mobile) get top/bottom —
+  // a side placement clamps the popover on top of the very thing it's
+  // pointing at.
+  if (r.left < w * 0.33 && r.right > w * 0.66) {
+    return r.top < h * 0.5 ? 'bottom' : 'top';
+  }
   if (r.left < w * 0.33) return 'right'; // left rail → point right
   if (r.right > w * 0.66) return 'left'; // right side (FAB) → point left
   return r.top < h * 0.5 ? 'bottom' : 'top';
 }
 
+// Accounts older than this never see the tour — hints are for NEW users
+// only (Aidan 2026-08-03). Device storage alone let any existing user on
+// a fresh browser get coached like a stranger.
+const NEW_ACCOUNT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+
 export function StudioHints() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
   const [seen, setSeen] = useState<Set<string>>(() => readSeen());
   const [ready, setReady] = useState(false);
@@ -146,7 +166,11 @@ export function StudioHints() {
   }, []);
 
   const suppressed = HIDE_ON.some((rx) => rx.test(location));
-  const enabled = isAuthenticated && !isLoading && !suppressed;
+  const accountIsNew =
+    !!user?.createdAt &&
+    Date.now() - new Date(user.createdAt as unknown as string).getTime() <
+      NEW_ACCOUNT_MAX_AGE_MS;
+  const enabled = isAuthenticated && !isLoading && !suppressed && accountIsNew;
 
   // Delay start so the welcome toast lands first.
   useEffect(() => {
@@ -308,7 +332,7 @@ function HintPopover({
       <div
         role="dialog"
         aria-label={hint.title}
-        className="fixed z-[91] w-[264px] rounded-2xl bg-brand-dark p-4 text-white shadow-[0_18px_44px_-16px_rgba(60,52,137,0.6)]"
+        className="pointer-events-auto fixed z-[91] w-[264px] rounded-2xl bg-brand-dark p-4 text-white shadow-[0_18px_44px_-16px_rgba(60,52,137,0.6)]"
         style={{ left: clampedLeft, top, transform: translate }}
         data-testid={`studio-hint-${hint.id}`}
       >
