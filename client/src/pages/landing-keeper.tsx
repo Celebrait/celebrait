@@ -1863,32 +1863,8 @@ function OccasionCaptureSection() {
 }
 
 // ── Floating CTA pill ────────────────────────────────────────────────
-
-function FloatingPill() {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      setShow(y > window.innerHeight * 0.9 && y < max - window.innerHeight * 1.5);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-  return (
-    <div
-      className="fixed bottom-6 right-6 z-40 transition-all duration-300"
-      style={{
-        opacity: show ? 1 : 0,
-        transform: show ? 'translateY(0)' : 'translateY(12px)',
-        pointerEvents: show ? 'auto' : 'none',
-      }}
-    >
-      <PrimaryCta />
-    </div>
-  );
-}
+// FloatingPill (bottom-right make-your-own CTA) removed 2026-08-03 —
+// replaced by FreeCardInvite's "First card on us" pill (Kevin).
 
 // ── Page ─────────────────────────────────────────────────────────────
 
@@ -1932,9 +1908,10 @@ export default function LandingKeeper() {
         <FaqSection />
       </main>
       <MarketingFooter />
-      <FloatingPill />
-      {/* Free-first-card capture — auto-shows once, pill thereafter.
-          Signed-in visitors never see it (they have the world band). */}
+      {/* Free-first-card capture — auto-shows once, then a bottom-right
+          pill (replaced the old make-your-own FloatingPill, Kevin
+          2026-08-03). Signed-in visitors see none of it (they have the
+          world band; the header CTA still covers "make a card"). */}
       <FreeCardInvite />
     </div>
   );

@@ -197,13 +197,14 @@ export function FreeCardInvite() {
         </div>
       )}
 
-      {/* The quiet, permanent way back in — bottom-left so it never
-          fights the "make your own" pill bottom-right. */}
+      {/* The quiet, permanent way back in — bottom-right, REPLACING the
+          old "make your own" FloatingPill (Kevin 2026-08-03): capture
+          beats commerce for the not-ready-to-buy majority. */}
       {!open && autoShown && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 rounded-full border border-stone-200 bg-white/95 py-2 pl-2.5 pr-4 text-[12.5px] font-semibold text-[#211D19] shadow-[0_10px_30px_-12px_rgba(33,29,25,.35)] backdrop-blur transition-transform hover:scale-[1.03]"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-stone-200 bg-white/95 py-2 pl-2.5 pr-4 text-[12.5px] font-semibold text-[#211D19] shadow-[0_10px_30px_-12px_rgba(33,29,25,.35)] backdrop-blur transition-transform hover:scale-[1.03]"
           data-testid="free-card-invite-pill"
         >
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-muted">
