@@ -13,7 +13,6 @@
 
 import type { ReactNode } from 'react';
 import { CardThumbnail } from './card-thumbnail';
-import { NewCardTile } from './new-card-tile';
 import type { CardGridItem } from '@shared/schema';
 
 interface CardGridProps {
@@ -23,9 +22,8 @@ interface CardGridProps {
   takeCounts?: Map<number, number>;
   /** Render the dashed/violet "Start a card" tile as the first cell.
    *  Default true — matches original Sprint 2 behaviour on /studio. */
-  showNewCardTile?: boolean;
   /** Content shown when the grid has no cards AND no new-card tile.
-   *  Ignored when showNewCardTile is true (since the grid is never
+   *  (Grids never render a new-card tile — removed 2026-08-01.)
    *  truly empty in that mode). */
   emptyHint?: ReactNode;
 }
@@ -33,7 +31,6 @@ interface CardGridProps {
 export function CardGrid({
   cards,
   takeCounts,
-  showNewCardTile = true,
   emptyHint,
 }: CardGridProps) {
   // Newest first. The API already returns them unordered; sort
@@ -47,13 +44,12 @@ export function CardGrid({
   // Empty state for filtered surfaces (Drafts/Sent) — no new-card tile
   // here by design; use the sidebar's pinned CTA for that. emptyHint
   // is the caller's responsibility so the copy matches the surface.
-  if (!showNewCardTile && sorted.length === 0) {
+  if (sorted.length === 0) {
     return <>{emptyHint ?? null}</>;
   }
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-      {showNewCardTile && <NewCardTile />}
       {sorted.map((card) => (
         <CardThumbnail
           key={card.id}

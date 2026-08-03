@@ -28,7 +28,6 @@ export default function StudioSent() {
       ) : (
         <CardGrid
           cards={bucketCards(data ?? []).sent}
-          showNewCardTile={false}
           emptyHint={<SentEmpty />}
         />
       )}

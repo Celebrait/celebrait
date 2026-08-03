@@ -46,7 +46,6 @@ function ReadyGrid({ ready }: { ready: CardGridItem[] }) {
     <CardGrid
       cards={covers}
       takeCounts={takeCounts}
-      showNewCardTile={false}
       emptyHint={<ReadyEmpty />}
     />
   );

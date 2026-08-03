@@ -32,11 +32,8 @@ import {
   Image as ImageIcon,
   Send,
   Package,
-  PartyPopper,
 } from 'lucide-react';
 import { CardGridSkeleton } from '@/components/studio/card-grid';
-import { NewCardTile } from '@/components/studio/new-card-tile';
-import { DemoVideoBlock } from '@/components/studio/demo-video-block';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 // Hero asset for the empty-state. Real Celebrait-rendered example
 // (Father's Day occasion) — chosen to demonstrate the photoreal output
@@ -170,7 +167,6 @@ function EmptyView({ name }: { name: string }) {
               <Wand2 className="w-4 h-4" />
               Start your first card
             </Link>
-            <WatchHowItWorksLink />
           </div>
         </div>
 
@@ -208,32 +204,10 @@ function EmptyView({ name }: { name: string }) {
           appears the moment they add someone via the address book or
           finish a card. */}
 
-      <HowItWorks />
-      {/* Invitations teaser intentionally OMITTED on the empty state
-          (audit 2026-04-25): a brand-new user's first visit shouldn't
-          have a "coming soon" block competing with the hero. Kept on
-          draft-pending and has-activity views below. */}
+      {/* Promo blocks removed from the home (Kevin 2026-08-01) — the
+          world-led home explains itself. */}
     </>
   );
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// WatchHowItWorksLink — secondary affordance under the empty-state
-// CTA. Renders only when DemoVideoBlock has a real VIDEO_SRC set
-// (today: hidden, since VIDEO_SRC is null). When Kevin lands a real
-// video, exporting VIDEO_SRC from demo-video-block makes the link
-// appear automatically.
-//
-// Implementation note: the actual modal lives in DemoVideoBlock. This
-// component renders the Block in its compact "link" variant.
-// ─────────────────────────────────────────────────────────────────────
-function WatchHowItWorksLink() {
-  // Today the link is hidden — DemoVideoBlock has VIDEO_SRC = null
-  // (no production video shot yet). Re-enable by exporting VIDEO_SRC
-  // from demo-video-block.tsx + branching here on its truthiness.
-  // Leaving the slot here so the moment a video lands, the link is
-  // a one-line change.
-  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -289,9 +263,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
       </div>
 
 
-      <DemoVideoBlock />
-      <HowItWorks compact />
-      <InvitationsTeaser />
+      {/* Promo blocks removed (Kevin 2026-08-01). */}
     </>
   );
 }
@@ -375,15 +347,7 @@ function HasActivityView({
         />
       </div>
 
-      {/* Start another — persistent. NewCardTile sits as its own block
-          for visual weight below the activity columns. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
-        <NewCardTile />
-      </div>
-
-      <DemoVideoBlock />
-      <HowItWorks compact />
-      <InvitationsTeaser />
+      {/* Promo blocks removed (Kevin 2026-08-01). */}
     </>
   );
 }
@@ -723,157 +687,6 @@ function formatRelativeTime(ts: Date | string | null): string | null {
   if (diffMs < 2 * day) return 'Started yesterday';
   if (diffMs < 7 * day) return `Started ${Math.floor(diffMs / day)} days ago`;
   return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// HowItWorks — 4-step strip shown on every state. `compact` variant
-// (used on draft-pending + has-activity) shrinks type + padding so the
-// section doesn't dominate returning users' screens. Empty state gets
-// the full-size version.
-// ─────────────────────────────────────────────────────────────────────
-
-function HowItWorks({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={compact ? 'mb-12' : 'mb-16'}>
-      <h3 className="text-xs font-semibold text-keeper-meta uppercase tracking-wider mb-4">
-        How it works
-      </h3>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {STEPS.map((s, i) => (
-          <div
-            key={s.title}
-            className={`bg-white rounded-2xl border border-keeper-hair ${
-              compact ? 'p-4' : 'p-5'
-            }`}
-          >
-            <div
-              className={`${
-                compact ? 'w-7 h-7 mb-2' : 'w-8 h-8 mb-3'
-              } rounded-full bg-brand-muted text-brand-dark flex items-center justify-center text-xs font-semibold`}
-            >
-              {i + 1}
-            </div>
-            <p
-              className={`font-semibold text-keeper-ink mb-1 ${
-                compact ? 'text-sm' : 'text-sm'
-              }`}
-            >
-              {s.title}
-            </p>
-            <p
-              className={`text-keeper-body leading-relaxed ${
-                compact ? 'text-xs' : 'text-xs'
-              }`}
-            >
-              {s.body}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const STEPS: Array<{ title: string; body: string }> = [
-  {
-    title: 'Pick the moment',
-    body: "Whose card is it, what's the occasion, what vibe — we'll shape everything around that.",
-  },
-  {
-    title: "Add a photo (or don't)",
-    body: 'Upload a snap of your recipient for a personalised scene, or skip for a text-only card.',
-  },
-  {
-    title: 'Write the inside',
-    body: "Your own words, beautifully set. We turn what you type into the typeset inside of the card.",
-  },
-  {
-    title: 'Print & post',
-    body: 'A premium card printed and posted — to you or straight to them — with a free digital link to share.',
-  },
-];
-
-// ─────────────────────────────────────────────────────────────────────
-// InvitationsTeaser — the "What's next at Celebrait" block, narrowed
-// to a single product (invitations) per Kevin 2026-04-24. Previous
-// framed-prints / matching-envelopes tiles dropped; one focused block
-// with jazzier visuals + copy reads better than three half-ideas.
-// Waitlist capture wires in Week 3 (still a placeholder button today).
-// ─────────────────────────────────────────────────────────────────────
-
-function InvitationsTeaser() {
-  return (
-    <div className="border-t border-keeper-hair pt-10">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-keeper-ink">
-          What's next at Celebrait
-        </h3>
-        <p className="text-sm text-keeper-meta mt-1">
-          Something we're working on. Get the nod when it lands.
-        </p>
-      </div>
-
-      <div
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/15 via-keeper-gold-wash to-keeper-gold/10 border border-keeper-hair"
-        data-testid="whats-next-invitations"
-      >
-        {/* Decorative soft glow in the corner — lifts the block from
-            flat gradient to "lit" without dominating the text. */}
-        <div
-          aria-hidden
-          className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl bg-brand/30 pointer-events-none"
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full blur-3xl bg-keeper-gold/15 pointer-events-none"
-        />
-
-        <div className="relative px-6 sm:px-10 py-10 sm:py-14 grid sm:grid-cols-[1fr,auto] items-center gap-8">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] font-semibold text-brand-dark bg-white/70 backdrop-blur rounded-full px-2.5 py-1 mb-4">
-              <PartyPopper className="w-3 h-3" />
-              Coming soon
-            </div>
-            <h4 className="text-3xl sm:text-4xl font-display font-bold text-keeper-ink leading-[1.1] tracking-[-0.015em] mb-3">
-              Invitations that feel like <em className="italic text-brand-dark">you</em>.
-            </h4>
-            <p className="text-sm sm:text-base text-keeper-body leading-relaxed mb-6">
-              The same tool you're holding now — tuned for weddings, birthdays,
-              baby showers and save-the-dates. Custom scenes, the faces you love
-              on the front, envelope-ready. Send one, or a hundred.
-            </p>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 bg-keeper-ink hover:bg-keeper-ink/85 text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
-              disabled
-              title="Waitlist capture wires in Week 3"
-              data-testid="whats-next-invitations-waitlist"
-            >
-              Join the waitlist
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <p className="text-xs text-keeper-meta mt-3">
-              We'll email you the moment it opens. No spam, ever.
-            </p>
-          </div>
-
-          {/* Right-column stylised "stack of invitation cards" mockup —
-              pure CSS, no asset required. Three offset rounded rects
-              in cream / brand / coral to evoke a stack. Hidden on mobile
-              so the copy carries alone. */}
-          <div className="hidden sm:block relative w-44 h-56">
-            <div className="absolute inset-0 bg-white rounded-xl shadow-lg rotate-[-6deg] border border-keeper-hair" />
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-muted to-white rounded-xl shadow-lg rotate-[2deg] border border-brand/20 translate-x-2 translate-y-1" />
-            <div className="absolute inset-0 bg-gradient-to-br from-keeper-gold-wash to-white rounded-xl shadow-xl rotate-[-1deg] border border-keeper-hair translate-x-1 translate-y-3 flex items-center justify-center p-4">
-              <p className="text-center text-base italic text-brand-dark leading-tight">
-                You're invited
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────
