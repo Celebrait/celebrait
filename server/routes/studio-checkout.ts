@@ -12,7 +12,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { eq, desc, and, ne, inArray } from 'drizzle-orm';
+import { eq, desc, and, ne, or, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import {
@@ -25,6 +25,10 @@ import {
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
+import {
+  getFreeCardStatus,
+  consumeFreeCardCredit,
+} from '../studio/free-card';
 import { getPrintProvider } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import {
@@ -141,6 +145,26 @@ export function registerStudioCheckoutRoutes(app: Express): void {
     },
   );
 
+  // ── GET /api/user/free-card ──────────────────────────────────────
+  // The free-first-card credit status for the signed-in user — the
+  // checkout page reads this to show the £8.99-struck-to-£0 line and
+  // lock postage to Standard. Server-derived at order create regardless,
+  // so this is display-only truth, not authorisation.
+  app.get(
+    '/api/user/free-card',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+      try {
+        res.json(await getFreeCardStatus(userId));
+      } catch (err: any) {
+        console.error('[FREE-CARD] status error:', err?.message ?? err);
+        res.status(500).json({ message: 'Could not load free-card status' });
+      }
+    },
+  );
+
   // ── POST /api/studio/cards/:id/checkout ──────────────────────────
   // Create an order + payment intent. Returns { orderId, payment }
   // where `payment` mirrors the PaymentProvider's CreatePaymentResult
@@ -228,12 +252,23 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           });
         }
 
+        // Free-first-card credit (Moments rewards): derived fresh at every
+        // checkout-create — ≥3 key dates and not yet redeemed. When it
+        // applies, the card is £0 and postage is forced to Standard (the
+        // free card never rides the £8.95/£13.95 tiers). The credit is
+        // NOT consumed here — only when this order actually pays (see
+        // consumeFreeCardCredit in markOrderPaidAndDispatch), so an
+        // abandoned session never burns it. See server/studio/free-card.ts.
+        const freeCardApplied = (await getFreeCardStatus(userId)).eligible;
+
         // Every order: printed card + free digital link. Digital is £0.
         // Postage is a separate line, priced from the chosen delivery tier
         // (server is the source of truth — a crafted POST can't pick a
         // cheaper tier than it pays for).
-        const shippingTier: ShippingTierId = body.shippingTier ?? DEFAULT_SHIPPING_TIER;
-        const printAmount = PRINT_PRICE;
+        const shippingTier: ShippingTierId = freeCardApplied
+          ? 'standard'
+          : (body.shippingTier ?? DEFAULT_SHIPPING_TIER);
+        const printAmount = freeCardApplied ? 0 : PRINT_PRICE;
         const digitalAmount = 0;
         const shippingAmount = getShippingTier(shippingTier).price;
         // Optional wax-seal envelope sticker (£1.50) — an add-on the customer
@@ -271,10 +306,26 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           })
           .from(studioOrders)
           .where(
-            and(
-              eq(studioOrders.cardId, cardId),
-              eq(studioOrders.paymentStatus, 'pending'),
-            ),
+            freeCardApplied
+              ? // Free-card checkouts also expire pending FREE orders on the
+                // user's OTHER cards — two tabs on two different cards could
+                // otherwise mint two live £3.95 sessions that each ship a
+                // free card (the credit only consumes once; the second would
+                // slip through the conditional-update guard as a warning).
+                and(
+                  eq(studioOrders.paymentStatus, 'pending'),
+                  or(
+                    eq(studioOrders.cardId, cardId),
+                    and(
+                      eq(studioOrders.userId, userId),
+                      eq(studioOrders.freeCardApplied, true),
+                    ),
+                  ),
+                )
+              : and(
+                  eq(studioOrders.cardId, cardId),
+                  eq(studioOrders.paymentStatus, 'pending'),
+                ),
           );
         for (const stale of stalePending) {
           if (stale.paymentReference) {
@@ -322,6 +373,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             shippingAmount,
             envelopeStickerAmount,
             totalAmount,
+            freeCardApplied,
           })
           .returning({ id: studioOrders.id });
 
@@ -336,7 +388,9 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           currency: 'GBP',
           customerEmail: body.customerEmail,
           customerName: body.customerName,
-          description: `Celebrait card #${cardId}`,
+          description: freeCardApplied
+            ? `Celebrait card #${cardId} — first card free, postage only`
+            : `Celebrait card #${cardId}`,
           returnUrl: `${origin}/checkout/success?orderId=${order.id}`,
           cancelUrl: `${origin}/checkout/cancelled?orderId=${order.id}&cardId=${cardId}`,
         });
@@ -351,7 +405,14 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 
         res.json({
           orderId: order.id,
-          totals: { printAmount, digitalAmount, shippingAmount, totalAmount, currency: 'GBP' },
+          totals: {
+            printAmount,
+            digitalAmount,
+            shippingAmount,
+            totalAmount,
+            currency: 'GBP',
+            freeCardApplied,
+          },
           payment,
         });
       } catch (err: any) {
@@ -912,6 +973,13 @@ async function markOrderPaidAndDispatch(
   // email round-trip. Failures are logged inside the helper.
   fireOrderPaidEmails(updated[0]).catch((err) => {
     console.error('[STUDIO-CHECKOUT] paid-email dispatch failed:', err);
+  });
+
+  // Free-first-card credit: consume it now that the order has actually
+  // paid (never at session create — abandonment must not burn it). Runs
+  // once, guarded by the same won-the-flip branch as the emails.
+  consumeFreeCardCredit(updated[0]).catch((err) => {
+    console.error('[STUDIO-CHECKOUT] free-card consume failed:', err);
   });
 
   // Submit the printed card to the fulfilment provider (async, non-

@@ -76,6 +76,7 @@ export function QuickAddMoment({
       // celebration: the world visibly grows the moment this closes.
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/free-card'] });
       setSaved(true);
       window.setTimeout(() => {
         onOpenChange(false);

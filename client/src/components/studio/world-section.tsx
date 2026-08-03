@@ -60,6 +60,12 @@ export function WorldSection({
 
   const keyDates = new Set((reminders ?? []).map((r) => r.occasionId)).size;
   const unlocked = keyDates >= 3;
+  // Once the credit's spent the band retires — a redeemed account must
+  // never be promised a second free card.
+  const { data: freeCard } = useQuery<{ redeemed: boolean }>({
+    queryKey: ['/api/user/free-card'],
+  });
+  const redeemed = freeCard?.redeemed === true;
 
   // One national invitation keeps the river alive; fewer shown here
   // than on /studio/moments — the home is a glance, not the archive.
@@ -114,7 +120,9 @@ export function WorldSection({
         </div>
       )}
 
-      {/* The free-card band — a gift being mentioned, not a banner. */}
+      {/* The free-card band — a gift being mentioned, not a banner.
+          Retires for good once the credit is spent. */}
+      {!redeemed && (
       <div
         className="mt-3.5 flex items-center gap-3 rounded-2xl bg-brand-muted/60 px-4 py-3"
         data-hint="free-card"
@@ -157,6 +165,7 @@ export function WorldSection({
           )}
         </p>
       </div>
+      )}
 
       {/* Condensed river — zero-card accounts only, see prop doc. */}
       {showRiver && (rest.length > 0 || invite) && (

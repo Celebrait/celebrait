@@ -100,8 +100,10 @@ function totalsFor(
   tier: ShippingTierId,
   shipTo: 'sender' | 'recipient',
   addSticker: boolean,
+  /** Free-first-card credit applies — card £0, standard postage only. */
+  freeCard: boolean,
 ) {
-  const printAmount = PRINT_PRICE;
+  const printAmount = freeCard ? 0 : PRINT_PRICE;
   const digitalAmount = 0;
   const shippingAmount = getShippingTier(tier).price;
   const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
@@ -200,14 +202,34 @@ export default function CheckoutPage() {
   const [postcode, setPostcode] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Free-first-card credit (Moments rewards): earned by adding 3 key
+  // dates, spent here. Display-only truth — the server re-derives
+  // eligibility at order create and forces the same pricing, so a stale
+  // cache can't change what's charged.
+  const { data: freeCard } = useQuery<{
+    keyDates: number;
+    redeemed: boolean;
+    eligible: boolean;
+  }>({
+    queryKey: ['/api/user/free-card'],
+    // Always fresh: a 5-min-stale "eligible" here would show £3.95 while
+    // the server (rightly) charges full price at create.
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+  const freeCardApplied = freeCard?.eligible === true;
+  // The free card always travels Standard post (fixed, known exposure);
+  // the faster tiers stay a paid-order thing.
+  const effectiveTier: ShippingTierId = freeCardApplied ? 'standard' : shippingTier;
+
   const includesPrint = choice !== 'digital';
   // Print-led V1: every order is a printed card that INCLUDES a free
   // digital link — so digital is always part of the order. (The dead
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(shippingTier, shipTo, addSticker),
-    [shippingTier, shipTo, addSticker],
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied),
+    [effectiveTier, shipTo, addSticker, freeCardApplied],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -252,7 +274,7 @@ export default function CheckoutPage() {
       if (includesPrint) {
         payload.shipTo = shipTo;
         payload.envelopeSticker = addSticker && shipTo === 'recipient';
-        payload.shippingTier = shippingTier;
+        payload.shippingTier = effectiveTier;
         payload.shippingAddress = {
           line1: line1.trim(),
           line2: line2.trim() || undefined,
@@ -398,12 +420,24 @@ export default function CheckoutPage() {
                   A premium 280gsm gloss card, posted in the UK — with a free
                   digital link to share too.
                 </p>
-                <p className="text-lg font-semibold text-keeper-ink mt-3">
-                  {formatGBP(totals.total)}{' '}
-                  <span className="text-xs font-normal text-keeper-meta">
-                    inc. postage
-                  </span>
-                </p>
+                {freeCardApplied ? (
+                  <p className="text-lg font-semibold text-keeper-ink mt-3">
+                    <span className="mr-1.5 font-normal text-keeper-meta line-through">
+                      {formatGBP(PRINT_PRICE)}
+                    </span>
+                    Free{' '}
+                    <span className="text-xs font-normal text-keeper-meta">
+                      — your first card's on us, just the postage
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-lg font-semibold text-keeper-ink mt-3">
+                    {formatGBP(totals.total)}{' '}
+                    <span className="text-xs font-normal text-keeper-meta">
+                      inc. postage
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -560,6 +594,29 @@ export default function CheckoutPage() {
                       {PRODUCTION_NOTICE}
                     </p>
                   </div>
+                  {freeCardApplied ? (
+                    /* The free card ships Standard — no tier picker. */
+                    <div
+                      className="rounded-xl border border-keeper-hair p-4"
+                      data-testid="ship-tier-free-standard"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-keeper-ink">
+                          {getShippingTier('standard').name}
+                        </span>
+                        <span className="text-sm font-semibold text-keeper-ink">
+                          {formatGBP(getShippingTier('standard').price)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-keeper-body mt-0.5">
+                        {getShippingTier('standard').carrier}
+                      </p>
+                      <p className="text-xs text-keeper-meta mt-1 leading-relaxed">
+                        Ships {getShippingTier('standard').shippingEstimate} once
+                        printed. Your free card travels Standard post.
+                      </p>
+                    </div>
+                  ) : (
                   <RadioGroup
                     value={shippingTier}
                     onValueChange={(v) => setShippingTier(v as ShippingTierId)}
@@ -592,6 +649,7 @@ export default function CheckoutPage() {
                       </label>
                     ))}
                   </RadioGroup>
+                  )}
                 </Section>
 
                 {/* No gift-message or recipient-email fields — the digital
@@ -609,8 +667,13 @@ export default function CheckoutPage() {
               <LineItem
                 icon={<Package className="w-4 h-4" />}
                 label="Printed card"
-                sub="Square, 280gsm gloss art card"
+                sub={
+                  freeCardApplied
+                    ? 'Your first card — on us'
+                    : 'Square, 280gsm gloss art card'
+                }
                 amount={totals.printAmount}
+                original={freeCardApplied ? PRINT_PRICE : undefined}
               />
               {/* Always included free with the printed card. */}
               <LineItem
@@ -620,7 +683,7 @@ export default function CheckoutPage() {
                 amount={totals.digitalAmount}
               />
               <LineItem
-                label={`Postage · ${getShippingTier(shippingTier).name}`}
+                label={`Postage · ${getShippingTier(effectiveTier).name}`}
                 amount={totals.shippingAmount}
                 muted
               />
@@ -646,7 +709,7 @@ export default function CheckoutPage() {
               {/* Honest delivery estimate — production + carrier. */}
               {includesPrint && (
                 <p className="text-[11px] text-keeper-meta leading-relaxed">
-                  {deliveryEstimateCopy(shippingTier)}
+                  {deliveryEstimateCopy(effectiveTier)}
                 </p>
               )}
 
@@ -750,12 +813,15 @@ function LineItem({
   sub,
   amount,
   muted,
+  original,
 }: {
   icon?: React.ReactNode;
   label: string;
   sub?: string;
   amount: number;
   muted?: boolean;
+  /** Pre-discount price, shown struck through (the free-card £8.99). */
+  original?: number;
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
@@ -769,6 +835,11 @@ function LineItem({
         </div>
       </div>
       <span className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
+        {original != null && (
+          <span className="mr-1.5 font-normal text-keeper-meta line-through">
+            {formatGBP(original)}
+          </span>
+        )}
         {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>

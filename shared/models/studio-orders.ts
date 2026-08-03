@@ -69,6 +69,11 @@ export const studioOrders = pgTable(
     // makes a £12.94 order charge £4.95. NULL for pre-2026-07-22 orders and
     // any not-yet-paid order; reporting falls back to totalAmount when null.
     amountPaid: integer("amount_paid"),
+    // The free-first-card credit was applied at create (printAmount forced
+    // to 0, standard postage only). Explicit flag — don't infer from
+    // printAmount=0 — so the paid webhook knows to consume the user's
+    // credit and reporting can count redemptions. See server/studio/free-card.ts.
+    freeCardApplied: boolean("free_card_applied").notNull().default(false),
 
     // Payment — provider-agnostic. paymentProvider records which
     // gateway processed it (stub|peach|stripe|…); paymentReference is
@@ -127,6 +132,7 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   shippingAmount: true,
   envelopeStickerAmount: true,
   totalAmount: true,
+  freeCardApplied: true,
 });
 
 export type InsertStudioOrder = z.infer<typeof insertStudioOrderSchema>;

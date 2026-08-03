@@ -77,6 +77,12 @@ export default function StudioMomentsPage() {
   const keyDates = new Set((reminders ?? []).map((r) => r.occasionId)).size;
   const ringFilled = Math.min(3, keyDates);
   const unlocked = keyDates >= 3;
+  // Redeemed accounts keep the moments river but the free-card panel
+  // retires — never promise a second free card.
+  const { data: freeCard } = useQuery<{ redeemed: boolean }>({
+    queryKey: ['/api/user/free-card'],
+  });
+  const redeemed = freeCard?.redeemed === true;
 
   const nationals = nextNationalMoments(new Date());
   // Hide a national when the user already tracks a same-named occasion
@@ -107,7 +113,8 @@ export default function StudioMomentsPage() {
         </Button>
       </div>
 
-      {/* ── The free-card ring ─────────────────────────────────── */}
+      {/* ── The free-card ring — retires once redeemed ──────────── */}
+      {!redeemed && (
       <div
         className={`mt-6 rounded-2xl border p-5 ${
           unlocked
@@ -167,6 +174,7 @@ export default function StudioMomentsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ── The river ──────────────────────────────────────────── */}
       <div className="mt-8 space-y-3">

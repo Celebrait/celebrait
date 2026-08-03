@@ -51,6 +51,14 @@ export const users = pgTable("users", {
    *  shared/models/analytics.ts `Attribution`. Null for pre-feature
    *  users and direct/unknown arrivals. */
   attribution: jsonb("attribution"),
+  /** Free-first-card redemption (Moments rewards, 2026-08-03). Earned by
+   *  adding 3 key dates; consumed exactly once, on the PAID webhook of the
+   *  order it was applied to — never on session create, so an abandoned
+   *  checkout can't burn it. NULL = not yet redeemed. Eligibility itself
+   *  is DERIVED (≥3 dated occasions + this being null), never stored. */
+  freeCardRedeemedAt: timestamp("free_card_redeemed_at"),
+  /** The studio_orders.id that consumed the credit — audit trail. */
+  freeCardOrderId: varchar("free_card_order_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
