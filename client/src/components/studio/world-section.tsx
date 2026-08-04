@@ -133,11 +133,6 @@ export function WorldSection({
           <Gift className="h-9 w-9 shrink-0 text-brand" strokeWidth={1.75} />
         ) : (
           <div className="relative h-12 w-12 shrink-0">
-            {/* A slow soft pulse of light behind the ring — alive, not inert. */}
-            <div
-              aria-hidden
-              className="animate-ring-glow absolute inset-[-6px] rounded-full bg-brand/20 blur-md"
-            />
             <ProgressRing filled={keyDates} size={48} />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-[11px] font-bold text-keeper-ink">

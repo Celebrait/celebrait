@@ -44,6 +44,27 @@ export function ProgressRing({
       {/* Track — hairline, barely-there lavender. */}
       <circle cx="55" cy="55" r={R} fill="none" stroke="#E9E6F8" strokeWidth="3" />
 
+      {/* While incomplete, a short comet arc slowly orbits the track —
+          visible motion at any size, reads as anticipation rather than
+          decoration (Aidan 2026-08-03: the blurred-glow attempt was
+          muddy and the tiny breathing stone invisible). */}
+      {n < 3 && (
+        <g className="animate-ring-orbit">
+          <circle
+            cx="55"
+            cy="55"
+            r={R}
+            fill="none"
+            stroke={`url(#${gid})`}
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray={`${C * 0.16} ${C}`}
+            transform="rotate(-90 55 55)"
+            opacity="0.6"
+          />
+        </g>
+      )}
+
       {/* Progress — one continuous arc from the top, clockwise. */}
       {n > 0 && (
         <circle
@@ -70,21 +91,30 @@ export function ProgressRing({
         const lit = n > k;
         const isNext = !lit && k === n && n < 3;
         return (
-          <circle
-            key={k}
-            cx={x}
-            cy={y}
-            r="5"
-            fill={lit ? '#5c57d4' : '#FFFDF9'}
-            stroke={lit ? '#FFFDF9' : isNext ? '#5c57d4' : '#D9D5F0'}
-            strokeWidth={lit ? 2 : 1.5}
-            className={
-              isNext
-                ? 'animate-stone-breathe transition-all duration-500'
-                : 'transition-all duration-500'
-            }
-            style={isNext ? { transformOrigin: `${x}px ${y}px` } : undefined}
-          />
+          <g key={k}>
+            {/* Radar ping radiating from the next stone to earn — a
+                clear, crisp "this one's waiting for you". */}
+            {isNext && (
+              <circle
+                cx={x}
+                cy={y}
+                r="5"
+                fill="none"
+                stroke="#5c57d4"
+                strokeWidth="2"
+                className="animate-stone-ping"
+              />
+            )}
+            <circle
+              cx={x}
+              cy={y}
+              r="5"
+              fill={lit ? '#5c57d4' : '#FFFDF9'}
+              stroke={lit ? '#FFFDF9' : isNext ? '#5c57d4' : '#D9D5F0'}
+              strokeWidth={lit ? 2 : 1.5}
+              className="transition-all duration-500"
+            />
+          </g>
         );
       })}
     </svg>

@@ -242,24 +242,28 @@
   font-weight: 700;
 }
 
-/* ── Free-card ring "alive" states (Aidan 2026-08-03) ────────────────
-   The next stone to earn breathes; a soft glow pulses behind the ring
-   on the home band. Both stop under prefers-reduced-motion. */
-@keyframes stone-breathe {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.45); opacity: 0.75; }
+/* ── Free-card ring "alive" states (v2, Aidan 2026-08-03) ────────────
+   A short comet arc orbits the incomplete ring; the next stone to earn
+   emits a radar ping. Crisp at 48px (the blurred-glow v1 read muddy).
+   Both stop under prefers-reduced-motion. */
+@keyframes ring-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-.animate-stone-breathe {
-  animation: stone-breathe 2.4s ease-in-out infinite;
+.animate-ring-orbit {
+  animation: ring-orbit 6.5s linear infinite;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+@keyframes stone-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-stone-ping {
+  animation: stone-ping 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
   transform-box: fill-box;
-}
-@keyframes ring-glow {
-  0%, 100% { opacity: 0.35; transform: scale(0.9); }
-  50% { opacity: 0.85; transform: scale(1.12); }
-}
-.animate-ring-glow {
-  animation: ring-glow 3.2s ease-in-out infinite;
+  transform-origin: center;
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-stone-breathe, .animate-ring-glow { animation: none; }
+  .animate-ring-orbit, .animate-stone-ping { animation: none; }
 }
