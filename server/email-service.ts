@@ -548,29 +548,52 @@ export async function sendWelcomeEmail(params: {
   firstName?: string | null;
 }): Promise<boolean> {
   const { email, firstName } = params;
-  const startUrl = `${PUBLIC_ORIGIN}/studio/new-card`;
+  // Land on the studio home — the free-card band + Year Ahead pick the
+  // story up exactly where this email leaves it.
+  const studioUrl = `${PUBLIC_ORIGIN}/studio`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Glad you're here. Celebrait turns a photo into a real card you can
-      send. Upload someone you love, describe the scene, and we'll put them
-      in it — then print it and post it for you.
+      Lovely to have you. Celebrait makes cards where the person you're
+      sending to <strong>becomes the artwork</strong> — their photo, their
+      scene, printed properly and posted anywhere in the UK. Like the one
+      above.
     </p>
+    <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 18px 20px; margin: 0 0 18px;">
+      <p style="margin: 0 0 6px; font-weight: 700; color: #211D19;">
+        &#127873;&nbsp; Your first card's on us
+      </p>
+      <p style="margin: 0; font-size: 14px;">
+        Tell us <strong>three dates that matter</strong> — birthdays,
+        anniversaries, any day worth a card — and your first one is
+        <span style="text-decoration: line-through;">&pound;8.99</span>
+        <strong>&pound;0</strong>, just the postage. We'll watch every date
+        you add and nudge you in good time, so nobody's day slips past
+        again.
+      </p>
+    </div>
     <p style="margin: 0 0 8px;">
-      It's free to make. You only pay when you send one, and your first
-      card's ready when you are.
+      It takes about a minute to add a date, and there's no rush to buy a
+      thing — the free card waits for the right moment.
     </p>
   `;
   const html = chassis({
-    preheader: "You're in — let's make your first card.",
-    heading: 'Welcome to Celebrait',
+    preheader: "Your first card's on us — three dates that matter, and it's free.",
+    heading: "You're in. Let's make someone's day.",
+    heroImages: [
+      {
+        src: `${PUBLIC_ORIGIN}/og-image.jpg`,
+        alt: 'A real photo of a couple, turned into a personalised illustrated anniversary card',
+      },
+    ],
     bodyHtml: body,
-    cta: { label: 'Make your first card', href: startUrl },
+    cta: { label: 'Claim your free card', href: studioUrl },
+    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/studio/new-card" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a> — it's free to make.</p>`,
   });
   const text =
-    `${greeting.replace(/<[^>]+>/g, '')}\n\nGlad you're here. Celebrait turns a photo into a real card you can send. Upload someone you love, describe the scene, and we'll put them in it — then print it and post it for you.\n\nIt's free to make. You only pay when you send one.\n\nMake your first card: ${startUrl}\n\n— Celebrait`;
-  return sendEmail({ to: email, subject: 'Welcome to Celebrait', html, text });
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards where the person you're sending to becomes the artwork — their photo, their scene, printed properly and posted anywhere in the UK.\n\nYOUR FIRST CARD'S ON US\nTell us three dates that matter — birthdays, anniversaries, any day worth a card — and your first card is \u00a38.99 -> \u00a30, just the postage. We'll watch every date you add and nudge you in good time.\n\nClaim your free card: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/studio/new-card\n\n— Aidan at Celebrait`;
+  return sendEmail({ to: email, subject: "Welcome — your first card's on us", html, text });
 }
 
 // ── OTP (auth) ───────────────────────────────────────────────────────
