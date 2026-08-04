@@ -110,7 +110,11 @@ export function AuthForm({
   // Welcome step state — name + marketing consent (unticked by default,
   // GDPR/PECR).
   const [firstName, setFirstName] = useState('');
-  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // Forced choice, no default (Aidan 2026-08-04): an unticked box is
+  // skippable; a required Yes/No makes everyone actually decide. Still
+  // valid consent — nothing pre-selected, both answers equal, either
+  // proceeds. null = not yet answered (Continue stays disabled).
+  const [marketingOptIn, setMarketingOptIn] = useState<boolean | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Wrapped setStep so onStepChange always fires in sync with the
@@ -231,7 +235,7 @@ export function AuthForm({
     try {
       const profileRes = await apiRequest('PATCH', '/api/user/profile', {
         firstName: trimmedName,
-        marketingOptIn,
+        marketingOptIn: marketingOptIn === true,
       });
       if (!profileRes.ok) {
         const err = await profileRes.json().catch(() => ({}));
@@ -427,34 +431,53 @@ export function AuthForm({
             />
           </div>
 
-          {/* Marketing consent — unticked by default; pre-ticking is
-              invalid consent under UK GDPR (ICO). Gates PROMOTIONAL email
-              only. Date reminders are service messages (the user asked us
-              to watch those dates) and fire regardless — the old copy
-              bundled the two, which made unticking look like losing
-              reminders AND muddied what the consent covered
-              (Aidan 2026-08-03). */}
-          <label className="flex items-start gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={marketingOptIn}
-              onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-keeper-hair text-brand focus:ring-keeper-gold/30 accent-brand"
-              data-testid="checkbox-welcome-marketing"
-            />
-            <span className="text-xs leading-snug text-keeper-meta">
-              Send me the occasional offer and Celebrait news too.
-            </span>
-          </label>
-          <p className="text-[11px] leading-snug text-keeper-meta/80">
-            Either way, we'll email you about your orders and the dates you
-            ask us to watch — that's the service. Unsubscribe from anything,
-            anytime.
-          </p>
+          {/* Marketing consent — a REQUIRED Yes/No pair, nothing
+              pre-selected (Aidan 2026-08-04: a skippable tickbox never
+              gets an answer). Valid consent: affirmative act, equal
+              buttons, "No" costs nothing, either answer proceeds. Gates
+              PROMOTIONAL email only — reminders/orders are service. */}
+          <div>
+            <p className="text-xs font-medium text-keeper-body">
+              Can we email you the occasional offer and Celebrait news?
+            </p>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMarketingOptIn(true)}
+                aria-pressed={marketingOptIn === true}
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                  marketingOptIn === true
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-keeper-hair bg-white text-keeper-body hover:border-stone-400'
+                }`}
+                data-testid="btn-marketing-yes"
+              >
+                Yes please
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarketingOptIn(false)}
+                aria-pressed={marketingOptIn === false}
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                  marketingOptIn === false
+                    ? 'border-keeper-ink bg-keeper-ink text-white'
+                    : 'border-keeper-hair bg-white text-keeper-body hover:border-stone-400'
+                }`}
+                data-testid="btn-marketing-no"
+              >
+                No thanks
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-keeper-meta/80">
+              Either way, we'll email you about your orders and the dates you
+              ask us to watch — that's the service. Unsubscribe from anything,
+              anytime.
+            </p>
+          </div>
 
           <Button
             onClick={handleWelcomeSubmit}
-            disabled={isSavingProfile || !firstName.trim()}
+            disabled={isSavingProfile || !firstName.trim() || marketingOptIn === null}
             className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-welcome-continue"
           >
