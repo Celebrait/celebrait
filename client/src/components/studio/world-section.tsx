@@ -18,6 +18,7 @@ import {
   fmtMomentDate,
   countdownLabel,
   occasionLabel,
+  occasionFacts,
 } from '@/lib/moments';
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
@@ -51,20 +52,7 @@ const CLAIM_CHIP: Record<string, string> = {
   "Father's Day": 'whose card?',
 };
 
-/** The rotating line — first one is date-aware, the rest are warmth.
- *  Copy voice: "we", never "the AI". */
-function daysToChristmas(): number {
-  const now = new Date();
-  let xmas = new Date(now.getFullYear(), 11, 25);
-  if (xmas < now) xmas = new Date(now.getFullYear() + 1, 11, 25);
-  return Math.ceil((xmas.getTime() - now.getTime()) / 86_400_000);
-}
-const FACTS: string[] = [
-  `Christmas is in ${daysToChristmas()} days. The best cards get made in slippers, not in a panic.`,
-  'Mothering Sunday moves with Easter every year — we track it so you never have to.',
-  'The average Brit forgets three birthdays a year. Not you. Not any more.',
-  "A kept card outlives a text by years — mantelpieces don't have notification settings.",
-];
+const FACTS: string[] = occasionFacts();
 
 function timeGreeting(): string {
   const h = new Date().getHours();

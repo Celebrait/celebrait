@@ -53,6 +53,7 @@ import { ImagineDescribeShipSection } from '@/components/landing/imagine-describ
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
+import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
 import { GestureHints } from '@/components/gesture-hints';
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
@@ -1901,7 +1902,11 @@ export default function LandingKeeper() {
             shot is an unfilled Prodigi-test-print placeholder and its specs
             already live in FAQ / pricing / the header banner. The function
             is kept below, ready to re-add once the real print photo exists. */}
-        <OccasionCaptureSection />
+        {/* OccasionCaptureSection (email lead form) replaced 2026-08-04 by
+            the Occasions promo — the free-card mechanic is the same capture
+            play with a real account + three dates instead of a lone email.
+            Function preserved below for re-add if ever wanted. */}
+        <OccasionsPromoSection />
         {/* DemoVideoSection removed 2026-07-24 (Kevin). Component preserved
             for easy re-add. */}
         <PriceSection />

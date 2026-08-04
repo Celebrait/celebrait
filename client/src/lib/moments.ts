@@ -101,3 +101,23 @@ export function personGradient(name: string): string {
 export function occasionLabel(o: string): string {
   return o.charAt(0).toUpperCase() + o.slice(1);
 }
+
+/** Days until the next 25 December — the date-aware rotating line. */
+export function daysToChristmas(): number {
+  const now = new Date();
+  let xmas = new Date(now.getFullYear(), 11, 25);
+  if (xmas < now) xmas = new Date(now.getFullYear() + 1, 11, 25);
+  return Math.ceil((xmas.getTime() - now.getTime()) / 86_400_000);
+}
+
+/** The rotating statements — shared by the studio home's Year Ahead and
+ *  the landing's Occasions section so the voice can't drift. First one
+ *  is date-aware. Copy voice: "we", never "the AI". */
+export function occasionFacts(): string[] {
+  return [
+    `Christmas is in ${daysToChristmas()} days. The best cards get made in slippers, not in a panic.`,
+    'Mothering Sunday moves with Easter every year — we track it so you never have to.',
+    'The average Brit forgets three birthdays a year. Not you. Not any more.',
+    "A kept card outlives a text by years — mantelpieces don't have notification settings.",
+  ];
+}
