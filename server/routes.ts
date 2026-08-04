@@ -43,6 +43,7 @@ import { registerRemindersRoutes } from "./routes/reminders";
 import { registerDevTestFailureRoutes } from "./routes/dev-test-failures";
 import { scheduleReminderDispatch } from "./reminders/dispatcher";
 import { scheduleDropOffRecoveryDispatch, runDropOffRecoveryDispatch } from "./recovery/dispatcher";
+import { scheduleDatesNudgeDispatch, runDatesNudgeDispatch } from "./recovery/dates-nudge";
 import { scheduleStaleSweeps } from "./recovery/stale-sweeper";
 import { registerVisitLogging } from "./visit-log";
 import { registerAdminAnalyticsRoutes } from "./routes/admin-analytics";
@@ -433,6 +434,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 1h offset from reminders avoids competing Brevo send-volume bursts.
   // See server/recovery/dispatcher.ts for the dispatch logic.
   scheduleDropOffRecoveryDispatch();
+
+  // Daily add-your-dates nudge flow (09:30 UTC; opted-in accounts only).
+  // See server/recovery/dates-nudge.ts.
+  scheduleDatesNudgeDispatch();
+
+  // Dev-only manual trigger for the nudge flow.
+  if (process.env.NODE_ENV !== 'production') {
+    app.post('/api/dev/run-dates-nudge', async (_req, res) => {
+      res.json(await runDatesNudgeDispatch());
+    });
+  }
 
   // Crash-recovery sweeps (audit 2026-07-27): flip generations orphaned
   // by a restart to failed (so the retry UI takes over), age-out stuck

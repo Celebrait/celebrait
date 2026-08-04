@@ -596,6 +596,92 @@ export async function sendWelcomeEmail(params: {
   return sendEmail({ to: email, subject: "Welcome — your first card's on us", html, text });
 }
 
+// ── Dates-nudge flow (marketing — opted-in accounts only) ───────────
+// Two sends max per account, dispatched by server/recovery/dates-nudge.ts.
+// D2: ring-state urgency. D7: softer, date-aware Christmas angle.
+export async function sendDatesNudgeEmail(params: {
+  email: string;
+  firstName?: string | null;
+  keyDates: number;
+  variant: 'd2' | 'd7';
+}): Promise<boolean> {
+  const { email, firstName, keyDates, variant } = params;
+  const remaining = Math.max(1, 3 - keyDates);
+  const studioUrl = `${PUBLIC_ORIGIN}/studio`;
+  const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
+  // Inline ring state — three dots, filled per key date. Email-safe spans.
+  const dots = [0, 1, 2]
+    .map((i) =>
+      i < keyDates
+        ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${EMAIL_BRAND};margin:0 3px;"></span>`
+        : `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#ffffff;border:2px solid #D9D5F0;margin:0 3px;box-sizing:border-box;"></span>`,
+    )
+    .join('');
+  const ringBlock = `
+    <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
+      <div style="margin-bottom:8px;">${dots}</div>
+      <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;8.99</span> <strong>&pound;0</strong> — just the postage.</p>
+    </div>`;
+
+  let subject: string;
+  let heading: string;
+  let body: string;
+  if (variant === 'd2') {
+    subject = remaining === 1 ? "One date from a free card" : "Your free card's still waiting";
+    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from a free card.`;
+    body = `
+      <p style="margin:0 0 16px;">${greeting}</p>
+      <p style="margin:0 0 16px;">
+        Quick one — the free first card we mentioned is still yours to
+        claim. Add ${remaining === 1 ? 'one more date' : `${remaining} more dates`}
+        that matter — a birthday, an anniversary, any day worth a card —
+        and it unlocks. About a minute's work.
+      </p>
+      ${ringBlock}
+      <p style="margin:0 0 8px;">
+        We watch every date you add and nudge you in good time. That's the
+        whole point of us.
+      </p>`;
+  } else {
+    const days = daysUntilChristmas();
+    subject = `Christmas is in ${days} days — whose card will it be?`;
+    heading = 'The best cards are made early.';
+    body = `
+      <p style="margin:0 0 16px;">${greeting}</p>
+      <p style="margin:0 0 16px;">
+        Christmas is in <strong>${days} days</strong>. Somebody's birthday
+        is closer than you think. The dates you add now are the panics you
+        skip later — we'll watch them all and nudge you in good time.
+      </p>
+      ${ringBlock}
+      <p style="margin:0 0 8px;">
+        No rush to buy a thing — the free card waits for the right moment.
+      </p>`;
+  }
+
+  const html = chassis({
+    preheader: "Three dates that matter, and your first card's free.",
+    heading,
+    bodyHtml: body,
+    cta: { label: 'Add a date', href: studioUrl },
+    footerNote: optOutFooter(),
+  });
+  const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
+    variant === 'd2'
+      ? `Your free first card is still waiting — you're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a38.99 -> \u00a30, just the postage.`
+      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later — ${remaining} more and your first card's free.`
+  }\n\nAdd a date: ${studioUrl}\n\n— Aidan at Celebrait`;
+  return sendEmail({ to: email, subject, html, text, marketing: true });
+}
+
+function daysUntilChristmas(): number {
+  const now = new Date();
+  let xmas = new Date(now.getFullYear(), 11, 25);
+  if (xmas < now) xmas = new Date(now.getFullYear() + 1, 11, 25);
+  return Math.ceil((xmas.getTime() - now.getTime()) / 86_400_000);
+}
+
 // ── OTP (auth) ───────────────────────────────────────────────────────
 export async function sendOtpEmail(email: string, code: string): Promise<boolean> {
   // Route through sendEmail so it uses the same transport policy (HTTPS API

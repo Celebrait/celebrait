@@ -59,6 +59,11 @@ export const users = pgTable("users", {
   freeCardRedeemedAt: timestamp("free_card_redeemed_at"),
   /** The studio_orders.id that consumed the credit — audit trail. */
   freeCardOrderId: varchar("free_card_order_id"),
+  /** Dates-nudge flow stamps (2026-08-04): each of the two add-your-dates
+   *  nudge emails sends AT MOST once per account. Only opted-in (PECR),
+   *  under-3-dates, unredeemed accounts ever enter the flow. */
+  datesNudgeD2SentAt: timestamp("dates_nudge_d2_sent_at"),
+  datesNudgeD7SentAt: timestamp("dates_nudge_d7_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
