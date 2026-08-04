@@ -241,3 +241,25 @@
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
 }
+
+/* ── Free-card ring "alive" states (Aidan 2026-08-03) ────────────────
+   The next stone to earn breathes; a soft glow pulses behind the ring
+   on the home band. Both stop under prefers-reduced-motion. */
+@keyframes stone-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.45); opacity: 0.75; }
+}
+.animate-stone-breathe {
+  animation: stone-breathe 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+}
+@keyframes ring-glow {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 0.85; transform: scale(1.12); }
+}
+.animate-ring-glow {
+  animation: ring-glow 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-stone-breathe, .animate-ring-glow { animation: none; }
+}

@@ -53,8 +53,6 @@ export function QuickAddMoment({
   presetOccasion?: string;
 }) {
   const [name, setName] = useState('');
-  // Free-text — preset chips were pure restriction (Kevin 2026-08-03).
-  const [relationship, setRelationship] = useState('');
   const [occasion, setOccasion] = useState<string>(presetOccasion ?? 'Birthday');
   const [customOccasion, setCustomOccasion] = useState('');
   const [date, setDate] = useState('');
@@ -77,7 +75,6 @@ export function QuickAddMoment({
 
   const reset = () => {
     setName('');
-    setRelationship('');
     setOccasion(presetOccasion ?? 'Birthday');
     setCustomOccasion('');
     setDate('');
@@ -88,7 +85,6 @@ export function QuickAddMoment({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/user/address-book', {
         name: name.trim(),
-        relationship: relationship.trim() || null,
         occasions: [
           {
             occasion: storedOccasion,
@@ -164,13 +160,6 @@ export function QuickAddMoment({
                   className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[15px] text-keeper-ink outline-none focus:border-brand"
                   data-testid="quick-add-name"
                 />
-                <input
-                  value={relationship}
-                  onChange={(e) => setRelationship(e.target.value)}
-                  placeholder="Mum, best mate, colleague… (optional)"
-                  className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[14px] text-keeper-ink outline-none focus:border-brand"
-                  data-testid="quick-add-relationship"
-                />
               </div>
 
               <div>
@@ -214,10 +203,20 @@ export function QuickAddMoment({
                 )}
               </div>
 
-              {!isFixed && (
+              {isFixed ? (
+                /* Fixed-date occasions need nothing — say so, warmly. */
+                <p className="text-[12px] text-keeper-meta">
+                  No date needed — the calendar knows when{' '}
+                  {displayOccasion || 'it'} is. We'll watch it every year.
+                </p>
+              ) : (
                 <div>
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-keeper-meta">
-                    When
+                    {storedOccasion === 'birthday'
+                      ? 'Their birthday'
+                      : storedOccasion === 'anniversary'
+                        ? 'Their anniversary'
+                        : 'When is it?'}
                   </label>
                   <input
                     type="date"
@@ -226,6 +225,12 @@ export function QuickAddMoment({
                     className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[15px] outline-none focus:border-brand"
                     data-testid="quick-add-date"
                   />
+                  {storedOccasion === 'birthday' && (
+                    <p className="mt-1.5 text-[11.5px] text-keeper-meta">
+                      The real year helps us spot the milestone ones — but any
+                      year works if you'd rather not say.
+                    </p>
+                  )}
                 </div>
               )}
 

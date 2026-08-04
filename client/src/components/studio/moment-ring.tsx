@@ -60,12 +60,15 @@ export function ProgressRing({
         />
       )}
 
-      {/* The three stones. Lit = a date is set. */}
+      {/* The three stones. Lit = a date is set; the NEXT one to earn
+          breathes gently — the ring should feel like it's waiting to
+          grow (Aidan 2026-08-03), not sitting inert. */}
       {[0, 1, 2].map((k) => {
         const a = stoneAngle(k);
         const x = 55 + R * Math.cos(a);
         const y = 55 + R * Math.sin(a);
         const lit = n > k;
+        const isNext = !lit && k === n && n < 3;
         return (
           <circle
             key={k}
@@ -73,9 +76,14 @@ export function ProgressRing({
             cy={y}
             r="5"
             fill={lit ? '#5c57d4' : '#FFFDF9'}
-            stroke={lit ? '#FFFDF9' : '#D9D5F0'}
+            stroke={lit ? '#FFFDF9' : isNext ? '#5c57d4' : '#D9D5F0'}
             strokeWidth={lit ? 2 : 1.5}
-            className="transition-all duration-500"
+            className={
+              isNext
+                ? 'animate-stone-breathe transition-all duration-500'
+                : 'transition-all duration-500'
+            }
+            style={isNext ? { transformOrigin: `${x}px ${y}px` } : undefined}
           />
         );
       })}

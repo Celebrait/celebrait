@@ -62,9 +62,11 @@ const HINTS: HintDef[] = [
   },
 ];
 
-// v2 (2026-08-01): key bumped so everyone sees the rewritten tour ONCE —
-// the old one described the pre-Moments studio.
-const STORAGE_KEY = 'celebrait:hints:v2';
+// v2 (2026-08-01): key bumped so everyone sees the rewritten tour ONCE.
+// v3 (2026-08-03): key is scoped PER ACCOUNT — the ledger was per-device,
+// so a brand-new account on a browser that had ever seen the tour got no
+// tour at all (Aidan's day-zero test signup).
+const storageKeyFor = (userId: string) => `celebrait:hints:v3:${userId}`;
 // Start after the welcome greeting (1.2s) has had its moment.
 const START_DELAY_MS = 2800;
 // Routes where a coachmark would distract from the task at hand.
@@ -74,18 +76,20 @@ const HIDE_ON: RegExp[] = [
   /^\/checkout\//,
 ];
 
-function readSeen(): Set<string> {
+function readSeen(userId: string | undefined): Set<string> {
+  if (!userId) return new Set();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKeyFor(userId));
     return new Set(raw ? (JSON.parse(raw) as string[]) : []);
   } catch {
     return new Set();
   }
 }
 
-function writeSeen(set: Set<string>): void {
+function writeSeen(userId: string | undefined, set: Set<string>): void {
+  if (!userId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
+    localStorage.setItem(storageKeyFor(userId), JSON.stringify(Array.from(set)));
   } catch {
     /* best-effort */
   }
@@ -143,7 +147,13 @@ const NEW_ACCOUNT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 export function StudioHints() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
-  const [seen, setSeen] = useState<Set<string>>(() => readSeen());
+  const [seen, setSeen] = useState<Set<string>>(() => readSeen(user?.id));
+
+  // The ledger loads once the account is known (and reloads on account
+  // switch) — the initial render may predate the auth query resolving.
+  useEffect(() => {
+    setSeen(readSeen(user?.id));
+  }, [user?.id]);
   const [ready, setReady] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -152,18 +162,18 @@ export function StudioHints() {
     setSeen((prev) => {
       const next = new Set(prev);
       next.add(id);
-      writeSeen(next);
+      writeSeen(user?.id, next);
       return next;
     });
-  }, []);
+  }, [user?.id]);
 
   const skipAll = useCallback(() => {
     setSeen(() => {
       const next = new Set(HINTS.map((h) => h.id));
-      writeSeen(next);
+      writeSeen(user?.id, next);
       return next;
     });
-  }, []);
+  }, [user?.id]);
 
   const suppressed = HIDE_ON.some((rx) => rx.test(location));
   const accountIsNew =
@@ -195,7 +205,9 @@ export function StudioHints() {
       // welcome's backdrop. (welcome-moment.tsx sets this flag on close.)
       let welcomed = true;
       try {
-        welcomed = localStorage.getItem('celebrait:welcome:v1') === '1';
+        welcomed = user?.id
+          ? localStorage.getItem(`celebrait:welcome:v2:${user.id}`) === '1'
+          : false;
       } catch {
         welcomed = true; // storage blocked — don't block hints on it
       }
@@ -226,7 +238,7 @@ export function StudioHints() {
       window.removeEventListener('resize', evaluate);
       window.removeEventListener('scroll', evaluate, true);
     };
-  }, [ready, enabled, seen]);
+  }, [ready, enabled, seen, user?.id]);
 
   // Engaging with the target itself (e.g. clicking "Drafts") counts as
   // acknowledging its hint — attach a one-shot click listener while active.

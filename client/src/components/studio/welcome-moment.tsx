@@ -23,7 +23,9 @@ import { X } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import celebraitIcon from '@/assets/celebrait-icon.png';
 
-const WELCOME_KEY = 'celebrait:welcome:v1';
+// v2 (2026-08-03): scoped per account — was per-device, so a new signup
+// on a used browser skipped the greeting (and the tour gated on it).
+const welcomeKeyFor = (userId: string) => `celebrait:welcome:v2:${userId}`;
 const SHOW_DELAY_MS = 700;
 // Don't pop the greeting over a focused task surface.
 const HIDE_ON: RegExp[] = [
@@ -33,7 +35,7 @@ const HIDE_ON: RegExp[] = [
 ];
 
 export function WelcomeMoment() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [location, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   // Once dismissed, never reopen this mount — guards against any effect
@@ -44,10 +46,10 @@ export function WelcomeMoment() {
   const enabled = isAuthenticated && !isLoading && !suppressed;
 
   useEffect(() => {
-    if (!enabled || dismissedRef.current) return;
+    if (!enabled || dismissedRef.current || !user?.id) return;
     let seen = false;
     try {
-      seen = localStorage.getItem(WELCOME_KEY) === '1';
+      seen = localStorage.getItem(welcomeKeyFor(user.id)) === '1';
     } catch {
       return; // localStorage blocked — skip rather than greet every load
     }
@@ -59,12 +61,12 @@ export function WelcomeMoment() {
       if (!dismissedRef.current) setOpen(true);
     }, SHOW_DELAY_MS);
     return () => window.clearTimeout(t);
-  }, [enabled]);
+  }, [enabled, user?.id]);
 
   const dismiss = () => {
     dismissedRef.current = true;
     try {
-      localStorage.setItem(WELCOME_KEY, '1');
+      if (user?.id) localStorage.setItem(welcomeKeyFor(user.id), '1');
     } catch {
       /* best-effort */
     }

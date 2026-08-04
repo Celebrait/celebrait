@@ -74,10 +74,10 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'Cards',
     items: [
       { label: 'Home', href: '/studio', icon: HomeIcon },
-      { label: 'Drafts', href: '/studio/drafts', icon: FileEdit, hint: 'drafts' },
+      { label: 'In progress', href: '/studio/drafts', icon: FileEdit, hint: 'drafts' },
       // Ready = generated but not purchased. Split out from Sent
       // 2026-04-24 so "Sent" means the card's actually on its way.
-      { label: 'Ready', href: '/studio/ready', icon: Package },
+      { label: 'Ready to send', href: '/studio/ready', icon: Package },
       { label: 'Sent', href: '/studio/sent', icon: Send },
     ],
   },

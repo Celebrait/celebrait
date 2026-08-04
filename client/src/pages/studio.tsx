@@ -217,7 +217,7 @@ function HasActivityView({
           lower stakes), Sent is neutral (no action needed). */}
       <div className="grid md:grid-cols-3 gap-6 mb-10">
         <ActivityColumn
-          label="Drafts"
+          label="In progress"
           icon={<Sparkles className="w-4 h-4" />}
           cards={recentDrafts}
           seeAllHref="/studio/drafts"
@@ -226,7 +226,7 @@ function HasActivityView({
           rowVariant="draft"
         />
         <ActivityColumn
-          label="Ready"
+          label="Ready to send"
           icon={<Package className="w-4 h-4" />}
           cards={recentReady}
           seeAllHref="/studio/ready"

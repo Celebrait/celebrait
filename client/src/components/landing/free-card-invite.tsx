@@ -85,7 +85,10 @@ export function FreeCardInvite() {
     if (!signedOut || autoShown || authOpen) return;
     let done = false;
     try {
-      if (localStorage.getItem(SEEN_KEY)) {
+      const seenAt = Number(localStorage.getItem(SEEN_KEY) || 0);
+      // Once per visit-era, not once per lifetime: a returning visitor
+      // gets the offer again after a fortnight (Aidan 2026-08-03).
+      if (seenAt && Date.now() - seenAt < 14 * 24 * 60 * 60 * 1000) {
         setAutoShown(true);
         return;
       }
