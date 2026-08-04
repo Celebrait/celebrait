@@ -35,6 +35,15 @@ interface TimelineStop {
 }
 
 /** Short invitation chips for the unclaimed national stops. */
+/** Countdown chip that never duplicates the month tick above it. */
+function chipLabel(days: number): string {
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days < 21) return `in ${days} days`;
+  if (days < 70) return `in ${Math.round(days / 7)} wks`;
+  return `in ${Math.round(days / 30.4)} mths`;
+}
+
 const CLAIM_CHIP: Record<string, string> = {
   Christmas: 'whose card?',
   "Valentine's Day": 'someone in mind?',
@@ -103,8 +112,9 @@ export function WorldSection({
 
   // Timeline stops: ALL the user's dates (including the hero's — a
   // year-line missing your only date reads as broken; Aidan 2026-08-04)
-  // plus unclaimed nationals, merged and date-ordered. Capped at 5 —
-  // the home is a glance, the Occasions page is the archive.
+  // plus unclaimed nationals, merged and date-ordered. Capped at 3 date
+  // stops (visual audit 2026-08-04: fewer, bigger — the whole line then
+  // fits a phone without scrolling). Occasions is the archive.
   const nationals = nextNationalMoments(new Date());
   const tracked = new Set(upcoming.map((r) => r.occasion.toLowerCase()));
   const timeline: TimelineStop[] = [
@@ -114,7 +124,7 @@ export function WorldSection({
       date: r.occurrenceDate,
       month: MONTH_ABBR[new Date(r.occurrenceDate).getMonth()],
       label: `${r.recipientName}'s ${occasionLabel(r.occasion).toLowerCase()}`,
-      chip: countdownLabel(r.daysUntil),
+      chip: chipLabel(r.daysUntil),
     })),
     ...nationals
       .filter((n) => !tracked.has(n.label.toLowerCase()))
@@ -128,7 +138,7 @@ export function WorldSection({
       })),
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 5);
+    .slice(0, 3);
 
   return (
     <section className="mb-12" data-testid="world-section">
@@ -242,26 +252,27 @@ export function WorldSection({
               </span>
             </Link>
           </div>
-          <p className="mt-0.5 max-w-[42ch] text-[12.5px] text-keeper-meta">
-            The days worth a card, laid out from today. Add yours — we'll
-            watch them all and nudge you in good time.
+          <p className="mt-0.5 max-w-[46ch] text-[13px] text-keeper-meta">
+            The days worth a card, from today. Add yours — we'll nudge you
+            in good time.
           </p>
 
-          <div className="ya-scroll -mx-1 mt-1 overflow-x-auto pb-1">
-            <div className="relative flex min-w-[560px] px-2 pb-2 pt-6">
+          <div className="mt-3 rounded-2xl border border-stone-200 bg-white px-2 pb-2 pt-1 shadow-[0_10px_24px_-18px_rgba(33,29,25,.4)]">
+          <div className="ya-scroll overflow-x-auto">
+            <div className="relative flex min-w-[340px] px-1 pb-3 pt-7">
               {/* the track */}
               <div
                 aria-hidden
-                className="absolute left-2 right-2 top-[54px] h-[2px] rounded bg-[#E9E6F8]"
+                className="absolute left-3 right-3 top-[62px] h-[3px] rounded bg-[#E9E6F8]"
               />
               {/* Today */}
-              <div className="relative flex min-w-[72px] flex-1 flex-col items-center gap-1.5">
-                <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+              <div className="relative flex min-w-[64px] flex-1 flex-col items-center gap-1.5">
+                <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                   {MONTH_ABBR[new Date().getMonth()]}
                 </span>
-                <div className="z-[1] mt-[26px] h-2.5 w-2.5 rounded-full bg-keeper-ink" />
-                <span className="text-[12px] font-bold leading-tight text-keeper-ink">Today</span>
-                <span className="text-[10.5px] text-keeper-meta">
+                <div className="z-[1] mt-[30px] h-3 w-3 rounded-full bg-keeper-ink" />
+                <span className="text-[13px] font-bold leading-tight text-keeper-ink">Today</span>
+                <span className="text-[11px] text-keeper-meta">
                   {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
               </div>
@@ -269,28 +280,28 @@ export function WorldSection({
               <button
                 type="button"
                 onClick={() => openAdd()}
-                className="relative flex min-w-[80px] flex-1 flex-col items-center gap-1.5"
+                className="relative flex min-w-[72px] flex-1 flex-col items-center gap-1.5"
                 data-testid="ya-add-stop"
               >
-                <div className="z-[1] mt-[24px] flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-brand bg-brand-muted">
-                  <Plus className="h-2 w-2 text-brand" strokeWidth={4} />
+                <div className="z-[1] mt-[27px] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-brand bg-brand-muted">
+                  <Plus className="h-2.5 w-2.5 text-brand" strokeWidth={4} />
                 </div>
-                <span className="text-[12px] font-bold leading-tight text-brand">Add a day</span>
-                <span className="text-[10.5px] text-keeper-meta">birthday, anything</span>
+                <span className="text-[13px] font-bold leading-tight text-brand">Add a day</span>
+                <span className="text-[11px] text-keeper-meta">any day</span>
               </button>
               {/* the user's own dates + unclaimed nationals, by date */}
               {timeline.map((t) =>
                 t.kind === 'mine' ? (
                   <Link key={`m-${t.id}`} href="/studio/moments">
-                    <span className="relative flex min-w-[88px] flex-1 cursor-pointer flex-col items-center gap-1.5">
-                      <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+                    <span className="relative flex min-w-[92px] flex-1 cursor-pointer flex-col items-center gap-1.5">
+                      <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                         {t.month}
                       </span>
-                      <span className="z-[1] mt-[24px] block h-3.5 w-3.5 rounded-full border-2 border-white bg-brand shadow-[0_0_0_2px_#5c57d4]" />
-                      <span className="max-w-[90px] truncate text-center text-[12px] font-bold leading-tight text-keeper-ink">
+                      <span className="z-[1] mt-[26px] block h-[18px] w-[18px] rounded-full border-2 border-white bg-brand shadow-[0_0_0_2px_#5c57d4]" />
+                      <span className="max-w-[100px] truncate text-center text-[13px] font-bold leading-tight text-keeper-ink">
                         {t.label}
                       </span>
-                      <span className="rounded-full bg-brand-muted px-1.5 py-0.5 text-[9.5px] font-bold text-brand-dark">
+                      <span className="rounded-full bg-brand-muted px-2 py-0.5 text-[10.5px] font-bold text-brand-dark">
                         {t.chip}
                       </span>
                     </span>
@@ -300,17 +311,17 @@ export function WorldSection({
                     key={`n-${t.id}`}
                     type="button"
                     onClick={() => openAdd(t.id)}
-                    className="relative flex min-w-[88px] flex-1 flex-col items-center gap-1.5"
+                    className="relative flex min-w-[92px] flex-1 flex-col items-center gap-1.5"
                     data-testid={`ya-claim-${t.id}`}
                   >
-                    <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+                    <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                       {t.month}
                     </span>
-                    <span className="z-[1] mt-[24px] block h-3.5 w-3.5 rounded-full border-2 border-dashed border-[#B9B3E8] bg-white" />
-                    <span className="text-center text-[12px] font-semibold leading-tight text-keeper-body">
+                    <span className="z-[1] mt-[26px] block h-[18px] w-[18px] rounded-full border-2 border-dashed border-[#B9B3E8] bg-white" />
+                    <span className="text-center text-[13px] font-semibold leading-tight text-keeper-body">
                       {t.label}
                     </span>
-                    <span className="rounded-full border border-dashed border-[#C9C4EE] px-1.5 py-0.5 text-[9.5px] font-semibold text-keeper-meta">
+                    <span className="rounded-full border border-dashed border-[#C9C4EE] px-2 py-0.5 text-[10.5px] font-semibold text-keeper-meta">
                       {t.chip}
                     </span>
                   </button>
@@ -320,19 +331,22 @@ export function WorldSection({
           </div>
 
           {/* One rotating line — date-aware nudges + warm facts. */}
-          <div className="mt-2 flex min-h-[38px] items-start gap-2">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2} />
-            <div className="ya-facts relative flex-1">
+          <div className="mx-2 flex min-h-[44px] items-start gap-2.5 border-t border-stone-100 px-1 pt-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-muted">
+              <Sparkles className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
+            </span>
+            <div className="ya-facts relative flex-1 pt-0.5">
               {FACTS.map((f, i) => (
                 <span
                   key={i}
-                  className="absolute inset-0 text-[12.5px] leading-snug text-keeper-body"
+                  className="absolute inset-0 text-[13px] leading-snug text-keeper-body"
                   style={{ animationDelay: `${i * 6}s` }}
                 >
                   {f}
                 </span>
               ))}
             </div>
+          </div>
           </div>
         </div>
       )}
