@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Gift } from 'lucide-react';
+import { Plus, Gift, Sparkles } from 'lucide-react';
 import {
   type UpcomingReminder,
   nextNationalMoments,
@@ -22,6 +22,40 @@ import {
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { ProgressRing } from '@/components/studio/moment-ring';
+
+const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+interface TimelineStop {
+  kind: 'mine' | 'national';
+  id: string;
+  date: string;
+  month: string;
+  label: string;
+  chip: string;
+}
+
+/** Short invitation chips for the unclaimed national stops. */
+const CLAIM_CHIP: Record<string, string> = {
+  Christmas: 'whose card?',
+  "Valentine's Day": 'someone in mind?',
+  "Mother's Day": 'whose card?',
+  "Father's Day": 'whose card?',
+};
+
+/** The rotating line — first one is date-aware, the rest are warmth.
+ *  Copy voice: "we", never "the AI". */
+function daysToChristmas(): number {
+  const now = new Date();
+  let xmas = new Date(now.getFullYear(), 11, 25);
+  if (xmas < now) xmas = new Date(now.getFullYear() + 1, 11, 25);
+  return Math.ceil((xmas.getTime() - now.getTime()) / 86_400_000);
+}
+const FACTS: string[] = [
+  `Christmas is in ${daysToChristmas()} days. The best cards get made in slippers, not in a panic.`,
+  'Mothering Sunday moves with Easter every year — we track it so you never have to.',
+  'The average Brit forgets three birthdays a year. Not you. Not any more.',
+  "A kept card outlives a text by years — mantelpieces don't have notification settings.",
+];
 
 function timeGreeting(): string {
   const h = new Date().getHours();
@@ -57,7 +91,6 @@ export function WorldSection({
     .filter((r) => !r.suppressed)
     .sort((a, b) => a.daysUntil - b.daysUntil);
   const next = upcoming[0];
-  const rest = upcoming.slice(1, 3);
 
   const keyDates = new Set((reminders ?? []).map((r) => r.occasionId)).size;
   const unlocked = keyDates >= 3;
@@ -68,11 +101,33 @@ export function WorldSection({
   });
   const redeemed = freeCard?.redeemed === true;
 
-  // One national invitation keeps the river alive; fewer shown here
-  // than on /studio/moments — the home is a glance, not the archive.
+  // Timeline stops: the user's dates (beyond the hero's `next`) plus
+  // unclaimed national days, merged and ordered by when they fall. Capped
+  // at 4 — the home is a glance, the Occasions page is the archive.
   const nationals = nextNationalMoments(new Date());
   const tracked = new Set(upcoming.map((r) => r.occasion.toLowerCase()));
-  const invite = nationals.find((n) => !tracked.has(n.label.toLowerCase()));
+  const timeline: TimelineStop[] = [
+    ...upcoming.slice(1).map((r) => ({
+      kind: 'mine' as const,
+      id: String(r.occasionId),
+      date: r.occurrenceDate,
+      month: MONTH_ABBR[new Date(r.occurrenceDate).getMonth()],
+      label: `${r.recipientName}'s ${occasionLabel(r.occasion).toLowerCase()}`,
+      chip: countdownLabel(r.daysUntil),
+    })),
+    ...nationals
+      .filter((n) => !tracked.has(n.label.toLowerCase()))
+      .map((n) => ({
+        kind: 'national' as const,
+        id: n.label,
+        date: n.occurrenceDate,
+        month: MONTH_ABBR[new Date(n.occurrenceDate).getMonth()],
+        label: n.label,
+        chip: CLAIM_CHIP[n.label] ?? 'whose card?',
+      })),
+  ]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 4);
 
   return (
     <section className="mb-12" data-testid="world-section">
@@ -167,59 +222,129 @@ export function WorldSection({
       </div>
       )}
 
-      {/* Condensed river — zero-card accounts only, see prop doc. */}
-      {showRiver && (rest.length > 0 || invite) && (
-        <>
-          <p className="mt-6 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-keeper-meta">
-            Coming up in your world
+      {/* ── The year ahead — zero-card accounts only (see prop doc). ──
+          Replaces the "Coming up in your world" rows (Aidan 2026-08-03:
+          "simpler language… a snapshot timeline… feels ALIVE"). A
+          swipeable timeline anchored at Today: the user's own dates as
+          solid stops, unclaimed national days as dashed invitations, a
+          "+" stop into the quick-add. One rotating line beneath keeps
+          it warm; built to the approved year-ahead mock. */}
+      {showRiver && (
+        <div className="mt-7">
+          <div className="flex items-baseline justify-between">
+            <p className="font-display text-[19px] font-semibold tracking-[-0.01em] text-keeper-ink">
+              The year ahead
+            </p>
+            <Link href="/studio/moments">
+              <span className="text-[12px] font-bold text-brand hover:text-brand-dark">
+                Whole year ›
+              </span>
+            </Link>
+          </div>
+          <p className="mt-0.5 max-w-[42ch] text-[12.5px] text-keeper-meta">
+            The days worth a card, laid out from today. Add yours — we'll
+            watch them all and nudge you in good time.
           </p>
-          <div className="space-y-2">
-            {rest.map((r) => (
+
+          <div className="ya-scroll -mx-1 mt-1 overflow-x-auto pb-1">
+            <div className="relative flex min-w-[560px] px-2 pb-2 pt-6">
+              {/* the track */}
               <div
-                key={r.occasionId}
-                className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-3.5 py-2.5"
-              >
-                <MomentIcon occasion={r.occasion} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14.5px] font-semibold text-keeper-ink">
-                    {r.recipientName}
-                  </p>
-                  <p className="text-[11.5px] text-keeper-meta">
-                    {occasionLabel(r.occasion)} · {fmtMomentDate(r.occurrenceDate)}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-bold text-keeper-body">
-                  {countdownLabel(r.daysUntil)}
+                aria-hidden
+                className="absolute left-2 right-2 top-[54px] h-[2px] rounded bg-[#E9E6F8]"
+              />
+              {/* Today */}
+              <div className="relative flex min-w-[72px] flex-1 flex-col items-center gap-1.5">
+                <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+                  {MONTH_ABBR[new Date().getMonth()]}
+                </span>
+                <div className="z-[1] mt-[26px] h-2.5 w-2.5 rounded-full bg-keeper-ink" />
+                <span className="text-[12px] font-bold leading-tight text-keeper-ink">Today</span>
+                <span className="text-[10.5px] text-keeper-meta">
+                  {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
               </div>
-            ))}
-            {invite && (
-              <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-stone-300 bg-stone-50/60 px-3.5 py-2.5">
-                <MomentIcon occasion={invite.label} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] font-semibold text-keeper-ink">{invite.label}</p>
-                  <p className="text-[11.5px] text-keeper-meta">{invite.prompt}</p>
+              {/* + Add a day */}
+              <button
+                type="button"
+                onClick={() => openAdd()}
+                className="relative flex min-w-[80px] flex-1 flex-col items-center gap-1.5"
+                data-testid="ya-add-stop"
+              >
+                <div className="z-[1] mt-[24px] flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-brand bg-brand-muted">
+                  <Plus className="h-2 w-2 text-brand" strokeWidth={4} />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openAdd(invite.label)}
-                  className="inline-flex shrink-0 items-center rounded-full border border-[#cfcaf0] px-3 py-1 text-[11.5px] font-semibold text-brand hover:border-brand"
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" /> Add them
-                </button>
-              </div>
-            )}
+                <span className="text-[12px] font-bold leading-tight text-brand">Add a day</span>
+                <span className="text-[10.5px] text-keeper-meta">birthday, anything</span>
+              </button>
+              {/* the user's own dates + unclaimed nationals, by date */}
+              {timeline.map((t) =>
+                t.kind === 'mine' ? (
+                  <Link key={`m-${t.id}`} href="/studio/moments">
+                    <span className="relative flex min-w-[88px] flex-1 cursor-pointer flex-col items-center gap-1.5">
+                      <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+                        {t.month}
+                      </span>
+                      <span className="z-[1] mt-[24px] block h-3.5 w-3.5 rounded-full border-2 border-white bg-brand shadow-[0_0_0_2px_#5c57d4]" />
+                      <span className="max-w-[90px] truncate text-center text-[12px] font-bold leading-tight text-keeper-ink">
+                        {t.label}
+                      </span>
+                      <span className="rounded-full bg-brand-muted px-1.5 py-0.5 text-[9.5px] font-bold text-brand-dark">
+                        {t.chip}
+                      </span>
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    key={`n-${t.id}`}
+                    type="button"
+                    onClick={() => openAdd(t.id)}
+                    className="relative flex min-w-[88px] flex-1 flex-col items-center gap-1.5"
+                    data-testid={`ya-claim-${t.id}`}
+                  >
+                    <span className="absolute top-0 text-[9.5px] font-bold tracking-[0.14em] text-keeper-meta">
+                      {t.month}
+                    </span>
+                    <span className="z-[1] mt-[24px] block h-3.5 w-3.5 rounded-full border-2 border-dashed border-[#B9B3E8] bg-white" />
+                    <span className="text-center text-[12px] font-semibold leading-tight text-keeper-body">
+                      {t.label}
+                    </span>
+                    <span className="rounded-full border border-dashed border-[#C9C4EE] px-1.5 py-0.5 text-[9.5px] font-semibold text-keeper-meta">
+                      {t.chip}
+                    </span>
+                  </button>
+                ),
+              )}
+            </div>
           </div>
-        </>
+
+          {/* One rotating line — date-aware nudges + warm facts. */}
+          <div className="mt-2 flex min-h-[38px] items-start gap-2">
+            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2} />
+            <div className="ya-facts relative flex-1">
+              {FACTS.map((f, i) => (
+                <span
+                  key={i}
+                  className="absolute inset-0 text-[12.5px] leading-snug text-keeper-body"
+                  style={{ animationDelay: `${i * 6}s` }}
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="mt-3 text-center">
-        <Link href="/studio/moments">
-          <span className="text-[12.5px] font-semibold text-brand hover:text-brand-dark">
-            See your whole year ›
-          </span>
-        </Link>
-      </div>
+      {!showRiver && (
+        <div className="mt-3 text-center">
+          <Link href="/studio/moments">
+            <span className="text-[12.5px] font-semibold text-brand hover:text-brand-dark">
+              See your whole year ›
+            </span>
+          </Link>
+        </div>
+      )}
 
       <QuickAddMoment open={addOpen} onOpenChange={setAddOpen} presetOccasion={preset} />
     </section>

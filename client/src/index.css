@@ -267,3 +267,21 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-ring-orbit, .animate-stone-ping { animation: none; }
 }
+
+/* ── "The year ahead" rotating line + scroll (world-section) ────────
+   Four lines crossfade on a shared 24s cycle (6s each, staggered via
+   inline animation-delay). Under reduced-motion the first line sits
+   static and the rest hide. */
+.ya-facts span { opacity: 0; animation: ya-factcycle 24s infinite; }
+@keyframes ya-factcycle {
+  0% { opacity: 0; transform: translateY(4px); }
+  3%, 22% { opacity: 1; transform: translateY(0); }
+  25%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+.ya-scroll { scrollbar-width: none; }
+.ya-scroll::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ya-facts span { animation: none; }
+  .ya-facts span:first-child { opacity: 1; position: static; }
+  .ya-facts span:not(:first-child) { display: none; }
+}
