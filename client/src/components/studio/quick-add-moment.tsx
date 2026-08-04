@@ -55,7 +55,13 @@ export function QuickAddMoment({
   const [name, setName] = useState('');
   const [occasion, setOccasion] = useState<string>(presetOccasion ?? 'Birthday');
   const [customOccasion, setCustomOccasion] = useState('');
-  const [date, setDate] = useState('');
+  // UK-shaped date entry (day / month / optional year) — the native
+  // date input renders yyyy/mm/dd on many setups (Aidan 2026-08-04) and
+  // can't express "year optional". Year blank → we store the NEXT
+  // occurrence's year (recurring anyway; yearSpecific stays false).
+  const [day, setDay] = useState('');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
   const [saved, setSaved] = useState(false);
 
   // Apply the preset each time the sheet opens — useState's initial
@@ -71,13 +77,34 @@ export function QuickAddMoment({
     occasion === 'other' ? customOccasion.trim().toLowerCase() : slugFor(occasion);
   // Fixed-date occasions need no date picked — the calendar knows them.
   const isFixed = isFixedDateOccasion(storedOccasion);
-  const ready = name.trim().length > 0 && displayOccasion.length > 0 && (isFixed || date);
+
+  // Compose an ISO date from the UK fields. Blank year → the next time
+  // this day/month comes around. Invalid combos (31 Feb) reject.
+  const composedDate = (() => {
+    const d = parseInt(day, 10);
+    const m = parseInt(month, 10);
+    if (!Number.isFinite(d) || !Number.isFinite(m)) return null;
+    let y = parseInt(year, 10);
+    if (!Number.isFinite(y)) {
+      const now = new Date();
+      y = now.getFullYear();
+      const thisYear = new Date(y, m - 1, d);
+      if (thisYear < new Date(now.getFullYear(), now.getMonth(), now.getDate())) y += 1;
+    }
+    if (y < 1900 || y > 2100) return null;
+    const candidate = new Date(y, m - 1, d);
+    if (candidate.getMonth() !== m - 1 || candidate.getDate() !== d) return null;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  })();
+  const ready = name.trim().length > 0 && displayOccasion.length > 0 && (isFixed || !!composedDate);
 
   const reset = () => {
     setName('');
     setOccasion(presetOccasion ?? 'Birthday');
     setCustomOccasion('');
-    setDate('');
+    setDay('');
+    setMonth('');
+    setYear('');
     setSaved(false);
   };
 
@@ -88,7 +115,7 @@ export function QuickAddMoment({
         occasions: [
           {
             occasion: storedOccasion,
-            date: isFixed ? null : date,
+            date: isFixed ? null : composedDate,
             yearSpecific: false,
           },
         ],
@@ -218,17 +245,43 @@ export function QuickAddMoment({
                         ? 'Their anniversary'
                         : 'When is it?'}
                   </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[15px] outline-none focus:border-brand"
-                    data-testid="quick-add-date"
-                  />
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      inputMode="numeric"
+                      value={day}
+                      onChange={(e) => setDay(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                      placeholder="DD"
+                      className="w-16 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-center text-[15px] outline-none focus:border-brand"
+                      data-testid="quick-add-day"
+                    />
+                    <select
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                      className={`flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-[15px] outline-none focus:border-brand ${month ? 'text-keeper-ink' : 'text-stone-400'}`}
+                      data-testid="quick-add-month"
+                    >
+                      <option value="" disabled>
+                        Month
+                      </option>
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                        <option key={m} value={i + 1}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      inputMode="numeric"
+                      value={year}
+                      onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder={storedOccasion === 'birthday' ? 'Year?' : 'YYYY'}
+                      className="w-20 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-center text-[15px] outline-none focus:border-brand"
+                      data-testid="quick-add-year"
+                    />
+                  </div>
                   {storedOccasion === 'birthday' && (
                     <p className="mt-1.5 text-[11.5px] text-keeper-meta">
-                      The real year helps us spot the milestone ones — but any
-                      year works if you'd rather not say.
+                      Year's optional — the real one helps us spot the
+                      milestone birthdays.
                     </p>
                   )}
                 </div>

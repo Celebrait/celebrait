@@ -101,13 +101,14 @@ export function WorldSection({
   });
   const redeemed = freeCard?.redeemed === true;
 
-  // Timeline stops: the user's dates (beyond the hero's `next`) plus
-  // unclaimed national days, merged and ordered by when they fall. Capped
-  // at 4 — the home is a glance, the Occasions page is the archive.
+  // Timeline stops: ALL the user's dates (including the hero's — a
+  // year-line missing your only date reads as broken; Aidan 2026-08-04)
+  // plus unclaimed nationals, merged and date-ordered. Capped at 5 —
+  // the home is a glance, the Occasions page is the archive.
   const nationals = nextNationalMoments(new Date());
   const tracked = new Set(upcoming.map((r) => r.occasion.toLowerCase()));
   const timeline: TimelineStop[] = [
-    ...upcoming.slice(1).map((r) => ({
+    ...upcoming.map((r) => ({
       kind: 'mine' as const,
       id: String(r.occasionId),
       date: r.occurrenceDate,
@@ -127,7 +128,7 @@ export function WorldSection({
       })),
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 4);
+    .slice(0, 5);
 
   return (
     <section className="mb-12" data-testid="world-section">
