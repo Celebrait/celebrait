@@ -187,14 +187,17 @@ export function WorldSection({
         </div>
       )}
 
-      {/* The free-card band — a gift being mentioned, not a banner.
+      {/* The free-card band — the offer deserves presence (Aidan
+          2026-08-04): gradient-edged card in the banner's ink→violet
+          identity, white interior, soft violet lift, and a real button.
           Retires for good once the credit is spent. */}
       {!redeemed && (
       <div
-        className="mt-3.5 flex items-center gap-3 rounded-2xl bg-brand-muted/60 px-4 py-3"
+        className="mt-3.5 rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]"
         data-hint="free-card"
         data-testid="world-ring-band"
       >
+      <div className="flex items-center gap-3.5 rounded-[14.5px] bg-white px-4 py-3.5">
         {unlocked ? (
           <Gift className="h-9 w-9 shrink-0 text-brand" strokeWidth={1.75} />
         ) : (
@@ -208,7 +211,7 @@ export function WorldSection({
             </div>
           </div>
         )}
-        <p className="text-[12.5px] leading-snug text-keeper-body">
+        <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
           {unlocked ? (
             <>
               <b className="text-keeper-ink">Your first card’s free</b> —{' '}
@@ -219,17 +222,27 @@ export function WorldSection({
             <>
               <b className="text-keeper-ink">Your first card’s on us.</b>{' '}
               {3 - keyDates} more {3 - keyDates === 1 ? 'date' : 'dates'} — any
-              day that matters — and it’s free.{' '}
-              <button
-                type="button"
-                onClick={() => openAdd()}
-                className="font-bold text-brand hover:text-brand-dark"
-              >
-                Add one ›
-              </button>
+              day that matters — and it’s free.
             </>
           )}
         </p>
+        {unlocked ? (
+          <Link href="/studio/new-card">
+            <span className="shrink-0 rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground hover:bg-go-hover">
+              Make it free
+            </span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => openAdd()}
+            className="shrink-0 rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground hover:bg-go-hover"
+            data-testid="band-add-date"
+          >
+            Add a date
+          </button>
+        )}
+      </div>
       </div>
       )}
 
