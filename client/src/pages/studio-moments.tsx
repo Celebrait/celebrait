@@ -97,7 +97,7 @@ export default function StudioMomentsPage() {
       <div className="flex items-start justify-between gap-4 pt-2">
         <div>
           <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
-            Moments
+            Occasions
           </h1>
           <p className="mt-1 text-sm text-keeper-body">
             The dates that matter, watched for you.

@@ -427,9 +427,13 @@ export function AuthForm({
             />
           </div>
 
-          {/* Marketing consent — unticked by default (GDPR/PECR). Gates
-              promotional email only; card-reminder + own-card comms are
-              handled separately. */}
+          {/* Marketing consent — unticked by default; pre-ticking is
+              invalid consent under UK GDPR (ICO). Gates PROMOTIONAL email
+              only. Date reminders are service messages (the user asked us
+              to watch those dates) and fire regardless — the old copy
+              bundled the two, which made unticking look like losing
+              reminders AND muddied what the consent covered
+              (Aidan 2026-08-03). */}
           <label className="flex items-start gap-2.5 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -439,10 +443,14 @@ export function AuthForm({
               data-testid="checkbox-welcome-marketing"
             />
             <span className="text-xs leading-snug text-keeper-meta">
-              Email me card reminders and the occasional offer. No spam, and
-              you can unsubscribe anytime.
+              Send me the occasional offer and Celebrait news too.
             </span>
           </label>
+          <p className="text-[11px] leading-snug text-keeper-meta/80">
+            Either way, we'll email you about your orders and the dates you
+            ask us to watch — that's the service. Unsubscribe from anything,
+            anytime.
+          </p>
 
           <Button
             onClick={handleWelcomeSubmit}

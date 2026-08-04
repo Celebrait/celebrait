@@ -53,7 +53,7 @@ const HINTS: HintDef[] = [
   {
     id: 'moments',
     title: 'Your year, watched',
-    body: 'Every date you add lives in Moments. We nudge you before each one — no more last-minute scrambles.',
+    body: 'Every date you add lives in Occasions. We nudge you before each one — no more last-minute scrambles.',
   },
   {
     id: 'new-card',
