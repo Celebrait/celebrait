@@ -1,0 +1,512 @@
+// client/src/pages/admin-social-studio.tsx
+//
+// SOCIAL STUDIO — compose branded post images from a real card
+// (Aidan 2026-08-04: "an assets creator that would give me the attached
+// as PNGs so I can create social posts").
+//
+// Everything renders on a <canvas> at true export size, then downloads
+// as a PNG. Client-side on purpose:
+//   • the display fonts are already loaded in the page, so canvas text
+//     matches the site exactly (no server fontconfig landmine — see
+//     print-compositor's opentype workaround for why that matters).
+//   • card art is CORS-enabled (ACAO *), so the canvas stays untainted
+//     and toBlob() works.
+//
+// Layouts mirror the compositions Aidan made by hand: card alone, card
+// with the "brief" panel that shows what was typed, and the inside
+// spread. Backgrounds reuse the landing's paper gradient + the
+// celebration icon set.
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Download, Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { CardGridItem } from '@shared/schema';
+import cakeIcon from '@/assets/icons/cake.png';
+import celebrateIcon from '@/assets/icons/celebrate.png';
+import heartIcon from '@/assets/icons/heart.png';
+import presentIcon from '@/assets/icons/present.png';
+import ribbonIcon from '@/assets/icons/ribbon.png';
+import ringIcon from '@/assets/icons/ring.png';
+
+const ICONS = {
+  cake: cakeIcon,
+  celebrate: celebrateIcon,
+  heart: heartIcon,
+  present: presentIcon,
+  ribbon: ribbonIcon,
+  ring: ringIcon,
+} as const;
+
+const SIZES = {
+  portrait: { w: 1080, h: 1440, label: 'Post 4:5 · 1080×1440' },
+  square: { w: 1080, h: 1080, label: 'Post 1:1 · 1080×1080' },
+  story: { w: 1080, h: 1920, label: 'Story 9:16 · 1080×1920' },
+} as const;
+type SizeKey = keyof typeof SIZES;
+
+type LayoutKey = 'card' | 'card_brief' | 'inside' | 'brief';
+const LAYOUTS: { key: LayoutKey; label: string; hint: string }[] = [
+  { key: 'card', label: 'Card only', hint: 'The front, big.' },
+  { key: 'card_brief', label: 'Card + brief', hint: 'What they typed, beside it.' },
+  { key: 'inside', label: 'Inside spread', hint: 'The open card.' },
+  { key: 'brief', label: 'Brief only', hint: 'Just the inputs panel.' },
+];
+
+type BgKey = 'corners' | 'scatter' | 'minimal' | 'plain';
+
+interface IconSpec {
+  name: keyof typeof ICONS;
+  x: number; // 0–1 of width
+  y: number; // 0–1 of height
+  size: number; // 0–1 of width
+  opacity: number;
+  tilt: number;
+}
+
+const BACKDROPS: Record<BgKey, IconSpec[]> = {
+  corners: [
+    { name: 'ribbon', x: 0.13, y: 0.14, size: 0.26, opacity: 0.5, tilt: -8 },
+    { name: 'ring', x: 0.87, y: 0.12, size: 0.25, opacity: 0.5, tilt: 7 },
+    { name: 'cake', x: 0.12, y: 0.85, size: 0.34, opacity: 0.6, tilt: -9 },
+    { name: 'present', x: 0.88, y: 0.87, size: 0.33, opacity: 0.58, tilt: 8 },
+  ],
+  scatter: [
+    { name: 'heart', x: 0.1, y: 0.08, size: 0.16, opacity: 0.3, tilt: -12 },
+    { name: 'ribbon', x: 0.4, y: 0.04, size: 0.13, opacity: 0.22, tilt: 9 },
+    { name: 'ring', x: 0.75, y: 0.07, size: 0.18, opacity: 0.3, tilt: 6 },
+    { name: 'celebrate', x: 0.95, y: 0.23, size: 0.15, opacity: 0.24, tilt: -6 },
+    { name: 'present', x: 0.06, y: 0.3, size: 0.15, opacity: 0.24, tilt: 11 },
+    { name: 'cake', x: 0.13, y: 0.82, size: 0.28, opacity: 0.4, tilt: -8 },
+    { name: 'celebrate', x: 0.52, y: 0.95, size: 0.17, opacity: 0.26, tilt: 5 },
+    { name: 'present', x: 0.89, y: 0.85, size: 0.27, opacity: 0.38, tilt: 7 },
+    { name: 'heart', x: 0.95, y: 0.65, size: 0.13, opacity: 0.2, tilt: 14 },
+    { name: 'ring', x: 0.05, y: 0.61, size: 0.12, opacity: 0.2, tilt: -10 },
+  ],
+  minimal: [
+    { name: 'cake', x: 0.11, y: 0.9, size: 0.3, opacity: 0.42, tilt: -7 },
+    { name: 'present', x: 0.89, y: 0.93, size: 0.28, opacity: 0.4, tilt: 8 },
+  ],
+  plain: [],
+};
+
+/** Load an image with CORS so the canvas stays exportable. */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Could not load ${src.slice(0, 60)}`));
+    img.src = src;
+  });
+}
+
+/** Rounded-rect path helper (Safari lacks roundRect on older versions). */
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Wrap text to a width, returning the lines. */
+function wrap(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+export default function AdminSocialStudio() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [size, setSize] = useState<SizeKey>('portrait');
+  const [layout, setLayout] = useState<LayoutKey>('card_brief');
+  const [bg, setBg] = useState<BgKey>('corners');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Pick a real card to compose from.
+  const { data: cards } = useQuery<CardGridItem[]>({ queryKey: ['/api/user/cards'] });
+  const usable = useMemo(
+    () => (cards ?? []).filter((c) => !!c.frontImageUrl),
+    [cards],
+  );
+  const [cardId, setCardId] = useState<number | null>(null);
+  const card = usable.find((c) => c.id === cardId) ?? usable[0] ?? null;
+
+  // Brief panel fields — prefilled from the card, editable for a nicer post.
+  const [scene, setScene] = useState('');
+  const [frontText, setFrontText] = useState('');
+  const [inside, setInside] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [frontUrl, setFrontUrl] = useState('');
+  const [insideUrl, setInsideUrl] = useState('');
+
+  useEffect(() => {
+    if (!card) return;
+    setFrontUrl(card.frontImageUrl ?? '');
+    setInsideUrl((card as any).insideImageUrl ?? '');
+    const st: any = (card as any).state ?? {};
+    setScene((s) => s || st?.scene?.description || '');
+    setFrontText((s) => s || st?.front?.text || '');
+    setInside((s) => s || st?.inside?.message || '');
+  }, [card?.id]);
+
+  const draw = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await (document as any).fonts?.ready;
+      const { w: W, h: H } = SIZES[size];
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d')!;
+
+      // ── Ground: the landing's paper gradient + centre lift.
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#FFFDF9');
+      g.addColorStop(1, '#FAF8F4');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      const lift = ctx.createRadialGradient(W / 2, H * 0.38, 0, W / 2, H * 0.38, W * 0.8);
+      lift.addColorStop(0, 'rgba(255,255,255,0.55)');
+      lift.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = lift;
+      ctx.fillRect(0, 0, W, H);
+
+      // ── Backdrop icons.
+      for (const spec of BACKDROPS[bg]) {
+        const img = await loadImage(ICONS[spec.name]);
+        const s = spec.size * W;
+        const ratio = img.height / img.width;
+        ctx.save();
+        ctx.globalAlpha = spec.opacity;
+        ctx.translate(spec.x * W, spec.y * H);
+        ctx.rotate((spec.tilt * Math.PI) / 180);
+        ctx.drawImage(img, -s / 2, (-s * ratio) / 2, s, s * ratio);
+        ctx.restore();
+      }
+
+      const pad = W * 0.075;
+      const showBrief = layout === 'card_brief' || layout === 'brief';
+      const artUrl = layout === 'inside' ? insideUrl || frontUrl : frontUrl;
+
+      // ── The card art. Stacked composition: art in the upper block,
+      // the brief beneath it — side-by-side crowded the art at post
+      // aspect ratios and the panel covered the subject's face.
+      let artBottom = pad;
+      if (layout !== 'brief' && artUrl) {
+        const img = await loadImage(artUrl);
+        const side = showBrief
+          ? Math.min(W - pad * 2, H * 0.42)
+          : Math.min(W - pad * 2, H * 0.62);
+        const x = (W - side) / 2;
+        const y = showBrief ? H * 0.075 : (H - side) / 2;
+        ctx.save();
+        ctx.shadowColor = 'rgba(33,29,25,0.28)';
+        ctx.shadowBlur = W * 0.05;
+        ctx.shadowOffsetY = W * 0.02;
+        roundRect(ctx, x, y, side, side, W * 0.018);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        roundRect(ctx, x, y, side, side, W * 0.018);
+        ctx.clip();
+        ctx.drawImage(img, x, y, side, side);
+        ctx.restore();
+        artBottom = y + side;
+      }
+
+      // ── The brief panel — mirrors the studio's own input cards.
+      if (showBrief) {
+        const panelW = W - pad * 2;
+        const px = pad;
+        let py = layout === 'brief' ? H * 0.16 : artBottom + W * 0.055;
+
+        // Photo chip + "Upload a photo"
+        if (photoUrl) {
+          try {
+            const p = await loadImage(photoUrl);
+            const chip = W * 0.115;
+            ctx.save();
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = '#CFCAC2';
+            ctx.lineWidth = 2;
+            roundRect(ctx, px, py, chip, chip, 14);
+            ctx.stroke();
+            ctx.restore();
+            ctx.save();
+            roundRect(ctx, px + 6, py + 6, chip - 12, chip - 12, 10);
+            ctx.clip();
+            const r = Math.max((chip - 12) / p.width, (chip - 12) / p.height);
+            ctx.drawImage(
+              p,
+              px + 6 - (p.width * r - (chip - 12)) / 2,
+              py + 6 - (p.height * r - (chip - 12)) / 2,
+              p.width * r,
+              p.height * r,
+            );
+            ctx.restore();
+            ctx.fillStyle = '#211D19';
+            ctx.font = `700 ${W * 0.026}px Figtree, system-ui, sans-serif`;
+            ctx.fillText('Upload a photo', px + chip + 18, py + chip * 0.42);
+            ctx.fillStyle = '#7A7267';
+            ctx.font = `400 ${W * 0.021}px Figtree, system-ui, sans-serif`;
+            ctx.fillText('featuring the person you love', px + chip + 18, py + chip * 0.72);
+            py += chip + W * 0.03;
+          } catch {
+            /* a missing photo just skips the chip */
+          }
+        }
+
+        const field = (label: string, value: string) => {
+          if (!value.trim()) return;
+          ctx.font = `400 ${W * 0.024}px Figtree, system-ui, sans-serif`;
+          const lines = wrap(ctx, value.trim(), panelW - W * 0.07);
+          const boxH = W * 0.045 + lines.length * W * 0.033;
+          ctx.save();
+          ctx.shadowColor = 'rgba(33,29,25,0.10)';
+          ctx.shadowBlur = W * 0.02;
+          ctx.shadowOffsetY = W * 0.006;
+          roundRect(ctx, px, py, panelW, boxH, W * 0.016);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+          ctx.restore();
+          ctx.strokeStyle = '#EFEAE2';
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, px, py, panelW, boxH, W * 0.016);
+          ctx.stroke();
+
+          ctx.fillStyle = '#5c57d4';
+          ctx.font = `700 ${W * 0.0165}px Figtree, system-ui, sans-serif`;
+          ctx.fillText(label.toUpperCase(), px + W * 0.028, py + W * 0.032);
+
+          ctx.fillStyle = '#211D19';
+          ctx.font = `400 ${W * 0.024}px Figtree, system-ui, sans-serif`;
+          lines.forEach((ln, i) => {
+            ctx.fillText(ln, px + W * 0.028, py + W * 0.062 + i * W * 0.033);
+          });
+          py += boxH + W * 0.02;
+        };
+
+        field('The scene', scene);
+        field('Front text', frontText);
+        field('Inside message', inside);
+      }
+
+      setBusy(false);
+    } catch (e: any) {
+      setErr(e?.message ?? 'Could not compose that.');
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    void draw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText, inside]);
+
+  const download = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `celebrait-${layout}-${SIZES[size].w}x${SIZES[size].h}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/png');
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl p-6">
+      <h1 className="text-2xl font-bold text-stone-900">Social studio</h1>
+      <p className="mt-1 text-sm text-stone-500">
+        Compose post images from a real card. Everything renders at export
+        size — what you see is the pixel you get.
+      </p>
+
+      <div className="mt-6 grid gap-8 lg:grid-cols-[380px,1fr]">
+        {/* ── Controls ── */}
+        <div className="space-y-5">
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+              Card
+            </Label>
+            <select
+              value={card?.id ?? ''}
+              onChange={(e) => setCardId(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              data-testid="social-card-picker"
+            >
+              {usable.length === 0 && <option>No finished cards yet</option>}
+              {usable.map((c) => (
+                <option key={c.id} value={c.id}>
+                  #{c.id} · {(c as any).recipientName ?? 'card'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+              Layout
+            </Label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {LAYOUTS.map((l) => (
+                <button
+                  key={l.key}
+                  type="button"
+                  onClick={() => setLayout(l.key)}
+                  className={`rounded-lg border px-3 py-2 text-left text-xs ${
+                    layout === l.key
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-800'
+                      : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+                  }`}
+                >
+                  <span className="block font-semibold">{l.label}</span>
+                  <span className="block text-[10.5px] text-stone-500">{l.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Size
+              </Label>
+              <select
+                value={size}
+                onChange={(e) => setSize(e.target.value as SizeKey)}
+                className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              >
+                {Object.entries(SIZES).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Backdrop
+              </Label>
+              <select
+                value={bg}
+                onChange={(e) => setBg(e.target.value as BgKey)}
+                className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="corners">Corners</option>
+                <option value="scatter">Scatter</option>
+                <option value="minimal">Minimal</option>
+                <option value="plain">Plain paper</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+              Brief panel
+            </p>
+            <Input
+              value={scene}
+              onChange={(e) => setScene(e.target.value)}
+              placeholder="The scene — e.g. Going viral in Times Square"
+              className="text-sm"
+            />
+            <Input
+              value={frontText}
+              onChange={(e) => setFrontText(e.target.value)}
+              placeholder="Front text — e.g. Sweet 16 x"
+              className="text-sm"
+            />
+            <Input
+              value={inside}
+              onChange={(e) => setInside(e.target.value)}
+              placeholder="Inside message"
+              className="text-sm"
+            />
+            <Input
+              value={photoUrl}
+              onChange={(e) => setPhotoUrl(e.target.value)}
+              placeholder="Photo URL (optional) — the source snap"
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+              Card art (override)
+            </Label>
+            <Input
+              value={frontUrl}
+              onChange={(e) => setFrontUrl(e.target.value)}
+              placeholder="Front image URL"
+              className="text-sm"
+            />
+            <Input
+              value={insideUrl}
+              onChange={(e) => setInsideUrl(e.target.value)}
+              placeholder="Inside image URL"
+              className="text-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button onClick={download} disabled={busy} className="flex-1">
+              <Download className="mr-2 h-4 w-4" />
+              Download PNG
+            </Button>
+            <Button variant="outline" onClick={() => void draw()} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          </div>
+          {err && <p className="text-xs text-red-600">{err}</p>}
+        </div>
+
+        {/* ── Live preview ── */}
+        <div className="rounded-2xl border border-stone-200 bg-stone-100 p-4">
+          <canvas
+            ref={canvasRef}
+            className="mx-auto block h-auto w-full max-w-[420px] rounded-lg shadow-lg"
+            data-testid="social-canvas"
+          />
+          <p className="mt-3 text-center text-[11px] text-stone-500">
+            Preview is scaled — the download is full {SIZES[size].w}×{SIZES[size].h}.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

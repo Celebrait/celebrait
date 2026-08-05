@@ -117,6 +117,7 @@ const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
 const AdminEmailsPage = lazy(() => import("@/pages/admin-emails"));
+const AdminSocialStudioPage = lazy(() => import("@/pages/admin-social-studio"));
 
 // ---- Suspense fallback -----------------------------------------------------
 // Centred spinner. Kept deliberately minimal — most lazy chunks land
@@ -306,6 +307,13 @@ function Router() {
             <RequireAuth>
               <CheckoutPage />
             </RequireAuth>
+          </Route>
+          <Route path="/admin/social">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminSocialStudioPage />
+              </AdminLayout>
+            </RequireAdmin>
           </Route>
           <Route path="/admin/prompts">
             <RequireAdmin>
