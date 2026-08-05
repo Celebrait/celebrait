@@ -96,6 +96,40 @@ const BACKDROPS: Record<BgKey, IconSpec[]> = {
   plain: [],
 };
 
+/** Has the 3D stage actually painted anything yet? Switching layout or
+ *  card REMOUNTS the viewer, which then has to fetch and decode textures
+ *  — compose too early and you capture an empty buffer, so the card
+ *  silently vanishes from the post. Sample a downscale and look for any
+ *  opaque pixel. */
+function stageHasPainted(stage: HTMLCanvasElement): boolean {
+  try {
+    const probe = document.createElement('canvas');
+    probe.width = 48;
+    probe.height = 48;
+    const pc = probe.getContext('2d');
+    if (!pc) return true;
+    pc.drawImage(stage, 0, 0, 48, 48);
+    const d = pc.getImageData(0, 0, 48, 48).data;
+    let opaque = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 12) opaque++;
+    return opaque > 60; // ~2.5% of the frame carrying something
+  } catch {
+    return true; // never block composing on a probe failure
+  }
+}
+
+async function waitForStage(
+  stage: HTMLCanvasElement,
+  timeoutMs = 9000,
+): Promise<boolean> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (stageHasPainted(stage)) return true;
+    await new Promise((r) => setTimeout(r, 220));
+  }
+  return false;
+}
+
 /** Load an image with CORS so the canvas stays exportable. */
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -628,6 +662,11 @@ export default function AdminSocialStudio() {
         if (!stage || stage.width === 0) {
           throw new Error('3D view not ready — give it a moment and hit refresh.');
         }
+        if (!(await waitForStage(stage))) {
+          throw new Error(
+            'The card art is still loading — hit refresh in a second.',
+          );
+        }
         const side = overlap
           ? Math.min(W * 0.92, H * 0.56)
           : stacked
@@ -635,7 +674,15 @@ export default function AdminSocialStudio() {
             : layout === 'inside'
               ? Math.min(W * 1.02, H * 0.72)
               : Math.min(W * 1.14, H * 0.82);
-        const x = overlap ? W - side - pad * 0.1 : (W - side) / 2;
+        const x =
+          overlap
+            ? W - side - pad * 0.1
+            : layout === 'inside'
+              // Nudge the open card right: the inside-left leaf is the
+              // half that says "this card is open", so give it room
+              // rather than letting it hug the canvas edge.
+              ? (W - side) / 2 + W * 0.09
+              : (W - side) / 2;
         const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
         ctx.drawImage(stage, x, y, side, side);
         artRect = { x, y, side };
@@ -1199,7 +1246,7 @@ export default function AdminSocialStudio() {
               framingMargin={layout === 'inside' ? 2.1 : 1.7}
               minDistance={1.4}
               closedAngle={layout === 'inside' ? 0 : -0.38}
-              restYaw={layout === 'inside' ? -0.05 : -0.12}
+              restYaw={layout === 'inside' ? -0.3 : -0.12}
               className="h-full w-full"
             />
           )}
