@@ -285,3 +285,28 @@
   .ya-facts span:first-child { opacity: 1; position: static; }
   .ya-facts span:not(:first-child) { display: none; }
 }
+
+/* ── Statements band (landing) ───────────────────────────────────────
+   Four lines share a 32s cycle — 8s dwell each, staggered by inline
+   animation-delay. Ticks light in step. Reduced-motion pins line one
+   and shows a single lit tick. */
+.statements p { opacity: 0; animation: statement-cycle 32s infinite; }
+@keyframes statement-cycle {
+  0%   { opacity: 0; transform: translateY(8px); }
+  2%   { opacity: 1; transform: translateY(0); }
+  22%  { opacity: 1; transform: translateY(0); }
+  25%  { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+.statement-tick { animation: statement-tick 32s infinite; }
+@keyframes statement-tick {
+  0%, 25%, 100% { background-color: rgba(255,255,255,.2); }
+  3%, 22%       { background-color: #8B87E8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statements p { animation: none; }
+  .statements p:first-child { opacity: 1; position: static; }
+  .statements p:not(:first-child) { display: none; }
+  .statement-tick { animation: none; }
+  .statement-tick:first-child { background-color: #8B87E8; }
+}
