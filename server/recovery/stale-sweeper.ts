@@ -166,9 +166,10 @@ async function runSweeps(): Promise<void> {
   try {
     const gen = await sweepStaleGenerations();
     const orders = await sweepStrandedPaidOrders();
-    if (gen.cardsSwept || gen.attemptsSwept || orders) {
+    const emptied = await purgeUntouchedDrafts();
+    if (gen.cardsSwept || gen.attemptsSwept || orders || emptied) {
       console.log(
-        `[STALE-SWEEP] pass done: ${gen.cardsSwept} card(s), ${gen.attemptsSwept} attempt(s), ${orders} order re-drive(s)`,
+        `[STALE-SWEEP] pass done: ${gen.cardsSwept} card(s), ${gen.attemptsSwept} attempt(s), ${orders} order re-drive(s), ${emptied} empty draft(s) purged`,
       );
       // Orphaned cards after a deploy are expected; a stranded PAID order
       // is not — sweepStrandedPaidOrders already alerts per-failure via
@@ -185,6 +186,29 @@ async function runSweeps(): Promise<void> {
 
 /** Schedule: first pass 8 min after boot (lets a deploy's dying twin
  *  finish its last generation), then every 10 min. */
+/** Delete drafts nothing was ever entered into. Opening the card maker
+ *  creates the row immediately, so every abandoned "new card" tap leaves
+ *  an empty husk — noise in the customer's shelf, the CRM and analytics
+ *  (Aidan 2026-08-04). They're already hidden from both lists; this
+ *  stops them accumulating in the table. Only rows older than 2h, so an
+ *  in-progress session is never touched.
+ */
+export async function purgeUntouchedDrafts(): Promise<number> {
+  const res = await db.execute(sql`
+    DELETE FROM cards
+    WHERE status = 'draft'
+      AND front_image_url IS NULL
+      AND inside_image_url IS NULL
+      AND created_at < now() - interval '2 hours'
+      AND COALESCE(conversation_data->'recipient'->>'name', '') = ''
+      AND COALESCE(conversation_data->'recipient'->>'occasion', '') = ''
+      AND COALESCE(conversation_data->'scene'->>'description', '') = ''
+      AND COALESCE(jsonb_array_length(conversation_data->'photos'->'photoIds'), 0) = 0
+      AND NOT EXISTS (SELECT 1 FROM studio_orders so WHERE so.card_id = cards.id)
+  `);
+  return res.rowCount ?? 0;
+}
+
 export function scheduleStaleSweeps(): void {
   setTimeout(() => {
     void runSweeps();

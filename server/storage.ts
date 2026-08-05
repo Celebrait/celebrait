@@ -141,6 +141,19 @@ export class DatabaseStorage implements IStorage {
         (c.status = 'completed' AND c.notified_at IS NULL) AS "isJustFinished"
       FROM cards c
       WHERE c.user_id = ${userId}
+        -- Hide never-touched drafts (a "new card" tap that went nowhere
+        -- creates the row up front). There's nothing to resume in them,
+        -- and they cluttered both the customer's In-progress shelf and
+        -- the admin CRM (Aidan 2026-08-04). Any name/occasion/scene/photo
+        -- or generated image keeps the card visible.
+        AND NOT (
+          c.status = 'draft'
+          AND c.front_image_url IS NULL
+          AND COALESCE(c.conversation_data->'recipient'->>'name', '') = ''
+          AND COALESCE(c.conversation_data->'recipient'->>'occasion', '') = ''
+          AND COALESCE(c.conversation_data->'scene'->>'description', '') = ''
+          AND COALESCE(jsonb_array_length(c.conversation_data->'photos'->'photoIds'), 0) = 0
+        )
       ORDER BY c.created_at DESC
       LIMIT 200
     `);

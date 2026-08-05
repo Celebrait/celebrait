@@ -221,7 +221,21 @@ export function registerAdminCustomersRoutes(app: Express): void {
                  -- scene they typed, occasion. Already captured on every
                  -- card; it just had no way of reaching this screen.
                  conversation_data as "draft"
-          from cards where user_id = ${id}
+          from cards
+          where user_id = ${id}
+            -- Opening the card maker creates a row immediately, so an
+            -- abandoned "new card" tap leaves an empty draft. They're
+            -- noise in the CRM (Aidan 2026-08-04) — hide the ones where
+            -- literally nothing was entered. Anything with a name,
+            -- occasion, scene, photo or image still shows.
+            and not (
+              status = 'draft'
+              and front_image_url is null
+              and coalesce(conversation_data->'recipient'->>'name', '') = ''
+              and coalesce(conversation_data->'recipient'->>'occasion', '') = ''
+              and coalesce(conversation_data->'scene'->>'description', '') = ''
+              and coalesce(jsonb_array_length(conversation_data->'photos'->'photoIds'), 0) = 0
+            )
           order by created_at desc limit 200
         `)
       ).rows as any[];
@@ -373,6 +387,10 @@ export function registerAdminCustomersRoutes(app: Express): void {
             studio: {
               photoMode: draft?.photos?.mode ?? null,
               sceneDescription: draft?.scene?.description ?? null,
+              // How the description was produced — manual vs the scene
+              // suggester vs brainstorm (and whether they edited after
+              // adopting). Null on cards made before 2026-08-04.
+              sceneSource: draft?.scene?.source ?? null,
               occasion: draft?.recipient?.occasion ?? null,
               recipientName: draft?.recipient?.name ?? null,
               insideMode: draft?.inside?.mode ?? null,

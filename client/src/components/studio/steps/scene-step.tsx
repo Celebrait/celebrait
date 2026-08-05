@@ -119,7 +119,9 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
 
   const acceptSuggestion = (text: string) => {
     setLocal(text);
-    onChange({ scene: { ...state.scene, description: text } });
+    onChange({
+      scene: { ...state.scene, description: text, source: 'suggestion' },
+    });
     setSuggestOpen(false);
     // Reset for next open
     setSuggestions([]);
@@ -205,7 +207,9 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     }
     const trimmed = local.trim();
     if (trimmed !== (state.scene?.description ?? '')) {
-      onChange({ scene: { ...state.scene, description: trimmed } });
+      onChange({
+        scene: { ...state.scene, description: trimmed, source: manualSource() },
+      });
     }
   };
 
@@ -213,13 +217,26 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   // (which reads state.scene.description) flips true and "Next" enables
   // without a blur. Fires ~250ms after the last keystroke, so a burst of
   // typing coalesces into one save.
+  /** Manual typing. If they'd adopted a helper's text, record that they
+   *  then edited it rather than silently relabelling it 'manual'. */
+  const manualSource = (): NonNullable<
+    NonNullable<CardDraftState['scene']>['source']
+  > => {
+    const prev = state.scene?.source;
+    if (prev === 'suggestion' || prev === 'suggestion_edited') return 'suggestion_edited';
+    if (prev === 'brainstorm' || prev === 'brainstorm_edited') return 'brainstorm_edited';
+    return 'manual';
+  };
+
   const scheduleCommit = (value: string) => {
     if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
     commitTimerRef.current = setTimeout(() => {
       commitTimerRef.current = null;
       const trimmed = value.trim();
       if (trimmed !== (state.scene?.description ?? '')) {
-        onChange({ scene: { ...state.scene, description: trimmed } });
+        onChange({
+          scene: { ...state.scene, description: trimmed, source: manualSource() },
+        });
       }
     }, 250);
   };
@@ -444,7 +461,9 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           // Matches the established pattern: every input path ends up
           // in the same textarea (locked product decision).
           setLocal(scene);
-          onChange({ scene: { ...state.scene, description: scene } });
+          onChange({
+            scene: { ...state.scene, description: scene, source: 'brainstorm' },
+          });
         }}
       />
     </div>

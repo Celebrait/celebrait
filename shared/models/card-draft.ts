@@ -47,6 +47,17 @@ export interface CardDraftState {
   };
   scene?: {
     description?: string;
+    /** How this description was produced (analytics — Aidan 2026-08-04:
+     *  "would be great to see how scenes are described, manual or using
+     *  scene suggestion / brainstorm"). '*_edited' means they adopted a
+     *  helper's text and then changed it, which is the most interesting
+     *  signal of all: the helper started them off but didn't finish. */
+    source?:
+      | 'manual'
+      | 'suggestion'
+      | 'suggestion_edited'
+      | 'brainstorm'
+      | 'brainstorm_edited';
   };
   style?: {
     mode?: StyleMode;

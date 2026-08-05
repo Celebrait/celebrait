@@ -77,6 +77,13 @@ interface StudioPhoto {
 interface StudioTrail {
   photoMode: string | null;
   sceneDescription: string | null;
+  sceneSource:
+    | 'manual'
+    | 'suggestion'
+    | 'suggestion_edited'
+    | 'brainstorm'
+    | 'brainstorm_edited'
+    | null;
   occasion: string | null;
   recipientName: string | null;
   insideMode: string | null;
@@ -501,7 +508,10 @@ function StudioTrailPanel({ trail }: { trail: StudioTrail | undefined }) {
 
       {trail.sceneDescription && (
         <div className="mt-2">
-          <div className="text-[10px] uppercase tracking-wide text-stone-400">Scene they asked for</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] uppercase tracking-wide text-stone-400">Scene they asked for</div>
+            {trail.sceneSource && <SceneSourceChip source={trail.sceneSource} />}
+          </div>
           <p className="mt-0.5 rounded bg-stone-50 p-1.5 text-[11px] italic leading-snug text-stone-700">
             “{trail.sceneDescription}”
           </p>
@@ -604,6 +614,24 @@ function PhotoTrail({ photo: p }: { photo: StudioPhoto }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** How the scene description came to be — the signal that says whether
+ *  the suggester and brainstorm are actually earning their keep. */
+function SceneSourceChip({ source }: { source: NonNullable<StudioTrail['sceneSource']> }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    manual: { label: 'Typed it themselves', cls: 'bg-stone-100 text-stone-600' },
+    suggestion: { label: 'Used a suggestion', cls: 'bg-indigo-100 text-indigo-700' },
+    suggestion_edited: { label: 'Suggestion, then edited', cls: 'bg-indigo-50 text-indigo-600' },
+    brainstorm: { label: 'Used brainstorm', cls: 'bg-violet-100 text-violet-700' },
+    brainstorm_edited: { label: 'Brainstorm, then edited', cls: 'bg-violet-50 text-violet-600' },
+  };
+  const m = map[source] ?? { label: source, cls: 'bg-stone-100 text-stone-600' };
+  return (
+    <span className={`rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold ${m.cls}`}>
+      {m.label}
+    </span>
   );
 }
 
