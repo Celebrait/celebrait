@@ -31,7 +31,21 @@ const ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const BUCKET = process.env.R2_BUCKET;
-const PUBLIC_URL = process.env.R2_PUBLIC_URL?.replace(/\/+$/, '');
+// Normalise the public base URL. A value entered without a scheme
+// ("img.celebrait.co.uk") would make every stored image URL RELATIVE —
+// the browser resolves it against the app origin and every card image
+// 404s, on new cards only. Cheap to defend against, brutal to debug
+// (Aidan + a live customer, 2026-08-04).
+const PUBLIC_URL = (() => {
+  const raw = process.env.R2_PUBLIC_URL?.trim().replace(/\/+$/, '');
+  if (!raw) return undefined;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  console.warn(
+    `[R2] R2_PUBLIC_URL has no scheme ("${raw}") — assuming https://. ` +
+      'Set the full URL (https://img.example.com) to silence this.',
+  );
+  return `https://${raw}`;
+})();
 
 export function isR2Enabled(): boolean {
   return Boolean(
