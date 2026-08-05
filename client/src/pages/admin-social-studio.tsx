@@ -321,7 +321,7 @@ export default function AdminSocialStudio() {
           ? Math.min(W * 0.92, H * 0.56)
           : stacked
             ? Math.min(W - pad, H * 0.46)
-            : Math.min(W * 1.02, H * 0.72);
+            : Math.min(W * 1.14, H * 0.82);
         const x = overlap ? W - side - pad * 0.1 : (W - side) / 2;
         const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
         ctx.drawImage(stage, x, y, side, side);
@@ -656,7 +656,7 @@ export default function AdminSocialStudio() {
               preserveBuffer
               enableRotate={false}
               enableZoom={false}
-              framingMargin={layout === 'inside' ? 2.1 : 1.7}
+              framingMargin={layout === 'inside' ? 1.5 : 1.7}
               minDistance={1.4}
               closedAngle={layout === 'inside' ? 0 : -0.38}
               restYaw={layout === 'inside' ? -0.05 : -0.12}
