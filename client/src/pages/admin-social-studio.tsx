@@ -19,8 +19,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Loader2, RefreshCw } from 'lucide-react';
+import { Download, Loader2, RefreshCw, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { CardGridItem } from '@shared/schema';
@@ -338,6 +339,66 @@ export default function AdminSocialStudio() {
   // A call to action carried on every slide — the whole point of the
   // "make someone a card, post it, tell them how to get one" play.
   const [cta, setCta] = useState('DM to order yours · celebrait.co.uk');
+  // ── Make a card right here, using the LIVE production prompt, so a
+  // marketing card is the same thing a customer would receive (Aidan:
+  // "this probably needs a card generator building in").
+  const [genPhoto, setGenPhoto] = useState('');
+  const [genScene, setGenScene] = useState('');
+  const [genText, setGenText] = useState('');
+  const [genBusy, setGenBusy] = useState(false);
+  const [genNote, setGenNote] = useState<string | null>(null);
+
+  const generateCard = async () => {
+    if (!genPhoto || !genScene.trim()) {
+      setGenNote('A photo and a scene, then we can make it.');
+      return;
+    }
+    setGenBusy(true);
+    setGenNote('Making the card — this takes about a minute…');
+    try {
+      // What's live in production right now? The response carries the
+      // template text with it, so this is the only lookup needed.
+      const prod = await (await fetch('/api/admin/prompts/production')).json();
+      const rows: any[] = prod?.configs ?? [];
+      const front = rows.filter((r) => r.slot === 'front_scene');
+      const row =
+        front.find((r) => r.variant === 'one_person') ?? front[0];
+      if (!row?.templateText) {
+        throw new Error('No live front-scene prompt is set in the Prompt Lab.');
+      }
+      // Generate down the same path the Prompt Lab uses.
+      const res = await apiRequest('POST', '/api/admin/prompts/test-run', {
+        slot: 'front_scene',
+        templateText: row.templateText,
+        provider: row.provider ?? undefined,
+        quality: row.quality ?? 'high',
+        photoBase64: genPhoto.split(',')[1] ?? genPhoto,
+        inputs: {
+          scenePrompt: genScene.trim(),
+          userArtStyle: '',
+          userClothing: '',
+          cardText: genText.trim(),
+          includeText: !!genText.trim(),
+          textLayout: 'integrated',
+          photoMode: 'one_person',
+          photos: [],
+        },
+      });
+      const out = await res.json();
+      if (!out?.imageUrl) throw new Error(out?.message ?? 'No image came back.');
+      setFrontUrl(out.imageUrl);
+      // Mirror it into the brief panel so the post tells the whole story.
+      setScene(genScene.trim());
+      if (genText.trim()) setFrontText(genText.trim());
+      setPhotoUrl(genPhoto);
+      const cost = typeof out.costCents === 'number' ? ` · ${(out.costCents / 100).toFixed(2)} GBP` : '';
+      setGenNote(`Card made${cost}. It's in the composition now.`);
+    } catch (e: any) {
+      setGenNote(e?.message ?? 'That generation failed.');
+    } finally {
+      setGenBusy(false);
+    }
+  };
   const [eyebrow, setEyebrow] = useState('');
   const [headline, setHeadline] = useState('Cards people actually *keep*.');
   const [subcopy, setSubcopy] = useState('');
@@ -806,6 +867,60 @@ export default function AdminSocialStudio() {
 
           {(mode === 'card' || mode === 'carousel') && (
           <>
+          <div className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+              Make a card
+            </p>
+            <p className="text-[11px] leading-snug text-stone-600">
+              Uses the live production prompt — what you make here is what a
+              customer would get.
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const fr = new FileReader();
+                fr.onload = () => setGenPhoto(String(fr.result));
+                fr.readAsDataURL(f);
+              }}
+              className="w-full text-xs file:mr-2 file:rounded-full file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700"
+              data-testid="gen-photo"
+            />
+            <Input
+              value={genScene}
+              onChange={(e) => setGenScene(e.target.value)}
+              placeholder="Scene — e.g. Going viral in Times Square"
+              className="text-sm"
+              data-testid="gen-scene"
+            />
+            <Input
+              value={genText}
+              onChange={(e) => setGenText(e.target.value)}
+              placeholder="Text on the front (optional)"
+              className="text-sm"
+              data-testid="gen-text"
+            />
+            <Button
+              onClick={generateCard}
+              disabled={genBusy}
+              className="w-full"
+              variant="outline"
+              data-testid="gen-run"
+            >
+              {genBusy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              {genBusy ? 'Making…' : 'Generate card front'}
+            </Button>
+            {genNote && (
+              <p className="text-[11px] leading-snug text-stone-600">{genNote}</p>
+            )}
+          </div>
+
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Card
