@@ -1618,11 +1618,28 @@ function PriceSection() {
     <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
-          <div className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>£8.99</div>
+          {/* Leads with the offer, not the list price — the free first card
+              is the reason to start, and £8.99 is what it's worth. CAP Code
+              on "free": the postage you can't avoid has to sit with the
+              claim, not in smallprint, and the one-per-account condition
+              has to be stated. Hence both on the line under the number. */}
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-keeper-meta">
+            Limited time · first card on us
+          </p>
+          <div className="mt-2 flex items-baseline justify-center gap-4">
+            <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
+              Free
+            </span>
+            <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
+              <span className="sr-only">Normally </span>
+              <s>£8.99</s>
+            </span>
+          </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            Printed, posted, and free to share. Make and preview unlimited
-            cards free — pay only when you post one. Postage from £3.95 ·
-            printed to order, allow up to 72 hours.
+            Your first card is on us — you just pay standard postage, from
+            £3.95. One per account; after that, cards are £8.99 plus postage.
+            Make and preview as many as you like for free — you only pay when
+            you post one. Printed to order, allow up to 72 hours.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
