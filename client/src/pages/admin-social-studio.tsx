@@ -184,19 +184,39 @@ function wrap(
   text: string,
   maxWidth: number,
 ): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = '';
-  for (const w of words) {
-    const test = line ? `${line} ${w}` : w;
+  const push = () => {
+    if (line) lines.push(line);
+    line = '';
+  };
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    // A single token can be wider than the box (a pasted URL, or
+    // "TESTTESTTEST…") — split it by character so text can never run
+    // outside the panel it belongs to.
+    if (ctx.measureText(word).width > maxWidth) {
+      push();
+      let chunk = '';
+      for (const ch of word) {
+        if (ctx.measureText(chunk + ch).width > maxWidth && chunk) {
+          lines.push(chunk);
+          chunk = ch;
+        } else {
+          chunk += ch;
+        }
+      }
+      line = chunk;
+      continue;
+    }
+    const test = line ? `${line} ${word}` : word;
     if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = w;
+      push();
+      line = word;
     } else {
       line = test;
     }
   }
-  if (line) lines.push(line);
+  push();
   return lines;
 }
 
@@ -228,6 +248,7 @@ export default function AdminSocialStudio() {
   const [photoUrl, setPhotoUrl] = useState('');
   const [frontUrl, setFrontUrl] = useState('');
   const [insideUrl, setInsideUrl] = useState('');
+  const [showLogo, setShowLogo] = useState(true);
 
   useEffect(() => {
     if (!card) return;
@@ -317,7 +338,9 @@ export default function AdminSocialStudio() {
         const panelW = overlap ? W * 0.53 : W - pad * 2;
         const px = overlap ? pad * 0.55 : pad;
         let py = overlap
-          ? artRect.y + artRect.side * 0.6
+          // Drop the group so the first box just laps the card's lower
+          // edge — the overlap is what gives the composition depth.
+          ? artRect.y + artRect.side * 0.74
           : layout === 'brief'
             ? H * 0.16
             : artBottom + W * 0.055;
@@ -393,6 +416,20 @@ export default function AdminSocialStudio() {
         field('Inside message', inside);
       }
 
+      // ── Wordmark lockup, bottom centre.
+      if (showLogo) {
+        try {
+          const mark = await loadImage(wordmark);
+          const mw = W * 0.2;
+          const mh = (mark.height / mark.width) * mw;
+          ctx.globalAlpha = 0.9;
+          ctx.drawImage(mark, (W - mw) / 2, H - mh - H * 0.035, mw, mh);
+          ctx.globalAlpha = 1;
+        } catch {
+          /* decorative */
+        }
+      }
+
       setBusy(false);
     } catch (e: any) {
       setErr(e?.message ?? 'Could not compose that.');
@@ -406,7 +443,7 @@ export default function AdminSocialStudio() {
     const t = window.setTimeout(() => void draw(), 900);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText, inside]);
+  }, [size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText, inside, showLogo]);
 
   const download = () => {
     const canvas = canvasRef.current;
@@ -530,12 +567,34 @@ export default function AdminSocialStudio() {
               placeholder="Inside message"
               className="text-sm"
             />
-            <Input
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="Photo URL (optional) — the source snap"
-              className="text-sm"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  const fr = new FileReader();
+                  fr.onload = () => setPhotoUrl(String(fr.result));
+                  fr.readAsDataURL(f);
+                }}
+                className="w-full text-xs file:mr-2 file:rounded-full file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700"
+                data-testid="social-photo-file"
+              />
+              {photoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl('')}
+                  className="shrink-0 text-[11px] font-semibold text-stone-500 hover:text-stone-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-[10.5px] text-stone-500">
+              The original snap — shown in the “Upload a photo” box above the
+              fields, like the studio.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -555,6 +614,17 @@ export default function AdminSocialStudio() {
               className="text-sm"
             />
           </div>
+
+          <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-stone-600">
+            <input
+              type="checkbox"
+              checked={showLogo}
+              onChange={(e) => setShowLogo(e.target.checked)}
+              className="h-4 w-4 accent-indigo-600"
+              data-testid="social-logo-toggle"
+            />
+            Wordmark, bottom centre
+          </label>
 
           <div className="flex items-center gap-2">
             <Button onClick={download} disabled={busy} className="flex-1">
