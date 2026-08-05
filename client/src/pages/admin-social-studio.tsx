@@ -804,8 +804,12 @@ export default function AdminSocialStudio() {
           artRect = { x: dx, y: dy, side: Math.max(dw, dh) };
           artBottom = dy + dh;
         } else {
+          // The overlap card is sized off HEIGHT, so a 1:1 post got a much
+          // smaller card than a 4:5 one from the same coefficient. Give the
+          // squarer canvases a bigger share back.
+          const squareish = H / W < 1.15;
           const side = overlap
-            ? Math.min(W * 0.92, H * 0.56)
+            ? Math.min(W * 0.92, H * (squareish ? 0.76 : 0.56))
             : stacked
               ? Math.min(W - pad, H * 0.46)
               : Math.min(W * 1.14, H * 0.82);
@@ -825,21 +829,29 @@ export default function AdminSocialStudio() {
         // low enough down the card that the subject stays clear.
         const panelW = overlap ? W * 0.53 : W - pad * 2;
         const px = overlap ? pad * 0.55 : pad;
+        const chip = W * 0.115;
+        // Reserve the photo chip's height ABOVE the fields rather than
+        // letting it push them down. The overlap is the whole point of this
+        // layout, and pushing the fields below the card lost it as soon as
+        // a photo was attached — the boxes have to lap the card either way.
+        const chipBlock = photoUrl ? chip + W * 0.03 : 0;
         let py = overlap
           // Drop the group so the first box just laps the card's lower
           // edge — the overlap is what gives the composition depth.
-          ? artRect.y + artRect.side * 0.74
+          // Lap deeper into a square card: it's proportionally much taller
+          // relative to the canvas, so the 0.74 that suits 4:5 would push
+          // the fields into the footer.
+          ? artRect.y + artRect.side * (H / W < 1.15 ? 0.68 : 0.74) - chipBlock
           : layout === 'brief'
             ? H * 0.16
             : artBottom + W * 0.055;
 
-        // Photo chip — labelled as the SOURCE snap. The studio's own
-        // wording is an instruction ("Upload a photo"); in a finished
-        // post it should describe what you're looking at.
+        // Photo chip — the source snap, badged with an upload glyph. The
+        // thumbnail plus the icon says "this is what they sent in" on its
+        // own; the words were doing no work the picture wasn't.
         if (photoUrl) {
           try {
             const p = await loadImage(photoUrl);
-            const chip = W * 0.115;
             ctx.save();
             ctx.setLineDash([6, 6]);
             ctx.strokeStyle = '#CFCAC2';
@@ -859,13 +871,30 @@ export default function AdminSocialStudio() {
               p.height * r,
             );
             ctx.restore();
-            ctx.fillStyle = '#211D19';
-            ctx.font = `700 ${W * 0.026}px Figtree, system-ui, sans-serif`;
-            ctx.fillText('Uploaded photo', px + chip + 18, py + chip * 0.42);
-            ctx.fillStyle = '#7A7267';
-            ctx.font = `400 ${W * 0.021}px Figtree, system-ui, sans-serif`;
-            ctx.fillText('featuring the person you love', px + chip + 18, py + chip * 0.72);
-            py += chip + W * 0.03;
+
+            // Upload badge, pinned to the chip's top-right corner.
+            const br = chip * 0.2;
+            const bx = px + chip;
+            const by = py;
+            ctx.save();
+            ctx.fillStyle = '#5c57d4';
+            ctx.beginPath();
+            ctx.arc(bx, by, br, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, br * 0.2);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(bx, by + br * 0.42); // shaft
+            ctx.lineTo(bx, by - br * 0.4);
+            ctx.moveTo(bx - br * 0.34, by - br * 0.06); // head
+            ctx.lineTo(bx, by - br * 0.44);
+            ctx.lineTo(bx + br * 0.34, by - br * 0.06);
+            ctx.stroke();
+            ctx.restore();
+
+            py += chipBlock;
           } catch {
             /* a missing photo just skips the chip */
           }
@@ -1246,8 +1275,7 @@ export default function AdminSocialStudio() {
               )}
             </div>
             <p className="text-[10.5px] text-stone-500">
-              The original snap — shown in the “Uploaded photo” box above
-              the fields.
+              The original snap — shown as a thumbnail above the fields.
             </p>
           </div>
 
