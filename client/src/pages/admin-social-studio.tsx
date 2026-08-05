@@ -50,12 +50,23 @@ const SIZES = {
 } as const;
 type SizeKey = keyof typeof SIZES;
 
-type LayoutKey = 'card' | 'card_brief' | 'card_brief_stack' | 'inside' | 'brief';
+type LayoutKey =
+  | 'card'
+  | 'card_brief'
+  | 'card_brief_stack'
+  | 'inside'
+  | 'front_inside'
+  | 'brief';
 const LAYOUTS: { key: LayoutKey; label: string; hint: string }[] = [
   { key: 'card_brief', label: 'Card + brief', hint: 'Overlapping, card right.' },
   { key: 'card_brief_stack', label: 'Card + brief (stacked)', hint: 'Panel below, no overlap.' },
   { key: 'card', label: 'Card only', hint: 'The front, big.' },
   { key: 'inside', label: 'Inside spread', hint: 'The open card.' },
+  {
+    key: 'front_inside',
+    label: 'Front + inside',
+    hint: 'Both in one — best on 9:16.',
+  },
   { key: 'brief', label: 'Brief only', hint: 'Just the inputs panel.' },
 ];
 
@@ -407,6 +418,12 @@ export default function AdminSocialStudio() {
   // onto the export canvas. Hand-rolled perspective looked like a flat
   // card with a box behind it (Aidan) — this is the actual product pose.
   const stageRef = useRef<HTMLDivElement>(null);
+  // A second, always-open stage. 'front_inside' needs the closed front AND
+  // the open spread in ONE composite, and a single viewer can only be in
+  // one state at a time — toggling it mid-compose would mean animating and
+  // re-capturing. Mounted only for that layout, so nothing else pays the
+  // cost of a second WebGL context.
+  const stageOpenRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<SizeKey>('portrait');
   const [layout, setLayout] = useState<LayoutKey>('card_brief');
   const [bg, setBg] = useState<BgKey>('corners');
@@ -726,8 +743,8 @@ export default function AdminSocialStudio() {
       const faceLabel =
         layout === 'inside'
           ? 'Inside card'
-          : layout === 'brief'
-            ? ''
+          : layout === 'brief' || layout === 'front_inside'
+            ? '' // front_inside captions each half in place instead
             : 'Front of card';
       if (faceLabel) {
         ctx.save();
@@ -796,15 +813,61 @@ export default function AdminSocialStudio() {
           );
         }
 
-        if (layout === 'inside' && bounds.clippedLeft) {
+        if (layout === 'front_inside') {
+          // Both faces in one post. Sized off HEIGHT and centred, so each
+          // sits whole — the point of this layout is that nothing is
+          // cropped or implied, you see the actual card and what's in it.
+          const stage2 = stageOpenRef.current?.querySelector('canvas');
+          if (!stage2 || stage2.width === 0) {
+            throw new Error('Open-card view not ready — hit refresh.');
+          }
+          const openBounds = await waitForStage(stage2);
+          if (!openBounds) {
+            throw new Error(
+              'The inside art is still loading — hit refresh in a second.',
+            );
+          }
+
+          const caption = (text: string, cy: number) => {
+            ctx.save();
+            ctx.textAlign = 'center';
+            (ctx as any).letterSpacing = `${W * 0.004}px`;
+            ctx.fillStyle = '#7A7267';
+            ctx.font = `700 ${W * 0.0165}px Figtree, system-ui, sans-serif`;
+            ctx.fillText(text, W / 2, cy);
+            ctx.restore();
+            (ctx as any).letterSpacing = '0px';
+          };
+          const place = (
+            st: HTMLCanvasElement,
+            b: StageBounds,
+            targetH: number,
+            top: number,
+          ) => {
+            const k = targetH / b.h;
+            const dw = b.w * k;
+            ctx.drawImage(st, b.x, b.y, b.w, b.h, (W - dw) / 2, top, dw, targetH);
+          };
+
+          const frontH = H * 0.32;
+          const frontTop = H * 0.095;
+          const insideH = H * 0.29;
+          const insideTop = H * 0.475;
+
+          caption('FRONT', frontTop - H * 0.022);
+          place(stage, bounds, frontH, frontTop);
+          caption('INSIDE', insideTop - H * 0.022);
+          place(stage2, openBounds, insideH, insideTop);
+
+          artRect = { x: 0, y: frontTop, side: frontH };
+          artBottom = insideTop + insideH;
+        } else if (layout === 'inside' && bounds.clippedLeft) {
           // Belt and braces on the roomier framing above. Silently exporting
           // a cut-off card is the failure Aidan caught by eye; make it loud.
           throw new Error(
             'The open card is running off the left of the 3D frame — tell Claude the framing needs more room.',
           );
-        }
-
-        if (layout === 'inside') {
+        } else if (layout === 'inside') {
           // Content-aware placement, tuned to reproduce the composition
           // Aidan signed off on — which was right in every respect EXCEPT
           // that the frustum sliced the left leaf mid-artwork.
@@ -1483,6 +1546,36 @@ export default function AdminSocialStudio() {
             />
           )}
         </div>
+
+        {/* ── Second stage: the SAME card, held open. Only mounted for
+            'front_inside', which needs both faces in one composite and
+            can't get them from a single viewer without animating it
+            mid-capture. Same roomy framing as the inside spread so the
+            cover doesn't swing out of frame. ── */}
+        {layout === 'front_inside' && frontUrl && (
+          <div
+            ref={stageOpenRef}
+            aria-hidden
+            className="pointer-events-none fixed left-0 top-0 -z-10 h-[1400px] w-[1400px] opacity-[0.01]"
+          >
+            <Card3DViewer
+              key={`open-${frontUrl}-${insideUrl}`}
+              frontImageUrl={frontUrl}
+              insideImageUrl={insideUrl || frontUrl}
+              open
+              instantOpen
+              preserveBuffer
+              enableRotate={false}
+              enableZoom={false}
+              framingMargin={4.2}
+              minDistance={1.4}
+              maxDistance={10}
+              closedAngle={0}
+              restYaw={-0.3}
+              className="h-full w-full"
+            />
+          </div>
+        )}
 
         {/* ── Live preview ── */}
         <div className="rounded-2xl border border-stone-200 bg-stone-100 p-4">
