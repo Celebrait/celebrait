@@ -332,7 +332,12 @@ export default function AdminSocialStudio() {
   const [showLogo, setShowLogo] = useState(true);
   // Second mode: text-only posts (quotes, ad-hoc lines). Shares the
   // backdrops, sizes, wordmark and export with the card composer.
-  const [mode, setMode] = useState<'card' | 'text'>('card');
+  const [mode, setMode] = useState<'card' | 'text' | 'carousel'>('card');
+  // Carousel = slide 1 the message, slide 2 the card made for them.
+  const [slide, setSlide] = useState<1 | 2>(1);
+  // A call to action carried on every slide — the whole point of the
+  // "make someone a card, post it, tell them how to get one" play.
+  const [cta, setCta] = useState('DM to order yours · celebrait.co.uk');
   const [eyebrow, setEyebrow] = useState('');
   const [headline, setHeadline] = useState('Cards people actually *keep*.');
   const [subcopy, setSubcopy] = useState('');
@@ -348,9 +353,52 @@ export default function AdminSocialStudio() {
     setInside((s) => s || st?.inside?.message || '');
   }, [card?.id]);
 
-  const draw = async () => {
+  /** CTA line + wordmark, bottom-centre, on every slide. */
+  const drawFooter = async (
+    ctx: CanvasRenderingContext2D,
+    W: number,
+    H: number,
+  ) => {
+    let footY = H - H * 0.035;
+    if (showLogo) {
+      try {
+        const mark = await loadImage(wordmark);
+        const mw = W * 0.2;
+        const mh = (mark.height / mark.width) * mw;
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(mark, (W - mw) / 2, footY - mh, mw, mh);
+        ctx.globalAlpha = 1;
+        footY -= mh + H * 0.014;
+      } catch {
+        /* decorative */
+      }
+    }
+    if (cta.trim()) {
+      ctx.save();
+      ctx.textAlign = 'center';
+      (ctx as any).letterSpacing = `${W * 0.003}px`;
+      ctx.fillStyle = '#5c57d4';
+      ctx.font = `700 ${W * 0.021}px Figtree, system-ui, sans-serif`;
+      ctx.fillText(cta.trim(), W / 2, footY);
+      ctx.restore();
+      (ctx as any).letterSpacing = '0px';
+    }
+  };
+
+  const draw = async (force?: 'text' | 'card') => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Which face are we drawing? Carousel slide 1 is the message,
+    // slide 2 is the card.
+    const kind: 'text' | 'card' =
+      force ??
+      (mode === 'text'
+        ? 'text'
+        : mode === 'card'
+          ? 'card'
+          : slide === 1
+            ? 'text'
+            : 'card');
     setBusy(true);
     setErr(null);
     try {
@@ -390,7 +438,7 @@ export default function AdminSocialStudio() {
       // ── TEXT MODE: an editorial block, nothing else. Headline auto-
       // fits so long lines never spill past the artwork's margins, and
       // *marked* words carry the ink→violet ramp.
-      if (mode === 'text') {
+      if (kind === 'text') {
         const boxW = W - pad * 2 * 1.15;
         const cx = align === 'center' ? W / 2 : pad * 1.15;
         ctx.textAlign = align === 'center' ? 'center' : 'left';
@@ -452,18 +500,7 @@ export default function AdminSocialStudio() {
           }
         }
 
-        if (showLogo) {
-          try {
-            const mark = await loadImage(wordmark);
-            const mw = W * 0.2;
-            const mh = (mark.height / mark.width) * mw;
-            ctx.globalAlpha = 0.9;
-            ctx.drawImage(mark, (W - mw) / 2, H - mh - H * 0.035, mw, mh);
-            ctx.globalAlpha = 1;
-          } catch {
-            /* decorative */
-          }
-        }
+        drawFooter(ctx, W, H);
         ctx.textAlign = 'left';
         setBusy(false);
         return;
@@ -609,20 +646,7 @@ export default function AdminSocialStudio() {
         field('Inside message', inside);
       }
 
-      // ── Wordmark lockup, bottom centre.
-      if (showLogo) {
-        try {
-          const mark = await loadImage(wordmark);
-          const mw = W * 0.2;
-          const mh = (mark.height / mark.width) * mw;
-          ctx.globalAlpha = 0.9;
-          ctx.drawImage(mark, (W - mw) / 2, H - mh - H * 0.035, mw, mh);
-          ctx.globalAlpha = 1;
-        } catch {
-          /* decorative */
-        }
-      }
-
+      drawFooter(ctx, W, H);
       setBusy(false);
     } catch (e: any) {
       setErr(e?.message ?? 'Could not compose that.');
@@ -638,20 +662,39 @@ export default function AdminSocialStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText,
-    inside, showLogo, mode, eyebrow, headline, subcopy, align,
+    inside, showLogo, mode, eyebrow, headline, subcopy, align, slide, cta,
   ]);
 
-  const download = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `celebrait-${layout}-${SIZES[size].w}x${SIZES[size].h}.png`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }, 'image/png');
+  const saveCanvas = (name: string) =>
+    new Promise<void>((resolve) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return resolve();
+      canvas.toBlob((blob) => {
+        if (!blob) return resolve();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        resolve();
+      }, 'image/png');
+    });
+
+  const stamp = `${SIZES[size].w}x${SIZES[size].h}`;
+
+  const download = async () => {
+    if (mode === 'carousel') {
+      // Both slides, in posting order: the message, then the card.
+      setBusy(true);
+      await draw('text');
+      await saveCanvas(`celebrait-slide-1-message-${stamp}.png`);
+      await draw('card');
+      await saveCanvas(`celebrait-slide-2-card-${stamp}.png`);
+      // Leave the preview on whichever slide was showing.
+      await draw();
+      return;
+    }
+    await saveCanvas(`celebrait-${mode === 'text' ? 'text' : layout}-${stamp}.png`);
   };
 
   return (
@@ -665,8 +708,8 @@ export default function AdminSocialStudio() {
       <div className="mt-6 grid gap-8 lg:grid-cols-[380px,1fr]">
         {/* ── Controls ── */}
         <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-2">
-            {(['card', 'text'] as const).map((m) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(['card', 'text', 'carousel'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
@@ -678,12 +721,41 @@ export default function AdminSocialStudio() {
                 }`}
                 data-testid={`social-mode-${m}`}
               >
-                {m === 'card' ? 'Card post' : 'Text post'}
+                {m === 'card' ? 'Card' : m === 'text' ? 'Text' : 'Carousel'}
               </button>
             ))}
           </div>
 
-          {mode === 'text' && (
+          {mode === 'carousel' && (
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                Two slides
+              </p>
+              <p className="mt-1 text-[11.5px] leading-snug text-stone-600">
+                Slide 1 is the message, slide 2 is the card you made them.
+                Fill in both sections below — “Download PNG” saves the pair.
+              </p>
+              <div className="mt-2 flex gap-2">
+                {([1, 2] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSlide(n)}
+                    className={`flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      slide === n
+                        ? 'border-indigo-500 bg-white text-indigo-800'
+                        : 'border-indigo-200 bg-white/60 text-stone-600'
+                    }`}
+                    data-testid={`carousel-slide-${n}`}
+                  >
+                    Preview slide {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(mode === 'text' || mode === 'carousel') && (
             <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
               <Input
                 value={eyebrow}
@@ -732,7 +804,7 @@ export default function AdminSocialStudio() {
             </div>
           )}
 
-          {mode === 'card' && (
+          {(mode === 'card' || mode === 'carousel') && (
           <>
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
@@ -812,7 +884,7 @@ export default function AdminSocialStudio() {
             </div>
           </div>
 
-          {mode === 'card' && (
+          {(mode === 'card' || mode === 'carousel') && (
           <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
               Brief panel
@@ -867,7 +939,7 @@ export default function AdminSocialStudio() {
 
           )}
 
-          {mode === 'card' && (
+          {(mode === 'card' || mode === 'carousel') && (
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Card art (override)
@@ -888,6 +960,22 @@ export default function AdminSocialStudio() {
 
           )}
 
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+              Call to action
+            </Label>
+            <Input
+              value={cta}
+              onChange={(e) => setCta(e.target.value)}
+              placeholder="DM to order yours · celebrait.co.uk"
+              className="mt-1 text-sm"
+              data-testid="social-cta"
+            />
+            <p className="mt-1 text-[10.5px] text-stone-500">
+              Sits above the wordmark on every slide. Clear it to leave it off.
+            </p>
+          </div>
+
           <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-stone-600">
             <input
               type="checkbox"
@@ -902,7 +990,7 @@ export default function AdminSocialStudio() {
           <div className="flex items-center gap-2">
             <Button onClick={download} disabled={busy} className="flex-1">
               <Download className="mr-2 h-4 w-4" />
-              Download PNG
+              {mode === 'carousel' ? 'Download both slides' : 'Download PNG'}
             </Button>
             <Button variant="outline" onClick={() => void draw()} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
