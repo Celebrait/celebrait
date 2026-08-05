@@ -50,11 +50,6 @@ import { registerAdminAnalyticsRoutes } from "./routes/admin-analytics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
-  // First-party page-view logging — mounted before everything so it
-  // sees every HTML request. Cookieless, IP-less, bot-filtered,
-  // fire-and-forget. See server/visit-log.ts.
-  registerVisitLogging(app);
-
   // Setup auth BEFORE other routes.
   // Since 2026-04, the only auth system is the email OTP flow. setupAuth
   // now just mounts PG-backed session middleware; registerAuthRoutes wires
@@ -62,6 +57,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   registerAuthRoutes(app);
   registerGoogleAuthRoutes(app);
+
+  // First-party page-view logging. Mounted AFTER the session middleware
+  // (2026-08-04) so it can tell whether the viewer is a signed-in admin
+  // and skip our own testing. Still cookieless, IP-less, bot-filtered
+  // and fire-and-forget; it sits ahead of every page route below.
+  registerVisitLogging(app);
 
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
