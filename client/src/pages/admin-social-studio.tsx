@@ -773,24 +773,21 @@ export default function AdminSocialStudio() {
         }
 
         if (layout === 'inside') {
-          // Content-aware placement. An open spread is much wider than a
-          // closed front, so a fixed source rect pushes the left-hand leaf
-          // off the canvas. Fit what the stage ACTUALLY painted into a safe
-          // frame, so no card can ever crop however wide it opens.
-          const safe = W * 0.05; // guaranteed clear edge, both sides
-          // Target width, not the full frame: the whole open spread now
-          // renders (it used to be cut off), so filling edge-to-edge would
-          // read much larger than the closed-card layouts.
-          const boxW = Math.min(W * 0.74, W - safe * 2);
-          const boxH = H * 0.42;
-          const k = Math.min(boxW / bounds.w, boxH / bounds.h);
+          // Content-aware placement, tuned to reproduce the composition
+          // Aidan signed off on — which was right in every respect EXCEPT
+          // that the frustum sliced the left leaf mid-artwork.
+          //
+          // Anchor on HEIGHT and the RIGHT edge, both of which the crop
+          // never touched: the cut only ever stole width off the left. The
+          // left edge then falls wherever the full spread reaches, and is
+          // deliberately NOT clamped — running off the canvas is fine
+          // ("the open side can go off the screen as it was before"), a
+          // slice through the middle of the art is not.
+          const k = (H * 0.368) / bounds.h;
           const dw = bounds.w * k;
           const dh = bounds.h * k;
-          // Sit right of centre — the inside-left leaf is the half that
-          // says "this card is open" — then clamp inside the safe frame.
-          const wanted = (W - dw) / 2 + W * 0.06;
-          const dx = Math.max(safe, Math.min(wanted, W - dw - safe));
-          const dy = H * 0.47 - dh / 2;
+          const dx = W * 0.802 - dw; // right edge pinned; may go negative
+          const dy = H * 0.466 - dh / 2;
           ctx.drawImage(
             stage,
             bounds.x, bounds.y, bounds.w, bounds.h,
