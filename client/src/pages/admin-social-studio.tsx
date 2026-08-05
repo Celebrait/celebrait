@@ -740,19 +740,34 @@ export default function AdminSocialStudio() {
         `700 ${Math.round(W * 0.021)}px Figtree`,
       ]);
 
+      // Feed posts go out as carousels — front on slide 1, inside on slide
+      // 2 — so each slide points at the other. A story isn't a carousel, and
+      // front_inside already shows both, so neither gets a swipe prompt.
+      const carousel = size !== 'story';
       const faceLabel =
-        layout === 'inside'
-          ? 'Inside card'
-          : layout === 'brief' || layout === 'front_inside'
-            ? '' // front_inside captions each half in place instead
-            : 'Front of card';
+        layout === 'brief' || layout === 'front_inside'
+          ? '' // front_inside captions each half in place instead
+          : layout === 'inside'
+            ? carousel
+              ? 'Inside card (swipe left for the front)'
+              : 'Inside card'
+            : carousel
+              ? 'Front card (swipe right for the inside)'
+              : 'Front of card';
       if (faceLabel) {
         ctx.save();
         ctx.textAlign = 'center';
         (ctx as any).letterSpacing = `${W * 0.004}px`;
         ctx.fillStyle = '#7A7267';
-        ctx.font = `700 ${W * 0.0165}px Figtree, system-ui, sans-serif`;
-        ctx.fillText(faceLabel.toUpperCase(), W / 2, H * 0.055);
+        const label = faceLabel.toUpperCase();
+        const maxLabelW = W - pad * 2;
+        let labelSize = W * 0.0165;
+        ctx.font = `700 ${labelSize}px Figtree, system-ui, sans-serif`;
+        while (ctx.measureText(label).width > maxLabelW && labelSize > W * 0.011) {
+          labelSize *= 0.94;
+          ctx.font = `700 ${labelSize}px Figtree, system-ui, sans-serif`;
+        }
+        ctx.fillText(label, W / 2, H * 0.055);
         ctx.restore();
         (ctx as any).letterSpacing = '0px';
       }
