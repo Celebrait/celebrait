@@ -345,7 +345,9 @@ export default function AdminSocialStudio() {
             ? H * 0.16
             : artBottom + W * 0.055;
 
-        // Photo chip + "Upload a photo"
+        // Photo chip — labelled as the SOURCE snap. The studio's own
+        // wording is an instruction ("Upload a photo"); in a finished
+        // post it should describe what you're looking at.
         if (photoUrl) {
           try {
             const p = await loadImage(photoUrl);
@@ -371,7 +373,7 @@ export default function AdminSocialStudio() {
             ctx.restore();
             ctx.fillStyle = '#211D19';
             ctx.font = `700 ${W * 0.026}px Figtree, system-ui, sans-serif`;
-            ctx.fillText('Upload a photo', px + chip + 18, py + chip * 0.42);
+            ctx.fillText('Uploaded photo', px + chip + 18, py + chip * 0.42);
             ctx.fillStyle = '#7A7267';
             ctx.font = `400 ${W * 0.021}px Figtree, system-ui, sans-serif`;
             ctx.fillText('featuring the person you love', px + chip + 18, py + chip * 0.72);
@@ -592,8 +594,8 @@ export default function AdminSocialStudio() {
               )}
             </div>
             <p className="text-[10.5px] text-stone-500">
-              The original snap — shown in the “Upload a photo” box above the
-              fields, like the studio.
+              The original snap — shown in the “Uploaded photo” box above
+              the fields.
             </p>
           </div>
 
