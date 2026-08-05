@@ -751,6 +751,33 @@ export default function AdminSocialStudio() {
       // STACKED (panel below, nothing covered) for busy artwork.
       let artBottom = pad;
       let artRect = { x: pad, y: pad, side: 0 };
+
+      // Panel metrics, hoisted: the card's Y depends on how tall the
+      // finished card+brief block turns out, which depends on how many
+      // lines the fields wrap to.
+      const panelW = overlap ? W * 0.53 : W - pad * 2;
+      const px = overlap ? pad * 0.55 : pad;
+      const chip = W * 0.115;
+      const chipBlock = photoUrl ? chip + W * 0.03 : 0;
+      // How far down the card the brief starts. A square canvas carries a
+      // proportionally much taller card with no spare height beneath it, so
+      // it has to lap deeper — at 0.74 a two-line inside message ran the
+      // boxes into the wordmark.
+      const lapFactor = H / W < 1.15 ? 0.62 : 0.74;
+      /** Total height of the stacked field boxes, measured not guessed. */
+      const fieldsHeight = () => {
+        ctx.font = `400 ${W * 0.024}px Figtree, system-ui, sans-serif`;
+        return [scene, frontText, inside]
+          .filter((v) => v.trim())
+          .reduce(
+            (h, v) =>
+              h +
+              W * 0.045 +
+              wrap(ctx, v.trim(), panelW - W * 0.07).length * W * 0.033 +
+              W * 0.02,
+            0,
+          );
+      };
       if (layout !== 'brief') {
         // Grab the frame the real viewer just painted. It carries the
         // proper hinge, lighting and contact shadow — and for the inside
@@ -814,7 +841,20 @@ export default function AdminSocialStudio() {
               ? Math.min(W - pad, H * 0.46)
               : Math.min(W * 1.14, H * 0.82);
           const x = overlap ? W - side - pad * 0.1 : (W - side) / 2;
-          const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
+          // A 9:16 story is far taller than the card+brief block needs, so
+          // the fixed 0.06 top left ~630px of dead space underneath and the
+          // whole thing read top-heavy. On tall canvases, centre the block
+          // between the eyebrow and the footer instead of pinning it up.
+          const tall = H / W > 1.5;
+          let y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
+          if (overlap && tall) {
+            const top = H * 0.085; // clear of the FRONT OF CARD eyebrow
+            const foot = H * 0.885; // clear of the CTA + wordmark
+            // Block runs from the card's top to whichever falls lower:
+            // the card's own bottom, or the last field box.
+            const blockH = Math.max(side, side * lapFactor + fieldsHeight());
+            y = top + Math.max(0, (foot - top - blockH) / 2);
+          }
           ctx.drawImage(stage, x, y, side, side);
           artRect = { x, y, side };
           // The viewer leaves generous margin around the card, so pull the
@@ -827,24 +867,37 @@ export default function AdminSocialStudio() {
       if (showBrief) {
         // Overlap: a narrower column hugging the left edge, starting
         // low enough down the card that the subject stays clear.
-        const panelW = overlap ? W * 0.53 : W - pad * 2;
-        const px = overlap ? pad * 0.55 : pad;
-        const chip = W * 0.115;
-        // Reserve the photo chip's height ABOVE the fields rather than
-        // letting it push them down. The overlap is the whole point of this
-        // layout, and pushing the fields below the card lost it as soon as
-        // a photo was attached — the boxes have to lap the card either way.
-        const chipBlock = photoUrl ? chip + W * 0.03 : 0;
+        // The chip's height is reserved ABOVE the fields rather than
+        // pushing them down — the overlap is the whole point of this
+        // layout, and attaching a photo used to drop the boxes clear of
+        // the card entirely.
         let py = overlap
           // Drop the group so the first box just laps the card's lower
           // edge — the overlap is what gives the composition depth.
-          // Lap deeper into a square card: it's proportionally much taller
-          // relative to the canvas, so the 0.74 that suits 4:5 would push
-          // the fields into the footer.
-          ? artRect.y + artRect.side * (H / W < 1.15 ? 0.68 : 0.74) - chipBlock
+          ? artRect.y + artRect.side * lapFactor - chipBlock
           : layout === 'brief'
             ? H * 0.16
             : artBottom + W * 0.055;
+
+        if (overlap) {
+          // Hard stop above the footer. The lap factors suit typical copy,
+          // but a long inside message pushes the last box down into the
+          // wordmark — worst on 1:1, which carries a tall card with no
+          // spare height under it. Slide the group up as far as needed,
+          // with a floor so it can't climb over the card's subject.
+          const footTop =
+            H -
+            H * 0.035 - // footer baseline inset
+            W * 0.2 * 0.3 - // wordmark
+            H * 0.014 - // gap
+            W * 0.021 * 1.5 - // CTA line
+            H * 0.022; // breathing room
+          const highest = artRect.y + artRect.side * 0.35 - chipBlock;
+          py = Math.max(
+            highest,
+            Math.min(py, footTop - chipBlock - fieldsHeight()),
+          );
+        }
 
         // Photo chip — the source snap, badged with an upload glyph. The
         // thumbnail plus the icon says "this is what they sent in" on its
