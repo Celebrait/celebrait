@@ -1055,22 +1055,62 @@ export default function AdminSocialStudio() {
           )}
 
           {(mode === 'card' || mode === 'carousel') && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Card art (override)
             </Label>
-            <Input
-              value={frontUrl}
-              onChange={(e) => setFrontUrl(e.target.value)}
-              placeholder="Front image URL"
-              className="text-sm"
-            />
-            <Input
-              value={insideUrl}
-              onChange={(e) => setInsideUrl(e.target.value)}
-              placeholder="Inside image URL"
-              className="text-sm"
-            />
+            <p className="text-[10.5px] leading-snug text-stone-500">
+              Use art you've already made — upload a file, or paste a URL.
+              Overrides whatever the picked card supplies.
+            </p>
+
+            {(
+              [
+                ['Front', frontUrl, setFrontUrl, 'front'] as const,
+                ['Inside', insideUrl, setInsideUrl, 'inside'] as const,
+              ]
+            ).map(([label, val, set, id]) => (
+              <div key={id} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-stone-600">
+                    {label}
+                  </span>
+                  {val && (
+                    <button
+                      type="button"
+                      onClick={() => set('')}
+                      className="text-[10.5px] font-semibold text-stone-500 hover:text-stone-800"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const fr = new FileReader();
+                    fr.onload = () => set(String(fr.result));
+                    fr.readAsDataURL(f);
+                  }}
+                  className="w-full text-xs file:mr-2 file:rounded-full file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700"
+                  data-testid={`art-file-${id}`}
+                />
+                <Input
+                  value={val.startsWith('data:') ? '' : val}
+                  onChange={(e) => set(e.target.value)}
+                  placeholder={
+                    val.startsWith('data:')
+                      ? `Uploaded ${label.toLowerCase()} image`
+                      : `${label} image URL`
+                  }
+                  className="text-sm"
+                  data-testid={`art-url-${id}`}
+                />
+              </div>
+            ))}
           </div>
 
           )}
