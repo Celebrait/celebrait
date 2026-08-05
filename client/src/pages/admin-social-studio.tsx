@@ -297,6 +297,26 @@ export default function AdminSocialStudio() {
         ctx.restore();
       }
 
+      // ── Caption: which face of the card this is. Small caps at the
+      // head of the canvas — clear of the corner icons and of every
+      // layout's artwork (Aidan: "nice and small somewhere neat").
+      const faceLabel =
+        layout === 'inside'
+          ? 'Inside card'
+          : layout === 'brief'
+            ? ''
+            : 'Front of card';
+      if (faceLabel) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        (ctx as any).letterSpacing = `${W * 0.004}px`;
+        ctx.fillStyle = '#7A7267';
+        ctx.font = `700 ${W * 0.0165}px Figtree, system-ui, sans-serif`;
+        ctx.fillText(faceLabel.toUpperCase(), W / 2, H * 0.055);
+        ctx.restore();
+        (ctx as any).letterSpacing = '0px';
+      }
+
       const pad = W * 0.075;
       const overlap = layout === 'card_brief';
       const stacked = layout === 'card_brief_stack';
