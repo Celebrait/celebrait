@@ -581,6 +581,11 @@ export default function AdminSocialStudio() {
       canvas.width = W;
       canvas.height = H;
       const ctx = canvas.getContext('2d')!;
+      // Everything here is drawn scaled — the 3D stage, the card art, the
+      // icons. Default smoothing is bilinear and visibly mushy on a big
+      // downscale; 'high' picks a better filter for the same cost.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
       // ── Ground: the landing's paper gradient + centre lift.
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -783,10 +788,13 @@ export default function AdminSocialStudio() {
           // deliberately NOT clamped — running off the canvas is fine
           // ("the open side can go off the screen as it was before"), a
           // slice through the middle of the art is not.
-          const k = (H * 0.368) / bounds.h;
+          const k = (H * 0.44) / bounds.h;
           const dw = bounds.w * k;
           const dh = bounds.h * k;
-          const dx = W * 0.802 - dw; // right edge pinned; may go negative
+          // Right edge pinned; dx goes NEGATIVE by design so the left leaf
+          // bleeds off-canvas and you never see its outer edge, which reads
+          // badly (Aidan: "the left side goes off and we don't see the edge").
+          const dx = W * 0.802 - dw;
           const dy = H * 0.466 - dh / 2;
           ctx.drawImage(
             stage,
@@ -1352,7 +1360,14 @@ export default function AdminSocialStudio() {
         <div
           ref={stageRef}
           aria-hidden
-          className="pointer-events-none fixed left-0 top-0 -z-10 h-[760px] w-[760px] opacity-[0.01]"
+          // 1400px (x2 DPR = a 2800px buffer). The open-card framing sits
+          // the card at roughly a quarter of the frame, so at the old 760px
+          // it landed on ~670 buffer pixels and the composite had to UPSCALE
+          // it to ~1000 — that was the soft, mushy download. Oversampling
+          // here means the export always scales DOWN, which is what keeps
+          // the art crisp. Offscreen and pointer-events-none, so the only
+          // cost is GPU on an admin page.
+          className="pointer-events-none fixed left-0 top-0 -z-10 h-[1400px] w-[1400px] opacity-[0.01]"
         >
           {frontUrl && (
             <Card3DViewer
