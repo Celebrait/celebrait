@@ -496,84 +496,95 @@ export default function AdminSocialStudio() {
 
       const pad = W * 0.075;
 
-      // ── TEXT MODE: an editorial block, nothing else. Headline auto-
-      // fits so long lines never spill past the artwork's margins, and
-      // *marked* words carry the ink→violet ramp.
+      // ── TEXT MODE: an editorial block, set as one unit.
+      //
+      // Everything is measured in TOP baseline so the block's real height
+      // is known before anything is drawn — the earlier version mixed
+      // estimated heights with baseline maths, so the block never sat
+      // where the arithmetic thought it did. Leading is display-tight
+      // (1.04) rather than body-loose; gaps are proportional to the
+      // headline, so they hold at every size.
       if (kind === 'text') {
-        const boxW = W - pad * 2 * 1.15;
+        const boxW = W - pad * 2.3;
         const cx = align === 'center' ? W / 2 : pad * 1.15;
-        ctx.textAlign = align === 'center' ? 'center' : 'left';
+        // Asterisks are gradient markers, not literal type.
+        const clean = (t: string) => t.replace(/\*/g, '').trim();
 
-        // The landing's headline face, exactly: Fraunces BOLD with
-        // -0.015em tracking (tailwind `font-display font-bold
-        // tracking-[-0.015em]`). Measuring and drawing must use the same
-        // call or the wrap points shift under the text.
         const setHeadFont = (px: number) => {
           ctx.font = `700 ${px}px Fraunces, Georgia, Cambria, serif`;
           (ctx as any).letterSpacing = `${-0.015 * px}px`;
         };
+        const setSubFont = () => {
+          (ctx as any).letterSpacing = '0px';
+          ctx.font = `400 ${W * 0.031}px Figtree, system-ui, sans-serif`;
+        };
+        const setEyeFont = () => {
+          (ctx as any).letterSpacing = `${W * 0.005}px`;
+          ctx.font = `700 ${W * 0.019}px Figtree, system-ui, sans-serif`;
+        };
 
-        // Measure-then-place so the whole block sits optically centred.
-        const eyeSize = W * 0.019;
-        const subSize = W * 0.032;
-        let headSize = W * 0.095;
-        let lines: Tok[][] = [];
+        const eyeText = clean(eyebrow).toUpperCase();
+        const subText = clean(subcopy);
         const toks = parseTokens(headline);
+
+        // Shrink until the headline fits its share of the canvas.
+        let headSize = W * 0.098;
+        let lines: Tok[][] = [];
         for (;;) {
           setHeadFont(headSize);
           lines = layoutTokens(ctx, toks, boxW);
-          const tall = lines.length * headSize * 1.14;
-          if (tall <= H * 0.5 || headSize <= W * 0.04) break;
+          if (lines.length * headSize * 1.04 <= H * 0.46 || headSize <= W * 0.038) break;
           headSize *= 0.94;
         }
-        const headBlock = lines.length * headSize * 1.14;
-        const subLines = subcopy.trim()
-          ? (((ctx as any).letterSpacing = '0px'),
-            (ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`),
-            wrap(ctx, subcopy.trim(), boxW * 0.86))
-          : [];
-        const total =
-          (eyebrow.trim() ? eyeSize * 2.6 : 0) +
-          headBlock +
-          (subLines.length ? subLines.length * subSize * 1.45 + W * 0.03 : 0);
-        let y = (H - total) / 2 + headSize * 0.82;
 
-        if (eyebrow.trim()) {
-          ctx.save();
-          (ctx as any).letterSpacing = `${W * 0.005}px`;
+        setSubFont();
+        const subLines = subText ? wrap(ctx, subText, boxW * 0.82) : [];
+
+        const eyeH = eyeText ? W * 0.019 * 1.2 : 0;
+        const eyeGap = eyeText ? headSize * 0.34 : 0;
+        const headLead = headSize * 1.04;
+        const subLead = W * 0.031 * 1.45;
+        const subGap = subLines.length ? headSize * 0.46 : 0;
+        const total =
+          eyeH + eyeGap + lines.length * headLead + subGap + subLines.length * subLead;
+
+        // Centre the block optically: nudged up so the wordmark and CTA
+        // at the foot don't make it read low.
+        let y = (H - total) / 2 - H * 0.035;
+        ctx.textBaseline = 'top';
+
+        if (eyeText) {
+          setEyeFont();
           ctx.fillStyle = '#5c57d4';
-          ctx.font = `700 ${eyeSize}px Figtree, system-ui, sans-serif`;
-          ctx.fillText(eyebrow.trim().toUpperCase(), cx, y - headSize * 0.5);
-          ctx.restore();
-          (ctx as any).letterSpacing = '0px';
-          y += eyeSize * 1.9;
+          ctx.textAlign = align === 'center' ? 'center' : 'left';
+          ctx.fillText(eyeText, cx, y);
+          y += eyeH + eyeGap;
         }
 
         setHeadFont(headSize);
         for (const line of lines) {
           const lineW = ctx.measureText(line.map((t) => t.text).join(' ')).width;
           const startX = align === 'center' ? W / 2 - lineW / 2 : cx;
-          // drawHeadlineLine advances from the left, so draw left-aligned
-          // and offset the start for centred lines.
-          ctx.textAlign = 'left';
+          ctx.textAlign = 'left'; // drawHeadlineLine advances left→right
           drawHeadlineLine(ctx, line, startX, y);
-          ctx.textAlign = align === 'center' ? 'center' : 'left';
-          y += headSize * 1.14;
+          y += headLead;
         }
 
         if (subLines.length) {
-          (ctx as any).letterSpacing = '0px';
-          y += W * 0.02;
+          y += subGap;
+          setSubFont();
           ctx.fillStyle = '#3A342E';
-          ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`;
+          ctx.textAlign = align === 'center' ? 'center' : 'left';
           for (const ln of subLines) {
             ctx.fillText(ln, cx, y);
-            y += subSize * 1.45;
+            y += subLead;
           }
         }
 
-        drawFooter(ctx, W, H);
+        ctx.textBaseline = 'alphabetic';
         ctx.textAlign = 'left';
+        (ctx as any).letterSpacing = '0px';
+        await drawFooter(ctx, W, H);
         setBusy(false);
         return;
       }
