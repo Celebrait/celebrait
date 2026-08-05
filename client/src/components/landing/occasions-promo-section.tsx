@@ -1,22 +1,26 @@
 // client/src/components/landing/occasions-promo-section.tsx
 //
 // "Never miss another one" — the landing's Occasions + free-card
-// promotion (Aidan 2026-08-04: "pad out the lander with the rotating
-// statements… add the occasions stuff… visuals from the Home in
-// studio"). Replaces the old OccasionCaptureSection email form — the
-// free-card mechanic is the same capture play with a real account and
-// three dates attached instead of a lone email address.
+// promotion (Aidan 2026-08-04). Replaces the old OccasionCaptureSection
+// email form — the free-card mechanic is the same capture play with a
+// real account and three dates attached instead of a lone email.
 //
 // The "visuals" are LIVE recreations of the studio home's band + Year
 // Ahead card with demo data — the comet orbits, the next stone pings,
-// the statements rotate, right here on the page. Never a stale
-// screenshot; always the current design system.
+// right here on the page. Never a stale screenshot; always the current
+// design system. Framed as an EXAMPLE so the second-person UI copy
+// doesn't read as the visitor's own account.
+//
+// NOTE: the rotating statements deliberately live ONLY in the studio's
+// Year Ahead now — tried on the landing (a dedicated ink band, then
+// this section's inline line) and cut both: "too much for too little,
+// not needed anywhere on the lander" (Aidan 2026-08-04).
 
-import { Plus, Sparkles, Gift } from 'lucide-react';
+import { Plus, Gift } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { occasionFacts, daysToChristmas } from '@/lib/moments';
+import { daysToChristmas } from '@/lib/moments';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 
 const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
@@ -24,7 +28,6 @@ const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 export function OccasionsPromoSection() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const facts = occasionFacts();
 
   const claim = () => {
     if (user) {
@@ -63,25 +66,7 @@ export function OccasionsPromoSection() {
             postage.
           </p>
 
-          {/* The rotating statements — the section's heartbeat. */}
-          <div className="mt-7 flex min-h-[76px] items-start gap-3 sm:min-h-[56px]">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted">
-              <Sparkles className="h-4 w-4 text-brand" strokeWidth={2} />
-            </span>
-            <div className="ya-facts relative min-h-[72px] flex-1 pt-1 sm:min-h-[52px]">
-              {facts.map((f, i) => (
-                <span
-                  key={i}
-                  className="absolute inset-0 text-[15px] leading-snug text-keeper-body"
-                  style={{ animationDelay: `${i * 6}s` }}
-                >
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={claim}
