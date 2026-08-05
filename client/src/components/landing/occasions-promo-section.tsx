@@ -12,11 +12,11 @@
 // the statements rotate, right here on the page. Never a stale
 // screenshot; always the current design system.
 
-import { Plus, Gift } from 'lucide-react';
+import { Plus, Sparkles, Gift } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { daysToChristmas } from '@/lib/moments';
+import { occasionFacts, daysToChristmas } from '@/lib/moments';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 
 const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
@@ -24,6 +24,7 @@ const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 export function OccasionsPromoSection() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const facts = occasionFacts();
 
   const claim = () => {
     if (user) {
@@ -62,7 +63,25 @@ export function OccasionsPromoSection() {
             postage.
           </p>
 
-          <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          {/* The rotating statements — the section's heartbeat. */}
+          <div className="mt-7 flex min-h-[76px] items-start gap-3 sm:min-h-[56px]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted">
+              <Sparkles className="h-4 w-4 text-brand" strokeWidth={2} />
+            </span>
+            <div className="ya-facts relative min-h-[72px] flex-1 pt-1 sm:min-h-[52px]">
+              {facts.map((f, i) => (
+                <span
+                  key={i}
+                  className="absolute inset-0 text-[15px] leading-snug text-keeper-body"
+                  style={{ animationDelay: `${i * 6}s` }}
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={claim}
