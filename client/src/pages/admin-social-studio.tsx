@@ -504,6 +504,15 @@ export default function AdminSocialStudio() {
         const cx = align === 'center' ? W / 2 : pad * 1.15;
         ctx.textAlign = align === 'center' ? 'center' : 'left';
 
+        // The landing's headline face, exactly: Fraunces BOLD with
+        // -0.015em tracking (tailwind `font-display font-bold
+        // tracking-[-0.015em]`). Measuring and drawing must use the same
+        // call or the wrap points shift under the text.
+        const setHeadFont = (px: number) => {
+          ctx.font = `700 ${px}px Fraunces, Georgia, Cambria, serif`;
+          (ctx as any).letterSpacing = `${-0.015 * px}px`;
+        };
+
         // Measure-then-place so the whole block sits optically centred.
         const eyeSize = W * 0.019;
         const subSize = W * 0.032;
@@ -511,7 +520,7 @@ export default function AdminSocialStudio() {
         let lines: Tok[][] = [];
         const toks = parseTokens(headline);
         for (;;) {
-          ctx.font = `600 ${headSize}px Fraunces, Georgia, serif`;
+          setHeadFont(headSize);
           lines = layoutTokens(ctx, toks, boxW);
           const tall = lines.length * headSize * 1.14;
           if (tall <= H * 0.5 || headSize <= W * 0.04) break;
@@ -519,7 +528,8 @@ export default function AdminSocialStudio() {
         }
         const headBlock = lines.length * headSize * 1.14;
         const subLines = subcopy.trim()
-          ? (ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`,
+          ? (((ctx as any).letterSpacing = '0px'),
+            (ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`),
             wrap(ctx, subcopy.trim(), boxW * 0.86))
           : [];
         const total =
@@ -539,7 +549,7 @@ export default function AdminSocialStudio() {
           y += eyeSize * 1.9;
         }
 
-        ctx.font = `600 ${headSize}px Fraunces, Georgia, serif`;
+        setHeadFont(headSize);
         for (const line of lines) {
           const lineW = ctx.measureText(line.map((t) => t.text).join(' ')).width;
           const startX = align === 'center' ? W / 2 - lineW / 2 : cx;
@@ -552,6 +562,7 @@ export default function AdminSocialStudio() {
         }
 
         if (subLines.length) {
+          (ctx as any).letterSpacing = '0px';
           y += W * 0.02;
           ctx.fillStyle = '#3A342E';
           ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`;
