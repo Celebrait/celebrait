@@ -64,11 +64,11 @@ export function OccasionsPromoSection() {
           </p>
 
           {/* The rotating statements — the section's heartbeat. */}
-          <div className="mt-7 flex min-h-[52px] items-start gap-3">
+          <div className="mt-7 flex min-h-[76px] items-start gap-3 sm:min-h-[56px]">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted">
               <Sparkles className="h-4 w-4 text-brand" strokeWidth={2} />
             </span>
-            <div className="ya-facts relative flex-1 pt-1">
+            <div className="ya-facts relative min-h-[72px] flex-1 pt-1 sm:min-h-[52px]">
               {facts.map((f, i) => (
                 <span
                   key={i}
@@ -108,20 +108,22 @@ export function OccasionsPromoSection() {
         >
           {/* The free-card band, live. */}
           <div className="rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]">
-            <div className="flex items-center gap-3.5 rounded-[14.5px] bg-white px-4 py-3.5">
-              <div className="relative h-12 w-12 shrink-0">
-                <ProgressRing filled={2} size={48} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[11px] font-bold text-keeper-ink">
-                    2<span className="font-semibold text-keeper-meta">/3</span>
-                  </span>
+            <div className="flex flex-col gap-3 rounded-[14.5px] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:gap-3.5">
+              <div className="flex items-center gap-3.5 sm:contents">
+                <div className="relative h-12 w-12 shrink-0">
+                  <ProgressRing filled={2} size={48} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[11px] font-bold text-keeper-ink">
+                      2<span className="font-semibold text-keeper-meta">/3</span>
+                    </span>
+                  </div>
                 </div>
+                <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
+                  <b className="text-keeper-ink">Your first card's on us.</b> 1
+                  more date — any day that matters — and it's free.
+                </p>
               </div>
-              <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
-                <b className="text-keeper-ink">Your first card's on us.</b> 1
-                more date — any day that matters — and it's free.
-              </p>
-              <span className="shrink-0 rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground">
+              <span className="shrink-0 self-start rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground sm:self-auto">
                 Add a date
               </span>
             </div>
@@ -136,12 +138,13 @@ export function OccasionsPromoSection() {
               <span className="text-[12px] font-bold text-brand">Whole year ›</span>
             </div>
             <div className="mt-2 rounded-2xl border border-stone-200 bg-white px-2 pb-2 pt-1">
-              <div className="relative flex px-1 pb-3 pt-7">
+              <div className="ya-scroll overflow-x-auto">
+              <div className="relative flex min-w-[340px] px-1 pb-3 pt-7">
                 <div
                   aria-hidden
                   className="absolute left-3 right-3 top-[62px] h-[3px] rounded bg-[#E9E6F8]"
                 />
-                <div className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
                   <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                     {new Date()
                       .toLocaleDateString('en-GB', { month: 'short' })
@@ -153,7 +156,7 @@ export function OccasionsPromoSection() {
                   </span>
                   <span className="text-[11px] text-keeper-meta">{todayLabel}</span>
                 </div>
-                <div className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
                   <div className="z-[1] mt-[27px] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-brand bg-brand-muted">
                     <Plus className="h-2.5 w-2.5 text-brand" strokeWidth={4} />
                   </div>
@@ -162,7 +165,7 @@ export function OccasionsPromoSection() {
                   </span>
                   <span className="text-[11px] text-keeper-meta">any day</span>
                 </div>
-                <div className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
                   <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                     NOV
                   </span>
@@ -174,7 +177,7 @@ export function OccasionsPromoSection() {
                     in 3 wks
                   </span>
                 </div>
-                <div className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
                   <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                     DEC
                   </span>
@@ -186,6 +189,7 @@ export function OccasionsPromoSection() {
                     in {daysToChristmas()} days
                   </span>
                 </div>
+              </div>
               </div>
             </div>
           </div>
