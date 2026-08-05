@@ -178,6 +178,87 @@ function trapezoidPath(
   ctx.closePath();
 }
 
+/** A headline token and whether it should carry the brand gradient.
+ *  Authors mark words with *asterisks*: "Cards people *keep*." */
+interface Tok {
+  text: string;
+  grad: boolean;
+}
+
+function parseTokens(src: string): Tok[] {
+  return src
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((raw) => {
+      const grad = /^\*.*\*$/.test(raw) || /^\*/.test(raw) || /\*$/.test(raw);
+      return { text: raw.replace(/\*/g, ''), grad };
+    });
+}
+
+/** Lay tokens into lines that fit `maxWidth` at the current font. */
+function layoutTokens(
+  ctx: CanvasRenderingContext2D,
+  toks: Tok[],
+  maxWidth: number,
+): Tok[][] {
+  const lines: Tok[][] = [];
+  let line: Tok[] = [];
+  const width = (ts: Tok[]) =>
+    ctx.measureText(ts.map((t) => t.text).join(' ')).width;
+  for (const t of toks) {
+    const next = [...line, t];
+    if (line.length && width(next) > maxWidth) {
+      lines.push(line);
+      line = [t];
+    } else {
+      line = next;
+    }
+  }
+  if (line.length) lines.push(line);
+  return lines;
+}
+
+/** Draw one laid-out line, running the ink→violet gradient across each
+ *  RUN of marked words (so a marked phrase gets one ramp, not one per
+ *  word — the card-back "Unbinnable" treatment). */
+function drawHeadlineLine(
+  ctx: CanvasRenderingContext2D,
+  line: Tok[],
+  startX: number,
+  y: number,
+) {
+  const space = ctx.measureText(' ').width;
+  // Measure every token once so runs can be spanned.
+  const widths = line.map((t) => ctx.measureText(t.text).width);
+  let x = startX;
+  let i = 0;
+  while (i < line.length) {
+    if (!line[i].grad) {
+      ctx.fillStyle = '#211D19';
+      ctx.fillText(line[i].text, x, y);
+      x += widths[i] + space;
+      i++;
+      continue;
+    }
+    // Span the run.
+    let j = i;
+    let runW = 0;
+    while (j < line.length && line[j].grad) {
+      runW += widths[j] + (j > i ? space : 0);
+      j++;
+    }
+    const grad = ctx.createLinearGradient(x, 0, x + runW, 0);
+    grad.addColorStop(0, '#211D19');
+    grad.addColorStop(1, '#7C77E0');
+    ctx.fillStyle = grad;
+    for (let k = i; k < j; k++) {
+      ctx.fillText(line[k].text, x, y);
+      x += widths[k] + space;
+    }
+    i = j;
+  }
+}
+
 /** Wrap text to a width, returning the lines. */
 function wrap(
   ctx: CanvasRenderingContext2D,
@@ -249,6 +330,13 @@ export default function AdminSocialStudio() {
   const [frontUrl, setFrontUrl] = useState('');
   const [insideUrl, setInsideUrl] = useState('');
   const [showLogo, setShowLogo] = useState(true);
+  // Second mode: text-only posts (quotes, ad-hoc lines). Shares the
+  // backdrops, sizes, wordmark and export with the card composer.
+  const [mode, setMode] = useState<'card' | 'text'>('card');
+  const [eyebrow, setEyebrow] = useState('');
+  const [headline, setHeadline] = useState('Cards people actually *keep*.');
+  const [subcopy, setSubcopy] = useState('');
+  const [align, setAlign] = useState<'left' | 'center'>('center');
 
   useEffect(() => {
     if (!card) return;
@@ -297,6 +385,90 @@ export default function AdminSocialStudio() {
         ctx.restore();
       }
 
+      const pad = W * 0.075;
+
+      // ── TEXT MODE: an editorial block, nothing else. Headline auto-
+      // fits so long lines never spill past the artwork's margins, and
+      // *marked* words carry the ink→violet ramp.
+      if (mode === 'text') {
+        const boxW = W - pad * 2 * 1.15;
+        const cx = align === 'center' ? W / 2 : pad * 1.15;
+        ctx.textAlign = align === 'center' ? 'center' : 'left';
+
+        // Measure-then-place so the whole block sits optically centred.
+        const eyeSize = W * 0.019;
+        const subSize = W * 0.032;
+        let headSize = W * 0.095;
+        let lines: Tok[][] = [];
+        const toks = parseTokens(headline);
+        for (;;) {
+          ctx.font = `600 ${headSize}px Fraunces, Georgia, serif`;
+          lines = layoutTokens(ctx, toks, boxW);
+          const tall = lines.length * headSize * 1.14;
+          if (tall <= H * 0.5 || headSize <= W * 0.04) break;
+          headSize *= 0.94;
+        }
+        const headBlock = lines.length * headSize * 1.14;
+        const subLines = subcopy.trim()
+          ? (ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`,
+            wrap(ctx, subcopy.trim(), boxW * 0.86))
+          : [];
+        const total =
+          (eyebrow.trim() ? eyeSize * 2.6 : 0) +
+          headBlock +
+          (subLines.length ? subLines.length * subSize * 1.45 + W * 0.03 : 0);
+        let y = (H - total) / 2 + headSize * 0.82;
+
+        if (eyebrow.trim()) {
+          ctx.save();
+          (ctx as any).letterSpacing = `${W * 0.005}px`;
+          ctx.fillStyle = '#5c57d4';
+          ctx.font = `700 ${eyeSize}px Figtree, system-ui, sans-serif`;
+          ctx.fillText(eyebrow.trim().toUpperCase(), cx, y - headSize * 0.5);
+          ctx.restore();
+          (ctx as any).letterSpacing = '0px';
+          y += eyeSize * 1.9;
+        }
+
+        ctx.font = `600 ${headSize}px Fraunces, Georgia, serif`;
+        for (const line of lines) {
+          const lineW = ctx.measureText(line.map((t) => t.text).join(' ')).width;
+          const startX = align === 'center' ? W / 2 - lineW / 2 : cx;
+          // drawHeadlineLine advances from the left, so draw left-aligned
+          // and offset the start for centred lines.
+          ctx.textAlign = 'left';
+          drawHeadlineLine(ctx, line, startX, y);
+          ctx.textAlign = align === 'center' ? 'center' : 'left';
+          y += headSize * 1.14;
+        }
+
+        if (subLines.length) {
+          y += W * 0.02;
+          ctx.fillStyle = '#3A342E';
+          ctx.font = `400 ${subSize}px Figtree, system-ui, sans-serif`;
+          for (const ln of subLines) {
+            ctx.fillText(ln, cx, y);
+            y += subSize * 1.45;
+          }
+        }
+
+        if (showLogo) {
+          try {
+            const mark = await loadImage(wordmark);
+            const mw = W * 0.2;
+            const mh = (mark.height / mark.width) * mw;
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(mark, (W - mw) / 2, H - mh - H * 0.035, mw, mh);
+            ctx.globalAlpha = 1;
+          } catch {
+            /* decorative */
+          }
+        }
+        ctx.textAlign = 'left';
+        setBusy(false);
+        return;
+      }
+
       // ── Caption: which face of the card this is. Small caps at the
       // head of the canvas — clear of the corner icons and of every
       // layout's artwork (Aidan: "nice and small somewhere neat").
@@ -317,7 +489,6 @@ export default function AdminSocialStudio() {
         (ctx as any).letterSpacing = '0px';
       }
 
-      const pad = W * 0.075;
       const overlap = layout === 'card_brief';
       const stacked = layout === 'card_brief_stack';
       const showBrief = overlap || stacked || layout === 'brief';
@@ -465,7 +636,10 @@ export default function AdminSocialStudio() {
     const t = window.setTimeout(() => void draw(), 900);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText, inside, showLogo]);
+  }, [
+    size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText,
+    inside, showLogo, mode, eyebrow, headline, subcopy, align,
+  ]);
 
   const download = () => {
     const canvas = canvasRef.current;
@@ -491,6 +665,75 @@ export default function AdminSocialStudio() {
       <div className="mt-6 grid gap-8 lg:grid-cols-[380px,1fr]">
         {/* ── Controls ── */}
         <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-2">
+            {(['card', 'text'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                  mode === m
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-800'
+                    : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+                }`}
+                data-testid={`social-mode-${m}`}
+              >
+                {m === 'card' ? 'Card post' : 'Text post'}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'text' && (
+            <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+              <Input
+                value={eyebrow}
+                onChange={(e) => setEyebrow(e.target.value)}
+                placeholder="Sub-headline (small caps, optional)"
+                className="text-sm"
+                data-testid="text-eyebrow"
+              />
+              <textarea
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                rows={3}
+                placeholder="Headline — wrap words in *asterisks* for the gradient"
+                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
+                data-testid="text-headline"
+              />
+              <textarea
+                value={subcopy}
+                onChange={(e) => setSubcopy(e.target.value)}
+                rows={2}
+                placeholder="Sub-copy (optional)"
+                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
+                data-testid="text-subcopy"
+              />
+              <div className="flex items-center gap-2">
+                {(['center', 'left'] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setAlign(a)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      align === a
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-800'
+                        : 'border-stone-300 bg-white text-stone-600'
+                    }`}
+                  >
+                    {a === 'center' ? 'Centred' : 'Left'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10.5px] leading-snug text-stone-500">
+                Headline auto-sizes to fit. <b>*Marked*</b> words run the
+                ink→violet gradient — mark a whole phrase and it ramps once
+                across the lot.
+              </p>
+            </div>
+          )}
+
+          {mode === 'card' && (
+          <>
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Card
@@ -509,7 +752,6 @@ export default function AdminSocialStudio() {
               ))}
             </select>
           </div>
-
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Layout
@@ -532,6 +774,9 @@ export default function AdminSocialStudio() {
               ))}
             </div>
           </div>
+
+          </>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -567,6 +812,7 @@ export default function AdminSocialStudio() {
             </div>
           </div>
 
+          {mode === 'card' && (
           <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
               Brief panel
@@ -619,6 +865,9 @@ export default function AdminSocialStudio() {
             </p>
           </div>
 
+          )}
+
+          {mode === 'card' && (
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               Card art (override)
@@ -636,6 +885,8 @@ export default function AdminSocialStudio() {
               className="text-sm"
             />
           </div>
+
+          )}
 
           <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-stone-600">
             <input
