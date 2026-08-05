@@ -519,6 +519,10 @@ export default function AdminSocialStudio() {
   const [headline, setHeadline] = useState('Cards people actually *keep*.');
   const [subcopy, setSubcopy] = useState('');
   const [align, setAlign] = useState<'left' | 'center'>('center');
+  /** Manual nudge on top of the auto-fit, 0.75–1.15. The fit only ever
+   *  guarantees the headline FITS; how big it wants to be inside that is
+   *  a judgement call per post. */
+  const [headScale, setHeadScale] = useState(1);
 
   useEffect(() => {
     if (!card) return;
@@ -640,7 +644,10 @@ export default function AdminSocialStudio() {
       // (1.04) rather than body-loose; gaps are proportional to the
       // headline, so they hold at every size.
       if (kind === 'text') {
-        const boxW = W - pad * 2.3;
+        // Generous side margins: at 2.3 the headline could sit ~86px off
+        // each edge, which reads as touching once the post is cropped into
+        // a grid thumbnail.
+        const boxW = W - pad * 3.2;
         const cx = align === 'center' ? W / 2 : pad * 1.15;
         // Asterisks are gradient markers, not literal type.
         const clean = (t: string) => t.replace(/\*/g, '').trim();
@@ -668,13 +675,23 @@ export default function AdminSocialStudio() {
         const subText = clean(subcopy);
         const toks = parseTokens(headline);
 
-        // Shrink until the headline fits its share of the canvas.
-        let headSize = W * 0.098;
+        // Shrink until the headline fits its share of the canvas — in BOTH
+        // axes. Testing height alone was a hole: layoutTokens can't break
+        // inside a word, so a single word wider than the box stayed on one
+        // over-long line and, being centred, bled off both edges.
+        let headSize = W * 0.098 * headScale;
         let lines: Tok[][] = [];
         for (;;) {
           setHeadFont(headSize);
           lines = layoutTokens(ctx, toks, boxW);
-          if (lines.length * headSize * 1.04 <= H * 0.46 || headSize <= W * 0.038) break;
+          const widest = lines.reduce(
+            (m, l) =>
+              Math.max(m, ctx.measureText(l.map((t) => t.text).join(' ')).width),
+            0,
+          );
+          const fits =
+            lines.length * headSize * 1.04 <= H * 0.46 && widest <= boxW;
+          if (fits || headSize <= W * 0.038) break;
           headSize *= 0.94;
         }
 
@@ -1087,6 +1104,7 @@ export default function AdminSocialStudio() {
   }, [
     size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText,
     inside, showLogo, mode, eyebrow, headline, subcopy, align, slide, cta,
+    headScale,
   ]);
 
   const saveCanvas = (name: string) =>
@@ -1220,10 +1238,28 @@ export default function AdminSocialStudio() {
                   </button>
                 ))}
               </div>
+              <div className="flex items-center gap-3">
+                <Label className="shrink-0 text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Headline size
+                </Label>
+                <input
+                  type="range"
+                  min={0.75}
+                  max={1.15}
+                  step={0.05}
+                  value={headScale}
+                  onChange={(e) => setHeadScale(Number(e.target.value))}
+                  className="flex-1 accent-indigo-600"
+                  data-testid="text-headscale"
+                />
+                <span className="w-10 shrink-0 text-right text-xs tabular-nums text-stone-600">
+                  {Math.round(headScale * 100)}%
+                </span>
+              </div>
               <p className="text-[10.5px] leading-snug text-stone-500">
-                Headline auto-sizes to fit. <b>*Marked*</b> words run the
-                ink→violet gradient — mark a whole phrase and it ramps once
-                across the lot.
+                Headline auto-sizes to fit — the slider nudges it within
+                that. <b>*Marked*</b> words run the ink→violet gradient —
+                mark a whole phrase and it ramps once across the lot.
               </p>
             </div>
           )}
