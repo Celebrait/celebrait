@@ -226,6 +226,15 @@ interface Card3DViewerProps {
    *  this is lowered accordingly. Pass ~1.5 alongside framingMargin
    *  ≈ 1.1 for a zoomed-in landing. */
   minDistance?: number;
+  /** Ceiling on how far OrbitControls lets the camera sit from the card.
+   *  Default 6, which at fov 40 caps the EFFECTIVE framingMargin at ~3.0
+   *  however large a margin you pass — the fit is computed, then clamped
+   *  straight back. That ceiling is right for interactive viewers (it stops
+   *  a user zooming out to a speck) but it silently cropped the OPEN card
+   *  on wide spreads, since opening swings the cover left out of frame.
+   *  Raise it on static/non-interactive surfaces that need to frame the
+   *  card open. */
+  maxDistance?: number;
   /** Slow auto-rotation around the card's vertical axis. Used by
    *  ambient/decorative renderings (e.g. Studio empty-state hero,
    *  marketing hero) where the card should feel alive without
@@ -340,6 +349,7 @@ export function Card3DViewer({
   framingMargin = 2.0,
   preserveBuffer = false,
   minDistance = 2.7,
+  maxDistance = 6,
   autoRotate = false,
   autoRotateSpeed = 0.6,
   hitZoneInsetPercent,
@@ -622,6 +632,7 @@ export function Card3DViewer({
               onOpenChange={setOpen}
               framingMargin={framingMargin}
               minDistance={minDistance}
+              maxDistance={maxDistance}
               orbitDomElement={hitEl ?? undefined}
               autoRotate={autoRotate}
               autoRotateSpeed={autoRotateSpeed}
@@ -728,6 +739,7 @@ function Scene({
   onOpenChange,
   framingMargin,
   minDistance,
+  maxDistance,
   orbitDomElement,
   autoRotate,
   autoRotateSpeed,
@@ -748,6 +760,7 @@ function Scene({
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
   minDistance: number;
+  maxDistance: number;
   enableZoom: boolean;
   enableRotate: boolean;
   /** When set, OrbitControls listens for wheel/drag/touch events on
@@ -854,7 +867,7 @@ function Scene({
         // captured for camera zoom.
         domElement={orbitDomElement}
         minDistance={minDistance}
-        maxDistance={6}
+        maxDistance={maxDistance}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
         // Auto-rotation for ambient/decorative renderings (e.g. empty-state

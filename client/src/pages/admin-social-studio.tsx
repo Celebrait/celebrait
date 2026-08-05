@@ -101,33 +101,98 @@ const BACKDROPS: Record<BgKey, IconSpec[]> = {
  *  — compose too early and you capture an empty buffer, so the card
  *  silently vanishes from the post. Sample a downscale and look for any
  *  opaque pixel. */
-function stageHasPainted(stage: HTMLCanvasElement): boolean {
+type StageBounds = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cover: number;
+  clippedLeft: boolean;
+};
+
+/** Where has the 3D stage actually painted? The viewer frames every card
+ *  differently — an open spread is far wider than a closed front — so the
+ *  card never sits at a fixed spot in the buffer. Measure it instead of
+ *  assuming, otherwise a wide card runs off the edge of the post. */
+function paintedBounds(stage: HTMLCanvasElement): StageBounds | null {
   try {
+    const N = 160; // downscale: precise enough at export size, cheap to scan
     const probe = document.createElement('canvas');
-    probe.width = 48;
-    probe.height = 48;
-    const pc = probe.getContext('2d');
-    if (!pc) return true;
-    pc.drawImage(stage, 0, 0, 48, 48);
-    const d = pc.getImageData(0, 0, 48, 48).data;
+    probe.width = N;
+    probe.height = N;
+    const pc = probe.getContext('2d', { willReadFrequently: true });
+    if (!pc) return null;
+    pc.drawImage(stage, 0, 0, N, N);
+    const d = pc.getImageData(0, 0, N, N).data;
+    let minX = N;
+    let minY = N;
+    let maxX = -1;
+    let maxY = -1;
     let opaque = 0;
-    for (let i = 3; i < d.length; i += 4) if (d[i] > 12) opaque++;
-    return opaque > 60; // ~2.5% of the frame carrying something
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (d[(y * N + x) * 4 + 3] > 12) {
+          opaque++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return null;
+    // Content running along the stage's own left edge means the 3D frustum
+    // cut the card, not that the card ends there — the cover swings LEFT
+    // out of the spine, so that's the edge an open spread overflows.
+    let leftEdgeRun = 0;
+    for (let y = 0; y < N; y++) if (d[(y * N) * 4 + 3] > 12) leftEdgeRun++;
+    // Back to stage pixels, with a pixel of slack so the downscale can't
+    // shave the card's own edge off.
+    const k = stage.width / N;
+    const pad = k;
+    const x = Math.max(0, minX * k - pad);
+    const y = Math.max(0, minY * k - pad);
+    return {
+      x,
+      y,
+      w: Math.min(stage.width - x, (maxX - minX + 1) * k + pad * 2),
+      h: Math.min(stage.height - y, (maxY - minY + 1) * k + pad * 2),
+      cover: opaque / (N * N),
+      // A few stray antialiased pixels aren't a crop; a run down the edge is.
+      clippedLeft: leftEdgeRun > N * 0.05,
+    };
   } catch {
-    return true; // never block composing on a probe failure
+    return null; // never block composing on a probe failure
   }
 }
 
+/** Wait for the stage to hold a settled card. Switching layout or card
+ *  REMOUNTS the viewer, which then refetches and decodes textures — compose
+ *  too early and you capture an empty or half-drawn buffer, so the card
+ *  silently vanishes from the post. Require a plausible amount of content
+ *  AND two identical readings, so a frame caught mid-decode never ships. */
 async function waitForStage(
   stage: HTMLCanvasElement,
-  timeoutMs = 9000,
-): Promise<boolean> {
+  timeoutMs = 12000,
+): Promise<StageBounds | null> {
   const started = Date.now();
+  let last: StageBounds | null = null;
   while (Date.now() - started < timeoutMs) {
-    if (stageHasPainted(stage)) return true;
-    await new Promise((r) => setTimeout(r, 220));
+    const b = paintedBounds(stage);
+    if (b && b.cover > 0.025) {
+      const settled =
+        last !== null &&
+        Math.abs(b.x - last.x) < 8 &&
+        Math.abs(b.y - last.y) < 8 &&
+        Math.abs(b.w - last.w) < 8 &&
+        Math.abs(b.h - last.h) < 8 &&
+        Math.abs(b.cover - last.cover) < 0.004;
+      if (settled) return b;
+      last = b;
+    }
+    await new Promise((r) => setTimeout(r, 200));
   }
-  return false;
+  return last && last.cover > 0.025 ? last : null;
 }
 
 /** Load an image with CORS so the canvas stays exportable. */
@@ -686,36 +751,67 @@ export default function AdminSocialStudio() {
         // proper hinge, lighting and contact shadow — and for the inside
         // layout it's genuinely open, not a faked spread.
         const stage = stageRef.current?.querySelector('canvas');
+        if (!frontUrl) {
+          throw new Error('That card has no front image — pick another.');
+        }
         if (!stage || stage.width === 0) {
           throw new Error('3D view not ready — give it a moment and hit refresh.');
         }
-        if (!(await waitForStage(stage))) {
+        const bounds = await waitForStage(stage);
+        if (!bounds) {
           throw new Error(
             'The card art is still loading — hit refresh in a second.',
           );
         }
-        const side = overlap
-          ? Math.min(W * 0.92, H * 0.56)
-          : stacked
-            ? Math.min(W - pad, H * 0.46)
-            : layout === 'inside'
-              ? Math.min(W * 1.02, H * 0.72)
+
+        if (layout === 'inside' && bounds.clippedLeft) {
+          // Belt and braces on the roomier framing above. Silently exporting
+          // a cut-off card is the failure Aidan caught by eye; make it loud.
+          throw new Error(
+            'The open card is running off the left of the 3D frame — tell Claude the framing needs more room.',
+          );
+        }
+
+        if (layout === 'inside') {
+          // Content-aware placement. An open spread is much wider than a
+          // closed front, so a fixed source rect pushes the left-hand leaf
+          // off the canvas. Fit what the stage ACTUALLY painted into a safe
+          // frame, so no card can ever crop however wide it opens.
+          const safe = W * 0.05; // guaranteed clear edge, both sides
+          // Target width, not the full frame: the whole open spread now
+          // renders (it used to be cut off), so filling edge-to-edge would
+          // read much larger than the closed-card layouts.
+          const boxW = Math.min(W * 0.74, W - safe * 2);
+          const boxH = H * 0.42;
+          const k = Math.min(boxW / bounds.w, boxH / bounds.h);
+          const dw = bounds.w * k;
+          const dh = bounds.h * k;
+          // Sit right of centre — the inside-left leaf is the half that
+          // says "this card is open" — then clamp inside the safe frame.
+          const wanted = (W - dw) / 2 + W * 0.06;
+          const dx = Math.max(safe, Math.min(wanted, W - dw - safe));
+          const dy = H * 0.47 - dh / 2;
+          ctx.drawImage(
+            stage,
+            bounds.x, bounds.y, bounds.w, bounds.h,
+            dx, dy, dw, dh,
+          );
+          artRect = { x: dx, y: dy, side: Math.max(dw, dh) };
+          artBottom = dy + dh;
+        } else {
+          const side = overlap
+            ? Math.min(W * 0.92, H * 0.56)
+            : stacked
+              ? Math.min(W - pad, H * 0.46)
               : Math.min(W * 1.14, H * 0.82);
-        const x =
-          overlap
-            ? W - side - pad * 0.1
-            : layout === 'inside'
-              // Nudge the open card right: the inside-left leaf is the
-              // half that says "this card is open", so give it room
-              // rather than letting it hug the canvas edge.
-              ? (W - side) / 2 + W * 0.09
-              : (W - side) / 2;
-        const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
-        ctx.drawImage(stage, x, y, side, side);
-        artRect = { x, y, side };
-        // The viewer leaves generous margin around the card, so pull the
-        // brief up under the artwork rather than the frame's edge.
-        artBottom = y + side * 0.82;
+          const x = overlap ? W - side - pad * 0.1 : (W - side) / 2;
+          const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
+          ctx.drawImage(stage, x, y, side, side);
+          artRect = { x, y, side };
+          // The viewer leaves generous margin around the card, so pull the
+          // brief up under the artwork rather than the frame's edge.
+          artBottom = y + side * 0.82;
+        }
       }
 
       // ── The brief panel — mirrors the studio's own input cards.
@@ -1270,8 +1366,24 @@ export default function AdminSocialStudio() {
               preserveBuffer
               enableRotate={false}
               enableZoom={false}
-              framingMargin={layout === 'inside' ? 2.1 : 1.7}
+              // The hinge swings the cover LEFT out of the spine, so an
+              // open card is ~2x the width the framing was computed for and
+              // its left leaf falls outside the frustum (Aidan: "make sure
+              // no cropping on the left"). framingMargin only ever frames the
+              // CLOSED square, so the open state needs roughly double.
+              // Size is normalised downstream by the painted-bounds fit, so a
+              // roomier frame here costs nothing on the finished post — the
+              // card is scaled back up to the target width either way. Hence
+              // the generous 4.2: measured across cards, how far the cover
+              // swings left varies with the art's aspect (leftGap ranged
+              // 57-114px at 3.6), and a tight frame only has to lose once.
+              framingMargin={layout === 'inside' ? 4.2 : 1.7}
               minDistance={1.4}
+              // Lift the zoom-out clamp so the roomier open-card framing
+              // above actually applies — the default 6 pins the effective
+              // margin at ~3.0 and re-crops the spread. Safe here: this
+              // stage is non-interactive (rotate and zoom both off).
+              maxDistance={layout === 'inside' ? 10 : 6}
               closedAngle={layout === 'inside' ? 0 : -0.38}
               restYaw={layout === 'inside' ? -0.3 : -0.12}
               className="h-full w-full"
