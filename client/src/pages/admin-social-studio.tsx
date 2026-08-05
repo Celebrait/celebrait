@@ -47,10 +47,11 @@ const SIZES = {
 } as const;
 type SizeKey = keyof typeof SIZES;
 
-type LayoutKey = 'card' | 'card_brief' | 'inside' | 'brief';
+type LayoutKey = 'card' | 'card_brief' | 'card_brief_stack' | 'inside' | 'brief';
 const LAYOUTS: { key: LayoutKey; label: string; hint: string }[] = [
+  { key: 'card_brief', label: 'Card + brief', hint: 'Overlapping, card right.' },
+  { key: 'card_brief_stack', label: 'Card + brief (stacked)', hint: 'Panel below, no overlap.' },
   { key: 'card', label: 'Card only', hint: 'The front, big.' },
-  { key: 'card_brief', label: 'Card + brief', hint: 'What they typed, beside it.' },
   { key: 'inside', label: 'Inside spread', hint: 'The open card.' },
   { key: 'brief', label: 'Brief only', hint: 'Just the inputs panel.' },
 ];
@@ -216,20 +217,27 @@ export default function AdminSocialStudio() {
       }
 
       const pad = W * 0.075;
-      const showBrief = layout === 'card_brief' || layout === 'brief';
+      const overlap = layout === 'card_brief';
+      const stacked = layout === 'card_brief_stack';
+      const showBrief = overlap || stacked || layout === 'brief';
       const artUrl = layout === 'inside' ? insideUrl || frontUrl : frontUrl;
 
-      // ── The card art. Stacked composition: art in the upper block,
-      // the brief beneath it — side-by-side crowded the art at post
-      // aspect ratios and the panel covered the subject's face.
+      // ── The card art. Two brief compositions: OVERLAP (Aidan's
+      // preferred — card sits right and high, the brief panel layers
+      // over its lower-left, matching the posts he mocked by hand) and
+      // STACKED (panel below, nothing covered) for busy artwork.
       let artBottom = pad;
+      let artRect = { x: pad, y: pad, side: 0 };
       if (layout !== 'brief' && artUrl) {
         const img = await loadImage(artUrl);
-        const side = showBrief
-          ? Math.min(W - pad * 2, H * 0.42)
-          : Math.min(W - pad * 2, H * 0.62);
-        const x = (W - side) / 2;
-        const y = showBrief ? H * 0.075 : (H - side) / 2;
+        const side = overlap
+          ? Math.min(W * 0.72, H * 0.46)
+          : stacked
+            ? Math.min(W - pad * 2, H * 0.42)
+            : Math.min(W - pad * 2, H * 0.62);
+        const x = overlap ? W - side - pad * 0.5 : (W - side) / 2;
+        const y = overlap ? H * 0.12 : stacked ? H * 0.075 : (H - side) / 2;
+        artRect = { x, y, side };
         ctx.save();
         ctx.shadowColor = 'rgba(33,29,25,0.28)';
         ctx.shadowBlur = W * 0.05;
@@ -248,9 +256,15 @@ export default function AdminSocialStudio() {
 
       // ── The brief panel — mirrors the studio's own input cards.
       if (showBrief) {
-        const panelW = W - pad * 2;
-        const px = pad;
-        let py = layout === 'brief' ? H * 0.16 : artBottom + W * 0.055;
+        // Overlap: a narrower column hugging the left edge, starting
+        // low enough down the card that the subject stays clear.
+        const panelW = overlap ? W * 0.53 : W - pad * 2;
+        const px = overlap ? pad * 0.55 : pad;
+        let py = overlap
+          ? artRect.y + artRect.side * 0.6
+          : layout === 'brief'
+            ? H * 0.16
+            : artBottom + W * 0.055;
 
         // Photo chip + "Upload a photo"
         if (photoUrl) {
