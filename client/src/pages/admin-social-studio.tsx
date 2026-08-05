@@ -497,7 +497,21 @@ export default function AdminSocialStudio() {
     setBusy(true);
     setErr(null);
     try {
-      await (document as any).fonts?.ready;
+      // fonts.ready resolving is NOT enough: a webfont at a size/weight
+      // the DOM never rendered may still be inactive, and canvas then
+      // falls back SILENTLY (Fraunces -> Georgia) with no error. That's
+      // why the first draw could come out in a different face from every
+      // draw after it (Aidan spotted the switch mid-edit). Activate the
+      // exact specs we're about to use, every time.
+      const activate = async (specs: string[]) => {
+        try {
+          await Promise.all(
+            specs.map((sp) => (document as any).fonts?.load?.(sp)),
+          );
+        } catch {
+          /* never block a render on font activation */
+        }
+      };
       const { w: W, h: H } = SIZES[size];
       canvas.width = W;
       canvas.height = H;
@@ -556,6 +570,12 @@ export default function AdminSocialStudio() {
           (ctx as any).letterSpacing = `${W * 0.005}px`;
           ctx.font = `700 ${W * 0.019}px Figtree, system-ui, sans-serif`;
         };
+
+        await activate([
+          `700 ${Math.round(W * 0.098)}px Fraunces`,
+          `400 ${Math.round(W * 0.031)}px Figtree`,
+          `700 ${Math.round(W * 0.019)}px Figtree`,
+        ]);
 
         const eyeText = clean(eyebrow).toUpperCase();
         const subText = clean(subcopy);
@@ -626,6 +646,13 @@ export default function AdminSocialStudio() {
       // ── Caption: which face of the card this is. Small caps at the
       // head of the canvas — clear of the corner icons and of every
       // layout's artwork (Aidan: "nice and small somewhere neat").
+      await activate([
+        `700 ${Math.round(W * 0.0165)}px Figtree`,
+        `400 ${Math.round(W * 0.024)}px Figtree`,
+        `700 ${Math.round(W * 0.026)}px Figtree`,
+        `700 ${Math.round(W * 0.021)}px Figtree`,
+      ]);
+
       const faceLabel =
         layout === 'inside'
           ? 'Inside card'
