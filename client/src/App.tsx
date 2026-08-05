@@ -32,6 +32,8 @@
 // branches.
 
 import { Switch, Route, Redirect, useLocation } from "wouter";
+import { useEffect } from 'react';
+import { clearStaleChunkGuard } from '@/lib/stale-chunk';
 import { useSeo } from "@/lib/use-seo";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
@@ -356,6 +358,13 @@ function Router() {
 }
 
 function App() {
+  // The app rendered — so whatever chunk failed before the recovery
+  // reload is resolved. Release the one-shot guard so a LATER deploy in
+  // this same session can recover too.
+  useEffect(() => {
+    clearStaleChunkGuard();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

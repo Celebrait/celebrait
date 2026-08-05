@@ -12,6 +12,7 @@
 //     a flat image instead of taking the page down.
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { isStaleChunkError, recoverFromStaleChunk } from '@/lib/stale-chunk';
 
 interface Props {
   children: ReactNode;
@@ -33,6 +34,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // A failed chunk import isn't a bug in the page — it's a browser
+    // holding a bundle we've since replaced (deploy race). Reload once
+    // rather than showing a crash screen for something a refresh fixes.
+    if (isStaleChunkError(error) && recoverFromStaleChunk('error-boundary')) {
+      return;
+    }
     console.error(
       `[ErrorBoundary${this.props.label ? ` ${this.props.label}` : ''}]`,
       error,
