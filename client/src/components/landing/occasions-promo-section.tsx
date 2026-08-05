@@ -106,6 +106,18 @@ export function OccasionsPromoSection() {
           aria-label="See your studio home — claim your free card"
           data-testid="occasions-promo-demo"
         >
+          {/* Framing label — logged out, the UI's second-person copy
+              ("Your first card's on us", "Mum's birthday") otherwise reads
+              as if it's the visitor's own account (Aidan 2026-08-04). */}
+          <div className="mb-3 flex items-center justify-between gap-2 px-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-keeper-meta">
+              A look inside
+            </p>
+            <span className="rounded-full border border-stone-300 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-keeper-meta">
+              Example
+            </span>
+          </div>
+
           {/* The free-card band, live. */}
           <div className="rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]">
             <div className="flex flex-col gap-3 rounded-[14.5px] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:gap-3.5">
@@ -195,8 +207,8 @@ export function OccasionsPromoSection() {
           </div>
 
           <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11.5px] text-keeper-meta">
-            <Gift className="h-3.5 w-3.5 text-brand" strokeWidth={2} />
-            Your studio home, watching the year for you — live, not a mock-up.
+            <Gift className="h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2} />
+            This is the home you get — with your people on it.
           </p>
         </div>
       </div>
