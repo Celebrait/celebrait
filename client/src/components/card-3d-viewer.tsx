@@ -215,6 +215,11 @@ interface Card3DViewerProps {
    *  ~50% of the canvas — matches the review-step reveal. Use ~1.1
    *  for "nearly fills the frame" (Studio Home empty state). */
   framingMargin?: number;
+  /** Keep the WebGL drawing buffer readable so a parent can copy the
+   *  rendered frame onto a 2D canvas (the admin Social Studio composes
+   *  post images from it). Off by default — it costs a little memory
+   *  and nothing customer-facing needs it. */
+  preserveBuffer?: boolean;
   /** Closest the user can zoom in via OrbitControls. Default 2.7.
    *  When `framingMargin` is tightened to bring the camera closer
    *  than 2.7 at mount, OrbitControls would snap it back out unless
@@ -333,6 +338,7 @@ export function Card3DViewer({
   open: openProp,
   onOpenChange,
   framingMargin = 2.0,
+  preserveBuffer = false,
   minDistance = 2.7,
   autoRotate = false,
   autoRotateSpeed = 0.6,
@@ -589,6 +595,7 @@ export function Card3DViewer({
             toneMapping: THREE.NoToneMapping,
             outputColorSpace: THREE.SRGBColorSpace,
             antialias: true,
+            preserveDrawingBuffer: preserveBuffer,
           }}
           // Funnel r3f pointer events (raycasting → mesh onClick handlers,
           // e.g. the card's tap-to-open hinge) through the hit zone so

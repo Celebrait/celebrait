@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { CardGridItem } from '@shared/schema';
+import { Card3DViewer } from '@/components/card-3d-viewer';
 import cakeIcon from '@/assets/icons/cake.png';
 import celebrateIcon from '@/assets/icons/celebrate.png';
 import heartIcon from '@/assets/icons/heart.png';
@@ -201,6 +202,10 @@ function wrap(
 
 export default function AdminSocialStudio() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // The REAL 3D viewer renders offstage; the composer copies its frame
+  // onto the export canvas. Hand-rolled perspective looked like a flat
+  // card with a box behind it (Aidan) — this is the actual product pose.
+  const stageRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<SizeKey>('portrait');
   const [layout, setLayout] = useState<LayoutKey>('card_brief');
   const [bg, setBg] = useState<BgKey>('corners');
@@ -283,121 +288,26 @@ export default function AdminSocialStudio() {
       // STACKED (panel below, nothing covered) for busy artwork.
       let artBottom = pad;
       let artRect = { x: pad, y: pad, side: 0 };
-      if (layout !== 'brief' && artUrl) {
-        const img = await loadImage(artUrl);
-        const side = overlap
-          ? Math.min(W * 0.74, H * 0.46)
-          : stacked
-            ? Math.min(W - pad * 2, H * 0.42)
-            : Math.min(W - pad * 2, H * 0.6);
-
-        if (layout === 'inside') {
-          // ── OPEN CARD: the spread, hinged in the middle. Left leaf is
-          // the blank inside-left carrying the wordmark and leans away;
-          // right leaf is the artwork, near square-on. Bleeds off the
-          // left edge when it needs the room (Aidan: "can be a bit off
-          // screen if needed").
-          // Size the spread from the CANVAS, not the leaf: both leaves
-          // plus a hair of bleed have to fit, or the inside-left (and its
-          // wordmark) walks off the edge.
-          const leafH = Math.min(W * 0.6, H * 0.42);
-          const rightW = leafH * 0.88;
-          const leftW = leafH * 0.76;
-          const rx = W - pad * 0.5 - rightW;
-          const lx = rx - leftW;
-          const y = (H - leafH) / 2 - H * 0.02;
-
-          // Left leaf — cream paper, receding (shorter far edge).
-          ctx.save();
-          ctx.shadowColor = 'rgba(33,29,25,0.22)';
-          ctx.shadowBlur = W * 0.05;
-          ctx.shadowOffsetY = W * 0.015;
-          trapezoidPath(ctx, lx, y, leftW, leafH * 0.9, leafH);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fill();
-          ctx.restore();
-          trapezoidPath(ctx, lx, y, leftW, leafH * 0.9, leafH);
-          ctx.strokeStyle = '#EFEAE2';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          // Wordmark sitting on the inside-left, as it prints.
-          try {
-            const mark = await loadImage(wordmark);
-            const mw = leftW * 0.44;
-            const mh = (mark.height / mark.width) * mw;
-            ctx.globalAlpha = 0.95;
-            ctx.drawImage(mark, lx + leftW * 0.16, y + leafH * 0.56, mw, mh);
-            ctx.globalAlpha = 1;
-          } catch {
-            /* wordmark is decorative — skip if it won't load */
-          }
-
-          // Right leaf — the inside artwork, square-on.
-          ctx.save();
-          ctx.shadowColor = 'rgba(33,29,25,0.3)';
-          ctx.shadowBlur = W * 0.055;
-          ctx.shadowOffsetY = W * 0.02;
-          roundRect(ctx, rx, y, rightW, leafH, W * 0.012);
-          ctx.fillStyle = '#fff';
-          ctx.fill();
-          ctx.restore();
-          ctx.save();
-          roundRect(ctx, rx, y, rightW, leafH, W * 0.012);
-          ctx.clip();
-          ctx.drawImage(img, rx, y, rightW, leafH);
-          ctx.restore();
-          artRect = { x: lx, y, side: leafH };
-          artBottom = y + leafH;
-        } else {
-          // ── FRONT, AJAR: the back leaf hinges away behind the cover,
-          // so the card reads as an object rather than a flat square
-          // (mirrors the studio viewer's resting pose).
-          const x = overlap ? W - side - pad * 0.5 : (W - side) / 2;
-          const y = overlap ? H * 0.12 : stacked ? H * 0.075 : (H - side) / 2;
-          const flapW = side * 0.2;
-
-          // Back leaf — cream, receding to the left.
-          ctx.save();
-          ctx.shadowColor = 'rgba(33,29,25,0.2)';
-          ctx.shadowBlur = W * 0.04;
-          ctx.shadowOffsetY = W * 0.012;
-          trapezoidPath(ctx, x - flapW, y, flapW, side * 0.88, side);
-          ctx.fillStyle = '#FBF9F5';
-          ctx.fill();
-          ctx.restore();
-          trapezoidPath(ctx, x - flapW, y, flapW, side * 0.88, side);
-          ctx.strokeStyle = '#E7E2DA';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // Front cover — the artwork, leaning very slightly toward us.
-          ctx.save();
-          ctx.shadowColor = 'rgba(33,29,25,0.32)';
-          ctx.shadowBlur = W * 0.06;
-          ctx.shadowOffsetY = W * 0.022;
-          roundRect(ctx, x, y, side, side, W * 0.014);
-          ctx.fillStyle = '#fff';
-          ctx.fill();
-          ctx.restore();
-          ctx.save();
-          roundRect(ctx, x, y, side, side, W * 0.014);
-          ctx.clip();
-          drawTrapezoid(ctx, img, x, y, side, side * 0.985, side);
-          ctx.restore();
-          // Spine shadow where the leaves meet.
-          const spine = ctx.createLinearGradient(x, 0, x + side * 0.06, 0);
-          spine.addColorStop(0, 'rgba(33,29,25,0.16)');
-          spine.addColorStop(1, 'rgba(33,29,25,0)');
-          ctx.save();
-          roundRect(ctx, x, y, side, side, W * 0.014);
-          ctx.clip();
-          ctx.fillStyle = spine;
-          ctx.fillRect(x, y, side * 0.06, side);
-          ctx.restore();
-
-          artRect = { x, y, side };
-          artBottom = y + side;
+      if (layout !== 'brief') {
+        // Grab the frame the real viewer just painted. It carries the
+        // proper hinge, lighting and contact shadow — and for the inside
+        // layout it's genuinely open, not a faked spread.
+        const stage = stageRef.current?.querySelector('canvas');
+        if (!stage || stage.width === 0) {
+          throw new Error('3D view not ready — give it a moment and hit refresh.');
         }
+        const side = overlap
+          ? Math.min(W * 0.92, H * 0.56)
+          : stacked
+            ? Math.min(W - pad, H * 0.46)
+            : Math.min(W * 1.02, H * 0.72);
+        const x = overlap ? W - side - pad * 0.1 : (W - side) / 2;
+        const y = overlap ? H * 0.06 : stacked ? H * 0.04 : (H - side) / 2 - H * 0.03;
+        ctx.drawImage(stage, x, y, side, side);
+        artRect = { x, y, side };
+        // The viewer leaves generous margin around the card, so pull the
+        // brief up under the artwork rather than the frame's edge.
+        artBottom = y + side * 0.82;
       }
 
       // ── The brief panel — mirrors the studio's own input cards.
@@ -490,8 +400,11 @@ export default function AdminSocialStudio() {
     }
   };
 
+  // Compose after the 3D stage has had a couple of frames to paint —
+  // the capture reads whatever is in its buffer at that instant.
   useEffect(() => {
-    void draw();
+    const t = window.setTimeout(() => void draw(), 900);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size, layout, bg, frontUrl, insideUrl, photoUrl, scene, frontText, inside]);
 
@@ -653,6 +566,33 @@ export default function AdminSocialStudio() {
             </Button>
           </div>
           {err && <p className="text-xs text-red-600">{err}</p>}
+        </div>
+
+        {/* ── The real 3D viewer, offstage. Rendered (not display:none —
+            WebGL needs to paint) but invisible; the composer copies its
+            canvas. Sized generously so the captured frame is crisp at
+            export scale. ── */}
+        <div
+          ref={stageRef}
+          aria-hidden
+          className="pointer-events-none fixed left-0 top-0 -z-10 h-[760px] w-[760px] opacity-[0.01]"
+        >
+          {frontUrl && (
+            <Card3DViewer
+              key={`${frontUrl}-${insideUrl}-${layout}`}
+              frontImageUrl={frontUrl}
+              insideImageUrl={insideUrl || frontUrl}
+              open={layout === 'inside'}
+              preserveBuffer
+              enableRotate={false}
+              enableZoom={false}
+              framingMargin={layout === 'inside' ? 2.1 : 1.7}
+              minDistance={1.4}
+              closedAngle={layout === 'inside' ? 0 : -0.38}
+              restYaw={layout === 'inside' ? -0.05 : -0.12}
+              className="h-full w-full"
+            />
+          )}
         </div>
 
         {/* ── Live preview ── */}
