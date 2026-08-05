@@ -773,7 +773,11 @@ export default function AdminSocialStudio() {
       // finished card+brief block turns out, which depends on how many
       // lines the fields wrap to.
       const panelW = overlap ? W * 0.53 : W - pad * 2;
-      const px = overlap ? pad * 0.55 : pad;
+      // The brief hugged the left edge (0.55 of the pad) while the card sat
+      // flush right, so the weight all fell bottom-left and the bottom-right
+      // read empty — worst on 4:5. Bring the panel in so its mass sits
+      // nearer the middle and under the card, not off in the corner.
+      const px = overlap ? pad * 2 : pad;
       const chip = W * 0.115;
       const chipBlock = photoUrl ? chip + W * 0.03 : 0;
       // How far down the card the brief starts. A square canvas carries a
