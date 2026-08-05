@@ -37,7 +37,12 @@ const BUCKET = process.env.R2_BUCKET;
 // 404s, on new cards only. Cheap to defend against, brutal to debug
 // (Aidan + a live customer, 2026-08-04).
 const PUBLIC_URL = (() => {
-  const raw = process.env.R2_PUBLIC_URL?.trim().replace(/\/+$/, '');
+  // Strip trailing slashes AND stray trailing punctuation. A copied
+  // sentence can carry its full stop into the env var —
+  // "https://img.example.com." fails TLS (the cert covers the undotted
+  // host), so every image dies silently (Aidan + a live customer,
+  // 2026-08-04). Cheap to defend, expensive to diagnose.
+  const raw = process.env.R2_PUBLIC_URL?.trim().replace(/[./\s]+$/, '');
   if (!raw) return undefined;
   if (/^https?:\/\//i.test(raw)) return raw;
   console.warn(
