@@ -87,16 +87,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Mid-recovery: the browser is reloading. Match the app background so
-      // it reads as a page still loading, which is what it is.
+      // Mid-recovery: the browser is reloading. A fully blank page here
+      // read as "unable to load" for the beat before the reload landed
+      // (Aidan 2026-08-06) — show the same centred spinner as a lazy
+      // route, because visually that's exactly what this moment is.
       if (this.state.recovering && this.props.fallback === undefined) {
         return (
           <div
-            className="min-h-screen bg-surface-card"
+            className="min-h-screen flex items-center justify-center bg-surface-card"
             aria-busy="true"
             aria-live="polite"
             data-testid="boundary-recovering"
-          />
+          >
+            <div
+              className="h-6 w-6 animate-spin rounded-full border-2 border-stone-200 border-t-stone-500"
+              aria-label="Loading"
+            />
+          </div>
         );
       }
       if (this.props.fallback !== undefined) return this.props.fallback;
