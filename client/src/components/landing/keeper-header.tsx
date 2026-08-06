@@ -12,6 +12,7 @@ import { Link, useLocation } from 'wouter';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { TickerBanner } from '@/components/landing/ticker-banner';
 
@@ -24,6 +25,9 @@ const NAV_LINKS = [
 export function KeeperHeader() {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
+  // Signed out, starting a card leads with the free-card offer
+  // rather than a bare sign-in prompt. Same gate either way.
+  const claimFreeCard = useClaimFreeCard();
   const [location] = useLocation();
 
   // On the homepage the section anchors exist, so smooth-scroll in place.
@@ -84,7 +88,7 @@ export function KeeperHeader() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => openAuth('/studio/new-card')}
+                  onClick={() => claimFreeCard()}
                   className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
                 >
                   <span className="sm:hidden">Make a card</span>

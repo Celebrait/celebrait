@@ -31,6 +31,7 @@ import { TickerBanner } from '@/components/landing/ticker-banner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import {
   PRICING_TIERS,
   OVERNIGHT_DELIVERY,
@@ -67,6 +68,9 @@ interface PriceCardProps {
 
 function PriceCard({ tier, authed }: PriceCardProps) {
   const { openAuth } = useAuthModal();
+  // Signed out, starting a card leads with the free-card offer
+  // rather than a bare sign-in prompt. Same gate either way.
+  const claimFreeCard = useClaimFreeCard();
   const visuals = TIER_VISUALS[tier.id];
   const Icon = visuals.icon;
   const priceLabel = formatPrice(tier.price, 'GBP');
@@ -163,7 +167,7 @@ function PriceCard({ tier, authed }: PriceCardProps) {
         </Link>
       ) : (
         <Button
-          onClick={() => openAuth('/studio/new-card')}
+          onClick={() => claimFreeCard()}
           className={`w-full h-11 text-sm font-medium ${
             tier.highlight
               ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
@@ -180,6 +184,7 @@ function PriceCard({ tier, authed }: PriceCardProps) {
 export default function PricingPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
+  const claimFreeCard = useClaimFreeCard();
   const showAuthedTreatment = !isLoading && isAuthenticated;
 
   return (
@@ -266,7 +271,7 @@ export default function PricingPage() {
               </Link>
             ) : (
               <Button
-                onClick={() => openAuth('/studio/new-card')}
+                onClick={() => claimFreeCard()}
                 className="bg-go hover:bg-go-hover text-go-foreground h-12 px-8 text-base font-medium"
               >
                 Make my first card

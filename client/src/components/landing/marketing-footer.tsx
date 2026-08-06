@@ -13,6 +13,7 @@ import { Instagram, ArrowRight } from 'lucide-react';
 import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 
 interface FooterLink {
   label: string;
@@ -41,6 +42,9 @@ const LEGAL: FooterLink[] = [
 function FooterCta() {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
+  // Signed out, starting a card leads with the free-card offer
+  // rather than a bare sign-in prompt. Same gate either way.
+  const claimFreeCard = useClaimFreeCard();
   const authed = !isLoading && isAuthenticated;
   const cls =
     'group inline-flex items-center gap-2 rounded-full bg-keeper-paper px-8 py-4 text-base font-semibold text-keeper-ink shadow-lg shadow-black/20 transition-all hover:-translate-y-0.5 hover:bg-white';
@@ -55,7 +59,7 @@ function FooterCta() {
       {label}
     </Link>
   ) : (
-    <button type="button" onClick={() => openAuth('/studio/new-card')} className={cls}>
+    <button type="button" onClick={() => claimFreeCard()} className={cls}>
       {label}
     </button>
   );

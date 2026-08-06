@@ -25,7 +25,7 @@ import { X, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
-import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
+import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
 import { ProgressRing } from '@/components/studio/moment-ring';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
@@ -63,6 +63,26 @@ export function FreeCardInvite() {
   // Greeting someone who just clicked MAKE A CARD with "not ready? fair"
   // reads like we weren't listening.
   const [intent, setIntent] = useState<'asked' | 'offered'>('offered');
+
+  // Arrived from a CTA on another page (/blog, /pricing, …) — those can't
+  // fire the event because this modal isn't mounted there, so they send the
+  // visitor home carrying ?claim=1. Strip it once handled: a refresh or a
+  // shared link shouldn't reopen it.
+  useEffect(() => {
+    if (!signedOut) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get(CLAIM_PARAM) !== '1') return;
+    setIntent('asked');
+    setAutoShown(true);
+    setOpen(true);
+    url.searchParams.delete(CLAIM_PARAM);
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    try {
+      localStorage.setItem(SEEN_KEY, String(Date.now()));
+    } catch {
+      /* non-fatal */
+    }
+  }, [signedOut]);
 
   // The ticker banner's free-card item opens the invite directly.
   useEffect(() => {

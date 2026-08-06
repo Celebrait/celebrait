@@ -12,6 +12,7 @@
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import { Button } from '@/components/ui/button';
 import celebraitLogo from '@/assets/celebrait.webp';
 
@@ -29,6 +30,9 @@ export function MarketingHeader({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
+  // Signed out, starting a card leads with the free-card offer
+  // rather than a bare sign-in prompt. Same gate either way.
+  const claimFreeCard = useClaimFreeCard();
 
   // z-[150] keeps the header above the hero card's bleed wrapper
   // (z-[100]) and any other section's z-stack. Was z-30, but the
@@ -82,7 +86,7 @@ export function MarketingHeader({
             </Link>
           ) : (
             <Button
-              onClick={() => openAuth('/studio/new-card')}
+              onClick={() => claimFreeCard()}
               className="bg-brand hover:bg-brand-dark text-brand-foreground h-10 px-5 text-sm font-medium"
             >
               Make my first card

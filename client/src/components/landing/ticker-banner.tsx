@@ -20,20 +20,32 @@ import { useLocation } from 'wouter';
  *  listens and opens the claim modal. */
 export const CLAIM_EVENT = 'celebrait:claim-free-card';
 
-export function TickerBanner() {
-  const [location, setLocation] = useLocation();
+/** Query flag that opens the claim on arrival. The invite modal only
+ *  mounts on the landing page, so a CTA on /blog or /pricing can't just
+ *  fire the event — it has to get the visitor home AND open the offer
+ *  there. Without this they'd land on / with nothing happening. */
+export const CLAIM_PARAM = 'claim';
 
-  const claimTap = () => {
+/** Open the free-card claim from anywhere. On the landing page that's the
+ *  event; elsewhere it's a trip home carrying the flag. Every signed-out
+ *  "start a card" CTA should use this, so the offer is what greets them
+ *  (Aidan 2026-08-06: "just want everyone presented with this"). */
+export function useClaimFreeCard() {
+  const [location, setLocation] = useLocation();
+  return () => {
     if (location === '/') {
       window.dispatchEvent(
         new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
       );
     } else {
-      // Other pages don't mount the invite — head home, where the
-      // pill/modal carries on.
-      setLocation('/');
+      setLocation(`/?${CLAIM_PARAM}=1`);
     }
   };
+}
+
+export function TickerBanner() {
+
+  const claimTap = useClaimFreeCard();
 
   return (
     <div
