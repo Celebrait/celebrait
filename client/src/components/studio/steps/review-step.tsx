@@ -61,6 +61,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CardArtImg } from '@/components/studio/card-art-img';
 import { GenerationErrorPanel } from '@/components/studio/generation-error-panel';
 import { familyKey } from '@/lib/studio-card-buckets';
 import { likenessNoteForSet } from '@/lib/photo-likeness';
@@ -1989,7 +1990,13 @@ function CardImage({ url, label }: { url: string; label: string }) {
         {label}
       </p>
       <div className="aspect-square rounded-2xl overflow-hidden border border-keeper-hair bg-stone-50">
-        <img
+        {/* CardArtImg, not a bare <img>: this loads the SAME urls as the
+            hero above, which sets crossOrigin. A plain load caches a
+            non-CORS entry for that url, and the CORS request then can't
+            reuse it — so flicking between the main image and print-ready
+            broke the card (Aidan 2026-08-06, Toia's birthday card).
+            See project_3d_card_cors_cache_poisoning. */}
+        <CardArtImg
           src={url}
           alt={`Generated ${label.toLowerCase()} of card`}
           className="w-full h-full object-cover"
