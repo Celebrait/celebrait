@@ -18,6 +18,7 @@ import type { Express, Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '@shared/schema';
+import { getFreeCardStatus } from '../studio/free-card';
 
 async function isAdmin(req: Request): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
@@ -210,6 +211,25 @@ export function registerAdminCustomersRoutes(app: Express): void {
         res.status(404).json({ message: 'Customer not found' });
         return;
       }
+
+      // Dates they've added + free-card standing (Aidan 2026-08-06:
+      // "where do we see the dates people have provided and whether
+      // they have free cards to claim"). Same counting rules as the
+      // checkout eligibility gate, so this screen can never disagree
+      // with what the customer is actually offered.
+      const [momentRows, freeCard] = await Promise.all([
+        db.execute(sql`
+          select ro.id, ro.occasion, ro.date,
+                 ab.name as "personName",
+                 ab.relationship
+          from recipient_occasions ro
+          join address_book_entries ab on ab.id = ro.address_book_entry_id
+          where ro.user_id = ${id}
+          order by ro.date asc nulls last, ro.id asc
+          limit 100
+        `),
+        getFreeCardStatus(id),
+      ]);
 
       const cards = (
         await db.execute(sql`
@@ -441,6 +461,8 @@ export function registerAdminCustomersRoutes(app: Express): void {
           };
         }),
         orders: orders.map(normalizeOrder),
+        moments: momentRows.rows,
+        freeCard,
       });
     } catch (err) {
       console.error('[ADMIN_CUSTOMERS] detail error:', err);

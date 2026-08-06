@@ -382,7 +382,19 @@ function CustomersTab({ onSelect }: { onSelect: (id: string) => void }) {
 
 // ── Customer detail ──────────────────────────────────────────────────
 function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
-  const { data, isLoading } = useQuery<{ customer: any; cards: CardRow[]; orders: OrderRow[] }>({
+  const { data, isLoading } = useQuery<{
+    customer: any;
+    cards: CardRow[];
+    orders: OrderRow[];
+    moments: Array<{
+      id: number;
+      occasion: string;
+      date: string | null;
+      personName: string;
+      relationship: string | null;
+    }>;
+    freeCard: { keyDates: number; redeemed: boolean; eligible: boolean };
+  }>({
     queryKey: [`/api/admin/customers/${id}`],
   });
 
@@ -428,6 +440,68 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
               </Link>
             </div>
           </div>
+
+          {/* Dates + free card — the retention engine's raw material.
+              Shows the same numbers the checkout eligibility gate uses,
+              so this screen can never disagree with what the customer
+              is offered. */}
+          <section>
+            <h3 className="mb-2 text-sm font-semibold text-stone-700">
+              Dates &amp; free card
+              {data.freeCard && (
+                <span
+                  className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    data.freeCard.redeemed
+                      ? 'bg-stone-100 text-stone-500'
+                      : data.freeCard.eligible
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {data.freeCard.redeemed
+                    ? 'Free card used'
+                    : data.freeCard.eligible
+                      ? 'Free card ready to claim'
+                      : `${data.freeCard.keyDates}/3 dates — not yet unlocked`}
+                </span>
+              )}
+            </h3>
+            {(data.moments ?? []).length === 0 ? (
+              <p className="text-sm text-stone-400">No dates added yet.</p>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 text-stone-500">
+                    <tr>
+                      <th className="px-3 py-1.5 font-medium">Person</th>
+                      <th className="px-3 py-1.5 font-medium">Occasion</th>
+                      <th className="px-3 py-1.5 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {data.moments.map((m) => (
+                      <tr key={m.id}>
+                        <td className="px-3 py-1.5 text-stone-800">
+                          {m.personName}
+                          {m.relationship && (
+                            <span className="text-stone-400"> · {m.relationship}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5 capitalize text-stone-600">
+                          {m.occasion.replace(/_/g, ' ')}
+                        </td>
+                        <td className="px-3 py-1.5 text-stone-600">
+                          {m.date ? fmtDate(m.date) : (
+                            <span className="text-amber-600">no date yet</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
           {/* Orders */}
           <section>
