@@ -384,6 +384,15 @@ export function AuthForm({
               Hang on — this can take a few seconds…
             </p>
           )}
+          {/* Outlook junks our code (SCL:5, CAT:SPM) even though SPF, DKIM
+              and DMARC all pass — a new domain on a shared ESP IP. Nothing
+              to configure our way out of, so say it plainly at the moment
+              someone is already hunting for the email, rather than let them
+              conclude it never sent. */}
+          <p className="text-center text-[11px] leading-snug text-keeper-meta">
+            Can't see it? Check your junk or spam folder — it sometimes
+            lands there.
+          </p>
           <button
             onClick={() => !isSendingOtp && resendIn === 0 && handleSendCode()}
             onMouseDown={(e) => e.preventDefault()}
