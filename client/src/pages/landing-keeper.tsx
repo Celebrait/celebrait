@@ -1622,9 +1622,12 @@ function PriceSection() {
               is the reason to start, and £8.99 is what it's worth. CAP Code
               on "free": the postage you can't avoid has to sit with the
               claim, not in smallprint, and the one-per-account condition
-              has to be stated. Hence both on the line under the number. */}
+              has to be stated. Hence both on the line under the number.
+              No "limited time" — there's no end date and we don't intend
+              to set one, and a perpetual urgency claim is the kind the ASA
+              upholds against. This wording is true indefinitely. */}
           <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-keeper-meta">
-            Limited time · first card on us
+            First card on us
           </p>
           <div className="mt-2 flex items-baseline justify-center gap-4">
             <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
@@ -1636,10 +1639,10 @@ function PriceSection() {
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            Your first card is on us — you just pay standard postage, from
-            £3.95. One per account; after that, cards are £8.99 plus postage.
-            Make and preview as many as you like for free — you only pay when
-            you post one. Printed to order, allow up to 72 hours.
+            You just pay standard postage, from £3.95. One per account;
+            after that, cards are £8.99 plus postage. Make and preview as
+            many as you like for free — you only pay when you post one.
+            Printed to order, allow up to 72 hours.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
