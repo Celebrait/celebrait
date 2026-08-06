@@ -45,6 +45,29 @@ export default defineConfig({
         // recipient viewer's React.lazy() then triggers a real chunk
         // download instead of a no-op.
         manualChunks: (id) => {
+          // React FIRST, and in its own chunk. Without this, Rollup saw
+          // react imported by both the entry and @react-three/* and
+          // resolved the shared dependency by hoisting the whole of React
+          // INTO three-stack. Consequences, both live on prod:
+          //
+          //   1. Crash. React's own lazy() initialiser ended up inside the
+          //      3D chunk, so a lazy route could be initialised across a
+          //      chunk cycle and resolve to undefined —
+          //      "Cannot read properties of undefined (reading 'default')"
+          //      at /studio/new-card, which is what Aidan hit signing in
+          //      (CLIENT_ERROR 2026-08-06T09:39:45Z).
+          //   2. The split did the opposite of its job: every page had to
+          //      download all 1.3MB of the 3D stack just to get React.
+          //
+          // react-core has no imports of its own, so nothing can cycle
+          // through it.
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'react-core';
+          }
           // Three.js + react-three-fiber + drei + lottie — the heavy
           // 3D / animation stack. ~150-200KB combined; recipient
           // viewer pays for it on demand instead of upfront.
