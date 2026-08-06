@@ -12,7 +12,11 @@
 //     a flat image instead of taking the page down.
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { isStaleChunkError, recoverFromStaleChunk } from '@/lib/stale-chunk';
+import {
+  isStaleChunkError,
+  recoverFromStaleChunk,
+  staleChunkRecoveryAvailable,
+} from '@/lib/stale-chunk';
 
 interface Props {
   children: ReactNode;
@@ -24,21 +28,34 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  /** A reload is already on its way — hold a quiet screen, not a crash. */
+  recovering: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false };
+  state: State = { hasError: false, recovering: false };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  // Renders BEFORE componentDidCatch, so a stale chunk used to flash the
+  // full "Something went wrong" screen for the moment between the throw
+  // and the reload it triggers (Aidan hit this signing in as a new user
+  // on a heavy deploy day: "a quick screen"). Decide here whether a
+  // reload is coming and, if so, show nothing alarming.
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      recovering: isStaleChunkError(error) && staleChunkRecoveryAvailable(),
+    };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // A failed chunk import isn't a bug in the page — it's a browser
     // holding a bundle we've since replaced (deploy race). Reload once
     // rather than showing a crash screen for something a refresh fixes.
-    if (isStaleChunkError(error) && recoverFromStaleChunk('error-boundary')) {
-      return;
+    if (isStaleChunkError(error)) {
+      if (recoverFromStaleChunk(this.props.label ?? 'error-boundary')) return;
+      // Recovery already spent this session — drop the quiet screen and
+      // show the real thing rather than sitting on a blank page forever.
+      this.setState({ recovering: false });
     }
     console.error(
       `[ErrorBoundary${this.props.label ? ` ${this.props.label}` : ''}]`,
@@ -70,6 +87,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      // Mid-recovery: the browser is reloading. Match the app background so
+      // it reads as a page still loading, which is what it is.
+      if (this.state.recovering && this.props.fallback === undefined) {
+        return (
+          <div
+            className="min-h-screen bg-surface-card"
+            aria-busy="true"
+            aria-live="polite"
+            data-testid="boundary-recovering"
+          />
+        );
+      }
       if (this.props.fallback !== undefined) return this.props.fallback;
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-surface-card">

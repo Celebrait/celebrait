@@ -29,6 +29,19 @@ export function isStaleChunkError(err: unknown): boolean {
   );
 }
 
+/** Is a one-shot recovery still available this session? Read-only — the
+ *  error boundary needs to know DURING getDerivedStateFromError (which
+ *  must stay pure) whether a reload is coming, so it can hold a quiet
+ *  screen instead of flashing "Something went wrong" at someone whose
+ *  browser is about to reload anyway. */
+export function staleChunkRecoveryAvailable(): boolean {
+  try {
+    return !sessionStorage.getItem(FLAG);
+  } catch {
+    return true; // storage blocked — a single attempt is still allowed
+  }
+}
+
 /** Reload once to pick up the current bundle. Returns true if a reload
  *  was triggered; false when we've already tried this session (so the
  *  caller can fall back to showing the error). */
@@ -40,6 +53,26 @@ export function recoverFromStaleChunk(reason: string): boolean {
     /* storage blocked — allow a single reload attempt anyway */
   }
   console.warn(`[STALE-CHUNK] recovering via reload (${reason})`);
+  // Tell the server this happened. Recovery is silent by design — the user
+  // never sees it — which also meant we had NO idea how often it fires.
+  // It's already bitten twice on /studio/new-card, so it's worth counting.
+  // Fire-and-forget with keepalive so it survives the imminent reload.
+  try {
+    void fetch('/api/client-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label: 'stale-chunk-recovered',
+        path: window.location.pathname,
+        message: `recovered via reload (${reason})`,
+        stack: '',
+        componentStack: '',
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* never throw from recovery */
+  }
   // Cache-bust the document so we can't be handed the same stale HTML.
   const url = new URL(window.location.href);
   url.searchParams.set('_r', String(Date.now()));
