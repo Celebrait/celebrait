@@ -88,6 +88,12 @@ interface StudioTrail {
   recipientName: string | null;
   insideMode: string | null;
   frontMode: string | null;
+  frontText: string | null;
+  insideWrite: {
+    salutation: string | null;
+    message: string | null;
+    signoff: string | null;
+  } | null;
   lastStep: number | null;
   templates: Array<{ slot: string; templateId: number; templateVersion: number | null; model: string }>;
   photos: StudioPhoto[];
@@ -517,6 +523,37 @@ function StudioTrailPanel({ trail }: { trail: StudioTrail | undefined }) {
           </p>
         </div>
       )}
+
+      {trail.frontText && (
+        <div className="mt-2">
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">Front text they typed</div>
+          <p className="mt-0.5 rounded bg-stone-50 p-1.5 text-[11px] italic leading-snug text-stone-700">
+            “{trail.frontText}”
+          </p>
+        </div>
+      )}
+
+      {trail.insideWrite &&
+        (trail.insideWrite.salutation || trail.insideWrite.message || trail.insideWrite.signoff) && (
+          <div className="mt-2">
+            <div className="text-[10px] uppercase tracking-wide text-stone-400">Inside message they typed</div>
+            {/* Three fields shown as one piece, the way the card renders
+                them — but salutation/signoff keep a faint tint so a
+                missing sign-off is visible as such rather than reading
+                as a short message. */}
+            <div className="mt-0.5 space-y-0.5 rounded bg-stone-50 p-1.5 text-[11px] leading-snug text-stone-700">
+              {trail.insideWrite.salutation && (
+                <p className="text-stone-500">{trail.insideWrite.salutation}</p>
+              )}
+              {trail.insideWrite.message && (
+                <p className="whitespace-pre-wrap italic">“{trail.insideWrite.message}”</p>
+              )}
+              {trail.insideWrite.signoff && (
+                <p className="text-stone-500">{trail.insideWrite.signoff}</p>
+              )}
+            </div>
+          </div>
+        )}
 
       {trail.photos.length > 0 && (
         <div className="mt-2 space-y-2">

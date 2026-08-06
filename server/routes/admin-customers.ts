@@ -395,6 +395,19 @@ export function registerAdminCustomersRoutes(app: Express): void {
               recipientName: draft?.recipient?.name ?? null,
               insideMode: draft?.inside?.mode ?? null,
               frontMode: draft?.front?.mode ?? null,
+              // The words they typed. The scene was surfaced from day one
+              // but the actual text never was (Aidan 2026-08-06: "can we
+              // see what users typed in for their front and inside
+              // messages?") — and text is an input too: a garbled front
+              // line explains a garbled front render.
+              frontText: draft?.front?.text ?? null,
+              insideWrite: draft?.inside?.write
+                ? {
+                    salutation: draft.inside.write.salutation ?? null,
+                    message: draft.inside.write.message ?? null,
+                    signoff: draft.inside.write.signoff ?? null,
+                  }
+                : null,
               lastStep: typeof draft?.step === 'number' ? draft.step : null,
               templates: tplByCard.get(Number(c.id)) ?? [],
               photos: photoIds.map((pid) => {
