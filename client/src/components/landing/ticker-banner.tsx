@@ -25,7 +25,9 @@ export function TickerBanner() {
 
   const claimTap = () => {
     if (location === '/') {
-      window.dispatchEvent(new CustomEvent(CLAIM_EVENT));
+      window.dispatchEvent(
+        new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
+      );
     } else {
       // Other pages don't mount the invite — head home, where the
       // pill/modal carries on.

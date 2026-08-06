@@ -56,10 +56,20 @@ export function FreeCardInvite() {
 
   const signedOut = !isLoading && !user;
 
+  // Who opened this, and therefore what it should say. ASKED = the visitor
+  // actively clicked something ("Make a card", the ticker) so they're
+  // already sold and want to get on with it. OFFERED = we interrupted them
+  // (auto-show, corner pill), where "not ready? fair" is the right note.
+  // Greeting someone who just clicked MAKE A CARD with "not ready? fair"
+  // reads like we weren't listening.
+  const [intent, setIntent] = useState<'asked' | 'offered'>('offered');
+
   // The ticker banner's free-card item opens the invite directly.
   useEffect(() => {
-    const onClaim = () => {
+    const onClaim = (e: Event) => {
       if (!signedOut) return;
+      const asked = (e as CustomEvent<{ intent?: string }>).detail?.intent;
+      setIntent(asked === 'asked' ? 'asked' : 'offered');
       setAutoShown(true);
       setOpen(true);
       try {
@@ -98,6 +108,7 @@ export function FreeCardInvite() {
     const fire = () => {
       if (done) return;
       done = true;
+      setIntent('offered');
       setAutoShown(true);
       setOpen(true);
       try {
@@ -246,18 +257,31 @@ export function FreeCardInvite() {
               ) : (
                 <>
                   <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
-                    A gift to start
+                    {intent === 'asked' ? 'First card on us' : 'A gift to start'}
                   </p>
                   <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
-                    Not ready to send a card? Fair.
+                    {intent === 'asked'
+                      ? 'Three dates, then let’s make it.'
+                      : 'Not ready to send a card? Fair.'}
                   </h2>
-                  <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
-                    The right moment probably hasn't come round yet. So start the
-                    other way: tell us <b>three dates that matter</b> — a birthday,
-                    an anniversary, any day — and your first card is on us.{' '}
-                    <span className="text-stone-400 line-through">£8.99</span>{' '}
-                    <b>£0</b>, just the postage. It waits for the moment.
-                  </p>
+                  {intent === 'asked' ? (
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      You'll need an account to make a card either way — so
+                      start here. Tell us <b>three dates that matter</b> — a
+                      birthday, an anniversary, any day — and your first card
+                      is free.{' '}
+                      <span className="text-stone-400 line-through">£8.99</span>{' '}
+                      <b>£0</b>, just the postage.
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      The right moment probably hasn't come round yet. So start the
+                      other way: tell us <b>three dates that matter</b> — a birthday,
+                      an anniversary, any day — and your first card is on us.{' '}
+                      <span className="text-stone-400 line-through">£8.99</span>{' '}
+                      <b>£0</b>, just the postage. It waits for the moment.
+                    </p>
+                  )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
                     We'll watch every date and nudge you in good time — and we
                     never contact the people you add.
@@ -270,7 +294,9 @@ export function FreeCardInvite() {
                       className="w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover"
                       data-testid="free-card-invite-claim"
                     >
-                      Claim it — takes a minute
+                      {intent === 'asked'
+                        ? 'Let’s go — takes a minute'
+                        : 'Claim it — takes a minute'}
                     </button>
                     <button
                       type="button"
@@ -294,7 +320,10 @@ export function FreeCardInvite() {
       {!open && autoShown && !authOpen && (
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setIntent('offered');
+            setOpen(true);
+          }}
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-stone-200 bg-white/95 py-2 pl-2.5 pr-4 text-[12.5px] font-semibold text-[#211D19] shadow-[0_10px_30px_-12px_rgba(33,29,25,.35)] backdrop-blur transition-transform hover:scale-[1.03]"
           data-testid="free-card-invite-pill"
         >

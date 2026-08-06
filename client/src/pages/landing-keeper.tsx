@@ -45,7 +45,6 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
-import { useAuthModal } from '@/components/auth/auth-modal';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
@@ -53,6 +52,7 @@ import { ImagineDescribeShipSection } from '@/components/landing/imagine-describ
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
+import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
 import { GestureHints } from '@/components/gesture-hints';
 // Hero art lives in client/public (NOT bundled assets) so index.html
@@ -319,9 +319,17 @@ function CardPair({
   );
 }
 
+// Signed out, this opens the CLAIM modal rather than the bare auth one
+// (Aidan 2026-08-06: "just want everyone presented with this").
+//
+// Note this doesn't add friction — the studio was ALREADY gated, so an
+// anonymous visitor met a sign-in prompt here either way. Same gate, same
+// step; it just leads with the free card instead of "we'll email you a
+// code", which is the strongest reason we have for paying that cost.
+// The invite modal is mounted on this page and listens for CLAIM_EVENT,
+// same mechanism the ticker and the corner pill already use.
 function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
   const authed = !isLoading && isAuthenticated;
   const cls = `inline-flex items-center justify-center rounded-full bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
     large ? 'px-9 py-4 text-base' : 'px-7 py-3 text-[15px]'
@@ -331,8 +339,17 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
       Make a card — it's free
     </Link>
   ) : (
-    <button type="button" onClick={() => openAuth('/studio/new-card')} className={cls} data-testid="keeper-cta">
-      Make a card — it's free
+    <button
+      type="button"
+      onClick={() =>
+        window.dispatchEvent(
+          new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
+        )
+      }
+      className={cls}
+      data-testid="keeper-cta"
+    >
+      Make a card — your first one's on us
     </button>
   );
 }
