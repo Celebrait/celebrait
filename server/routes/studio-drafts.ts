@@ -434,7 +434,13 @@ export function registerStudioDraftRoutes(app: Express): void {
 
         const row = rows[0];
         if (!row) return res.status(404).json({ message: 'Card not found' });
-        if (row.userId !== userId) {
+        // Owner, or admin. Minting is the one WRITE that admins get:
+        // it's idempotent (reuses any existing token), grants nothing
+        // the owner couldn't grant themselves, and it's the support
+        // path — "send her the link she couldn't get to" (Aidan hit
+        // this 403 from the CRM, 2026-08-07). Every other write on
+        // this router stays strictly owner-only.
+        if (row.userId !== userId && !(await isAdminUser(userId))) {
           return res.status(403).json({ message: 'Not your card' });
         }
 
