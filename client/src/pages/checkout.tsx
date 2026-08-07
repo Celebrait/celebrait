@@ -16,7 +16,7 @@
 // Stripe is a provider swap, not a rebuild (see next_payment_gateway.md).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
@@ -784,6 +784,16 @@ export default function CheckoutPage() {
                   `Pay ${formatGBP(totals.total)}`
                 )}
               </Button>
+              {/* Deferral reassurance (Carina 2026-08-07): she couldn't
+                  tell how NOT to buy now and come back later. The card was
+                  always safe — nothing SAID so at the moment of doubt. */}
+              <p className="text-center text-[11.5px] leading-relaxed text-keeper-meta">
+                Not ready to send it? No rush — it's saved in{' '}
+                <Link href="/studio/drafts" className="underline underline-offset-2 hover:text-keeper-ink">
+                  your Drafts
+                </Link>{' '}
+                and will wait.
+              </p>
               {/* Promo codes are entered on Stripe's hosted payment page
                   (allow_promotion_codes), not here — signpost it so a
                   code-holder doesn't hunt for the field on this screen. */}

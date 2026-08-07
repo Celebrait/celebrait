@@ -375,6 +375,89 @@ export function registerAddressBookRoutes(app: Express): void {
   );
 
   // POST /api/user/address-book — manual create (with optional occasions)
+  // ── POST /api/studio/cards/:id/save-for-later ───────────────────
+  // Carina's feedback (2026-08-07): she'd made a card months before the
+  // occasion and couldn't see how NOT to buy it immediately. The moment
+  // someone defers is also the one moment they'll happily tell us WHEN
+  // the occasion is -- so this sets the date on the occasion row that
+  // card completion already auto-created (date null until now). A draft
+  // with a date is a reminder with the card already made.
+  app.post(
+    '/api/studio/cards/:id/save-for-later',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+      const cardId = parseInt(req.params.id, 10);
+      if (!Number.isFinite(cardId)) {
+        return res.status(400).json({ message: 'Invalid id' });
+      }
+      const rawDate = typeof req.body?.date === 'string' ? req.body.date.trim() : '';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+
+      try {
+        const cardRows = await db
+          .select({ userId: cards.userId, conversationData: cards.conversationData })
+          .from(cards)
+          .where(eq(cards.id, cardId))
+          .limit(1);
+        const card = cardRows[0];
+        if (!card) return res.status(404).json({ message: 'Card not found' });
+        if (card.userId !== userId) {
+          return res.status(403).json({ message: 'Not your card' });
+        }
+
+        // No date given -> nothing to record; the save itself is implicit
+        // (drafts always persist). Still a 200 so the client copy can say
+        // "saved" honestly.
+        if (!date) return res.json({ saved: true, dateSet: false });
+
+        const state = (card.conversationData as CardDraftState | null) ?? null;
+        const recipientName = state?.recipient?.name?.trim();
+        const occasion = state?.recipient?.occasion?.trim() || 'other';
+        if (!recipientName) return res.json({ saved: true, dateSet: false });
+
+        let entry = await findEntryByNameCI(userId, recipientName);
+        if (!entry) {
+          const [created] = await db
+            .insert(addressBookEntries)
+            .values({ userId, name: recipientName })
+            .returning();
+          entry = created;
+        }
+        const existing = await db
+          .select({ id: recipientOccasions.id, date: recipientOccasions.date })
+          .from(recipientOccasions)
+          .where(
+            and(
+              eq(recipientOccasions.addressBookEntryId, entry.id),
+              eq(recipientOccasions.occasion, occasion),
+            ),
+          )
+          .limit(1);
+        if (existing.length === 0) {
+          await db.insert(recipientOccasions).values({
+            addressBookEntryId: entry.id,
+            userId,
+            occasion,
+            date,
+            yearSpecific: false,
+          });
+        } else {
+          // They just told us the date -- newest information wins.
+          await db
+            .update(recipientOccasions)
+            .set({ date })
+            .where(eq(recipientOccasions.id, existing[0].id));
+        }
+        res.json({ saved: true, dateSet: true });
+      } catch (err: any) {
+        console.error('[ADDRESS_BOOK] save-for-later failed:', err?.message ?? err);
+        res.status(500).json({ message: 'Could not save the date' });
+      }
+    },
+  );
+
   app.post('/api/user/address-book', isAuthenticated, async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });

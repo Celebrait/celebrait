@@ -24,6 +24,8 @@
 
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import {
   Mail,
   HandHeart,
@@ -83,6 +85,40 @@ export function GivingMoment({
   // there's no format step — the only question is where it should go.
   const [destination, setDestination] = useState<Destination | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Save-for-later (Carina 2026-08-07: made a card months early and
+  // couldn't see how NOT to buy it now). The deferral moment is also the
+  // one moment someone will happily give the occasion date — asked here,
+  // optionally, framed as service; never earlier in the maker.
+  const [laterOpen, setLaterOpen] = useState(false);
+  const [laterDate, setLaterDate] = useState('');
+  const [laterBusy, setLaterBusy] = useState(false);
+  const { toast } = useToast();
+
+  const saveForLater = async () => {
+    if (laterBusy) return;
+    setLaterBusy(true);
+    try {
+      const res = await apiRequest(
+        'POST',
+        `/api/studio/cards/${cardId}/save-for-later`,
+        { date: laterDate || undefined },
+      );
+      const body = (await res.json()) as { dateSet?: boolean };
+      toast({
+        title: 'Saved in your Drafts',
+        description: body.dateSet
+          ? "We'll nudge you in good time to print and post it."
+          : "It'll be right there when you're ready.",
+      });
+    } catch {
+      // The draft is persisted regardless — never block the exit on the
+      // date write.
+      toast({ title: 'Saved in your Drafts' });
+    } finally {
+      setLaterBusy(false);
+    }
+    setLocation('/studio');
+  };
 
   // Step-1 "Back to card" — leaves the giving flow back to wherever the
   // user came from. /give has two entry points (the maker reveal and the
@@ -196,6 +232,54 @@ export function GivingMoment({
           Choose where it should go.
         </p>
       )}
+
+      {/* The explicit exit. Cards auto-save, but nothing SAID so — and a
+          buy-or-back-button screen reads as buy-or-lose-it. */}
+      <div className="border-t border-keeper-hair pt-4 text-center" data-testid="giving-save-later">
+        {!laterOpen ? (
+          <button
+            type="button"
+            onClick={() => setLaterOpen(true)}
+            className="text-[13px] font-medium text-keeper-meta underline-offset-2 hover:text-keeper-ink hover:underline"
+            data-testid="giving-save-later-open"
+          >
+            Not sending it yet? Save it for later
+          </button>
+        ) : (
+          <div className="space-y-2.5">
+            <p className="text-sm text-keeper-ink font-medium">
+              No rush — it stays safe in your Drafts.
+            </p>
+            <p className="text-[12px] text-keeper-meta leading-relaxed">
+              When's the big day{recipientName ? ` for ${recipientName}` : ''}?
+              We'll nudge you in good time to print and post it. (Optional.)
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <input
+                type="date"
+                value={laterDate}
+                onChange={(e) => setLaterDate(e.target.value)}
+                className="h-10 rounded-md border border-stone-300 bg-white px-3 text-sm text-keeper-ink"
+                data-testid="giving-save-later-date"
+              />
+              <Button
+                onClick={saveForLater}
+                disabled={laterBusy}
+                variant="outline"
+                data-testid="giving-save-later-confirm"
+              >
+                {laterBusy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : laterDate ? (
+                  'Save date & close'
+                ) : (
+                  'Just save for later'
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
