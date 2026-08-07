@@ -549,7 +549,7 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                           checked first-hand. Absent = never shared. */}
                       {c.viewToken && (
                         <a
-                          href={`/card/${c.id}/view?t=${encodeURIComponent(c.viewToken)}`}
+                          href={`/c/${encodeURIComponent(c.viewToken)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-violet-600 hover:underline"

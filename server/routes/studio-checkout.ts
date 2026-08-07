@@ -492,7 +492,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             .limit(1);
           const token = cardRows[0]?.viewToken;
           if (token) {
-            shareUrl = `/card/${order.cardId}/view?t=${encodeURIComponent(token)}`;
+            shareUrl = `/c/${encodeURIComponent(token)}`;
           }
         }
 
@@ -578,7 +578,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
               r.includesDigital &&
               r.paymentStatus === 'paid' &&
               r.cardViewToken
-                ? `/card/${r.cardId}/view?t=${encodeURIComponent(r.cardViewToken)}`
+                ? `/c/${encodeURIComponent(r.cardViewToken)}`
                 : null,
           };
         });
@@ -1171,7 +1171,7 @@ async function fireOrderPaidEmails(
   if (order.includesDigital && card.viewToken) {
     const recipientEmail = order.recipientEmail?.trim();
     if (recipientEmail) {
-      const shareUrl = `${publicAppOrigin()}/card/${order.cardId}/view?t=${encodeURIComponent(card.viewToken)}`;
+      const shareUrl = `${publicAppOrigin()}/c/${encodeURIComponent(card.viewToken)}`;
       const sent = await sendRecipientCardArrivedEmail({
         recipientEmail,
         recipientName: recipientNameOnCard,

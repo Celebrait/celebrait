@@ -455,7 +455,8 @@ export function registerStudioDraftRoutes(app: Express): void {
         res.json({
           token,
           // Convenience: client doesn't need to know the URL shape.
-          shareUrl: `/card/${id}/view?t=${encodeURIComponent(token)}`,
+          // Short form — the token alone is the credential.
+          shareUrl: `/c/${encodeURIComponent(token)}`,
         });
       } catch (err: any) {
         console.error('[STUDIO] share-token error:', err);
@@ -475,6 +476,48 @@ export function registerStudioDraftRoutes(app: Express): void {
   // conversationData (which contains the inside message + scene), or
   // any other fields that would leak sender/recipient personal info
   // beyond what's already on the card itself.
+  // Shared by BOTH public viewer routes — the short /api/c/:token and
+  // the legacy /api/card/:id/view?t=. One response shape, one
+  // first-opened dispatch, zero drift.
+  const publicViewColumns = {
+    id: cards.id,
+    userId: cards.userId,
+    status: cards.status,
+    conversationData: cards.conversationData,
+    frontImageUrl: cards.frontImageUrl,
+    insideImageUrl: cards.insideImageUrl,
+    frontImagePath: cards.frontImagePath,
+    insideImagePath: cards.insideImagePath,
+    viewToken: cards.viewToken,
+  };
+
+  // ── GET /api/c/:token ────────────────────────────────────────────
+  // Short share links: celebrait.co.uk/c/<token>. The token is 16
+  // random bytes — unguessable on its own — so the card id and query
+  // string were pure noise in a pasted link (Aidan 2026-08-07: "looks
+  // shit when copying and pasting"). Lookup is BY token.
+  app.get('/api/c/:token', async (req: Request, res: Response) => {
+    const token = req.params.token ?? '';
+    if (!token || token.length < 10) {
+      return res.status(404).json({ message: 'Card not found' });
+    }
+    try {
+      const rows = await db
+        .select(publicViewColumns)
+        .from(cards)
+        .where(eq(cards.viewToken, token))
+        .limit(1);
+      if (!rows[0]) {
+        console.warn(`[PUBLIC_VIEW_404] short token ${token.slice(0, 6)}… unknown`);
+        return res.status(404).json({ message: 'Card not found' });
+      }
+      respondPublicCard(req, res, rows[0]);
+    } catch (err: any) {
+      console.error('[STUDIO] public short view error:', err);
+      res.status(500).json({ message: 'Could not load card' });
+    }
+  });
+
   app.get('/api/card/:id/view', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const token = typeof req.query.t === 'string' ? req.query.t : '';
@@ -484,17 +527,7 @@ export function registerStudioDraftRoutes(app: Express): void {
 
     try {
       const rows = await db
-        .select({
-          id: cards.id,
-          userId: cards.userId,
-          status: cards.status,
-          conversationData: cards.conversationData,
-          frontImageUrl: cards.frontImageUrl,
-          insideImageUrl: cards.insideImageUrl,
-          frontImagePath: cards.frontImagePath,
-          insideImagePath: cards.insideImagePath,
-          viewToken: cards.viewToken,
-        })
+        .select(publicViewColumns)
         .from(cards)
         .where(eq(cards.id, id))
         .limit(1);
@@ -516,54 +549,61 @@ export function registerStudioDraftRoutes(app: Express): void {
         return res.status(404).json({ message: 'Card not found' });
       }
 
-      // Pull just recipient name + occasion out of conversationData
-      // for the welcome screen. Don't return the rest of the state.
-      const stateRaw = (row.conversationData as any) ?? null;
-      const recipientName =
-        stateRaw?.recipient?.name && typeof stateRaw.recipient.name === 'string'
-          ? stateRaw.recipient.name.trim()
-          : null;
-      const occasion =
-        stateRaw?.recipient?.occasion && typeof stateRaw.recipient.occasion === 'string'
-          ? stateRaw.recipient.occasion.trim()
-          : null;
-
-      res.json({
-        id: row.id,
-        status: row.status,
-        // Path preferred, legacy URL fallback — both through
-        // publicImageUrl (resolveStoredImageUrl) so the recipient's 3D
-        // viewer gets a direct, CORS-safe URL even on pre-R2 rows.
-        frontImageUrl: resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl),
-        insideImageUrl: resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl),
-        recipientName,
-        occasion,
-      });
-
-      // Fire-and-forget: if this is the first valid token view for a
-      // paid digital order, mark first_opened_at and email the sender
-      // "they've opened it". Runs after response is sent so we don't
-      // block the recipient's viewer load on an email RTT.
-      //
-      // SKIP when the viewer IS the sender (audit 2026-07-27): senders
-      // routinely test the link they're about to WhatsApp, and that
-      // fired a false "X just opened your card" — burning the one real
-      // "opened" moment on themselves.
-      const viewerId = (req as any).session?.otpUserId;
-      if (typeof viewerId === 'string' && viewerId === row.userId) {
-        console.log(
-          `[STUDIO] card ${id}: sender viewed own share link — first-opened NOT fired`,
-        );
-      } else {
-        fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
-          console.error('[STUDIO] first-opened dispatch failed:', err);
-        });
-      }
+      respondPublicCard(req, res, row);
     } catch (err: any) {
       console.error('[STUDIO] public view error:', err);
       res.status(500).json({ message: 'Could not load card' });
     }
   });
+
+  /** The single public-card response: viewer payload + the first-opened
+   *  email dispatch (skipped when the sender views their own link). */
+  function respondPublicCard(
+    req: Request,
+    res: Response,
+    row: {
+      id: number;
+      userId: string | null;
+      status: string | null;
+      conversationData: unknown;
+      frontImageUrl: string | null;
+      insideImageUrl: string | null;
+      frontImagePath: string | null;
+      insideImagePath: string | null;
+    },
+  ): void {
+    const id = row.id;
+    const stateRaw = (row.conversationData as any) ?? null;
+    const recipientName =
+      stateRaw?.recipient?.name && typeof stateRaw.recipient.name === 'string'
+        ? stateRaw.recipient.name.trim()
+        : null;
+    const occasion =
+      stateRaw?.recipient?.occasion && typeof stateRaw.recipient.occasion === 'string'
+        ? stateRaw.recipient.occasion.trim()
+        : null;
+
+    res.json({
+      id: row.id,
+      status: row.status,
+      frontImageUrl: resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl),
+      insideImageUrl: resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl),
+      recipientName,
+      occasion,
+    });
+
+    const viewerId = (req as any).session?.otpUserId;
+    if (typeof viewerId === 'string' && viewerId === row.userId) {
+      console.log(
+        `[STUDIO] card ${id}: sender viewed own share link — first-opened NOT fired`,
+      );
+    } else {
+      fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
+        console.error('[STUDIO] first-opened dispatch failed:', err);
+      });
+    }
+  }
+
 
   // ── PATCH /api/studio/drafts/:id ─────────────────────────────────
   // Overwrite the draft's step state. The client sends the entire

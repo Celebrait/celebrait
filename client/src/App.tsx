@@ -285,6 +285,9 @@ function Router() {
               preview — that path requires the user's own cookie
               session, which is enforced by the API not the route. */}
           <Route path="/card/:id/view" component={CardViewerPage} />
+          {/* Short share links — token only, no card id. Legacy long
+              form above stays for every link already out in the wild. */}
+          <Route path="/c/:token" component={CardViewerPage} />
           {/* Studio checkout — auth-gated. Static paths first; the
               parameterised route comes last so wouter doesn't greedily
               match `/checkout/success` as `:cardId='success'`. */}

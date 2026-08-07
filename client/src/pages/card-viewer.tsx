@@ -29,6 +29,7 @@ import {
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import logoSrc from '../assets/logo-mark.webp';
 import type { CardDraftState } from '@shared/schema';
 
@@ -69,21 +70,39 @@ interface CardData {
 }
 
 export default function CardViewerPage() {
-  const [, params] = useRoute<{ id: string }>('/card/:id/view');
+  // Two public URL shapes resolve here: short /c/:token (no id at all)
+  // and the legacy /card/:id/view?t=. Plus the authed no-token preview.
+  // Each shape needs its own useRoute — the page ignored its Route
+  // props and matched '/card/:id/view' by hand, so the /c/ route
+  // rendered the page with NO params at all (caught live 2026-08-07:
+  // short links showed "Invalid card id").
+  const [, legacyParams] = useRoute<{ id: string }>('/card/:id/view');
+  const [, shortParams] = useRoute<{ token: string }>('/c/:token');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  const cardId = params ? parseInt(params.id, 10) : NaN;
+  // MUST live up here with the other hooks: this page has early returns
+  // (invalid id / loading / error) and a hook below them crashes with
+  // "Rendered more hooks than during the previous render" the moment the
+  // data lands — third time this pattern has bitten the codebase.
+  const claimFreeCard = useClaimFreeCard();
+  const shortToken = shortParams?.token ?? null;
+  const cardIdParam = legacyParams ? parseInt(legacyParams.id, 10) : NaN;
 
-  const token = new URLSearchParams(window.location.search).get('t');
-  const endpoint = token
-    ? `/api/card/${cardId}/view?t=${encodeURIComponent(token)}`
-    : `/api/studio/drafts/${cardId}`;
+  const queryToken = new URLSearchParams(window.location.search).get('t');
+  const endpoint = shortToken
+    ? `/api/c/${encodeURIComponent(shortToken)}`
+    : queryToken
+      ? `/api/card/${cardIdParam}/view?t=${encodeURIComponent(queryToken)}`
+      : `/api/studio/drafts/${cardIdParam}`;
+  const token = shortToken ?? queryToken;
 
   const { data, isLoading, error } = useQuery<CardData>({
     queryKey: [endpoint],
-    enabled: Number.isFinite(cardId),
+    enabled: !!shortToken || Number.isFinite(cardIdParam),
   });
+  // The short route doesn't know the id until the payload lands.
+  const cardId = Number.isFinite(cardIdParam) ? cardIdParam : (data?.id ?? NaN);
 
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -96,7 +115,11 @@ export default function CardViewerPage() {
   // tap-to-open is the only gesture now, and hiding CTAs on scroll
   // read as a bug.)
 
-  if (!Number.isFinite(cardId)) {
+  // Short-token routes have NO id until the payload arrives — the
+  // invalid-id guard must only fire when there's no token either, and
+  // only after loading has settled, or /c/<token> flashes "Invalid
+  // card id" while the fetch is in flight.
+  if (!shortToken && !Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
   }
   if (isLoading) {
@@ -198,7 +221,13 @@ export default function CardViewerPage() {
     shareText,
   )}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
 
-  const createHref = isAuthenticated ? '/studio/new-card' : '/login?next=/studio/new-card';
+  // Signed out, "make your own" leads with the free-card claim (the
+  // 3-dates signup) instead of a bare login wall — same treatment as
+  // every LP CTA (Aidan 2026-08-07). This is the influencer mechanic's
+  // landing behaviour too: "your followers get one free" arrives HERE,
+  // so this click is where that promise has to come true.
+  // (claimFreeCard hook is declared at the top — see note there.)
+  const createHref = isAuthenticated ? '/studio/new-card' : null;
 
   return (
     <Shell>
@@ -304,7 +333,12 @@ export default function CardViewerPage() {
               ready right now: email yourself the link for later.
               Recipients arrive emotional but busy; capture the intent,
               don't demand the act. */}
-          <MakeYourOwnPanel createHref={createHref} cardId={cardId} onShare={() => setShareOpen(true)} />
+          <MakeYourOwnPanel
+            createHref={createHref}
+            onClaim={claimFreeCard}
+            cardId={cardId}
+            onShare={() => setShareOpen(true)}
+          />
         </div>
       </div>
 
@@ -333,10 +367,13 @@ export default function CardViewerPage() {
 // link" email — intent preserved past the moment.
 function MakeYourOwnPanel({
   createHref,
+  onClaim,
   cardId,
   onShare,
 }: {
-  createHref: string;
+  /** Route for signed-in visitors; null when signed out (claim instead). */
+  createHref: string | null;
+  onClaim: () => void;
   cardId: number;
   onShare: () => void;
 }) {
@@ -390,15 +427,30 @@ function MakeYourOwnPanel({
         the scene, and we make the card. Free to make.
       </p>
 
-      {/* 2 — the act-now path */}
-      <Link
-        href={createHref}
-        className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
-        data-testid="btn-viewer-create"
-      >
-        <Sparkles className="mr-2 h-4 w-4" />
-        Make one of your own — free
-      </Link>
+      {/* 2 — the act-now path. Signed in → straight to the maker.
+          Signed out → the free-card claim (3 dates, then the card's
+          free), because they need an account either way and the offer
+          is a better reason than "we'll email you a code". */}
+      {createHref ? (
+        <Link
+          href={createHref}
+          className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
+          data-testid="btn-viewer-create"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Make one of your own — free
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onClaim}
+          className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
+          data-testid="btn-viewer-create"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Make one of your own — your first is on us
+        </button>
+      )}
 
       {/* 3 — recipient utility, quiet */}
       <div className="mt-3">
