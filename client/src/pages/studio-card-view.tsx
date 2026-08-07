@@ -689,23 +689,24 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
 
   const getLink = async () => {
     if (url) return url;
-    setBusy(true);
-    try {
-      const res = await apiRequest(
-        'POST',
-        `/api/studio/cards/${cardId}/share-token`,
-      );
-      const body = (await res.json()) as { shareUrl?: string };
-      if (!body.shareUrl) throw new Error('No link returned');
-      const abs = `${window.location.origin}${body.shareUrl}`;
-      setUrl(abs);
-      return abs;
-    } finally {
-      setBusy(false);
-    }
+    const res = await apiRequest(
+      'POST',
+      `/api/studio/cards/${cardId}/share-token`,
+    );
+    const body = (await res.json()) as { shareUrl?: string };
+    if (!body.shareUrl) throw new Error('No link returned');
+    const abs = `${window.location.origin}${body.shareUrl}`;
+    setUrl(abs);
+    return abs;
   };
 
   const share = async () => {
+    // Guard the WHOLE flow, not just the mint: with the native sheet
+    // open, a second tap makes navigator.share throw "an earlier share
+    // has not yet completed" — which the toast then reported as a scary
+    // failure while the working sheet sat right there (Aidan 2026-08-07).
+    if (busy) return;
+    setBusy(true);
     try {
       const link = await getLink();
       // Native share sheet where it exists (the WhatsApp path this is
@@ -719,11 +720,14 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
       window.setTimeout(() => setCopied(false), 2500);
     } catch (err: any) {
       if (err?.name === 'AbortError') return; // they closed the sheet
+      if (err?.name === 'InvalidStateError') return; // sheet already open
       toast({
         title: "Couldn't get the share link",
         description: err?.message ?? 'Try again in a moment.',
         variant: 'destructive',
       });
+    } finally {
+      setBusy(false);
     }
   };
 
