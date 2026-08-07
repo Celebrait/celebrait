@@ -284,7 +284,33 @@ export default function CheckoutPage() {
         };
       }
 
-      const res = await apiRequest('POST', `/api/studio/cards/${cardId}/checkout`, payload);
+      // Abort rather than hang: on a slow mobile connection a stalled
+      // request left the button on "Starting…" indefinitely — a frozen
+      // page as far as the customer is concerned (SA buyer, 2026-08-07).
+      const abort = new AbortController();
+      const timer = window.setTimeout(() => abort.abort(), 25_000);
+      let res: Response;
+      try {
+        res = await fetch(`/api/studio/cards/${cardId}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          credentials: 'include',
+          signal: abort.signal,
+        });
+      } finally {
+        window.clearTimeout(timer);
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = `${res.status}: ${text || res.statusText}`;
+        try {
+          msg = JSON.parse(text).message ?? msg;
+        } catch {
+          /* plain text */
+        }
+        throw new Error(msg);
+      }
       const body: CheckoutResponse = await res.json();
 
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
@@ -307,7 +333,10 @@ export default function CheckoutPage() {
     } catch (err: any) {
       toast({
         title: "Couldn't start checkout",
-        description: err?.message ?? 'Something went wrong.',
+        description:
+          err?.name === 'AbortError'
+            ? 'That took too long — check your connection and try again. You have not been charged.'
+            : err?.message ?? 'Something went wrong.',
         variant: 'destructive',
       });
     } finally {
@@ -562,6 +591,17 @@ export default function CheckoutPage() {
                 )}
 
                 <Section title={shipTo === 'sender' ? 'Your address' : 'Their address'}>
+                  {/* Said out loud because an SA family member hit a dead
+                      Pay button with no clue why (2026-08-07): we print
+                      and post within the UK only, and a non-UK postcode
+                      fails the form silently otherwise. International
+                      buyers CAN pay — the card just has to land at a UK
+                      address, so route them to "straight to them". */}
+                  <p className="rounded-md bg-stone-50 px-3 py-2 text-[11.5px] leading-relaxed text-keeper-meta">
+                    We deliver to <b>UK addresses only</b> for now. Buying
+                    from abroad is fine — just have the card sent straight
+                    to them at their UK address.
+                  </p>
                   <Field label="Address line 1">
                     <Input value={line1} onChange={(e) => setLine1(e.target.value)} />
                   </Field>
@@ -713,6 +753,22 @@ export default function CheckoutPage() {
                 </p>
               )}
 
+              {!canPay && !submitting && (
+                <p
+                  className="text-center text-[11.5px] text-amber-700"
+                  data-testid="checkout-blocked-reason"
+                >
+                  {!contactComplete
+                    ? 'Add your name and a valid email to continue.'
+                    : includesPrint && !isResolved
+                      ? 'Choose where the card should be delivered first.'
+                      : includesPrint && !addressComplete
+                        ? postcode.trim().length > 0 && postcode.trim().length < 5
+                          ? 'That postcode looks too short — we can only deliver to UK addresses.'
+                          : 'Complete the delivery address to continue.'
+                        : 'Almost there — check the details above.'}
+                </p>
+              )}
               <Button
                 onClick={handlePay}
                 disabled={!canPay}
