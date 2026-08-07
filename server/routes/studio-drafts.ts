@@ -495,8 +495,18 @@ export function registerStudioDraftRoutes(app: Express): void {
 
       const row = rows[0];
       // Treat token mismatch + missing card as the same response —
-      // don't reveal that the card exists.
+      // don't reveal that the card exists. But LOG which it was: Aidan
+      // hit the broken-link screen from the admin's Digital link
+      // (2026-08-07) and the 404 gave us nothing to diagnose with. The
+      // response stays identical either way; only stderr learns more.
       if (!row || row.viewToken !== token) {
+        console.warn(
+          `[PUBLIC_VIEW_404] card=${id} ` +
+            (!row
+              ? 'no such card'
+              : `token mismatch (got ${token.slice(0, 6)}…, ` +
+                `stored ${row.viewToken ? row.viewToken.slice(0, 6) + '…' : 'NULL'})`),
+        );
         return res.status(404).json({ message: 'Card not found' });
       }
 
