@@ -701,28 +701,21 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
   };
 
   const share = async () => {
-    // Guard the WHOLE flow, not just the mint: with the native sheet
-    // open, a second tap makes navigator.share throw "an earlier share
-    // has not yet completed" — which the toast then reported as a scary
-    // failure while the working sheet sat right there (Aidan 2026-08-07).
+    // Copy, don't open the native share sheet (Aidan 2026-08-07: "the
+    // button click should just copy the link"). The sheet added a modal
+    // decision on top of a one-decision action — and its stays-open
+    // state caused the double-tap error this replaced. Copy is instant,
+    // repeatable, and pastes anywhere.
     if (busy) return;
     setBusy(true);
     try {
       const link = await getLink();
-      // Native share sheet where it exists (the WhatsApp path this is
-      // for); clipboard everywhere else.
-      if (navigator.share) {
-        await navigator.share({ url: link });
-        return;
-      }
       await navigator.clipboard.writeText(link);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2500);
     } catch (err: any) {
-      if (err?.name === 'AbortError') return; // they closed the sheet
-      if (err?.name === 'InvalidStateError') return; // sheet already open
       toast({
-        title: "Couldn't get the share link",
+        title: "Couldn't copy the link",
         description: err?.message ?? 'Try again in a moment.',
         variant: 'destructive',
       });
@@ -741,7 +734,7 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
         data-testid="btn-free-share"
       >
         <Share2 className="h-3.5 w-3.5" />
-        {copied ? 'Link copied!' : 'Or share a digital preview — free'}
+        {copied ? 'Link copied — paste it anywhere' : 'Or copy a digital preview link — free'}
       </button>
       <p className="mt-1 text-[11px] text-keeper-meta">
         They'll see the card on any screen. The real thing still wants a
