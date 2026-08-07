@@ -33,7 +33,48 @@ function escapeAttr(s: string): string {
     .replace(/>/g, '&gt;');
 }
 
+/** Meta for shared card links (/c/<token> and the legacy long form).
+ *  A branded TEASE on purpose — never the card art: the viewer's
+ *  TAP-TO-OPEN reveal is the product, and OG images are fetched and
+ *  cached by platform crawlers unauthenticated, so customer faces
+ *  stay off WhatsApp/Meta CDNs. One static image for every card. */
+const SHARE_OG = {
+  title: 'Someone made you a card',
+  description:
+    "A personalised card, made just for you — you're in the picture. Tap to open it.",
+  image: `${SITE_ORIGIN}/og-share-card.png?v=1`,
+  imageAlt:
+    'Someone made you an unbinnable card — Celebrait',
+};
+
+function isShareLinkPath(p: string): boolean {
+  return /^\/c\/[\w-]+/.test(p) || /^\/card\/\d+\/view/.test(p);
+}
+
 export function injectSeo(templateHtml: string, requestPath: string): string {
+  if (isShareLinkPath(requestPath)) {
+    const t = escapeAttr(SHARE_OG.title);
+    const d = escapeAttr(SHARE_OG.description);
+    return (
+      templateHtml
+        // No canonical: every share link is unique and none should be
+        // indexed (robots already disallow it) — a canonical would be
+        // actively wrong here.
+        .replace(/^\s*<link rel="canonical"[^>]*>\s*$/m, '')
+        .replace(/<title>[^<]*<\/title>/, `<title>${t}</title>`)
+        .replace(/(<meta name="description" content=")[^"]*(")/, `$1${d}$2`)
+        .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${t}$2`)
+        .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${d}$2`)
+        .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${SHARE_OG.image}$2`)
+        .replace(/(<meta property="og:image:secure_url" content=")[^"]*(")/, `$1${SHARE_OG.image}$2`)
+        .replace(/(<meta property="og:image:type" content=")[^"]*(")/, `$1image/png$2`)
+        .replace(/(<meta property="og:image:alt" content=")[^"]*(")/, `$1${escapeAttr(SHARE_OG.imageAlt)}$2`)
+        .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${t}$2`)
+        .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${d}$2`)
+        .replace(/(<meta name="twitter:image" content=")[^"]*(")/, `$1${SHARE_OG.image}$2`)
+    );
+  }
+
   const seo = seoForPath(requestPath);
 
   if (!seo) {

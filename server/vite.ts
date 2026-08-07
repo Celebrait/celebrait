@@ -61,7 +61,13 @@ export async function setupVite(app: Express, server: Server) {
       // seconds to every reload. Removed 2026-05-13. Vite handles
       // HMR + ETag/304 invalidation correctly on its own.
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      // Same SEO/OG rewriting as prod (serveStatic below) — without this,
+      // dev serves base metadata on every path, so share-link previews
+      // and canonicals can't be verified locally with curl.
+      res
+        .status(200)
+        .set({ "Content-Type": "text/html" })
+        .end(injectSeo(page, url.split("?")[0]));
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
