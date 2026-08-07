@@ -542,6 +542,23 @@ function CustomerDetail({ id, onBack }: { id: string; onBack: () => void }) {
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-stone-500">
                       <GenLine label="Front" side={c.gen.front} />
                       <GenLine label="Inside" side={c.gen.inside} />
+                      {/* Digital link — present whenever a token has been
+                          minted (free share or paid order). Opens the
+                          exact link the recipient gets, so support
+                          questions ("she says the link is broken") can be
+                          checked first-hand. Absent = never shared. */}
+                      {c.viewToken && (
+                        <a
+                          href={`/card/${c.id}/view?t=${encodeURIComponent(c.viewToken)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-violet-600 hover:underline"
+                          data-testid={`admin-digital-link-${c.id}`}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Digital link
+                        </a>
+                      )}
                     </div>
                     <StudioTrailPanel trail={c.studio} />
                   </div>
