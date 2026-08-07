@@ -29,6 +29,7 @@ import { familyKey } from '@/lib/studio-card-buckets';
 import type { CardGridItem } from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardDraftState, CardSide } from '@shared/schema';
@@ -544,6 +545,18 @@ function LoadedView({
             famKey={card.state.rerollFamilyId ?? card.id}
           />
         )}
+
+        {/* Free digital preview — the growth loop (Aidan 2026-08-07,
+            "might as well let them share a digital link for free").
+            The generation cost is sunk; a shared card runs the arrival
+            flow (lead capture, make-your-own, recipient paid flip) at
+            zero marginal cost. DELIBERATELY here and nowhere near the
+            checkout/Giving Moment: next to a Pay button this becomes a
+            £0 exit ramp, on the card page it's distribution. Quiet by
+            design — subordinate to Send. */}
+        {!hasPaid && card.status === 'completed' && (
+          <FreeShareBlock cardId={card.id} />
+        )}
       </div>
 
     </div>
@@ -657,6 +670,80 @@ function PaidActions({
     <p className="text-sm text-keeper-meta">
       This card has been sent. Track delivery in Orders &amp; delivery.
     </p>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// FreeShareBlock — share a digital preview WITHOUT buying. Mints (or
+// reuses) the card's view token via /api/studio/cards/:id/share-token —
+// an endpoint that existed unused; the only gate on free sharing was
+// this UI never calling it. Copy leans on "preview": the link is the
+// pitch for the printed thing, not a substitute for it.
+// ─────────────────────────────────────────────────────────────────────
+
+function FreeShareBlock({ cardId }: { cardId: number }) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const getLink = async () => {
+    if (url) return url;
+    setBusy(true);
+    try {
+      const res = await apiRequest(
+        'POST',
+        `/api/studio/cards/${cardId}/share-token`,
+      );
+      const body = (await res.json()) as { shareUrl?: string };
+      if (!body.shareUrl) throw new Error('No link returned');
+      const abs = `${window.location.origin}${body.shareUrl}`;
+      setUrl(abs);
+      return abs;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const share = async () => {
+    try {
+      const link = await getLink();
+      // Native share sheet where it exists (the WhatsApp path this is
+      // for); clipboard everywhere else.
+      if (navigator.share) {
+        await navigator.share({ url: link });
+        return;
+      }
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return; // they closed the sheet
+      toast({
+        title: "Couldn't get the share link",
+        description: err?.message ?? 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <div className="text-center">
+      <button
+        type="button"
+        onClick={share}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-meta underline-offset-2 hover:text-keeper-ink hover:underline disabled:opacity-50"
+        data-testid="btn-free-share"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        {copied ? 'Link copied!' : 'Or share a digital preview — free'}
+      </button>
+      <p className="mt-1 text-[11px] text-keeper-meta">
+        They'll see the card on any screen. The real thing still wants a
+        letterbox.
+      </p>
+    </div>
   );
 }
 
