@@ -42,9 +42,9 @@ const SHARE_OG = {
   title: 'Someone made you a card',
   description:
     "A personalised card, made just for you — you're in the picture. Tap to open it.",
-  image: `${SITE_ORIGIN}/og-share-card.png?v=1`,
+  image: `${SITE_ORIGIN}/og-share-card.png?v=2`,
   imageAlt:
-    'Someone made you an unbinnable card — Celebrait',
+    'Someone made you an Unbinnable Greetings Card — Celebrait',
 };
 
 function isShareLinkPath(p: string): boolean {
