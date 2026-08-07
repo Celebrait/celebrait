@@ -1482,6 +1482,75 @@ export async function sendDropOffLastCallEmail(params: {
 
 export type ReminderTier = 't_21' | 't_7' | 't_3';
 
+/** The draft nudge — the card is MADE, it just hasn't been posted.
+ *  Fires once (reminder_log tier 'draft_t10') when a completed, unpaid
+ *  card's occasion is 1-10 days out. Carina's case (2026-08-07): made
+ *  the card months early, deferred the purchase, and the ladder's
+ *  make-a-card reminders were either suppressed or off-message. This is
+ *  the email that converts the warmest lead we have: intent proven,
+ *  work done, money not yet taken. */
+export async function sendDraftNudgeEmail(params: {
+  senderEmail: string;
+  senderName: string | null;
+  recipientName: string;
+  occasion: string;
+  daysUntil: number;
+  /** Deep link to the card's give/checkout flow. Absolute. */
+  giveUrl: string;
+  frontImageUrl?: string | null;
+  insideImageUrl?: string | null;
+}): Promise<boolean> {
+  const { senderEmail, senderName, recipientName, occasion, daysUntil, giveUrl } = params;
+  const greeting = senderName ? `Hi ${escape(senderName)},` : 'Hi there,';
+  const who = escape(recipientName);
+  const occ = escape(occasion === 'other' ? 'big day' : occasion.replace(/_/g, ' '));
+
+  const timing =
+    daysUntil <= 2
+      ? 'is nearly here — post it today and it can still make it'
+      : daysUntil <= 4
+        ? `is ${daysUntil} days away — post it now and it'll arrive in time`
+        : `is ${daysUntil} days away — post it this week and it'll arrive in time`;
+
+  const frontAbs = absoluteEmailImage(params.frontImageUrl);
+  const insideAbs = absoluteEmailImage(params.insideImageUrl);
+  const heroImages = [
+    frontAbs
+      ? { src: frontAbs, alt: `The front of ${recipientName}'s card`, caption: 'Front' }
+      : null,
+    insideAbs
+      ? { src: insideAbs, alt: 'The inside of the card', caption: 'Inside' }
+      : null,
+  ].filter(Boolean) as Array<{ src: string; alt: string; caption?: string }>;
+
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      ${who}'s ${occ} ${timing}. The card you made is ready and waiting in
+      your Drafts — every card is printed to order (up to 72 hours), then
+      posted.
+    </p>
+    <p style="margin: 0 0 8px;">
+      One tap below and it's on its way.
+    </p>
+  `;
+
+  return sendEmail({
+    to: senderEmail,
+    subject: `${recipientName}'s card is ready — time to post it`,
+    text: `${recipientName}'s ${occasion} ${timing}. The card you made is waiting in your Drafts: ${giveUrl}`,
+    html: chassis({
+      preheader: `${recipientName}'s ${occ} is coming up — the card you made is ready to post.`,
+      heading: 'You already made the hard part.',
+      bodyHtml: body,
+      heroImages,
+      cta: { label: 'Post it now', href: giveUrl },
+      footerNote:
+        'You asked us to nudge you in good time when you saved this card for later.',
+    }),
+  });
+}
+
 export async function sendReminderEmail(params: {
   senderEmail: string;
   senderName: string | null;

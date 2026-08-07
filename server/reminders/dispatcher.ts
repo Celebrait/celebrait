@@ -41,6 +41,7 @@ import {
 } from '@shared/fixed-occasions';
 import {
   sendReminderEmail,
+  sendDraftNudgeEmail,
   type ReminderTier,
 } from '../email-service';
 
@@ -57,8 +58,8 @@ interface DispatchOptions {
 interface DispatchResult {
   examined: number;
   fired: number;
-  skipped: Array<{ occasionId: number; tier: ReminderTier; reason: string }>;
-  errors: Array<{ occasionId: number; tier: ReminderTier; error: string }>;
+  skipped: Array<{ occasionId: number; tier: ReminderTier | 'draft_t10'; reason: string }>;
+  errors: Array<{ occasionId: number; tier: ReminderTier | 'draft_t10'; error: string }>;
 }
 
 /** Run a full dispatch pass. Idempotent — calling twice on the same
@@ -133,6 +134,116 @@ export async function runReminderDispatch(
     }
 
     const daysUntil = daysBetween(today, nextOccurrence);
+
+    // ── Ready-but-unbought draft? The generic ladder is wrong for it
+    // in BOTH directions: made <30d ago, isCardAlreadyHandled silenced
+    // every reminder (black hole — Carina 2026-08-07); made earlier, the
+    // window lapsed and "time to make a card" told her to make one she'd
+    // already made. A completed unpaid card replaces the whole ladder
+    // with ONE targeted touch: post it in time (T-10..T-1, once). ──
+    const readyDraft = await findReadyUnpaidCard(
+      entry.userId,
+      entry.name,
+      occasion.occasion,
+    );
+    if (readyDraft) {
+      const year = nextOccurrence.getUTCFullYear();
+      if (daysUntil < 1 || daysUntil > 10) {
+        result.skipped.push({
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          reason: `ready draft waiting (card ${readyDraft.id}) — nudge window is T-10..T-1`,
+        });
+        continue;
+      }
+      const alreadyNudged = await db
+        .select({ id: reminderLog.id })
+        .from(reminderLog)
+        .where(
+          and(
+            eq(reminderLog.occasionId, occasion.id),
+            eq(reminderLog.tier, 'draft_t10'),
+            eq(reminderLog.year, year),
+          ),
+        )
+        .limit(1);
+      if (alreadyNudged.length > 0) {
+        result.skipped.push({
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          reason: 'draft nudge already fired this year',
+        });
+        continue;
+      }
+      if (opts.dryRun) {
+        console.log(
+          `[REMINDERS] DRY RUN would fire draft_t10 for occasion ${occasion.id} (${entry.name}'s ${occasion.occasion}, card ${readyDraft.id}) — daysUntil=${daysUntil}`,
+        );
+        result.fired += 1;
+        continue;
+      }
+      try {
+        const senderRows = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.id, entry.userId))
+          .limit(1);
+        const sender = senderRows[0];
+        if (!sender?.email) {
+          result.skipped.push({
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            reason: 'sender email missing',
+          });
+          continue;
+        }
+        const emailSent = await sendDraftNudgeEmail({
+          senderEmail: sender.email,
+          senderName: sender.firstName,
+          recipientName: entry.name,
+          occasion: occasion.occasion,
+          daysUntil,
+          giveUrl: `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk'}/studio/card/${readyDraft.id}/give`,
+          frontImageUrl: readyDraft.front,
+          insideImageUrl: readyDraft.inside,
+        });
+        await db.insert(reminderLog).values({
+          userId: entry.userId,
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          year,
+          emailSent,
+          failureReason: emailSent ? null : 'transport returned false',
+        }).onConflictDoNothing();
+        if (emailSent) {
+          result.fired += 1;
+          console.log(
+            `[REMINDERS] Fired draft_t10 for occasion ${occasion.id} (${entry.name}'s ${occasion.occasion}, card ${readyDraft.id}) → ${sender.email}`,
+          );
+        } else {
+          result.errors.push({
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            error: 'transport returned false',
+          });
+        }
+      } catch (err: any) {
+        const msg = err?.message ?? String(err);
+        result.errors.push({ occasionId: occasion.id, tier: 'draft_t10', error: msg });
+        try {
+          await db.insert(reminderLog).values({
+            userId: entry.userId,
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            year,
+            emailSent: false,
+            failureReason: msg.slice(0, 500),
+          }).onConflictDoNothing();
+        } catch { /* logged best-effort */ }
+      }
+      continue;
+    }
+
     const dueTier = tierForDaysUntil(daysUntil);
     if (!dueTier) continue; // not a reminder day for this occasion
 
@@ -345,6 +456,47 @@ function tierForDaysUntil(days: number): ReminderTier | null {
 /** Has this user already made + paid for a card to this recipient for
  *  this occasion in the recent window? Smart-skip signal — don't
  *  prompt someone to start a card they've already sent. */
+/** Most recent COMPLETED card for this person+occasion with no paid
+ *  order — any age, deliberately no 30-day window: drafts made months
+ *  early are the entire point (Carina). Null when nothing qualifies. */
+async function findReadyUnpaidCard(
+  userId: string,
+  recipientName: string,
+  occasion: string,
+): Promise<{ id: number; front: string | null; inside: string | null } | null> {
+  const rows = await db
+    .select({
+      id: cards.id,
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`(${cards.conversationData}->'recipient'->>'name') ILIKE ${recipientName}`,
+        sql`(${cards.conversationData}->'recipient'->>'occasion') = ${occasion}`,
+        sql`NOT EXISTS (
+          select 1 from ${studioOrders}
+          where ${studioOrders.cardId} = ${cards.id}
+            and ${studioOrders.paymentStatus} = 'paid'
+        )`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    front: row.frontImagePath ? publicImageUrl(row.frontImagePath) : row.frontImageUrl,
+    inside: row.insideImagePath ? publicImageUrl(row.insideImagePath) : row.insideImageUrl,
+  };
+}
+
 async function isCardAlreadyHandled(
   userId: string,
   recipientName: string,
