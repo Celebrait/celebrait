@@ -563,6 +563,81 @@ export function registerAdminCustomersRoutes(app: Express): void {
       res.status(500).json({ message: 'Failed to load leads' });
     }
   });
+
+  // ── GET /api/admin/signup-dropoffs ──────────────────────────────────
+  // Who asked for a login code and never came back.
+  //
+  // The join works because the user row is created on VERIFY, not on
+  // send (see replit_integrations/auth/routes.ts) — so an email sitting
+  // in otp_codes with no matching users row is, by definition, someone
+  // who wanted in and didn't get there.
+  //
+  // `sendFailures` counts attempts where Brevo refused the send. Those
+  // are the painful ones: the person did everything right and never got
+  // an email. Read a high number here as a deliverability problem, not
+  // a user problem.
+  //
+  // Caveat worth knowing when reading these numbers: a successful send
+  // retires that email's older codes, so `attempts` counts surviving
+  // rows, not lifetime requests. Direction is trustworthy; the absolute
+  // count under-reports repeat askers.
+  app.get('/api/admin/signup-dropoffs', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    try {
+      const [summary] = (
+        await db.execute(sql`
+          select
+            count(distinct lower(o.email))                                as requested,
+            count(distinct lower(o.email)) filter (where u.id is not null) as signed_up,
+            count(distinct lower(o.email)) filter (
+              where u.id is null and o.created_at > now() - interval '30 days'
+            )                                                             as stuck_30d
+          from otp_codes o
+          left join users u on lower(u.email) = lower(o.email)
+        `)
+      ).rows as any[];
+
+      const rows = (
+        await db.execute(sql`
+          select lower(o.email)                                    as email,
+                 min(o.created_at)                                 as "firstRequested",
+                 max(o.created_at)                                 as "lastRequested",
+                 count(*)                                          as attempts,
+                 count(*) filter (where o.used = 'send_failed')    as "sendFailures"
+          from otp_codes o
+          left join users u on lower(u.email) = lower(o.email)
+          where u.id is null
+          group by lower(o.email)
+          order by max(o.created_at) desc
+          limit 500
+        `)
+      ).rows as any[];
+
+      const requested = Number(summary?.requested ?? 0);
+      const signedUp = Number(summary?.signed_up ?? 0);
+
+      res.json({
+        summary: {
+          requested,
+          signedUp,
+          stuck: requested - signedUp,
+          stuck30d: Number(summary?.stuck_30d ?? 0),
+          // Guard the divide — an empty table is 0%, not NaN.
+          conversionPct: requested > 0 ? Math.round((signedUp / requested) * 100) : 0,
+        },
+        dropoffs: rows.map((r) => ({
+          email: r.email,
+          firstRequested: r.firstRequested,
+          lastRequested: r.lastRequested,
+          attempts: Number(r.attempts),
+          sendFailures: Number(r.sendFailures),
+        })),
+      });
+    } catch (err) {
+      console.error('[ADMIN_CUSTOMERS] signup-dropoffs error:', err);
+      res.status(500).json({ message: 'Failed to load sign-up drop-offs' });
+    }
+  });
 }
 
 // Whitelist status filter values so a `?payment=` can't inject.

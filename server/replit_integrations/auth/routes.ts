@@ -121,9 +121,19 @@ export function registerAuthRoutes(app: Express): void {
 
       const emailSent = await sendOtpEmail(normalizedEmail, code);
       if (!emailSent) {
-        // The new code never reached an inbox — remove it, keep any
-        // previous (possibly delivered) codes valid.
-        await db.delete(otpCodes).where(eq(otpCodes.id, inserted.id)).catch(() => {});
+        // The new code never reached an inbox. It used to be DELETED
+        // here, which kept the table tidy but erased the evidence — the
+        // people hurt most by a deliverability problem left no trace at
+        // all. Mark it instead: 'send_failed' is not 'false', so verify
+        // (which matches used = 'false') still refuses it, and older
+        // delivered codes stay valid because the retire-old step below
+        // only runs on success. Same behaviour, now countable — see
+        // /api/admin/signup-dropoffs.
+        await db
+          .update(otpCodes)
+          .set({ used: "send_failed" })
+          .where(eq(otpCodes.id, inserted.id))
+          .catch(() => {});
         return res.status(503).json({ message: "Failed to send verification email. Please try again shortly." });
       }
 

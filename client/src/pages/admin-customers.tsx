@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle, Download } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle, Download, UserX } from 'lucide-react';
 import { genCostUsdX100ToGbp } from '@shared/pricing';
 
 interface GenSide { ok: number; fail: number }
@@ -179,7 +179,7 @@ function Pill({ label, color }: { label: string; color?: string }) {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────
-type Tab = 'customers' | 'orders' | 'leads';
+type Tab = 'customers' | 'orders' | 'leads' | 'dropoffs';
 
 export default function AdminCustomersPage() {
   const [tab, setTab] = useState<Tab>('customers');
@@ -201,10 +201,12 @@ export default function AdminCustomersPage() {
             <TabButton icon={Users} label="Customers" active={tab === 'customers'} onClick={() => setTab('customers')} />
             <TabButton icon={Package} label="Orders" active={tab === 'orders'} onClick={() => setTab('orders')} />
             <TabButton icon={UserPlus} label="Leads" active={tab === 'leads'} onClick={() => setTab('leads')} />
+            <TabButton icon={UserX} label="Drop-offs" active={tab === 'dropoffs'} onClick={() => setTab('dropoffs')} />
           </div>
           {tab === 'customers' && <CustomersTab onSelect={setSelectedCustomer} />}
           {tab === 'orders' && <OrdersTab />}
           {tab === 'leads' && <LeadsTab />}
+          {tab === 'dropoffs' && <DropoffsTab />}
         </>
       )}
     </div>
@@ -991,6 +993,93 @@ function LeadsTab() {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ── Drop-offs tab ────────────────────────────────────────────────────
+// Everyone who asked for a login code and never finished signing up.
+// The user row is only written on verify, so "in otp_codes, not in
+// users" is exactly that set.
+//
+// `sendFailures > 0` means the email never left the building — that's a
+// deliverability failure, not someone changing their mind, and it's the
+// column to watch while OTP delivery is still on Brevo.
+interface DropoffRow {
+  email: string;
+  firstRequested: string;
+  lastRequested: string;
+  attempts: number;
+  sendFailures: number;
+}
+
+function DropoffsTab() {
+  const { data, isLoading } = useQuery<{
+    summary: { requested: number; signedUp: number; stuck: number; stuck30d: number; conversionPct: number };
+    dropoffs: DropoffRow[];
+  }>({ queryKey: ['/api/admin/signup-dropoffs'] });
+
+  if (isLoading) return <Spinner />;
+  const s = data?.summary;
+  const rows = data?.dropoffs ?? [];
+  const undelivered = rows.filter((r) => r.sendFailures > 0).length;
+
+  return (
+    <div className="space-y-4">
+      {s && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MiniStat label="Asked for a code" value={String(s.requested)} />
+          <MiniStat label="Got through" value={`${s.signedUp} (${s.conversionPct}%)`} />
+          <MiniStat label="Never signed up" value={String(s.stuck)} />
+          <MiniStat label="Stuck, last 30d" value={String(s.stuck30d)} />
+        </div>
+      )}
+
+      {undelivered > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            <strong>{undelivered}</strong> of these never received an email — the send itself failed.
+            That's deliverability, not drop-off.
+          </span>
+        </div>
+      )}
+
+      <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-stone-200 text-left text-[11px] uppercase tracking-wide text-stone-400">
+              <th className="px-3 py-2 font-medium">Email</th>
+              <th className="px-3 py-2 font-medium">Codes sent</th>
+              <th className="px-3 py-2 font-medium">Undelivered</th>
+              <th className="px-3 py-2 font-medium">First asked</th>
+              <th className="px-3 py-2 font-medium">Last asked</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.email} className="border-b border-stone-100 last:border-0">
+                <td className="px-3 py-2 text-stone-800">{r.email}</td>
+                <td className="px-3 py-2 text-stone-500">{r.attempts}</td>
+                <td className="px-3 py-2">
+                  {r.sendFailures > 0
+                    ? <Pill label={String(r.sendFailures)} color="bg-amber-100 text-amber-800" />
+                    : <span className="text-stone-400">—</span>}
+                </td>
+                <td className="px-3 py-2 text-stone-500">{fmtDate(r.firstRequested)}</td>
+                <td className="px-3 py-2 text-stone-500">{fmtDate(r.lastRequested)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-stone-400">
+                  Nobody's stuck — everyone who asked for a code signed up.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
