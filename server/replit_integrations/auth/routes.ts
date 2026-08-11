@@ -4,7 +4,7 @@ import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
-import { eq, and, gt, ne } from "drizzle-orm";
+import { eq, and, gt, lt, ne } from "drizzle-orm";
 import { sendOtpEmail, sendWelcomeEmail } from "../../email-service";
 import { rateLimitHit, rateLimitClear, clientIp } from "../../simple-rate-limit";
 
@@ -35,6 +35,19 @@ const SEND_PER_EMAIL_HOURLY = 6; //   6 sends / hour / email
 const SEND_PER_IP_HOURLY = 30; //  30 sends / hour / IP
 const VERIFY_PER_IP_PER_MIN = 30; //  30 verify attempts / min / IP
 const VERIFY_FAILS_PER_CODE = 5; //   5 wrong guesses → code invalidated
+
+// How long a code stays valid. Raised 10m → 30m (2026-08-10) because
+// Brevo delivery has been running minutes late: a code that expires
+// before the email lands reads to the user as "this site is broken",
+// and they can't tell a slow email from a bad code. This does NOT
+// meaningfully weaken the 6-digit space — VERIFY_FAILS_PER_CODE burns
+// every outstanding code for the email after 5 wrong guesses, so the
+// guess budget is unchanged by the longer window.
+//
+// The wrong-guess counter's window is deliberately pinned to this same
+// value: if the counter reset while a code was still alive, an attacker
+// would get 5 guesses per reset rather than 5 per code.
+const OTP_TTL_MS = 30 * 60 * 1000;
 
 // Register auth-specific routes
 export function registerAuthRoutes(app: Express): void {
@@ -101,7 +114,7 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       const code = generateOtp();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
       // ORDER MATTERS (audit 2026-07-27): insert the NEW code first and
       // retire old ones only AFTER the new email actually sends. The old
@@ -137,10 +150,23 @@ export function registerAuthRoutes(app: Express): void {
         return res.status(503).json({ message: "Failed to send verification email. Please try again shortly." });
       }
 
-      // New code is in flight — retire the older ones now.
+      // New code is in flight. Sweep only the EXPIRED codes for this
+      // email — previously this retired every other code, which is the
+      // wrong call the moment delivery runs slow: someone who resends
+      // because nothing arrived would have code #1 invalidated, then
+      // both emails land together and the one they type (the first to
+      // arrive) is already dead. Letting unexpired codes coexist costs
+      // nothing — verify accepts any unused, unexpired code for the
+      // email, and 5 wrong guesses still burns all of them at once.
       await db
         .delete(otpCodes)
-        .where(and(eq(otpCodes.email, normalizedEmail), ne(otpCodes.id, inserted.id)));
+        .where(
+          and(
+            eq(otpCodes.email, normalizedEmail),
+            ne(otpCodes.id, inserted.id),
+            lt(otpCodes.expiresAt, new Date()),
+          ),
+        );
 
       res.json({ success: true, message: "Verification code sent" });
     } catch (error) {
@@ -196,7 +222,7 @@ export function registerAuthRoutes(app: Express): void {
           .limit(1);
 
         if (!otp) {
-          if (rateLimitHit(failKey, VERIFY_FAILS_PER_CODE, 10 * 60 * 1000)) {
+          if (rateLimitHit(failKey, VERIFY_FAILS_PER_CODE, OTP_TTL_MS)) {
             await db.delete(otpCodes).where(eq(otpCodes.email, normalizedEmail));
             return res.status(429).json({
               message: "Too many incorrect codes — request a new one to continue.",
