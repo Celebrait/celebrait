@@ -79,10 +79,16 @@ export function KeeperHeader() {
               </Link>
             ) : (
               <>
+                {/* Visible on mobile too (2026-08-10). This was
+                    `hidden … sm:block`, so under 640px the header offered
+                    "Make a card" and nothing else — a returning customer on
+                    a phone had no way back into their account from the
+                    landing page. It fits: both controls are compact and the
+                    CTA already shortens to "Make a card" at this width. */}
                 <button
                   type="button"
                   onClick={() => openAuth('/studio')}
-                  className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block"
+                  className="px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink"
                 >
                   Sign in
                 </button>

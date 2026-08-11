@@ -282,16 +282,23 @@ export function AuthForm({
         <>
           {googleEnabled && (
             <>
+              {/* Deliberately heavy for an "outline" button (2026-08-10).
+                  It was a hairline box next to a saturated purple CTA and
+                  read as a footnote — but one tap beats waiting on an
+                  emailed code, and while Brevo is delivering late this is
+                  the more reliable way in. Solid border + shadow + a
+                  full-size G mark so it reads as a real choice. Stays
+                  white-on-light per Google's brand guidance. */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
-                className="w-full h-11 border-stone-200 hover:bg-stone-50 text-ink font-medium"
+                className="w-full h-11 border-2 border-keeper-stone/30 bg-white shadow-sm hover:bg-keeper-paper hover:border-keeper-stone/50 hover:shadow text-keeper-ink font-semibold transition-all"
                 data-testid="btn-google-signin"
               >
                 {/* Google "G" mark — kept inline so we don't ship an
                     SVG asset for one button. */}
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden>
+                <svg className="w-5 h-5 mr-2.5" viewBox="0 0 24 24" aria-hidden>
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
