@@ -89,6 +89,20 @@ export function registerGoogleAuthRoutes(app: Express): void {
     console.log('[google-oauth] Routes registered. Redirect URI:', cfg.redirectUri);
   }
 
+  // ── Step 0 ─ is this even switched on?
+  //
+  // The client used to decide whether to render "Continue with Google"
+  // from a hardcoded flag, which meant the button and the server config
+  // could disagree in both directions — a dead button that 503s, or a
+  // working provider nobody can reach. This lets the client ask.
+  //
+  // Deliberately public and deliberately boring: a boolean saying
+  // whether three env vars are present. It leaks nothing an attacker
+  // couldn't learn by clicking the button.
+  app.get('/api/auth/google/available', (_req: Request, res: Response) => {
+    res.json({ available: readGoogleConfig() !== null });
+  });
+
   // ── Step 1 ─ kickoff. Redirect the browser to Google's consent screen.
   app.get('/api/auth/google', (req: Request, res: Response) => {
     const cfg = readGoogleConfig();

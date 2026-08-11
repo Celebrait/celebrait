@@ -12,9 +12,10 @@
 // component owns the auth state machine and emits step changes so
 // the parent can mirror them.
 //
-// Piece B (next) wires the "Continue with Google" button to the real
-// /api/auth/google route — currently the button is rendered and
-// clickable, but the server route is a 404 until OAuth lands.
+// Google sign-in is fully wired (2026-08-10): the button posts to the
+// real /api/auth/google route, and whether it renders at all is decided
+// by the server via /api/auth/google/available — so it appears when the
+// OAuth env vars are set and stays hidden when they aren't.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export type AuthStep = 'email' | 'code' | 'welcome';
@@ -35,8 +37,11 @@ interface AuthFormProps {
   /** Fires whenever the form transitions between email/code/welcome.
    *  Lets the parent surface swap its headline + subline copy in sync. */
   onStepChange?: (step: AuthStep) => void;
-  /** Show the "Continue with Google" button + divider. Default true.
-   *  Pass false to hide if the surface only wants OTP. */
+  /** Show the "Continue with Google" button + divider.
+   *  Omit (the default) to follow the server: the button renders only
+   *  when /api/auth/google/available says OAuth is configured, so it
+   *  can never be a dead button and never needs a deploy to appear.
+   *  Pass an explicit boolean only to force it on/off for a surface. */
   showGoogle?: boolean;
   /** Primary-button accent. 'cta' (green) is the default brand action
    *  colour used in the auth modal; /login passes 'brand' so the sign-in
@@ -69,12 +74,12 @@ export function authHeadingCopy(step: AuthStep, email?: string) {
 export function AuthForm({
   defaultRedirect = '/studio',
   onStepChange,
-  // Google sign-in is HIDDEN by default (Kevin 2026-07-24): OAuth isn't
-  // configured on prod yet, so /api/auth/google 503s — a dead button for
-  // testers. Flip back to true (or pass showGoogle) once GOOGLE_CLIENT_ID
-  // / SECRET / REDIRECT_URI are set in Render. Email OTP is the only path
-  // until then.
-  showGoogle = false,
+  // Google sign-in visibility now follows the SERVER (2026-08-10). It
+  // was hardcoded false on 2026-07-24 because OAuth wasn't configured on
+  // prod and the button 503s'd for testers — but that left the button
+  // needing a code change the day the env vars landed. Undefined here
+  // means "ask the server"; pass a boolean to override.
+  showGoogle,
   accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
@@ -87,6 +92,20 @@ export function AuthForm({
       ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
       : 'bg-go hover:bg-go-hover text-go-foreground';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
+
+  // Does the server actually have Google OAuth configured? Asked once
+  // and cached — an explicit showGoogle prop skips the question. While
+  // it's in flight the button stays hidden, so a slow answer shows OTP
+  // only rather than flashing a button that might not work.
+  // NOTE: hook stays up here with the others — this component has an
+  // early return further down and hooks below it have broken /login
+  // before.
+  const { data: googleCfg } = useQuery<{ available: boolean }>({
+    queryKey: ['/api/auth/google/available'],
+    staleTime: 5 * 60 * 1000,
+    enabled: showGoogle === undefined,
+  });
+  const googleEnabled = showGoogle ?? googleCfg?.available === true;
 
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -155,9 +174,9 @@ export function AuthForm({
   }, [isLoading, isAuthenticated, user, redirect, setLocation]);
 
   const handleGoogleSignIn = () => {
-    // Piece B will implement /api/auth/google. Until then the click
-    // takes the user to a 404 — fine for a dev preview, prevents the
-    // button from looking decorative.
+    // /api/auth/google is live (google-oauth.ts): it 302s to Google's
+    // consent screen and the callback bounces back with ?error=<code>
+    // on failure, which /login renders via GOOGLE_ERROR_COPY.
     const params = new URLSearchParams(window.location.search);
     const r = params.get('redirect');
     const next = r && r.startsWith('/') && !r.startsWith('//') ? r : redirect;
@@ -261,7 +280,7 @@ export function AuthForm({
     <div className="space-y-4">
       {step === 'email' && (
         <>
-          {showGoogle && (
+          {googleEnabled && (
             <>
               <Button
                 type="button"
