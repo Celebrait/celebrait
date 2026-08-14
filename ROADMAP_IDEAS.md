@@ -23,6 +23,19 @@ in the occasion reminder email. Natural upsell surface.
 
 ---
 
+## Quality & trust
+
+### Targeted card edits — weight/clothing/text (SCOPED)
+Bounded, templated fixes on a finished card instead of full re-roll:
+"truer to the photo" (likeness repair — never a weight control), change
+clothing, fix text. Front edits via the existing Gemini `refine()` path;
+inside text via `inside_write` re-render. Single-person cards first.
+**Full scope: `SCOPE_CARD_EDITS.md`.** PL pass rates gate what ships.
+**Why it matters:** render drift from the photo breaks the core promise;
+today's only fix gambles the whole card.
+
+---
+
 ## Product expansion
 
 ### Celebration stationery suite (tier 1 — natural extensions)
