@@ -113,6 +113,17 @@ Examples of WRONG retreats vs RIGHT framings (notice: NO people named, NO counti
   WRONG: "sits on the couch holding a trophy"                      ← retreated to nostalgia
   WRONG: "Dad lifting the Premier League trophy at Old Trafford"   ← names the recipient
   RIGHT: "Old Trafford post-match, the Premier League trophy raised high under stadium floodlights, red and white confetti falling, the Stretford End on its feet, captain's armband and gleaming silver"
+
+  Brief: "Skydiving New York"  (an ACTIVITY + a PLACE — then ALL THREE scenes are that activity in that place; vary the beat, never the subject)
+  WRONG SET: one skydive + a rooftop bonfire + a café toast   ← two of three abandoned the brief
+  RIGHT (a): "Mid-freefall high above Manhattan, arms spread wide, the grid of streets and Central Park sprawling below, wind tearing past, the Hudson glinting at the horizon"
+  RIGHT (b): "Canopy just burst open above the skyline, drifting past glass towers catching the afternoon sun, the city rising to meet the descent"
+  RIGHT (c): "Boots touching down on the drop-zone grass, parachute billowing behind, helmets tipped back mid-cheer, the New York skyline stacked against the sky"
+
+  Brief: "Thomas the Tank Engine"  (a NAMED CHARACTER is a world too — its unmistakable visual signatures go in ALL THREE scenes)
+  WRONG: "a train whistle echoes in the distance"                ← the character has been laundered out
+  WRONG: "the joyful hum of a familiar theme song"               ← same failure, in audio
+  RIGHT: "Aboard a cheerful blue steam engine with a smiling face on its round boiler, chuffing along a sunny branch line, carriages rattling behind, a signal box waving the journey through"
   RIGHT: "the centre circle moments after the whistle, trophy hoisted above shoulders, a sea of red flares behind, evening sun cutting through the smoke"
   RIGHT: "the tunnel back to the dressing room, trophy clutched close, the roar of 75,000 still echoing outside, a quiet half-smile in the corridor light"
 
@@ -180,9 +191,15 @@ export function buildUserPrompt(opts: {
   // contradiction the way "two friends" over five faces was — it's just
   // a tonal mismatch. Steering communal vs solitary keeps the
   // no-enumeration principle fully intact.
+  // ⚠️ Wording matters here: v1 of this line gave example imagery
+  // ("a toast, a bonfire circle") and the model COPIED those examples
+  // into outputs, overriding the user's brief — every group card got a
+  // bonfire regardless of what was typed (Aidan's screenshots,
+  // 2026-08-14). The hint now scales the moment WITHIN the brief's
+  // world and gives no imagery of its own to leak.
   const groupLine =
     photoMode === 'group'
-      ? 'This card\'s photo shows a GROUP. Favour communal, shared moments — a table everyone crowds round, a toast, a bonfire circle, an adventure clearly built for several. Avoid solitary-scaled moments (a lone chair, a quiet solo walk). Still never count, enumerate, or describe the people themselves.'
+      ? 'This card\'s photo shows a GROUP. Scale every moment so several people are clearly sharing it — but ALWAYS inside the world the brief demands. If the brief names a dance floor, the group is on THAT dance floor; if it names a skydive, they are jumping TOGETHER. Never replace the brief\'s world with generic gathering imagery. Only when the brief is empty may you choose the communal setting yourself. Avoid solitary-scaled moments. Still never count, enumerate, or describe the people themselves.'
       : '';
   return [
     `Recipient context (for occasion fit only — not for the scene text): ${recipientName}`,
