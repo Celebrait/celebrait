@@ -161,22 +161,34 @@ export function buildUserPrompt(opts: {
   recipientName: string;
   occasion: string;
   brief: string;
+  /** Photo-step mode. Steers the SCALE of the moment (communal vs
+   *  solitary), never person-counting — see the group line below. */
+  photoMode?: 'one_person' | 'group';
 }): string {
-  const { recipientName, occasion, brief } = opts;
+  const { recipientName, occasion, brief, photoMode } = opts;
   const briefLine = brief.trim()
     ? `Brief from the user: "${brief.trim()}"`
     : 'Brief from the user: (empty — pick three plausible directions for the occasion)';
   // Recipient name is provided as CONTEXT only — it informs the kind of
   // scene that makes sense for this card. It must NOT appear inside the
   // generated scene paragraph; the system prompt enforces that.
-  // photoMode / photoCount were previously passed here but are now
-  // dropped — the principle that scenes describe the WORLD not the
-  // PEOPLE makes person-counting redundant. The downstream image model
-  // sees the photo and renders whoever is in it.
+  //
+  // photoMode history: passed pre-2026-05-14, removed when scenes became
+  // world-not-people (person-COUNTING was the poison), reinstated
+  // 2026-08-13 as a moment-SCALING hint only. A group photo over a
+  // solitary-scaled scene ("a quiet chair by a window") isn't a
+  // contradiction the way "two friends" over five faces was — it's just
+  // a tonal mismatch. Steering communal vs solitary keeps the
+  // no-enumeration principle fully intact.
+  const groupLine =
+    photoMode === 'group'
+      ? 'This card\'s photo shows a GROUP. Favour communal, shared moments — a table everyone crowds round, a toast, a bonfire circle, an adventure clearly built for several. Avoid solitary-scaled moments (a lone chair, a quiet solo walk). Still never count, enumerate, or describe the people themselves.'
+      : '';
   return [
     `Recipient context (for occasion fit only — not for the scene text): ${recipientName}`,
     `Occasion: ${occasion}`,
     briefLine,
+    ...(groupLine ? [groupLine] : []),
     '',
     'Return three scene suggestions per the system instructions. Remember: describe the WORLD AND THE MOMENT (every scene needs an action verb), not the PEOPLE.',
   ].join('\n');
@@ -241,6 +253,7 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
                 recipientName,
                 occasion,
                 brief: body.brief ?? '',
+                photoMode: state?.photos?.mode,
               }),
             },
           ],
