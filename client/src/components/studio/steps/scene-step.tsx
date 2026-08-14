@@ -148,6 +148,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   };
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const briefRef = useRef<HTMLInputElement | null>(null);
+  /** The brief that produced the CURRENT suggestions. "See ideas" only
+   *  skips the refetch when the brief hasn't changed — reopening stale
+   *  tiles after the user typed a new steer read as "it's broken"
+   *  (Aidan 2026-08-13). */
+  const lastBriefRef = useRef<string | null>(null);
   // Debounce timer for committing the typed scene to the draft WHILE typing
   // (not only on blur) so "Next" enables as soon as there's text — the user
   // no longer has to click out of the box first. Debounced so the
@@ -161,6 +166,9 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   // still works (server falls back to recipient/occasion alone) but
   // the modal copy nudges the user to give us something.
   const suggestMutation = useMutation({
+    onMutate: () => {
+      lastBriefRef.current = brief.trim();
+    },
     mutationFn: async () => {
       if (!cardId) throw new Error('Card not ready');
       const r = await apiRequest('POST', '/api/studio/scene-suggestions', {
@@ -218,9 +226,15 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
    *  a set when there's nothing to show yet. */
   const openIdeas = () => {
     if (!cardId || busy) return;
-    if (suggestions.length === 0) {
-      if (!canReroll) return;
-      suggestMutation.mutate();
+    const briefChanged = brief.trim() !== (lastBriefRef.current ?? '');
+    if (suggestions.length === 0 || briefChanged) {
+      if (!canReroll) {
+        // Capped: open with what exists (the cap message explains);
+        // nothing to show at all means nothing to open.
+        if (suggestions.length === 0) return;
+      } else {
+        suggestMutation.mutate();
+      }
     }
     setSuggestOpen(true);
   };
@@ -592,13 +606,21 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
 
           <div className="space-y-2 mt-1">
             {busy ? (
+              // Placeholder tiles with a working wheel in each — the
+              // bare pulse boxes read as dead space on the white modal
+              // (Aidan 2026-08-13).
               <div className="space-y-2" aria-hidden>
+                <p className="text-xs text-keeper-meta">
+                  Sketching three ideas…
+                </p>
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-[84px] rounded-xl border border-keeper-hair/70 bg-keeper-paper/70 animate-pulse"
+                    className="flex h-[84px] items-center justify-center rounded-xl border border-keeper-hair bg-keeper-paper/80 animate-pulse"
                     style={{ animationDelay: `${i * 150}ms` }}
-                  />
+                  >
+                    <Loader2 className="h-5 w-5 animate-spin text-brand/70" />
+                  </div>
                 ))}
               </div>
             ) : (
