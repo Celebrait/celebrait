@@ -63,6 +63,14 @@ This means:
 - DO describe the location, the time of day, the lighting, the atmosphere, props and architecture and weather.
 - DO use scene-level verbs when motion is needed ("a toast raised high", "confetti falling", "footsteps in the snow") — agentless. The image model fills in who's lifting the glass.
 
+THE FOCAL ACTION IS VACANT — THIS IS THE WHOLE PRODUCT:
+Each scene has exactly ONE focal action, and NOBODY is doing it. It is a vacancy the photo people will fill. Never populate a scene with other humans as participants — no "friends", "a team", "a crowd gathers round", "bodies moving", "faces around", "hands reaching" belonging to anyone but the implied protagonist. If other people appear at all they are DISTANT SCENERY inherent to the world (a stadium roaring far below, a blurred silhouette line at the back of the club) — never sharing the focal action, never near the camera. And do not stand a placeholder in the vacancy either — no "a figure", "a caped figure", "a silhouette stands": keep the action itself agentless. "Cape snapping mid-flight above the skyline" — not "a caped figure mid-flight".
+  WRONG: "capes billowing, laughter among friends mid-leap in the sky"      ← invented friends now star in the card
+  RIGHT: "Mid-flight above the skyline, cape snapping in the wind, sunlight breaking through the clouds, the city gleaming far below"
+  WRONG: "a team gathers around a desk, coffee cups raised in a toast"      ← the recipient is a bystander at their own moment
+  RIGHT: "Mid-toast at the centre desk of a bustling newsroom, papers still settling, the evening edition rolling off the press behind"
+
+
 ACTION VERBS ARE NOT OPTIONAL — EVERY SCENE MUST HAVE ONE (Celebrait product USP):
 
 The card's value is putting the recipient INTO the scene, not in front of it. Every scene description MUST include at least one action verb or active phrase that gives the image model a moment to render in motion. Static descriptions ("at the X with Y behind") become stiff posed-shot outputs. Active descriptions ("walking along the X, mid-step, Y glowing in the distance") become candid moments.
@@ -99,7 +107,12 @@ CONTENT REQUIREMENTS:
     • Brief is loose, everyday, or empty: then vary by mood/tone (one warm/intimate, one playful/active, one understated/serene).
 - Build on what the user told you in the BRIEF. If they said "beach at sunset", suggestions ARE beach-at-sunset variations — don't drift to mountains. If the brief is empty, infer plausibly from the occasion alone.
 - ALL THREE must carry the brief's signature elements. NONE may retreat to a generic version of the occasion ("a party", "an arena", "a celebration"). If a stranger read one suggestion, they should be able to name the sport / band / place / world from the scene alone.
+- NAME THE WORLD, DON'T GESTURE AT IT. Every scene must contain at least TWO unmistakable, NAMED signatures of the brief's world — proper nouns where the world has them, exact iconography where it doesn't. "A famous skyline" or "an iconic city" is a failure.
+    Brief: "New York" → the Brooklyn Bridge's stone arches, the Empire State needling into cloud, yellow cabs streaming down Fifth Avenue, steam curling from a manhole, the Staten Island Ferry crossing a pink dusk — NOT "gleaming skyscrapers".
+    Brief: "Superman" → the red cape, the blue suit with the S-shield, the Daily Planet globe, Metropolis — commit to the exact iconography, don't dilute to "a caped hero over a city".
+- IN the world, never a party ABOUT the world. Themed decorations are a retreat: a Superman-themed cake, banners portraying the hero, a Formula-1-themed table — all WRONG. The card puts the recipient INSIDE the world itself: mid-flight with the cape snapping over Metropolis, not admiring a themed buffet. (The occasion may flavour the moment — a candle, a toast — but the WORLD is the venue, not the theme.)
 - Avoid clichés: "celebration of love", "another year older", "magical moment", "cherished memory". Specific beats sentimental.
+- BANNED FILLER — these paint nothing and are forbidden: "the air thick with excitement", "energy palpable", "vibrant energy radiating", "festive atmosphere", "joyous atmosphere", "the atmosphere electric", "excitement buzzing". Spend those words on a concrete visual instead (a prop, a light source, a texture, weather).
 
 FAITHFULNESS TO THE BRIEF — read this carefully:
 The user is telling you their fantasy / dream scene. Stay inside it. Three variants of the same scenario, not three retreats to safer ground.
@@ -191,15 +204,20 @@ export function buildUserPrompt(opts: {
   // contradiction the way "two friends" over five faces was — it's just
   // a tonal mismatch. Steering communal vs solitary keeps the
   // no-enumeration principle fully intact.
-  // ⚠️ Wording matters here: v1 of this line gave example imagery
-  // ("a toast, a bonfire circle") and the model COPIED those examples
-  // into outputs, overriding the user's brief — every group card got a
-  // bonfire regardless of what was typed (Aidan's screenshots,
-  // 2026-08-14). The hint now scales the moment WITHIN the brief's
-  // world and gives no imagery of its own to leak.
+  // ⚠️ Third iteration of this line — its history is a lesson in
+  // prompt leakage. v1 gave example imagery ("a bonfire circle") and
+  // the model pasted bonfires into every group card. v2 said "scale
+  // every moment so several people are clearly sharing it" and the
+  // model obeyed by INVENTING people — "friends mid-leap", "a team
+  // gathers", "bodies moving in unison" — leaving no vacant slot for
+  // the actual photo people (Aidan's Superman/Ibiza/Thomas screenshots,
+  // 2026-08-14). v3 scaled the stage but gave example nouns ("a long
+  // footplate") and a footplate duly appeared on a Superman rooftop.
+  // v4: zero nouns of its own — the line may only gesture at the
+  // brief's existing world.
   const groupLine =
     photoMode === 'group'
-      ? 'This card\'s photo shows a GROUP. Scale every moment so several people are clearly sharing it — but ALWAYS inside the world the brief demands. If the brief names a dance floor, the group is on THAT dance floor; if it names a skydive, they are jumping TOGETHER. Never replace the brief\'s world with generic gathering imagery. Only when the brief is empty may you choose the communal setting yourself. Avoid solitary-scaled moments. Still never count, enumerate, or describe the people themselves.'
+      ? 'This card\'s photo shows a GROUP. Make the stage of the focal action wide enough for several to share, expressed only through the size of the space and props that already belong to the brief\'s world. Give no examples of your own, add no people, and never import objects the world would not contain.'
       : '';
   return [
     `Recipient context (for occasion fit only — not for the scene text): ${recipientName}`,
