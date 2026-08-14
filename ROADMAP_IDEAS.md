@@ -25,6 +25,16 @@ in the occasion reminder email. Natural upsell surface.
 
 ## Quality & trust
 
+### Illustrated cards — no photo route (SCOPED)
+Pick a theme or describe an idea; no upload. Engine already supports it
+(referenceImageBase64 is optional; both providers branch to
+text-to-image) — the work is a new short `no_photo` front_scene variant
+plus a step-flow fork. **Full scope: `SCOPE_NO_PHOTO_CARDS.md`.**
+**Why it matters:** serves occasions a face is wrong for (sympathy,
+thank-you, business) = net-new demand. **The danger:** framed as "skip
+the photo" it becomes the easier default and drains the moat — must
+ship as a different product, not an easier path.
+
 ### Targeted card edits — weight/clothing/text (SCOPED)
 Bounded, templated fixes on a finished card instead of full re-roll:
 "truer to the photo" (likeness repair — never a weight control), change
