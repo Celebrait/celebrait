@@ -34,6 +34,9 @@ const requestSchema = z.object({
    *  When non-empty, suggestions expand/vary on it. When empty, the
    *  LLM goes off recipient + occasion alone. */
   brief: z.string().max(500).optional(),
+  /** "More like this" — the scene the user pointed at. Steers the next
+   *  three toward its world and beat instead of re-rolling blind. */
+  likeThis: z.string().max(1000).optional(),
 });
 
 interface SceneSuggestion {
@@ -185,11 +188,13 @@ export function buildUserPrompt(opts: {
   recipientName: string;
   occasion: string;
   brief: string;
+  /** A scene the user liked — produce neighbours of it, not clones. */
+  likeThis?: string;
   /** Photo-step mode. Steers the SCALE of the moment (communal vs
    *  solitary), never person-counting — see the group line below. */
   photoMode?: 'one_person' | 'group';
 }): string {
-  const { recipientName, occasion, brief, photoMode } = opts;
+  const { recipientName, occasion, brief, photoMode, likeThis } = opts;
   const briefLine = brief.trim()
     ? `Brief from the user: "${brief.trim()}"`
     : 'Brief from the user: (empty — pick three plausible directions for the occasion)';
@@ -219,10 +224,17 @@ export function buildUserPrompt(opts: {
     photoMode === 'group'
       ? 'This card\'s photo shows a GROUP. Make the stage of the focal action wide enough for several to share, expressed only through the size of the space and props that already belong to the brief\'s world. Give no examples of your own, add no people, and never import objects the world would not contain.'
       : '';
+  // Pointing beats retyping: the user has told us which direction was
+  // right, so the next three are neighbours of it — same world, same
+  // energy, genuinely different moments. Clones would waste the ask.
+  const likeLine = likeThis?.trim()
+    ? `THE USER LIKED THIS ONE — steer toward it: "${likeThis.trim()}". Keep its world, its setting family and its energy. Now give three DIFFERENT moments within that same direction — a different beat, a different vantage, a different time of day. Do NOT paraphrase it back; each must be a scene they haven't seen yet.`
+    : '';
   return [
     `Recipient context (for occasion fit only — not for the scene text): ${recipientName}`,
     `Occasion: ${occasion}`,
     briefLine,
+    ...(likeLine ? [likeLine] : []),
     ...(groupLine ? [groupLine] : []),
     '',
     'Return three scene suggestions per the system instructions. Remember: describe the WORLD AND THE MOMENT (every scene needs an action verb), not the PEOPLE.',
@@ -288,6 +300,7 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
                 recipientName,
                 occasion,
                 brief: body.brief ?? '',
+                likeThis: body.likeThis,
                 photoMode: state?.photos?.mode,
               }),
             },

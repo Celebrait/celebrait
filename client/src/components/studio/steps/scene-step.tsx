@@ -163,11 +163,15 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     onMutate: () => {
       lastBriefRef.current = brief.trim();
     },
-    mutationFn: async () => {
+    /** `likeThis` = "more like this one" — the user points at the closest
+     *  scene instead of retyping their brief. Steering by pointing is the
+     *  conversational half of this panel. */
+    mutationFn: async (likeThis?: string) => {
       if (!cardId) throw new Error('Card not ready');
       const r = await apiRequest('POST', '/api/studio/scene-suggestions', {
         cardId,
         brief: brief.trim() || undefined,
+        likeThis: likeThis || undefined,
       });
       return (await r.json()) as { suggestions: SceneSuggestion[] };
     },
@@ -221,7 +225,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     if (!cardId || busy) return;
     const briefChanged = brief.trim() !== (lastBriefRef.current ?? '');
     if (suggestions.length === 0 || briefChanged) {
-      suggestMutation.mutate();
+      suggestMutation.mutate(undefined);
     }
     setSuggestOpen(true);
   };
@@ -388,11 +392,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               id="scene-brief"
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
-              placeholder={
-                firstName
-                  ? `What makes ${firstName} ${firstName}? Hobbies, places, their thing…`
-                  : 'Their thing — the football, the garden, the caravan…'
-              }
+              // A sentence-STARTER, not a question (Aidan 2026-08-14).
+              // "What makes Family Family?" both interrogated the user
+              // and broke on any non-name recipient. Fragments show the
+              // shape of a good answer: short, casual, incomplete is fine.
+              placeholder="Start typing… the football, her garden, that daft dog" 
               className="flex-1 min-w-0 h-10 bg-white text-[15px] border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/20"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -415,13 +419,19 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                 <Sparkles className="w-4 h-4" />
               )}
               <span className="ml-1.5">
-                {suggestions.length > 0 ? 'See ideas' : 'Suggest'}
+                {suggestions.length > 0 ? 'See ideas' : 'Show me ideas'}
               </span>
             </Button>
           </div>
+          {/* Responds to what they've done, so the panel feels like a
+              conversation rather than a form: encouragement when empty,
+              acknowledgement once they've typed. */}
           <p className="text-[11px] text-keeper-meta">
-            A few words steer the ideas — or leave it blank and start
-            fresh below.
+            {brief.trim().length === 0
+              ? "Even one word helps — we'll turn it into three scenes. Or just hit the button and we'll start you off."
+              : brief.trim().length < 12
+                ? "Good start — add another detail or two and they'll sound more like them."
+                : "That's plenty to work with."}
           </p>
         </div>
 
@@ -613,38 +623,56 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               suggestions.map((s, i) => {
                 const chosen = chosenId === s.id;
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    type="button"
-                    onClick={() => acceptSuggestion(s)}
-                    className={`group block w-full text-left rounded-xl border p-3.5 sm:p-4 transition-all ${
+                    className={`group rounded-xl border transition-all ${
                       chosen
                         ? 'border-brand bg-brand-muted/20 ring-2 ring-brand/25 shadow-md'
                         : 'border-keeper-hair bg-white hover:border-brand/60 hover:shadow-md shadow-sm'
                     }`}
-                    data-testid={`scene-suggestion-${s.id}`}
                   >
-                    <span className="flex items-start gap-3">
-                      <span
-                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                          chosen
-                            ? 'bg-brand-dark text-brand-foreground'
-                            : 'bg-brand-muted/60 text-brand-dark group-hover:bg-brand-muted'
-                        }`}
+                    <button
+                      type="button"
+                      onClick={() => acceptSuggestion(s)}
+                      className="block w-full text-left p-3.5 sm:p-4 pb-2"
+                      data-testid={`scene-suggestion-${s.id}`}
+                    >
+                      <span className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                            chosen
+                              ? 'bg-brand-dark text-brand-foreground'
+                              : 'bg-brand-muted/60 text-brand-dark group-hover:bg-brand-muted'
+                          }`}
+                        >
+                          {chosen ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13.5px] leading-relaxed text-keeper-body">
+                            {s.text}
+                          </span>
+                          <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark opacity-70 group-hover:opacity-100 transition-opacity">
+                            <PenLine className="h-3 w-3" />
+                            Use &amp; edit
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                    {/* Steer by pointing rather than retyping — the whole
+                        point of "more like this". Sibling of the main
+                        button, never nested inside it. */}
+                    <div className="px-3.5 sm:px-4 pb-3 pl-[3.4rem]">
+                      <button
+                        type="button"
+                        onClick={() => suggestMutation.mutate(s.text)}
+                        disabled={busy}
+                        className="text-[11px] text-keeper-meta hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50"
+                        data-testid={`scene-more-like-${s.id}`}
                       >
-                        {chosen ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13.5px] leading-relaxed text-keeper-body">
-                          {s.text}
-                        </span>
-                        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark opacity-70 group-hover:opacity-100 transition-opacity">
-                          <PenLine className="h-3 w-3" />
-                          Use &amp; edit
-                        </span>
-                      </span>
-                    </span>
-                  </button>
+                        More like this →
+                      </button>
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -652,7 +680,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             <div className="flex items-center justify-between pt-1">
               <button
                 type="button"
-                onClick={() => suggestMutation.mutate()}
+                onClick={() => suggestMutation.mutate(undefined)}
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
                 data-testid="btn-scene-reroll"
