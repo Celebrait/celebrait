@@ -815,7 +815,9 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
     case 'photo':
       return 'Upload Photo(s)';
     case 'scene':
-      return `Describe the scene for the front of ${ownedCard}`;
+      // Pick-first since 2026-08-13: three scenes are waiting when the
+      // step opens, so "Describe…" would misname the job.
+      return `Let's set the scene for ${ownedCard}`;
     case 'front':
       return `What should it say on the front of ${ownedCard}?`;
     case 'inside':

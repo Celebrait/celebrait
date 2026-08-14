@@ -39,7 +39,7 @@
 // not a budget control.
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, RefreshCw, ArrowRight, Check } from 'lucide-react';
+import { Loader2, RefreshCw, Check, Sparkles, PenLine } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -100,6 +100,14 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
    *  a tile claiming to be "in use" when the box says something else is
    *  a small lie the eye catches. */
   const [chosenId, setChosenId] = useState<string | null>(null);
+  /** Progressive reveal for the editor. An empty "Your scene" box under
+   *  the tiles read as a second job to do; now it appears when there's
+   *  something to edit (picked a tile / returning with a scene) or the
+   *  user asks to write their own. Latches on — it never hides again
+   *  mid-edit, even if they delete every character. */
+  const [editorOpen, setEditorOpen] = useState(
+    () => (state.scene?.description ?? '').trim().length > 0,
+  );
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // Debounce timer for committing the typed scene to the draft WHILE typing
   // (not only on blur) so "Next" enables as soon as there's text — the user
@@ -153,12 +161,21 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const acceptSuggestion = (s: SceneSuggestion) => {
     setLocal(s.text);
     setChosenId(s.id);
+    setEditorOpen(true);
     onChange({
       scene: { ...state.scene, description: s.text, source: 'suggestion' },
     });
     // Suggestions STAY on screen — picking one shouldn't hide the
     // alternatives. Changing your mind is a tap, not a re-fetch.
-    textareaRef.current?.focus();
+    // Focus after the editor mounts (it reveals on first pick).
+    setTimeout(() => {
+      textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 80);
+  };
+
+  const openEditorToWrite = () => {
+    setEditorOpen(true);
+    setTimeout(() => textareaRef.current?.focus(), 80);
   };
 
   useEffect(() => {
@@ -288,215 +305,242 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
 
   const canReroll = setsLoaded < MAX_SUGGESTION_SETS;
   const busy = suggestMutation.isPending;
+  const firstName = (state.recipient?.name ?? '').trim().split(/\s+/)[0] || '';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      {/* ── The brief ──────────────────────────────────────────────
-          One line, not a paragraph. This is the fuel for the
-          suggestions — a few words about them makes all three specific
-          instead of generic-occasion. Optional by design: blank still
-          returns three, just inferred from the occasion. */}
-      <div className="space-y-2">
-        <Label htmlFor="scene-brief" className="text-sm font-semibold text-keeper-ink">
-          A few words about them
-        </Label>
-        <div className="flex gap-2">
-          <Input
-            id="scene-brief"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            placeholder="football, Anfield, always in his kit"
-            className="flex-1 text-base border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                if (!busy && canReroll) suggestMutation.mutate();
-              }
-            }}
-            data-testid="input-scene-brief"
-          />
-          <Button
-            type="button"
-            onClick={() => suggestMutation.mutate()}
-            disabled={busy || !cardId || !canReroll}
-            className="shrink-0 bg-go hover:bg-go-hover text-brand-foreground"
-            data-testid="btn-scene-suggest-submit"
-          >
-            {busy ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ArrowRight className="w-4 h-4" />
-            )}
-            <span className="ml-1.5 hidden sm:inline">
-              {suggestions.length > 0 ? 'Again' : 'Go'}
-            </span>
-          </Button>
-        </div>
-        <p className="text-[11px] text-keeper-meta">
-          Optional — leave it blank and we'll go from the occasion alone.
-        </p>
-      </div>
-
-      {/* ── The three scenes ───────────────────────────────────────
-          Loaded on arrival so nobody meets an empty box. Tapping one
-          drops it into the editable field below; the tiles stay put so
-          changing your mind costs a tap, not a re-fetch. */}
-      {(busy || suggestions.length > 0) && (
-        <div className="space-y-2" data-testid="scene-suggestions">
-          <p className="text-xs uppercase tracking-wider text-keeper-meta font-medium">
-            {busy && suggestions.length === 0
-              ? 'Thinking of three scenes…'
-              : 'Tap one to use it, then make it yours'}
+    <div className="max-w-2xl mx-auto space-y-4">
+      {/* ── The idea panel ─────────────────────────────────────────
+          One visual object, not a stack of form controls: the brief
+          steers, the tiles answer, the footer offers the two escape
+          hatches. Tinted ground so the white tiles read as the content
+          and the panel as the tool. */}
+      <section
+        className="rounded-2xl border border-brand/15 bg-gradient-to-b from-brand-muted/40 via-brand-muted/15 to-brand-muted/5 p-4 sm:p-5 space-y-4"
+        data-testid="scene-suggestions"
+      >
+        <div className="flex items-center justify-between">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-dark">
+            <Sparkles className="w-3.5 h-3.5" />
+            Scene ideas
           </p>
+          {firstName && (
+            <p className="text-[11px] text-keeper-meta">
+              made for {firstName}
+            </p>
+          )}
+        </div>
 
-          {busy && suggestions.length === 0 ? (
-            // Skeletons sized like real tiles so the layout doesn't jump
-            // when the text lands.
-            <div className="space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-[76px] rounded-xl border border-keeper-hair bg-keeper-paper/60 animate-pulse"
-                />
-              ))}
-            </div>
-          ) : (
+        {/* The brief — steering, not a form field. Optional by design:
+            blank still returns three, inferred from the occasion. */}
+        <div className="space-y-1.5">
+          {/* Stacks under 640px — side-by-side crushed the input to
+              three visible words, and the brief is the steering wheel. */}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="scene-brief"
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              placeholder={
+                firstName
+                  ? `What makes ${firstName} ${firstName}? Hobbies, places, their thing…`
+                  : 'Their thing — the football, the garden, the caravan…'
+              }
+              className="flex-1 min-w-0 h-10 bg-white text-[15px] border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/20"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (!busy && canReroll) suggestMutation.mutate();
+                }
+              }}
+              data-testid="input-scene-brief"
+            />
+            <Button
+              type="button"
+              onClick={() => suggestMutation.mutate()}
+              disabled={busy || !cardId || !canReroll}
+              className="shrink-0 h-10 px-4 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold shadow-sm w-full sm:w-auto"
+              data-testid="btn-scene-suggest-submit"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              <span className="ml-1.5">
+                {suggestions.length > 0 ? 'Refresh' : 'Suggest'}
+              </span>
+            </Button>
+          </div>
+          <p className="text-[11px] text-keeper-meta">
+            A few words steer the ideas — or leave it blank and we'll go
+            from the occasion.
+          </p>
+        </div>
+
+        {/* The three scenes. */}
+        {busy && suggestions.length === 0 ? (
+          <div className="space-y-2" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-[84px] rounded-xl border border-keeper-hair/70 bg-white/70 animate-pulse"
+                style={{ animationDelay: `${i * 150}ms` }}
+              />
+            ))}
+          </div>
+        ) : suggestions.length > 0 ? (
+          <div className="space-y-2">
             <AnimatePresence mode="popLayout">
-              {suggestions.map((s) => {
+              {suggestions.map((s, i) => {
                 const chosen = chosenId === s.id;
                 return (
                   <motion.button
                     key={s.id}
                     layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: busy ? 0.5 : 1, y: 0 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: busy ? 0.45 : 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                    transition={{ duration: 0.28, delay: i * 0.05, ease: [0.2, 0.8, 0.2, 1] }}
                     type="button"
                     onClick={() => acceptSuggestion(s)}
-                    className={`block w-full text-left rounded-xl border p-4 text-sm leading-relaxed transition-all ${
+                    className={`group block w-full text-left rounded-xl border p-3.5 sm:p-4 transition-all ${
                       chosen
-                        ? 'border-brand bg-brand-muted/40 text-keeper-ink shadow'
-                        : 'border-keeper-hair bg-white text-keeper-ink hover:border-brand hover:bg-brand-muted/20 shadow-sm hover:shadow'
+                        ? 'border-brand bg-white ring-2 ring-brand/25 shadow-md'
+                        : 'border-keeper-hair bg-white hover:border-brand/60 hover:shadow-md hover:-translate-y-px shadow-sm'
                     }`}
                     data-testid={`scene-suggestion-${s.id}`}
                   >
-                    <span className="flex gap-2">
-                      {chosen && (
-                        <Check className="w-4 h-4 shrink-0 mt-0.5 text-brand-dark" />
-                      )}
-                      <span>{s.text}</span>
+                    <span className="flex items-start gap-3">
+                      <span
+                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                          chosen
+                            ? 'bg-brand-dark text-brand-foreground'
+                            : 'bg-brand-muted/60 text-brand-dark group-hover:bg-brand-muted'
+                        }`}
+                      >
+                        {chosen ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
+                      </span>
+                      <span className="text-[13.5px] leading-relaxed text-keeper-body">
+                        {s.text}
+                      </span>
                     </span>
                   </motion.button>
                 );
               })}
             </AnimatePresence>
-          )}
-
-          {suggestions.length > 0 && (
-            <div className="flex items-center justify-between pt-0.5">
-              {canReroll ? (
-                <button
-                  type="button"
-                  onClick={() => suggestMutation.mutate()}
-                  disabled={busy}
-                  className="inline-flex items-center gap-1.5 text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50"
-                  data-testid="btn-scene-reroll"
-                >
-                  <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
-                  Show me three more
-                </button>
-              ) : (
-                <span className="text-xs text-keeper-meta">
-                  That's our lot — edit one below, or talk it through.
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => setBrainstormOpen(true)}
-                className="text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline"
-                data-testid="btn-scene-ai-help"
-              >
-                Rather talk it through?
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Your scene ─────────────────────────────────────────────
-          Still the single convergence point every path lands in — it's
-          just no longer the blank thing you meet first. */}
-      <div>
-        <Label
-          htmlFor="scene-description"
-          className="text-sm font-semibold text-keeper-ink"
-        >
-          Your scene
-        </Label>
-        <Textarea
-          ref={textareaRef}
-          id="scene-description"
-          value={local}
-          onChange={(e) => {
-            setLocal(e.target.value);
-            // Editing breaks the tie to the tile it came from — the
-            // source enum still records it as suggestion_edited.
-            setChosenId(null);
-            scheduleCommit(e.target.value);
-          }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => {
-            setFocused(false);
-            commit();
-          }}
-          placeholder={placeholderText}
-          rows={6}
-          className="mt-1.5 min-h-[140px] text-base resize-y border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
-          // aria-live=off so the animated placeholder doesn't spam
-          // screen readers with every keystroke-of-text change.
-          aria-live="off"
-          data-testid="input-scene-description"
-        />
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-[11px] text-keeper-meta">
-            {local.length > 0
-              ? `${local.length} characters`
-              : 'Describe the front-of-card scene — or use a helper below.'}
-          </p>
-        </div>
-      </div>
-
-      {/* The old two-button block and the Scene Helper modal lived here.
-          Both are gone: suggestions are now the page itself, and
-          brainstorm is a text link beside the reroll. One "stuck?"
-          affordance, as the 2026-04-19 decision intended.
-
-          Fallback: if the auto-load failed (offline, LLM hiccup) there
-          are no tiles and therefore no brainstorm link, so surface it
-          here — otherwise a failed fetch would strand someone with a
-          blank box and no way out. */}
-      {!busy && suggestions.length === 0 && (
-        <div className="flex items-center justify-between text-xs">
+          </div>
+        ) : (
+          // Auto-load failed or hasn't run (offline, LLM hiccup). Quiet
+          // retry inside the panel so nobody is stranded with nothing.
           <button
             type="button"
             onClick={() => suggestMutation.mutate()}
             disabled={!cardId || !canReroll}
-            className="inline-flex items-center gap-1.5 text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline disabled:opacity-50"
+            className="w-full rounded-xl border border-dashed border-keeper-hair bg-white/60 p-4 text-sm text-keeper-body hover:border-brand hover:text-brand-dark transition-colors disabled:opacity-50"
             data-testid="btn-scene-reroll"
           >
-            <RefreshCw className="w-3 h-3" />
-            Show me three scenes
+            <span className="inline-flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Show me three scenes
+            </span>
           </button>
+        )}
+
+        {/* Footer: reroll + the one "stuck?" escape hatch. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+          {suggestions.length > 0 &&
+            (canReroll ? (
+              <button
+                type="button"
+                onClick={() => suggestMutation.mutate()}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
+                data-testid="btn-scene-reroll"
+              >
+                <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
+                Show me three more
+              </button>
+            ) : (
+              <span className="text-xs text-keeper-meta">
+                That's our lot — edit one below, or talk it through.
+              </span>
+            ))}
           <button
             type="button"
             onClick={() => setBrainstormOpen(true)}
-            className="text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline"
+            className="ml-auto text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline"
             data-testid="btn-scene-ai-help"
           >
             Rather talk it through?
           </button>
         </div>
+      </section>
+
+      {/* ── Your scene ─────────────────────────────────────────────
+          Progressive reveal: an empty editor under the tiles read as a
+          second job to do. It appears when a tile is picked (latched
+          open from then on) or on request below. Still the single
+          convergence point every path lands in. */}
+      {editorOpen ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <Label
+              htmlFor="scene-description"
+              className="whitespace-nowrap text-sm font-semibold text-keeper-ink"
+            >
+              Your scene
+            </Label>
+            <span className="text-[11px] text-keeper-meta">
+              edit freely — this exact text guides the artwork
+            </span>
+          </div>
+          <Textarea
+            ref={textareaRef}
+            id="scene-description"
+            value={local}
+            onChange={(e) => {
+              setLocal(e.target.value);
+              // Editing breaks the tie to the tile it came from — the
+              // source enum still records it as suggestion_edited.
+              setChosenId(null);
+              scheduleCommit(e.target.value);
+            }}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false);
+              commit();
+            }}
+            placeholder={placeholderText}
+            rows={6}
+            className="mt-1.5 min-h-[140px] text-base resize-y bg-white border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+            // aria-live=off so the animated placeholder doesn't spam
+            // screen readers with every keystroke-of-text change.
+            aria-live="off"
+            data-testid="input-scene-description"
+          />
+          {local.length > 0 && (
+            <p className="mt-1 text-[11px] text-keeper-meta">
+              {local.length} characters
+            </p>
+          )}
+        </motion.div>
+      ) : (
+        <p className="text-center text-xs text-keeper-meta">
+          or{' '}
+          <button
+            type="button"
+            onClick={openEditorToWrite}
+            className="inline-flex items-center gap-1 font-medium text-keeper-body hover:text-brand-dark underline underline-offset-4"
+            data-testid="btn-scene-write-own"
+          >
+            <PenLine className="w-3 h-3" />
+            write it yourself
+          </button>
+        </p>
       )}
 
       <BrainstormChatDrawer
