@@ -420,10 +420,12 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           </div>
         ) : null}
 
-        {/* Footer: reroll + the one "stuck?" escape hatch. */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-          {suggestions.length > 0 &&
-            (canReroll ? (
+        {/* Footer: reroll only — the alternative paths live in the
+            path row under the panel, so the panel stays purely the
+            suggestions machine. */}
+        {suggestions.length > 0 && (
+          <div className="pt-0.5">
+            {canReroll ? (
               <button
                 type="button"
                 onClick={() => suggestMutation.mutate()}
@@ -436,24 +438,41 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               </button>
             ) : (
               <span className="text-xs text-keeper-meta">
-                That's our lot — edit one below, or talk it through.
+                That's our lot — edit one below, or chat it through.
               </span>
-            ))}
-          {/* Brainstorm — promoted from a bare text link (Aidan
-              2026-08-13): a real pill, visually a sibling of the reroll
-              but tinted so it reads as the "different kind of help"
-              option rather than more-of-the-same. */}
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ── The other two ways in (Aidan 2026-08-13) ───────────────
+          Real buttons, equal to each other, deliberately NOT equal to
+          the Suggest panel above — the product keeps its opinion about
+          the best path while making all three visible. "Write my own"
+          disappears once the editor is open (its job is done); the
+          chat stays available throughout. */}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {!editorOpen && (
           <button
             type="button"
-            onClick={() => setBrainstormOpen(true)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-muted/50 px-3 py-1.5 text-xs font-medium text-brand-dark shadow-sm hover:bg-brand-muted hover:border-brand/50 transition-colors"
-            data-testid="btn-scene-ai-help"
+            onClick={openEditorToWrite}
+            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-keeper-hair bg-white text-sm font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark hover:shadow transition-all"
+            data-testid="btn-scene-write-own"
           >
-            <MessageCircle className="w-3 h-3" />
-            Rather chat with AI to craft the perfect scene?
+            <PenLine className="w-4 h-4" />
+            Write my own scene
           </button>
-        </div>
-      </section>
+        )}
+        <button
+          type="button"
+          onClick={() => setBrainstormOpen(true)}
+          className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-keeper-hair bg-white text-sm font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark hover:shadow transition-all"
+          data-testid="btn-scene-ai-help"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Chat with AI to craft the perfect scene
+        </button>
+      </div>
 
       {/* ── Your scene ─────────────────────────────────────────────
           Progressive reveal: an empty editor under the tiles read as a
@@ -507,20 +526,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             </p>
           )}
         </motion.div>
-      ) : (
-        <p className="text-center text-xs text-keeper-meta">
-          or{' '}
-          <button
-            type="button"
-            onClick={openEditorToWrite}
-            className="inline-flex items-center gap-1 font-medium text-keeper-body hover:text-brand-dark underline underline-offset-4"
-            data-testid="btn-scene-write-own"
-          >
-            <PenLine className="w-3 h-3" />
-            write it yourself
-          </button>
-        </p>
-      )}
+      ) : null}
 
       <BrainstormChatDrawer
         open={brainstormOpen}
