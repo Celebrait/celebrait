@@ -74,6 +74,14 @@ export const studioOrders = pgTable(
     // printAmount=0 — so the paid webhook knows to consume the user's
     // credit and reporting can count redemptions. See server/studio/free-card.ts.
     freeCardApplied: boolean("free_card_applied").notNull().default(false),
+    /** Comp code redeemed on this order, if any (see models/comp-codes.ts).
+     *  Present = this was GIFTED, not sold — a marketing cost dressed as an
+     *  order. Reporting must be able to exclude these, otherwise a creator
+     *  campaign reads as a sales spike and corrupts the only pricing
+     *  feedback loop we have. Null on every normal order.
+     *  ⚠️ needs: ALTER TABLE studio_orders ADD COLUMN IF NOT EXISTS
+     *  comp_code varchar(32); */
+    compCode: varchar("comp_code", { length: 32 }),
 
     // Payment — provider-agnostic. paymentProvider records which
     // gateway processed it (stub|peach|stripe|…); paymentReference is

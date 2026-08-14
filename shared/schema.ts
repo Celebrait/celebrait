@@ -10,6 +10,7 @@ export * from "./models/studio-orders";
 export * from "./models/card-attempts";
 export * from "./models/address-book";
 export * from "./models/analytics";
+export * from "./models/comp-codes";
 
 import { users } from "./models/auth";
 

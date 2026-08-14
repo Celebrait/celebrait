@@ -29,6 +29,7 @@ import {
   getFreeCardStatus,
   consumeFreeCardCredit,
 } from '../studio/free-card';
+import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { getPrintProvider } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import {
@@ -83,6 +84,9 @@ const checkoutSchema = z.object({
   recipientEmail: z.string().email().optional(),
   recipientPhone: z.string().optional(),
   giftMessage: z.string().max(500).optional(),
+  /** Comp code ("this one's on us"). Only the string comes from the
+   *  client — what it's worth is read from the DB server-side. */
+  compCode: z.string().max(32).optional(),
 });
 
 export function registerStudioCheckoutRoutes(app: Express): void {
@@ -268,9 +272,31 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const shippingTier: ShippingTierId = freeCardApplied
           ? 'standard'
           : (body.shippingTier ?? DEFAULT_SHIPPING_TIER);
-        const printAmount = freeCardApplied ? 0 : PRINT_PRICE;
+        const printAmount0 = freeCardApplied ? 0 : PRINT_PRICE;
         const digitalAmount = 0;
-        const shippingAmount = getShippingTier(shippingTier).price;
+        const shippingAmount0 = getShippingTier(shippingTier).price;
+
+        // Comp code ("this one's on us"). Validated here, CONSUMED only
+        // on the paid flip — same discipline as the free-card credit, so
+        // an abandoned session can't burn a creator's code. Refused codes
+        // fail the request outright rather than silently charging full
+        // price: someone typing a code is expecting not to pay, and
+        // quietly taking their money is the worst outcome available.
+        let compCode: string | null = null;
+        let printAmount = printAmount0;
+        let shippingAmount = shippingAmount0;
+        if (body.compCode) {
+          const comp = await validateCompCode(body.compCode);
+          if (!comp.ok || !comp.code) {
+            return res.status(400).json({ message: comp.reason ?? "That code isn't valid." });
+          }
+          compCode = comp.code.code;
+          if (comp.code.coversCard) printAmount = 0;
+          if (comp.code.coversShipping) shippingAmount = 0;
+          console.log(
+            `[COMP-CODE] ${compCode} applied at checkout for card ${cardId} (${comp.code.label})`,
+          );
+        }
         // Optional wax-seal envelope sticker (£1.50) — an add-on the customer
         // opts into, and only valid on direct-to-recipient sends (the seal goes
         // on the kraft envelope WE post). Server-derived so a crafted POST can't
@@ -374,14 +400,48 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             envelopeStickerAmount,
             totalAmount,
             freeCardApplied,
+            compCode,
           })
           .returning({ id: studioOrders.id });
 
         const order = inserted[0];
         if (!order) throw new Error('Failed to insert order');
 
-        const provider = getPaymentProvider();
         const origin = `${req.protocol}://${req.get('host')}`;
+
+        // NOTHING TO CHARGE. A comp code covering both lines (or covering
+        // postage on top of the free-first-card credit) lands the total on
+        // zero, and no gateway will take a £0 payment — Stripe rejects the
+        // session outright. So skip the gateway entirely: mark it paid and
+        // dispatch, which is the same call the webhook makes, and is
+        // idempotent.
+        //
+        // Safe because totalAmount is derived server-side from a validated
+        // code — a client cannot talk its own way to zero. amountPaid is
+        // recorded as 0 so reporting shows a £0 order rather than falling
+        // back to totalAmount and inventing revenue.
+        if (totalAmount === 0) {
+          await markOrderPaidAndDispatch(order.id, 0);
+          console.log(
+            `[STUDIO-CHECKOUT] order ${order.id} fully comped (${compCode}) — no payment taken`,
+          );
+          return res.json({
+            orderId: order.id,
+            totals: {
+              printAmount, digitalAmount, shippingAmount,
+              totalAmount, currency: 'GBP', freeCardApplied, compCode,
+            },
+            // The client redirects on mode:'redirect'; send it straight to
+            // the success page, which polls the order and finds it paid.
+            payment: {
+              paymentReference: `comp_${order.id}`,
+              mode: 'redirect' as const,
+              redirectUrl: `${origin}/checkout/success?orderId=${order.id}`,
+            },
+          });
+        }
+
+        const provider = getPaymentProvider();
         const payment = await provider.createPayment({
           studioOrderId: order.id,
           amount: totalAmount,
@@ -980,6 +1040,13 @@ async function markOrderPaidAndDispatch(
   // once, guarded by the same won-the-flip branch as the emails.
   consumeFreeCardCredit(updated[0]).catch((err) => {
     console.error('[STUDIO-CHECKOUT] free-card consume failed:', err);
+  });
+
+  // Comp code: same timing, same reasoning — burn the use only now that
+  // the order is real. Never allowed to fail the flip; the card ships
+  // either way and an over-redemption is a logged warning, not an error.
+  consumeCompCode(updated[0]).catch((err) => {
+    console.error('[STUDIO-CHECKOUT] comp-code consume failed:', err);
   });
 
   // Submit the printed card to the fulfilment provider (async, non-

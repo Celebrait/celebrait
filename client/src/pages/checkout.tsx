@@ -102,10 +102,15 @@ function totalsFor(
   addSticker: boolean,
   /** Free-first-card credit applies — card £0, standard postage only. */
   freeCard: boolean,
+  /** Comp code entered ("this one's on us" — creator gifting). Display
+   *  optimistically zeroes postage; the server validates the real code
+   *  at order create and refuses the request if it's bad, so a made-up
+   *  code can only ever change pixels, not what's charged. */
+  compCode?: boolean,
 ) {
   const printAmount = freeCard ? 0 : PRINT_PRICE;
   const digitalAmount = 0;
-  const shippingAmount = getShippingTier(tier).price;
+  const shippingAmount = compCode ? 0 : getShippingTier(tier).price;
   const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
   return {
     printAmount,
@@ -201,6 +206,17 @@ export default function CheckoutPage() {
   const [city, setCity] = useState('');
   const [postcode, setPostcode] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Comp code — creator gifting ("this one's on us"). Kept out of the way
+  // of normal buyers: a small "Got a code?" reveal, not a field everyone
+  // sees. ?code=X prefills it so a DM'd link can carry the code.
+  const [compCode, setCompCode] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('code') ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [showCompCode, setShowCompCode] = useState(() => compCode.length > 0);
 
   // Free-first-card credit (Moments rewards): earned by adding 3 key
   // dates, spent here. Display-only truth — the server re-derives
@@ -228,8 +244,8 @@ export default function CheckoutPage() {
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied),
-    [effectiveTier, shipTo, addSticker, freeCardApplied],
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0),
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -271,6 +287,7 @@ export default function CheckoutPage() {
         includesPrint,
         includesDigital,
       };
+      if (compCode.trim()) payload.compCode = compCode.trim();
       if (includesPrint) {
         payload.shipTo = shipTo;
         payload.envelopeSticker = addSticker && shipTo === 'recipient';
@@ -739,6 +756,42 @@ export default function CheckoutPage() {
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}
 
+              {/* Comp code — "this one's on us" (creator gifting). A quiet
+                  reveal so normal buyers never see an empty field inviting
+                  them to go hunt for vouchers. Prefilled + open when the
+                  link carried ?code=. Display zeroes postage optimistically;
+                  the server refuses a bad code at order create, so the
+                  worst a typo gets is an error message, never a charge
+                  they didn't expect. */}
+              {!showCompCode ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCompCode(true)}
+                  className="text-[11.5px] text-keeper-meta underline underline-offset-2 hover:text-keeper-ink text-left"
+                >
+                  Got a code?
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={compCode}
+                    onChange={(e) => setCompCode(e.target.value.toUpperCase())}
+                    placeholder="Your code"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="h-9 flex-1 rounded-md border border-keeper-hair bg-white px-2.5 text-sm uppercase tracking-wide text-keeper-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-keeper-meta focus:outline-none focus:ring-1 focus:ring-brand"
+                    data-testid="input-comp-code"
+                  />
+                  {compCode.trim() && (
+                    <span className="text-[11.5px] text-green-700 whitespace-nowrap">
+                      Postage on us
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="border-t border-keeper-hair pt-3 flex items-center justify-between">
                 <span className="text-sm font-medium text-keeper-ink">Total</span>
                 <span className="text-xl font-semibold text-keeper-ink">
@@ -780,6 +833,10 @@ export default function CheckoutPage() {
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting…
                   </>
+                ) : totals.total === 0 ? (
+                  // Fully comped (code + free card) — "Pay £0.00" reads
+                  // like a trick; say what actually happens.
+                  'Send it — nothing to pay'
                 ) : (
                   `Pay ${formatGBP(totals.total)}`
                 )}
