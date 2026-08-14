@@ -18,8 +18,11 @@
 // from nothing. That's work, and most people won't do it — they'd
 // either bounce or type something thin.
 //
-// Now: a one-line BRIEF at the top, three scenes generated on arrival,
-// tap one to load it into the textarea and edit freely. The textarea
+// Now: a one-line BRIEF at the top; Suggest returns three scenes, tap
+// one to load it into the textarea and edit freely. No auto-fetch on
+// arrival (Aidan 2026-08-13): un-briefed suggestions are occasion-
+// generic and unlikely to hit, and three paragraphs of them ate the
+// step. The brief comes first, then the ideas. The textarea
 // remains the single convergence point (locked product decision) — it
 // just isn't the blank thing you meet first.
 //
@@ -143,20 +146,6 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
       });
     },
   });
-
-  // Three scenes on arrival, unasked. Only when we have a card to ask
-  // about AND the user hasn't already got a scene — coming BACK to this
-  // step must never overwrite what they chose last time, and shouldn't
-  // spend another call. Runs once per mount.
-  const autoLoadedRef = useRef(false);
-  useEffect(() => {
-    if (autoLoadedRef.current) return;
-    if (!cardId) return;
-    if ((state.scene?.description ?? '').trim().length > 0) return;
-    autoLoadedRef.current = true;
-    suggestMutation.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardId]);
 
   const acceptSuggestion = (s: SceneSuggestion) => {
     setLocal(s.text);
@@ -429,22 +418,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               })}
             </AnimatePresence>
           </div>
-        ) : (
-          // Auto-load failed or hasn't run (offline, LLM hiccup). Quiet
-          // retry inside the panel so nobody is stranded with nothing.
-          <button
-            type="button"
-            onClick={() => suggestMutation.mutate()}
-            disabled={!cardId || !canReroll}
-            className="w-full rounded-xl border border-dashed border-keeper-hair bg-white/60 p-4 text-sm text-keeper-body hover:border-brand hover:text-brand-dark transition-colors disabled:opacity-50"
-            data-testid="btn-scene-reroll"
-          >
-            <span className="inline-flex items-center gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Show me three scenes
-            </span>
-          </button>
-        )}
+        ) : null}
 
         {/* Footer: reroll + the one "stuck?" escape hatch. */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
