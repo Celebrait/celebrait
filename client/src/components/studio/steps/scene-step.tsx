@@ -39,7 +39,7 @@
 // not a budget control.
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, RefreshCw, Check, Sparkles, PenLine } from 'lucide-react';
+import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -465,13 +465,18 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                 That's our lot — edit one below, or talk it through.
               </span>
             ))}
+          {/* Brainstorm — promoted from a bare text link (Aidan
+              2026-08-13): a real pill, visually a sibling of the reroll
+              but tinted so it reads as the "different kind of help"
+              option rather than more-of-the-same. */}
           <button
             type="button"
             onClick={() => setBrainstormOpen(true)}
-            className="ml-auto text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-muted/50 px-3 py-1.5 text-xs font-medium text-brand-dark shadow-sm hover:bg-brand-muted hover:border-brand/50 transition-colors"
             data-testid="btn-scene-ai-help"
           >
-            Rather talk it through?
+            <MessageCircle className="w-3 h-3" />
+            Rather chat with AI to craft the perfect scene?
           </button>
         </div>
       </section>
