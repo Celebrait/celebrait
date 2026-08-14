@@ -79,6 +79,8 @@ const BACKSPACE_CHAR_MS = 20;
  *  is ~£0.0005) — a UX signal. Someone on their fourth reroll isn't
  *  being served by suggestions and wants the chat or their own words. */
 const MAX_SUGGESTION_SETS = 3;
+/** Seen-flag for the first-run path-button captions. */
+const SCENE_PATHS_GUIDE_KEY = 'celebrait:scene-paths-guide:v1';
 
 export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
@@ -111,6 +113,26 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const [editorOpen, setEditorOpen] = useState(
     () => (state.scene?.description ?? '').trim().length > 0,
   );
+  /** First-run guide captions on the path buttons (Aidan 2026-08-13),
+   *  same philosophy as the studio-home hints: per-device localStorage
+   *  ledger, never blocking. Captions show until the user has taken any
+   *  path once; the flag is written on first use but the captions don't
+   *  collapse mid-session (no layout jump under the pointer) — the
+   *  compact version greets them next visit. */
+  const [showPathGuide] = useState(() => {
+    try {
+      return localStorage.getItem(SCENE_PATHS_GUIDE_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  });
+  const markPathUsed = () => {
+    try {
+      localStorage.setItem(SCENE_PATHS_GUIDE_KEY, '1');
+    } catch {
+      /* private mode — captions just show again next time */
+    }
+  };
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // Debounce timer for committing the typed scene to the draft WHILE typing
   // (not only on blur) so "Next" enables as soon as there's text — the user
@@ -148,6 +170,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   });
 
   const acceptSuggestion = (s: SceneSuggestion) => {
+    markPathUsed();
     setLocal(s.text);
     setChosenId(s.id);
     setEditorOpen(true);
@@ -163,6 +186,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   };
 
   const openEditorToWrite = () => {
+    markPathUsed();
     setEditorOpen(true);
     setTimeout(() => textareaRef.current?.focus(), 80);
   };
@@ -446,31 +470,62 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
       </section>
 
       {/* ── The other two ways in (Aidan 2026-08-13) ───────────────
-          Real buttons, equal to each other, deliberately NOT equal to
-          the Suggest panel above — the product keeps its opinion about
-          the best path while making all three visible. "Write my own"
-          disappears once the editor is open (its job is done); the
-          chat stays available throughout. */}
+          Real cards, equal to each other, deliberately NOT equal to the
+          Suggest panel above — the product keeps its opinion about the
+          best path while making all three visible. First visit carries a
+          one-line guide under each title (studio-hints philosophy,
+          localStorage ledger); once any path has been used the captions
+          collapse and the buttons compact. "Write my own" disappears
+          when the editor is open — its job is done. */}
       <div className="flex flex-col gap-2 sm:flex-row">
         {!editorOpen && (
           <button
             type="button"
             onClick={openEditorToWrite}
-            className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-keeper-hair bg-white text-sm font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark hover:shadow transition-all"
+            className="flex-1 rounded-xl border border-keeper-hair bg-white p-3.5 text-left shadow-sm hover:border-brand/60 hover:shadow-md hover:-translate-y-px transition-all"
             data-testid="btn-scene-write-own"
           >
-            <PenLine className="w-4 h-4" />
-            Write my own scene
+            <span className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted/60 text-brand-dark">
+                <PenLine className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-keeper-ink">
+                  Write my own scene
+                </span>
+                {showPathGuide && (
+                  <span className="mt-0.5 block text-xs leading-snug text-keeper-meta">
+                    Know the moment already? Type it straight in.
+                  </span>
+                )}
+              </span>
+            </span>
           </button>
         )}
         <button
           type="button"
-          onClick={() => setBrainstormOpen(true)}
-          className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-keeper-hair bg-white text-sm font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark hover:shadow transition-all"
+          onClick={() => {
+            markPathUsed();
+            setBrainstormOpen(true);
+          }}
+          className="flex-1 rounded-xl border border-keeper-hair bg-white p-3.5 text-left shadow-sm hover:border-brand/60 hover:shadow-md hover:-translate-y-px transition-all"
           data-testid="btn-scene-ai-help"
         >
-          <MessageCircle className="w-4 h-4" />
-          Chat with AI to craft the perfect scene
+          <span className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted/60 text-brand-dark">
+              <MessageCircle className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-keeper-ink">
+                Chat with AI to craft the perfect scene
+              </span>
+              {showPathGuide && (
+                <span className="mt-0.5 block text-xs leading-snug text-keeper-meta">
+                  Not sure yet? A quick back-and-forth to find it.
+                </span>
+              )}
+            </span>
+          </span>
         </button>
       </div>
 
