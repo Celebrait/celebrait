@@ -361,8 +361,8 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             </Button>
           </div>
           <p className="text-[11px] text-keeper-meta">
-            A few words steer the ideas — or leave it blank and we'll go
-            from the occasion.
+            A few words steer the ideas — or leave it blank and start
+            fresh below.
           </p>
         </div>
 
