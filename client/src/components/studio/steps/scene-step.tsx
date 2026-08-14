@@ -37,9 +37,9 @@
 // stays near zero (scene.source is logged), retire it.
 //
 // Cost is not a constraint here: gpt-4o-mini, ~£0.0005 per set of
-// three — 0.24% of a card. The reroll cap is a UX signal (rerolling
-// forever means the suggestions aren't landing and you want the chat),
-// not a budget control.
+// three — 0.24% of a card. Rerolls are UNCAPPED (Aidan 2026-08-13,
+// "don't limit the user") — an earlier 3-set cap was a UX-signal idea
+// that in practice just told an engaged user no.
 
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
@@ -82,10 +82,6 @@ const PLACEHOLDER_PAUSE_MS = 2500;
 const TYPE_CHAR_MS = 45;
 // Backspace speed — faster than typing so the loop doesn't drag.
 const BACKSPACE_CHAR_MS = 20;
-/** Sets of three the user can pull per visit. Not a cost control (a set
- *  is ~£0.0005) — a UX signal. Someone on their fourth reroll isn't
- *  being served by suggestions and wants the chat or their own words. */
-const MAX_SUGGESTION_SETS = 3;
 /** Seen-flag for the first-run path-button captions. */
 const SCENE_PATHS_GUIDE_KEY = 'celebrait:scene-paths-guide:v1';
 
@@ -105,8 +101,6 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   // thing we want people to meet first.
   const [brief, setBrief] = useState('');
   const [suggestions, setSuggestions] = useState<SceneSuggestion[]>([]);
-  /** Sets fetched this visit. Caps rerolls — see MAX_SUGGESTION_SETS. */
-  const [setsLoaded, setSetsLoaded] = useState(0);
   /** Which suggestion is currently in the textarea, so the chosen tile
    *  can show as selected. Cleared as soon as the user edits the text —
    *  a tile claiming to be "in use" when the box says something else is
@@ -179,7 +173,6 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     },
     onSuccess: (data) => {
       setSuggestions(data.suggestions ?? []);
-      setSetsLoaded((n) => n + 1);
     },
     onError: (err: any) => {
       toast({
@@ -228,13 +221,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     if (!cardId || busy) return;
     const briefChanged = brief.trim() !== (lastBriefRef.current ?? '');
     if (suggestions.length === 0 || briefChanged) {
-      if (!canReroll) {
-        // Capped: open with what exists (the cap message explains);
-        // nothing to show at all means nothing to open.
-        if (suggestions.length === 0) return;
-      } else {
-        suggestMutation.mutate();
-      }
+      suggestMutation.mutate();
     }
     setSuggestOpen(true);
   };
@@ -364,7 +351,6 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   // is a creativity surface, and pills nudge users toward a template-y
   // output. Free text + Brainstorm the scene are the two paths now.
 
-  const canReroll = setsLoaded < MAX_SUGGESTION_SETS;
   const busy = suggestMutation.isPending;
   const firstName = (state.recipient?.name ?? '').trim().split(/\s+/)[0] || '';
 
@@ -419,7 +405,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             <Button
               type="button"
               onClick={openIdeas}
-              disabled={busy || !cardId || (suggestions.length === 0 && !canReroll)}
+              disabled={busy || !cardId}
               className="shrink-0 h-10 px-4 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold shadow-sm w-full sm:w-auto"
               data-testid="btn-scene-suggest-submit"
             >
@@ -664,22 +650,16 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             )}
 
             <div className="flex items-center justify-between pt-1">
-              {canReroll ? (
-                <button
-                  type="button"
-                  onClick={() => suggestMutation.mutate()}
-                  disabled={busy}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
-                  data-testid="btn-scene-reroll"
-                >
-                  <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
-                  Show me three more
-                </button>
-              ) : (
-                <span className="text-xs text-keeper-meta">
-                  That's our lot — pick one and shape it your way.
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => suggestMutation.mutate()}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
+                data-testid="btn-scene-reroll"
+              >
+                <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
+                Show me three more
+              </button>
               <button
                 type="button"
                 onClick={() => setSuggestOpen(false)}
