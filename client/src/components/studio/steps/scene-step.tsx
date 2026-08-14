@@ -44,11 +44,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { CardDraftState } from '@shared/schema';
@@ -105,6 +112,12 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
    *  a tile claiming to be "in use" when the box says something else is
    *  a small lie the eye catches. */
   const [chosenId, setChosenId] = useState<string | null>(null);
+  /** The picker modal (Aidan 2026-08-13 — "the pop up worked well").
+   *  Inline tiles pushed the page about; the modal frames choosing as
+   *  one focused decision. Opens on Suggest, closes on pick. Reopening
+   *  via "See ideas" does NOT refetch — the reroll inside the modal is
+   *  the only thing that spends a set. */
+  const [suggestOpen, setSuggestOpen] = useState(false);
   /** Progressive reveal for the editor. An empty "Your scene" box under
    *  the tiles read as a second job to do; now it appears when there's
    *  something to edit (picked a tile / returning with a scene) or the
@@ -171,6 +184,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
 
   const acceptSuggestion = (s: SceneSuggestion) => {
     markPathUsed();
+    setSuggestOpen(false);
     setLocal(s.text);
     setChosenId(s.id);
     setEditorOpen(true);
@@ -189,6 +203,17 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     markPathUsed();
     setEditorOpen(true);
     setTimeout(() => textareaRef.current?.focus(), 80);
+  };
+
+  /** Suggest button / Enter in the brief. Opens the picker; only spends
+   *  a set when there's nothing to show yet. */
+  const openIdeas = () => {
+    if (!cardId || busy) return;
+    if (suggestions.length === 0) {
+      if (!canReroll) return;
+      suggestMutation.mutate();
+    }
+    setSuggestOpen(true);
   };
 
   useEffect(() => {
@@ -362,15 +387,15 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  if (!busy && canReroll) suggestMutation.mutate();
+                  openIdeas();
                 }
               }}
               data-testid="input-scene-brief"
             />
             <Button
               type="button"
-              onClick={() => suggestMutation.mutate()}
-              disabled={busy || !cardId || !canReroll}
+              onClick={openIdeas}
+              disabled={busy || !cardId || (suggestions.length === 0 && !canReroll)}
               className="shrink-0 h-10 px-4 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold shadow-sm w-full sm:w-auto"
               data-testid="btn-scene-suggest-submit"
             >
@@ -380,7 +405,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
                 <Sparkles className="w-4 h-4" />
               )}
               <span className="ml-1.5">
-                {suggestions.length > 0 ? 'Refresh' : 'Suggest'}
+                {suggestions.length > 0 ? 'See ideas' : 'Suggest'}
               </span>
             </Button>
           </div>
@@ -390,83 +415,6 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           </p>
         </div>
 
-        {/* The three scenes. */}
-        {busy && suggestions.length === 0 ? (
-          <div className="space-y-2" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-[84px] rounded-xl border border-keeper-hair/70 bg-white/70 animate-pulse"
-                style={{ animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </div>
-        ) : suggestions.length > 0 ? (
-          <div className="space-y-2">
-            <AnimatePresence mode="popLayout">
-              {suggestions.map((s, i) => {
-                const chosen = chosenId === s.id;
-                return (
-                  <motion.button
-                    key={s.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: busy ? 0.45 : 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.28, delay: i * 0.05, ease: [0.2, 0.8, 0.2, 1] }}
-                    type="button"
-                    onClick={() => acceptSuggestion(s)}
-                    className={`group block w-full text-left rounded-xl border p-3.5 sm:p-4 transition-all ${
-                      chosen
-                        ? 'border-brand bg-white ring-2 ring-brand/25 shadow-md'
-                        : 'border-keeper-hair bg-white hover:border-brand/60 hover:shadow-md hover:-translate-y-px shadow-sm'
-                    }`}
-                    data-testid={`scene-suggestion-${s.id}`}
-                  >
-                    <span className="flex items-start gap-3">
-                      <span
-                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                          chosen
-                            ? 'bg-brand-dark text-brand-foreground'
-                            : 'bg-brand-muted/60 text-brand-dark group-hover:bg-brand-muted'
-                        }`}
-                      >
-                        {chosen ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
-                      </span>
-                      <span className="text-[13.5px] leading-relaxed text-keeper-body">
-                        {s.text}
-                      </span>
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        ) : null}
-
-        {/* Footer: reroll only — the alternative paths live in the
-            path row under the panel, so the panel stays purely the
-            suggestions machine. */}
-        {suggestions.length > 0 && (
-          <div className="pt-0.5">
-            {canReroll ? (
-              <button
-                type="button"
-                onClick={() => suggestMutation.mutate()}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
-                data-testid="btn-scene-reroll"
-              >
-                <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
-                Show me three more
-              </button>
-            ) : (
-              <span className="text-xs text-keeper-meta">
-                That's our lot — edit one below, or chat it through.
-              </span>
-            )}
-          </div>
-        )}
       </section>
 
       {/* ── The other two ways in (Aidan 2026-08-13) ───────────────
@@ -582,6 +530,102 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
           )}
         </motion.div>
       ) : null}
+
+      {/* ── The picker (Aidan: "the pop up worked well") ───────────
+          Choosing happens in a focused frame; the page stays calm.
+          Every string here works to make one thing unmissable: picking
+          is not committing — the scene lands in an editable box. */}
+      <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-left">
+              {firstName ? `Three scenes for ${firstName}` : 'Three scenes'}
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              Tap one to make it yours — every word stays editable before
+              we draw anything.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 mt-1">
+            {busy ? (
+              <div className="space-y-2" aria-hidden>
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-[84px] rounded-xl border border-keeper-hair/70 bg-keeper-paper/70 animate-pulse"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  />
+                ))}
+              </div>
+            ) : (
+              suggestions.map((s, i) => {
+                const chosen = chosenId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => acceptSuggestion(s)}
+                    className={`group block w-full text-left rounded-xl border p-3.5 sm:p-4 transition-all ${
+                      chosen
+                        ? 'border-brand bg-brand-muted/20 ring-2 ring-brand/25 shadow-md'
+                        : 'border-keeper-hair bg-white hover:border-brand/60 hover:shadow-md shadow-sm'
+                    }`}
+                    data-testid={`scene-suggestion-${s.id}`}
+                  >
+                    <span className="flex items-start gap-3">
+                      <span
+                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                          chosen
+                            ? 'bg-brand-dark text-brand-foreground'
+                            : 'bg-brand-muted/60 text-brand-dark group-hover:bg-brand-muted'
+                        }`}
+                      >
+                        {chosen ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] leading-relaxed text-keeper-body">
+                          {s.text}
+                        </span>
+                        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark opacity-70 group-hover:opacity-100 transition-opacity">
+                          <PenLine className="h-3 w-3" />
+                          Use &amp; edit
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })
+            )}
+
+            <div className="flex items-center justify-between pt-1">
+              {canReroll ? (
+                <button
+                  type="button"
+                  onClick={() => suggestMutation.mutate()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark transition-colors disabled:opacity-50"
+                  data-testid="btn-scene-reroll"
+                >
+                  <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} />
+                  Show me three more
+                </button>
+              ) : (
+                <span className="text-xs text-keeper-meta">
+                  That's our lot — pick one and shape it your way.
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setSuggestOpen(false)}
+                className="text-xs text-keeper-body hover:text-brand-dark underline-offset-4 hover:underline"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BrainstormChatDrawer
         open={brainstormOpen}
