@@ -147,6 +147,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     }
   };
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const briefRef = useRef<HTMLInputElement | null>(null);
   // Debounce timer for committing the typed scene to the draft WHILE typing
   // (not only on blur) so "Next" enables as soon as there's text — the user
   // no longer has to click out of the box first. Debounced so the
@@ -203,6 +204,14 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     markPathUsed();
     setEditorOpen(true);
     setTimeout(() => textareaRef.current?.focus(), 80);
+  };
+
+  /** "These aren't it — let me steer differently." Closes the picker
+   *  and puts the cursor in the brief, so the retype path is one tap
+   *  instead of a guess. Spends nothing. */
+  const backToBrief = () => {
+    setSuggestOpen(false);
+    setTimeout(() => briefRef.current?.focus(), 120);
   };
 
   /** Suggest button / Enter in the brief. Opens the picker; only spends
@@ -375,6 +384,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               three visible words, and the brief is the steering wheel. */}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
+              ref={briefRef}
               id="scene-brief"
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
@@ -546,6 +556,39 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
               we draw anything.
             </DialogDescription>
           </DialogHeader>
+
+          {/* What steered these — and the one-tap path to steer
+              differently. Without this, "wrong direction" only had
+              reroll (same brief, wasted set) or a cold Close. */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-keeper-meta">
+            {brief.trim() ? (
+              <>
+                <span className="truncate max-w-[75%]">
+                  From your words: &ldquo;{brief.trim()}&rdquo;
+                </span>
+                <button
+                  type="button"
+                  onClick={backToBrief}
+                  className="font-medium text-brand-dark underline-offset-4 hover:underline"
+                  data-testid="btn-scene-change-brief"
+                >
+                  Change them
+                </button>
+              </>
+            ) : (
+              <>
+                <span>Going off the occasion alone.</span>
+                <button
+                  type="button"
+                  onClick={backToBrief}
+                  className="font-medium text-brand-dark underline-offset-4 hover:underline"
+                  data-testid="btn-scene-change-brief"
+                >
+                  Add a few words to sharpen them
+                </button>
+              </>
+            )}
+          </div>
 
           <div className="space-y-2 mt-1">
             {busy ? (
