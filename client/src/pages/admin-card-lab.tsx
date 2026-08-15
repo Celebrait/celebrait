@@ -61,9 +61,7 @@ export default function AdminCardLabPage() {
   const [who, setWho] = useState('Dad');
   const [occasion, setOccasion] = useState("Father's Day");
   const [from, setFrom] = useState('The kids');
-  const [love1, setLove1] = useState('');
-  const [love2, setLove2] = useState('');
-  const [love3, setLove3] = useState('');
+  const [interest, setInterest] = useState('');
   const [insideMode, setInsideMode] = useState<'auto' | 'own' | 'blank'>('auto');
   const [ownInsideText, setOwnInsideText] = useState('');
 
@@ -97,11 +95,15 @@ export default function AdminCardLabPage() {
 
   const deal = async () => {
     if (thinking) return;
+    if (!interest.trim()) {
+      toast({ title: 'One thing they love, please', description: 'It IS the card — everything grows from it.' });
+      return;
+    }
     setThinking(true);
     setSlots([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, from, love1, love2, love3, insideMode, ownInsideText,
+        who, occasion, from, interest, insideMode, ownInsideText,
       });
       const { concepts } = (await r.json()) as { concepts: Concept[] };
       dealCount.current += 1;
@@ -126,7 +128,7 @@ export default function AdminCardLabPage() {
         <div>
           <h1 className="text-xl font-bold text-stone-900">Card Lab</h1>
           <p className="text-sm text-stone-500">
-            Three things they love in → three quirky cards out, one per love. gpt-image-2 low, Celebrait Quirky style.
+            One thing they love in → three different takes on it. gpt-image-2 low, Celebrait Quirky style.
           </p>
         </div>
         <p className="text-xs text-stone-400">
@@ -164,14 +166,18 @@ export default function AdminCardLabPage() {
         </div>
 
         <div>
-          <Label className="text-xs font-semibold text-stone-700">
-            Three things they love <span className="font-normal text-stone-400">(the whole input — one card grows from each)</span>
+          <Label htmlFor="interest" className="text-xs font-semibold text-stone-700">
+            One thing they love{' '}
+            <span className="font-normal text-stone-400">— all three cards grow from this</span>
           </Label>
-          <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
-            <Input value={love1} onChange={(e) => setLove1(e.target.value)} placeholder="fishing" />
-            <Input value={love2} onChange={(e) => setLove2(e.target.value)} placeholder="a proper curry" />
-            <Input value={love3} onChange={(e) => setLove3(e.target.value)} placeholder="Oasis" />
-          </div>
+          <Input
+            id="interest"
+            value={interest}
+            onChange={(e) => setInterest(e.target.value)}
+            placeholder="fishing / Man United / her greenhouse / murder documentaries"
+            className="mt-1.5 h-11 text-base"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void deal(); } }}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -216,7 +222,8 @@ export default function AdminCardLabPage() {
                   </div>
                 )}
                 <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-dark shadow-sm">
-                  {s.concept.format ?? s.concept.angle}
+                  {s.concept.angle}
+                  {s.concept.format ? ` · ${s.concept.format}` : ''}
                 </span>
               </div>
               <div className="p-3 space-y-2">

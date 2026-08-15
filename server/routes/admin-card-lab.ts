@@ -86,9 +86,12 @@ const conceptsSchema = z.object({
   who: z.string().max(60),
   occasion: z.string().max(60),
   from: z.string().max(60).optional(),
-  love1: z.string().max(120).optional(),
-  love2: z.string().max(120).optional(),
-  love3: z.string().max(120).optional(),
+  // ONE interest, required. Choosing between three takes on the same
+  // subject is a card-shop choice ("which do I like?"); choosing
+  // between three subjects was a question about the recipient, which
+  // the sender had already answered by typing them. Required because
+  // "the thing they love" IS the product — an empty brief isn't its job.
+  interest: z.string().min(1).max(160),
   insideMode: z.enum(['auto', 'own', 'blank']).default('auto'),
   ownInsideText: z.string().max(300).optional(),
 });
@@ -103,26 +106,30 @@ interface CardConcept {
 function conceptSystemPrompt(): string {
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 
-You are given who the card is for, the occasion, who it's from, and up to THREE things the recipient loves. Return THREE concepts as JSON — EACH built on a DIFFERENT love (concept 1 → love 1, etc.).
+You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
 
-IF A LOVE SLOT IS EMPTY, that concept is about the RELATIONSHIP AND OCCASION ALONE — being a dad, a nan, a mate. It must reference NO specific hobby or object, including any mentioned as examples elsewhere in these instructions (no fishing, vinyl, cassettes, wheels, lemons, grills, coffee — those are TEACHING EXAMPLES, not this person's life). Rereading your line for an empty slot: if it names a thing they'd have to own or do, replace it.
+MINE THE SUBJECT FIRST — do this internally before writing:
+List the world of that interest: its objects and kit, its rituals, its jargon and catchphrases, its colours, its sounds, its clichés, the moment its fans love most. The best cards come from the SPECIFIC corners of that world, not its most obvious symbol. (Fishing is not only a fish: it is tackle boxes, dawn flasks, the one that got away, sitting in silence for nine hours and calling it relaxing.)
 
-WRITE WIDE, THEN EDIT — do this internally before answering:
-1. For EACH love, draft THREE candidate front lines (nine total): one wordplay, one deadpan/affectionate observation, one proud declaration.
-2. Then be a ruthless editor. A line SURVIVES only if it passes ALL of:
+THE THREE ANGLES — one card each, in this order:
+1. WORDPLAY — a pun or twist from that world's own language. Must pass the pub test.
+2. DEADPAN — an affectionate, observational truth about them and this thing. Understated, no pun. Often the best card of the three.
+3. PROUD — a warm declaration that celebrates them through it. Sincere, not soppy.
+
+WRITE WIDE, THEN EDIT: draft THREE candidate lines per angle (nine total), then be a ruthless editor. A line SURVIVES only if it passes ALL of:
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
-   - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure — never output a line whose grammar wobbles.
-   - IT IS ABOUT THEM: their love is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
-   - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark across the whole card.
-3. Pick the single best survivor per love. A clean deadpan line ALWAYS beats a strained pun. The bar is "simply the zest" — a stranger smiles unprompted.
+   - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure.
+   - IT IS ABOUT THEM AND THIS THING: their interest is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
+   - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark per card.
+Pick the single best survivor per angle. A clean deadpan ALWAYS beats a strained pun.
 
 Each returned concept:
-- format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities (statement=minimal, hero=balanced, pattern/label=dense). THE SET MUST SPAN THE RANGE: exactly one "statement" (every hand contains one), one "hero", and one of "pattern"/"label". Match each love to the recipe that flatters it. A statement card's line should be its shortest and driest.
-- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — the words and the motif complete each other.
-- inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally. Never restates the front.
-- art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that hobby, NEVER humans or cartoon animal characters) and how it sits in the chosen format.
-- palette: you are the art director — name the ground colour plus 3-4 ink colours, ALL DRAWN FROM THAT LOVE'S OWN WORLD (kit colours; turmeric-chilli-coriander; sea and sunset). The three cards' palettes MUST be clearly distinct — three different ground hues, no two cards sharing a colour family.
-- angle: "quirky".
+- angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
+- format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
+- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other.
+- inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
+- art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that world, NEVER humans or cartoon animal characters) and how it sits in the chosen format. THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
+- palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
 
 RULES:
 - Classy always: no clip-art energy, no emoji.
@@ -130,9 +137,9 @@ RULES:
 - Occasion lives in the INSIDE text; the front is about THEM.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more. If ANY of them contains "vibe" or "vibes", "level up", "boss", "legend", "goals", or "mode", OR would need explaining in a pub, OR is about the occasion instead of their love — REPLACE it with the runner-up candidate for that love before answering. This check has caught a failure in most previous runs; assume it will catch one in yours.
+FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more. If ANY contains "vibe" or "vibes", "level up", "boss", "legend", "goals", or "mode", OR would need explaining in a pub, OR is about the occasion instead of their interest, OR repeats another card's motif — REPLACE it with the runner-up before answering. This check has caught a failure in most previous runs; assume it will catch one in yours.
 
-Return JSON: {"concepts":[{...},{...},{...}]} — three distinct loves, three distinct formats, three distinct palettes.`;
+Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -147,12 +154,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(400).json({ message: 'Invalid request' });
     }
 
-    const loves=[body.love1, body.love2, body.love3].map(l=>l?.trim()).filter(Boolean);
     const briefLines = [
       `Recipient: ${body.who}`,
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
-      ...loves.map((l, i) => `Love ${i + 1}: ${l}`),
+      `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
     ].filter(Boolean);
 
