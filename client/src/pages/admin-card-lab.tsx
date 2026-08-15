@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Concept {
   angle: string;
-  format?: 'pattern' | 'label' | 'editorial';
+  format?: 'statement' | 'hero' | 'pattern' | 'label' | 'editorial';
   front_text: string;
   inside_text: string;
   art_direction: string;
@@ -77,7 +77,7 @@ export default function AdminCardLabPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/render', {
         front_text: concept.front_text,
         art_direction: concept.art_direction,
-        format: concept.format ?? 'editorial',
+        format: concept.format ?? 'hero',
         palette: concept.palette,
       });
       const j = await r.json();

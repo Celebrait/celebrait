@@ -77,9 +77,10 @@ LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival 
 The bar: it should look like a limited-run screen print you'd frame — current, collectible, unmistakably made by a human hand.`;
 
 export const QUIRKY_FORMATS: Record<string, string> = {
-  pattern: `FORMAT — ALLOVER PATTERN: the motif repeats bold and OVERSIZED across the whole card (varied scales, whole + cross-section views, some cropped off the edges), on the saturated ground. The lettering is broken into 2-4 short word-groups WOVEN through the gaps, chunky hand-drawn, reading top to bottom.`,
-  label: `FORMAT — RETRO-MODERN LABEL: a punchy modern take on a packet/label — bold simple border, an arced or stacked type lockup carrying the words, the motif bunched large in the centre, halftone shading in one ink. Think modern craft-beer label or record-sleeve, NOT antique.`,
-  editorial: `FORMAT — EDITORIAL PRINT: ONE hero object drawn HUGE — cropped by the frame edges — in confident contour line and flat fills, one loose oversized brush-swash or colour-block behind, big expressive script plus one small neat caption. Gallery poster energy.`,
+  statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. A vast, flat, saturated ground occupies at least 70% of the card. ONE small-to-medium motif — a single object, beautifully drawn — placed off-centre with huge breathing room. The lettering is modest and precise, tucked near the motif or in a corner, never shouting. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
+  hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped by the frame edges, confident contour and flat fills, a single loose brush-swash or colour-block behind it, calm ground visible around. Expressive script for the words plus breathing space. Poster energy, not busy.`,
+  pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges. Lettering broken into short word-groups woven through the gaps. Rich and full — this is the maximal card of the range.`,
+  label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — bold simple border, arced or stacked type, the motif bunched large in the centre, halftone shading in one ink. Craft-beer-label energy, structured-busy.`,
 };
 const conceptsSchema = z.object({
   who: z.string().max(60),
@@ -105,7 +106,7 @@ function conceptSystemPrompt(): string {
 You are given who the card is for, the occasion, who it's from, and up to THREE things the recipient loves. Return THREE concepts as JSON — EACH CONCEPT IS BUILT ON A DIFFERENT ONE of their loves (concept 1 → love 1, concept 2 → love 2, concept 3 → love 3). If fewer than three loves were given, build the remainder on the occasion itself.
 
 Each concept:
-- format: exactly one of "pattern", "label", "editorial" — USE ALL THREE ACROSS THE SET, one each, matched to whichever suits that love best.
+- format: one of "statement", "hero", "pattern", "label" — these are composition recipes at three densities (statement=minimal, hero=balanced, pattern/label=dense). THE SET MUST SPAN THE DENSITY RANGE: exactly one "statement" (the minimal one — every hand contains one), one "hero", and one of "pattern" or "label". Match each love to the recipe that flatters it: a single beautiful object suits statement/hero; a world of paraphernalia suits pattern/label. A statement card's front_text should be its shortest and driest.
 - front_text: MAXIMUM 8 words. The visual pun or quip. The words must CONNECT to the picture — the pun IS the bridge ("zest" works because the card is lemons). Smooth puns only: it must read naturally as a sentence. If no good pun exists for that love, use a deadpan affectionate line about it instead — NEVER force a clunker.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally.
 - art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that hobby, NEVER humans or cartoon animal characters) and how it sits in the chosen format.
@@ -197,7 +198,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const schema = z.object({
       front_text: z.string().min(1).max(120),
       art_direction: z.string().min(1).max(500),
-      format: z.enum(['pattern', 'label', 'editorial']).default('editorial'),
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
       palette: z.string().max(300).optional(),
     });
     let body: z.infer<typeof schema>;
@@ -210,7 +211,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const prompt = [
       QUIRKY_DNA,
       '',
-      QUIRKY_FORMATS[body.format],
+      QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
       '',
       `ILLUSTRATION: ${body.art_direction}`,
       body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
