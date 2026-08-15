@@ -47,7 +47,6 @@ import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -84,6 +83,62 @@ const TYPE_CHAR_MS = 45;
 const BACKSPACE_CHAR_MS = 20;
 /** Seen-flag for the first-run path-button captions. */
 const SCENE_PATHS_GUIDE_KEY = 'celebrait:scene-paths-guide:v1';
+
+/** Rotating examples for the BRIEF. Deliberately fragments, lowercase,
+ *  comma-separated — the shape teaches more than any label can: short,
+ *  specific, personal, and no need for a sentence. Not occasion-bound;
+ *  the brief is about the PERSON, and the occasion is already known. */
+const BRIEF_EXAMPLES = [
+  'the football, Anfield, always in his kit',
+  'her garden, the greenhouse, prize tomatoes',
+  'sea swimming, all year round, absolutely mad for it',
+  'Strictly, prosecco, dancing round the kitchen',
+  'camping in the Lakes, rain or shine',
+  'his allotment and that daft spaniel',
+  'baking, always flour on her jumper',
+];
+
+/** The rotating-placeholder state machine, extracted so the brief can
+ *  use it too (the scene textarea has its own copy inline, deliberately
+ *  left alone). Types → pauses → deletes → next phrase, and only runs
+ *  while `active` — never fights a user who's typing. */
+function useTypewriter(phrases: string[], active: boolean): string {
+  const [text, setText] = useState('');
+  const [idx, setIdx] = useState(0);
+  const [phase, setPhase] = useState<'typing' | 'pausing' | 'deleting'>('typing');
+
+  useEffect(() => {
+    if (!active) return;
+    const target = phrases[idx % phrases.length] ?? '';
+    if (phase === 'typing') {
+      if (text.length < target.length) {
+        const t = setTimeout(() => setText(target.slice(0, text.length + 1)), TYPE_CHAR_MS);
+        return () => clearTimeout(t);
+      }
+      const t = setTimeout(() => setPhase('pausing'), 0);
+      return () => clearTimeout(t);
+    }
+    if (phase === 'pausing') {
+      const t = setTimeout(() => setPhase('deleting'), PLACEHOLDER_PAUSE_MS);
+      return () => clearTimeout(t);
+    }
+    if (text.length > 0) {
+      const t = setTimeout(() => setText(text.slice(0, -1)), BACKSPACE_CHAR_MS);
+      return () => clearTimeout(t);
+    }
+    setIdx((i) => i + 1);
+    setPhase('typing');
+  }, [phase, text, idx, phrases, active]);
+
+  useEffect(() => {
+    if (!active) {
+      setText('');
+      setPhase('typing');
+    }
+  }, [active]);
+
+  return text;
+}
 
 export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
@@ -141,7 +196,8 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     }
   };
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const briefRef = useRef<HTMLInputElement | null>(null);
+  const briefRef = useRef<HTMLTextAreaElement | null>(null);
+  const [briefFocused, setBriefFocused] = useState(false);
   /** The brief that produced the CURRENT suggestions. "See ideas" only
    *  skips the refetch when the brief hasn't changed — reopening stale
    *  tiles after the user typed a new steer read as "it's broken"
@@ -153,6 +209,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   // per-change server save (onChange → runSave) doesn't fire per keystroke.
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
+  // Rotating examples in the brief — stops while they type or focus.
+  const briefPlaceholder = useTypewriter(
+    BRIEF_EXAMPLES,
+    brief.length === 0 && !briefFocused,
+  );
 
   // One-shot LLM call returning 3 tailored scene paragraphs. Posts to
   // /api/studio/scene-suggestions which reads recipient + occasion +
@@ -372,7 +433,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <div className="flex items-center justify-between">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-dark">
             <Sparkles className="w-3.5 h-3.5" />
-            Scene ideas
+            Get scene ideas
           </p>
           {firstName && (
             <p className="text-[11px] text-keeper-meta">
@@ -386,24 +447,29 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
         <div className="space-y-1.5">
           {/* Stacks under 640px — side-by-side crushed the input to
               three visible words, and the brief is the steering wheel. */}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <Textarea
               ref={briefRef}
               id="scene-brief"
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
-              // A sentence-STARTER, not a question (Aidan 2026-08-14).
-              // "What makes Family Family?" both interrogated the user
-              // and broke on any non-name recipient. Fragments show the
-              // shape of a good answer: short, casual, incomplete is fine.
-              placeholder="Start typing… the football, her garden, that daft dog" 
-              className="flex-1 min-w-0 h-10 bg-white text-[15px] border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/20"
+              onFocus={() => setBriefFocused(true)}
+              onBlur={() => setBriefFocused(false)}
+              // Rotating fragments type themselves out while the field is
+              // empty and unfocused — showing the SHAPE of a good brief
+              // beats describing it (Aidan 2026-08-14).
+              placeholder={briefPlaceholder}
+              rows={2}
+              className="flex-1 min-w-0 resize-none bg-white text-[15px] border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/20"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                // Enter submits (this is a short brief, not prose);
+                // Shift+Enter still makes a newline for anyone who wants one.
+                if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   openIdeas();
                 }
               }}
+              aria-live="off"
               data-testid="input-scene-brief"
             />
             <Button
