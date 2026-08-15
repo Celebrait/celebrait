@@ -70,7 +70,7 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 // is dead: quirky-classy means still-life motifs doing visual puns.
 export const QUIRKY_DNA = `STYLE DNA — "Celebrait Quirky" v2 (applies to the whole image, always):
 A CONTEMPORARY ART PRINT, not a greeting card cliché — the kind of bold flat-illustration piece trending in independent print shops and on gallery walls right now.
-COLOUR IS THE ENERGY: a SATURATED colour-block ground (hot coral, cobalt blue, marigold, blush, pistachio — almost never plain cream), with 3-5 flat electric ink colours on top in high-contrast, clashing-but-curated pairs. Vibrant, joyful, confident. Fluorescent-adjacent brightness like risograph fluoro inks.
+COLOUR IS THE ENERGY: a SATURATED colour-block ground with 3-5 flat electric ink colours on top in high-contrast, clashing-but-curated pairs. Vibrant, joyful, confident — fluorescent-adjacent brightness like risograph fluoro inks. The SPECIFIC colours are given per card in the PALETTE line below: obey it exactly, it was chosen from the subject's own world.
 FLAT AND HAND-MADE: zero gradients, zero 3D, zero airbrush smoothness, zero digital gloss. Matisse-cutout confidence — big simplified shapes with deliberate hand-cut wobble, slight ink misregistration, visible screen-print grain. Oversized motifs, brave cropping, asymmetric composition — NEVER a small object floating centred in empty space (that is the AI tell — avoid it).
 MOTIFS: objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no cartoon animal characters. Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
 LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival script, or bold naive caps — same ink family as the art, big enough to matter, part of the composition.
@@ -109,6 +109,7 @@ Each concept:
 - front_text: MAXIMUM 8 words. The visual pun or quip. The words must CONNECT to the picture — the pun IS the bridge ("zest" works because the card is lemons). Smooth puns only: it must read naturally as a sentence. If no good pun exists for that love, use a deadpan affectionate line about it instead — NEVER force a clunker.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally.
 - art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that hobby, NEVER humans or cartoon animal characters) and how it sits in the chosen format.
+- palette: you are the art director — name the ground colour plus 3-4 ink colours, ALL DRAWN FROM THAT LOVE'S OWN WORLD (a football club's kit colours; a curry's turmeric-chilli-coriander; vinyl's ink-black and label colours; the sea and sunset of a place). The three cards' palettes MUST be clearly distinct from each other — three different ground hues, no two cards sharing a colour family. This is what makes the set feel like three different artists who shop at the same store.
 - angle: "quirky".
 
 RULES:
@@ -197,6 +198,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       front_text: z.string().min(1).max(120),
       art_direction: z.string().min(1).max(500),
       format: z.enum(['pattern', 'label', 'editorial']).default('editorial'),
+      palette: z.string().max(300).optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -211,6 +213,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       QUIRKY_FORMATS[body.format],
       '',
       `ILLUSTRATION: ${body.art_direction}`,
+      body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Hand-painted lettering per the style block, integrated into the composition, every word legible, no cropping. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',

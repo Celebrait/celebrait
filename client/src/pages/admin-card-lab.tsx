@@ -25,6 +25,7 @@ interface Concept {
   front_text: string;
   inside_text: string;
   art_direction: string;
+  palette?: string;
 }
 interface Slot {
   concept: Concept;
@@ -77,6 +78,7 @@ export default function AdminCardLabPage() {
         front_text: concept.front_text,
         art_direction: concept.art_direction,
         format: concept.format ?? 'editorial',
+        palette: concept.palette,
       });
       const j = await r.json();
       setSlots((prev) =>
@@ -244,6 +246,7 @@ export default function AdminCardLabPage() {
                 <p className="text-[10px] text-stone-300 leading-snug" title={s.concept.art_direction}>
                   <Wand2 className="inline w-2.5 h-2.5 mr-0.5" />
                   {s.concept.art_direction}
+                  {s.concept.palette ? ` — ${s.concept.palette}` : ''}
                 </p>
               </div>
             </div>
