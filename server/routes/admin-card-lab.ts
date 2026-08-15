@@ -103,25 +103,36 @@ interface CardConcept {
 function conceptSystemPrompt(): string {
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 
-You are given who the card is for, the occasion, who it's from, and up to THREE things the recipient loves. Return THREE concepts as JSON — EACH CONCEPT IS BUILT ON A DIFFERENT ONE of their loves (concept 1 → love 1, concept 2 → love 2, concept 3 → love 3). If fewer than three loves were given, build the remainder on the occasion itself.
+You are given who the card is for, the occasion, who it's from, and up to THREE things the recipient loves. Return THREE concepts as JSON — EACH built on a DIFFERENT love (concept 1 → love 1, etc.).
 
-Each concept:
-- format: one of "statement", "hero", "pattern", "label" — these are composition recipes at three densities (statement=minimal, hero=balanced, pattern/label=dense). THE SET MUST SPAN THE DENSITY RANGE: exactly one "statement" (the minimal one — every hand contains one), one "hero", and one of "pattern" or "label". Match each love to the recipe that flatters it: a single beautiful object suits statement/hero; a world of paraphernalia suits pattern/label. A statement card's front_text should be its shortest and driest.
-- front_text: MAXIMUM 8 words. The visual pun or quip. The words must CONNECT to the picture — the pun IS the bridge ("zest" works because the card is lemons). Smooth puns only: it must read naturally as a sentence. If no good pun exists for that love, use a deadpan affectionate line about it instead — NEVER force a clunker.
-- inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally.
+IF A LOVE SLOT IS EMPTY, that concept is about the RELATIONSHIP AND OCCASION ALONE — being a dad, a nan, a mate. It must reference NO specific hobby or object, including any mentioned as examples elsewhere in these instructions (no fishing, vinyl, cassettes, wheels, lemons, grills, coffee — those are TEACHING EXAMPLES, not this person's life). Rereading your line for an empty slot: if it names a thing they'd have to own or do, replace it.
+
+WRITE WIDE, THEN EDIT — do this internally before answering:
+1. For EACH love, draft THREE candidate front lines (nine total): one wordplay, one deadpan/affectionate observation, one proud declaration.
+2. Then be a ruthless editor. A line SURVIVES only if it passes ALL of:
+   - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
+   - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure — never output a line whose grammar wobbles.
+   - IT IS ABOUT THEM: their love is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
+   - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark across the whole card.
+3. Pick the single best survivor per love. A clean deadpan line ALWAYS beats a strained pun. The bar is "simply the zest" — a stranger smiles unprompted.
+
+Each returned concept:
+- format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities (statement=minimal, hero=balanced, pattern/label=dense). THE SET MUST SPAN THE RANGE: exactly one "statement" (every hand contains one), one "hero", and one of "pattern"/"label". Match each love to the recipe that flatters it. A statement card's line should be its shortest and driest.
+- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — the words and the motif complete each other.
+- inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally. Never restates the front.
 - art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that hobby, NEVER humans or cartoon animal characters) and how it sits in the chosen format.
-- palette: you are the art director — name the ground colour plus 3-4 ink colours, ALL DRAWN FROM THAT LOVE'S OWN WORLD (a football club's kit colours; a curry's turmeric-chilli-coriander; vinyl's ink-black and label colours; the sea and sunset of a place). The three cards' palettes MUST be clearly distinct from each other — three different ground hues, no two cards sharing a colour family. This is what makes the set feel like three different artists who shop at the same store.
+- palette: you are the art director — name the ground colour plus 3-4 ink colours, ALL DRAWN FROM THAT LOVE'S OWN WORLD (kit colours; turmeric-chilli-coriander; sea and sunset). The three cards' palettes MUST be clearly distinct — three different ground hues, no two cards sharing a colour family.
 - angle: "quirky".
 
 RULES:
-- Classy always: no clip-art energy, no emoji, at most one exclamation mark across the whole card.
-- The pun bar is "simply the zest": a stranger should smile, not groan-and-die. Wordplay on THEIR thing beats generic occasion puns.
-- Occasion belongs in the INSIDE text (or a small part of the front if natural) — the front is about THEM.
-- If a love is a brand/band/franchise, evoke it through objects and colours (a cassette and bucket hat; never logos, never real faces).
+- Classy always: no clip-art energy, no emoji.
+- Brands/bands/places evoked through objects and colours (a cassette and bucket hat; never logos, never lyrics, never real faces). Song/film TITLES may be name-dropped if the line still parses naturally.
+- Occasion lives in the INSIDE text; the front is about THEM.
+- INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
+FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more. If ANY of them contains "vibe" or "vibes", "level up", "boss", "legend", "goals", or "mode", OR would need explaining in a pub, OR is about the occasion instead of their love — REPLACE it with the runner-up candidate for that love before answering. This check has caught a failure in most previous runs; assume it will catch one in yours.
 
-Return JSON: {"concepts":[{...},{...},{...}]} — three distinct loves, three distinct formats.`;
+Return JSON: {"concepts":[{...},{...},{...}]} — three distinct loves, three distinct formats, three distinct palettes.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -156,11 +167,38 @@ export function registerAdminCardLabRoutes(app: Express): void {
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.9,
+        temperature: 0.7,
         max_tokens: 700,
       });
       const parsed = JSON.parse(completion.choices[0]?.message?.content ?? '{}');
-      const concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, 3);
+      let concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, 3);
+
+      // The ban list is enforced in CODE, not hope — two prompt passes
+      // still leaked "vibes". One corrective retry naming the offenders;
+      // if that also fails we ship anyway (logged) rather than error.
+      const BANNED = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode)\b/i;
+      const offenders = concepts.filter((c) => BANNED.test(c.front_text ?? ''));
+      if (offenders.length > 0) {
+        const retry = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: conceptSystemPrompt() },
+            { role: 'user', content: briefLines.join('\n') },
+            { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
+            { role: 'user', content: `These front lines broke the banned-word rule: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Replace ONLY those concepts' front_text (and inside_text if it echoed the line) with clean survivors — no "vibe(s)", "level up", "boss", "legend", "goals", "mode". Return the complete corrected JSON.` },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.5,
+          max_tokens: 700,
+        });
+        try {
+          const reparsed = JSON.parse(retry.choices[0]?.message?.content ?? '{}');
+          const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, 3);
+          if (fixed.length === 3) concepts = fixed;
+        } catch { /* keep originals */ }
+        const still = concepts.filter((c) => BANNED.test(c.front_text ?? ''));
+        if (still.length) console.warn('[CARD-LAB] banned words survived retry:', still.map((c) => c.front_text));
+      }
 
       void logGeneration({
         cardId: null,
