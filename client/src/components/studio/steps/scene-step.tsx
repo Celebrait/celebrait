@@ -198,6 +198,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const briefRef = useRef<HTMLTextAreaElement | null>(null);
   const [briefFocused, setBriefFocused] = useState(false);
+  /** Brief highlight on the editor after a pick (Aidan 2026-08-15).
+   *  The modal closing is a big visual change — the glow tells the eye
+   *  WHERE the choice landed instead of leaving them to find it. */
+  const [justFilled, setJustFilled] = useState(false);
+  const glowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** The brief that produced the CURRENT suggestions. "See ideas" only
    *  skips the refetch when the brief hasn't changed — reopening stale
    *  tiles after the user typed a new steer read as "it's broken"
@@ -255,6 +260,13 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
     setLocal(s.text);
     setChosenId(s.id);
     setEditorOpen(true);
+    // Re-picking restarts the glow rather than stacking timers.
+    if (glowTimerRef.current) clearTimeout(glowTimerRef.current);
+    setJustFilled(true);
+    glowTimerRef.current = setTimeout(() => {
+      setJustFilled(false);
+      glowTimerRef.current = null;
+    }, 1900);
     onChange({
       scene: { ...state.scene, description: s.text, source: 'suggestion' },
     });
@@ -408,6 +420,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   useEffect(
     () => () => {
       if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+      if (glowTimerRef.current) clearTimeout(glowTimerRef.current);
     },
     [],
   );
@@ -603,7 +616,11 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             }}
             placeholder={placeholderText}
             rows={6}
-            className="mt-1.5 min-h-[140px] text-base resize-y bg-white border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
+            className={`mt-1.5 min-h-[140px] text-base resize-y bg-white focus-visible:border-brand focus-visible:ring-brand/20 transition-all duration-500 ${
+              justFilled
+                ? 'border-brand ring-4 ring-brand/30 shadow-lg shadow-brand/20'
+                : 'border-brand-light'
+            }`}
             // aria-live=off so the animated placeholder doesn't spam
             // screen readers with every keystroke-of-text change.
             aria-live="off"
