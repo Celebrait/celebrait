@@ -113,6 +113,7 @@ const AdminLayout = lazy(() => import("@/layouts/admin-layout"));
 const AdminPromptsPage = lazy(() => import("@/pages/admin-prompts"));
 const AdminCostsPage = lazy(() => import("@/pages/admin-costs"));
 const AdminPhotoLabPage = lazy(() => import("@/pages/admin-photo-lab"));
+const AdminCardLabPage = lazy(() => import("@/pages/admin-card-lab"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
@@ -336,6 +337,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminPhotoLabPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/card-lab">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminCardLabPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

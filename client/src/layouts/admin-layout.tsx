@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
   { label: 'Prompt Lab', href: '/admin/prompts', icon: Sparkles },
   { label: 'Photo Lab', href: '/admin/photo-lab', icon: ImageIcon },
+  { label: 'Card Lab', href: '/admin/card-lab', icon: ImageIcon },
   { label: 'Cost Ledger', href: '/admin/costs', icon: BarChart3 },
   { label: 'Emails', href: '/admin/emails', icon: Mail },
   { label: 'Social studio', href: '/admin/social', icon: Share2 },
