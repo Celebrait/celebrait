@@ -61,23 +61,28 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   return true;
 }
 
-// ── THE HOUSE STYLE ──────────────────────────────────────────────────
-// "The Celebrait Look — Illustrated". Locked here so every render in a
-// session is unmistakably one shop's work. Iterate the WORDS of this in
-// the lab; never let per-card art direction override the style spine.
-export const HOUSE_STYLE = `STYLE — "Celebrait Illustrated" (locked, applies to the whole image):
-Modern gouache greeting-card illustration. Chunky, simplified shapes with visible brush texture and a soft paper grain across the whole image. Warm cream paper background. Bold but LIMITED palette — at most five colours plus one hot accent colour. Generous negative space; one clear focal subject, never cluttered. Characterful ANIMALS and OBJECTS only — absolutely no humans, no human faces, no hands. Flat, print-friendly colour with slight ink-edge darkening; contemporary indie-card-shop aesthetic (think risograph-meets-gouache), NOT glossy digital art, NOT 3D render, NOT photorealism, NOT watercolour wash.
-LETTERING: the front text is hand-painted lettering, PART of the artwork — same gouache brush quality, same palette, integrated into the composition (on a banner, painted large in the negative space, wrapped around the subject). Big, joyful, instantly legible from arm's length.`;
+// ── THE HOUSE STYLE — "Celebrait Quirky" ─────────────────────────────
+// Direction locked from Aidan's three references (2026-08-15): the
+// lemons pattern card ("simply the zest"), the vintage seed-packet
+// tomatoes card, the Aperol editorial print. Their shared DNA is the
+// style; their three distinct FORMATS are how "varied" stays coherent.
+// Object-led, never characters — the earlier animals-in-hats direction
+// is dead: quirky-classy means still-life motifs doing visual puns.
+export const QUIRKY_DNA = `STYLE DNA — "Celebrait Quirky" (applies to the whole image, always):
+FLAT illustration — zero gradients, zero 3D, zero photorealism, zero digital gloss. Warm paper ground (soft cream or gentle blush pink). LIMITED palette: 3-5 ink colours plus at most one metallic-gold accent for sparkle marks. Visible print texture across everything — soft riso grain or halftone dots, slight ink misregistration charm. Confident simplified shapes with hand-painted edges. Motifs are OBJECTS, food, drink, botanicals, tools of a hobby — still-life elements ONLY: no humans, no faces, no cartoon animal characters. Composition is generous and classy — gallery-art-print restraint, never clip-art, never busy. HAND-LETTERING is part of the artwork: same ink, same hand, woven into the composition. The whole thing should look like a £5 card from a good independent shop.`;
 
+export const QUIRKY_FORMATS: Record<string, string> = {
+  pattern: `FORMAT — ALLOVER PATTERN: the motif repeats across the whole card like beautiful wrapping paper (varied sizes, whole and cut/cross-section views, scattered leaves or accents between). The lettering is broken into 2-4 short word-groups WOVEN through the gaps between motifs, wonky hand-drawn lowercase, reading top to bottom.`,
+  label: `FORMAT — VINTAGE LABEL: a pastiche of an old packet, matchbox or produce label. Decorative hand-drawn border frame with corner ornaments, an arced banner carrying part of the text, the motif bunched in the centre with halftone shading, a small plaque or lozenge carrying the final word. Slightly aged, letterpress feel.`,
+  editorial: `FORMAT — EDITORIAL PRINT: ONE hero object drawn large with confident contour line and flat colour fill, a single loose brush-swash of a second colour behind it, big casual brush-script for the main words plus one small neat hand-written caption block. Lots of calm paper space. Food-magazine art print energy.`,
+};
 const conceptsSchema = z.object({
   who: z.string().max(60),
   occasion: z.string().max(60),
   from: z.string().max(60).optional(),
-  loves: z.string().max(200).optional(),
-  cantStand: z.string().max(200).optional(),
-  anythingElse: z.string().max(300).optional(),
-  tone: z.enum(['funny', 'warm', 'mix']).default('mix'),
-  cheeky: z.boolean().default(false),
+  love1: z.string().max(120).optional(),
+  love2: z.string().max(120).optional(),
+  love3: z.string().max(120).optional(),
   insideMode: z.enum(['auto', 'own', 'blank']).default('auto'),
   ownInsideText: z.string().max(300).optional(),
 });
@@ -90,37 +95,26 @@ interface CardConcept {
 }
 
 function conceptSystemPrompt(): string {
-  return `You write greeting-card concepts for Celebrait — personalised, illustrated, printed cards. You are given a snapshot of a real person and you return THREE complete card concepts as JSON.
+  return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 
-Each concept = the CARD ITSELF:
-- front_text: what is painted on the front. MAXIMUM 10 words. This is the hook — a setup, a declaration, or the gag itself.
-- inside_text: what is printed inside. MAXIMUM 28 words. If the front is a setup, this is the punchline. Always ends warm enough to sign.
-- art_direction: one sentence describing the front illustration — ONE focal subject (an animal or object, NEVER a human), what it is doing, one or two supporting details. It must serve the joke or sentiment, not decorate it.
-- angle: one word — 'funny', 'dry', or 'warm'.
+You are given who the card is for, the occasion, who it's from, and up to THREE things the recipient loves. Return THREE concepts as JSON — EACH CONCEPT IS BUILT ON A DIFFERENT ONE of their loves (concept 1 → love 1, concept 2 → love 2, concept 3 → love 3). If fewer than three loves were given, build the remainder on the occasion itself.
 
-THE MATERIAL LADDER — use the best rung you actually have, never reach for one you don't:
-1. CONTRAST: they love X and can't stand Y → the joke writes itself from the gap. This is gold — use it when both exist.
-2. SINGLE DETAIL: one thing they love, a running joke, a fact → build the card around it, specifically and affectionately.
-3. RELATIONSHIP + OCCASION alone → warm, sharp, universal-but-well-made. NEVER invent details you weren't given. NEVER complain about missing information. A thin brief still gets a great card.
+Each concept:
+- format: exactly one of "pattern", "label", "editorial" — USE ALL THREE ACROSS THE SET, one each, matched to whichever suits that love best.
+- front_text: MAXIMUM 8 words. The visual pun or quip. The words must CONNECT to the picture — the pun IS the bridge ("zest" works because the card is lemons). Smooth puns only: it must read naturally as a sentence. If no good pun exists for that love, use a deadpan affectionate line about it instead — NEVER force a clunker.
+- inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, always warm enough to sign. References their love naturally.
+- art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that hobby, NEVER humans or cartoon animal characters) and how it sits in the chosen format.
+- angle: "quirky".
 
-HUMOUR RULES:
-- The joke is NOTICED, not invented: it comes from their actual details, seen fondly and from an unexpected angle.
-- Affectionate teasing, never cruel. The recipient should feel KNOWN, not roasted.
-- Banned: "another year older", "over the hill", age-mocking, generic pun-with-no-connection, anything a supermarket card could say.
-- Dry = understatement and deadpan. Warm = specific gratitude or love, never greeting-card mush ("you mean the world").
+RULES:
+- Classy always: no clip-art energy, no emoji, at most one exclamation mark across the whole card.
+- The pun bar is "simply the zest": a stranger should smile, not groan-and-die. Wordplay on THEIR thing beats generic occasion puns.
+- Occasion belongs in the INSIDE text (or a small part of the front if natural) — the front is about THEM.
+- If a love is a brand/band/franchise, evoke it through objects and colours (a cassette and bucket hat; never logos, never real faces).
 
-TONE STEER:
-- tone=funny → three different JOKE SHAPES (e.g. contrast gag, deadpan understatement, absurd escalation of their thing).
-- tone=warm → three warm registers (tender, proud, playful-warm).
-- tone=mix → one funny, one dry, one warm.
-- cheeky=true → mild British cheek is allowed ("bloody", "daft", "arse") — INSIDE TEXT ONLY, front stays clean. cheeky=false → keep it clean everywhere.
+INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-INSIDE MODE:
-- auto → write inside_text per the rules above.
-- own → the sender is writing their own message: set inside_text to "".
-- blank → set inside_text to "".
-
-Return JSON: {"concepts":[{...},{...},{...}]} — exactly three, distinct from each other in shape, not three drafts of one idea.`;
+Return JSON: {"concepts":[{...},{...},{...}]} — three distinct loves, three distinct formats.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -135,14 +129,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(400).json({ message: 'Invalid request' });
     }
 
+    const loves=[body.love1, body.love2, body.love3].map(l=>l?.trim()).filter(Boolean);
     const briefLines = [
       `Recipient: ${body.who}`,
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
-      body.loves?.trim() ? `They love: ${body.loves.trim()}` : '',
-      body.cantStand?.trim() ? `They can't stand: ${body.cantStand.trim()}` : '',
-      body.anythingElse?.trim() ? `Also: ${body.anythingElse.trim()}` : '',
-      `tone=${body.tone} cheeky=${body.cheeky} insideMode=${body.insideMode}`,
+      ...loves.map((l, i) => `Love ${i + 1}: ${l}`),
+      `insideMode=${body.insideMode}`,
     ].filter(Boolean);
 
     const startedAt = Date.now();
@@ -198,6 +191,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const schema = z.object({
       front_text: z.string().min(1).max(120),
       art_direction: z.string().min(1).max(500),
+      format: z.enum(['pattern', 'label', 'editorial']).default('editorial'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -207,7 +201,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     const prompt = [
-      HOUSE_STYLE,
+      QUIRKY_DNA,
+      '',
+      QUIRKY_FORMATS[body.format],
       '',
       `ILLUSTRATION: ${body.art_direction}`,
       '',
