@@ -76,21 +76,31 @@ MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboar
 LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival script, or bold naive caps — same ink family as the art, big enough to matter, part of the composition.
 The bar: it should look like a limited-run screen print you'd frame — current, collectible, unmistakably made by a human hand.`;
 
-/** Animals are OPT-IN (Aidan 2026-08-15). Objects can be witty; only a
- *  creature can have an ATTITUDE — a cat glaring at a knocked-over glass
- *  does comedic work no still-life can, and it's half of Thortful's
- *  range. Humans stay banned in both modes: AI faces are the tell, and
- *  people belong to the photo product's lane. */
+/** Characters are a three-level opt-in ladder (Aidan 2026-08-15).
+ *  Objects can be witty, but only a creature can have an ATTITUDE, and
+ *  some subjects — Sunday league, ballroom, a book club — simply ARE
+ *  people doing things. The constraint that keeps figures safe is that
+ *  they are graphic SHAPES, never portraits: no face means no uncanny
+ *  AI tell, no confusion with the photo product's "that's actually
+ *  them", and no "is that meant to BE him?" doubt. Recognisable real
+ *  people stay banned at every level. */
+export type CharacterLevel = 'objects' | 'animals' | 'figures';
+
 const MOTIF_OBJECTS_ONLY =
   'objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no animals, no characters of any kind.';
+
 const MOTIF_WITH_ANIMALS =
   "objects, food, drink, botanicals, the kit of a hobby — AND characterful ANIMALS, which may be given real personality and attitude (a smug cat, a dog mid-zoomies, a heron with the patience of a saint). Animals are drawn in the same flat hand-illustrated style as everything else, never cutesy-greetings-card, never wearing novelty human costume beyond one deadpan prop. STILL absolutely no humans and no human faces.";
 
-export function quirkyDna(allowAnimals: boolean): string {
-  return QUIRKY_DNA_BASE.replace(
-    '__MOTIF_RULE__',
-    allowAnimals ? MOTIF_WITH_ANIMALS : MOTIF_OBJECTS_ONLY,
-  );
+const MOTIF_WITH_FIGURES =
+  "objects, food, drink, botanicals, the kit of a hobby, characterful ANIMALS, and — where the subject genuinely needs a person present — HUMAN FIGURES AS GRAPHIC SHAPES. Figures are vintage-travel-poster silhouettes, NEVER portraits: shown from behind, cropped at the shoulders, small in the frame, or reduced to flat coloured shapes. Faces are absent or a bare suggestion (never rendered features, never eyes and mouth drawn in detail). A figure is a shape doing an action, not a person being depicted. NEVER a recognisable real individual — living or dead, famous or otherwise.";
+
+export function quirkyDna(level: CharacterLevel = 'objects'): string {
+  const rule =
+    level === 'figures' ? MOTIF_WITH_FIGURES
+    : level === 'animals' ? MOTIF_WITH_ANIMALS
+    : MOTIF_OBJECTS_ONLY;
+  return QUIRKY_DNA_BASE.replace('__MOTIF_RULE__', rule);
 }
 
 export const QUIRKY_FORMATS: Record<string, string> = {
@@ -126,8 +136,8 @@ const conceptsSchema = z.object({
    *  where provider moderation actually draws the line — the customer
    *  build should be more conservative than whatever survives here. */
   cheeky: z.boolean().default(false),
-  /** Opt-in animal characters — see quirkyDna(). */
-  allowAnimals: z.boolean().default(false),
+  /** Character ladder — see quirkyDna(). */
+  characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
 });
 
 interface CardConcept {
@@ -137,13 +147,19 @@ interface CardConcept {
   art_direction: string;
 }
 
-function conceptSystemPrompt(allowAnimals: boolean): string {
+function conceptSystemPrompt(characters: CharacterLevel): string {
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 
 You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
 
 MINE THE SUBJECT FIRST — do this internally before writing:
 List the world of that interest: its objects and kit, its rituals, its jargon and catchphrases, its colours, its sounds, its clichés, the moment its fans love most. The best cards come from the SPECIFIC corners of that world, not its most obvious symbol. (Fishing is not only a fish: it is tackle boxes, dawn flasks, the one that got away, sitting in silence for nine hours and calling it relaxing.)
+
+IF THE SUBJECT IS A PERSON (a celebrity, a character, a public figure, a sports star), mine THEIR OWN unmistakable signatures — the objects they are never without, their gestures, their palette, their catchphrase, the thing only they do. Then build all three cards from THOSE.
+  DANGER: do NOT drift to the person's CITY, COUNTRY or GENERIC FIELD. That is the standard failure. A card about a New York figure that shows the Empire State is a card about New York — it would work identically for anyone who likes the place, so it says nothing about them.
+  WORKED: a red cap with white lettering, an overlong red tie, gold everything — unmistakable, no face required.
+  FAILED: a skyline, a generic podium, "a famous building" — could be anybody.
+  You must be able to say WHY each motif belongs to this person and nobody else. If you cannot, mine again.
 
 THE THREE ANGLES — one card each, in this order:
 1. WORDPLAY — a pun or twist from that world's own language. Must pass the pub test.
@@ -162,7 +178,9 @@ Each returned concept:
 - format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
 - front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
-- art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${allowAnimals
+- art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${characters === 'figures'
+    ? 'You MAY use a characterful ANIMAL, or a HUMAN FIGURE rendered as a graphic silhouette/shape (from behind, cropped, small in frame, faceless) where the subject genuinely needs a person present. Otherwise objects/food/botanicals/kit. NEVER a portrait, NEVER detailed facial features, NEVER a recognisable real individual.'
+    : characters === 'animals'
     ? 'You MAY use a characterful ANIMAL as the subject where it earns the joke (attitude, reaction, expression) — otherwise objects/food/botanicals/kit of that world. NEVER humans or human faces.'
     : 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
 - palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
@@ -200,7 +218,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
       `cheeky=${body.cheeky}`,
-      `allowAnimals=${body.allowAnimals}`,
+      `characters=${body.characters}`,
     ].filter(Boolean);
 
     const startedAt = Date.now();
@@ -210,7 +228,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: conceptSystemPrompt(body.allowAnimals) },
+          { role: 'system', content: conceptSystemPrompt(body.characters) },
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
@@ -229,7 +247,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: conceptSystemPrompt(body.allowAnimals) },
+            { role: 'system', content: conceptSystemPrompt(body.characters) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
             { role: 'user', content: `These front lines broke the banned-word rule: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Replace ONLY those concepts' front_text (and inside_text if it echoed the line) with clean survivors — no "vibe(s)", "level up", "boss", "legend", "goals", "mode". Return the complete corrected JSON.` },
@@ -290,7 +308,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       from: z.string().max(60).optional(),
       palette: z.string().max(300).optional(),
       art_direction: z.string().max(500).optional(),
-      allowAnimals: z.boolean().default(false),
+      characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -317,7 +335,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         ].filter(Boolean).join(' ');
 
     const prompt = [
-      quirkyDna(body.allowAnimals),
+      quirkyDna(body.characters),
       '',
       QUIRKY_INSIDE,
       '',
@@ -360,7 +378,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
-      allowAnimals: z.boolean().default(false),
+      characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -382,7 +400,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const dense = body.format === 'pattern' || body.format === 'label';
     if (dense && body.art_direction) {
       const prompt = [
-        quirkyDna(body.allowAnimals),
+        quirkyDna(body.characters),
         '',
         QUIRKY_FORMATS[body.format === 'label' ? 'label' : 'pattern'],
         '',
@@ -494,7 +512,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       art_direction: z.string().min(1).max(500),
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
       palette: z.string().max(300).optional(),
-      allowAnimals: z.boolean().default(false),
+      characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -504,7 +522,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     const prompt = [
-      quirkyDna(body.allowAnimals),
+      quirkyDna(body.characters),
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
       '',
