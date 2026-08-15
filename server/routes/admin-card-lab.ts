@@ -264,14 +264,23 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(503).json({ message: 'Active Gemini provider has no refine support' });
     }
 
+    // ⚠️ The lettering must be RE-SET, not overwritten. v1 told Gemini to
+    // keep the same placement — so a longer replacement was drawn on the
+    // same single baseline and ran straight into the artwork ("Reel good,
+    // Dad" collided with the float, Aidan 2026-08-15). New text has
+    // different VOLUME to old text: the type may restack, resize and
+    // reflow to fit its space; only the ARTWORK is untouchable.
     const instruction = [
       body.currentText?.trim()
         ? `The hand-lettered text on this greeting card currently reads "${body.currentText.trim()}".`
         : 'This greeting card has hand-lettered text on it.',
-      `Redraw that lettering so it reads EXACTLY: "${body.newText.trim()}".`,
-      'Keep the SAME hand-lettered style, the same colours, the same weight and the same placement in the composition.',
-      'Change NOTHING else: every illustrated element, the background colour, the texture and the layout must stay pixel-identical. Do not add, remove or move any artwork.',
-      'Every letter must be correctly spelled and fully legible, nothing cropped by the frame.',
+      'STEP 1 — ERASE: completely remove the existing lettering. Paint the background cleanly over every letter so no trace, ghost or fragment of the old words remains. This is not optional: leaving any of the old text visible is a total failure (a previous attempt left "Reel legend" sitting under the new line).',
+      `STEP 2 — WRITE: on the now-clean background, draw the new lettering reading EXACTLY: "${body.newText.trim()}". These are the ONLY words on the card. If any word from the old text also appears in the new text, it must be drawn fresh as part of the new lettering — never left behind from the original.`,
+      'Keep the SAME hand-lettered style, the same ink colours and the same character — it must look like the same artist wrote it.',
+      'RE-SET the type to fit its space properly: you MAY break it across two or three stacked lines, adjust the size, and re-balance it within the clear area it occupies. Do NOT simply overwrite the old words on one line — the new text is a different length and must be composed to fit.',
+      'The lettering must NEVER overlap, touch or obscure any illustrated element. Keep clear breathing space between the type and the artwork; if the new text needs more room, make the letters smaller rather than letting them collide.',
+      'Change NOTHING else: every illustrated element, the background colour, the texture and the layout stay exactly as they are. Do not add, remove, move or resize any artwork.',
+      'Every letter correctly spelled, fully legible, nothing cropped by the frame.',
     ].join(' ');
 
     const startedAt = Date.now();
