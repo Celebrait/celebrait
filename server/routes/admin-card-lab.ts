@@ -68,13 +68,18 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 // style; their three distinct FORMATS are how "varied" stays coherent.
 // Object-led, never characters — the earlier animals-in-hats direction
 // is dead: quirky-classy means still-life motifs doing visual puns.
-export const QUIRKY_DNA = `STYLE DNA — "Celebrait Quirky" (applies to the whole image, always):
-FLAT illustration — zero gradients, zero 3D, zero photorealism, zero digital gloss. Warm paper ground (soft cream or gentle blush pink). LIMITED palette: 3-5 ink colours plus at most one metallic-gold accent for sparkle marks. Visible print texture across everything — soft riso grain or halftone dots, slight ink misregistration charm. Confident simplified shapes with hand-painted edges. Motifs are OBJECTS, food, drink, botanicals, tools of a hobby — still-life elements ONLY: no humans, no faces, no cartoon animal characters. Composition is generous and classy — gallery-art-print restraint, never clip-art, never busy. HAND-LETTERING is part of the artwork: same ink, same hand, woven into the composition. The whole thing should look like a £5 card from a good independent shop.`;
+export const QUIRKY_DNA = `STYLE DNA — "Celebrait Quirky" v2 (applies to the whole image, always):
+A CONTEMPORARY ART PRINT, not a greeting card cliché — the kind of bold flat-illustration piece trending in independent print shops and on gallery walls right now.
+COLOUR IS THE ENERGY: a SATURATED colour-block ground (hot coral, cobalt blue, marigold, blush, pistachio — almost never plain cream), with 3-5 flat electric ink colours on top in high-contrast, clashing-but-curated pairs. Vibrant, joyful, confident. Fluorescent-adjacent brightness like risograph fluoro inks.
+FLAT AND HAND-MADE: zero gradients, zero 3D, zero airbrush smoothness, zero digital gloss. Matisse-cutout confidence — big simplified shapes with deliberate hand-cut wobble, slight ink misregistration, visible screen-print grain. Oversized motifs, brave cropping, asymmetric composition — NEVER a small object floating centred in empty space (that is the AI tell — avoid it).
+MOTIFS: objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no cartoon animal characters. Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
+LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival script, or bold naive caps — same ink family as the art, big enough to matter, part of the composition.
+The bar: it should look like a limited-run screen print you'd frame — current, collectible, unmistakably made by a human hand.`;
 
 export const QUIRKY_FORMATS: Record<string, string> = {
-  pattern: `FORMAT — ALLOVER PATTERN: the motif repeats across the whole card like beautiful wrapping paper (varied sizes, whole and cut/cross-section views, scattered leaves or accents between). The lettering is broken into 2-4 short word-groups WOVEN through the gaps between motifs, wonky hand-drawn lowercase, reading top to bottom.`,
-  label: `FORMAT — VINTAGE LABEL: a pastiche of an old packet, matchbox or produce label. Decorative hand-drawn border frame with corner ornaments, an arced banner carrying part of the text, the motif bunched in the centre with halftone shading, a small plaque or lozenge carrying the final word. Slightly aged, letterpress feel.`,
-  editorial: `FORMAT — EDITORIAL PRINT: ONE hero object drawn large with confident contour line and flat colour fill, a single loose brush-swash of a second colour behind it, big casual brush-script for the main words plus one small neat hand-written caption block. Lots of calm paper space. Food-magazine art print energy.`,
+  pattern: `FORMAT — ALLOVER PATTERN: the motif repeats bold and OVERSIZED across the whole card (varied scales, whole + cross-section views, some cropped off the edges), on the saturated ground. The lettering is broken into 2-4 short word-groups WOVEN through the gaps, chunky hand-drawn, reading top to bottom.`,
+  label: `FORMAT — RETRO-MODERN LABEL: a punchy modern take on a packet/label — bold simple border, an arced or stacked type lockup carrying the words, the motif bunched large in the centre, halftone shading in one ink. Think modern craft-beer label or record-sleeve, NOT antique.`,
+  editorial: `FORMAT — EDITORIAL PRINT: ONE hero object drawn HUGE — cropped by the frame edges — in confident contour line and flat fills, one loose oversized brush-swash or colour-block behind, big expressive script plus one small neat caption. Gallery poster energy.`,
 };
 const conceptsSchema = z.object({
   who: z.string().max(60),
