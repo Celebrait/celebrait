@@ -99,6 +99,17 @@ export const QUIRKY_FORMATS: Record<string, string> = {
   pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges. Lettering broken into short word-groups woven through the gaps. Rich and full — this is the maximal card of the range.`,
   label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — bold simple border, arced or stacked type, the motif bunched large in the centre, halftone shading in one ink. Craft-beer-label energy, structured-busy.`,
 };
+/** The INSIDE is a quieter room than the front. Same shop, lower
+ *  volume: the words are the hero, the artwork only frames them. The
+ *  photo studio's inside_write prompt taught the shape — dear at top,
+ *  message centre, signature bottom, never repeat the cover, never a
+ *  person — and this is that shape in the Quirky voice. */
+export const QUIRKY_INSIDE = `INSIDE OF A GREETING CARD — the text is the hero, the artwork is the frame.
+LAYOUT: a calm, generous page. The written message sits in the middle with real breathing room and a clear typographic hierarchy. Illustration is REDUCED to a light frame or a small motif echo — a sprig in one corner, a thin border, a few scattered accents. NEVER a busy pattern, NEVER a large object competing with the words. At least 60% of this page is clean, calm space you could read at a glance.
+COLOUR: the SAME palette family as the front card but LIGHTER and quieter — use the palest colour as the ground so handwriting would be legible on it, and keep the inks for the lettering and the small accents only.
+LETTERING: same hand-lettered family as the front, but calmer and smaller. Every word must be perfectly legible and correctly spelled.
+NEVER: no people, no faces, no hands, no figures of any kind. Never repeat the front card's main subject at full size — the inside of a real card never re-prints its own cover.`;
+
 const conceptsSchema = z.object({
   who: z.string().max(60),
   occasion: z.string().max(60),
@@ -260,6 +271,77 @@ export function registerAdminCardLabRoutes(app: Express): void {
     } catch (err) {
       console.error('[CARD-LAB] concepts error:', err);
       res.status(500).json({ message: 'Concept generation failed' });
+    }
+  });
+
+  // ── POST /api/admin/card-lab/render-inside ──────────────────────
+  // Signed-off front → the inside. Three modes, matching the studio:
+  //   auto  — render the AI-written message as designed typography
+  //   own   — render the sender's own words the same way
+  //   blank — a styled but EMPTY page they can handwrite on
+  // dear/from render as the greeting-card hierarchy the photo studio
+  // already uses (To Dad … at the top, Love Aidan … underneath).
+  app.post('/api/admin/card-lab/render-inside', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      mode: z.enum(['auto', 'own', 'blank']).default('auto'),
+      message: z.string().max(300).optional(),
+      dear: z.string().max(60).optional(),
+      from: z.string().max(60).optional(),
+      palette: z.string().max(300).optional(),
+      art_direction: z.string().max(500).optional(),
+      allowAnimals: z.boolean().default(false),
+    });
+    let body: z.infer<typeof schema>;
+    try {
+      body = schema.parse(req.body);
+    } catch {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const dear = body.dear?.trim();
+    const from = body.from?.trim();
+    const message = body.message?.trim();
+
+    // A blank inside is still DESIGNED — a plain white square reads as a
+    // printing error, but a busy one is unwritable. Palest ground, one
+    // whisper of a motif, nothing else.
+    const textBlock = body.mode === 'blank'
+      ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
+      : [
+          'TEXT — render EXACTLY these words and nothing else, as designed hand-lettering:',
+          dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
+          message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
+          from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
+          'Clear vertical hierarchy and real space between the three parts. NO other text of any kind anywhere in the image.',
+        ].filter(Boolean).join(' ');
+
+    const prompt = [
+      quirkyDna(body.allowAnimals),
+      '',
+      QUIRKY_INSIDE,
+      '',
+      body.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${body.palette}` : '',
+      body.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${body.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
+      '',
+      textBlock,
+      '',
+      'Square 1024x1024 full-bleed greeting-card INSIDE page.',
+    ].filter(Boolean).join('\n');
+
+    try {
+      const result = await getProvider('openai-2').generate({
+        prompt, quality: 'low', size: '1024x1024', slot: 'card_lab',
+      });
+      void logGeneration({
+        cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+        provider: result.provider, model: result.model, quality: 'low',
+        costCents: result.costCents, durationMs: result.durationMs, success: true,
+      });
+      res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
+    } catch (err: any) {
+      console.error('[CARD-LAB] render-inside error:', err?.message ?? err);
+      res.status(502).json({ message: err?.message ?? 'Inside render failed' });
     }
   });
 
