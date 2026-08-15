@@ -11,7 +11,7 @@
 // R&D under slot card_lab).
 
 import { useRef, useState } from 'react';
-import { Loader2, RefreshCw, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, RefreshCw, Sparkles, Wand2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +30,7 @@ interface Concept {
 interface Slot {
   concept: Concept;
   imageUrl?: string;
+  drawnBy?: string;
   costUsd?: string;
   durationMs?: number;
   error?: string;
@@ -62,6 +63,9 @@ export default function AdminCardLabPage() {
   const [occasion, setOccasion] = useState("Father's Day");
   const [from, setFrom] = useState('The kids');
   const [interest, setInterest] = useState('');
+  const [cheeky, setCheeky] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editText, setEditText] = useState('');
   const [insideMode, setInsideMode] = useState<'auto' | 'own' | 'blank'>('auto');
   const [ownInsideText, setOwnInsideText] = useState('');
 
@@ -81,7 +85,7 @@ export default function AdminCardLabPage() {
       const j = await r.json();
       setSlots((prev) =>
         prev.map((s, i) =>
-          i === idx ? { ...s, rendering: false, imageUrl: j.imageUrl, costUsd: j.costUsd, durationMs: j.durationMs } : s,
+          i === idx ? { ...s, rendering: false, imageUrl: j.imageUrl, costUsd: j.costUsd, durationMs: j.durationMs, drawnBy: j.drawnBy } : s,
         ),
       );
       const c = parseFloat(String(j.costUsd ?? '').replace('$', ''));
@@ -103,7 +107,7 @@ export default function AdminCardLabPage() {
     setSlots([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, from, interest, insideMode, ownInsideText,
+        who, occasion, from, interest, insideMode, ownInsideText, cheeky,
       });
       const { concepts } = (await r.json()) as { concepts: Concept[] };
       dealCount.current += 1;
@@ -114,6 +118,33 @@ export default function AdminCardLabPage() {
       toast({ title: 'Concepts failed', description: e?.message ?? 'Try again', variant: 'destructive' });
     } finally {
       setThinking(false);
+    }
+  };
+
+  const applyTextEdit = async (idx: number) => {
+    const slot = slots[idx];
+    if (!slot?.imageUrl || !editText.trim()) return;
+    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rendering: true, error: undefined } : s)));
+    setEditingIdx(null);
+    try {
+      const r = await apiRequest('POST', '/api/admin/card-lab/edit-text', {
+        imageUrl: slot.imageUrl,
+        newText: editText.trim(),
+        currentText: slot.concept.front_text,
+      });
+      const j = await r.json();
+      setSlots((prev) =>
+        prev.map((s, i) =>
+          i === idx
+            ? { ...s, rendering: false, imageUrl: j.imageUrl, drawnBy: j.drawnBy,
+                concept: { ...s.concept, front_text: editText.trim() } }
+            : s,
+        ),
+      );
+      const c = parseFloat(String(j.costUsd ?? '').replace('$', ''));
+      if (!Number.isNaN(c)) setSpendUsd((v) => v + c);
+    } catch (e: any) {
+      setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rendering: false, error: e?.message ?? 'Text edit failed' } : s)));
     }
   };
 
@@ -181,6 +212,11 @@ export default function AdminCardLabPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <label className="flex items-center gap-2 text-xs font-medium text-stone-600">
+            <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)}
+              className="h-3.5 w-3.5 accent-brand" />
+            Rude mode <span className="text-stone-400">(cheeky — falls back to Gemini if OpenAI baulks)</span>
+          </label>
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-stone-700 mr-1">Inside</span>
             {(['auto', 'own', 'blank'] as const).map((m) => (
@@ -244,12 +280,33 @@ export default function AdminCardLabPage() {
                   <p className="text-[10px] text-stone-400">
                     {s.costUsd ? `${s.costUsd} · ${((s.durationMs ?? 0) / 1000).toFixed(1)}s` : ' '}
                   </p>
-                  <button type="button" onClick={() => rerollArt(i)} disabled={s.rendering}
-                    className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-brand-dark disabled:opacity-40">
-                    <RefreshCw className={`w-3 h-3 ${s.rendering ? 'animate-spin' : ''}`} />
-                    redo art
-                  </button>
+                  <span className="flex items-center gap-3">
+                    <button type="button" disabled={s.rendering || !s.imageUrl}
+                      onClick={() => { setEditingIdx(editingIdx === i ? null : i); setEditText(s.concept.front_text); }}
+                      className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-brand-dark disabled:opacity-40">
+                      <Type className="w-3 h-3" />
+                      fix text
+                    </button>
+                    <button type="button" onClick={() => rerollArt(i)} disabled={s.rendering}
+                      className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-brand-dark disabled:opacity-40">
+                      <RefreshCw className={`w-3 h-3 ${s.rendering ? 'animate-spin' : ''}`} />
+                      redo art
+                    </button>
+                  </span>
                 </div>
+                {editingIdx === i && (
+                  <div className="flex gap-1.5">
+                    <Input value={editText} onChange={(e) => setEditText(e.target.value)}
+                      className="h-8 text-xs" placeholder="corrected front text"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void applyTextEdit(i); } }} />
+                    <Button size="sm" className="h-8 px-2 text-xs" onClick={() => void applyTextEdit(i)}>
+                      Redraw
+                    </Button>
+                  </div>
+                )}
+                {s.drawnBy && s.drawnBy !== 'openai' && (
+                  <p className="text-[10px] font-medium text-amber-600">{s.drawnBy}</p>
+                )}
                 <p className="text-[10px] text-stone-300 leading-snug" title={s.concept.art_direction}>
                   <Wand2 className="inline w-2.5 h-2.5 mr-0.5" />
                   {s.concept.art_direction}

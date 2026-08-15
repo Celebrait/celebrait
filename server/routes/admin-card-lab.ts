@@ -94,6 +94,10 @@ const conceptsSchema = z.object({
   interest: z.string().min(1).max(160),
   insideMode: z.enum(['auto', 'own', 'blank']).default('auto'),
   ownInsideText: z.string().max(300).optional(),
+  /** Opt-in cheek. Deliberately permissive in the LAB so we can find
+   *  where provider moderation actually draws the line — the customer
+   *  build should be more conservative than whatever survives here. */
+  cheeky: z.boolean().default(false),
 });
 
 interface CardConcept {
@@ -131,6 +135,9 @@ Each returned concept:
 - art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that world, NEVER humans or cartoon animal characters) and how it sits in the chosen format. THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
 - palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
 
+CHEEKY MODE (cheeky=true only):
+British pub cheek is now allowed and encouraged — "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", innuendo and mild filth. Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race/sexuality/religion/disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight or death. Put the strongest word on the FRONT if it's genuinely funnier there — we are testing what renders. When cheeky=false, stay completely clean.
+
 RULES:
 - Classy always: no clip-art energy, no emoji.
 - Brands/bands/places evoked through objects and colours (a cassette and bucket hat; never logos, never lyrics, never real faces). Song/film TITLES may be name-dropped if the line still parses naturally.
@@ -160,6 +167,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
+      `cheeky=${body.cheeky}`,
     ].filter(Boolean);
 
     const startedAt = Date.now();
@@ -233,6 +241,66 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
   });
 
+  // ── POST /api/admin/card-lab/edit-text ──────────────────────────
+  // Gemini image-to-image: change ONLY the lettering, keep the artwork
+  // pixel-identical. This is what makes a near-perfect card salvageable
+  // — one wonky letter used to mean re-rolling the whole thing.
+  app.post('/api/admin/card-lab/edit-text', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      imageUrl: z.string().min(20),          // data URL from a previous render
+      newText: z.string().min(1).max(120),
+      currentText: z.string().max(120).optional(),
+    });
+    let body: z.infer<typeof schema>;
+    try {
+      body = schema.parse(req.body);
+    } catch {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const provider = getProvider('gemini-flash');
+    if (!provider.refine) {
+      return res.status(503).json({ message: 'Active Gemini provider has no refine support' });
+    }
+
+    const instruction = [
+      body.currentText?.trim()
+        ? `The hand-lettered text on this greeting card currently reads "${body.currentText.trim()}".`
+        : 'This greeting card has hand-lettered text on it.',
+      `Redraw that lettering so it reads EXACTLY: "${body.newText.trim()}".`,
+      'Keep the SAME hand-lettered style, the same colours, the same weight and the same placement in the composition.',
+      'Change NOTHING else: every illustrated element, the background colour, the texture and the layout must stay pixel-identical. Do not add, remove or move any artwork.',
+      'Every letter must be correctly spelled and fully legible, nothing cropped by the frame.',
+    ].join(' ');
+
+    const startedAt = Date.now();
+    try {
+      const result = await provider.refine(body.imageUrl, instruction);
+      void logGeneration({
+        cardId: null,
+        slot: 'card_lab',
+        templateId: null,
+        templateVersion: null,
+        provider: result.provider,
+        model: result.model,
+        quality: null,
+        costCents: result.costCents,
+        durationMs: result.durationMs,
+        success: true,
+      });
+      res.json({
+        imageUrl: result.imageUrl,
+        costUsd: result.costUsd,
+        durationMs: Date.now() - startedAt,
+        drawnBy: 'gemini (text edit)',
+      });
+    } catch (err: any) {
+      console.error('[CARD-LAB] edit-text error:', err?.message ?? err);
+      res.status(502).json({ message: err?.message ?? 'Text edit failed' });
+    }
+  });
+
   // ── POST /api/admin/card-lab/render ──────────────────────────────
   // One front, gpt-image-2 LOW (~$0.006). The client fires three of
   // these in parallel — no batching server-side so each card can land
@@ -265,8 +333,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
       'Square 1024x1024 full-bleed greeting-card front.',
     ].join('\n');
 
-    try {
-      const provider = getProvider('openai-2');
+    // OpenAI first. If its safety layer refuses (common once cheek is
+    // on), fall back to Gemini — different provider, different
+    // thresholds — and report WHICH one drew it so the lab teaches us
+    // where each wall actually sits.
+    const attempt = async (providerId: string) => {
+      const provider = getProvider(providerId);
       const result = await provider.generate({
         prompt,
         quality: 'low',
@@ -285,10 +357,38 @@ export function registerAdminCardLabRoutes(app: Express): void {
         durationMs: result.durationMs,
         success: true,
       });
-      res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
+      return result;
+    };
+
+    const looksBlocked = (e: any) => {
+      const m = String(e?.message ?? e).toLowerCase();
+      return /safety|content polic|moderation|rejected|not allowed|violat/.test(m);
+    };
+
+    try {
+      const result = await attempt('openai-2');
+      res.json({
+        imageUrl: result.imageUrl, costUsd: result.costUsd,
+        durationMs: result.durationMs, drawnBy: 'openai',
+      });
     } catch (err: any) {
-      console.error('[CARD-LAB] render error:', err?.message ?? err);
-      res.status(502).json({ message: err?.message ?? 'Render failed' });
+      if (!looksBlocked(err)) {
+        console.error('[CARD-LAB] render error:', err?.message ?? err);
+        return res.status(502).json({ message: err?.message ?? 'Render failed' });
+      }
+      console.warn('[CARD-LAB] openai refused, trying gemini:', err?.message);
+      try {
+        const result = await attempt('gemini-flash');
+        res.json({
+          imageUrl: result.imageUrl, costUsd: result.costUsd,
+          durationMs: result.durationMs, drawnBy: 'gemini (openai refused)',
+        });
+      } catch (err2: any) {
+        res.status(502).json({
+          message: 'Both providers refused this one — too spicy.',
+          blocked: true,
+        });
+      }
     }
   });
 }
