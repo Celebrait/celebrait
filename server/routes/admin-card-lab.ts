@@ -68,13 +68,30 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 // style; their three distinct FORMATS are how "varied" stays coherent.
 // Object-led, never characters — the earlier animals-in-hats direction
 // is dead: quirky-classy means still-life motifs doing visual puns.
-export const QUIRKY_DNA = `STYLE DNA — "Celebrait Quirky" v2 (applies to the whole image, always):
+const QUIRKY_DNA_BASE = `STYLE DNA — "Celebrait Quirky" v2 (applies to the whole image, always):
 A CONTEMPORARY ART PRINT, not a greeting card cliché — the kind of bold flat-illustration piece trending in independent print shops and on gallery walls right now.
 COLOUR IS THE ENERGY: a SATURATED colour-block ground with 3-5 flat electric ink colours on top in high-contrast, clashing-but-curated pairs. Vibrant, joyful, confident — fluorescent-adjacent brightness like risograph fluoro inks. The SPECIFIC colours are given per card in the PALETTE line below: obey it exactly, it was chosen from the subject's own world.
 FLAT AND HAND-MADE: zero gradients, zero 3D, zero airbrush smoothness, zero digital gloss. Matisse-cutout confidence — big simplified shapes with deliberate hand-cut wobble, slight ink misregistration, visible screen-print grain. Oversized motifs, brave cropping, asymmetric composition — NEVER a small object floating centred in empty space (that is the AI tell — avoid it).
-MOTIFS: objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no cartoon animal characters. Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
+MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
 LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival script, or bold naive caps — same ink family as the art, big enough to matter, part of the composition.
 The bar: it should look like a limited-run screen print you'd frame — current, collectible, unmistakably made by a human hand.`;
+
+/** Animals are OPT-IN (Aidan 2026-08-15). Objects can be witty; only a
+ *  creature can have an ATTITUDE — a cat glaring at a knocked-over glass
+ *  does comedic work no still-life can, and it's half of Thortful's
+ *  range. Humans stay banned in both modes: AI faces are the tell, and
+ *  people belong to the photo product's lane. */
+const MOTIF_OBJECTS_ONLY =
+  'objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no animals, no characters of any kind.';
+const MOTIF_WITH_ANIMALS =
+  "objects, food, drink, botanicals, the kit of a hobby — AND characterful ANIMALS, which may be given real personality and attitude (a smug cat, a dog mid-zoomies, a heron with the patience of a saint). Animals are drawn in the same flat hand-illustrated style as everything else, never cutesy-greetings-card, never wearing novelty human costume beyond one deadpan prop. STILL absolutely no humans and no human faces.";
+
+export function quirkyDna(allowAnimals: boolean): string {
+  return QUIRKY_DNA_BASE.replace(
+    '__MOTIF_RULE__',
+    allowAnimals ? MOTIF_WITH_ANIMALS : MOTIF_OBJECTS_ONLY,
+  );
+}
 
 export const QUIRKY_FORMATS: Record<string, string> = {
   statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. A vast, flat, saturated ground occupies at least 70% of the card. ONE small-to-medium motif — a single object, beautifully drawn — placed off-centre with huge breathing room. The lettering is modest and precise, tucked near the motif or in a corner, never shouting. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
@@ -98,6 +115,8 @@ const conceptsSchema = z.object({
    *  where provider moderation actually draws the line — the customer
    *  build should be more conservative than whatever survives here. */
   cheeky: z.boolean().default(false),
+  /** Opt-in animal characters — see quirkyDna(). */
+  allowAnimals: z.boolean().default(false),
 });
 
 interface CardConcept {
@@ -107,7 +126,7 @@ interface CardConcept {
   art_direction: string;
 }
 
-function conceptSystemPrompt(): string {
+function conceptSystemPrompt(allowAnimals: boolean): string {
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 
 You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
@@ -132,7 +151,9 @@ Each returned concept:
 - format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
 - front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
-- art_direction: one sentence — the MOTIF (objects/food/botanicals/kit of that world, NEVER humans or cartoon animal characters) and how it sits in the chosen format. THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
+- art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${allowAnimals
+    ? 'You MAY use a characterful ANIMAL as the subject where it earns the joke (attitude, reaction, expression) — otherwise objects/food/botanicals/kit of that world. NEVER humans or human faces.'
+    : 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
 - palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
 
 CHEEKY MODE (cheeky=true only):
@@ -168,6 +189,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
       `cheeky=${body.cheeky}`,
+      `allowAnimals=${body.allowAnimals}`,
     ].filter(Boolean);
 
     const startedAt = Date.now();
@@ -177,7 +199,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: conceptSystemPrompt() },
+          { role: 'system', content: conceptSystemPrompt(body.allowAnimals) },
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
@@ -196,7 +218,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: conceptSystemPrompt() },
+            { role: 'system', content: conceptSystemPrompt(body.allowAnimals) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
             { role: 'user', content: `These front lines broke the banned-word rule: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Replace ONLY those concepts' front_text (and inside_text if it echoed the line) with clean survivors — no "vibe(s)", "level up", "boss", "legend", "goals", "mode". Return the complete corrected JSON.` },
@@ -251,12 +273,62 @@ export function registerAdminCardLabRoutes(app: Express): void {
       imageUrl: z.string().min(20),          // data URL from a previous render
       newText: z.string().min(1).max(120),
       currentText: z.string().max(120).optional(),
+      // Everything needed to RE-RENDER instead of edit, when the layout
+      // has to change (see the routing note below).
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).optional(),
+      art_direction: z.string().max(500).optional(),
+      palette: z.string().max(300).optional(),
+      allowAnimals: z.boolean().default(false),
     });
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
     } catch {
       return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    // ── ROUTE BY FORMAT (Aidan 2026-08-15) ──────────────────────────
+    // On a DENSE card the artwork is composed AROUND the lettering —
+    // taxis and pretzels wedged into the holes the words left. New text
+    // is a different shape, so those holes are in the wrong places and
+    // no surgical edit can fix it: the layout itself must be rebuilt.
+    // So: sparse formats (statement/hero) get Gemini's pixel-preserving
+    // swap; dense formats (pattern/label) get a full re-render from the
+    // SAME art_direction + palette + format — same design language, new
+    // composition, correct text. Re-rendering is also 10x cheaper
+    // ($0.006 vs $0.067) — the better tool is no editor at all.
+    const dense = body.format === 'pattern' || body.format === 'label';
+    if (dense && body.art_direction) {
+      const prompt = [
+        quirkyDna(body.allowAnimals),
+        '',
+        QUIRKY_FORMATS[body.format === 'label' ? 'label' : 'pattern'],
+        '',
+        `ILLUSTRATION: ${body.art_direction}`,
+        body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
+        '',
+        `FRONT TEXT — render EXACTLY and ONLY: "${body.newText.trim()}". Hand-painted lettering per the style block, integrated into the composition, every word legible, no cropping. Compose the artwork AROUND these words — the motifs fill the space the lettering leaves. ABSOLUTELY NO other text anywhere in the image.`,
+        '',
+        'Square 1024x1024 full-bleed greeting-card front.',
+      ].filter(Boolean).join('\n');
+      try {
+        const result = await getProvider('openai-2').generate({
+          prompt, quality: 'low', size: '1024x1024', slot: 'card_lab',
+        });
+        void logGeneration({
+          cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          provider: result.provider, model: result.model, quality: 'low',
+          costCents: result.costCents, durationMs: result.durationMs, success: true,
+        });
+        return res.json({
+          imageUrl: result.imageUrl, costUsd: result.costUsd,
+          durationMs: result.durationMs,
+          drawnBy: 'redrawn (dense layout — art re-composed around the new words)',
+        });
+      } catch (err: any) {
+        console.error('[CARD-LAB] dense re-render failed:', err?.message ?? err);
+        return res.status(502).json({ message: err?.message ?? 'Re-render failed' });
+      }
     }
 
     const provider = getProvider('gemini-flash');
@@ -284,8 +356,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
     ].join(' ');
 
     const startedAt = Date.now();
-    try {
-      const result = await provider.refine(body.imageUrl, instruction);
+    // Gemini intermittently answers CONVERSATIONALLY — "I have removed the
+    // original lettering and added…" — with finishReason=STOP and no image
+    // part. Benched 2026-08-15: identical input failed once, succeeded on
+    // retry, while other inputs went first time. It is flakiness, not
+    // moderation, so retry once with a blunter instruction before giving up.
+    const attemptEdit = async (extra = '') => {
+      const result = await provider.refine!(body.imageUrl, instruction + extra);
       void logGeneration({
         cardId: null,
         slot: 'card_lab',
@@ -298,6 +375,20 @@ export function registerAdminCardLabRoutes(app: Express): void {
         durationMs: result.durationMs,
         success: true,
       });
+      return result;
+    };
+
+    try {
+      let result;
+      try {
+        result = await attemptEdit();
+      } catch (first: any) {
+        if (!/did not return an image/i.test(String(first?.message ?? ''))) throw first;
+        console.warn('[CARD-LAB] gemini answered in prose, retrying for an image');
+        result = await attemptEdit(
+          ' Return the edited IMAGE itself. Do not reply with a description, explanation or any text response — output only the finished card image.',
+        );
+      }
       res.json({
         imageUrl: result.imageUrl,
         costUsd: result.costUsd,
@@ -321,6 +412,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       art_direction: z.string().min(1).max(500),
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
       palette: z.string().max(300).optional(),
+      allowAnimals: z.boolean().default(false),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -330,7 +422,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     const prompt = [
-      QUIRKY_DNA,
+      quirkyDna(body.allowAnimals),
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
       '',

@@ -64,6 +64,7 @@ export default function AdminCardLabPage() {
   const [from, setFrom] = useState('The kids');
   const [interest, setInterest] = useState('');
   const [cheeky, setCheeky] = useState(false);
+  const [allowAnimals, setAllowAnimals] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [insideMode, setInsideMode] = useState<'auto' | 'own' | 'blank'>('auto');
@@ -81,6 +82,7 @@ export default function AdminCardLabPage() {
         art_direction: concept.art_direction,
         format: concept.format ?? 'hero',
         palette: concept.palette,
+        allowAnimals,
       });
       const j = await r.json();
       setSlots((prev) =>
@@ -107,7 +109,7 @@ export default function AdminCardLabPage() {
     setSlots([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, from, interest, insideMode, ownInsideText, cheeky,
+        who, occasion, from, interest, insideMode, ownInsideText, cheeky, allowAnimals,
       });
       const { concepts } = (await r.json()) as { concepts: Concept[] };
       dealCount.current += 1;
@@ -131,6 +133,12 @@ export default function AdminCardLabPage() {
         imageUrl: slot.imageUrl,
         newText: editText.trim(),
         currentText: slot.concept.front_text,
+        // Dense layouts get re-rendered rather than edited — the server
+        // needs the original recipe to redraw in the same language.
+        format: slot.concept.format,
+        art_direction: slot.concept.art_direction,
+        palette: slot.concept.palette,
+        allowAnimals,
       });
       const j = await r.json();
       setSlots((prev) =>
@@ -216,6 +224,11 @@ export default function AdminCardLabPage() {
             <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)}
               className="h-3.5 w-3.5 accent-brand" />
             Rude mode <span className="text-stone-400">(cheeky — falls back to Gemini if OpenAI baulks)</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs font-medium text-stone-600">
+            <input type="checkbox" checked={allowAnimals} onChange={(e) => setAllowAnimals(e.target.checked)}
+              className="h-3.5 w-3.5 accent-brand" />
+            Animals allowed <span className="text-stone-400">(characters with attitude — humans still never)</span>
           </label>
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-stone-700 mr-1">Inside</span>
