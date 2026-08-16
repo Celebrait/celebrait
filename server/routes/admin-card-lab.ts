@@ -74,7 +74,7 @@ A CONTEMPORARY ART PRINT, not a greeting card cliché — the kind of bold flat-
 COLOUR — DISCIPLINE IS WHAT LOOKS EXPENSIVE:
 - Exactly THREE inks, four at the absolute most, plus the ground. Fewer colours used bravely always beats more colours used timidly; a fourth ink has to earn its place.
 - THE INKS MUST BE REAL COLOURS. Grey, silver, black and white are NOT inks and do NOT count towards the three — they are what you get when colour is missing. A card carrying three genuine colours reads rich; a card carrying one colour plus two greys reads washed out, and washed out is the failure mode to fear most. METAL IS NOT SILVER: a shaker, a reel, a kettle, a trophy is drawn as a FLAT SHAPE in the palette's own colours, exactly like everything else — never rendered in grey with metallic shading.
-- THE GROUND IS USUALLY QUIET. Default to a warm neutral — bone, oat, chalk, clay, greige, putty, soft stone — and let the inks do the shouting against it. A fully saturated ground is allowed, but never a saturated ground AND fluorescent inks together: that is loud, not vibrant.
+- THE SUBJECT CHOOSES THE GROUND, NOT A HOUSE HABIT. If the thing they love owns a colour — a club's red, a cab's yellow, a snooker table's green, a bottle of Guinness — that colour belongs on the card, and putting it on a pale ground wastes the strongest thing the subject gave you. Reach for a deep, saturated, confident ground FIRST and only fall back to a warm neutral (bone, oat, chalk, clay, greige, putty, stone) when quietness is genuinely what the card wants. Pale grounds are one option, never the default. What is banned is not saturation but MUD and NOISE: a saturated ground with fluorescent inks fighting it, or three inks all at the same volume with nothing leading.
 - ONE ACCENT INK, USED SPARINGLY. Pick the hottest colour in the palette and let it cover LESS THAN 10% of the card — a thin offset sliver behind a shape, one word of the type, a single small object. Held back it sings; spread everywhere it is just noise.
 - The SPECIFIC colours are given per card in the PALETTE line below: obey it exactly, it was chosen from the subject's own world.
 
@@ -92,9 +92,10 @@ MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboar
 Worked example — a wizarding-school story: DRAW a striped scarf in two colours, an owl, a stack of battered spellbooks, a candle stub, a brass key, a night sky. DO NOT DRAW the winged golden ball, the school crest, a house badge, the castle, a named character, or any symbol from the books. The card still reads as that world; it just does it with things anyone could own.
 This is a hard limit, not a stylistic preference. Substitute a generic equivalent and move on.
 
-TYPOGRAPHY — TYPESET, NOT HANDWRITTEN. These cards are won and lost here:
-- The words are SET IN A REAL TYPEFACE, cleanly and confidently drawn. Choose one that suits the card: a fat serif with generous ball terminals (Cooper Black / Bookman lineage), a high-contrast display serif, or a bold humanist grotesk. Wobbly hand-lettering, brush-script scrawl and "painted by hand" letterforms are OUT — they read as the AI tell, and they are exactly where lettering goes wrong.
-- THE TYPE PRINTS PERFECTLY CLEAN. It is the ONE element with no ink texture, no mottling, no misregistration, no overprint ghosting, no distressing, no faint second pass of the same word, and no stray marks, scribbles, specks or half-formed shapes anywhere near a letter. Every glyph solid, evenly inked, crisply edged. A smudge or squiggle around a word is a failure of the whole card.
+TYPOGRAPHY — DRAWN WITH REAL CRAFT, AND CHOSEN TO SUIT THE CARD. These cards are won and lost here:
+- ⚠️ THE TYPEFACE IS A DESIGN DECISION, NOT A DEFAULT. Greeting cards are eclectic: a fishing card and a disco card must not wear the same lettering. The TYPE line below names the personality chosen for THIS card — obey it, and draw that lettering with the confidence of someone who knows the idiom. The families available include: a fat retro serif with generous ball terminals (Cooper/Bookman, warm and nostalgic); a high-contrast Didone display serif (elegant, glamorous); a bold grotesk (modern, deadpan, urban); a condensed poster gothic (punchy, sporting, newsprint); groovy 70s revival with swollen curves (music, parties); a confident sign-painter's brush script (pubs, markets, seaside); a chunky slab (outdoors, workwear); vintage woodblock or letterpress (heritage, ale, cricket); geometric art deco (cocktails, jazz, glamour); a typewriter mono (literary, dry admin humour). Pick the one the SUBJECT and the ANGLE ask for.
+- CHARACTER IS WELCOME; MESS IS NOT. Hand-drawn, brush-painted and wonky letterforms are all allowed and often right — what is banned is a letterform that looks UNFINISHED. The distinction matters: a brush script has deliberate texture built INTO the stroke, which is craft; a glyph with speckles, ghosting or a stray tail hanging off it is a fault. Whatever the style, every letter is fully formed, evenly inked and confidently made, as if a signwriter did it in one pass and meant every mark.
+- THE INK-PROCESS EFFECTS NEVER TOUCH THE TYPE. This is the rule that keeps lettering from going wrong, and it applies to EVERY typeface above including the hand-drawn ones: no misregistration on the letters, no plate offset, no faint second pass of the same word, no mottling or roller texture across the glyphs, no distressing, and no stray marks, scribbles, specks or half-formed shapes anywhere near a word. The artwork carries the print process; the lettering stays crisp. A smudge or squiggle beside a word is a failure of the whole card.
 - SET IT LIKE A DESIGNER: stack the line into 2-3 short lines, aligned flush on ONE side with a ragged other edge, broken where the SENSE breaks. Line-spacing tight, so the lines read as one block. Never let a long word run out of room and shrink to fit — restack it instead.
 - COLOUR AS EMPHASIS: set the whole line in one ink, then flip a SINGLE key word to the accent ink. One word, never two.
 - GIVE IT ITS OWN ROOM: the type sits in a clear zone of plain ground. It never overlaps a motif, never has artwork running behind it, never sits on a busy patch. Type and picture are neighbours, not layers.
@@ -218,6 +219,11 @@ interface CardConcept {
   inside_text: string;
   art_direction: string;
   palette?: string;
+  /** The lettering personality this card wears — chosen per card by the
+   *  art director, same as the palette. Without it every set drifted to
+   *  the same clean sans (Aidan 2026-08-16: "greetings cards are
+   *  eclectic, why limit ourselves?"). */
+  typeface?: string;
 }
 
 function conceptSystemPrompt(characters: CharacterLevel): string {
@@ -270,13 +276,17 @@ Each returned concept:
     If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
   ⚠️ NEVER NAME SOMEONE ELSE'S PROPERTY IN THIS BRIEF. We print and sell these cards, so an art brief that asks for an invented artefact is asking us to manufacture merchandise. Do not write the name of any object, creature, vehicle, weapon, building, costume, logo, crest or badge that exists only inside a film, book, game, brand or club. Observed failures on Harry Potter and Star Wars briefs: "a Golden Snitch, Quaffle and Bludger", "the Marauder's Map", "a mug with a lightsaber handle", "small screens showing iconic scenes". Every one of those is merchandise.
   Ask instead for the ORDINARY objects that world is full of, which anyone could own and nobody owns the rights to: a striped scarf in two colours, an owl, a stack of battered spellbooks, a candle stub, a brass key, a train ticket, a starfield, a desert horizon, a worn paperback, a takeaway coffee. The PALETTE and the words carry the reference. If you cannot describe the picture without naming a protected thing, choose a different corner of that world.
-- palette: you are the art director. Name the GROUND colour first, then exactly THREE inks (four only if one truly earns it), and say which single ink is the ACCENT — the hot one, held back to under 10% of the card. Draw them all from that world. GROUNDS MUST SPAN THE SET — this is a hard requirement, because three neutral grounds make three cards that look like one card. Give TWO cards a warm neutral ground (bone, oat, chalk, clay, greige, putty, stone, warm grey) and give exactly ONE card a DEEP SATURATED ground — a rich, confident colour from that world (ink blue, forest, oxblood, terracotta, bottle green, aubergine) with calmer inks sitting on it. And make the two neutrals genuinely different from each other: a cool chalk next to a warm clay, not oat next to bone. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family.
+- palette: you are the art director. Name the GROUND colour first, then exactly THREE inks (four only if one truly earns it), and say which single ink is the ACCENT — the hot one, held back to under 10% of the card. Draw them all from that world. ⚠️ NEVER NAME GREY, SILVER, CHROME, GOLD, METALLIC OR WHITE AS AN INK. They are not colours, and naming one invites a rendered metal object with 3D shading, which breaks the flat-print style outright — a palette that said "skyscraper silver" produced a photorealistic chrome fishing reel. Metal objects are drawn FLAT in the palette's real colours: a reel is rust and cream, not silver. Every ink you name must be a colour someone could squeeze out of a tube.
+START FROM THE SUBJECT'S OWN COLOURS. If that world owns a colour, use it — a United card wants red, a New York card wants cab yellow, a fishing card can want deep river green. Wasting a subject's signature colour on a beige card is the commonest way these come out mundane.
+GROUNDS MUST SPAN THE SET, and they must span it UPWARDS: AT LEAST ONE of the three takes a deep saturated ground (ink blue, oxblood, forest, terracotta, bottle green, aubergine, a hot mustard), AT MOST ONE takes a pale neutral (bone, oat, chalk, clay, greige, putty, stone), and the third goes wherever the subject leads — often a strong mid-tone. THREE PALE GROUNDS IS A FAILED SET, and so is a pale ground on a subject famous for a colour. Where a card does take a pale ground, its motif must carry saturated ink so the card still has something to look at. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family.
+- typeface: you are also the typographer. In under fifteen words, name the LETTERING PERSONALITY this particular card should wear and why it fits — e.g. "condensed poster gothic, terrace-chant energy", "sign-painter's brush script, seaside pub", "high-contrast Didone, cocktail-hour glamour", "chunky slab, workwear and tackle boxes", "groovy 70s revival with swollen curves". Choose from the subject and the angle, not from habit: a deadpan card usually wants restraint, a proud card can carry a grand display face, a wordplay card can be playful. THE THREE CARDS MUST NOT SHARE A TYPEFACE PERSONALITY — a set where all three wear the same clean sans is a set that has wasted two thirds of its range. Greeting cards are eclectic; make them so.
 
 CHEEKY MODE (cheeky=true only):
 British pub cheek is now allowed and encouraged — "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", innuendo and mild filth. Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race/sexuality/religion/disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight or death. Put the strongest word on the FRONT if it's genuinely funnier there — we are testing what renders. When cheeky=false, stay completely clean.
 
 RULES:
 - Classy always: no clip-art energy, no emoji.
+- BRITISH MONEY AND MEASURES. These cards are printed and posted in the UK. Any sum of money is in POUNDS — "£400 gear, £2 fish", never "$400". Miles, not kilometres. A dollar sign on the front is a card we cannot sell here.
 - Brands/bands/places evoked through objects and colours (a cassette and bucket hat; never logos, never lyrics, never real faces). Song/film TITLES may be name-dropped if the line still parses naturally.
 - Occasion lives in the INSIDE text; the front is about THEM.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
@@ -315,7 +325,7 @@ Judge every candidate line, and the inside_text, against these, in order:
 1. RECOGNITION — would the recipient INSTANTLY know this card is about their thing? The reference must be unmistakable to someone who loves that subject. Vague nods fail: a card about a comedian that could equally be about any comedian is a FAIL. Ask yourself: could I swap the subject for something else and this line still works? If yes, it FAILS.
    COVER THE PICTURE when you test this. The artwork is deliberately generic for films, books, games, bands and teams — we do not draw anyone's invented artefacts or logos — so the LINE has to carry the recognition by itself. A line that only lands because the picture is doing the work is a FAIL. Worked example: "Wand-erful Sister, Always Charming" over wizarding artwork is a generic witch card in words, and it squanders "Always", the one word from those books that everybody knows.
 2. THE BUYER — remember who is actually paying. The person choosing this card is usually NOT the fan: a daughter buying for her Harry Potter dad, a mate buying for a United supporter. If she cannot tell at a glance that the card is good, she never buys it and the fan never sees it. So the reference must sit in the FAMOUS layer of that world — what a non-fan would name if you asked them what they know about it — and not in a deep cut only the devoted would catch. A line that requires fandom to appreciate is a FAIL, however clever. Specific is still right; obscure is not.
-3. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
+3. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. ⚠️ MONEY IS IN POUNDS: a "$" on a card posted from Britain to a British address is an instant fail — "£400 gear, £2 fish", never "$400". Same for miles not kilometres, and British measures generally. It should sound like it was written in Britain, because it was.
 4. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
    • wordplay: the turn is in the LANGUAGE. The pun must be smooth and must actually land. A groan is a fail; a pun that needs explaining is a fail.
    • deadpan: the turn is in the UNDER-REACTION — something absurd reported with a completely straight face. A flat statement of fact with nothing daft in it is the classic dry fail ("Manchester United Comes First", "The only mixologist in the family"). Quiet is fine; empty is not.
@@ -573,6 +583,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       dear: z.string().max(60).optional(),
       from: z.string().max(60).optional(),
       palette: z.string().max(300).optional(),
+      typeface: z.string().max(200).optional(),
       art_direction: z.string().max(500).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
     });
@@ -644,6 +655,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
+      typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
     });
     let body: z.infer<typeof schema>;
@@ -672,6 +684,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         '',
         `ILLUSTRATION: ${body.art_direction}`,
         body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
+        body.typeface ? `TYPE (obey exactly — this card's lettering personality): ${body.typeface}. Draw the words in that idiom, and draw it well.` : '',
         '',
         `FRONT TEXT — render EXACTLY and ONLY: "${body.newText.trim()}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters. Compose the artwork AROUND these words, leaving them a clear zone of plain ground to sit in — the motifs fill the space the type leaves, never run behind it. Every word legible, nothing cropped. ABSOLUTELY NO other text anywhere in the image.`,
         '',
@@ -778,6 +791,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       art_direction: z.string().min(1).max(500),
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
       palette: z.string().max(300).optional(),
+      typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
       /** Tier is switchable so the lab can compare artefact profiles —
        *  all tiers output 1024x1024, so this changes CRISPNESS, not
@@ -810,6 +824,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         ? `⚠️ OVERRIDE — the brief above names ${named.join(', ')}, which belong to someone else's property and must NOT appear. Do not draw them in any form, however stylised, and do not draw a near-copy under another name. Replace each with an ORDINARY generic object from the same world that anyone could own, and keep everything else about the composition. The palette and mood carry the reference; the protected objects do not.`
         : '',
       body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
+      body.typeface ? `TYPE (obey exactly — this card's lettering personality): ${body.typeface}. Draw the words in that idiom, and draw it well.` : '',
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',

@@ -24,6 +24,7 @@ interface SampleConcept {
   format: string;
   front_text: string;
   palette?: string;
+  typeface?: string;
   art_direction: string;
 }
 
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
       '',
       `ILLUSTRATION: ${c.art_direction}`,
       c.palette ? `PALETTE (obey exactly): ${c.palette}` : '',
+      c.typeface ? `TYPE (obey exactly — this card's lettering personality): ${c.typeface}. Draw the words in that idiom, and draw it well.` : '',
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${c.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',

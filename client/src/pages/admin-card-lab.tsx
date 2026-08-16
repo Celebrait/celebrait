@@ -34,6 +34,7 @@ interface Concept {
   inside_text: string;
   art_direction: string;
   palette?: string;
+  typeface?: string;
 }
 interface Option {
   concept: Concept;
@@ -95,7 +96,7 @@ export default function AdminCardLabPage() {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/render', {
         front_text: concept.front_text, art_direction: concept.art_direction,
-        format: concept.format ?? 'hero', palette: concept.palette, characters,
+        format: concept.format ?? 'hero', palette: concept.palette, typeface: concept.typeface, characters,
       });
       const j = await r.json();
       setOptions((prev) => prev.map((o, i) => i === idx
@@ -165,7 +166,7 @@ export default function AdminCardLabPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/edit-text', {
         imageUrl: card.imageUrl, newText: editText.trim(), currentText: card.concept.front_text,
         format: card.concept.format, art_direction: card.concept.art_direction,
-        palette: card.concept.palette, characters,
+        palette: card.concept.palette, typeface: card.concept.typeface, characters,
       });
       const j = await r.json();
       setOptions((prev) => prev.map((o, i) => i === chosen
@@ -186,7 +187,7 @@ export default function AdminCardLabPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/render-inside', {
         mode: insideMode,
         message: insideMode === 'own' ? ownInsideText : card.concept.inside_text,
-        dear, from: signOff, palette: card.concept.palette,
+        dear, from: signOff, palette: card.concept.palette, typeface: card.concept.typeface,
         art_direction: card.concept.art_direction, characters,
       });
       const j = await r.json();
