@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,8 +45,16 @@ interface Option {
   rendering: boolean;
 }
 
-const WHO_CHIPS = ['Mum', 'Dad', 'Partner', 'Best mate', 'Sister', 'Brother', 'Nan', 'Colleague'];
-const OCCASION_CHIPS = ['Birthday', "Father's Day", "Mother's Day", 'Anniversary', 'Congratulations', 'Thank you', 'New home', 'Just because'];
+// Chips are QUICK-FILLS now, not the whole menu (Aidan 2026-08-16). Both
+// fields are free text underneath: "sister" and "my mate Baz who I've
+// known since school" should both be sayable, and the occasion list now
+// matches what the photo route already offers rather than a shorter one
+// invented here.
+const WHO_CHIPS = ['Mum', 'Dad', 'Partner', 'Best mate', 'Sister', 'Brother', 'Nan', 'Grandad', 'Son', 'Daughter', 'Colleague'];
+const OCCASION_CHIPS = [
+  ...OCCASION_OPTIONS.filter((o) => o !== 'other').map(getOccasionLabel),
+  "Father's Day", "Mother's Day", 'New home', 'New job', 'Retirement', 'Good luck', 'Get well soon', 'Congratulations', 'Just because',
+];
 const STEPS = ["Who it's for", 'Pick a design', 'Refine', 'Inside', 'Review'];
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -240,14 +249,18 @@ export default function AdminCardLabPage() {
         <div className="rounded-xl border border-stone-200 bg-white p-5 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-xs font-semibold text-stone-700">Who's it for</Label>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <Label htmlFor="who" className="text-xs font-semibold text-stone-700">Who's it for</Label>
+              <Input id="who" value={who} onChange={(e) => setWho(e.target.value)}
+                placeholder="Dad, my sister Kate, the lads at five-a-side…" className="mt-1.5" />
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {WHO_CHIPS.map((c) => <Chip key={c} label={c} active={who === c} onClick={() => setWho(c)} />)}
               </div>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-stone-700">Occasion</Label>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <Label htmlFor="occasion" className="text-xs font-semibold text-stone-700">What are we celebrating</Label>
+              <Input id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)}
+                placeholder="Birthday, passed her driving test, 40th…" className="mt-1.5" />
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {OCCASION_CHIPS.map((c) => <Chip key={c} label={c} active={occasion === c} onClick={() => setOccasion(c)} />)}
               </div>
             </div>
