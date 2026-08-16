@@ -71,7 +71,7 @@ export default function AdminCardLabPage() {
 
   // steps 2 & 3
   const [options, setOptions] = useState<Option[]>([]);
-  const [judgeNotes, setJudgeNotes] = useState<Array<{ index: number; reason: string; was: string }>>([]);
+  const [judgeNotes, setJudgeNotes] = useState<Array<{ index: number; kind?: 'pick' | 'rewrite'; reason: string; was: string }>>([]);
   const [chosen, setChosen] = useState<number | null>(null);
   const [thinking, setThinking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -121,7 +121,7 @@ export default function AdminCardLabPage() {
         who, occasion, interest, insideMode, ownInsideText, cheeky, characters,
       });
       const { concepts, notes } = (await r.json()) as {
-        concepts: Concept[]; notes?: Array<{ index: number; reason: string; was: string }>;
+        concepts: Concept[]; notes?: Array<{ index: number; kind?: 'pick' | 'rewrite'; reason: string; was: string }>;
       };
       setJudgeNotes(notes ?? []);
       setOptions(concepts.map((c) => ({ concept: c, rendering: true })));
@@ -303,11 +303,21 @@ export default function AdminCardLabPage() {
                 </div>
                 <div className="p-3">
                   <p className="text-[13px] font-semibold text-stone-800 leading-snug">“{o.concept.front_text}”</p>
-                  {judgeNotes.find((n) => n.index === i) && (
-                    <p className="mt-1 text-[10px] text-amber-600">
-                      ✎ editor rewrote this — {judgeNotes.find((n) => n.index === i)!.reason}
-                    </p>
-                  )}
+                  {(() => {
+                    const note = judgeNotes.find((n) => n.index === i);
+                    if (!note) return null;
+                    // A "pick" is the normal path now — the editor chose this
+                    // line over the writer's own favourite. Only a "rewrite"
+                    // means it had to write one itself, so the two shouldn't
+                    // wear the same label.
+                    return (
+                      <p className="mt-1 text-[10px] text-amber-600">
+                        {note.kind === 'rewrite' ? '✎ editor rewrote this' : '✓ editor picked this over'}
+                        {note.kind === 'rewrite' ? ' — ' : ` “${note.was}” — `}
+                        {note.reason}
+                      </p>
+                    );
+                  })()}
                 </div>
               </button>
             ))}

@@ -165,6 +165,11 @@ const conceptsSchema = z.object({
 interface CardConcept {
   angle: string;
   format?: string;
+  /** The writer's shortlist for this angle, strongest first. The judge
+   *  picks one and the winner is copied into front_text, so everything
+   *  downstream (render, edit-text, the client) still sees a single
+   *  line and needs no changes. */
+  front_candidates?: string[];
   front_text: string;
   inside_text: string;
   art_direction: string;
@@ -191,18 +196,19 @@ THE THREE ANGLES — one card each, in this order.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
 3. PROUD — the turn is in the DISPROPORTION. Crown them with total sincerity, in a grand register, for something gloriously SMALL and specific. The honour is real; the kingdom is tiny. Generic praise for a generic skill is not a proud card, it is a job title — "Master of the Martini", "Master of the Tackle Box" and "Born to Stand Out" all failed this way, and "Master of the ___" has now turned up in most sets. BANNED FORMULAS, reject on sight: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___". Find the specific little kingdom instead.
 
-WRITE WIDE, THEN EDIT: draft THREE candidate lines per angle (nine total), then be a ruthless editor. A line SURVIVES only if it passes ALL of:
+WRITE WIDE, THEN SHORTLIST: draft at least SIX candidate lines per angle, then be a ruthless editor. A line SURVIVES only if it passes ALL of:
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
    - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure.
    - IT IS ABOUT THEM AND THIS THING: their interest is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
    - THE TURN TEST: say to yourself, in five words or fewer, what the SURPRISE in this line is — "puns on reel/real", "under-reacts to nine wasted hours", "crowns him king of the pier". If you cannot name the turn, the line is DRY and it dies here, however true, warm or well written it is. This is the test most weak lines fail.
    - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark per card.
-Pick the single best survivor per angle. A clean deadpan ALWAYS beats a strained pun.
+⚠️ DO NOT PICK A WINNER. Keep the THREE BEST survivors per angle and return all three, strongest first. An independent editor chooses between them afterwards, and choosing is easier than repairing — so your job is to hand over three genuinely different, genuinely usable lines, NOT one favourite plus two throwaways you never intended. If you find yourself writing a filler line to pad the list, replace it: three real options or the shortlist has failed.
+The three candidates for an angle must all be DIFFERENT ROUTES to that angle's turn, not one line reworded three ways — and every one of them must work with THAT SAME CARD'S artwork, because the picture is already decided by art_direction. A clean deadpan ALWAYS beats a strained pun.
 
 Each returned concept:
 - angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
 - format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
-- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other. It must also SET WELL as display type: it should break naturally into 2-3 short stacked lines, and it should avoid words longer than 10 letters — very long words in big type are where lettering goes wrong. Given two equally good lines, take the one with the shorter words.
+- front_candidates: an array of EXACTLY THREE surviving lines for this angle, strongest first. Each one MAXIMUM 8 words. Each must CONNECT to the picture — words and motif complete each other — and each must SET WELL as display type: breaking naturally into 2-3 short stacked lines, avoiding words longer than 10 letters, since very long words in big type are where lettering goes wrong. Where two lines are equally good, prefer the one with shorter words.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
 - art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${characters === 'objects'
     ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'
@@ -222,9 +228,9 @@ RULES:
 - Occasion lives in the INSIDE text; the front is about THEM.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more and name the TURN in each one out loud to yourself. REPLACE any line with the runner-up if it has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of the ___", "The only ___ in the family", "Born to ___"), OR would need explaining in a pub, OR is about the occasion instead of their interest, OR repeats another card's motif. This check has caught a failure in most previous runs; assume it will catch one in yours.
+FINAL CHECK — do this LAST, immediately before returning: read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR is about the occasion instead of their interest. Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
 
-Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes.`;
+Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes, and three candidate lines inside each.`;
 }
 
 /** THE JUDGE — a second, INDEPENDENT pass (Aidan 2026-08-15).
@@ -232,16 +238,26 @@ Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, thr
  *  The writer already self-edits, but marking your own homework inside
  *  one call is weak: the model is attached to what it just wrote. This
  *  is a fresh call that never saw the drafting, only the brief and the
- *  finished cards, and its job is to be hard to please. It doesn't just
- *  flag — it REWRITES anything that fails, so the caller always gets
- *  three usable cards.
+ *  finished cards, and its job is to be hard to please.
+ *
+ *  SELECTOR, NOT REPAIRMAN (Aidan 2026-08-16). It used to see one line
+ *  per angle and rewrite the weak ones, which is the hard version of
+ *  the job — turning a dud into a winner from cold. Now the writer
+ *  hands over a shortlist of three per angle and this pass CHOOSES.
+ *  Picking the best of three is a far easier task than repairing one,
+ *  and it attacks the real problem, which was variance rather than
+ *  ceiling: the good lines were already being written, they just
+ *  weren't always the ones that got picked. Rewriting survives only as
+ *  a fallback for when all three candidates are dry.
  *
  *  ~£0.003 and ~3s. Cheap insurance on the thing that actually sells
  *  the card. */
 function judgeSystemPrompt(): string {
-  return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three finished card concepts written by someone else. Your ONLY loyalty is to the person who will receive the card.
+  return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three card concepts written by someone else. Each concept has its artwork already decided, and a SHORTLIST OF THREE candidate front lines. Your ONLY loyalty is to the person who will receive the card.
 
-Judge EVERY card's front_text and inside_text against these, in order:
+YOUR JOB IS TO CHOOSE. For each concept, pick the single best candidate line from its shortlist. You are not looking for a line you would have written — you are looking for the strongest of the three in front of you. Only if ALL THREE are dry may you write a replacement yourself.
+
+Judge every candidate line, and the inside_text, against these, in order:
 
 1. RECOGNITION — would the recipient INSTANTLY know this card is about their thing? The reference must be unmistakable to someone who loves that subject. Vague nods fail: a card about a comedian that could equally be about any comedian is a FAIL. Ask yourself: could I swap the subject for something else and this line still works? If yes, it FAILS.
 2. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
@@ -253,13 +269,16 @@ Judge EVERY card's front_text and inside_text against these, in order:
 5. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
 6. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
 
-For each of the three cards return:
-- verdict: "pass" or "fix"
-- reason: one short clause naming the specific failure (only when fixing)
-- front_text: the ORIGINAL if it passed; a REWRITTEN one if it failed (same angle, same format, must fit the described artwork, max 8 words)
-- inside_text: same rule (max 28 words; "" if the original was "")
+HOW TO CHOOSE between three candidates that all pass: take the one with the STRONGEST TURN — the biggest double-take for the least effort from the reader. Where two are equally sharp, prefer the more SPECIFIC to this person's world, then the shorter. Never pick a line just because it is safest; a safe line is a dry line wearing a coat.
 
-Be genuinely hard. A typical set contains at least one weak card — find it. But NEVER weaken a line that already works, and never rewrite just to leave your mark.
+For each of the three concepts return:
+- chosen_index: 0, 1 or 2 — which candidate from that concept's shortlist you picked. Use this whenever any candidate is usable.
+- verdict: "pick" when you chose one of the three; "fix" ONLY when all three are dry and you are writing a replacement.
+- reason: one short clause. When picking, say what won it ("strongest turn, most specific"). When fixing, name what was wrong with all three.
+- front_text: the exact text of the candidate you chose, copied verbatim. If and only if verdict is "fix", your own replacement instead (same angle, must fit the described artwork, max 8 words, must have a nameable turn, must not use a banned formula).
+- inside_text: the original if it works; a rewrite if it does not (max 28 words; "" if the original was "").
+
+Be genuinely hard on the shortlist, but remember that choosing is the job. Rewriting all three concepts means you have ignored nine lines someone else already filtered — if you are reaching for "fix" more than once in a set, you are marking your own taste rather than editing.
 
 Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
 }
@@ -298,7 +317,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 700,
+        // Nine candidate lines instead of three — 700 truncated the JSON
+        // and the whole set failed to parse.
+        max_tokens: 1400,
       });
       const parsed = JSON.parse(completion.choices[0]?.message?.content ?? '{}');
       let concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, 3);
@@ -320,27 +341,51 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const BANNED_FORMULAS =
         /\b(master|king|queen|lord|ruler) of\b|\bthe only \w+ in the (family|house|world|village)\b|\bborn to\b|\b(of|at) the (perfect|ultimate|finest|greatest|best)\b|\banother year\b/i;
       const isBanned = (t: string) => BANNED_WORDS.test(t) || BANNED_FORMULAS.test(t);
-      const offenders = concepts.filter((c) => isBanned(c.front_text ?? ''));
-      if (offenders.length > 0) {
+
+      // The shortlist changed the shape of this check. A banned line is no
+      // longer fatal to the card — it is one option out of three, so we
+      // strike it and let the judge choose from what is left. Only a
+      // concept whose ENTIRE shortlist is banned needs a retry.
+      const shortlistOf = (c: CardConcept): string[] => {
+        const raw = Array.isArray(c.front_candidates) && c.front_candidates.length
+          ? c.front_candidates
+          : [c.front_text];
+        return raw.filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t) => t.trim());
+      };
+      const cleanse = (list: CardConcept[]): CardConcept[] =>
+        list.map((c) => {
+          const all = shortlistOf(c);
+          const clean = all.filter((t) => !isBanned(t));
+          if (clean.length < all.length) {
+            console.warn('[CARD-LAB] struck banned candidates:', all.filter((t) => isBanned(t)));
+          }
+          // Keep the banned list only as a last resort so a wiped shortlist
+          // still yields a card rather than an empty one.
+          return { ...c, front_candidates: clean.length ? clean : all };
+        });
+
+      concepts = cleanse(concepts);
+      const wiped = concepts.filter((c) => shortlistOf(c).every((t) => isBanned(t)));
+      if (wiped.length > 0) {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: conceptSystemPrompt(body.characters) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
-            { role: 'user', content: `These front lines are rejected: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Either they used a banned word ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or they fell into a banned TITLE FORMULA — "Master/King/Queen/Lord/Champion of the ___", "The only ___ in the family", "Born to ___" — which reads as a job title rather than a card. Replace ONLY those concepts' front_text (and inside_text if it echoed the line). Each replacement must have a TURN you could name in five words: a pun, an absurdity under-reacted to, or a grand honour for a gloriously tiny domain. Return the complete corrected JSON.` },
+            { role: 'user', content: `Every candidate line for these angles was rejected: ${wiped.map((o) => o.angle).join(', ')}. They used a banned word ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or a banned TITLE FORMULA — "Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___" — which reads as a job title rather than a card. Replace the WHOLE three-line shortlist for those angles only, leaving the other concepts untouched. Every replacement must have a TURN you could name in five words: a pun, an absurdity under-reacted to, or a grand honour for a gloriously tiny domain. Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
-          max_tokens: 700,
+          max_tokens: 1400,
         });
         try {
           const reparsed = JSON.parse(retry.choices[0]?.message?.content ?? '{}');
           const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, 3);
-          if (fixed.length === 3) concepts = fixed;
+          if (fixed.length === 3) concepts = cleanse(fixed);
         } catch { /* keep originals */ }
-        const still = concepts.filter((c) => isBanned(c.front_text ?? ''));
-        if (still.length) console.warn('[CARD-LAB] banned lines survived retry:', still.map((c) => c.front_text));
+        const still = concepts.filter((c) => shortlistOf(c).every((t) => isBanned(t)));
+        if (still.length) console.warn('[CARD-LAB] shortlists still fully banned after retry:', still.map((c) => c.angle));
       }
 
       void logGeneration({
@@ -367,8 +412,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // ── Independent judge pass ──────────────────────────────────
       // Never let a judge failure cost the user their cards: on any
       // error we ship the originals.
-      let judged = concepts;
-      const notes: Array<{ index: number; reason: string; was: string }> = [];
+      // Until the judge picks, front_text is just the writer's own first
+      // preference — so the set still works if the judge pass dies.
+      let judged = concepts.map((c) => ({ ...c, front_text: shortlistOf(c)[0] ?? c.front_text }));
+      const notes: Array<{ index: number; kind: 'pick' | 'rewrite'; reason: string; was: string }> = [];
       try {
         const review = await openai.chat.completions.create({
           model: 'gpt-4o',
@@ -382,36 +429,61 @@ export function registerAdminCardLabRoutes(app: Express): void {
                 '',
                 'THE THREE CARDS:',
                 ...concepts.map((c, i) =>
-                  `${i + 1}. angle=${c.angle} format=${c.format ?? '?'}\n   FRONT: ${c.front_text}\n   INSIDE: ${c.inside_text}\n   ARTWORK: ${c.art_direction}`,
+                  [
+                    `${i + 1}. angle=${c.angle} format=${c.format ?? '?'}`,
+                    `   ARTWORK: ${c.art_direction}`,
+                    '   SHORTLIST — pick one:',
+                    ...shortlistOf(c).map((t, j) => `     [${j}] ${t}`),
+                    `   INSIDE: ${c.inside_text}`,
+                  ].join('\n'),
                 ),
               ].join('\n'),
             },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.4,
-          max_tokens: 700,
+          max_tokens: 900,
         });
         const verdicts = JSON.parse(review.choices[0]?.message?.content ?? '{}').cards ?? [];
         if (verdicts.length === 3) {
           judged = concepts.map((c, i) => {
             const v = verdicts[i] ?? {};
+            const shortlist = shortlistOf(c);
+            const inside = typeof v.inside_text === 'string' && v.inside_text.trim()
+              ? v.inside_text.trim()
+              : c.inside_text;
+
+            // A rewrite is the exception, allowed only when the judge says
+            // every candidate was dry — and still screened, because the
+            // judge runs after the deterministic ban check and its output
+            // used to go out unchecked ("Champion of the Perfect Cast").
             if (v.verdict === 'fix' && typeof v.front_text === 'string' && v.front_text.trim()) {
-              // ⚠️ The judge runs AFTER the deterministic ban check, so its
-              // rewrites were never screened — that is how "Champion of the
-              // Perfect Cast" shipped. A rewrite that breaks the floor is
-              // refused and the writer's (already-screened) line stands.
-              if (isBanned(v.front_text)) {
-                console.warn('[CARD-LAB] judge rewrite hit the ban list, keeping original:', v.front_text);
-                return c;
+              const rewrite = v.front_text.trim();
+              if (isBanned(rewrite)) {
+                console.warn('[CARD-LAB] judge rewrite hit the ban list, keeping the shortlist:', rewrite);
+                return { ...c, front_text: shortlist[0] ?? c.front_text, inside_text: inside };
               }
-              notes.push({ index: i, reason: String(v.reason ?? 'weak'), was: c.front_text });
-              return {
-                ...c,
-                front_text: v.front_text.trim(),
-                inside_text: typeof v.inside_text === 'string' ? v.inside_text.trim() : c.inside_text,
-              };
+              notes.push({ index: i, kind: 'rewrite', reason: String(v.reason ?? 'all three were dry'), was: shortlist.join(' / ') });
+              return { ...c, front_text: rewrite, inside_text: inside };
             }
-            return c;
+
+            // Normal path: the judge chose one of the shortlist. Trust the
+            // index, but verify it against the text it claims to have
+            // picked — a judge that hallucinates an index would otherwise
+            // silently ship a different line than the one it reasoned about.
+            const idx = Number(v.chosen_index);
+            const byIndex = Number.isInteger(idx) && idx >= 0 && idx < shortlist.length ? shortlist[idx] : undefined;
+            const byText = typeof v.front_text === 'string'
+              ? shortlist.find((t) => t.toLowerCase() === v.front_text.trim().toLowerCase())
+              : undefined;
+            const chosen = byText ?? byIndex ?? shortlist[0] ?? c.front_text;
+            if (byIndex && byText && byIndex !== byText) {
+              console.warn('[CARD-LAB] judge index/text disagreed, taking the text:', { byIndex, byText });
+            }
+            if (chosen !== shortlist[0]) {
+              notes.push({ index: i, kind: 'pick', reason: String(v.reason ?? 'stronger turn'), was: shortlist[0] });
+            }
+            return { ...c, front_text: chosen, inside_text: inside };
           });
         }
         void logGeneration({
