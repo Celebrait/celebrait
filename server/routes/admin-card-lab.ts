@@ -185,15 +185,17 @@ IF THE SUBJECT IS A PERSON (a celebrity, a character, a public figure, a sports 
   FAILED: a skyline, a generic podium, "a famous building" — could be anybody.
   You must be able to say WHY each motif belongs to this person and nobody else. If you cannot, mine again.
 
-THE THREE ANGLES — one card each, in this order:
-1. WORDPLAY — a pun or twist from that world's own language. Must pass the pub test.
-2. DEADPAN — an affectionate, observational truth about them and this thing. Understated, no pun. Often the best card of the three.
-3. PROUD — a warm declaration that celebrates them through it. Sincere, not soppy.
+THE THREE ANGLES — one card each, in this order.
+⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF THREE FLAVOURS. All three cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are three different WAYS TO DELIVER that turn; they are not "one funny card and two straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
+1. WORDPLAY — the turn is in the LANGUAGE. A pun or a twist on a phrase from that world's own vocabulary. Must pass the pub test.
+2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
+3. PROUD — the turn is in the DISPROPORTION. Crown them with total sincerity, in a grand register, for something gloriously SMALL and specific. The honour is real; the kingdom is tiny. Generic praise for a generic skill is not a proud card, it is a job title — "Master of the Martini", "Master of the Tackle Box" and "Born to Stand Out" all failed this way, and "Master of the ___" has now turned up in most sets. BANNED FORMULAS, reject on sight: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___". Find the specific little kingdom instead.
 
 WRITE WIDE, THEN EDIT: draft THREE candidate lines per angle (nine total), then be a ruthless editor. A line SURVIVES only if it passes ALL of:
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
    - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure.
    - IT IS ABOUT THEM AND THIS THING: their interest is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
+   - THE TURN TEST: say to yourself, in five words or fewer, what the SURPRISE in this line is — "puns on reel/real", "under-reacts to nine wasted hours", "crowns him king of the pier". If you cannot name the turn, the line is DRY and it dies here, however true, warm or well written it is. This is the test most weak lines fail.
    - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark per card.
 Pick the single best survivor per angle. A clean deadpan ALWAYS beats a strained pun.
 
@@ -220,7 +222,7 @@ RULES:
 - Occasion lives in the INSIDE text; the front is about THEM.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more. If ANY contains "vibe" or "vibes", "level up", "boss", "legend", "goals", or "mode", OR would need explaining in a pub, OR is about the occasion instead of their interest, OR repeats another card's motif — REPLACE it with the runner-up before answering. This check has caught a failure in most previous runs; assume it will catch one in yours.
+FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more and name the TURN in each one out loud to yourself. REPLACE any line with the runner-up if it has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of the ___", "The only ___ in the family", "Born to ___"), OR would need explaining in a pub, OR is about the occasion instead of their interest, OR repeats another card's motif. This check has caught a failure in most previous runs; assume it will catch one in yours.
 
 Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes.`;
 }
@@ -243,10 +245,10 @@ Judge EVERY card's front_text and inside_text against these, in order:
 
 1. RECOGNITION — would the recipient INSTANTLY know this card is about their thing? The reference must be unmistakable to someone who loves that subject. Vague nods fail: a card about a comedian that could equally be about any comedian is a FAIL. Ask yourself: could I swap the subject for something else and this line still works? If yes, it FAILS.
 2. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
-3. WIT, APPROPRIATE TO ITS ANGLE —
-   • wordplay: must ACTUALLY be funny and the pun must be smooth. A groan is a fail. A pun that needs explaining is a fail.
-   • deadpan: must be TRUE and dry — an affectionate observation with a straight face. Jokey-jokey is a fail here.
-   • proud: warm and specific. Greeting-card mush ("you mean the world") is a fail.
+3. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
+   • wordplay: the turn is in the LANGUAGE. The pun must be smooth and must actually land. A groan is a fail; a pun that needs explaining is a fail.
+   • deadpan: the turn is in the UNDER-REACTION — something absurd reported with a completely straight face. A flat statement of fact with nothing daft in it is the classic dry fail ("Manchester United Comes First", "The only mixologist in the family"). Quiet is fine; empty is not.
+   • proud: the turn is in the DISPROPORTION — a grand, sincere honour for a gloriously small and specific domain. Generic praise is a job title, not a card. REJECT ON SIGHT: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___".
 4. FIT — right for this relationship and occasion. A card for a nan shouldn't sound like one for a mate.
 5. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
 6. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
@@ -304,8 +306,21 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // The ban list is enforced in CODE, not hope — two prompt passes
       // still leaked "vibes". One corrective retry naming the offenders;
       // if that also fails we ship anyway (logged) rather than error.
-      const BANNED = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode)\b/i;
-      const offenders = concepts.filter((c) => BANNED.test(c.front_text ?? ''));
+      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode)\b/i;
+      // Title formulas. The proud angle kept collapsing into a job title —
+      // "Master of the Martini", "Master of the Tackle Box", "The only
+      // mixologist in the family" — and all three walked past the judge,
+      // so this one needs a deterministic floor too (Aidan 2026-08-16).
+      //
+      // Deliberately NOT banning "Champion/Captain of the ___": the crown
+      // isn't the problem, the generic domain is. "Champion of the Perfect
+      // Cast" is dry; "Champion of the 6am pier" is exactly the small,
+      // specific kingdom the proud angle is supposed to find. So the second
+      // pattern bans the generic-flattery domain instead of the title.
+      const BANNED_FORMULAS =
+        /\b(master|king|queen|lord|ruler) of\b|\bthe only \w+ in the (family|house|world|village)\b|\bborn to\b|\b(of|at) the (perfect|ultimate|finest|greatest|best)\b|\banother year\b/i;
+      const isBanned = (t: string) => BANNED_WORDS.test(t) || BANNED_FORMULAS.test(t);
+      const offenders = concepts.filter((c) => isBanned(c.front_text ?? ''));
       if (offenders.length > 0) {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
@@ -313,7 +328,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'system', content: conceptSystemPrompt(body.characters) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
-            { role: 'user', content: `These front lines broke the banned-word rule: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Replace ONLY those concepts' front_text (and inside_text if it echoed the line) with clean survivors — no "vibe(s)", "level up", "boss", "legend", "goals", "mode". Return the complete corrected JSON.` },
+            { role: 'user', content: `These front lines are rejected: ${offenders.map((o) => `"${o.front_text}"`).join(', ')}. Either they used a banned word ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or they fell into a banned TITLE FORMULA — "Master/King/Queen/Lord/Champion of the ___", "The only ___ in the family", "Born to ___" — which reads as a job title rather than a card. Replace ONLY those concepts' front_text (and inside_text if it echoed the line). Each replacement must have a TURN you could name in five words: a pun, an absurdity under-reacted to, or a grand honour for a gloriously tiny domain. Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
@@ -324,8 +339,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
           const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, 3);
           if (fixed.length === 3) concepts = fixed;
         } catch { /* keep originals */ }
-        const still = concepts.filter((c) => BANNED.test(c.front_text ?? ''));
-        if (still.length) console.warn('[CARD-LAB] banned words survived retry:', still.map((c) => c.front_text));
+        const still = concepts.filter((c) => isBanned(c.front_text ?? ''));
+        if (still.length) console.warn('[CARD-LAB] banned lines survived retry:', still.map((c) => c.front_text));
       }
 
       void logGeneration({
@@ -381,6 +396,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
           judged = concepts.map((c, i) => {
             const v = verdicts[i] ?? {};
             if (v.verdict === 'fix' && typeof v.front_text === 'string' && v.front_text.trim()) {
+              // ⚠️ The judge runs AFTER the deterministic ban check, so its
+              // rewrites were never screened — that is how "Champion of the
+              // Perfect Cast" shipped. A rewrite that breaks the floor is
+              // refused and the writer's (already-screened) line stands.
+              if (isBanned(v.front_text)) {
+                console.warn('[CARD-LAB] judge rewrite hit the ban list, keeping original:', v.front_text);
+                return c;
+              }
               notes.push({ index: i, reason: String(v.reason ?? 'weak'), was: c.front_text });
               return {
                 ...c,
