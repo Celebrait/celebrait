@@ -226,9 +226,21 @@ interface CardConcept {
   typeface?: string;
 }
 
-function conceptSystemPrompt(characters: CharacterLevel): string {
-  return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
+function conceptSystemPrompt(characters: CharacterLevel, cheeky = false): string {
+  // ⚠️ The cheek block is INJECTED AT THE TOP and written as an order, not
+  // a permission. Buried at the bottom and phrased "allowed and
+  // encouraged", it did nothing at all: a cheeky=true run produced "Ales
+  // to the Quiz Master" and "Hoppy Birthday to the Quiz King", which are
+  // indistinguishable from the clean run. One optional paragraph cannot
+  // outvote the dozen restraint rules below it (Aidan 2026-08-16).
+  const cheekBlock = cheeky
+    ? `\n⚠️⚠️ RUDE MODE IS ON, AND IT IS AN INSTRUCTION, NOT A PERMISSION. This customer has deliberately asked for a rude card and will be disappointed by a polite one. AT LEAST TWO of your three cards must carry REAL British pub cheek on the FRONT — actual sweary, mickey-taking, innuendo-laden cheek: "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", "twat", "bellend", and seaside-postcard filth. A polite pun with a beer in it is NOT cheek and does not count. If you hand back three clean cards, you have failed this brief completely.
+Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race, sexuality, religion or disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight, illness or death.
+The "classy always" instruction below is SUSPENDED for the front lines while this mode is on — classy refers to the ARTWORK, which stays beautiful. Filthy words, gorgeous card.\n`
+    : '';
 
+  return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
+${cheekBlock}
 You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
 
 MINE THE SUBJECT FIRST — do this internally before writing:
@@ -281,17 +293,16 @@ START FROM THE SUBJECT'S OWN COLOURS. If that world owns a colour, use it — a 
 GROUNDS MUST SPAN THE SET, and they must span it UPWARDS: AT LEAST ONE of the three takes a deep saturated ground (ink blue, oxblood, forest, terracotta, bottle green, aubergine, a hot mustard), AT MOST ONE takes a pale neutral (bone, oat, chalk, clay, greige, putty, stone), and the third goes wherever the subject leads — often a strong mid-tone. THREE PALE GROUNDS IS A FAILED SET, and so is a pale ground on a subject famous for a colour. Where a card does take a pale ground, its motif must carry saturated ink so the card still has something to look at. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family.
 - typeface: you are also the typographer. In under fifteen words, name the LETTERING PERSONALITY this particular card should wear and why it fits — e.g. "condensed poster gothic, terrace-chant energy", "sign-painter's brush script, seaside pub", "high-contrast Didone, cocktail-hour glamour", "chunky slab, workwear and tackle boxes", "groovy 70s revival with swollen curves". Choose from the subject and the angle, not from habit: a deadpan card usually wants restraint, a proud card can carry a grand display face, a wordplay card can be playful. THE THREE CARDS MUST NOT SHARE A TYPEFACE PERSONALITY — a set where all three wear the same clean sans is a set that has wasted two thirds of its range. Greeting cards are eclectic; make them so.
 
-CHEEKY MODE (cheeky=true only):
-British pub cheek is now allowed and encouraged — "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", innuendo and mild filth. Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race/sexuality/religion/disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight or death. Put the strongest word on the FRONT if it's genuinely funnier there — we are testing what renders. When cheeky=false, stay completely clean.
-
 RULES:
-- Classy always: no clip-art energy, no emoji.
+${cheeky
+  ? '- Classy ARTWORK always: no clip-art energy, no emoji. The words are another matter — see RUDE MODE at the top, which overrides politeness on the front lines.'
+  : '- Classy always: no clip-art energy, no emoji. Completely clean language — no swearing, no innuendo.'}
 - BRITISH MONEY AND MEASURES. These cards are printed and posted in the UK. Any sum of money is in POUNDS — "£400 gear, £2 fish", never "$400". Miles, not kilometres. A dollar sign on the front is a card we cannot sell here.
 - Brands/bands/places evoked through objects and colours (a cassette and bucket hat; never logos, never lyrics, never real faces). Song/film TITLES may be name-dropped if the line still parses naturally.
 - Occasion lives in the INSIDE text; the front is about THEM.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR is about the occasion instead of their interest. Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
+FINAL CHECK — do this LAST, immediately before returning: ${cheeky ? 'FIRST count how many of your three cards carry genuine cheek on the front. If it is fewer than two, go back and make them ruder before you do anything else — this is the single commonest way this brief gets failed. Then ' : ''}read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR is about the occasion instead of their interest. Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
 
 Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes, and three candidate lines inside each.`;
 }
@@ -315,8 +326,18 @@ Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, thr
  *
  *  ~£0.003 and ~3s. Cheap insurance on the thing that actually sells
  *  the card. */
-function judgeSystemPrompt(): string {
+function judgeSystemPrompt(cheeky = false): string {
+  // The editor never used to be told cheek had been ordered, which got
+  // worse when it became the SELECTOR: faced with one rude line and two
+  // polite ones it quietly took a polite one every time, and the toggle
+  // looked broken from the outside.
+  const cheekBlock = cheeky
+    ? `\n⚠️ THIS CUSTOMER ASKED FOR A RUDE CARD. Sweary, mickey-taking, innuendo-laden lines are exactly what was ordered, and a polite line is the WRONG answer here however well made it is. Where a shortlist offers both, TAKE THE RUDER ONE — that is what was paid for. Do not sand anything down, do not substitute a tasteful pun, and never rewrite a cheeky line into a clean one. Your job is to pick the funniest rude line, not the safest line.
+The limits still hold: nothing using slurs, nothing about race, sexuality, religion or disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight, illness or death. Reject on those grounds and only those grounds; "a bit much" is not a reason when a bit much is the order.\n`
+    : '';
+
   return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three card concepts written by someone else. Each concept has its artwork already decided, and a SHORTLIST OF THREE candidate front lines. Your ONLY loyalty is to the person who will receive the card.
+${cheekBlock}
 
 YOUR JOB IS TO CHOOSE. For each concept, pick the single best candidate line from its shortlist. You are not looking for a line you would have written — you are looking for the strongest of the three in front of you. Only if ALL THREE are dry may you write a replacement yourself.
 
@@ -377,7 +398,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: conceptSystemPrompt(body.characters) },
+          { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
@@ -435,7 +456,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: conceptSystemPrompt(body.characters) },
+            { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
             { role: 'user', content: `Every candidate line for these angles was rejected: ${wiped.map((o) => o.angle).join(', ')}. They used a banned word ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or a banned TITLE FORMULA — "Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___" — which reads as a job title rather than a card. Replace the WHOLE three-line shortlist for those angles only, leaving the other concepts untouched. Every replacement must have a TURN you could name in five words: a pun, an absurdity under-reacted to, or a grand honour for a gloriously tiny domain. Return the complete corrected JSON.` },
@@ -485,7 +506,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const review = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: judgeSystemPrompt() },
+            { role: 'system', content: judgeSystemPrompt(body.cheeky) },
             {
               role: 'user',
               content: [
