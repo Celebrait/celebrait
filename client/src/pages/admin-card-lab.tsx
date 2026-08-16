@@ -17,7 +17,7 @@
 // ledger). The point of walking the real flow here is to find the UX
 // problems before any of it gets built for customers.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, RefreshCw, Sparkles, Type, PenLine, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +93,14 @@ export default function AdminCardLabPage() {
   const [dear, setDear] = useState('');
   const [signOff, setSignOff] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
+
+  const [build, setBuild] = useState<{ commit: string; deployedAt: string } | null>(null);
+  useEffect(() => {
+    apiRequest('GET', '/api/admin/card-lab/build')
+      .then((r) => r.json())
+      .then(setBuild)
+      .catch(() => { /* a missing stamp must never break the Lab */ });
+  }, []);
 
   const [spendUsd, setSpendUsd] = useState(0);
   const addSpend = (c?: string) => {
@@ -220,9 +228,18 @@ export default function AdminCardLabPage() {
             Walking the customer flow — one thing they love → three designs → refine → inside → card.
           </p>
         </div>
-        <p className="text-xs text-stone-400">
-          session spend <span className="font-semibold text-stone-600">${spendUsd.toFixed(3)}</span>
-        </p>
+        <div className="text-right text-xs text-stone-400">
+          <p>session spend <span className="font-semibold text-stone-600">${spendUsd.toFixed(3)}</span></p>
+          {/* Which build produced this card? Prod lags a push by a few
+              minutes, and judging a card against the wrong prompt version
+              wasted an afternoon. */}
+          {build && (
+            <p className="mt-0.5">
+              build <span className="font-mono font-semibold text-stone-600">{build.commit}</span>
+              <span className="text-stone-400"> · {build.deployedAt}</span>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* stepper */}

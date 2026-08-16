@@ -398,6 +398,22 @@ Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
 
 export function registerAdminCardLabRoutes(app: Express): void {
   // ── POST /api/admin/card-lab/concepts ────────────────────────────
+  // ── GET /api/admin/card-lab/build ────────────────────────────────
+  // Which build am I looking at? Added 2026-08-16 after an afternoon of
+  // confusion: Aidan was testing on celebrait.co.uk (production, whatever
+  // Render last finished building) while every change was being verified
+  // locally against the dev database. Cards were being judged against
+  // prompt versions that had already moved on, and neither of us could
+  // tell. A commit stamp on the page ends that permanently.
+  app.get('/api/admin/card-lab/build', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const sha = process.env.RENDER_GIT_COMMIT ?? '';
+    res.json({
+      commit: sha ? sha.slice(0, 8) : 'local',
+      deployedAt: process.env.RENDER_SERVICE_ID ? 'render' : 'local dev',
+    });
+  });
+
   app.post('/api/admin/card-lab/concepts', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     if (!openai) return res.status(503).json({ message: 'OpenAI not configured' });
