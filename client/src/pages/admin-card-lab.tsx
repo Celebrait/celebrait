@@ -1,21 +1,29 @@
 // client/src/pages/admin-card-lab.tsx
 //
-// CARD LAB — the illustrated-card test bench. One brief in, three
-// finished cards out: gag + gouache artwork in the locked house style,
-// gpt-image-2 LOW (~$0.006/card), landing one by one as they render.
+// CARD LAB — now walking the CUSTOMER flow from SCOPE_QUIRKY_MAKER.md
+// rather than laying every control out at once. Five steps:
 //
-// This page exists to answer ONE question cheaply: does "snapshot in,
-// three cards that LAND" actually work? So it deliberately mirrors the
-// imagined customer flow — minimal-effort form, deal-me-three button,
-// staggered reveal — while staying an admin lab (real spend, logged as
-// R&D under slot card_lab).
+//   1 Who it's for  — who / occasion / one thing they love
+//   2 Pick          — three finished fronts, choose a direction
+//   3 Refine        — re-roll design, re-roll words, or write it yourself
+//   4 Inside        — blank / AI / write your own, with To + Love
+//   5 Review        — the 3D card, exactly as the photo route reveals it
+//
+// "Who it's from" deliberately does NOT appear in step 1 (Aidan
+// 2026-08-15): it isn't needed to write the front and belongs at the
+// inside step as the sign-off, so step 1 stays three quick inputs.
+//
+// Still admin-only and still real spend (slot card_lab → R&D in the
+// ledger). The point of walking the real flow here is to find the UX
+// problems before any of it gets built for customers.
 
-import { useRef, useState } from 'react';
-import { Loader2, RefreshCw, Sparkles, Wand2, Type } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, RefreshCw, Sparkles, Type, PenLine, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Card3DViewer } from '@/components/card-3d-viewer';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,33 +35,24 @@ interface Concept {
   art_direction: string;
   palette?: string;
 }
-interface Slot {
+interface Option {
   concept: Concept;
   imageUrl?: string;
-  insideUrl?: string;
-  insideRendering?: boolean;
   drawnBy?: string;
-  costUsd?: string;
-  durationMs?: number;
   error?: string;
   rendering: boolean;
 }
 
 const WHO_CHIPS = ['Mum', 'Dad', 'Partner', 'Best mate', 'Sister', 'Brother', 'Nan', 'Colleague'];
 const OCCASION_CHIPS = ['Birthday', "Father's Day", "Mother's Day", 'Anniversary', 'Congratulations', 'Thank you', 'New home', 'Just because'];
-const FROM_CHIPS = ['Me', 'Us', 'The kids', 'The dog'];
+const STEPS = ["Who it's for", 'Pick a design', 'Refine', 'Inside', 'Review'];
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <button type="button" onClick={onClick}
       className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? 'border-brand bg-brand-muted/50 text-brand-dark'
-          : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'
-      }`}
-    >
+        active ? 'border-brand bg-brand-muted/50 text-brand-dark'
+               : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
       {label}
     </button>
   );
@@ -61,145 +60,154 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 
 export default function AdminCardLabPage() {
   const { toast } = useToast();
+  const [step, setStep] = useState(1);
+
+  // step 1
   const [who, setWho] = useState('Dad');
-  const [occasion, setOccasion] = useState("Father's Day");
-  const [from, setFrom] = useState('The kids');
+  const [occasion, setOccasion] = useState('Birthday');
   const [interest, setInterest] = useState('');
   const [cheeky, setCheeky] = useState(false);
-  const [characters, setCharacters] = useState<'objects'|'animals'|'figures'>('objects');
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('animals');
+
+  // steps 2 & 3
+  const [options, setOptions] = useState<Option[]>([]);
+  const [judgeNotes, setJudgeNotes] = useState<Array<{ index: number; reason: string; was: string }>>([]);
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [thinking, setThinking] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [editText, setEditText] = useState('');
+
+  // step 4
   const [insideMode, setInsideMode] = useState<'auto' | 'own' | 'blank'>('auto');
   const [ownInsideText, setOwnInsideText] = useState('');
   const [dear, setDear] = useState('');
   const [signOff, setSignOff] = useState('');
+  const [insideUrl, setInsideUrl] = useState<string | null>(null);
 
-  const [judgeNotes, setJudgeNotes] = useState<Array<{ index: number; reason: string; was: string }>>([]);
-  const [slots, setSlots] = useState<Slot[]>([]);
-  const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
-  const dealCount = useRef(0);
+  const addSpend = (c?: string) => {
+    const n = parseFloat(String(c ?? '').replace('$', ''));
+    if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+  };
+  const card = chosen != null ? options[chosen] : null;
 
   const renderOne = async (idx: number, concept: Concept) => {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/render', {
-        front_text: concept.front_text,
-        art_direction: concept.art_direction,
-        format: concept.format ?? 'hero',
-        palette: concept.palette,
-        characters,
+        front_text: concept.front_text, art_direction: concept.art_direction,
+        format: concept.format ?? 'hero', palette: concept.palette, characters,
       });
       const j = await r.json();
-      setSlots((prev) =>
-        prev.map((s, i) =>
-          i === idx ? { ...s, rendering: false, imageUrl: j.imageUrl, costUsd: j.costUsd, durationMs: j.durationMs, drawnBy: j.drawnBy } : s,
-        ),
-      );
-      const c = parseFloat(String(j.costUsd ?? '').replace('$', ''));
-      if (!Number.isNaN(c)) setSpendUsd((v) => v + c);
+      setOptions((prev) => prev.map((o, i) => i === idx
+        ? { ...o, rendering: false, imageUrl: j.imageUrl, drawnBy: j.drawnBy } : o));
+      addSpend(j.costUsd);
     } catch (e: any) {
-      setSlots((prev) =>
-        prev.map((s, i) => (i === idx ? { ...s, rendering: false, error: e?.message ?? 'Render failed' } : s)),
-      );
+      setOptions((prev) => prev.map((o, i) => i === idx
+        ? { ...o, rendering: false, error: e?.message ?? 'Render failed' } : o));
     }
   };
 
-  const deal = async () => {
+  const generate = async () => {
     if (thinking) return;
     if (!interest.trim()) {
       toast({ title: 'One thing they love, please', description: 'It IS the card — everything grows from it.' });
       return;
     }
     setThinking(true);
-    setSlots([]);
+    setOptions([]); setChosen(null); setInsideUrl(null);
+    setStep(2);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, from, interest, insideMode, ownInsideText, cheeky, characters,
+        who, occasion, interest, insideMode, ownInsideText, cheeky, characters,
       });
       const { concepts, notes } = (await r.json()) as {
-        concepts: Concept[];
-        notes?: Array<{ index: number; reason: string; was: string }>;
+        concepts: Concept[]; notes?: Array<{ index: number; reason: string; was: string }>;
       };
       setJudgeNotes(notes ?? []);
-      dealCount.current += 1;
-      setSlots(concepts.map((c) => ({ concept: c, rendering: true })));
-      // Fire all three renders in parallel; each reveals as it lands.
+      setOptions(concepts.map((c) => ({ concept: c, rendering: true })));
       concepts.forEach((c, i) => void renderOne(i, c));
     } catch (e: any) {
-      toast({ title: 'Concepts failed', description: e?.message ?? 'Try again', variant: 'destructive' });
-    } finally {
-      setThinking(false);
-    }
+      toast({ title: 'Generation failed', description: e?.message ?? '', variant: 'destructive' });
+      setStep(1);
+    } finally { setThinking(false); }
   };
 
-  const applyTextEdit = async (idx: number) => {
-    const slot = slots[idx];
-    if (!slot?.imageUrl || !editText.trim()) return;
-    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rendering: true, error: undefined } : s)));
-    setEditingIdx(null);
+  /** Step 3 — same words, new artwork. */
+  const rerollDesign = () => {
+    if (chosen == null || !card) return;
+    setOptions((prev) => prev.map((o, i) => i === chosen ? { ...o, rendering: true, imageUrl: undefined } : o));
+    void renderOne(chosen, card.concept);
+  };
+
+  /** Step 3 — same subject and angle, a brand new line. */
+  const rerollText = async () => {
+    if (chosen == null || !card || busy) return;
+    setBusy(true);
+    try {
+      const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
+        who, occasion, interest, insideMode, ownInsideText, cheeky, characters,
+      });
+      const { concepts } = (await r.json()) as { concepts: Concept[] };
+      // Keep the angle they chose — swap in that angle's fresh concept.
+      const replacement = concepts.find((c) => c.angle === card.concept.angle) ?? concepts[0];
+      setOptions((prev) => prev.map((o, i) => i === chosen ? { concept: replacement, rendering: true } : o));
+      await renderOne(chosen, replacement);
+    } catch (e: any) {
+      toast({ title: 'Could not re-write', description: e?.message ?? '', variant: 'destructive' });
+    } finally { setBusy(false); }
+  };
+
+  /** Step 3 — exact words. Routed by layout density server-side. */
+  const applyTextEdit = async () => {
+    if (chosen == null || !card?.imageUrl || !editText.trim()) return;
+    setOptions((prev) => prev.map((o, i) => i === chosen ? { ...o, rendering: true } : o));
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/edit-text', {
-        imageUrl: slot.imageUrl,
-        newText: editText.trim(),
-        currentText: slot.concept.front_text,
-        // Dense layouts get re-rendered rather than edited — the server
-        // needs the original recipe to redraw in the same language.
-        format: slot.concept.format,
-        art_direction: slot.concept.art_direction,
-        palette: slot.concept.palette,
-        characters,
+        imageUrl: card.imageUrl, newText: editText.trim(), currentText: card.concept.front_text,
+        format: card.concept.format, art_direction: card.concept.art_direction,
+        palette: card.concept.palette, characters,
       });
       const j = await r.json();
-      setSlots((prev) =>
-        prev.map((s, i) =>
-          i === idx
-            ? { ...s, rendering: false, imageUrl: j.imageUrl, drawnBy: j.drawnBy,
-                concept: { ...s.concept, front_text: editText.trim() } }
-            : s,
-        ),
-      );
-      const c = parseFloat(String(j.costUsd ?? '').replace('$', ''));
-      if (!Number.isNaN(c)) setSpendUsd((v) => v + c);
+      setOptions((prev) => prev.map((o, i) => i === chosen
+        ? { ...o, rendering: false, imageUrl: j.imageUrl, drawnBy: j.drawnBy,
+            concept: { ...o.concept, front_text: editText.trim() } } : o));
+      addSpend(j.costUsd);
+      setEditText('');
     } catch (e: any) {
-      setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rendering: false, error: e?.message ?? 'Text edit failed' } : s)));
+      setOptions((prev) => prev.map((o, i) => i === chosen ? { ...o, rendering: false } : o));
+      toast({ title: 'Text edit failed', description: e?.message ?? '', variant: 'destructive' });
     }
   };
 
-  const renderInside = async (idx: number) => {
-    const slot = slots[idx];
-    if (!slot) return;
-    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, insideRendering: true } : s)));
+  const renderInside = async () => {
+    if (!card || busy) return;
+    setBusy(true); setInsideUrl(null);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/render-inside', {
         mode: insideMode,
-        message: insideMode === 'own' ? ownInsideText : slot.concept.inside_text,
-        dear, from: signOff,
-        palette: slot.concept.palette,
-        art_direction: slot.concept.art_direction,
-        characters,
+        message: insideMode === 'own' ? ownInsideText : card.concept.inside_text,
+        dear, from: signOff, palette: card.concept.palette,
+        art_direction: card.concept.art_direction, characters,
       });
       const j = await r.json();
-      setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, insideRendering: false, insideUrl: j.imageUrl } : s)));
-      const c = parseFloat(String(j.costUsd ?? '').replace('$', ''));
-      if (!Number.isNaN(c)) setSpendUsd((v) => v + c);
+      setInsideUrl(j.imageUrl); addSpend(j.costUsd);
+      setStep(5);
     } catch (e: any) {
-      setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, insideRendering: false } : s)));
       toast({ title: 'Inside render failed', description: e?.message ?? '', variant: 'destructive' });
-    }
+    } finally { setBusy(false); }
   };
 
-  const rerollArt = (idx: number) => {
-    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rendering: true, imageUrl: undefined, error: undefined } : s)));
-    void renderOne(idx, slots[idx].concept);
+  const restart = () => {
+    setStep(1); setOptions([]); setChosen(null); setInsideUrl(null); setJudgeNotes([]);
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-5 flex items-end justify-between">
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="mb-4 flex items-end justify-between">
         <div>
           <h1 className="text-xl font-bold text-stone-900">Card Lab</h1>
           <p className="text-sm text-stone-500">
-            One thing they love in → three different takes on it. gpt-image-2 low, Celebrait Quirky style.
+            Walking the customer flow — one thing they love → three designs → refine → inside → card.
           </p>
         </div>
         <p className="text-xs text-stone-400">
@@ -207,192 +215,248 @@ export default function AdminCardLabPage() {
         </p>
       </div>
 
-      {/* ── The brief ─────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <Label className="text-xs font-semibold text-stone-700">Who's it for</Label>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {WHO_CHIPS.map((c) => (
-                <Chip key={c} label={c} active={who === c} onClick={() => setWho(c)} />
-              ))}
+      {/* stepper */}
+      <div className="mb-5 flex flex-wrap items-center gap-1.5">
+        {STEPS.map((label, i) => {
+          const n = i + 1;
+          return (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                n < step ? 'bg-brand-dark text-brand-foreground'
+                : n === step ? 'bg-brand-muted text-brand-dark ring-2 ring-brand'
+                : 'bg-stone-100 text-stone-400'}`}>
+                {n < step ? <Check className="h-3 w-3" /> : n}
+              </span>
+              <span className={`text-[11px] ${n === step ? 'font-semibold text-stone-800' : 'text-stone-400'}`}>{label}</span>
+              {n < STEPS.length && <span className="mx-1 h-px w-4 bg-stone-200" />}
             </div>
-          </div>
-          <div>
-            <Label className="text-xs font-semibold text-stone-700">Occasion</Label>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {OCCASION_CHIPS.map((c) => (
-                <Chip key={c} label={c} active={occasion === c} onClick={() => setOccasion(c)} />
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs font-semibold text-stone-700">From</Label>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {FROM_CHIPS.map((c) => (
-                <Chip key={c} label={c} active={from === c} onClick={() => setFrom(c)} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="interest" className="text-xs font-semibold text-stone-700">
-            One thing they love{' '}
-            <span className="font-normal text-stone-400">— all three cards grow from this</span>
-          </Label>
-          <Input
-            id="interest"
-            value={interest}
-            onChange={(e) => setInterest(e.target.value)}
-            placeholder="fishing / Man United / her greenhouse / murder documentaries"
-            className="mt-1.5 h-11 text-base"
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void deal(); } }}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <label className="flex items-center gap-2 text-xs font-medium text-stone-600">
-            <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)}
-              className="h-3.5 w-3.5 accent-brand" />
-            Rude mode <span className="text-stone-400">(cheeky — falls back to Gemini if OpenAI baulks)</span>
-          </label>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-stone-700 mr-1">Characters</span>
-            {([['objects','Objects only'],['animals','+ Animals'],['figures','+ Figures']] as const).map(([v,l]) => (
-              <Chip key={v} label={l} active={characters === v} onClick={() => setCharacters(v)} />
-            ))}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-stone-700 mr-1">Inside</span>
-            {(['auto', 'own', 'blank'] as const).map((m) => (
-              <Chip key={m} label={m === 'auto' ? 'Write it for me' : m === 'own' ? "I'll write it" : 'Leave blank'}
-                active={insideMode === m} onClick={() => setInsideMode(m)} />
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="dear" className="text-xs font-semibold text-stone-700">Opens with</Label>
-            <Input id="dear" value={dear} onChange={(e) => setDear(e.target.value)}
-              placeholder="To Dad," className="mt-1 h-9 text-sm" />
-          </div>
-          <div>
-            <Label htmlFor="signoff" className="text-xs font-semibold text-stone-700">Signs off</Label>
-            <Input id="signoff" value={signOff} onChange={(e) => setSignOff(e.target.value)}
-              placeholder="Love Aidan x" className="mt-1 h-9 text-sm" />
-          </div>
-        </div>
-        {insideMode === 'own' && (
-          <Textarea value={ownInsideText} onChange={(e) => setOwnInsideText(e.target.value)}
-            placeholder="Your message for the inside…" rows={2} />
-        )}
-
-        <Button onClick={deal} disabled={thinking}
-          className="w-full h-11 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold">
-          {thinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          <span className="ml-2">{slots.length > 0 ? 'Deal me three more' : 'Deal me three cards'}</span>
-        </Button>
+          );
+        })}
       </div>
 
-      {/* ── The three cards ───────────────────────────────────────── */}
-      {slots.length > 0 && (
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {slots.map((s, i) => (
-            <div key={`${dealCount.current}-${i}`}
-              className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm">
-              <div className="aspect-square bg-stone-50 relative">
-                {s.imageUrl ? (
-                  <img src={s.imageUrl} alt={s.concept.front_text}
-                    className="h-full w-full object-cover animate-in fade-in duration-700" />
-                ) : s.error ? (
-                  <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-red-500">
-                    {s.error}
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="text-[11px]">painting…</span>
-                  </div>
-                )}
-                <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-dark shadow-sm">
-                  {s.concept.angle}
-                  {s.concept.format ? ` · ${s.concept.format}` : ''}
-                </span>
-              </div>
-              <div className="p-3 space-y-2">
-                {judgeNotes.find((n) => n.index === i) && (
-                  <p className="text-[10px] leading-snug text-amber-600">
-                    ✎ editor rewrote this — {judgeNotes.find((n) => n.index === i)!.reason}
-                    <span className="block text-stone-400">was: “{judgeNotes.find((n) => n.index === i)!.was}”</span>
-                  </p>
-                )}
-                <p className="text-[13px] font-semibold text-stone-800 leading-snug">
-                  “{s.concept.front_text}”
-                </p>
-                <div className="rounded-lg bg-stone-50 border border-stone-100 p-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">Inside</p>
-                  {insideMode === 'blank' ? (
-                    <p className="text-xs italic text-stone-400">left blank for handwriting</p>
-                  ) : insideMode === 'own' ? (
-                    <p className="text-xs text-stone-600">{ownInsideText.trim() || <em>your message here</em>}</p>
-                  ) : (
-                    <p className="text-xs text-stone-600">{s.concept.inside_text || <em>—</em>}</p>
-                  )}
-                </div>
-                <div className="flex items-center justify-between pt-0.5">
-                  <p className="text-[10px] text-stone-400">
-                    {s.costUsd ? `${s.costUsd} · ${((s.durationMs ?? 0) / 1000).toFixed(1)}s` : ' '}
-                  </p>
-                  <span className="flex items-center gap-3">
-                    <button type="button" disabled={s.rendering || !s.imageUrl}
-                      onClick={() => { setEditingIdx(editingIdx === i ? null : i); setEditText(s.concept.front_text); }}
-                      className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-brand-dark disabled:opacity-40">
-                      <Type className="w-3 h-3" />
-                      fix text
-                    </button>
-                    <button type="button" onClick={() => rerollArt(i)} disabled={s.rendering}
-                      className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-brand-dark disabled:opacity-40">
-                      <RefreshCw className={`w-3 h-3 ${s.rendering ? 'animate-spin' : ''}`} />
-                      redo art
-                    </button>
-                  </span>
-                </div>
-                {s.insideUrl ? (
-                  <div className="rounded-lg overflow-hidden border border-stone-200">
-                    <p className="bg-stone-50 px-2 py-1 text-[10px] uppercase tracking-wider text-stone-400">Inside</p>
-                    <img src={s.insideUrl} alt="card inside" className="w-full" />
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => void renderInside(i)}
-                    disabled={!s.imageUrl || s.insideRendering}
-                    className="w-full rounded-lg border border-dashed border-stone-300 py-2 text-[11px] text-stone-500 hover:border-brand hover:text-brand-dark disabled:opacity-40 transition-colors">
-                    {s.insideRendering
-                      ? <span className="inline-flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" />rendering inside…</span>
-                      : `render the inside (${insideMode === 'blank' ? 'blank' : insideMode === 'own' ? 'your words' : 'AI message'})`}
-                  </button>
-                )}
-                {editingIdx === i && (
-                  <div className="flex gap-1.5">
-                    <Input value={editText} onChange={(e) => setEditText(e.target.value)}
-                      className="h-8 text-xs" placeholder="corrected front text"
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void applyTextEdit(i); } }} />
-                    <Button size="sm" className="h-8 px-2 text-xs" onClick={() => void applyTextEdit(i)}>
-                      Redraw
-                    </Button>
-                  </div>
-                )}
-                {s.drawnBy && s.drawnBy !== 'openai' && (
-                  <p className="text-[10px] font-medium text-amber-600">{s.drawnBy}</p>
-                )}
-                <p className="text-[10px] text-stone-300 leading-snug" title={s.concept.art_direction}>
-                  <Wand2 className="inline w-2.5 h-2.5 mr-0.5" />
-                  {s.concept.art_direction}
-                  {s.concept.palette ? ` — ${s.concept.palette}` : ''}
-                </p>
+      {/* ── STEP 1 ────────────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="rounded-xl border border-stone-200 bg-white p-5 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs font-semibold text-stone-700">Who's it for</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {WHO_CHIPS.map((c) => <Chip key={c} label={c} active={who === c} onClick={() => setWho(c)} />)}
               </div>
             </div>
-          ))}
+            <div>
+              <Label className="text-xs font-semibold text-stone-700">Occasion</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {OCCASION_CHIPS.map((c) => <Chip key={c} label={c} active={occasion === c} onClick={() => setOccasion(c)} />)}
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="interest" className="text-sm font-semibold text-stone-800">
+              One thing they love <span className="font-normal text-stone-400">— all three cards grow from this</span>
+            </Label>
+            <Input id="interest" value={interest} onChange={(e) => setInterest(e.target.value)}
+              placeholder="fishing / Man United / her greenhouse / murder documentaries"
+              className="mt-1.5 h-11 text-base"
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-stone-100 pt-3">
+            <span className="text-[11px] uppercase tracking-wider text-stone-400">lab controls</span>
+            <label className="flex items-center gap-2 text-xs text-stone-600">
+              <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
+              Rude mode
+            </label>
+            <div className="flex items-center gap-1.5">
+              {([['objects', 'Objects only'], ['animals', '+ Animals'], ['figures', '+ Figures']] as const).map(([v, l]) => (
+                <Chip key={v} label={l} active={characters === v} onClick={() => setCharacters(v)} />
+              ))}
+            </div>
+          </div>
+          <Button onClick={generate} disabled={thinking}
+            className="w-full h-11 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold">
+            {thinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            <span className="ml-2">Generate my card</span>
+          </Button>
+        </div>
+      )}
+
+      {/* ── STEP 2 ────────────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">
+            Three directions for <span className="font-semibold text-stone-800">{who}</span> — pick the one you like.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {options.map((o, i) => (
+              <button key={i} type="button" disabled={!o.imageUrl}
+                onClick={() => { if (o.imageUrl) { setChosen(i); setStep(3); } }}
+                className="group rounded-xl border border-stone-200 bg-white overflow-hidden text-left shadow-sm hover:border-brand hover:shadow-md disabled:cursor-wait transition-all">
+                <div className="aspect-square bg-stone-50 relative">
+                  {o.imageUrl ? <img src={o.imageUrl} alt={o.concept.front_text} className="h-full w-full object-cover" />
+                    : o.error ? <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-red-500">{o.error}</div>
+                    : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
+                        <Loader2 className="w-6 h-6 animate-spin" /><span className="text-[11px]">painting…</span>
+                      </div>}
+                  <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-dark shadow-sm">
+                    {o.concept.angle}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <p className="text-[13px] font-semibold text-stone-800 leading-snug">“{o.concept.front_text}”</p>
+                  {judgeNotes.find((n) => n.index === i) && (
+                    <p className="mt-1 text-[10px] text-amber-600">
+                      ✎ editor rewrote this — {judgeNotes.find((n) => n.index === i)!.reason}
+                    </p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <button onClick={restart} className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-brand-dark">
+              <ArrowLeft className="w-3 h-3" /> change the details
+            </button>
+            <button onClick={generate} disabled={thinking}
+              className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-brand hover:text-brand-dark disabled:opacity-50">
+              <RefreshCw className={`w-3 h-3 ${thinking ? 'animate-spin' : ''}`} /> Show me three more
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3 ────────────────────────────────────────────────── */}
+      {step === 3 && card && (
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm">
+            <div className="aspect-square bg-stone-50 relative">
+              {card.rendering
+                ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
+                    <Loader2 className="w-6 h-6 animate-spin" /><span className="text-[11px]">painting…</span>
+                  </div>
+                : <img src={card.imageUrl} alt={card.concept.front_text} className="h-full w-full object-cover" />}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-wider text-stone-400">the front says</p>
+              <p className="text-lg font-semibold text-stone-800 leading-snug">“{card.concept.front_text}”</p>
+              {card.drawnBy && card.drawnBy !== 'openai' && (
+                <p className="mt-1 text-[10px] text-amber-600">{card.drawnBy}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Button variant="outline" onClick={rerollDesign} disabled={card.rendering || busy} className="w-full justify-start h-10">
+                <RefreshCw className={`w-4 h-4 mr-2 ${card.rendering ? 'animate-spin' : ''}`} />
+                Re-roll the design <span className="ml-1 text-xs text-stone-400">— same words, new artwork</span>
+              </Button>
+              <Button variant="outline" onClick={rerollText} disabled={card.rendering || busy} className="w-full justify-start h-10">
+                <Sparkles className={`w-4 h-4 mr-2 ${busy ? 'animate-spin' : ''}`} />
+                Re-roll the words <span className="ml-1 text-xs text-stone-400">— new line, same angle</span>
+              </Button>
+              <div className="rounded-lg border border-stone-200 p-2.5 space-y-2">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-stone-600">
+                  <Type className="w-3.5 h-3.5" /> Write it myself
+                </p>
+                <div className="flex gap-1.5">
+                  <Input value={editText} onChange={(e) => setEditText(e.target.value)}
+                    placeholder={card.concept.front_text} className="h-9 text-sm"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void applyTextEdit(); } }} />
+                  <Button size="sm" className="h-9" onClick={applyTextEdit} disabled={card.rendering || !editText.trim()}>
+                    Redraw
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <button onClick={() => setStep(2)} className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-brand-dark">
+                <ArrowLeft className="w-3 h-3" /> back to the three
+              </button>
+              <Button onClick={() => setStep(4)} disabled={card.rendering || !card.imageUrl}
+                className="bg-brand-dark hover:bg-brand text-brand-foreground font-semibold">
+                Sign off the front →
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 4 ────────────────────────────────────────────────── */}
+      {step === 4 && card && (
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm">
+            <p className="bg-stone-50 px-3 py-1.5 text-[10px] uppercase tracking-wider text-stone-400">your front</p>
+            <img src={card.imageUrl} alt="" className="w-full" />
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-semibold text-stone-800">What goes inside?</Label>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {([['auto', 'Write it for me'], ['own', "I'll write it"], ['blank', 'Leave blank to handwrite']] as const).map(([v, l]) => (
+                  <Chip key={v} label={l} active={insideMode === v} onClick={() => setInsideMode(v)} />
+                ))}
+              </div>
+            </div>
+            {insideMode === 'auto' && card.concept.inside_text && (
+              <div className="rounded-lg bg-stone-50 border border-stone-100 p-3">
+                <p className="text-[10px] uppercase tracking-wider text-stone-400 mb-1">we'd write</p>
+                <p className="text-sm text-stone-700">{card.concept.inside_text}</p>
+              </div>
+            )}
+            {insideMode === 'own' && (
+              <Textarea value={ownInsideText} onChange={(e) => setOwnInsideText(e.target.value)}
+                placeholder="Your message for the inside…" rows={3} />
+            )}
+            {insideMode !== 'blank' && (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="dear" className="text-xs font-semibold text-stone-700">Opens with</Label>
+                  <Input id="dear" value={dear} onChange={(e) => setDear(e.target.value)} placeholder="To Dad," className="mt-1 h-9 text-sm" />
+                </div>
+                <div>
+                  <Label htmlFor="signoff" className="text-xs font-semibold text-stone-700">Signs off</Label>
+                  <Input id="signoff" value={signOff} onChange={(e) => setSignOff(e.target.value)} placeholder="Love Aidan x" className="mt-1 h-9 text-sm" />
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-1">
+              <button onClick={() => setStep(3)} className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-brand-dark">
+                <ArrowLeft className="w-3 h-3" /> back to the front
+              </button>
+              <Button onClick={renderInside} disabled={busy}
+                className="bg-brand-dark hover:bg-brand text-brand-foreground font-semibold">
+                {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <PenLine className="w-4 h-4 mr-2" />}
+                Make the inside →
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 5 ────────────────────────────────────────────────── */}
+      {step === 5 && card?.imageUrl && (
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">Here's the card. Tap it to open.</p>
+          <div className="rounded-xl border border-stone-200 bg-keeper-paper overflow-hidden" style={{ height: 460 }}>
+            <Card3DViewer frontImageUrl={card.imageUrl} insideImageUrl={insideUrl} className="h-full w-full" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-stone-200 overflow-hidden">
+              <p className="bg-stone-50 px-2 py-1 text-[10px] uppercase tracking-wider text-stone-400">front</p>
+              <img src={card.imageUrl} alt="" className="w-full" />
+            </div>
+            {insideUrl && (
+              <div className="rounded-lg border border-stone-200 overflow-hidden">
+                <p className="bg-stone-50 px-2 py-1 text-[10px] uppercase tracking-wider text-stone-400">inside</p>
+                <img src={insideUrl} alt="" className="w-full" />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <button onClick={() => setStep(4)} className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-brand-dark">
+              <ArrowLeft className="w-3 h-3" /> change the inside
+            </button>
+            <Button variant="outline" onClick={restart}>Make another</Button>
+          </div>
         </div>
       )}
     </div>
