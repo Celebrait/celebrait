@@ -68,18 +68,32 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
 // style; their three distinct FORMATS are how "varied" stays coherent.
 // Object-led, never characters — the earlier animals-in-hats direction
 // is dead: quirky-classy means still-life motifs doing visual puns.
-const QUIRKY_DNA_BASE = `STYLE DNA — "Celebrait Quirky" v2 (applies to the whole image, always):
+const QUIRKY_DNA_BASE = `STYLE DNA — "Celebrait Quirky" v3 (applies to the whole image, always):
 A CONTEMPORARY ART PRINT, not a greeting card cliché — the kind of bold flat-illustration piece trending in independent print shops and on gallery walls right now.
-COLOUR IS THE ENERGY: a SATURATED colour-block ground with 3-5 flat electric ink colours on top in high-contrast, clashing-but-curated pairs. Vibrant, joyful, confident — fluorescent-adjacent brightness like risograph fluoro inks. The SPECIFIC colours are given per card in the PALETTE line below: obey it exactly, it was chosen from the subject's own world.
-PRINTED, NOT RENDERED — this is the whole difference between real and AI-looking. Imagine this card was SCREEN-PRINTED BY HAND in 3-4 separate ink passes, and show the evidence of that process:
+
+COLOUR — DISCIPLINE IS WHAT LOOKS EXPENSIVE:
+- Exactly THREE inks, four at the absolute most, plus the ground. Fewer colours used bravely always beats more colours used timidly; a fourth ink has to earn its place.
+- THE GROUND IS USUALLY QUIET. Default to a warm neutral — bone, oat, chalk, clay, greige, putty, soft stone — and let the inks do the shouting against it. A fully saturated ground is allowed, but never a saturated ground AND fluorescent inks together: that is loud, not vibrant.
+- ONE ACCENT INK, USED SPARINGLY. Pick the hottest colour in the palette and let it cover LESS THAN 10% of the card — a thin offset sliver behind a shape, one word of the type, a single small object. Held back it sings; spread everywhere it is just noise.
+- The SPECIFIC colours are given per card in the PALETTE line below: obey it exactly, it was chosen from the subject's own world.
+
+PRINTED, NOT RENDERED — this is the whole difference between real and AI-looking. Imagine this card was SCREEN-PRINTED BY HAND in 3-4 separate ink passes, and show the evidence of that process IN THE ARTWORK:
 - OVERPRINT: where two inks overlap they make a THIRD, darker colour — never a clean digital layer on top. Use those overlaps deliberately; they are part of the palette.
-- MISREGISTRATION: one or two colour plates sit a hair off, so a sliver of ink peeks past an edge or a shape's outline doesn't quite meet its fill. Charming, not sloppy.
+- MISREGISTRATION: one or two colour plates sit a hair off, so a sliver of ink peeks past an edge. Best used DELIBERATELY as a design device — a clean offset edge of the accent ink hugging one side of a shape, like a shadow made of colour. Charming, not sloppy.
 - INK BEHAVIOUR: solid areas are NOT perfectly solid — slight mottling, roller texture, denser at the edges of a shape. The paper's tooth interrupts the ink and shows THROUGH it, rather than a grain filter sitting over the top.
 - HAND-CUT EDGES: shapes are confident but not vector-perfect — Matisse-cutout wobble, edges a real hand made.
+⚠️ EVERY INK-PROCESS EFFECT ABOVE APPLIES TO THE ARTWORK ONLY — NEVER TO THE LETTERING. See TYPOGRAPHY.
 ABSOLUTELY NOT: gradients, airbrush, drop shadows, 3D form, glossy highlights, chrome, photographic rendering, or product-shot realism. This applies MOST STRICTLY to cars, gadgets and branded objects — a car on this card is a FLAT SHAPE in 3 inks, never a rendered vehicle with reflections. If a motif is starting to look like a photograph or a 3D model, you have failed.
 COMPOSITION: oversized motifs, brave cropping, asymmetry, overlapping objects with real rhythm — NEVER a small object floating centred in empty space, NEVER evenly-spaced clip-art scattered on a background (both are the AI tell).
 MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
-LETTERING: hand-drawn and CHUNKY — retro-modern fat serif, groovy 70s-revival script, or bold naive caps — same ink family as the art, big enough to matter, part of the composition.
+
+TYPOGRAPHY — TYPESET, NOT HANDWRITTEN. These cards are won and lost here:
+- The words are SET IN A REAL TYPEFACE, cleanly and confidently drawn. Choose one that suits the card: a fat serif with generous ball terminals (Cooper Black / Bookman lineage), a high-contrast display serif, or a bold humanist grotesk. Wobbly hand-lettering, brush-script scrawl and "painted by hand" letterforms are OUT — they read as the AI tell, and they are exactly where lettering goes wrong.
+- THE TYPE PRINTS PERFECTLY CLEAN. It is the ONE element with no ink texture, no mottling, no misregistration, no overprint ghosting, no distressing, no faint second pass of the same word, and no stray marks, scribbles, specks or half-formed shapes anywhere near a letter. Every glyph solid, evenly inked, crisply edged. A smudge or squiggle around a word is a failure of the whole card.
+- SET IT LIKE A DESIGNER: stack the line into 2-3 short lines, aligned flush on ONE side with a ragged other edge, broken where the SENSE breaks. Line-spacing tight, so the lines read as one block. Never let a long word run out of room and shrink to fit — restack it instead.
+- COLOUR AS EMPHASIS: set the whole line in one ink, then flip a SINGLE key word to the accent ink. One word, never two.
+- GIVE IT ITS OWN ROOM: the type sits in a clear zone of plain ground. It never overlaps a motif, never has artwork running behind it, never sits on a busy patch. Type and picture are neighbours, not layers.
+- Every word correctly spelled, every letter fully formed, nothing cropped.
 The bar: it should look like a limited-run screen print you'd frame — current, collectible, unmistakably made by a human hand.`;
 
 /** Characters are a three-level opt-in ladder (Aidan 2026-08-15).
@@ -110,10 +124,10 @@ export function quirkyDna(level: CharacterLevel = 'objects'): string {
 }
 
 export const QUIRKY_FORMATS: Record<string, string> = {
-  statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. A vast, flat, saturated ground occupies at least 70% of the card. ONE small-to-medium motif — a single object, beautifully drawn — placed off-centre with huge breathing room. The lettering is modest and precise, tucked near the motif or in a corner, never shouting. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
-  hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped by the frame edges, confident contour and flat fills, a single loose brush-swash or colour-block behind it, calm ground visible around. Expressive script for the words plus breathing space. Poster energy, not busy.`,
-  pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges. Lettering broken into short word-groups woven through the gaps. Rich and full — this is the maximal card of the range.`,
-  label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — bold simple border, arced or stacked type, the motif bunched large in the centre, halftone shading in one ink. Craft-beer-label energy, structured-busy.`,
+  statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. THE NEGATIVE SPACE IS THE SUBJECT — at least 60% of the card is untouched ground, and it must feel deliberate, like a gallery wall, never like something is missing. ONE motif, beautifully drawn, ANCHORED: sitting on an implied baseline low in the frame, or held against one edge — never floating dead-centre in the middle of nowhere. The type takes its own corner, flush-aligned, small and precise, at the opposite end of the card from the motif so the two hold the composition open between them. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
+  hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
+  pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges — an underlying grid with its rhythm BROKEN DELIBERATELY in one or two places (one motif turned, one scaled up, one in the odd colour) so it never reads as wallpaper. CRUCIALLY, RESERVE A CLEAN AREA FOR THE TYPE: a calm panel, band or generous clearing where the plain ground shows through and the words sit alone. Do NOT thread the lettering through the gaps between motifs — that is how a dense card turns to mush. Rich and full, but organised.`,
+  label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.`,
 };
 /** The INSIDE is a quieter room than the front. Same shop, lower
  *  volume: the words are the hero, the artwork only frames them. The
@@ -123,7 +137,7 @@ export const QUIRKY_FORMATS: Record<string, string> = {
 export const QUIRKY_INSIDE = `INSIDE OF A GREETING CARD — the text is the hero, the artwork is the frame.
 LAYOUT: a calm, generous page. The written message sits in the middle with real breathing room and a clear typographic hierarchy. Illustration is REDUCED to a light frame or a small motif echo — a sprig in one corner, a thin border, a few scattered accents. NEVER a busy pattern, NEVER a large object competing with the words. At least 60% of this page is clean, calm space you could read at a glance.
 COLOUR: the SAME palette family as the front card but LIGHTER and quieter — use the palest colour as the ground so handwriting would be legible on it, and keep the inks for the lettering and the small accents only.
-LETTERING: same hand-lettered family as the front, but calmer and smaller. Every word must be perfectly legible and correctly spelled.
+TYPOGRAPHY: the same TYPESET treatment as the front — a real typeface, cleanly drawn, printing perfectly clean with no ink texture, no misregistration and no stray marks near any letter — but calmer and smaller. Set the message in a clear hierarchy: the greeting small at the top, the message in the middle at reading size, the sign-off smaller beneath. Every word perfectly legible and correctly spelled.
 NEVER: no people, no faces, no hands, no figures of any kind. Never repeat the front card's main subject at full size — the inside of a real card never re-prints its own cover.`;
 
 const conceptsSchema = z.object({
@@ -184,7 +198,7 @@ Pick the single best survivor per angle. A clean deadpan ALWAYS beats a strained
 Each returned concept:
 - angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
 - format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
-- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other.
+- front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other. It must also SET WELL as display type: it should break naturally into 2-3 short stacked lines, and it should avoid words longer than 10 letters — very long words in big type are where lettering goes wrong. Given two equally good lines, take the one with the shorter words.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
 - art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${characters === 'objects'
     ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'
@@ -193,7 +207,7 @@ Each returned concept:
         : 'A characterful ANIMAL is PERMITTED (never humans or human faces)'} but is a CEILING, not an instruction.
     AT MOST ONE of the three cards may use a character, and only if it passes this test: does this subject's OWN WORLD naturally contain that creature or person? A dog-lover's world contains a dog. A Sunday league team contains players. A BAND'S WORLD DOES NOT CONTAIN KANGAROOS — inventing a mascot to satisfy a permission is the failure to avoid ("Wonderwallabies" for Oasis: the pun exists only because an animal was forced in, and the card says nothing about the band).
     If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
-- palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
+- palette: you are the art director. Name the GROUND colour first, then exactly THREE inks (four only if one truly earns it), and say which single ink is the ACCENT — the hot one, held back to under 10% of the card. Draw them all from that world. GROUNDS MUST SPAN THE SET — this is a hard requirement, because three neutral grounds make three cards that look like one card. Give TWO cards a warm neutral ground (bone, oat, chalk, clay, greige, putty, stone, warm grey) and give exactly ONE card a DEEP SATURATED ground — a rich, confident colour from that world (ink blue, forest, oxblood, terracotta, bottle green, aubergine) with calmer inks sitting on it. And make the two neutrals genuinely different from each other: a cool chalk next to a warm clay, not oat next to bone. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family.
 
 CHEEKY MODE (cheeky=true only):
 British pub cheek is now allowed and encouraged — "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", innuendo and mild filth. Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race/sexuality/religion/disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight or death. Put the strongest word on the FRONT if it's genuinely funnier there — we are testing what renders. When cheeky=false, stay completely clean.
@@ -427,7 +441,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const textBlock = body.mode === 'blank'
       ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
       : [
-          'TEXT — render EXACTLY these words and nothing else, as designed hand-lettering:',
+          'TEXT — render EXACTLY these words and nothing else, typeset per the TYPOGRAPHY block (a real typeface, printing perfectly clean, no texture or stray marks on the letters):',
           dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
           message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
           from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
@@ -507,7 +521,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         `ILLUSTRATION: ${body.art_direction}`,
         body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
         '',
-        `FRONT TEXT — render EXACTLY and ONLY: "${body.newText.trim()}". Hand-painted lettering per the style block, integrated into the composition, every word legible, no cropping. Compose the artwork AROUND these words — the motifs fill the space the lettering leaves. ABSOLUTELY NO other text anywhere in the image.`,
+        `FRONT TEXT — render EXACTLY and ONLY: "${body.newText.trim()}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters. Compose the artwork AROUND these words, leaving them a clear zone of plain ground to sit in — the motifs fill the space the type leaves, never run behind it. Every word legible, nothing cropped. ABSOLUTELY NO other text anywhere in the image.`,
         '',
         'Square 1024x1024 full-bleed greeting-card front.',
       ].filter(Boolean).join('\n');
@@ -633,7 +647,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `ILLUSTRATION: ${body.art_direction}`,
       body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
       '',
-      `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Hand-painted lettering per the style block, integrated into the composition, every word legible, no cropping. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
+      `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',
       'Square 1024x1024 full-bleed greeting-card front.',
     ].join('\n');
