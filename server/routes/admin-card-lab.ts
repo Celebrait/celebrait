@@ -613,6 +613,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
       palette: z.string().max(300).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
+      /** Tier is switchable so the lab can compare artefact profiles —
+       *  all tiers output 1024x1024, so this changes CRISPNESS, not
+       *  resolution. Print re-renders would use 'high'. */
+      quality: z.enum(['low', 'medium', 'high']).default('low'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -642,7 +646,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const provider = getProvider(providerId);
       const result = await provider.generate({
         prompt,
-        quality: 'low',
+        quality: body.quality,
         size: '1024x1024',
         slot: 'card_lab',
       });
@@ -653,7 +657,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         templateVersion: null,
         provider: result.provider,
         model: result.model,
-        quality: 'low',
+        quality: body.quality,
         costCents: result.costCents,
         durationMs: result.durationMs,
         success: true,
