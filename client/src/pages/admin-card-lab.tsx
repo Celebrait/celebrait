@@ -74,6 +74,7 @@ export default function AdminCardLabPage() {
   const [dear, setDear] = useState('');
   const [signOff, setSignOff] = useState('');
 
+  const [judgeNotes, setJudgeNotes] = useState<Array<{ index: number; reason: string; was: string }>>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
@@ -115,7 +116,11 @@ export default function AdminCardLabPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, from, interest, insideMode, ownInsideText, cheeky, characters,
       });
-      const { concepts } = (await r.json()) as { concepts: Concept[] };
+      const { concepts, notes } = (await r.json()) as {
+        concepts: Concept[];
+        notes?: Array<{ index: number; reason: string; was: string }>;
+      };
+      setJudgeNotes(notes ?? []);
       dealCount.current += 1;
       setSlots(concepts.map((c) => ({ concept: c, rendering: true })));
       // Fire all three renders in parallel; each reveals as it lands.
@@ -316,6 +321,12 @@ export default function AdminCardLabPage() {
                 </span>
               </div>
               <div className="p-3 space-y-2">
+                {judgeNotes.find((n) => n.index === i) && (
+                  <p className="text-[10px] leading-snug text-amber-600">
+                    ✎ editor rewrote this — {judgeNotes.find((n) => n.index === i)!.reason}
+                    <span className="block text-stone-400">was: “{judgeNotes.find((n) => n.index === i)!.was}”</span>
+                  </p>
+                )}
                 <p className="text-[13px] font-semibold text-stone-800 leading-snug">
                   “{s.concept.front_text}”
                 </p>

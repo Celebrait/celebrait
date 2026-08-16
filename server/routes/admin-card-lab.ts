@@ -142,9 +142,11 @@ const conceptsSchema = z.object({
 
 interface CardConcept {
   angle: string;
+  format?: string;
   front_text: string;
   inside_text: string;
   art_direction: string;
+  palette?: string;
 }
 
 function conceptSystemPrompt(characters: CharacterLevel): string {
@@ -197,6 +199,43 @@ RULES:
 FINAL CHECK — do this LAST, immediately before returning: read your three front_texts once more. If ANY contains "vibe" or "vibes", "level up", "boss", "legend", "goals", or "mode", OR would need explaining in a pub, OR is about the occasion instead of their interest, OR repeats another card's motif — REPLACE it with the runner-up before answering. This check has caught a failure in most previous runs; assume it will catch one in yours.
 
 Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes.`;
+}
+
+/** THE JUDGE — a second, INDEPENDENT pass (Aidan 2026-08-15).
+ *
+ *  The writer already self-edits, but marking your own homework inside
+ *  one call is weak: the model is attached to what it just wrote. This
+ *  is a fresh call that never saw the drafting, only the brief and the
+ *  finished cards, and its job is to be hard to please. It doesn't just
+ *  flag — it REWRITES anything that fails, so the caller always gets
+ *  three usable cards.
+ *
+ *  ~£0.003 and ~3s. Cheap insurance on the thing that actually sells
+ *  the card. */
+function judgeSystemPrompt(): string {
+  return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three finished card concepts written by someone else. Your ONLY loyalty is to the person who will receive the card.
+
+Judge EVERY card's front_text and inside_text against these, in order:
+
+1. RECOGNITION — would the recipient INSTANTLY know this card is about their thing? The reference must be unmistakable to someone who loves that subject. Vague nods fail: a card about a comedian that could equally be about any comedian is a FAIL. Ask yourself: could I swap the subject for something else and this line still works? If yes, it FAILS.
+2. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
+3. WIT, APPROPRIATE TO ITS ANGLE —
+   • wordplay: must ACTUALLY be funny and the pun must be smooth. A groan is a fail. A pun that needs explaining is a fail.
+   • deadpan: must be TRUE and dry — an affectionate observation with a straight face. Jokey-jokey is a fail here.
+   • proud: warm and specific. Greeting-card mush ("you mean the world") is a fail.
+4. FIT — right for this relationship and occasion. A card for a nan shouldn't sound like one for a mate.
+5. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
+6. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
+
+For each of the three cards return:
+- verdict: "pass" or "fix"
+- reason: one short clause naming the specific failure (only when fixing)
+- front_text: the ORIGINAL if it passed; a REWRITTEN one if it failed (same angle, same format, must fit the described artwork, max 8 words)
+- inside_text: same rule (max 28 words; "" if the original was "")
+
+Be genuinely hard. A typical set contains at least one weak card — find it. But NEVER weaken a line that already works, and never rewrite just to leave your mark.
+
+Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -285,7 +324,60 @@ export function registerAdminCardLabRoutes(app: Express): void {
       if (concepts.length !== 3) {
         return res.status(502).json({ message: 'Concept generation came back malformed — try again' });
       }
-      res.json({ concepts });
+
+      // ── Independent judge pass ──────────────────────────────────
+      // Never let a judge failure cost the user their cards: on any
+      // error we ship the originals.
+      let judged = concepts;
+      const notes: Array<{ index: number; reason: string; was: string }> = [];
+      try {
+        const review = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: judgeSystemPrompt() },
+            {
+              role: 'user',
+              content: [
+                'BRIEF:',
+                briefLines.join('\n'),
+                '',
+                'THE THREE CARDS:',
+                ...concepts.map((c, i) =>
+                  `${i + 1}. angle=${c.angle} format=${c.format ?? '?'}\n   FRONT: ${c.front_text}\n   INSIDE: ${c.inside_text}\n   ARTWORK: ${c.art_direction}`,
+                ),
+              ].join('\n'),
+            },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.4,
+          max_tokens: 700,
+        });
+        const verdicts = JSON.parse(review.choices[0]?.message?.content ?? '{}').cards ?? [];
+        if (verdicts.length === 3) {
+          judged = concepts.map((c, i) => {
+            const v = verdicts[i] ?? {};
+            if (v.verdict === 'fix' && typeof v.front_text === 'string' && v.front_text.trim()) {
+              notes.push({ index: i, reason: String(v.reason ?? 'weak'), was: c.front_text });
+              return {
+                ...c,
+                front_text: v.front_text.trim(),
+                inside_text: typeof v.inside_text === 'string' ? v.inside_text.trim() : c.inside_text,
+              };
+            }
+            return c;
+          });
+        }
+        void logGeneration({
+          cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          provider: 'openai', model: 'gpt-4o', quality: null,
+          costCents: llmCostCents('gpt-4o', review.usage?.prompt_tokens ?? 0, review.usage?.completion_tokens ?? 0),
+          durationMs: 0, success: true,
+        });
+      } catch (e) {
+        console.warn('[CARD-LAB] judge pass failed, shipping originals:', e);
+      }
+
+      res.json({ concepts: judged, notes });
     } catch (err) {
       console.error('[CARD-LAB] concepts error:', err);
       res.status(500).json({ message: 'Concept generation failed' });
