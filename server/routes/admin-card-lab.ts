@@ -88,6 +88,10 @@ ABSOLUTELY NOT: gradients, airbrush, drop shadows, 3D form, glossy highlights, c
 COMPOSITION: oversized motifs, brave cropping, asymmetry, overlapping objects with real rhythm — NEVER a small object floating centred in empty space, NEVER evenly-spaced clip-art scattered on a background (both are the AI tell).
 MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboard edge, wavy stripes, a sunburst, abstract blobs.
 
+⚠️ SOMEONE ELSE'S PROPERTY — EVOKE IT, NEVER REPRODUCE IT. This card gets printed and sold, so anything you draw is merchandise. When the subject is a film, book, game, band, team or brand, you may use its COLOURS, its MOOD, and the ORDINARY REAL-WORLD OBJECTS its fans actually own. You may NOT draw the invented things that belong to it: no named artefact, creature, gadget, vehicle, weapon, building or costume that exists only inside that property, and never a logo, crest, badge, emblem, insignia, mascot or uniform. If an object would be sold in that property's official gift shop, it is out.
+Worked example — a wizarding-school story: DRAW a striped scarf in two colours, an owl, a stack of battered spellbooks, a candle stub, a brass key, a night sky. DO NOT DRAW the winged golden ball, the school crest, a house badge, the castle, a named character, or any symbol from the books. The card still reads as that world; it just does it with things anyone could own.
+This is a hard limit, not a stylistic preference. Substitute a generic equivalent and move on.
+
 TYPOGRAPHY — TYPESET, NOT HANDWRITTEN. These cards are won and lost here:
 - The words are SET IN A REAL TYPEFACE, cleanly and confidently drawn. Choose one that suits the card: a fat serif with generous ball terminals (Cooper Black / Bookman lineage), a high-contrast display serif, or a bold humanist grotesk. Wobbly hand-lettering, brush-script scrawl and "painted by hand" letterforms are OUT — they read as the AI tell, and they are exactly where lettering goes wrong.
 - THE TYPE PRINTS PERFECTLY CLEAN. It is the ONE element with no ink texture, no mottling, no misregistration, no overprint ghosting, no distressing, no faint second pass of the same word, and no stray marks, scribbles, specks or half-formed shapes anywhere near a letter. Every glyph solid, evenly inked, crisply edged. A smudge or squiggle around a word is a failure of the whole card.
@@ -123,6 +127,46 @@ export function quirkyDna(level: CharacterLevel = 'objects'): string {
     : level === 'animals' ? MOTIF_WITH_ANIMALS
     : MOTIF_OBJECTS_ONLY;
   return QUIRKY_DNA_BASE.replace('__MOTIF_RULE__', rule);
+}
+
+/** Named artefacts we will not print (Aidan 2026-08-16, "narrow it but
+ *  don't kill the thing").
+ *
+ *  This is a FLOOR, not a fence. It cannot enumerate every franchise, and
+ *  it is not meant to: the real guard is the "evoke, never reproduce"
+ *  rule in the style DNA, which is generic and covers properties nobody
+ *  has thought of. This list exists because prompt-only guards have been
+ *  walked past repeatedly in this file, and because `art_direction` comes
+ *  in from the client and goes to the image model almost verbatim.
+ *
+ *  Deliberately narrow: only the invented, instantly-identifiable objects
+ *  that would sit in an official gift shop. Generic props a fan could own
+ *  — a striped scarf, an owl, a cauldron, a starfield — stay legal and
+ *  are what keeps the cards worth buying. */
+// ⚠️ Every pattern must tolerate PLURALS. The first draft used \bsnitch\b,
+// which sails straight past "golden snitches" — caught only because the
+// test exercised the regex directly rather than trusting it by eye.
+const PROTECTED_ARTEFACTS: Array<[RegExp, string]> = [
+  [/\b(golden )?snitch(es)?\b|\bquaffle(s)?\b|\bbludger(s)?\b/i, 'Quidditch equipment'],
+  [/\bdeathly hallows\b|\bhogwarts\b|\bsorting hat(s)?\b|\bmarauder'?s map\b|\bhouse (crest|badge)(s)?\b/i, 'Harry Potter emblems'],
+  [/\blightsab(er|re)(s)?\b|\bdeath star\b|\bmillennium falcon\b|\bx-wing(s)?\b|\btie fighter(s)?\b|\bstormtrooper(s)?\b/i, 'Star Wars hardware'],
+  [/\btardis\b|\bdalek(s)?\b/i, 'Doctor Who property'],
+  [/\bmjolnir\b|\binfinity gauntlet\b|\bbat-?signal\b|\bweb-?shooter(s)?\b/i, 'superhero artefacts'],
+  [/\bpok(e|é)ball(s)?\b|\bpikachu\b/i, 'Pokémon property'],
+  [/\bone ring\b|\bthe precious\b/i, 'Tolkien property'],
+  [/\bmickey (mouse )?ears\b|\bglass slipper(s)?\b/i, 'Disney property'],
+  [/\b(club|team) (crest|badge|logo)(s)?\b|\bkit sponsor(s)?\b/i, 'club crests and badges'],
+  [/\b(logo|crest|emblem|insignia|badge|coat of arms)(s|es)?\b/i, 'logos, crests and badges'],
+];
+
+/** Which protected artefacts a free-text art brief names, if any. */
+export function namedArtefacts(brief: string | undefined): string[] {
+  if (!brief) return [];
+  const hits: string[] = [];
+  for (const [pattern, label] of PROTECTED_ARTEFACTS) {
+    if (pattern.test(brief) && !hits.includes(label)) hits.push(label);
+  }
+  return hits;
 }
 
 export const QUIRKY_FORMATS: Record<string, string> = {
@@ -190,6 +234,10 @@ IF THE SUBJECT IS A PERSON (a celebrity, a character, a public figure, a sports 
   FAILED: a skyline, a generic podium, "a famous building" — could be anybody.
   You must be able to say WHY each motif belongs to this person and nobody else. If you cannot, mine again.
 
+IF THE SUBJECT IS A FICTIONAL WORLD, FRANCHISE, BAND OR TEAM, THE WORDS DO THE HEAVY LIFTING. The artwork is deliberately restricted for these subjects — we never draw their invented artefacts, logos or crests, because we print and sell these cards — so the picture alone CANNOT say which world this is. That job falls to the line, and the line must be up to it.
+  Mine that world's OWN VOCABULARY, which is where a property is unmistakable without reproducing anything: its invented words, its famous single lines, the phrases that got out into ordinary speech. Words are the safe half of a franchise; artwork is the risky half — and happily the famous layer of any world is mostly WORDS, while the deep cuts are mostly objects, so aiming at what everyone knows keeps us legal and keeps the buyer with us at the same time.
+  IF THE WORLD HAS ONE FAMOUS WORD, THAT WORD MUST DO THE WORK, NEVER SIT AS FILLER. Observed failure: "Wand-erful Sister, Always Charming" for a Harry Potter fan. It contains "Always" — the single most quoted word in those books — and wastes it as an ordinary adverb, while "wand-erful" and "charming" describe generic witchcraft that would suit any witch card ever printed. The card that should have been written was built on "Always".
+
 THE THREE ANGLES — one card each, in this order.
 ⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF THREE FLAVOURS. All three cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are three different WAYS TO DELIVER that turn; they are not "one funny card and two straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
 1. WORDPLAY — the turn is in the LANGUAGE. A pun or a twist on a phrase from that world's own vocabulary. Must pass the pub test.
@@ -200,6 +248,9 @@ WRITE WIDE, THEN SHORTLIST: draft at least SIX candidate lines per angle, then b
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
    - IT PARSES: a real, natural sentence. Nonsense mashups ("Fatherhood at DC10 beats dropper") are the cardinal failure.
    - IT IS ABOUT THEM AND THIS THING: their interest is doing the work, not the occasion. "Level up for your birthday!" is generic filler — dead.
+   - COVER THE PICTURE: read the line on its own, with the artwork hidden. Does it still tell you WHICH subject this card is about? If it only works because of the picture, the words are freeloading and the line is DEAD. "Wand-erful Sister, Always Charming" fails this: hide the picture and it is a generic witch card.
+   - ⚠️ THE BUYER TEST — the one most likely to lose us the sale. THE PERSON BUYING THIS CARD IS NOT THE FAN. A daughter buying for her Harry Potter dad may never have read a word of it; a mate buying for a United fan may not care about football. If she cannot tell at a glance that the card is good, she does not buy it, and the recipient never sees it. So the reference must come from the FAMOUS layer of that world — the handful of things that escaped the fandom and reached everybody: platform nine and three-quarters, "always", "may the fourth", "I am your father". NOT the deep cut: a minor character, an obscure spell, a squad number, an album track. Ask yourself: would someone who has never touched this subject, but has heard of it, still get this instantly? If only a proper fan would get it, the line FAILS — however clever it is.
+     This does NOT mean be vague. The famous layer is still specific; it is just specific in a way that carries beyond the fandom. Aim at the thing a non-fan would name if you asked them what they know about it.
    - THE TURN TEST: say to yourself, in five words or fewer, what the SURPRISE in this line is — "puns on reel/real", "under-reacts to nine wasted hours", "crowns him king of the pier". If you cannot name the turn, the line is DRY and it dies here, however true, warm or well written it is. This is the test most weak lines fail.
    - NO CRINGE ZONE: no "vibe(s)" as a noun, no "boss/legend/hero" clichés, no hashtag-speak, at most ONE exclamation mark per card.
 ⚠️ DO NOT PICK A WINNER. Keep the THREE BEST survivors per angle and return all three, strongest first. An independent editor chooses between them afterwards, and choosing is easier than repairing — so your job is to hand over three genuinely different, genuinely usable lines, NOT one favourite plus two throwaways you never intended. If you find yourself writing a filler line to pad the list, replace it: three real options or the shortlist has failed.
@@ -217,6 +268,8 @@ Each returned concept:
         : 'A characterful ANIMAL is PERMITTED (never humans or human faces)'} but is a CEILING, not an instruction.
     AT MOST ONE of the three cards may use a character, and only if it passes this test: does this subject's OWN WORLD naturally contain that creature or person? A dog-lover's world contains a dog. A Sunday league team contains players. A BAND'S WORLD DOES NOT CONTAIN KANGAROOS — inventing a mascot to satisfy a permission is the failure to avoid ("Wonderwallabies" for Oasis: the pun exists only because an animal was forced in, and the card says nothing about the band).
     If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
+  ⚠️ NEVER NAME SOMEONE ELSE'S PROPERTY IN THIS BRIEF. We print and sell these cards, so an art brief that asks for an invented artefact is asking us to manufacture merchandise. Do not write the name of any object, creature, vehicle, weapon, building, costume, logo, crest or badge that exists only inside a film, book, game, brand or club. Observed failures on Harry Potter and Star Wars briefs: "a Golden Snitch, Quaffle and Bludger", "the Marauder's Map", "a mug with a lightsaber handle", "small screens showing iconic scenes". Every one of those is merchandise.
+  Ask instead for the ORDINARY objects that world is full of, which anyone could own and nobody owns the rights to: a striped scarf in two colours, an owl, a stack of battered spellbooks, a candle stub, a brass key, a train ticket, a starfield, a desert horizon, a worn paperback, a takeaway coffee. The PALETTE and the words carry the reference. If you cannot describe the picture without naming a protected thing, choose a different corner of that world.
 - palette: you are the art director. Name the GROUND colour first, then exactly THREE inks (four only if one truly earns it), and say which single ink is the ACCENT — the hot one, held back to under 10% of the card. Draw them all from that world. GROUNDS MUST SPAN THE SET — this is a hard requirement, because three neutral grounds make three cards that look like one card. Give TWO cards a warm neutral ground (bone, oat, chalk, clay, greige, putty, stone, warm grey) and give exactly ONE card a DEEP SATURATED ground — a rich, confident colour from that world (ink blue, forest, oxblood, terracotta, bottle green, aubergine) with calmer inks sitting on it. And make the two neutrals genuinely different from each other: a cool chalk next to a warm clay, not oat next to bone. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family.
 
 CHEEKY MODE (cheeky=true only):
@@ -260,14 +313,16 @@ YOUR JOB IS TO CHOOSE. For each concept, pick the single best candidate line fro
 Judge every candidate line, and the inside_text, against these, in order:
 
 1. RECOGNITION — would the recipient INSTANTLY know this card is about their thing? The reference must be unmistakable to someone who loves that subject. Vague nods fail: a card about a comedian that could equally be about any comedian is a FAIL. Ask yourself: could I swap the subject for something else and this line still works? If yes, it FAILS.
-2. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
-3. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
+   COVER THE PICTURE when you test this. The artwork is deliberately generic for films, books, games, bands and teams — we do not draw anyone's invented artefacts or logos — so the LINE has to carry the recognition by itself. A line that only lands because the picture is doing the work is a FAIL. Worked example: "Wand-erful Sister, Always Charming" over wizarding artwork is a generic witch card in words, and it squanders "Always", the one word from those books that everybody knows.
+2. THE BUYER — remember who is actually paying. The person choosing this card is usually NOT the fan: a daughter buying for her Harry Potter dad, a mate buying for a United supporter. If she cannot tell at a glance that the card is good, she never buys it and the fan never sees it. So the reference must sit in the FAMOUS layer of that world — what a non-fan would name if you asked them what they know about it — and not in a deep cut only the devoted would catch. A line that requires fandom to appreciate is a FAIL, however clever. Specific is still right; obscure is not.
+3. UK AUDIENCE — British English and British sensibility. No Americanisms ("gotten", "candy", "vacation", "y'all", "awesome", "buddy"), no US-centric references, no American spelling. It should sound like it was written in Britain, because it was.
+4. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
    • wordplay: the turn is in the LANGUAGE. The pun must be smooth and must actually land. A groan is a fail; a pun that needs explaining is a fail.
    • deadpan: the turn is in the UNDER-REACTION — something absurd reported with a completely straight face. A flat statement of fact with nothing daft in it is the classic dry fail ("Manchester United Comes First", "The only mixologist in the family"). Quiet is fine; empty is not.
    • proud: the turn is in the DISPROPORTION — a grand, sincere honour for a gloriously small and specific domain. Generic praise is a job title, not a card. REJECT ON SIGHT: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___".
-4. FIT — right for this relationship and occasion. A card for a nan shouldn't sound like one for a mate.
-5. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
-6. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
+5. FIT — right for this relationship and occasion. A card for a nan shouldn't sound like one for a mate.
+6. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
+7. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
 
 HOW TO CHOOSE between three candidates that all pass: take the one with the STRONGEST TURN — the biggest double-take for the least effort from the reader. Where two are equally sharp, prefer the more SPECIFIC to this person's world, then the shorter. Never pick a line just because it is safest; a safe line is a dry line wearing a coat.
 
@@ -736,12 +791,24 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(400).json({ message: 'Invalid request' });
     }
 
+    // art_direction reaches the image model verbatim, and it arrives from
+    // the client, so the DNA's "evoke, never reproduce" rule is not the
+    // last line of defence — this is. Named artefacts get an explicit
+    // override rather than a refusal, so the card still gets made.
+    const named = namedArtefacts(body.art_direction);
+    if (named.length) {
+      console.warn('[CARD-LAB] art_direction named protected artefacts, overriding:', named);
+    }
+
     const prompt = [
       quirkyDna(body.characters),
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
       '',
       `ILLUSTRATION: ${body.art_direction}`,
+      named.length
+        ? `⚠️ OVERRIDE — the brief above names ${named.join(', ')}, which belong to someone else's property and must NOT appear. Do not draw them in any form, however stylised, and do not draw a near-copy under another name. Replace each with an ORDINARY generic object from the same world that anyone could own, and keep everything else about the composition. The palette and mood carry the reference; the protected objects do not.`
+        : '',
       body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
