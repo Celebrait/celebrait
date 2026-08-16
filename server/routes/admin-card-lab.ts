@@ -234,7 +234,9 @@ function conceptSystemPrompt(characters: CharacterLevel, cheeky = false): string
   // indistinguishable from the clean run. One optional paragraph cannot
   // outvote the dozen restraint rules below it (Aidan 2026-08-16).
   const cheekBlock = cheeky
-    ? `\n⚠️⚠️ RUDE MODE IS ON, AND IT IS AN INSTRUCTION, NOT A PERMISSION. This customer has deliberately asked for a rude card and will be disappointed by a polite one. AT LEAST TWO of your three cards must carry REAL British pub cheek on the FRONT — actual sweary, mickey-taking, innuendo-laden cheek: "bloody", "arse", "knobhead", "git", "sod", "bugger", "piss-up", "on the lash", "twat", "bellend", and seaside-postcard filth. A polite pun with a beer in it is NOT cheek and does not count. If you hand back three clean cards, you have failed this brief completely.
+    ? `\n⚠️⚠️ RUDE MODE IS ON, AND IT IS AN INSTRUCTION, NOT A PERMISSION. This customer has deliberately asked for a rude card and will be disappointed by a polite one. AT LEAST TWO of your three cards must carry REAL swearing on the FRONT. If you hand back three clean cards, you have failed this brief completely.
+⚠️ "BUGGER" IS NOT A SWEAR WORD. Neither is "blooming", "flipping", "heck" or a pun with a beer in it. Those are what people say when they drop a mug, and a card carrying one is a polite card in a fancy-dress moustache. THE STRONG WORDS ARE UNLOCKED AND EXPECTED: f***, s***, bollocks, bastard, wanker, prick, twat, bellend, knobhead, arse, piss, plus proper innuendo. Reach for the strong end FIRST; the mild words (bloody, sod, git, bugger) may only ever be the SECOND-rudest thing in a line, never the whole joke.
+⚠️ MASK THE STRONGEST WORDS WITH ASTERISKS ON THE FRONT — first letter, then asterisks: f***, f***ing, s***, c***. This is how real rude cards in British shops do it, because the card sits on a mantelpiece where a child or a nan will see it, and the mask IS part of the joke — everyone reads the word, nobody has to look at it. It also renders far more reliably in the artwork. So write "Don't f*** it up", never "Don't bugger up" and never the unmasked word. Mid-strength words (bollocks, arse, piss, twat, bellend, knobhead, bastard) print in full, unmasked.
 Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the mickey out of someone we love. Absolutely no slurs, nothing about race, sexuality, religion or disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight, illness or death.
 The "classy always" instruction below is SUSPENDED for the front lines while this mode is on — classy refers to the ARTWORK, which stays beautiful. Filthy words, gorgeous card.\n`
     : '';
@@ -342,6 +344,7 @@ function judgeSystemPrompt(cheeky = false): string {
   // looked broken from the outside.
   const cheekBlock = cheeky
     ? `\n⚠️ THIS CUSTOMER ASKED FOR A RUDE CARD. Sweary, mickey-taking, innuendo-laden lines are exactly what was ordered, and a polite line is the WRONG answer here however well made it is. Where a shortlist offers both, TAKE THE RUDER ONE — that is what was paid for. Do not sand anything down, do not substitute a tasteful pun, and never rewrite a cheeky line into a clean one. Your job is to pick the funniest rude line, not the safest line.
+Asterisk-masked swearing ("f***", "s***") is the HOUSE STYLE for the strongest words on a card front, not a fault — never "correct" it to a milder word, and never unmask it. Treat a masked strong swear as ruder than an unmasked mild one: "Don't f*** it up" beats "Don't bugger it up" every time. "Bugger", "bloody", "sod" and "git" on their own do not count as rude at all.
 The limits still hold: nothing using slurs, nothing about race, sexuality, religion or disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight, illness or death. Reject on those grounds and only those grounds; "a bit much" is not a reason when a bit much is the order.\n`
     : '';
 
@@ -487,16 +490,30 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const MIN_SHORTLIST = 2;
       const isThin = (c: CardConcept) => shortlistOf(c).filter((t) => !isBanned(t)).length < MIN_SHORTLIST;
 
+      // Rude mode needs a floor too, for the same reason everything else in
+      // this file does: the prompt asked for cheek twice and got "Hoppy
+      // Birthday to the Quiz King". "Bugger" and "bloody" deliberately do
+      // NOT count — Aidan, on a set that used them: "it's not even rude".
+      // Masked strong swears are the house style and count in full.
+      const REAL_CHEEK =
+        /\bf\*+\w*|\bs\*+\w*|\bc\*+\w*|\bfuck\w*|\bshit\w*|\bbollocks\b|\bbastard\b|\bwanker\b|\bprick\b|\btwat\b|\bbellend\b|\bknobhead\b|\barse\w*|\bpiss\w*|\bshag\w*|\btits\b|\bknob\b/i;
+      const hasCheek = (c: CardConcept) => shortlistOf(c).some((t) => REAL_CHEEK.test(t));
+
       concepts = cleanse(concepts);
+      const cheekShort = body.cheeky && concepts.filter(hasCheek).length < 2;
+      if (cheekShort) {
+        console.warn('[CARD-LAB] rude mode on but the set came back tame:',
+          concepts.map((c) => shortlistOf(c)[0]));
+      }
       const wiped = concepts.filter(isThin);
-      if (wiped.length > 0) {
+      if (wiped.length > 0 || cheekShort) {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
-            { role: 'user', content: `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words. Return the complete corrected JSON.` },
+            { role: 'user', content: `${cheekShort ? `⚠️ RUDE MODE WAS ON AND YOU WROTE A TAME SET. Fewer than two of your three cards carry an actual swear word. "Bugger", "bloody", "sod", "git" and beer puns DO NOT COUNT — the customer ticked the rude box and these read as a polite card in fancy dress. Rewrite so at least TWO cards carry a real swear on the front, masked with asterisks for the strongest words (f***, s***) and printed in full for the mid-strength ones (bollocks, arse, twat, bellend, knobhead, bastard, piss). Keep it affectionate and keep every content limit you were given.\n\n` : ''}${wiped.length ? `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words.` : ''} Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
