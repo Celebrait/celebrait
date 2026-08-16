@@ -25,6 +25,14 @@ in the occasion reminder email. Natural upsell surface.
 
 ## Quality & trust
 
+### Quirky card maker — customer flow (SCOPED)
+The Card Lab as a product: who/occasion/one-thing-they-love → three
+designs → pick → refine (re-roll design, re-roll text, edit text) →
+sign off → inside (blank / AI / write your own, always with To+Love) →
+3D review → existing print path. **Full scope: `SCOPE_QUIRKY_MAKER.md`.**
+Engine already built and benched in `/admin/card-lab`; ~£0.04/card.
+**Gate:** one real Prodigi print of a Lab card before any build.
+
 ### Illustrated cards — no photo route (SCOPED)
 Pick a theme or describe an idea; no upload. Engine already supports it
 (referenceImageBase64 is optional; both providers branch to
