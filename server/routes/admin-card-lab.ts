@@ -260,7 +260,16 @@ THE THREE ANGLES — one card each, in this order.
 ⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF THREE FLAVOURS. All three cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are three different WAYS TO DELIVER that turn; they are not "one funny card and two straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
 1. WORDPLAY — the turn is in the LANGUAGE. A pun or a twist on a phrase from that world's own vocabulary. Must pass the pub test.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
-3. PROUD — the turn is in the DISPROPORTION. Crown them with total sincerity, in a grand register, for something gloriously SMALL and specific. The honour is real; the kingdom is tiny. Generic praise for a generic skill is not a proud card, it is a job title — "Master of the Martini", "Master of the Tackle Box" and "Born to Stand Out" all failed this way, and "Master of the ___" has now turned up in most sets. BANNED FORMULAS, reject on sight: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___". Find the specific little kingdom instead.
+3. PROUD — the turn is in the DISPROPORTION: total, straight-faced seriousness about something gloriously SMALL. The respect is real; the thing being respected is trivial. That is the whole joke, and it lives in WHAT you take seriously, never in how grandly you say it.
+   ⚠️ DO NOT WRITE A TITLE. The reflex here is "[Grand noun] of the [Thing]" — Master of the Tackle Box, Sovereign of the Stream, Sultan of Suds, Baron of Bar Banter, Guardian of the Fifth Avenue Chic, Pub Quiz Royalty. Every one of those is the same card wearing a different hat, and a shop racking three of them looks like a shop with one idea. The reason it keeps happening is that a title is EASY: you can build one from a thesaurus without knowing a single thing about the person. It is banned as a default. At most ONE card in a hundred earns it, and only when the domain is so specific it could belong to nobody else.
+   WRITE IT AS SOMETHING SOMEONE WOULD ACTUALLY SAY. Reach for one of these SHAPES — each described as a grammar, deliberately with no sample sentence to copy, because sample lines get reused word for word with one noun swapped:
+     • THE SOLE-AUTHORITY FACT — state plainly that they, and nobody else, are permitted to do one specific small thing in that world.
+     • THE ABSURD CREDENTIAL — attach a real number (of years, attempts, wins, hours) to an achievement far too trivial to deserve counting.
+     • THE HOUSE RULE — describe a rule everyone around them quietly follows because of this thing they do.
+     • THE FLAT VERDICT — deliver a superlative, deadpan, about something tiny and domestic.
+     • THE BACKHANDED HONOUR — genuine respect and taking the mickey in the same breath.
+   ⚠️ Build the line from THEIR world, not from this list. The shapes tell you the grammar; every noun, number and detail must come from the subject you were given.
+   Test it: could you say this line out loud to them, in a pub, without sounding like you were presenting a trophy? If not, rewrite it.
 
 WRITE WIDE, THEN SHORTLIST: draft at least SIX candidate lines per angle, then be a ruthless editor. A line SURVIVES only if it passes ALL of:
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
@@ -350,7 +359,7 @@ Judge every candidate line, and the inside_text, against these, in order:
 4. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
    • wordplay: the turn is in the LANGUAGE. The pun must be smooth and must actually land. A groan is a fail; a pun that needs explaining is a fail.
    • deadpan: the turn is in the UNDER-REACTION — something absurd reported with a completely straight face. A flat statement of fact with nothing daft in it is the classic dry fail ("Manchester United Comes First", "The only mixologist in the family"). Quiet is fine; empty is not.
-   • proud: the turn is in the DISPROPORTION — a grand, sincere honour for a gloriously small and specific domain. Generic praise is a job title, not a card. REJECT ON SIGHT: "Master of the ___", "The only ___ in the family", "King/Queen/Lord of ___", "Born to ___".
+   • proud: the turn is in the DISPROPORTION — total straight-faced seriousness about something trivial. ⚠️ REJECT ANY LINE THAT IS A TITLE. "[Grand noun] of the [Thing]" is the reflex and it is banned: Master of the Tackle Box, Sovereign of the Stream, Sultan of Suds, Baron of Bar Banter, Pub Quiz Royalty, anything Extraordinaire. They are interchangeable, they could be written from a thesaurus without knowing the person, and three of them in a row make the whole shop look like one idea. Prefer the line that sounds like something you would actually say to them in a pub: a plain fact of authority, an absurd credential with a number in it, a house rule, a flat verdict, a backhanded honour. If the shortlist offers a title AND a spoken line, take the spoken line every time.
 5. FIT — right for this relationship and occasion. A card for a nan shouldn't sound like one for a mate.
 6. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
 7. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
@@ -419,19 +428,44 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // mixologist in the family" — and all three walked past the judge,
       // so this one needs a deterministic floor too (Aidan 2026-08-16).
       //
-      // Deliberately NOT banning "Champion/Captain of the ___": the crown
-      // isn't the problem, the generic domain is. "Champion of the Perfect
-      // Cast" is dry; "Champion of the 6am pier" is exactly the small,
-      // specific kingdom the proud angle is supposed to find. So the second
-      // pattern bans the generic-flattery domain instead of the title.
-      const BANNED_FORMULAS =
-        /\b(master|king|queen|lord|ruler) of\b|\bthe only \w+ in the (family|house|world|village)\b|\bborn to\b|\b(of|at) the (perfect|ultimate|finest|greatest|best)\b|\banother year\b/i;
+      // ⚠️ REVISED 2026-08-16. The first pass banned only master/king/queen/
+      // lord, on the theory that the crown was fine if the domain was
+      // specific ("Champion of the 6am pier"). That was too clever: banning
+      // five words taught it those WORDS were wrong, so it went shopping —
+      // sovereign, sultan, baron, guardian, keeper, conjurer, "Pub Quiz
+      // Royalty", "Mixologist Extraordinaire". Aidan, seeing the run:
+      // "why does proud keep saying things like sultan". The SHAPE is the
+      // problem, so the whole family goes.
+      //
+      // This is still only a floor. The real fix is in the prompt, which
+      // now asks for a line someone would actually say out loud and gives
+      // five shapes to reach for instead. This just strikes the reflex from
+      // the shortlist so the editor has to choose something else.
+      const GRAND_TITLES =
+        'master|king|queen|lord|ruler|sovereign|monarch|emperor|empress|duke|duchess|prince|princess|baron|baroness|sultan|tsar|czar|pharaoh|overlord|chieftain|commander|conqueror|champion|captain|guardian|keeper|custodian|protector|defender|bringer|connoisseur|conjurer|wizard|sorcerer|maestro|virtuoso|supremo|grandmaster|mastermind|oracle|sage|guru|sensei|high priest|priestess|titan|deity|goddess';
+      const BANNED_FORMULAS = new RegExp(
+        `\\b(${GRAND_TITLES}) of\\b` +               // "Sultan of Suds", "Sovereign of the Stream"
+        `|\\b(${GRAND_TITLES})\\b\\s*[:,]` +          // "Guardian: the Tackle Box"
+        '|\\bextraordinaire\\b|\\broyalty\\b' +       // "Mixologist Extraordinaire", "Pub Quiz Royalty"
+        '|\\bthe only \\w+ in the (family|house|world|village)\\b' +
+        '|\\bborn to\\b' +
+        '|\\b(of|at) the (perfect|ultimate|finest|greatest|best)\\b' +
+        '|\\banother year\\b',
+        'i',
+      );
       const isBanned = (t: string) => BANNED_WORDS.test(t) || BANNED_FORMULAS.test(t);
 
       // The shortlist changed the shape of this check. A banned line is no
       // longer fatal to the card — it is one option out of three, so we
-      // strike it and let the judge choose from what is left. Only a
-      // concept whose ENTIRE shortlist is banned needs a retry.
+      // strike it and let the judge choose from what is left.
+      //
+      // ⚠️ But a shortlist of ONE is not a shortlist. When the title ban
+      // widened, proud shortlists collapsed to a single bland survivor
+      // ("Knows every pint and pint-sized fact") because the writer spends
+      // most of its candidates on the reflex it is not allowed to use, and
+      // the retry only fired when EVERY candidate was struck. So the
+      // trigger is thinness, not wipeout: fewer than two clean candidates
+      // and we go back for a fresh set of three for that angle.
       const shortlistOf = (c: CardConcept): string[] => {
         const raw = Array.isArray(c.front_candidates) && c.front_candidates.length
           ? c.front_candidates
@@ -450,8 +484,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
           return { ...c, front_candidates: clean.length ? clean : all };
         });
 
+      const MIN_SHORTLIST = 2;
+      const isThin = (c: CardConcept) => shortlistOf(c).filter((t) => !isBanned(t)).length < MIN_SHORTLIST;
+
       concepts = cleanse(concepts);
-      const wiped = concepts.filter((c) => shortlistOf(c).every((t) => isBanned(t)));
+      const wiped = concepts.filter(isThin);
       if (wiped.length > 0) {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
@@ -459,7 +496,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
-            { role: 'user', content: `Every candidate line for these angles was rejected: ${wiped.map((o) => o.angle).join(', ')}. They used a banned word ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or a banned TITLE FORMULA — "Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___" — which reads as a job title rather than a card. Replace the WHOLE three-line shortlist for those angles only, leaving the other concepts untouched. Every replacement must have a TURN you could name in five words: a pun, an absurdity under-reacted to, or a grand honour for a gloriously tiny domain. Return the complete corrected JSON.` },
+            { role: 'user', content: `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words. Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
@@ -470,8 +507,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
           const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, 3);
           if (fixed.length === 3) concepts = cleanse(fixed);
         } catch { /* keep originals */ }
-        const still = concepts.filter((c) => shortlistOf(c).every((t) => isBanned(t)));
-        if (still.length) console.warn('[CARD-LAB] shortlists still fully banned after retry:', still.map((c) => c.angle));
+        const still = concepts.filter(isThin);
+        if (still.length) console.warn('[CARD-LAB] shortlists still thin after retry:', still.map((c) => c.angle));
       }
 
       void logGeneration({
