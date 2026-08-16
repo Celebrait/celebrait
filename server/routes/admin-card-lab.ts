@@ -90,10 +90,10 @@ const MOTIF_OBJECTS_ONLY =
   'objects, food, drink, botanicals, the kit of a hobby — still-life only: no humans, no faces, no animals, no characters of any kind.';
 
 const MOTIF_WITH_ANIMALS =
-  "objects, food, drink, botanicals, the kit of a hobby — AND characterful ANIMALS, which may be given real personality and attitude (a smug cat, a dog mid-zoomies, a heron with the patience of a saint). Animals are drawn in the same flat hand-illustrated style as everything else, never cutesy-greetings-card, never wearing novelty human costume beyond one deadpan prop. STILL absolutely no humans and no human faces.";
+  "PRIMARILY objects, food, drink, botanicals, the kit of a hobby. A characterful ANIMAL is PERMITTED but never required — use one only if this subject's own world genuinely contains that animal. Animals are drawn in the same flat hand-illustrated style, never cutesy-greetings-card, never in novelty human costume beyond one deadpan prop. STILL absolutely no humans and no human faces.";
 
 const MOTIF_WITH_FIGURES =
-  "objects, food, drink, botanicals, the kit of a hobby, characterful ANIMALS, and — where the subject genuinely needs a person present — HUMAN FIGURES AS GRAPHIC SHAPES. Figures are vintage-travel-poster silhouettes, NEVER portraits: shown from behind, cropped at the shoulders, small in the frame, or reduced to flat coloured shapes. Faces are absent or a bare suggestion (never rendered features, never eyes and mouth drawn in detail). A figure is a shape doing an action, not a person being depicted. NEVER a recognisable real individual — living or dead, famous or otherwise.";
+  "PRIMARILY objects, food, drink, botanicals, the kit of a hobby. Animals and human figures are PERMITTED but never required. Where the subject genuinely needs a person present, HUMAN FIGURES AS GRAPHIC SHAPES. Figures are vintage-travel-poster silhouettes, NEVER portraits: shown from behind, cropped at the shoulders, small in the frame, or reduced to flat coloured shapes. Faces are absent or a bare suggestion (never rendered features, never eyes and mouth drawn in detail). A figure is a shape doing an action, not a person being depicted. NEVER a recognisable real individual — living or dead, famous or otherwise.";
 
 export function quirkyDna(level: CharacterLevel = 'objects'): string {
   const rule =
@@ -180,11 +180,13 @@ Each returned concept:
 - format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
 - front_text: the surviving line. MAXIMUM 8 words. It must CONNECT to the picture — words and motif complete each other.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
-- art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${characters === 'figures'
-    ? 'You MAY use a characterful ANIMAL, or a HUMAN FIGURE rendered as a graphic silhouette/shape (from behind, cropped, small in frame, faceless) where the subject genuinely needs a person present. Otherwise objects/food/botanicals/kit. NEVER a portrait, NEVER detailed facial features, NEVER a recognisable real individual.'
-    : characters === 'animals'
-    ? 'You MAY use a characterful ANIMAL as the subject where it earns the joke (attitude, reaction, expression) — otherwise objects/food/botanicals/kit of that world. NEVER humans or human faces.'
-    : 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
+- art_direction: one sentence — the MOTIF and how it sits in the chosen format. ${characters === 'objects'
+    ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'
+    : `OBJECTS ARE THE DEFAULT for every card. ${characters === 'figures'
+        ? 'A characterful ANIMAL, or a HUMAN FIGURE as a graphic silhouette (from behind, cropped, small in frame, faceless — never a portrait, never detailed features, never a recognisable real individual), is PERMITTED'
+        : 'A characterful ANIMAL is PERMITTED (never humans or human faces)'} but is a CEILING, not an instruction.
+    AT MOST ONE of the three cards may use a character, and only if it passes this test: does this subject's OWN WORLD naturally contain that creature or person? A dog-lover's world contains a dog. A Sunday league team contains players. A BAND'S WORLD DOES NOT CONTAIN KANGAROOS — inventing a mascot to satisfy a permission is the failure to avoid ("Wonderwallabies" for Oasis: the pun exists only because an animal was forced in, and the card says nothing about the band).
+    If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
 - palette: you are the art director — name the ground colour plus 3-4 ink colours drawn from that world. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. Three clearly different ground hues, no two cards sharing a colour family.
 
 CHEEKY MODE (cheeky=true only):
