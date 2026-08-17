@@ -21,6 +21,7 @@ const PRICES_PER_MTOK_USD: Record<string, { input: number; output: number }> = {
   // first OpenAI invoice that includes gpt-5.5 and correct here. Kept at
   // the conservative fallback level on purpose so it can only OVERCOUNT.
   'gpt-5.5': { input: 2.5, output: 10.0 },
+  'gpt-5.4': { input: 2.5, output: 10.0 },
 };
 
 /** Fallback for unlisted models: priced like gpt-4o so an unpriced model

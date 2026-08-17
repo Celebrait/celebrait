@@ -48,16 +48,21 @@ import { llmCostCents } from '../prompts/llm-cost';
  *  the account turned out to reach gpt-5.5 — four generations newer.
  *  Env-overridable so an A/B is one restart, no deploy:
  *    CARD_LAB_LLM=gpt-4o npm run dev   # the old writer, for comparison */
-export const CONCEPT_MODEL = process.env.CARD_LAB_LLM ?? 'gpt-5.5';
+export const CONCEPT_MODEL = process.env.CARD_LAB_LLM ?? 'gpt-5.4';
 
 /** Params that differ across model generations. The gpt-5 family takes
  *  max_completion_tokens (which ALSO covers its internal reasoning, so
  *  the cap gets 4× headroom or the JSON is starved) and pins its own
  *  temperature; gpt-4o keeps the classic knobs. */
 function conceptParams(maxTokens: number, temperature: number) {
-  return CONCEPT_MODEL.startsWith('gpt-4')
-    ? { model: CONCEPT_MODEL, max_tokens: maxTokens, temperature }
-    : { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
+  if (CONCEPT_MODEL.startsWith('gpt-4')) {
+    return { model: CONCEPT_MODEL, max_tokens: maxTokens, temperature };
+  }
+  // NOTE: reasoning_effort looked like the latency dial but the chat
+  // completions API rejects it for the gpt-5.5 alias ("invalid model
+  // ID") — measured 2026-08-17, don't re-add without testing. Latency
+  // is chosen by MODEL instead; see the timing table in the commit.
+  return { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
 }
 
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
