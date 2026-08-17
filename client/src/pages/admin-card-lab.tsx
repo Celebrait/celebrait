@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Concept {
   angle: string;
-  format?: 'statement' | 'hero' | 'pattern' | 'label' | 'editorial';
+  format?: 'statement' | 'hero' | 'pattern' | 'label' | 'editorial' | 'typeled';
   front_text: string;
   inside_text: string;
   art_direction: string;

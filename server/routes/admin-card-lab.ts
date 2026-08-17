@@ -232,7 +232,7 @@ const OCCASION_PROFILES: Record<string, OccasionProfile> = {
   justbecause: PROFILE('justbecause', 'full',
     `No occasion at all — the card itself is the gesture. The front is purely them and their thing; do not invent a reason or mention one. These read warmest of all precisely because nothing prompted them.`),
   birthday: PROFILE('birthday', 'full',
-    `The buyer wants THIS person celebrated, not birthdays in general. A milestone age in the brief ("21st", "40th", "60th") is gold — the number belongs in the artwork, and the register shifts with it: early twenties wants energy and cheek, middle years wants knowing self-deprecation, later birthdays want warmth and pride. Never jokes about being old unless rude mode invites mild ribbing. BANNED PROPS: balloons, cake, candles, banners or wrapped presents beside the subject — an observed repeat failure.`),
+    `The buyer wants THIS person celebrated, not birthdays in general. A milestone age in the brief ("21st", "40th", "60th") is gold — the number belongs in the artwork, and the register shifts with it: early twenties wants energy and cheek, middle years wants knowing self-deprecation, later birthdays want warmth and pride. ⚠️ ONLY if the brief states it: when no age is given there is NO age and NO number on the card — inventing "the big 40" for a person whose age you do not know is a factually wrong card, printed and posted (observed failure). Never jokes about being old unless rude mode invites mild ribbing. BANNED PROPS: balloons, cake, candles, banners or wrapped presents beside the subject — an observed repeat failure.`),
   celebration: PROFILE('celebration', 'full',
     `A celebration without a named profile — read the typed occasion closely, mine ITS world (objects, colours, numbers, rituals) and let it inflect the palette and one motif. Any milestone number in it is gold and belongs in the artwork.`),
 };
@@ -280,6 +280,7 @@ export const QUIRKY_FORMATS: Record<string, string> = {
   hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
   pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges — an underlying grid with its rhythm BROKEN DELIBERATELY in one or two places (one motif turned, one scaled up, one in the odd colour) so it never reads as wallpaper. CRUCIALLY, RESERVE A CLEAN AREA FOR THE TYPE: a calm panel, band or generous clearing where the plain ground shows through and the words sit alone. Do NOT thread the lettering through the gaps between motifs — that is how a dense card turns to mush. Rich and full, but organised.`,
   label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.`,
+  typeled: `COMPOSITION — TYPE-LED (THE WORDS ARE THE ARTWORK): there is NO motif and NO illustration on this card — no objects, no scene, no border art. The words, set HUGE and with total confidence, ARE the entire design, and every design decision lives inside them: scale contrast between words (one word can be five times the size of its neighbours), the stack and its alignment, the accent ink landing on exactly the right word, letterforms with real personality per the TYPE line. The ground is one flat confident colour doing quiet work underneath. Permitted garnish, used sparingly if at all: an underline, an oversized piece of punctuation, a single typographic flourish drawn from the lettering itself — never a pictorial element. The craft bar is HIGHER here, not lower: with nothing else on the card, any weakness in the setting is the whole card. Think of the best text-only cards in a good shop — bought purely because the words and their setting were enough.`,
 };
 /** The INSIDE is a quieter room than the front. Same shop, lower
  *  volume: the words are the hero, the artwork only frames them. The
@@ -410,7 +411,8 @@ The three candidates for an angle must all be DIFFERENT ROUTES to that angle's t
 
 Each returned concept:
 - angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
-- format: one of "statement", "hero", "pattern", "label" — composition recipes at three densities. THE SET MUST SPAN THE RANGE: exactly one "statement" (minimal), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
+- format: one of "statement", "hero", "pattern", "label", "typeled" — composition recipes. THE SET MUST SPAN THE RANGE: exactly one minimal card ("statement" — or "typeled", see below), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
+  "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so USE IT — but choose by the LINE, not by habit, and keep the shop varied: a line that gains something from a picture beside it wants "statement"; a line that stands completely alone wants "typeled". Roughly every other set should carry one; a shop where every minimal card is text-only is as monotonous as one where none is. A deadpan line is usually the candidate. When you pick it, that line has to be your best one, and art_direction describes the ground colour and the typographic treatment instead of a motif. Never more than one typeled card per set.
 - front_candidates: an array of EXACTLY THREE surviving lines for this angle, strongest first. Each one MAXIMUM 8 words. Each must CONNECT to the picture — words and motif complete each other — and each must SET WELL as display type: breaking naturally into 2-3 short stacked lines, avoiding words longer than 10 letters, since very long words in big type are where lettering goes wrong. Where two lines are equally good, prefer the one with shorter words.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
 - art_direction: one sentence — the MOTIF and how it sits in the chosen format. Where the OCCASION has a world of its own, let it inflect this: its season, its light, one of its objects folded into the interest's own kit, or its number worked into the scene. Never a generic occasion prop (balloons, cake, a wrapped present, a tree) dropped next to the real subject. ${characters === 'objects'
@@ -650,7 +652,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // The ban list is enforced in CODE, not hope — two prompt passes
       // still leaked "vibes". One corrective retry naming the offenders;
       // if that also fails we ship anyway (logged) rather than error.
-      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma|diapers?)\b/i;
+      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma|diapers?|legendary)\b/i;
       // Title formulas. The proud angle kept collapsing into a job title —
       // "Master of the Martini", "Master of the Tackle Box", "The only
       // mixologist in the family" — and all three walked past the judge,
@@ -963,7 +965,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       currentText: z.string().max(120).optional(),
       // Everything needed to RE-RENDER instead of edit, when the layout
       // has to change (see the routing note below).
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).optional(),
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled']).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
@@ -986,12 +988,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // SAME art_direction + palette + format — same design language, new
     // composition, correct text. Re-rendering is also 10x cheaper
     // ($0.006 vs $0.067) — the better tool is no editor at all.
-    const dense = body.format === 'pattern' || body.format === 'label';
+    // typeled joins the re-render side for the same reason as dense: the
+    // words ARE the composition, so new words are a new design — there is
+    // nothing for a pixel-preserving swap to preserve.
+    const dense = body.format === 'pattern' || body.format === 'label' || body.format === 'typeled';
     if (dense && body.art_direction) {
       const prompt = [
         quirkyDna(body.characters),
         '',
-        QUIRKY_FORMATS[body.format === 'label' ? 'label' : 'pattern'],
+        QUIRKY_FORMATS[body.format === 'typeled' ? 'typeled' : body.format === 'label' ? 'label' : 'pattern'],
         '',
         `ILLUSTRATION: ${body.art_direction}`,
         body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
@@ -1100,7 +1105,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const schema = z.object({
       front_text: z.string().min(1).max(120),
       art_direction: z.string().min(1).max(500),
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial']).default('hero'),
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled']).default('hero'),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
