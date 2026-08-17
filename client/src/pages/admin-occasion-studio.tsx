@@ -111,6 +111,12 @@ export default function AdminOccasionStudioPage() {
   const [ageInput, setAgeInput] = useState('');
   const [detail, setDetail] = useState('');
   const [dislikes, setDislikes] = useState('');
+  /** The character ladder. The studio hardcoded 'objects' since it was
+   *  built, silently locking out every subject whose world genuinely
+   *  contains a creature or a person — dog people, horse riders, a
+   *  Sunday league team. Objects stays the DEFAULT because it is the
+   *  house look and the only setting with no uncanny risk. */
+  const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
   const [occasion, setOccasion] = useState('Birthday');
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
@@ -161,7 +167,7 @@ export default function AdminOccasionStudioPage() {
     setCells([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, interest, tone, cheeky, insideMode: 'auto', characters: 'objects',
+        who, occasion, interest, tone, cheeky, insideMode: 'auto', characters,
         gender: effectiveGender, age, detail: detail.trim() || undefined,
         dislikes: dislikes.trim() || undefined,
       });
@@ -176,7 +182,7 @@ export default function AdminOccasionStudioPage() {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
             front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
-            typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects',
+            typeface: c.typeface, format: c.format ?? 'hero', characters,
           });
           const rj = await rr.json();
           setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
@@ -322,6 +328,18 @@ export default function AdminOccasionStudioPage() {
             <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
             Rude
           </label>
+          {/* People are drawn as faceless graphic shapes only — never
+              portraits, never a recognisable real person. */}
+          <div className="flex items-center gap-1.5">
+            {([['objects', 'Objects'], ['animals', '+ Animals'], ['figures', '+ People']] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setCharacters(v)}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  characters === v ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                   : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
           <span className="text-xs text-stone-400">{age !== null ? `age ${age} — band cards on` : 'no age — ageless card'}</span>
           <Button onClick={generate} disabled={thinking} className="ml-auto h-10">
             {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
