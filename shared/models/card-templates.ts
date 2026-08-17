@@ -15,7 +15,7 @@
 // live, its rack reads from here.
 
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const cardTemplates = pgTable("card_templates", {
   id: serial("id").primaryKey(),
@@ -34,6 +34,12 @@ export const cardTemplates = pgTable("card_templates", {
   typeface: text("typeface"),
   format: text("format"),
   art_direction: text("art_direction"),
+  /** Buyer-facing tone this was generated in (funny/warm/cheeky) —
+   *  drives the coverage grid in the occasion studio. */
+  tone: text("tone"),
+  /** Stated age, when the brief carried a milestone. Null = ageless
+   *  card, which is its own rack slot rather than missing data. */
+  age: integer("age"),
   /** Stored image filename (R2 key / local stored_images name). */
   image_path: text("image_path").notNull(),
   created_at: timestamp("created_at")

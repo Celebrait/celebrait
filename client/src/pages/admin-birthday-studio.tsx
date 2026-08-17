@@ -1,0 +1,292 @@
+// client/src/pages/admin-birthday-studio.tsx
+//
+// THE BIRTHDAY STUDIO — occasion #1's own workspace.
+//
+// WHY THIS EXISTS SEPARATELY FROM THE CARD LAB (Aidan, 2026-08-17:
+// "this feels like it was before, rather than a testing area per
+// occasion?"). The Lab rehearses the CUSTOMER journey: five steps, one
+// card, ending at the 3D reveal. That is the right tool for finding UX
+// problems and the wrong tool for building a catalogue. Filling a rack
+// is a production line — brief, three cards, keep the good one, next
+// brief — and it needs to show you what the rack is MISSING, which the
+// Lab has no way to know.
+//
+// So: occasion locked to birthday, the two controls that actually
+// matter here (tone, age) promoted to the front, save straight off the
+// grid with no five-step detour, and a coverage map of tone × age band
+// so gaps are visible rather than guessed. Every other occasion world
+// gets a copy of this file with its own controls.
+//
+// Server-side it reuses the Lab's endpoints exactly — no new
+// generation path, so the cards here are the cards a customer gets.
+
+import { useEffect, useMemo, useState } from 'react';
+import { Loader2, Sparkles, Star, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+type Tone = 'funny' | 'warm' | 'cheeky';
+const TONES: Tone[] = ['funny', 'warm', 'cheeky'];
+
+/** The bands from DESIGN_BIRTHDAY_WORLD.md. "Ageless" is a real rack
+ *  slot, not missing data — plenty of birthday cards state no age. */
+const BANDS = [
+  { key: 'none', label: 'Ageless', test: (a: number | null) => a === null, sample: '' },
+  { key: 'threshold', label: '18–25', test: (a: number | null) => a !== null && a <= 25, sample: '21st' },
+  { key: 'knowing', label: '30–50', test: (a: number | null) => a !== null && a > 25 && a <= 50, sample: '40th' },
+  { key: 'era', label: '60+', test: (a: number | null) => a !== null && a > 50, sample: '70th' },
+];
+
+interface Concept {
+  angle: string; format?: string; front_text: string; inside_text: string;
+  art_direction: string; palette?: string; typeface?: string;
+}
+interface Cell { concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean }
+interface Template { id: number; tone?: string | null; age?: number | null; front_text: string; imageUrl: string }
+
+/** Mirrors statedAge() on the server so the coverage grid can label a
+ *  card before it is saved. Kept deliberately simple — the server value
+ *  is what gets stored. */
+function readAge(occasion: string): number | null {
+  const m = occasion.match(/\b(\d{1,3})\s*(?:st|nd|rd|th)\b/i) ?? occasion.match(/\bturning\s+(\d{1,3})\b/i);
+  const n = m ? Number(m[1]) : NaN;
+  return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null;
+}
+
+export default function AdminBirthdayStudioPage() {
+  const { toast } = useToast();
+  const [who, setWho] = useState('Dad');
+  const [occasion, setOccasion] = useState('Birthday');
+  const [interest, setInterest] = useState('');
+  const [tone, setTone] = useState<Tone>('funny');
+  const [cheeky, setCheeky] = useState(false);
+  const [cells, setCells] = useState<Cell[]>([]);
+  const [thinking, setThinking] = useState(false);
+  const [spendUsd, setSpendUsd] = useState(0);
+  const [rack, setRack] = useState<Template[]>([]);
+
+  const loadRack = () => {
+    apiRequest('GET', '/api/admin/card-templates?occasion=birthday')
+      .then((r) => r.json())
+      .then((j) => setRack(j.templates ?? []))
+      .catch(() => { /* the rack is context, never a blocker */ });
+  };
+  useEffect(loadRack, []);
+
+  /** How many saved cards sit in each tone × band cell. This is the
+   *  whole reason the studio exists: you cannot fill gaps you cannot
+   *  see. */
+  const coverage = useMemo(() => {
+    const grid: Record<string, number> = {};
+    for (const t of TONES) for (const b of BANDS) grid[`${t}:${b.key}`] = 0;
+    for (const tpl of rack) {
+      const band = BANDS.find((b) => b.test(tpl.age ?? null));
+      if (tpl.tone && band) grid[`${tpl.tone}:${band.key}`] = (grid[`${tpl.tone}:${band.key}`] ?? 0) + 1;
+    }
+    return grid;
+  }, [rack]);
+
+  const age = readAge(occasion);
+
+  const generate = async () => {
+    if (thinking) return;
+    if (!interest.trim()) {
+      toast({ title: 'One thing they love, please', description: 'Every card grows from it.' });
+      return;
+    }
+    setThinking(true);
+    setCells([]);
+    try {
+      const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
+        who, occasion, interest, tone, cheeky, insideMode: 'auto', characters: 'objects',
+      });
+      const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
+      setCells(concepts.map((c) => ({ concept: c })));
+      await Promise.all(concepts.map(async (c, i) => {
+        try {
+          const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
+            front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
+            typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects',
+          });
+          const rj = await rr.json();
+          setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
+          const n = parseFloat(String(rj.costUsd ?? '').replace('$', ''));
+          if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+        } catch (e: any) {
+          setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: e?.message ?? 'render failed' } : x)));
+        }
+      }));
+    } catch (e: any) {
+      toast({ title: 'Generation failed', description: e?.message ?? '', variant: 'destructive' });
+    } finally { setThinking(false); }
+  };
+
+  const save = async (i: number) => {
+    const cell = cells[i];
+    if (!cell?.imageUrl || cell.saved || cell.saving) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: true } : x)));
+    try {
+      await apiRequest('POST', '/api/admin/card-templates', {
+        occasion: 'birthday', tone, age, angle: cell.concept.angle, recipient: who, interest,
+        front_text: cell.concept.front_text, inside_text: cell.concept.inside_text,
+        palette: cell.concept.palette, typeface: cell.concept.typeface,
+        format: cell.concept.format, art_direction: cell.concept.art_direction,
+        imageUrl: cell.imageUrl,
+      });
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saved: true, saving: false } : x)));
+      loadRack();
+    } catch (e: any) {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: false } : x)));
+      toast({ title: 'Could not save', description: e?.message ?? '', variant: 'destructive' });
+    }
+  };
+
+  /** Clicking a gap sets the brief up to fill it — the studio suggests
+   *  the work rather than waiting to be told. */
+  const aimAt = (t: Tone, bandKey: string) => {
+    setTone(t);
+    const band = BANDS.find((b) => b.key === bandKey);
+    setOccasion(band?.sample ? `${band.sample} Birthday` : 'Birthday');
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-stone-900">Birthday studio</h1>
+          <p className="text-sm text-stone-500">
+            Occasion #1. Make cards, keep the good ones — the rack below is what the birthday world will sell.
+          </p>
+        </div>
+        <div className="text-right text-xs text-stone-400">
+          <p>this session <span className="font-semibold text-stone-600">${spendUsd.toFixed(3)}</span></p>
+          <p className="mt-0.5">{rack.length} saved</p>
+        </div>
+      </div>
+
+      {/* THE BRIEF — one row, because this is a production line */}
+      <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="who" className="text-xs font-semibold text-stone-700">Who it's for</Label>
+            <Input id="who" value={who} onChange={(e) => setWho(e.target.value)} className="mt-1.5" placeholder="Dad, my sister Kate…" />
+          </div>
+          <div>
+            <Label htmlFor="occ" className="text-xs font-semibold text-stone-700">
+              Birthday <span className="font-normal text-stone-400">— add an age to unlock the number</span>
+            </Label>
+            <Input id="occ" value={occasion} onChange={(e) => setOccasion(e.target.value)} className="mt-1.5" placeholder="60th Birthday" />
+          </div>
+          <div>
+            <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love</Label>
+            <Input id="int" value={interest} onChange={(e) => setInterest(e.target.value)} className="mt-1.5"
+              placeholder="fishing / her allotment"
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5">
+            {TONES.map((t) => (
+              <button key={t} type="button" onClick={() => setTone(t)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                  tone === t ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                             : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
+                {t}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-stone-600">
+            <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
+            Rude
+          </label>
+          <span className="text-xs text-stone-400">{age !== null ? `age ${age} — band cards on` : 'no age — ageless card'}</span>
+          <Button onClick={generate} disabled={thinking} className="ml-auto h-10">
+            {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Make three
+          </Button>
+        </div>
+      </div>
+
+      {/* THE THREE — save straight off the grid */}
+      {cells.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {cells.map((c, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+              <div className="aspect-square bg-stone-50">
+                {c.imageUrl
+                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  : c.error
+                    ? <div className="flex h-full items-center justify-center p-3 text-center text-xs text-red-600">{c.error}</div>
+                    : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}
+              </div>
+              <div className="space-y-2 p-3">
+                <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
+                <p className="text-[11px] text-stone-400">{c.concept.angle} · {c.concept.format}</p>
+                <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="h-8 w-full"
+                  onClick={() => save(i)} disabled={!c.imageUrl || c.saved || c.saving}>
+                  {c.saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : c.saved ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Star className="mr-1.5 h-3.5 w-3.5" />}
+                  {c.saved ? 'Kept' : 'Keep'}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* COVERAGE — the gaps, clickable */}
+      <div className="rounded-xl border border-stone-200 bg-white p-5">
+        <p className="text-xs font-semibold text-stone-700">Rack coverage</p>
+        <p className="mt-0.5 text-xs text-stone-400">Cards kept per tone and age band. Click a gap to aim the next brief at it.</p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-center text-xs">
+            <thead>
+              <tr className="text-stone-400">
+                <th className="p-1.5 text-left font-medium">tone</th>
+                {BANDS.map((b) => <th key={b.key} className="p-1.5 font-medium">{b.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {TONES.map((t) => (
+                <tr key={t}>
+                  <td className="p-1.5 text-left font-medium capitalize text-stone-600">{t}</td>
+                  {BANDS.map((b) => {
+                    const n = coverage[`${t}:${b.key}`] ?? 0;
+                    return (
+                      <td key={b.key} className="p-1">
+                        <button type="button" onClick={() => aimAt(t, b.key)}
+                          className={`w-full rounded-md py-2 font-semibold transition-colors ${
+                            n === 0 ? 'bg-stone-50 text-stone-300 hover:bg-brand-muted/40 hover:text-brand-dark'
+                                    : 'bg-brand-muted/50 text-brand-dark hover:bg-brand-muted'}`}
+                          title={n === 0 ? 'Nothing here yet — click to aim at this gap' : `${n} kept`}>
+                          {n}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* THE RACK */}
+      {rack.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-semibold text-stone-700">The birthday rack — {rack.length} {rack.length === 1 ? 'card' : 'cards'}</p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {rack.map((t) => (
+              <div key={t.id} className="overflow-hidden rounded-lg border border-stone-200 bg-white" title={t.front_text}>
+                <img src={t.imageUrl} alt={t.front_text} crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

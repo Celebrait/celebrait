@@ -700,6 +700,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       typeface: z.string().max(300).optional(),
       format: z.string().max(40).optional(),
       art_direction: z.string().max(600).optional(),
+      tone: z.string().max(20).optional(),
+      age: z.number().int().min(1).max(110).nullable().optional(),
       imageUrl: z.string().startsWith('data:image/').max(8_000_000),
     });
     let body: z.infer<typeof schema>;
@@ -727,6 +729,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         typeface: body.typeface ?? null,
         format: body.format ?? null,
         art_direction: body.art_direction ?? null,
+        tone: body.tone ?? null,
+        age: body.age ?? null,
         image_path: filename,
       }).returning();
       res.json({ id: row.id, imageUrl: publicImageUrl(filename) });
