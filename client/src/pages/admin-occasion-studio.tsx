@@ -1,6 +1,6 @@
-// client/src/pages/admin-birthday-studio.tsx
+// client/src/pages/admin-occasion-studio.tsx
 //
-// THE BIRTHDAY STUDIO — occasion #1's own workspace.
+// THE OCCASION STUDIO — the workbench each occasion world is built in.
 //
 // WHY THIS EXISTS SEPARATELY FROM THE CARD LAB (Aidan, 2026-08-17:
 // "this feels like it was before, rather than a testing area per
@@ -11,11 +11,22 @@
 // brief — and it needs to show you what the rack is MISSING, which the
 // Lab has no way to know.
 //
-// So: occasion locked to birthday, the two controls that actually
-// matter here (tone, age) promoted to the front, save straight off the
-// grid with no five-step detour, and a coverage map of tone × age band
-// so gaps are visible rather than guessed. Every other occasion world
-// gets a copy of this file with its own controls.
+// So: the two controls that actually matter (tone, age) promoted to the
+// front, save straight off the grid with no five-step detour, and a
+// coverage map of tone × age band so gaps are visible rather than
+// guessed.
+//
+// ONE STUDIO, EVERY OCCASION (Aidan: "this should be the Occasion
+// Studio"). Birthday is simply the occasion that has been built out;
+// the others run on the shared engine until their own worlds are
+// written, and each will bring its own bands when it is their turn.
+//
+// AND IT MEASURES ITSELF (Aidan: "how do we know what's working and to
+// lock it in?"). Every set generated is logged with the build that made
+// it; keeping a card flips that row. KEEP RATE PER BUILD is then the
+// answer — 4 of 9 on one build against 1 of 9 on the next is a
+// regression you can see instead of feel, which is the exact thing that
+// was missing when the universal engine got exhausting.
 //
 // Server-side it reuses the Lab's endpoints exactly — no new
 // generation path, so the cards here are the cards a customer gets.
@@ -56,10 +67,28 @@ function readAge(occasion: string): number | null {
   return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null;
 }
 
-export default function AdminBirthdayStudioPage() {
+/** Occasions the studio can drive. Birthday is BUILT (its own prompt,
+ *  tones and age bands); the rest run on the shared engine until their
+ *  worlds are written, and are marked so it is never ambiguous which
+ *  you are testing. */
+const WORLDS = [
+  { key: 'birthday', label: 'Birthday', built: true },
+  { key: "father's day", label: "Father's Day", built: false },
+  { key: 'anniversary', label: 'Anniversary', built: false },
+  { key: 'new baby', label: 'New baby', built: false },
+  { key: 'retirement', label: 'Retirement', built: false },
+  { key: 'sympathy', label: 'Sympathy', built: false },
+];
+
+interface BuildStat { build_commit: string | null; made: number; kept: number }
+
+export default function AdminOccasionStudioPage() {
   const { toast } = useToast();
+  const [world, setWorld] = useState(WORLDS[0]);
+  const [stats, setStats] = useState<BuildStat[]>([]);
   const [who, setWho] = useState('Dad');
   const [occasion, setOccasion] = useState('Birthday');
+  useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
   const [tone, setTone] = useState<Tone>('funny');
   const [cheeky, setCheeky] = useState(false);
@@ -69,12 +98,16 @@ export default function AdminBirthdayStudioPage() {
   const [rack, setRack] = useState<Template[]>([]);
 
   const loadRack = () => {
-    apiRequest('GET', '/api/admin/card-templates?occasion=birthday')
+    apiRequest('GET', `/api/admin/card-templates?occasion=${encodeURIComponent(world.key)}`)
       .then((r) => r.json())
       .then((j) => setRack(j.templates ?? []))
       .catch(() => { /* the rack is context, never a blocker */ });
+    apiRequest('GET', `/api/admin/card-generations/stats?occasion=${encodeURIComponent(world.key)}`)
+      .then((r) => r.json())
+      .then((j) => setStats(j.builds ?? []))
+      .catch(() => { /* measurement never blocks making */ });
   };
-  useEffect(loadRack, []);
+  useEffect(loadRack, [world.key]);
 
   /** How many saved cards sit in each tone × band cell. This is the
    *  whole reason the studio exists: you cannot fill gaps you cannot
@@ -105,6 +138,11 @@ export default function AdminBirthdayStudioPage() {
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
       setCells(concepts.map((c) => ({ concept: c })));
+      // Denominator for keep-rate. Fire-and-forget on purpose.
+      void apiRequest('POST', '/api/admin/card-generations', {
+        occasion: world.key, tone, age, recipient: who, interest,
+        cards: concepts.map((c) => ({ angle: c.angle, front_text: c.front_text })),
+      }).catch(() => {});
       await Promise.all(concepts.map(async (c, i) => {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
@@ -130,7 +168,7 @@ export default function AdminBirthdayStudioPage() {
     setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: true } : x)));
     try {
       await apiRequest('POST', '/api/admin/card-templates', {
-        occasion: 'birthday', tone, age, angle: cell.concept.angle, recipient: who, interest,
+        occasion: world.key, tone, age, angle: cell.concept.angle, recipient: who, interest,
         front_text: cell.concept.front_text, inside_text: cell.concept.inside_text,
         palette: cell.concept.palette, typeface: cell.concept.typeface,
         format: cell.concept.format, art_direction: cell.concept.art_direction,
@@ -156,14 +194,24 @@ export default function AdminBirthdayStudioPage() {
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-stone-900">Birthday studio</h1>
+          <h1 className="text-xl font-bold text-stone-900">Occasion studio</h1>
           <p className="text-sm text-stone-500">
-            Occasion #1. Make cards, keep the good ones — the rack below is what the birthday world will sell.
+            Make cards, keep the good ones — the rack is what this occasion's world will sell.
           </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {WORLDS.map((w) => (
+              <button key={w.key} type="button" onClick={() => setWorld(w)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  world.key === w.key ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                      : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
+                {w.label}{!w.built && <span className="ml-1 text-stone-400">·&nbsp;not built</span>}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="text-right text-xs text-stone-400">
           <p>this session <span className="font-semibold text-stone-600">${spendUsd.toFixed(3)}</span></p>
-          <p className="mt-0.5">{rack.length} saved</p>
+          <p className="mt-0.5">{rack.length} kept in this world</p>
         </div>
       </div>
 
@@ -234,6 +282,33 @@ export default function AdminBirthdayStudioPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* KEEP RATE — is the prompt getting better? A number, not a feeling. */}
+      {stats.length > 0 && (
+        <div className="rounded-xl border border-stone-200 bg-white p-5">
+          <p className="text-xs font-semibold text-stone-700">Keep rate by build</p>
+          <p className="mt-0.5 text-xs text-stone-400">
+            How often a generated card was good enough to keep. Newest first — if a build drops, that change made things worse.
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {stats.map((s, i) => {
+              const pct = s.made > 0 ? Math.round((s.kept / s.made) * 100) : 0;
+              return (
+                <div key={`${s.build_commit}-${i}`} className="flex items-center gap-3 text-xs">
+                  <span className="w-20 shrink-0 font-mono text-stone-500">{s.build_commit ?? 'unknown'}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-100">
+                    <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-24 shrink-0 text-right text-stone-500">
+                    <span className="font-semibold text-stone-700">{pct}%</span> · {s.kept}/{s.made}
+                    {i === 0 && <span className="ml-1 text-brand">now</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

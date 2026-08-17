@@ -34,13 +34,13 @@
 //   front stays clean and any edge lives inside.
 
 import type { Express, Request, Response } from 'express';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { cardTemplates, users } from '@shared/schema';
+import { cardGenerations, cardTemplates, users } from '@shared/schema';
 import { publicImageUrl } from '../image-storage';
 import { isR2Enabled, r2Put } from '../r2-storage';
 import { openai } from '../utils/shared';
@@ -718,6 +718,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
       } else {
         await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
       }
+      // Keeping a card marks its generation row — that flip is what makes
+      // keep-rate meaningful. Matched on the exact line within the
+      // occasion; best-effort, never blocks the save.
+      void db.update(cardGenerations).set({ kept: true })
+        .where(sql`occasion = ${body.occasion.toLowerCase()} AND front_text = ${body.front_text} AND kept = false`)
+        .catch(() => { /* measurement never breaks making */ });
       const [row] = await db.insert(cardTemplates).values({
         occasion: body.occasion.toLowerCase(),
         angle: body.angle ?? null,
@@ -738,6 +744,57 @@ export function registerAdminCardLabRoutes(app: Express): void {
       console.error('[CARD-TEMPLATES] save failed:', err);
       res.status(500).json({ message: 'Could not save the template' });
     }
+  });
+
+  // Log a generated set so keep-rate has a denominator. Fire-and-forget
+  // from the studio: measurement must never be able to break making.
+  app.post('/api/admin/card-generations', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      occasion: z.string().max(80),
+      tone: z.string().max(20).optional(),
+      age: z.number().int().min(1).max(110).nullable().optional(),
+      recipient: z.string().max(120).optional(),
+      interest: z.string().max(200).optional(),
+      cards: z.array(z.object({ angle: z.string().max(40).optional(), front_text: z.string().max(300) })).max(6),
+    });
+    let body: z.infer<typeof schema>;
+    try { body = schema.parse(req.body); } catch { return res.status(400).json({ message: 'Invalid' }); }
+    try {
+      await db.insert(cardGenerations).values(body.cards.map((c) => ({
+        build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
+        occasion: body.occasion.toLowerCase(),
+        tone: body.tone ?? null,
+        age: body.age ?? null,
+        angle: c.angle ?? null,
+        recipient: body.recipient ?? null,
+        interest: body.interest ?? null,
+        front_text: c.front_text,
+      })));
+      res.json({ ok: true });
+    } catch (err) {
+      console.warn('[CARD-GENERATIONS] log failed (non-fatal):', err);
+      res.json({ ok: false });
+    }
+  });
+
+  /** Keep rate per build — "is the prompt getting better?" as a number
+   *  rather than a feeling. */
+  app.get('/api/admin/card-generations/stats', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const occasion = typeof req.query.occasion === 'string' ? req.query.occasion.toLowerCase() : 'birthday';
+    const rows = await db.execute(sql`
+      SELECT build_commit,
+             COUNT(*)::int AS made,
+             COUNT(*) FILTER (WHERE kept)::int AS kept,
+             MAX(created_at) AS last_seen
+        FROM card_generations
+       WHERE occasion = ${occasion}
+    GROUP BY build_commit
+    ORDER BY MAX(created_at) DESC
+       LIMIT 8;
+    `);
+    res.json({ builds: (rows as any).rows ?? rows });
   });
 
   app.get('/api/admin/card-templates', async (req: Request, res: Response) => {

@@ -116,7 +116,7 @@ const AdminPhotoLabPage = lazy(() => import("@/pages/admin-photo-lab"));
 const AdminCardLabPage = lazy(() => import("@/pages/admin-card-lab"));
 const AdminCardBenchPage = lazy(() => import("@/pages/admin-card-bench"));
 const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates"));
-const AdminBirthdayStudioPage = lazy(() => import("@/pages/admin-birthday-studio"));
+const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
@@ -364,10 +364,10 @@ function Router() {
               </AdminLayout>
             </RequireAdmin>
           </Route>
-          <Route path="/admin/birthday-studio">
+          <Route path="/admin/occasion-studio">
             <RequireAdmin>
               <AdminLayout>
-                <AdminBirthdayStudioPage />
+                <AdminOccasionStudioPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>
