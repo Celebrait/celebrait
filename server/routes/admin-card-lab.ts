@@ -117,7 +117,8 @@ MOTIFS: __MOTIF_RULE__ Retro-modern garnish welcome in moderation: a checkerboar
 
 ⚠️ SOMEONE ELSE'S PROPERTY — EVOKE IT, NEVER REPRODUCE IT. This card gets printed and sold, so anything you draw is merchandise. There are TWO different cases and they have different lines:
 
-  A) FICTIONAL WORLDS (a film, book, game, comic): the invented things ARE the property. No named artefact, creature, gadget, vehicle, weapon, building or costume that exists only inside that story. Evoke it with ordinary objects anyone could own — a striped scarf, an owl, a stack of battered spellbooks, a starfield.
+  A) FICTIONAL WORLDS (a film, book, game, comic): the invented things ARE the property. No named artefact, creature, gadget, vehicle, weapon, building or costume that exists only inside that story.
+  ⚠️ REWORK THE WORLD, NEVER THE THING. This is a creative instruction, not a refusal — a blank, cautious card is a failure too. Do NOT draw the protected object with modifications, because a near-copy is MORE dangerous than an honest one: recognisably-similar is precisely what gets challenged. Instead, go and find a DIFFERENT object from the same world — one nobody owns — and make it unmistakably that world through STYLE: its colour signature, its era, its light, its texture, its typography. A wizarding card can be candles, a brass key, a battered trunk, a night sky, all in bottle green and tarnished gold. A space card can be a horizon with two suns' worth of light and a sand-scoured helmet-less pilot's kit. The fan knows instantly; nothing on the card belongs to anyone else. Every card we make is already redrawn from scratch in a flat three-ink print style — lean on that, it is real transformation, and it is ours.
 
   B) BRANDS AND SERVICES (Netflix, Guinness, Tesco, a football club, a supermarket): these have no invented artefacts — what they own is the MARK. So the line moves, and much more is open to you. OUT: the logo, the wordmark, the brand's name rendered in its own lettering, a crest, a badge, an official mascot, a packaging label copied faithfully. IN, and encouraged: the brand's own COLOUR SIGNATURE, the SHAPES of the everyday objects involved, the on-screen or in-shop LANGUAGE everybody knows, the rituals and the running jokes of using it. A streaming card in deep red and near-black, with a remote, a paused screen and the words everyone recognises, is unmistakably that brand and reproduces nothing.
   The test for a brand is NOT "would this appear in their gift shop" — it is "could someone mistake this for something the company itself made or endorsed". A knowing card about the EXPERIENCE fails that test in the good way: nobody thinks the company made it.
@@ -468,6 +469,16 @@ ${profile.brief}\n`;
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 ${cheekBlock}${occasionBlock}
 You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return FOUR concepts as JSON — all four about THAT ONE THING, as four genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the four must differ in angle, composition AND colour — never four drafts of one idea.
+
+⚠️⚠️ FOUR CARDS MEANS FOUR DIFFERENT IDEAS — THE SINGLE COMMONEST FAILURE, AND THE ONE THAT MAKES A SET FEEL DEAD.
+Once you find the strongest seam in a subject you will want to work it four times. Do not. The customer is being offered a CHOICE, and four executions of one joke is not a choice — it is the same card in four costumes, and it is instantly obvious on the rack.
+BEFORE YOU WRITE A SINGLE LINE: name FOUR genuinely different corners of this person's world and assign one to each of the four cards. Write them down to yourself first. They must be different SUBJECTS, not different jokes about one subject — a different object, a different ritual, a different moment, a different feeling. Then each card is written from its own corner and stays in it.
+MEASURED FAILURES, all real sets:
+  • a Manchester United fan whose brief mentioned disliking City: all four cards were about hating City. Nothing about United, nothing about the man, nothing about turning sixty.
+  • a Netflix fan: all four were "watches too much", and two of them independently used the word "daylight".
+  • a cocktail lover: all four were "takes it far too seriously".
+⚠️ A SIDE DETAIL MUST NOT EAT THE SET. When the brief adds something extra (a rivalry, a habit, a pet hate), it is worth AT MOST ONE of the four cards. The main thing they love is why the card exists.
+⚠️ NO SHARED VOCABULARY. No distinctive word or image may appear in more than one card in the set. If two lines both reach for the same word, one of them is a duplicate wearing a disguise — rewrite it from its own corner.
 
 MINE THE SUBJECT FIRST — do this internally before writing:
 List the world of that interest: its objects and kit, its rituals, its jargon and catchphrases, its colours, its sounds, its clichés, the moment its fans love most. The best cards come from the SPECIFIC corners of that world, not its most obvious symbol. (Fishing is not only a fish: it is tackle boxes, dawn flasks, the one that got away, sitting in silence for nine hours and calling it relaxing.)
@@ -1001,19 +1012,50 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
       concepts = cleanse(concepts);
       const cheekShort = effectiveCheeky && concepts.filter(hasCheek).length < 2;
+
+      // ⚠️ THE COLLAPSED SET — four executions of one joke. Prompt rules
+      // improved it but did not hold on the hardest case: a United brief
+      // mentioning a City rivalry produced four City cards even after the
+      // "a side detail must not eat the set" instruction. The emotional
+      // hook (and, in rude mode, the easiest swearing target) beats a
+      // written rule, so this is measured instead.
+      // A content word carried by THREE of the four lines means the set
+      // has one idea. Words from the brief itself are exempt: every card
+      // is legitimately about the interest.
+      const STOP = new Set(['this','that','with','your','still','from','have','been','they','them','their','what','when','then','than','just','only','more','most','very','sixty','forty','fifty','thirty','years','year','birthday','happy']);
+      const briefWords = new Set(
+        `${body.interest} ${body.who} ${body.occasion}`.toLowerCase().match(/[a-z']{4,}/g) ?? [],
+      );
+      const wordFreq = new Map<string, number>();
+      for (const c of concepts) {
+        // Every candidate, not just the first: the judge picks from the
+        // whole shortlist afterwards, so checking one line per concept
+        // let a collapse slip in behind the check.
+        const seen = new Set(
+          shortlistOf(c).join(' ').toLowerCase().match(/[a-z']{4,}/g)?.filter(
+            (w) => !STOP.has(w) && !briefWords.has(w),
+          ) ?? [],
+        );
+        Array.from(seen).forEach((w) => wordFreq.set(w, (wordFreq.get(w) ?? 0) + 1));
+      }
+      const collapsedOn = Array.from(wordFreq.entries()).filter(([, n]) => n >= 3).map(([w]) => w);
+      if (collapsedOn.length) {
+        console.warn('[CARD-LAB] set collapsed onto one idea:', collapsedOn,
+          concepts.map((c) => shortlistOf(c)[0]));
+      }
       if (cheekShort) {
         console.warn('[CARD-LAB] rude mode on but the set came back tame:',
           concepts.map((c) => shortlistOf(c)[0]));
       }
       const wiped = concepts.filter(isThin);
-      if (wiped.length > 0 || cheekShort) {
+      if (wiped.length > 0 || cheekShort || collapsedOn.length) {
         const retry = await openai.chat.completions.create({
           ...conceptParams(2000, 0.5),
           messages: [
             { role: 'system', content: writerPrompt() },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
-            { role: 'user', content: `${cheekShort ? `⚠️ RUDE MODE WAS ON AND YOU WROTE A TAME SET. Fewer than two of your three cards carry an actual swear word. "Bugger", "bloody", "sod", "git" and beer puns DO NOT COUNT — the customer ticked the rude box and these read as a polite card in fancy dress. Rewrite so at least TWO cards carry a real swear on the front, masked with asterisks for the strongest words (f***, s***) and printed in full for the mid-strength ones (bollocks, arse, twat, bellend, knobhead, bastard, piss). Keep it affectionate and keep every content limit you were given.\n\n` : ''}${wiped.length ? `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words.` : ''} Return the complete corrected JSON.` },
+            { role: 'user', content: `${collapsedOn.length ? `⚠️ YOUR FOUR CARDS ARE ALL THE SAME IDEA. The word${collapsedOn.length > 1 ? 's' : ''} ${collapsedOn.map((w) => `"${w}"`).join(', ')} appear${collapsedOn.length > 1 ? '' : 's'} in three or more of the four lines, which means you found one seam and worked it four times. That is not a choice for the customer, it is one card in four costumes. Go back to the mining step: name FOUR genuinely different corners of this person's world — different objects, rituals, moments, feelings — assign one to each card, and rewrite so no card shares a subject or a distinctive word with another. If a side detail from the brief has taken over, cut it back to at most ONE card.\n\n` : ''}${cheekShort ? `⚠️ RUDE MODE WAS ON AND YOU WROTE A TAME SET. Fewer than two of your three cards carry an actual swear word. "Bugger", "bloody", "sod", "git" and beer puns DO NOT COUNT — the customer ticked the rude box and these read as a polite card in fancy dress. Rewrite so at least TWO cards carry a real swear on the front, masked with asterisks for the strongest words (f***, s***) and printed in full for the mid-strength ones (bollocks, arse, twat, bellend, knobhead, bastard, piss). Keep it affectionate and keep every content limit you were given.\n\n` : ''}${wiped.length ? `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words.` : ''} Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
         });
