@@ -110,6 +110,7 @@ export default function AdminOccasionStudioPage() {
   const [gender, setGender] = useState<'him' | 'her' | 'unspecified'>('unspecified');
   const [ageInput, setAgeInput] = useState('');
   const [detail, setDetail] = useState('');
+  const [dislikes, setDislikes] = useState('');
   const [occasion, setOccasion] = useState('Birthday');
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
@@ -162,6 +163,7 @@ export default function AdminOccasionStudioPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, interest, tone, cheeky, insideMode: 'auto', characters: 'objects',
         gender: effectiveGender, age, detail: detail.trim() || undefined,
+        dislikes: dislikes.trim() || undefined,
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
       setCells(concepts.map((c) => ({ concept: c })));
@@ -292,6 +294,18 @@ export default function AdminOccasionStudioPage() {
             <Input id="detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="mt-1.5"
               placeholder="same shed since 1998" />
           </div>
+          {/* Dislikes are strong comic fuel but ate a whole set once, so
+              they are capped at one card server-side. Only offered where
+              a joke is actually wanted. */}
+          {tone !== 'warm' && (
+            <div className="sm:col-span-3">
+              <Label htmlFor="dislikes" className="text-xs font-semibold text-stone-700">
+                Can't stand <span className="font-normal text-stone-400">— optional, worth one card</span>
+              </Label>
+              <Input id="dislikes" value={dislikes} onChange={(e) => setDislikes(e.target.value)} className="mt-1.5"
+                placeholder="Man City / mornings / oat milk" />
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-1.5">
@@ -311,14 +325,14 @@ export default function AdminOccasionStudioPage() {
           <span className="text-xs text-stone-400">{age !== null ? `age ${age} — band cards on` : 'no age — ageless card'}</span>
           <Button onClick={generate} disabled={thinking} className="ml-auto h-10">
             {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Make four
+            Make three
           </Button>
         </div>
       </div>
 
       {/* THE THREE — save straight off the grid */}
       {cells.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           {cells.map((c, i) => (
             <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="aspect-square bg-stone-50">
