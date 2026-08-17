@@ -116,3 +116,27 @@ never-invent-a-date rule needs this one carve-out written carefully.
 at 60 it is the era and the habits. "Old" mockery as such is rarer on
 the walls than expected — the roast is affectionate and specific, which
 is exactly our house style's home ground.
+
+## Second pass additions (2026-08-17, later)
+
+- **21st aisle**: "Adulting Is Total Bollocks", drink-sensibly irony,
+  meme cards ("What's 9 plus 10?"), Road To 21 — 2005. Threshold
+  humour + memes; sweary sells here too.
+- **40th aisle**: "Thirties? Completed It Mate", "Act Like A Grown Up"
+  (recurs at 21 AND 40 — the grown-up joke spans bands), Scrabble and
+  Ab Fab era references begin, "Forty and Fabulous" warm-classic lane.
+- **Mum aisle**: the FAMILY DYNAMIC is the material — "Enough About My
+  Sibling", "Favourite Child", "Just A Reminder That I Am A Gift",
+  care-home gallows-affection — racked beside classic florals. Both
+  lanes stocked, always.
+- **Moonpig** (via search): milestone range 1st–80th; buyers can set
+  the age and every milestone card re-renders with the right number —
+  dynamic-number templates are market-normal. Filters run
+  Kids→Senior; sub-ranges include Hobby-Themed (interest-led is
+  merchandised there) and an AI writing assistant exists for inside
+  messages. Sources: moonpig.com/uk/personalised-cards/birthday/ and
+  /milestones/.
+- **Scribbler** (via search): the edgy pole is a whole brand — "bolder,
+  brasher, unapologetically hilarious", rude as identity since 1981,
+  38 UK stores. Rude is a POSITION, not a filter. Source:
+  scribbler.com/pages/about-scribbler.
