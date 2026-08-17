@@ -43,6 +43,23 @@ import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
 
+/** The model behind the concept writer AND the judge. gpt-4o until
+ *  2026-08-17, when Aidan called the flatness ("doesn't feel great") and
+ *  the account turned out to reach gpt-5.5 — four generations newer.
+ *  Env-overridable so an A/B is one restart, no deploy:
+ *    CARD_LAB_LLM=gpt-4o npm run dev   # the old writer, for comparison */
+export const CONCEPT_MODEL = process.env.CARD_LAB_LLM ?? 'gpt-5.5';
+
+/** Params that differ across model generations. The gpt-5 family takes
+ *  max_completion_tokens (which ALSO covers its internal reasoning, so
+ *  the cap gets 4× headroom or the JSON is starved) and pins its own
+ *  temperature; gpt-4o keeps the classic knobs. */
+function conceptParams(maxTokens: number, temperature: number) {
+  return CONCEPT_MODEL.startsWith('gpt-4')
+    ? { model: CONCEPT_MODEL, max_tokens: maxTokens, temperature }
+    : { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
+}
+
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
   if (typeof otpUserId !== 'string' || otpUserId.length === 0) {
@@ -632,19 +649,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
     const startedAt = Date.now();
     try {
-      // gpt-4o, not mini: wit is the product here and mini's jokes are
-      // flat. Still ~£0.003/call — the art costs 2× more than the words.
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        // Nine candidate lines instead of three — 700 truncated the JSON
+        // and the whole set failed to parse, hence the generous cap.
+        ...conceptParams(1400, 0.7),
         messages: [
           { role: 'system', content: writerPrompt() },
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
-        // Nine candidate lines instead of three — 700 truncated the JSON
-        // and the whole set failed to parse.
-        max_tokens: 1400,
       });
       const parsed = JSON.parse(completion.choices[0]?.message?.content ?? '{}');
       let concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, 3);
@@ -746,7 +759,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const wiped = concepts.filter(isThin);
       if (wiped.length > 0 || cheekShort) {
         const retry = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          ...conceptParams(1400, 0.5),
           messages: [
             { role: 'system', content: writerPrompt() },
             { role: 'user', content: briefLines.join('\n') },
@@ -754,8 +767,6 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'user', content: `${cheekShort ? `⚠️ RUDE MODE WAS ON AND YOU WROTE A TAME SET. Fewer than two of your three cards carry an actual swear word. "Bugger", "bloody", "sod", "git" and beer puns DO NOT COUNT — the customer ticked the rude box and these read as a polite card in fancy dress. Rewrite so at least TWO cards carry a real swear on the front, masked with asterisks for the strongest words (f***, s***) and printed in full for the mid-strength ones (bollocks, arse, twat, bellend, knobhead, bastard, piss). Keep it affectionate and keep every content limit you were given.\n\n` : ''}${wiped.length ? `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words.` : ''} Return the complete corrected JSON.` },
           ],
           response_format: { type: 'json_object' },
-          temperature: 0.5,
-          max_tokens: 1400,
         });
         try {
           const reparsed = JSON.parse(retry.choices[0]?.message?.content ?? '{}');
@@ -772,10 +783,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
         templateId: null,
         templateVersion: null,
         provider: 'openai',
-        model: 'gpt-4o',
+        model: CONCEPT_MODEL,
         quality: null,
         costCents: llmCostCents(
-          'gpt-4o',
+          CONCEPT_MODEL,
           completion.usage?.prompt_tokens ?? 0,
           completion.usage?.completion_tokens ?? 0,
         ),
@@ -796,7 +807,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const notes: Array<{ index: number; kind: 'pick' | 'rewrite'; reason: string; was: string }> = [];
       try {
         const review = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          ...conceptParams(900, 0.4),
           messages: [
             { role: 'system', content: serious ? seriousJudgeSystemPrompt(occProfile) : judgeSystemPrompt(effectiveCheeky, occProfile) },
             {
@@ -819,8 +830,6 @@ export function registerAdminCardLabRoutes(app: Express): void {
             },
           ],
           response_format: { type: 'json_object' },
-          temperature: 0.4,
-          max_tokens: 900,
         });
         const verdicts = JSON.parse(review.choices[0]?.message?.content ?? '{}').cards ?? [];
         if (verdicts.length === 3) {
@@ -866,8 +875,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         }
         void logGeneration({
           cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-          provider: 'openai', model: 'gpt-4o', quality: null,
-          costCents: llmCostCents('gpt-4o', review.usage?.prompt_tokens ?? 0, review.usage?.completion_tokens ?? 0),
+          provider: 'openai', model: CONCEPT_MODEL, quality: null,
+          costCents: llmCostCents(CONCEPT_MODEL, review.usage?.prompt_tokens ?? 0, review.usage?.completion_tokens ?? 0),
           durationMs: 0, success: true,
         });
       } catch (e) {

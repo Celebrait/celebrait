@@ -16,6 +16,11 @@ const PRICES_PER_MTOK_USD: Record<string, { input: number; output: number }> = {
   'gpt-4o': { input: 2.5, output: 10.0 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
   'gemini-2.5-flash': { input: 0.3, output: 2.5 },
+  // ⚠️ PLACEHOLDER pricing at the gpt-4o rate — added 2026-08-17 when the
+  // Card Lab writer/judge moved off gpt-4o. Aidan: verify against the
+  // first OpenAI invoice that includes gpt-5.5 and correct here. Kept at
+  // the conservative fallback level on purpose so it can only OVERCOUNT.
+  'gpt-5.5': { input: 2.5, output: 10.0 },
 };
 
 /** Fallback for unlisted models: priced like gpt-4o so an unpriced model
