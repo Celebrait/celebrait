@@ -1,7 +1,10 @@
 # Scope: Occasion intelligence for the Quirky engine
 
 *Scoped with Aidan 2026-08-17, off the back of the first full bench
-runs. Status: SCOPED — phase 1 approved in principle, not started.*
+runs. Status: ⚠️ SUPERSEDED same day by [[SCOPE_OCCASION_FIRST.md]] —
+phases 1–3 were built and their learnings carry forward, but the
+"one engine + profiles" build order is reversed in favour of building
+each occasion independently. See the new doc for what survives.*
 
 The insight (Aidan's): **every occasion carries its own buyer mindset**,
 and the engine currently treats them all as "birthday with different
