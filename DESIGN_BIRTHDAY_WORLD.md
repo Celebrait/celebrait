@@ -1,8 +1,9 @@
 # Design direction: the Birthday world
 
 *WS2 of [[PLAN_BIRTHDAY_WORLD.md]]. Drafted from the research pack
-([[RESEARCH_UK_CARD_MARKET.md]]), 2026-08-17. STATUS: AWAITING AIDAN'S
-RED PEN — nothing in WS3 builds until this page is signed.*
+([[RESEARCH_UK_CARD_MARKET.md]]), 2026-08-17. STATUS: ✅ SIGNED by
+Aidan 2026-08-17 — D1, D2, D3 agreed as recommended; D4 (milestone
+door order) deferred to WS7, where it belongs. WS3 builds this page.*
 
 ## The house position (unchanged, now evidence-backed)
 
@@ -77,10 +78,14 @@ one density.
   ("ducking hell") also allowed. Unmasked sells top-three at every age
   on Thortful, so this is a brand choice we can revisit with sales
   data.
-- **D4 milestone doors first:** 21st, 30th, 40th (highest online-buyer
-  density), then 50th/60th/18th.
+- **D4 milestone doors first:** ⏸ DEFERRED to WS7 (Aidan unsure, and it
+  blocks nothing — door order is a landing-page decision, not a prompt
+  one). Decide it when the catalogue has depth: whichever milestones
+  Aidan has actually enjoyed making cards for are the ones with stock
+  to sell, and that beats either of our guesses.
 
 ## Sign-off
 
-Aidan edits this page, then WS3 (the birthday prompt + its bench
-matrix) builds exactly what it says.
+✅ Signed 2026-08-17. D1 age-roast ON inside Funny, band-calibrated,
+never decline mockery. D2 asterisk mask held as house style. D3 tone
+menu Funny / Warm / Cheeky + Rude toggle. D4 deferred.

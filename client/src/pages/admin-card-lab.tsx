@@ -77,6 +77,7 @@ export default function AdminCardLabPage() {
   const [occasion, setOccasion] = useState('Birthday');
   const [interest, setInterest] = useState('');
   const [cheeky, setCheeky] = useState(false);
+  const [tone, setTone] = useState<'funny' | 'warm' | 'cheeky'>('funny');
   const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('animals');
 
   // steps 2 & 3
@@ -136,7 +137,7 @@ export default function AdminCardLabPage() {
     setStep(2);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, interest, insideMode, ownInsideText, cheeky, characters,
+        who, occasion, interest, insideMode, ownInsideText, cheeky, characters, tone,
       });
       const { concepts, notes } = (await r.json()) as {
         concepts: Concept[]; notes?: Array<{ index: number; kind?: 'pick' | 'rewrite'; reason: string; was: string }>;
@@ -185,7 +186,7 @@ export default function AdminCardLabPage() {
     setBusy(true);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, interest, insideMode, ownInsideText, cheeky, characters,
+        who, occasion, interest, insideMode, ownInsideText, cheeky, characters, tone,
       });
       const { concepts } = (await r.json()) as { concepts: Concept[] };
       // Keep the angle they chose — swap in that angle's fresh concept.
@@ -313,6 +314,18 @@ export default function AdminCardLabPage() {
               placeholder="fishing / Man United / her greenhouse / murder documentaries"
               className="mt-1.5 h-11 text-base"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
+          </div>
+          {/* D3 — the tone the BUYER picks. Buyer-facing, so it sits with
+              the brief rather than down in the lab controls. */}
+          <div>
+            <Label className="text-sm font-semibold text-stone-800">
+              Tone <span className="font-normal text-stone-400">— what kind of card is this?</span>
+            </Label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {([['funny', 'Funny'], ['warm', 'Warm'], ['cheeky', 'Cheeky']] as const).map(([v, l]) => (
+                <Chip key={v} label={l} active={tone === v} onClick={() => setTone(v)} />
+              ))}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-stone-100 pt-3">
             <span className="text-[11px] uppercase tracking-wider text-stone-400">lab controls</span>

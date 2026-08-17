@@ -264,6 +264,73 @@ const OCCASION_PROFILES: Record<string, OccasionProfile> = {
     `A celebration without a named profile — read the typed occasion closely, mine ITS world (objects, colours, numbers, rituals) and let it inflect the palette and one motif. Any milestone number in it is gold and belongs in the artwork.`),
 };
 
+// ── THE BIRTHDAY WORLD (occasion #1) ─────────────────────────────────
+// Built to DESIGN_BIRTHDAY_WORLD.md, signed by Aidan 2026-08-17. This
+// is the first occasion to get its own world rather than a shared
+// profile line — the pattern every other occasion will follow.
+
+export type BirthdayTone = 'funny' | 'warm' | 'cheeky';
+
+/** D3: what the buyer picks. Each tone still yields three different
+ *  cards through the existing angle machinery — the tone sets the
+ *  register, the angles keep the range. */
+const BIRTHDAY_TONES: Record<BirthdayTone, string> = {
+  funny: `TONE — FUNNY. The biggest-selling birthday register in Britain. Make them laugh out loud, not smile politely. The joke is the product: if a card here has no laugh in it, it has failed even if it is warm and true.`,
+  warm: `TONE — WARM. Affection first, wit second — the card someone keeps on the mantelpiece for a month. Still SPECIFIC and still with a turn: warm is not vague, and "you're amazing" is not warmth, it is filler. Think fond, noticing, generous. No mickey-taking, no roasting, no age jokes at all in this tone.`,
+  cheeky: `TONE — CHEEKY. Mischief without swearing. Taking the mickey, the fond dig, the thing you would only say to someone you love. Sits between funny and rude: sharper than funny, cleaner than rude. Innuendo stays seaside-postcard.`,
+};
+
+/** The three age worlds. Bands from the research pack: what the market
+ *  actually jokes about at each stage, not our guesses. */
+function birthdayAgeBlock(age: number | null): string {
+  if (age === null) {
+    return `AGE — NOT STATED, so there is NO age on this card. No number, no birth year, no "another year older", and no age jokes of any kind: you do not know how old they are and a wrong guess is a ruined card. Build entirely from the person and their thing.`;
+  }
+  // D1: the roast is allowed but CALIBRATED — the joke changes shape by
+  // band, and decline mockery is banned at every age.
+  const band =
+    age <= 25
+      ? `AGE BAND — THRESHOLD (${age}). The joke is adulthood itself: newly legal, newly responsible, gloriously unprepared. Childhood expiring, the first proper hangover, having to phone about your own car insurance. Loud, energetic, meme-fluent. Palette runs bright and saturated; type bold and playful. ⚠️ The buyer at this age is very often a PARENT, GRANDPARENT or aunt — the card can be cheeky but must never be something a nan would be embarrassed to hand over.`
+      : age <= 50
+        ? `AGE BAND — KNOWING (${age}). Self-deprecation delivered with a completely straight face: the age is fine, it is the little surrenders that are funny — the good chair, the early night defended as a treat, the noise a person makes standing up. Era references from their youth land well here. Palette confident and adult; this is where a text-only card shines.`
+        : `AGE BAND — ERA & AFFECTION (${age}). Nostalgia leads and the affection is unmistakable: what the world was like when they arrived, the habits everyone in the family knows are theirs, the rituals they defend. ⚠️ NEVER decline, frailty, memory or "how much longer" jokes — that is the one way this band goes badly wrong. Warm, golden, vintage-leaning; classic serifs suit it.`;
+
+  // The birth-year carve-out, bounded tightly. Derived arithmetic on a
+  // number the BUYER typed is not the invented-fact class — but it only
+  // holds for a stated milestone, so the rule is spelled out in full.
+  const birthYear = new Date().getFullYear() - age;
+  return `${band}
+THE NUMBER IS ARTWORK: ${age} belongs in the design — the motif can BE the number, or the number can be built from their world. Almost nobody does this and it is instantly personal.
+BIRTH YEAR — you may use ${birthYear}. This is DERIVED (this year minus the stated age), not invented, so the "born in ${birthYear}" and "the road to ${age}" genres are open to you: what was in the charts, on the telly, in the shops. ⚠️ This licence exists ONLY because the buyer told us the age. Never state any other date, year or age as fact.`;
+}
+
+/** Pull a stated age out of free-text occasion ("60th", "her 21st",
+ *  "turning 40"). Deliberately conservative: no age found means no age
+ *  used, which is the safe direction. */
+export function statedAge(occasion: string | undefined): number | null {
+  const t = occasion ?? '';
+  const m = t.match(/\b(\d{1,3})\s*(?:st|nd|rd|th)\b/i) ?? t.match(/\bturning\s+(\d{1,3})\b/i) ?? t.match(/\bage\s+(\d{1,3})\b/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null;
+}
+
+/** The birthday occasion brief, composed per request. Replaces the
+ *  static birthday profile whenever the occasion classifies as one. */
+export function birthdayProfile(tone: BirthdayTone, age: number | null): OccasionProfile {
+  return {
+    key: 'birthday',
+    humour: tone === 'warm' ? 'gentle' : 'full',
+    brief: `${BIRTHDAY_TONES[tone]}
+
+${birthdayAgeBlock(age)}
+
+WHAT A BIRTHDAY CARD IS FOR: the buyer wants THIS person celebrated, not birthdays in general. Their thing leads every card; the birthday inflects it. A card that would suit anyone having a birthday has failed.
+RECIPIENT SEAMS worth mining when the brief points at them: for a mum, the FAMILY DYNAMIC is rich material (the favourite-child running joke, the phone calls, being told to eat more) alongside genuine tenderness — both are stocked in real shops; for a dad, the kit, the shed, the chair, the thermostat; for a mate, the shared history; for a colleague, keep it warm and safe.
+⚠️ BANNED PROPS, an observed repeat failure: balloons, cake, candles, banners, party hats or wrapped presents sitting beside the real subject. They are what a card uses when it has nothing to say. The number, their world's own objects, and the palette carry the occasion instead.`,
+  };
+}
+
 /** Order matters: sympathy is checked first (safety), and named occasions
  *  beat the bare-ordinal birthday catch ("60th anniversary" must reach
  *  anniversary, not birthday). Free text that matches nothing gets the
@@ -336,6 +403,9 @@ const conceptsSchema = z.object({
    *  where provider moderation actually draws the line — the customer
    *  build should be more conservative than whatever survives here. */
   cheeky: z.boolean().default(false),
+  /** D3 — the buyer-facing tone for the birthday world. Ignored by
+   *  occasions that have not been built out yet. */
+  tone: z.enum(['funny', 'warm', 'cheeky']).default('funny'),
   /** Character ladder — see quirkyDna(). */
   characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
 });
@@ -439,7 +509,7 @@ The three candidates for an angle must all be DIFFERENT ROUTES to that angle's t
 Each returned concept:
 - angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
 - format: one of "statement", "hero", "pattern", "label", "typeled" — composition recipes. THE SET MUST SPAN THE RANGE: exactly one minimal card ("statement" — or "typeled", see below), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
-  "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so USE IT — but choose by the LINE, not by habit, and keep the shop varied: a line that gains something from a picture beside it wants "statement"; a line that stands completely alone wants "typeled". Roughly every other set should carry one; a shop where every minimal card is text-only is as monotonous as one where none is. A deadpan line is usually the candidate. When you pick it, that line has to be your best one, and art_direction describes the ground colour and the typographic treatment instead of a motif. Never more than one typeled card per set.
+  "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so USE IT WHEN TOLD TO. ⚠️ MEASURED: left to its own judgement the writer picks one and repeats it — typeled took the minimal slot in 7 sets out of 7, then after a nudge "statement" took it in 7 out of 7. Neither is a shop. THE MINIMAL SLOT IS THEREFORE ASSIGNED PER SET, in the line below; obey it. When told "typeled", the minimal card carries no illustration at all and its line must be your strongest. When told "statement", it is a beautiful object with room around it. When you pick it, that line has to be your best one, and art_direction describes the ground colour and the typographic treatment instead of a motif. Never more than one typeled card per set.
 - front_candidates: an array of EXACTLY THREE surviving lines for this angle, strongest first. Each one MAXIMUM 8 words. Each must CONNECT to the picture — words and motif complete each other — and each must SET WELL as display type: breaking naturally into 2-3 short stacked lines, avoiding words longer than 10 letters, since very long words in big type are where lettering goes wrong. Where two lines are equally good, prefer the one with shorter words.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
 - art_direction: one sentence — the MOTIF and how it sits in the chosen format. Where the OCCASION has a world of its own, let it inflect this: its season, its light, one of its objects folded into the interest's own kit, or its number worked into the scene. Never a generic occasion prop (balloons, cake, a wrapped present, a tree) dropped next to the real subject. ${characters === 'objects'
@@ -717,16 +787,29 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // The occasion brain. Serious occasions swap the whole writer/judge
     // pair, and rude mode is FORCED OFF for them — a ticked box from an
     // earlier card must never carry cheek onto a sympathy card.
-    const occProfile = classifyOccasion(body.occasion);
+    // Birthday is the first occasion with its own world: its brief is
+    // composed per request from the buyer's tone and any stated age,
+    // rather than read from the static profile table.
+    const classified = classifyOccasion(body.occasion);
+    const occProfile = classified.key === 'birthday'
+      ? birthdayProfile(body.tone, statedAge(body.occasion))
+      : classified;
     const serious = occProfile.humour === 'off';
     const effectiveCheeky = body.cheeky && !serious;
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile);
 
+    // Which format takes the minimal slot is decided HERE, not by the
+    // writer — left to judgement it locks onto one and every set in the
+    // catalogue comes out identically shaped. Roughly a third text-only
+    // matches how a real rack reads.
+    const minimalSlot = Math.random() < 0.35 ? 'typeled' : 'statement';
+
     const briefLines = [
       `Recipient: ${body.who}`,
       `Occasion: ${body.occasion}`,
+      `MINIMAL SLOT FOR THIS SET: ${minimalSlot} (assigned — use exactly this format for the minimal card)`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
