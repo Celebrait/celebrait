@@ -89,3 +89,30 @@ pass when their occasion worlds get built.
 The birthday research pack, if birthday is occasion #1: the four-axis
 world structure, the tone spectrum with the age-roast question, the
 milestone aisles as SEO routes, and typeled's bestseller validation.
+
+## Milestone scan, first pass (18th vs 60th aisles, 2026-08-17)
+
+The age bands are different WORLDS, not different numbers:
+
+- **18th** — adulthood-threshold jokes ("Make Decisions Yourself",
+  "Childhood Expired", "Legally Do Everything"); pun-masked swearing
+  ("Ducking Hell"); UK-culture references (Gavin & Stacey); and a
+  GRANDDAUGHTER aisle — at milestones the buyer is often a
+  grandparent, not a peer.
+- **60th** — era nostalgia leads ("The Road To 60 — 1966", champagne
+  "Born in 1966", Elvis "Your Fifties Have Left The Building");
+  affectionate-habit jokes, not decline jokes ("Power Nap",
+  "Six-Tea!", a Tesco Clubcard parody); unmasked swearing sells here
+  too ("How the F***?" — printed in full).
+
+**The birth-year unlock:** "Road To X — [year]" cards are a
+first-class milestone genre, and for OUR maker the birth year is
+DERIVABLE the moment the brief says "60th" — current year minus age.
+That is not an invented fact (the banned class); it is arithmetic on
+what the buyer typed. The birthday prompt may use it; the
+never-invent-a-date rule needs this one carve-out written carefully.
+
+**Age-roast calibration by band:** at 18 the joke is the threshold,
+at 60 it is the era and the habits. "Old" mockery as such is rarer on
+the walls than expected — the roast is affectionate and specific, which
+is exactly our house style's home ground.
