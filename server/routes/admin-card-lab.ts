@@ -406,6 +406,16 @@ const conceptsSchema = z.object({
   /** D3 — the buyer-facing tone for the birthday world. Ignored by
    *  occasions that have not been built out yet. */
   tone: z.enum(['funny', 'warm', 'cheeky']).default('funny'),
+  /** Structured recipient (Aidan 2026-08-17): free text made the three
+   *  signals that matter — register, gender, age — into mush a model had
+   *  to guess at. Bounded fields instead: `who` is the relationship,
+   *  gender only where the relationship does not already imply it, age
+   *  as a number rather than a regex on a sentence. */
+  gender: z.enum(['him', 'her', 'unspecified']).default('unspecified'),
+  age: z.number().int().min(1).max(110).nullable().optional(),
+  /** The one free-text field worth keeping: "he's had the same shed
+   *  since 1998" is where the best cards have always come from. */
+  detail: z.string().max(200).optional(),
   /** Character ladder — see quirkyDna(). */
   characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
 });
@@ -451,7 +461,7 @@ ${profile.brief}\n`;
 
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
 ${cheekBlock}${occasionBlock}
-You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
+You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return FOUR concepts as JSON — all four about THAT ONE THING, as four genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the four must differ in angle, composition AND colour — never four drafts of one idea.
 
 MINE THE SUBJECT FIRST — do this internally before writing:
 List the world of that interest: its objects and kit, its rituals, its jargon and catchphrases, its colours, its sounds, its clichés, the moment its fans love most. The best cards come from the SPECIFIC corners of that world, not its most obvious symbol. (Fishing is not only a fish: it is tackle boxes, dawn flasks, the one that got away, sitting in silence for nine hours and calling it relaxing.)
@@ -477,8 +487,8 @@ IF THE SUBJECT IS A FICTIONAL WORLD, FRANCHISE, BAND OR TEAM, THE WORDS DO THE H
   Mine that world's OWN VOCABULARY, which is where a property is unmistakable without reproducing anything: its invented words, its famous single lines, the phrases that got out into ordinary speech. Words are the safe half of a franchise; artwork is the risky half — and happily the famous layer of any world is mostly WORDS, while the deep cuts are mostly objects, so aiming at what everyone knows keeps us legal and keeps the buyer with us at the same time.
   IF THE WORLD HAS ONE FAMOUS WORD, THAT WORD MUST DO THE WORK, NEVER SIT AS FILLER. Observed failure: "Wand-erful Sister, Always Charming" for a Harry Potter fan. It contains "Always" — the single most quoted word in those books — and wastes it as an ordinary adverb, while "wand-erful" and "charming" describe generic witchcraft that would suit any witch card ever printed. The card that should have been written was built on "Always".
 
-THE THREE ANGLES — one card each, in this order.
-⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF THREE FLAVOURS. All three cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are three different WAYS TO DELIVER that turn; they are not "one funny card and two straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
+THE FOUR CARDS — one each, in this order. A shop racks four so the buyer has a real choice, and the fourth is a genuinely different KIND of card, not a fourth variation.
+⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF FOUR FLAVOURS. All four cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are four different WAYS TO DELIVER that turn; they are not "one funny card and three straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
 1. WORDPLAY — the turn is in the LANGUAGE. A pun or a twist on a phrase from that world's own vocabulary. Must pass the pub test.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
 3. PROUD — the turn is in the DISPROPORTION: total, straight-faced seriousness about something gloriously SMALL. The respect is real; the thing being respected is trivial. That is the whole joke, and it lives in WHAT you take seriously, never in how grandly you say it.
@@ -491,6 +501,7 @@ THE THREE ANGLES — one card each, in this order.
      • THE BACKHANDED HONOUR — genuine respect and taking the mickey in the same breath.
    ⚠️ Build the line from THEIR world, not from this list. The shapes tell you the grammar; every noun, number and detail must come from the subject you were given.
    Test it: could you say this line out loud to them, in a pub, without sounding like you were presenting a trophy? If not, rewrite it.
+4. LONGFORM — the turn takes a whole SENTENCE, and the sentence IS the card. No picture will help it: this one is always set as text-only, so the writing has to carry everything. Up to 20 words, where the other three are capped at 8. This is a real and well-selling genre — the card someone reads out loud in the shop, the observation too good to cut down, the fake advice, the mock warning, the sentence that turns hard at the end. USE THE LENGTH: a long line that is just a short line padded out has failed. The last few words should land the turn, so it pays off on the read.
 
 WRITE WIDE, THEN SHORTLIST: draft at least SIX candidate lines per angle, then be a ruthless editor. A line SURVIVES only if it passes ALL of:
    - THE PUB TEST: said aloud to a friend, it lands instantly — no explanation, no "get it?". If a pun needs unpacking, it is DEAD.
@@ -507,10 +518,10 @@ WRITE WIDE, THEN SHORTLIST: draft at least SIX candidate lines per angle, then b
 The three candidates for an angle must all be DIFFERENT ROUTES to that angle's turn, not one line reworded three ways — and every one of them must work with THAT SAME CARD'S artwork, because the picture is already decided by art_direction. A clean deadpan ALWAYS beats a strained pun.
 
 Each returned concept:
-- angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
-- format: one of "statement", "hero", "pattern", "label", "typeled" — composition recipes. THE SET MUST SPAN THE RANGE: exactly one minimal card ("statement" — or "typeled", see below), one "hero" (balanced), one "pattern" or "label" (dense). Pair each with whichever angle it flatters — the deadpan line usually suits statement.
-  "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so USE IT WHEN TOLD TO. ⚠️ MEASURED: left to its own judgement the writer picks one and repeats it — typeled took the minimal slot in 7 sets out of 7, then after a nudge "statement" took it in 7 out of 7. Neither is a shop. THE MINIMAL SLOT IS THEREFORE ASSIGNED PER SET, in the line below; obey it. When told "typeled", the minimal card carries no illustration at all and its line must be your strongest. When told "statement", it is a beautiful object with room around it. When you pick it, that line has to be your best one, and art_direction describes the ground colour and the typographic treatment instead of a motif. Never more than one typeled card per set.
-- front_candidates: an array of EXACTLY THREE surviving lines for this angle, strongest first. Each one MAXIMUM 8 words. Each must CONNECT to the picture — words and motif complete each other — and each must SET WELL as display type: breaking naturally into 2-3 short stacked lines, avoiding words longer than 10 letters, since very long words in big type are where lettering goes wrong. Where two lines are equally good, prefer the one with shorter words.
+- angle: "wordplay", "deadpan", "proud" or "longform" — one of each, FOUR concepts in that order.
+- format: one of "statement", "hero", "pattern", "label", "typeled". THE SET MUST SPAN ALL FOUR DENSITIES, one card each: "statement" (minimal — one motif, lots of air), "hero" (balanced — one object huge), "pattern" or "label" (dense), and "typeled" (text-only) which ALWAYS goes to the longform card and never to any other. Pair the first three with whichever angle flatters them — the deadpan line usually suits statement.
+  "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so it now has a permanent home: the LONGFORM card is always typeled, and no other card ever is. ⚠️ HISTORY, so this is not re-litigated: when the writer chose freely, typeled took the minimal slot in 7 sets out of 7 and "statement" vanished; nudged the other way, statement took it 7 out of 7. Tying it to one angle ends the swing and means every set ships both a minimal illustrated card AND a text-only one. When you pick it, that line has to be your best one, and art_direction describes the ground colour and the typographic treatment instead of a motif. Never more than one typeled card per set.
+- front_candidates: an array of EXACTLY THREE surviving lines for this angle, strongest first. MAXIMUM 8 words each — EXCEPT the longform card, where the cap is 20 words and a full sentence is the point. Each must CONNECT to the picture — words and motif complete each other — and each must SET WELL as display type: breaking naturally into 2-3 short stacked lines, avoiding words longer than 10 letters, since very long words in big type are where lettering goes wrong. Where two lines are equally good, prefer the one with shorter words.
 - inside_text: MAXIMUM 28 words. Lands the affection, may extend the joke, warm enough to sign. Never restates the front.
 - art_direction: one sentence — the MOTIF and how it sits in the chosen format. Where the OCCASION has a world of its own, let it inflect this: its season, its light, one of its objects folded into the interest's own kit, or its number worked into the scene. Never a generic occasion prop (balloons, cake, a wrapped present, a tree) dropped next to the real subject. ${characters === 'objects'
     ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'
@@ -518,13 +529,13 @@ Each returned concept:
         ? 'A characterful ANIMAL, or a HUMAN FIGURE as a graphic silhouette (from behind, cropped, small in frame, faceless — never a portrait, never detailed features, never a recognisable real individual), is PERMITTED'
         : 'A characterful ANIMAL is PERMITTED (never humans or human faces)'} but is a CEILING, not an instruction.
     AT MOST ONE of the three cards may use a character, and only if it passes this test: does this subject's OWN WORLD naturally contain that creature or person? A dog-lover's world contains a dog. A Sunday league team contains players. A BAND'S WORLD DOES NOT CONTAIN KANGAROOS — inventing a mascot to satisfy a permission is the failure to avoid ("Wonderwallabies" for Oasis: the pun exists only because an animal was forced in, and the card says nothing about the band).
-    If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE THREE CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
+    If the subject's world contains no creature or person naturally, all three cards are objects. That is a good outcome, not a limitation — the single best Oasis card was a cassette labelled "Oasis Mix".`} THE FOUR CARDS MUST SHOW DIFFERENT CORNERS OF THE WORLD — not the same object three times (fishing: a tackle box of lures / a lone flask at dawn / a wall of floats — not three fish).
   ⚠️ NEVER NAME SOMEONE ELSE'S PROPERTY IN THIS BRIEF. We print and sell these cards, so an art brief that asks for an invented artefact is asking us to manufacture merchandise. Do not write the name of any object, creature, vehicle, weapon, building, costume, logo, crest or badge that exists only inside a film, book, game, brand or club. Observed failures on Harry Potter and Star Wars briefs: "a Golden Snitch, Quaffle and Bludger", "the Marauder's Map", "a mug with a lightsaber handle", "small screens showing iconic scenes". Every one of those is merchandise.
   Ask instead for the ORDINARY objects that world is full of, which anyone could own and nobody owns the rights to: a striped scarf in two colours, an owl, a stack of battered spellbooks, a candle stub, a brass key, a train ticket, a starfield, a desert horizon, a worn paperback, a takeaway coffee. The PALETTE and the words carry the reference. If you cannot describe the picture without naming a protected thing, choose a different corner of that world.
 - palette: you are the art director. Name the GROUND colour first, then exactly THREE inks (four only if one truly earns it), and say which single ink is the ACCENT — the hot one, held back to under 10% of the card. Draw them all from that world. ⚠️ NEVER NAME GREY, SILVER, CHROME, GOLD, METALLIC OR WHITE AS AN INK. They are not colours, and naming one invites a rendered metal object with 3D shading, which breaks the flat-print style outright — a palette that said "skyscraper silver" produced a photorealistic chrome fishing reel. Metal objects are drawn FLAT in the palette's real colours: a reel is rust and cream, not silver. Every ink you name must be a colour someone could squeeze out of a tube.
 START FROM THE SUBJECT'S OWN COLOURS. If that world owns a colour, use it — a United card wants red, a New York card wants cab yellow, a fishing card can want deep river green. Wasting a subject's signature colour on a beige card is the commonest way these come out mundane.
-GROUNDS MUST SPAN THE SET, and they must span it UPWARDS: AT LEAST ONE of the three takes a deep saturated ground, AT MOST ONE takes a pale neutral (bone, oat, chalk, clay, greige, putty, stone), and the third goes wherever the subject leads — often a strong mid-tone. ⚠️ SATURATED DOES NOT MEAN DARK: raspberry, coral, marigold, peacock, plum, cornflower and rich pink are every bit as saturated as ink blue, oxblood, forest, terracotta, bottle green and aubergine. The dark half of that range kept being chosen by habit and the whole shop drifted masculine — pick the half the RECIPIENT belongs to, and when nothing about them says moody, default to the warm, alive half. THREE PALE GROUNDS IS A FAILED SET, and so is a pale ground on a subject famous for a colour. Where a card does take a pale ground, its motif must carry saturated ink so the card still has something to look at. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family. Where the OCCASION carries its own colour temperature — Christmas cold and candlelit, a summer wedding bleached and bright, a retirement golden-hour — let it pull the palette without erasing the subject's own colours.
-- typeface: you are also the typographer. In under fifteen words, name the LETTERING PERSONALITY this particular card should wear and why it fits — e.g. "condensed poster gothic, terrace-chant energy", "sign-painter's brush script, seaside pub", "high-contrast Didone, cocktail-hour glamour", "chunky slab, workwear and tackle boxes", "groovy 70s revival with swollen curves". Choose from the subject, the angle AND the recipient, not from habit: a deadpan card usually wants restraint, a proud card can carry a grand display face, a wordplay card can be playful — and the recipient tunes the warmth: a nan's card leans soft and generous, a mate's can go loud, and the workwear-slab-and-poster-gothic end of the menu is for when the person genuinely suits it, not the default reach. THE THREE CARDS MUST NOT SHARE A TYPEFACE PERSONALITY — a set where all three wear the same clean sans is a set that has wasted two thirds of its range. Greeting cards are eclectic; make them so.
+GROUNDS MUST SPAN THE SET, and they must span it UPWARDS: AT LEAST ONE of the four takes a deep saturated ground, AT MOST TWO take a pale neutral (bone, oat, chalk, clay, greige, putty, stone), and the third goes wherever the subject leads — often a strong mid-tone. ⚠️ SATURATED DOES NOT MEAN DARK: raspberry, coral, marigold, peacock, plum, cornflower and rich pink are every bit as saturated as ink blue, oxblood, forest, terracotta, bottle green and aubergine. The dark half of that range kept being chosen by habit and the whole shop drifted masculine — pick the half the RECIPIENT belongs to, and when nothing about them says moody, default to the warm, alive half. THREE OR MORE PALE GROUNDS IS A FAILED SET, and so is a pale ground on a subject famous for a colour. Where a card does take a pale ground, its motif must carry saturated ink so the card still has something to look at. All three come from ONE subject, so distinguish them by MOOD: e.g. dawn-muted, midday-bright, dusk-rich. No two cards sharing a colour family. Where the OCCASION carries its own colour temperature — Christmas cold and candlelit, a summer wedding bleached and bright, a retirement golden-hour — let it pull the palette without erasing the subject's own colours.
+- typeface: you are also the typographer. In under fifteen words, name the LETTERING PERSONALITY this particular card should wear and why it fits — e.g. "condensed poster gothic, terrace-chant energy", "sign-painter's brush script, seaside pub", "high-contrast Didone, cocktail-hour glamour", "chunky slab, workwear and tackle boxes", "groovy 70s revival with swollen curves". Choose from the subject, the angle AND the recipient, not from habit: a deadpan card usually wants restraint, a proud card can carry a grand display face, a wordplay card can be playful — and the recipient tunes the warmth: a nan's card leans soft and generous, a mate's can go loud, and the workwear-slab-and-poster-gothic end of the menu is for when the person genuinely suits it, not the default reach. THE FOUR CARDS MUST NOT SHARE A TYPEFACE PERSONALITY — a set where all three wear the same clean sans is a set that has wasted two thirds of its range. Greeting cards are eclectic; make them so.
 
 RULES:
 ${cheeky
@@ -540,9 +551,9 @@ ${cheeky
   The occasion is NEVER a substitute for having something to say about them. If you find yourself adding it because the line felt thin, the line is thin — fix the line. And do not let all three cards lean on it: a set where every front says "birthday" is a monotonous set, whatever the artwork does.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: ${cheeky ? 'FIRST count how many of your three cards carry genuine cheek on the front. If it is fewer than two, go back and make them ruder before you do anything else — this is the single commonest way this brief gets failed. Then ' : ''}read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR bolts the occasion onto the end of a line that had already finished (thumb-test it: cover the occasion clause, and if the rest is unharmed the clause is filler). Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
+FINAL CHECK — do this LAST, immediately before returning: ${cheeky ? 'FIRST count how many of your four cards carry genuine cheek on the front. If it is fewer than two, go back and make them ruder before you do anything else — this is the single commonest way this brief gets failed. Then ' : ''}read all TWELVE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR bolts the occasion onto the end of a line that had already finished (thumb-test it: cover the occasion clause, and if the rest is unharmed the clause is filler). Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
 
-Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes, and three candidate lines inside each.`;
+Return JSON: {"concepts":[{...},{...},{...},{...}]} — one subject, FOUR angles, four formats, four palettes, and three candidate lines inside each.`;
 }
 
 /** SERIOUS MODE — the writer for humour-off occasions (sympathy today;
@@ -642,7 +653,7 @@ Asterisk-masked swearing ("f***", "s***") is the HOUSE STYLE for the strongest w
 The limits still hold: nothing using slurs, nothing about race, sexuality, religion or disability, nothing sexual beyond seaside-postcard innuendo, nothing cruel about age, weight, illness or death. Reject on those grounds and only those grounds; "a bit much" is not a reason when a bit much is the order.\n`
     : '';
 
-  return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three card concepts written by someone else. Each concept has its artwork already decided, and a SHORTLIST OF THREE candidate front lines. Your ONLY loyalty is to the person who will receive the card.
+  return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and FOUR card concepts written by someone else. Each concept has its artwork already decided, and a SHORTLIST OF THREE candidate front lines. Your ONLY loyalty is to the person who will receive the card.
 ${cheekBlock}
 THE OCCASION BRIEF — the buyer's mindset for this occasion; judge every line against it: ${profile.brief}
 
@@ -667,16 +678,16 @@ Judge every candidate line, and the inside_text, against these, in order:
 
 HOW TO CHOOSE between three candidates that all pass: take the one with the STRONGEST TURN — the biggest double-take for the least effort from the reader. Where two are equally sharp, prefer the more SPECIFIC to this person's world, then the shorter. Never pick a line just because it is safest; a safe line is a dry line wearing a coat.
 
-For each of the three concepts return:
+For each of the four concepts return:
 - chosen_index: 0, 1 or 2 — which candidate from that concept's shortlist you picked. Use this whenever any candidate is usable.
 - verdict: "pick" when you chose one of the three; "fix" ONLY when all three are dry and you are writing a replacement.
 - reason: one short clause. When picking, say what won it ("strongest turn, most specific"). When fixing, name what was wrong with all three.
 - front_text: the exact text of the candidate you chose, copied verbatim. If and only if verdict is "fix", your own replacement instead (same angle, must fit the described artwork, max 8 words, must have a nameable turn, must not use a banned formula).
 - inside_text: the original if it works; a rewrite if it does not (max 28 words; "" if the original was "").
 
-Be genuinely hard on the shortlist, but remember that choosing is the job. Rewriting all three concepts means you have ignored nine lines someone else already filtered — if you are reaching for "fix" more than once in a set, you are marking your own taste rather than editing.
+Be genuinely hard on the shortlist, but remember that choosing is the job. Rewriting all four concepts means you have ignored twelve lines someone else already filtered — if you are reaching for "fix" more than once in a set, you are marking your own taste rather than editing.
 
-Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
+Return JSON: {"cards":[{...},{...},{...},{...}]} in the same order you were given.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -853,7 +864,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // rather than read from the static profile table.
     const classified = classifyOccasion(body.occasion);
     const occProfile = classified.key === 'birthday'
-      ? birthdayProfile(body.tone, statedAge(body.occasion))
+      ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
       : classified;
     const serious = occProfile.humour === 'off';
     const effectiveCheeky = body.cheeky && !serious;
@@ -861,16 +872,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
       ? seriousConceptSystemPrompt(occProfile)
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile);
 
-    // Which format takes the minimal slot is decided HERE, not by the
-    // writer — left to judgement it locks onto one and every set in the
-    // catalogue comes out identically shaped. Roughly a third text-only
-    // matches how a real rack reads.
-    const minimalSlot = Math.random() < 0.35 ? 'typeled' : 'statement';
-
     const briefLines = [
       `Recipient: ${body.who}`,
+      body.gender !== 'unspecified' ? `Recipient gender: ${body.gender === 'him' ? 'male' : 'female'} — let it tune palette and type warmth only, never the joke` : '',
+      body.age ? `Recipient age: ${body.age}` : '',
+      body.detail?.trim() ? `Something about them: ${body.detail.trim()} — this is gold, use it` : '',
       `Occasion: ${body.occasion}`,
-      `MINIMAL SLOT FOR THIS SET: ${minimalSlot} (assigned — use exactly this format for the minimal card)`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
@@ -883,7 +890,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const completion = await openai.chat.completions.create({
         // Nine candidate lines instead of three — 700 truncated the JSON
         // and the whole set failed to parse, hence the generous cap.
-        ...conceptParams(1400, 0.7),
+        ...conceptParams(2000, 0.7),
         messages: [
           { role: 'system', content: writerPrompt() },
           { role: 'user', content: briefLines.join('\n') },
@@ -891,7 +898,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
         response_format: { type: 'json_object' },
       });
       const parsed = JSON.parse(completion.choices[0]?.message?.content ?? '{}');
-      let concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, 3);
+      // Four cards on a celebration (the fourth is the longform
+      // text-only one); serious occasions stay at three registers of
+      // comfort — a long witty sentence has no place on a condolence card.
+      const expectedCards = serious ? 3 : 4;
+      let concepts: CardConcept[] = (parsed.concepts ?? []).slice(0, expectedCards);
 
       // The ban list is enforced in CODE, not hope — two prompt passes
       // still leaked "vibes". One corrective retry naming the offenders;
@@ -990,7 +1001,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const wiped = concepts.filter(isThin);
       if (wiped.length > 0 || cheekShort) {
         const retry = await openai.chat.completions.create({
-          ...conceptParams(1400, 0.5),
+          ...conceptParams(2000, 0.5),
           messages: [
             { role: 'system', content: writerPrompt() },
             { role: 'user', content: briefLines.join('\n') },
@@ -1001,8 +1012,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         });
         try {
           const reparsed = JSON.parse(retry.choices[0]?.message?.content ?? '{}');
-          const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, 3);
-          if (fixed.length === 3) concepts = cleanse(fixed);
+          const fixed: CardConcept[] = (reparsed.concepts ?? []).slice(0, expectedCards);
+          if (fixed.length === expectedCards) concepts = cleanse(fixed);
         } catch { /* keep originals */ }
         const still = concepts.filter(isThin);
         if (still.length) console.warn('[CARD-LAB] shortlists still thin after retry:', still.map((c) => c.angle));
@@ -1022,10 +1033,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
           completion.usage?.completion_tokens ?? 0,
         ),
         durationMs: Date.now() - startedAt,
-        success: concepts.length === 3,
+        success: concepts.length === expectedCards,
       });
 
-      if (concepts.length !== 3) {
+      if (concepts.length !== expectedCards) {
         return res.status(502).json({ message: 'Concept generation came back malformed — try again' });
       }
 
@@ -1038,7 +1049,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const notes: Array<{ index: number; kind: 'pick' | 'rewrite'; reason: string; was: string }> = [];
       try {
         const review = await openai.chat.completions.create({
-          ...conceptParams(900, 0.4),
+          ...conceptParams(1200, 0.4),
           messages: [
             { role: 'system', content: serious ? seriousJudgeSystemPrompt(occProfile) : judgeSystemPrompt(effectiveCheeky, occProfile) },
             {
@@ -1063,7 +1074,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           response_format: { type: 'json_object' },
         });
         const verdicts = JSON.parse(review.choices[0]?.message?.content ?? '{}').cards ?? [];
-        if (verdicts.length === 3) {
+        if (verdicts.length === expectedCards) {
           judged = concepts.map((c, i) => {
             const v = verdicts[i] ?? {};
             const shortlist = shortlistOf(c);

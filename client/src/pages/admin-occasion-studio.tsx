@@ -42,6 +42,26 @@ import { useToast } from '@/hooks/use-toast';
 type Tone = 'funny' | 'warm' | 'cheeky';
 const TONES: Tone[] = ['funny', 'warm', 'cheeky'];
 
+/** Bounded relationships (Aidan 2026-08-17). Free text made register,
+ *  gender and age into prose a model had to guess at; chips make them
+ *  data — which is also what lets them be rack axes and SEO doors.
+ *  `implies` carries the gender where the word already says it, so the
+ *  buyer is only asked when it is genuinely ambiguous. */
+const RELATIONSHIPS: Array<{ label: string; implies?: 'him' | 'her' }> = [
+  { label: 'Mum', implies: 'her' },
+  { label: 'Dad', implies: 'him' },
+  { label: 'Nan', implies: 'her' },
+  { label: 'Grandad', implies: 'him' },
+  { label: 'Sister', implies: 'her' },
+  { label: 'Brother', implies: 'him' },
+  { label: 'Daughter', implies: 'her' },
+  { label: 'Son', implies: 'him' },
+  { label: 'Partner' },
+  { label: 'Best mate' },
+  { label: 'Friend' },
+  { label: 'Colleague' },
+];
+
 /** The bands from DESIGN_BIRTHDAY_WORLD.md. "Ageless" is a real rack
  *  slot, not missing data — plenty of birthday cards state no age. */
 const BANDS = [
@@ -87,6 +107,9 @@ export default function AdminOccasionStudioPage() {
   const [world, setWorld] = useState(WORLDS[0]);
   const [stats, setStats] = useState<BuildStat[]>([]);
   const [who, setWho] = useState('Dad');
+  const [gender, setGender] = useState<'him' | 'her' | 'unspecified'>('unspecified');
+  const [ageInput, setAgeInput] = useState('');
+  const [detail, setDetail] = useState('');
   const [occasion, setOccasion] = useState('Birthday');
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
@@ -122,7 +145,10 @@ export default function AdminOccasionStudioPage() {
     return grid;
   }, [rack]);
 
-  const age = readAge(occasion);
+  const typedAge = ageInput.trim() ? Number(ageInput.trim()) : NaN;
+  const age = Number.isInteger(typedAge) && typedAge >= 1 && typedAge <= 110 ? typedAge : readAge(occasion);
+  const rel = RELATIONSHIPS.find((r) => r.label === who);
+  const effectiveGender = rel?.implies ?? gender;
 
   const generate = async () => {
     if (thinking) return;
@@ -135,6 +161,7 @@ export default function AdminOccasionStudioPage() {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, interest, tone, cheeky, insideMode: 'auto', characters: 'objects',
+        gender: effectiveGender, age, detail: detail.trim() || undefined,
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
       setCells(concepts.map((c) => ({ concept: c })));
@@ -218,21 +245,52 @@ export default function AdminOccasionStudioPage() {
       {/* THE BRIEF — one row, because this is a production line */}
       <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-5">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="who" className="text-xs font-semibold text-stone-700">Who it's for</Label>
-            <Input id="who" value={who} onChange={(e) => setWho(e.target.value)} className="mt-1.5" placeholder="Dad, my sister Kate…" />
+          <div className="sm:col-span-3">
+            <Label className="text-xs font-semibold text-stone-700">Who it's for</Label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {RELATIONSHIPS.map((r) => (
+                <button key={r.label} type="button" onClick={() => setWho(r.label)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    who === r.label ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                    : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            {/* Only asked when the relationship does not already say it. */}
+            {!rel?.implies && (
+              <div className="mt-2 flex items-center gap-1.5">
+                <span className="text-[11px] text-stone-400">for a…</span>
+                {(['him', 'her', 'unspecified'] as const).map((g) => (
+                  <button key={g} type="button" onClick={() => setGender(g)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                      gender === g ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                   : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                    {g === 'unspecified' ? 'not saying' : g}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
-            <Label htmlFor="occ" className="text-xs font-semibold text-stone-700">
-              Birthday <span className="font-normal text-stone-400">— add an age to unlock the number</span>
+            <Label htmlFor="age" className="text-xs font-semibold text-stone-700">
+              Age <span className="font-normal text-stone-400">— optional, unlocks the number</span>
             </Label>
-            <Input id="occ" value={occasion} onChange={(e) => setOccasion(e.target.value)} className="mt-1.5" placeholder="60th Birthday" />
+            <Input id="age" inputMode="numeric" value={ageInput} onChange={(e) => setAgeInput(e.target.value.replace(/\D/g, ''))}
+              className="mt-1.5" placeholder="60" />
           </div>
           <div>
             <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love</Label>
             <Input id="int" value={interest} onChange={(e) => setInterest(e.target.value)} className="mt-1.5"
               placeholder="fishing / her allotment"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
+          </div>
+          <div>
+            <Label htmlFor="detail" className="text-xs font-semibold text-stone-700">
+              Anything else <span className="font-normal text-stone-400">— optional, gold</span>
+            </Label>
+            <Input id="detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="mt-1.5"
+              placeholder="same shed since 1998" />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -253,14 +311,14 @@ export default function AdminOccasionStudioPage() {
           <span className="text-xs text-stone-400">{age !== null ? `age ${age} — band cards on` : 'no age — ageless card'}</span>
           <Button onClick={generate} disabled={thinking} className="ml-auto h-10">
             {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Make three
+            Make four
           </Button>
         </div>
       </div>
 
       {/* THE THREE — save straight off the grid */}
       {cells.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {cells.map((c, i) => (
             <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="aspect-square bg-stone-50">
