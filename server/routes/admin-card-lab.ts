@@ -170,6 +170,111 @@ export function namedArtefacts(brief: string | undefined): string[] {
   return hits;
 }
 
+// ── THE OCCASION BRAIN (Aidan 2026-08-17, SCOPE_OCCASION_INTELLIGENCE) ──
+// Every occasion carries its own buyer mindset, and the engine was
+// treating them all as "birthday with different words". One profile per
+// occasion, injected into writer AND judge the way `cheeky` already is.
+// NOT 21 engines: the machinery is untouched, the profile just aims it.
+//
+// `humour: 'off'` is the field that matters most. A joke on a sympathy
+// card is the single worst card we could print, and without this switch
+// the turn test DEMANDS one. Serious occasions swap to a dedicated
+// writer/judge prompt pair rather than threading conditions through the
+// joke-optimised one — the requirements genuinely differ, sharing 80%
+// of a comedy prompt would be worse.
+//
+// Briefs are constraints and grammar only — NO sample sentences, they
+// get copied verbatim (paid that lesson twice).
+export type HumourLevel = 'full' | 'gentle' | 'off';
+export interface OccasionProfile {
+  key: string;
+  humour: HumourLevel;
+  brief: string;
+}
+
+const PROFILE = (key: string, humour: HumourLevel, brief: string): OccasionProfile => ({ key, humour, brief });
+
+const OCCASION_PROFILES: Record<string, OccasionProfile> = {
+  sympathy: PROFILE('sympathy', 'off',
+    `Comfort. The reader has lost someone, and presence beats cleverness: plain, quiet, true words. ABSOLUTELY NO jokes, puns, wordplay, cheek or exclamation marks. No advice, no silver linings ("at least…"), no timelines ("time heals"), no assumed faith. The interest appears only as gentle solace — a quiet corner of their world, holding still. Soft, pale, muted palette; the ONE occasion where three quiet grounds is correct.`),
+  getwell: PROFILE('getwell', 'gentle',
+    `Lift the room without ever mocking the illness — NEVER joke about the body, the diagnosis or the hospital. The seam is their world WAITING for them: paused mid-action, kit ready, resuming soon. Fresh, light, hopeful palette, nothing clinical. Gentle wit only; cheek only if rude mode was explicitly ticked.`),
+  wedding: PROFILE('wedding', 'gentle',
+    `For the COUPLE — write to two people sharing one day, never just one of them. Joy and elegance over gags; wit welcome but light. Palette bleached, airy and celebratory — this occasion overrides the deep-ground habit, bright and warm reads right. Pairs and twos in the motifs. Never wedding-night innuendo, never in-law jokes.`),
+  anniversary: PROFILE('anniversary', 'gentle',
+    `From one half of a couple to the other — read WHO for direction and keep the register intimate, not matey. Shared history is the seam: the years number (only if the brief gives it) is gold, private rituals, the thing they still do together. Never soppy mush, and never jokes at the marriage's expense harsher than a fond nudge.`),
+  engagement: PROFILE('engagement', 'full',
+    `Excitement and the word YES. The ring is the obvious emblem — at most one card may nod to it, never all three. Champagne-bright palette welcome. The couple's shared world beats generic romance every time.`),
+  baby: PROFILE('baby', 'gentle',
+    `Tenderness, plus the one permitted joke seam: sleep deprivation and the beautiful chaos ahead. ONE BABY unless the brief says otherwise — never assume twins or numbers; an invented "double" is a factual claim about someone's pregnancy and an observed failure. Palette is soft mid-tones and warm creams — never the moody masculine default, and NEITHER pink NOR blue may lead any card's palette unless the brief states a gender: a gender-reveal brief is DELIBERATELY neutral, that is the entire point (a pale blue ground on a gender-reveal card is a failed card). Smallness is the visual seam — tiny things beside big things.`),
+  graduation: PROFILE('graduation', 'full',
+    `Pride in the achievement plus affectionate relief that it is finally over. Mine what they STUDIED or what comes next, not generic scrolls; mortarboard once per set at most. Bright, forward-looking palette.`),
+  christmas: PROFILE('christmas', 'full',
+    `The interest leads and Christmas inflects: frost, candlelight, deep greens and one hot red, AT MOST one festive object folded into the interest's own kit. BANNED: baubles, trees or tinsel stapled beside the subject — an observed repeat failure. Deep candlelit grounds are right here.`),
+  valentines: PROFILE('valentines', 'gentle',
+    `Romance with wit, private not public — the best line sounds like it could only pass between these two. Innuendo stays seaside-postcard unless rude mode. Red is welcome but not obligatory; an unexpected palette reads more personal than crimson.`),
+  thankyou: PROFILE('thankyou', 'gentle',
+    `Gratitude for a SPECIFIC act — mine what they actually did and name its world. Small, warm, sincere; wit stays light. Never gushing, never adjective-mush.`),
+  fathersday: PROFILE('fathersday', 'full',
+    `Affectionate mickey-take from child to dad. THE DAD JOKE IS THE GENRE: the groan-is-a-fail rule is SUSPENDED for this occasion only — a proper eye-roll groaner is on-brief, and at least one card should carry one. Mine dad-hood itself alongside the interest: the sacred chair, the thermostat, the shed. Warm ribbing, never contempt.`),
+  mothersday: PROFILE('mothersday', 'full',
+    `Warmth first, wit second — the mickey-taking dial sits well below Father's Day. Celebrate her through HER thing, never through chores or domestic clichés (no aprons unless baking genuinely is her thing). Palette warmer and lighter than the house default. "Mum", never "Mom".`),
+  newhome: PROFILE('newhome', 'full',
+    `Boxes, keys, paint charts, the first brew in an empty kitchen — the move's own world meets theirs. Fresh-start palette. Mortgage misery only as the lightest nudge.`),
+  newjob: PROFILE('newjob', 'full',
+    `Pride plus first-day nerves. If the brief names the new role, mine ITS world; otherwise the leap itself — the lanyard, the commute, the too-keen first email.`),
+  retirement: PROFILE('retirement', 'full',
+    `Freedom is the joke seam: the alarm clock retires too, weekdays become the new weekend, and the years number (if the brief gives one) is gold. Golden-hour warmth suits it. The joke is the FREEDOM, never age or decline.`),
+  goodluck: PROFILE('goodluck', 'full',
+    `Nerves and belief. The thing they are attempting IS the subject — mine its world hard. Bright, forward palette. Never a jinx joke about failing.`),
+  congratulations: PROFILE('congratulations', 'full',
+    `Find WHAT is being congratulated in the brief and mine that achievement's own world — the test passed, the thing finished. Generic confetti praise is the failure mode. If the brief doesn't say, celebrate them through the interest.`),
+  justbecause: PROFILE('justbecause', 'full',
+    `No occasion at all — the card itself is the gesture. The front is purely them and their thing; do not invent a reason or mention one. These read warmest of all precisely because nothing prompted them.`),
+  birthday: PROFILE('birthday', 'full',
+    `The buyer wants THIS person celebrated, not birthdays in general. A milestone age in the brief ("21st", "40th", "60th") is gold — the number belongs in the artwork, and the register shifts with it: early twenties wants energy and cheek, middle years wants knowing self-deprecation, later birthdays want warmth and pride. Never jokes about being old unless rude mode invites mild ribbing. BANNED PROPS: balloons, cake, candles, banners or wrapped presents beside the subject — an observed repeat failure.`),
+  celebration: PROFILE('celebration', 'full',
+    `A celebration without a named profile — read the typed occasion closely, mine ITS world (objects, colours, numbers, rituals) and let it inflect the palette and one motif. Any milestone number in it is gold and belongs in the artwork.`),
+};
+
+/** Order matters: sympathy is checked first (safety), and named occasions
+ *  beat the bare-ordinal birthday catch ("60th anniversary" must reach
+ *  anniversary, not birthday). Free text that matches nothing gets the
+ *  generic celebration profile — the writer already mines unknown
+ *  occasions' worlds; the profile just keeps the machinery aimed. */
+const OCCASION_MATCHERS: Array<[RegExp, string]> = [
+  [/sympath|condolen|bereave|loss of|passed away|passing|funeral|memorial|sorry for/i, 'sympathy'],
+  [/get well|recovery|recover|operation|hospital|feel better|poorly/i, 'getwell'],
+  [/father'?s day|fathers day/i, 'fathersday'],
+  [/mother'?s day|mothers day|mothering sunday/i, 'mothersday'],
+  // Anniversary BEFORE wedding: "ruby wedding anniversary" contains both
+  // words and is an anniversary — the couple married decades ago.
+  [/anniversary/i, 'anniversary'],
+  [/wedding|getting married|marry|marriage|big day/i, 'wedding'],
+  [/engage/i, 'engagement'],
+  [/baby|shower|gender reveal|christening|newborn|new arrival|expecting/i, 'baby'],
+  [/graduat|degree|university|masters|phd/i, 'graduation'],
+  [/christmas|xmas|festive/i, 'christmas'],
+  [/valentine/i, 'valentines'],
+  [/thank/i, 'thankyou'],
+  [/retire/i, 'retirement'],
+  [/new home|housewarming|new house|new flat|moving in|moved in/i, 'newhome'],
+  [/new job|promotion|first day/i, 'newjob'],
+  [/good luck|luck|fingers crossed/i, 'goodluck'],
+  [/just because|no reason/i, 'justbecause'],
+  [/birthday|bday|\b\d{1,3}(st|nd|rd|th)\b/i, 'birthday'],
+  [/congrat|passed|well done|proud of|exam|driving test/i, 'congratulations'],
+];
+
+export function classifyOccasion(text: string | undefined): OccasionProfile {
+  const t = (text ?? '').trim();
+  if (!t) return OCCASION_PROFILES.celebration;
+  for (const [pattern, key] of OCCASION_MATCHERS) {
+    if (pattern.test(t)) return OCCASION_PROFILES[key];
+  }
+  return OCCASION_PROFILES.celebration;
+}
+
 export const QUIRKY_FORMATS: Record<string, string> = {
   statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. THE NEGATIVE SPACE IS THE SUBJECT — at least 60% of the card is untouched ground, and it must feel deliberate, like a gallery wall, never like something is missing. ONE motif, beautifully drawn, ANCHORED: sitting on an implied baseline low in the frame, or held against one edge — never floating dead-centre in the middle of nowhere. ⚠️ BECAUSE THIS CARD IS MOSTLY EMPTY, THE MOTIF IS THE ONLY COLOUR EVENT ON IT — so it must be SATURATED and confident, carrying the palette's strongest ink at full strength. A muted or greyish object on a pale ground makes this card look washed out and unfinished, which is the one way the minimal card fails. Minimal means FEW elements, never WEAK colour. The type takes its own corner, flush-aligned, small and precise, at the opposite end of the card from the motif so the two hold the composition open between them — but kept well inside the safe margin, never crowded against the frame. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
   hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
@@ -226,7 +331,7 @@ interface CardConcept {
   typeface?: string;
 }
 
-function conceptSystemPrompt(characters: CharacterLevel, cheeky = false): string {
+function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration): string {
   // ⚠️ The cheek block is INJECTED AT THE TOP and written as an order, not
   // a permission. Buried at the bottom and phrased "allowed and
   // encouraged", it did nothing at all: a cheeky=true run produced "Ales
@@ -241,8 +346,13 @@ Keep it AFFECTIONATE — the recipient laughs, never winces; we are taking the m
 The "classy always" instruction below is SUSPENDED for the front lines while this mode is on — classy refers to the ARTWORK, which stays beautiful. Filthy words, gorgeous card.\n`
     : '';
 
+  // The occasion brief goes ABOVE the general machinery for the same
+  // reason the cheek block does: instructions at the top win.
+  const occasionBlock = `\nTHE OCCASION BRIEF — the buyer's mindset for this occasion. It AIMS everything below; where it conflicts with a general rule, the occasion brief wins:
+${profile.brief}\n`;
+
   return `You write QUIRKY greeting-card concepts for Celebrait — flat-illustrated, classy, visual-pun-led cards in the spirit of good independent card shops ("you are simply the zest" over lemons; "I love you from my head tomatoes" as a vintage seed packet).
-${cheekBlock}
+${cheekBlock}${occasionBlock}
 You are given who the card is for, the occasion, who it's from, and ONE thing the recipient loves. Return THREE concepts as JSON — all three about THAT ONE THING, as three genuinely different cards a good shop would rack side by side. The customer is choosing which EXECUTION they like, so the three must differ in angle, composition AND colour — never three drafts of one idea.
 
 MINE THE SUBJECT FIRST — do this internally before writing:
@@ -330,6 +440,73 @@ FINAL CHECK — do this LAST, immediately before returning: ${cheeky ? 'FIRST co
 Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes, and three candidate lines inside each.`;
 }
 
+/** SERIOUS MODE — the writer for humour-off occasions (sympathy today;
+ *  the profile decides, not this function). A separate prompt on
+ *  purpose: the Quirky writer is optimised end-to-end for jokes — turn
+ *  tests, cheek, disproportion — and threading "unless it's a sympathy
+ *  card" through ninety lines of comedy machinery is how a pun ends up
+ *  on a condolence card. Same JSON shape out, so the judge/selector,
+ *  ban floor, renderer and client need no changes. */
+function seriousConceptSystemPrompt(profile: OccasionProfile): string {
+  return `You write SINCERE cards for Celebrait — flat-illustrated, beautiful, quiet. This occasion is NOT a celebration and there are NO jokes on these cards: no puns, no wordplay, no wit, no cheek, no exclamation marks. Presence beats cleverness. If a line makes you smile at its craft, it is wrong for this card.
+
+THE OCCASION BRIEF:
+${profile.brief}
+
+You are given who the card is for, the occasion, and ONE thing the recipient loves. Return THREE concepts as JSON — three genuinely different registers of comfort, so the sender can choose how much to say:
+1. angle "comfort" — the plainest card. Very few words, completely direct. The card does the being-there.
+2. angle "warmth" — their loved thing as gentle solace: a quiet corner of their world, holding still, still theirs. The words acknowledge softly; the picture carries the tenderness.
+3. angle "strength" — quiet support facing forward. Steadiness, not encouragement; never brisk, never "onwards".
+
+EVERY LINE MUST PASS:
+- TRUE AND PLAIN: something a thoughtful friend would actually write by hand. Simple established phrases are fine here — sincerity beats novelty, this is the one card where familiar words help.
+- NO FALSE COMFORT: nothing that explains, fixes or hurries — no "at least", no "everything happens for a reason", no "time heals", no "they'd want you to", no assumed religion or afterlife unless the brief itself is religious.
+- NO PERFORMANCE: no poetry-voice, no grand abstractions ("the tapestry of life"), no addressing the person who died. The card speaks quietly to the LIVING person holding it.
+- MAXIMUM 8 words on the front. Shorter is almost always better here.
+
+Each returned concept:
+- angle: "comfort", "warmth" or "strength" — one of each, in that order.
+- format: "statement" for at least two of the three — this is the occasion for stillness and space. Never "pattern" or "label"; density reads as noise here.
+- front_candidates: EXACTLY THREE candidate lines, strongest first, each max 8 words, each passing every test above.
+- inside_text: MAXIMUM 24 words. Gentle, unhurried, no advice, no timelines. May simply continue the front's thought. "" only if asked.
+- art_direction: one sentence. Soft still-life only — a quiet corner of their loved thing's world at rest: NEVER humans, NEVER faces, NEVER religious symbols unless the brief asks, never occasion clichés (no lilies-and-doves kitsch unless genuinely earned). Stillness is the mood: things at rest, light low and kind.
+- palette: ground first, then TWO or THREE muted inks, accent named but barely used. Soft, pale, quiet throughout — three gentle grounds across the set is CORRECT for this occasion. No fluorescents, no hot accents, nothing loud. NEVER name silver, gold, grey, chrome, metallic or white as an ink — they are not colours, and naming one invites rendered metal into the artwork; every ink must be a colour from a tube.
+- typeface: a calm, humanist lettering personality in under fifteen words — gentle serif or soft script territory, never bold display, never playful.
+
+Return JSON: {"concepts":[{...},{...},{...}]}.`;
+}
+
+/** The serious judge: chooses from the shortlist like the Quirky judge,
+ *  but its loyalties are inverted — it hunts for accidental levity and
+ *  false comfort instead of dryness. Same response schema. */
+function seriousJudgeSystemPrompt(profile: OccasionProfile): string {
+  return `You are the editor for SINCERE cards at a good independent card shop. You are shown a brief and three concepts, each with artwork already decided and a SHORTLIST OF THREE candidate front lines. This is not a celebration; your loyalty is to a person going through something hard.
+
+THE OCCASION BRIEF:
+${profile.brief}
+
+YOUR JOB IS TO CHOOSE the single best candidate per concept. Only if ALL THREE fail may you write a replacement (same register, max 8 words, passing every test below).
+
+Judge every candidate, in order:
+1. NO LEVITY — any pun, wordplay, wit, cheek or exclamation mark is an INSTANT FAIL, however gentle it seems. A joke on this card is the worst thing this shop could print.
+2. NO FALSE COMFORT — "at least", "everything happens for a reason", "time heals", "in a better place", "they'd want you to", assumed faith: all FAIL. Nothing that explains, fixes or hurries.
+3. TRUE AND PLAIN — would a thoughtful friend write this by hand? Performance-poetry voice, grand abstractions and addressing the deceased all FAIL. Familiar, simple phrasing is a strength here, not a weakness.
+4. UK AUDIENCE — British English, British restraint. "Mum" never "Mom".
+5. FIT — matched to the relationship named in the brief. Warmer for family; steadier for a colleague.
+6. PICTURE — the words must sit rightly beside the described artwork's stillness.
+
+Between candidates that all pass, choose the QUIETEST one that still says enough.
+
+For each concept return:
+- chosen_index: 0, 1 or 2
+- verdict: "pick", or "fix" only when all three failed
+- reason: one short clause
+- front_text: the chosen candidate verbatim (or your replacement if "fix")
+- inside_text: the original if it works; a gentle rewrite if not (max 24 words)
+
+Return JSON: {"cards":[{...},{...},{...}]} in the order given.`;
+}
+
 /** THE JUDGE — a second, INDEPENDENT pass (Aidan 2026-08-15).
  *
  *  The writer already self-edits, but marking your own homework inside
@@ -349,7 +526,7 @@ Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, thr
  *
  *  ~£0.003 and ~3s. Cheap insurance on the thing that actually sells
  *  the card. */
-function judgeSystemPrompt(cheeky = false): string {
+function judgeSystemPrompt(cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration): string {
   // The editor never used to be told cheek had been ordered, which got
   // worse when it became the SELECTOR: faced with one rude line and two
   // polite ones it quietly took a polite one every time, and the toggle
@@ -362,6 +539,7 @@ The limits still hold: nothing using slurs, nothing about race, sexuality, relig
 
   return `You are a ruthless greeting-card editor at a good independent card shop. You are shown a brief and three card concepts written by someone else. Each concept has its artwork already decided, and a SHORTLIST OF THREE candidate front lines. Your ONLY loyalty is to the person who will receive the card.
 ${cheekBlock}
+THE OCCASION BRIEF — the buyer's mindset for this occasion; judge every line against it: ${profile.brief}
 
 YOUR JOB IS TO CHOOSE. For each concept, pick the single best candidate line from its shortlist. You are not looking for a line you would have written — you are looking for the strongest of the three in front of you. Only if ALL THREE are dry may you write a replacement yourself.
 
@@ -424,13 +602,23 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(400).json({ message: 'Invalid request' });
     }
 
+    // The occasion brain. Serious occasions swap the whole writer/judge
+    // pair, and rude mode is FORCED OFF for them — a ticked box from an
+    // earlier card must never carry cheek onto a sympathy card.
+    const occProfile = classifyOccasion(body.occasion);
+    const serious = occProfile.humour === 'off';
+    const effectiveCheeky = body.cheeky && !serious;
+    const writerPrompt = () => serious
+      ? seriousConceptSystemPrompt(occProfile)
+      : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile);
+
     const briefLines = [
       `Recipient: ${body.who}`,
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
       `insideMode=${body.insideMode}`,
-      `cheeky=${body.cheeky}`,
+      `cheeky=${effectiveCheeky}`,
       `characters=${body.characters}`,
     ].filter(Boolean);
 
@@ -441,7 +629,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
+          { role: 'system', content: writerPrompt() },
           { role: 'user', content: briefLines.join('\n') },
         ],
         response_format: { type: 'json_object' },
@@ -456,7 +644,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // The ban list is enforced in CODE, not hope — two prompt passes
       // still leaked "vibes". One corrective retry naming the offenders;
       // if that also fails we ship anyway (logged) rather than error.
-      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma)\b/i;
+      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma|diapers?)\b/i;
       // Title formulas. The proud angle kept collapsing into a job title —
       // "Master of the Martini", "Master of the Tackle Box", "The only
       // mixologist in the family" — and all three walked past the judge,
@@ -478,8 +666,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const GRAND_TITLES =
         'master|king|queen|lord|ruler|sovereign|monarch|emperor|empress|duke|duchess|prince|princess|baron|baroness|sultan|tsar|czar|pharaoh|overlord|chieftain|commander|conqueror|champion|captain|guardian|keeper|custodian|protector|defender|bringer|connoisseur|conjurer|wizard|sorcerer|maestro|virtuoso|supremo|grandmaster|mastermind|oracle|sage|guru|sensei|high priest|priestess|titan|deity|goddess';
       const BANNED_FORMULAS = new RegExp(
-        `\\b(${GRAND_TITLES}) of\\b` +               // "Sultan of Suds", "Sovereign of the Stream"
-        `|\\b(${GRAND_TITLES})\\b\\s*[:,]` +          // "Guardian: the Tackle Box"
+        // (e)?s? tolerates plurals — "Masters of the Double Recipe" walked
+        // straight past the singular version (occasion-brain gate run).
+        `\\b(${GRAND_TITLES})(e?s)? of\\b` +          // "Sultan of Suds", "Masters of the Double Recipe"
+        `|\\b(${GRAND_TITLES})(e?s)?\\b\\s*[:,]` +    // "Guardian: the Tackle Box"
         '|\\bextraordinaire\\b|\\broyalty\\b' +       // "Mixologist Extraordinaire", "Pub Quiz Royalty"
         // ⚠️ Invented biography. "Official sauce taster since 1985" is not
         // a weak card, it is a WRONG one — we have no idea when she started
@@ -540,7 +730,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const hasCheek = (c: CardConcept) => shortlistOf(c).some((t) => REAL_CHEEK.test(t));
 
       concepts = cleanse(concepts);
-      const cheekShort = body.cheeky && concepts.filter(hasCheek).length < 2;
+      const cheekShort = effectiveCheeky && concepts.filter(hasCheek).length < 2;
       if (cheekShort) {
         console.warn('[CARD-LAB] rude mode on but the set came back tame:',
           concepts.map((c) => shortlistOf(c)[0]));
@@ -550,7 +740,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: conceptSystemPrompt(body.characters, body.cheeky) },
+            { role: 'system', content: writerPrompt() },
             { role: 'user', content: briefLines.join('\n') },
             { role: 'assistant', content: completion.choices[0]?.message?.content ?? '' },
             { role: 'user', content: `${cheekShort ? `⚠️ RUDE MODE WAS ON AND YOU WROTE A TAME SET. Fewer than two of your three cards carry an actual swear word. "Bugger", "bloody", "sod", "git" and beer puns DO NOT COUNT — the customer ticked the rude box and these read as a polite card in fancy dress. Rewrite so at least TWO cards carry a real swear on the front, masked with asterisks for the strongest words (f***, s***) and printed in full for the mid-strength ones (bollocks, arse, twat, bellend, knobhead, bastard, piss). Keep it affectionate and keep every content limit you were given.\n\n` : ''}${wiped.length ? `Too many candidate lines were rejected for these angles: ${wiped.map((o) => o.angle).join(', ')} — you are left with fewer than two usable options, which is not a shortlist. Rejections come from banned words ("vibe(s)", "level up", "boss", "legend", "goals", "mode") or from the TITLE REFLEX: any "[grand noun] of ___" construction (Master, King, Queen, Lord, Sovereign, Sultan, Baron, Champion, Guardian, Keeper, Connoisseur and the rest), anything "Extraordinaire", anything "Royalty", "The only ___ in the family", "Born to ___", "Another year ___". Write a COMPLETELY FRESH shortlist of THREE lines for those angles only, leaving the other concepts untouched. Do not retry the same idea with a different grand noun — that is the failure. For a proud card, write what someone would actually SAY about them out loud: sole authority over one small thing, an absurd credential with a number in it, a house rule, a flat verdict, or respect and mickey-taking in one breath — built entirely from THIS subject's own world. Every line needs a TURN you could name in five words.` : ''} Return the complete corrected JSON.` },
@@ -600,7 +790,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const review = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
-            { role: 'system', content: judgeSystemPrompt(body.cheeky) },
+            { role: 'system', content: serious ? seriousJudgeSystemPrompt(occProfile) : judgeSystemPrompt(effectiveCheeky, occProfile) },
             {
               role: 'user',
               content: [
