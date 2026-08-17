@@ -34,10 +34,15 @@
 //   front stays clean and any edge lives inside.
 
 import type { Express, Request, Response } from 'express';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { cardTemplates, users } from '@shared/schema';
+import { publicImageUrl } from '../image-storage';
+import { isR2Enabled, r2Put } from '../r2-storage';
 import { openai } from '../utils/shared';
 import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
@@ -606,6 +611,83 @@ Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
 
 export function registerAdminCardLabRoutes(app: Express): void {
   // ── POST /api/admin/card-lab/concepts ────────────────────────────
+  // ── THE CATALOGUE (SCOPE_OCCASION_FIRST WS4) ─────────────────────
+  // Save-as-template: Aidan's testing keeps its gold. The image arrives
+  // as the Lab's data URL and is persisted to R2 (or local disk in dev)
+  // so the template survives tab, deploy and disk wipes; the row keeps
+  // the full recipe so a template can be re-rendered or sold with a
+  // personalised inside later.
+  app.post('/api/admin/card-templates', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      occasion: z.string().min(1).max(80),
+      angle: z.string().max(40).optional(),
+      recipient: z.string().max(120).optional(),
+      interest: z.string().max(200).optional(),
+      front_text: z.string().min(1).max(300),
+      inside_text: z.string().max(600).optional(),
+      palette: z.string().max(400).optional(),
+      typeface: z.string().max(300).optional(),
+      format: z.string().max(40).optional(),
+      art_direction: z.string().max(600).optional(),
+      imageUrl: z.string().startsWith('data:image/').max(8_000_000),
+    });
+    let body: z.infer<typeof schema>;
+    try {
+      body = schema.parse(req.body);
+    } catch {
+      return res.status(400).json({ message: 'Invalid template' });
+    }
+    try {
+      const buffer = Buffer.from(body.imageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      const filename = `template_${randomUUID()}.png`;
+      if (isR2Enabled()) {
+        await r2Put(filename, buffer, 'image/png');
+      } else {
+        await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
+      }
+      const [row] = await db.insert(cardTemplates).values({
+        occasion: body.occasion.toLowerCase(),
+        angle: body.angle ?? null,
+        recipient: body.recipient ?? null,
+        interest: body.interest ?? null,
+        front_text: body.front_text,
+        inside_text: body.inside_text ?? null,
+        palette: body.palette ?? null,
+        typeface: body.typeface ?? null,
+        format: body.format ?? null,
+        art_direction: body.art_direction ?? null,
+        image_path: filename,
+      }).returning();
+      res.json({ id: row.id, imageUrl: publicImageUrl(filename) });
+    } catch (err) {
+      console.error('[CARD-TEMPLATES] save failed:', err);
+      res.status(500).json({ message: 'Could not save the template' });
+    }
+  });
+
+  app.get('/api/admin/card-templates', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const occasion = typeof req.query.occasion === 'string' ? req.query.occasion.toLowerCase() : undefined;
+    const rows = occasion
+      ? await db.select().from(cardTemplates).where(eq(cardTemplates.occasion, occasion)).orderBy(desc(cardTemplates.id))
+      : await db.select().from(cardTemplates).orderBy(desc(cardTemplates.id));
+    res.json({
+      templates: rows.map((t) => ({ ...t, imageUrl: publicImageUrl(t.image_path) })),
+    });
+  });
+
+  // Curation needs a bin. The R2 object is left behind on purpose —
+  // orphan images are pennies, a botched delete of the wrong object is
+  // an unrecoverable template.
+  app.delete('/api/admin/card-templates/:id', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: 'Bad id' });
+    await db.delete(cardTemplates).where(eq(cardTemplates.id, id));
+    res.json({ ok: true });
+  });
+
   // ── GET /api/admin/card-lab/build ────────────────────────────────
   // Which build am I looking at? Added 2026-08-16 after an afternoon of
   // confusion: Aidan was testing on celebrait.co.uk (production, whatever

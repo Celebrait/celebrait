@@ -18,7 +18,7 @@
 // problems before any of it gets built for customers.
 
 import { useState, useEffect } from 'react';
-import { Loader2, RefreshCw, Sparkles, Type, PenLine, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, RefreshCw, Sparkles, Star, Type, PenLine, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -132,7 +132,7 @@ export default function AdminCardLabPage() {
       return;
     }
     setThinking(true);
-    setOptions([]); setChosen(null); setInsideUrl(null);
+    setOptions([]); setChosen(null); setInsideUrl(null); setSaved(false);
     setStep(2);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
@@ -150,9 +150,30 @@ export default function AdminCardLabPage() {
     } finally { setThinking(false); }
   };
 
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const saveTemplate = async () => {
+    if (chosen == null || !card?.imageUrl || saving) return;
+    setSaving(true);
+    try {
+      await apiRequest('POST', '/api/admin/card-templates', {
+        occasion, angle: card.concept.angle, recipient: who, interest,
+        front_text: card.concept.front_text, inside_text: card.concept.inside_text,
+        palette: card.concept.palette, typeface: card.concept.typeface,
+        format: card.concept.format, art_direction: card.concept.art_direction,
+        imageUrl: card.imageUrl,
+      });
+      setSaved(true);
+      toast({ title: 'Saved to the catalogue', description: 'It’s in Catalogue in the sidebar.' });
+    } catch (e: any) {
+      toast({ title: 'Could not save', description: e?.message ?? '', variant: 'destructive' });
+    } finally { setSaving(false); }
+  };
+
   /** Step 3 — same words, new artwork. */
   const rerollDesign = () => {
     if (chosen == null || !card) return;
+    setSaved(false);
     setOptions((prev) => prev.map((o, i) => i === chosen ? { ...o, rendering: true, imageUrl: undefined } : o));
     void renderOne(chosen, card.concept);
   };
@@ -160,6 +181,7 @@ export default function AdminCardLabPage() {
   /** Step 3 — same subject and angle, a brand new line. */
   const rerollText = async () => {
     if (chosen == null || !card || busy) return;
+    setSaved(false);
     setBusy(true);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
@@ -178,6 +200,7 @@ export default function AdminCardLabPage() {
   /** Step 3 — exact words. Routed by layout density server-side. */
   const applyTextEdit = async () => {
     if (chosen == null || !card?.imageUrl || !editText.trim()) return;
+    setSaved(false);
     setOptions((prev) => prev.map((o, i) => i === chosen ? { ...o, rendering: true } : o));
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/edit-text', {
@@ -386,6 +409,15 @@ export default function AdminCardLabPage() {
               )}
             </div>
             <div className="space-y-2">
+              {/* The catalogue in one click — SCOPE_OCCASION_FIRST WS4.
+                  A great test card used to die with the tab; now it seeds
+                  the occasion's rack. */}
+              <Button onClick={saveTemplate} disabled={card.rendering || !card.imageUrl || saving || saved}
+                className="w-full justify-start h-10">
+                <Star className={`w-4 h-4 mr-2 ${saving ? 'animate-spin' : ''}`} />
+                {saved ? 'Saved to the catalogue ✓' : 'Save to catalogue'}
+                {!saved && <span className="ml-1 text-xs opacity-70">— keep this design forever</span>}
+              </Button>
               <Button variant="outline" onClick={rerollDesign} disabled={card.rendering || busy} className="w-full justify-start h-10">
                 <RefreshCw className={`w-4 h-4 mr-2 ${card.rendering ? 'animate-spin' : ''}`} />
                 Re-roll the design <span className="ml-1 text-xs text-stone-400">— same words, new artwork</span>
