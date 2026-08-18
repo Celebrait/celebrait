@@ -470,7 +470,9 @@ export const QUIRKY_FORMATS: Record<string, string> = {
   statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. THE NEGATIVE SPACE IS THE SUBJECT — at least 60% of the card is untouched ground, and it must feel deliberate, like a gallery wall, never like something is missing. ONE motif, beautifully drawn, ANCHORED: sitting on an implied baseline low in the frame, or held against one edge — never floating dead-centre in the middle of nowhere. ⚠️ BECAUSE THIS CARD IS MOSTLY EMPTY, THE MOTIF IS THE ONLY COLOUR EVENT ON IT — so it must be SATURATED and confident, carrying the palette's strongest ink at full strength. A muted or greyish object on a pale ground makes this card look washed out and unfinished, which is the one way the minimal card fails. Minimal means FEW elements, never WEAK colour. The type takes its own corner, flush-aligned, small and precise, at the opposite end of the card from the motif so the two hold the composition open between them — but kept well inside the safe margin, never crowded against the frame. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
   hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
   pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges — an underlying grid with its rhythm BROKEN DELIBERATELY in one or two places (one motif turned, one scaled up, one in the odd colour) so it never reads as wallpaper. CRUCIALLY, RESERVE A CLEAN AREA FOR THE TYPE: a calm panel, band or generous clearing where the plain ground shows through and the words sit alone. Do NOT thread the lettering through the gaps between motifs — that is how a dense card turns to mush. Rich and full, but organised.`,
-  label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.`,
+  label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.
+⚠️ THIS FORMAT HAS ONE DEFAULT AND IT IS DULL: the Victorian apothecary / heraldic crest — dark green or oxblood ground, gold ornament, laurel wreaths, a ribbon banner, fussy engraved rules. Observed and rejected: "a woman of tremendous standards" set in gold small-caps on dark green with a wreath and a ribbon, which is the same card this format keeps making whatever the subject is. It reads antique and expensive-hotel, never modern, and it is instantly the least interesting card in a set.
+The brief says CRAFT-BEER LABEL and means it: contemporary, flat, confident, printed in this decade. Modern packaging, seed packets, a record sleeve, a tin of something good, a gig poster — colour doing the work, not gilt. If your label is reaching for a laurel, a scroll, a wax seal, a coat of arms or gold ornament, stop and rebuild it from the subject's own colours.`,
   typeled: `COMPOSITION — TYPE-LED (THE WORDS ARE THE ARTWORK): there is NO motif and NO illustration on this card — no objects, no scene, no border art. The words, set HUGE and with total confidence, ARE the entire design, and every design decision lives inside them: scale contrast between words (one word can be five times the size of its neighbours), the stack and its alignment, the accent ink landing on exactly the right word, letterforms with real personality per the TYPE line. The ground is one flat confident colour doing quiet work underneath. Permitted garnish, used sparingly if at all: an underline, an oversized piece of punctuation, a single typographic flourish drawn from the lettering itself — never a pictorial element. The craft bar is HIGHER here, not lower: with nothing else on the card, any weakness in the setting is the whole card. Think of the best text-only cards in a good shop — bought purely because the words and their setting were enough.
 ⚠️ AND A TYPE-LED CARD STILL HAS TO BELONG SOMEWHERE. With no motif to carry the subject, the GROUND COLOUR and the LETTERFORMS are the only things left holding it, so both must be drawn from that world and not from the poster-design default: the sea's own blues and a carved wooden letter for an island film, terrace red and a condensed chant gothic for a football card, faded seaside enamel for a caravan-holiday card. Cover the words with your thumb — if what remains is a handsome poster that could be about anything, this card has failed even though the line is good. Heavy generic sans on a flat bright ground is the specific trap, and it is where this format goes wrong every time it goes wrong.`,
 };
@@ -620,6 +622,8 @@ IF THE SUBJECT IS A FICTIONAL WORLD, FRANCHISE, BAND, TEAM OR SHOW, THE WORDS DO
 THE THREE CARDS — one each, in this order.
 ⚠️ QUIRK IS THE HOUSE VOICE, NOT ONE OF THREE FLAVOURS. All three cards must contain a TURN — a small moment that makes the reader do a double-take. The angles are three different WAYS TO DELIVER that turn; they are not "one funny card and two straight ones". A line with no turn is DRY, and dry is what makes a card feel like it came off a supermarket rack.
 1. WORDPLAY — the turn is in the LANGUAGE. A pun or a twist on a phrase from that world's own vocabulary. Must pass the pub test.
+  ⚠️ BOTH MEANINGS MUST BE ALIVE — this is what separates a pun from a homophone swap, and it is the commonest way this angle fails. A real pun means two true things at once: "simply the zest" works because zest is citrus AND enthusiasm, and both are on the card. Swapping a word for one that merely SOUNDS like it, while the swapped-in word means nothing here, is not wordplay — it is a spelling mistake with confidence.
+  Failed: "Making birthdays grate again" — nothing is being grated, nothing is grating, so "grate" carries no second sense and the line is just "great" misspelled. TEST: say what the second meaning IS, in plain words. If you cannot, the pun is dead.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
 3. PROUD — the turn is in the DISPROPORTION: total, straight-faced seriousness about something gloriously SMALL. The respect is real; the thing being respected is trivial. That is the whole joke, and it lives in WHAT you take seriously, never in how grandly you say it.
   SAY IT ABOUT THEM, NOT TO THEM — addressing the recipient or declaring a rule is where every collapse of this angle began. But say only what you KNOW: you know they LOVE this thing, so take THAT seriously on their behalf — the devotion, the standards the subject demands of anyone who cares, the enthusiasm the family expects. Never a life you imagined for them.
@@ -1083,7 +1087,19 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
     const briefLines = [
       `Recipient: ${body.who}`,
-      body.gender !== 'unspecified' ? `Recipient gender: ${body.gender === 'him' ? 'male' : 'female'} — let it tune palette and type warmth only, never the joke` : '',
+      // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
+      // real failure. "Never the joke" stops gendered stereotyping — a
+      // woman who fishes gets the same fishing world, not a pink rod —
+      // but read alone it says gender is irrelevant to the WORDS, which
+      // is how "A fully normal amount of gold for one man." ended up on
+      // a card for a woman (Aidan 2026-08-19: "I selected as 'she' so
+      // number 2 means nothing"). A gendered noun on a card is read as
+      // being about the RECIPIENT, whoever it was aimed at, because that
+      // is who the card is for. So: never the BASIS of the joke, and
+      // never CONTRADICTED either.
+      body.gender !== 'unspecified'
+        ? `Recipient gender: ${body.gender === 'him' ? 'male (he/him)' : 'female (she/her)'} — ⚠️ TWO RULES. (1) It tunes palette and type warmth, and is NEVER the basis of the joke: no jokes that only work because of their gender, no gendered hobby clichés. (2) But it must NEVER BE CONTRADICTED. Any gendered word on the front — man, woman, lad, lass, bloke, girl, he, she, his, her, king, queen, sir, madam — reads as being ABOUT this recipient, even when you meant it about the subject, because this is their card. Getting it wrong is a factual error on something we print and post. If a line needs a gendered word that is not theirs, rewrite it neutrally or aim it elsewhere.`
+        : '⚠️ NO GENDER STATED, so the cards must work for anyone: no gendered words on the front at all — no man/woman, lad/lass, bloke, girl, he/she/his/her, king/queen, sir/madam. Write it so it is true whoever opens it.',
       body.age ? `Recipient age: ${body.age}` : '',
       // ⚠️ BOTH OF THESE ARE FLOORS, NOT PERMISSIONS, and they read as
       // orders for the reason the cheek block does (see the note above
@@ -1180,7 +1196,17 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // The ban list is enforced in CODE, not hope — two prompt passes
       // still leaked "vibes". One corrective retry naming the offenders;
       // if that also fails we ship anyway (logged) rather than error.
-      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma|diapers?|legendary)\b/i;
+      // ⚠️ "STANDARDS" IS BANNED OUTRIGHT AS OF 2026-08-19, and the word
+      // rather than the phrasing, because targeting phrasings failed
+      // TWICE. First "held to X standards" / "X standards remain" were
+      // struck; it came back as "clear Hogwarts standards", then as "a
+      // woman of tremendous standards". Counted across one day it had
+      // appeared about eleven times — Peckham, Ibiza, Royle, Hogwarts,
+      // Gavin and Stacey, Away End, Monday, tremendous — always the same
+      // sentence with the noun swapped. Same lesson as the grand titles:
+      // when a SHAPE is the failure, banning instances just teaches it
+      // synonyms. There is always another way to say someone cares a lot.
+      const BANNED_WORDS = /\b(vibes?|level up|bossin?|legend|goals|beast mode|mode|mom|mommy|momma|diapers?|legendary|standards?)\b/i;
       // Title formulas. The proud angle kept collapsing into a job title —
       // "Master of the Martini", "Master of the Tackle Box", "The only
       // mixologist in the family" — and all three walked past the judge,
@@ -1226,19 +1252,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
         '|\\bborn to\\b' +
         '|\\b(of|at) the (perfect|ultimate|finest|greatest|best)\\b' +
         '|\\banother year\\b' +
-        // ⚠️ THE STANDARDS FORMULA — the proud angle's newest reflex, and
-        // the same disease as the grand titles: one SHAPE reused until
-        // every card wears it. Spotted 2026-08-18 by reading a whole
-        // day's runs side by side rather than one set at a time, which
-        // is the only way this kind of thing shows up — "a 40th held to
-        // chandelier standards", "held to proper Peckham standards",
-        // "her 25th has Ibiza standards", "held to Gavin and Stacey
-        // standards", "Royle standards", "the Peckham standards remain
-        // extremely high". Each is fine alone; together they are a
-        // template, and a rack of them reads as one writer with one
-        // trick. The subject changes and the card does not.
-        '|\\b(held to|to proper|has|have|with)\\s+(\\w+\\s+){0,3}standards\\b' +
-        '|\\bstandards (remain|are still|stay)\\b',
+        // The standards formula lived here for a day and was routed
+        // round twice; the whole word now sits in BANNED_WORDS instead.
+        // Left as a note so nobody re-adds the narrow version.
+        '',
         'i',
       );
       const isBanned = (t: string) => BANNED_WORDS.test(t) || BANNED_FORMULAS.test(t);
