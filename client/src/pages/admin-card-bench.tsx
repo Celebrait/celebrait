@@ -226,6 +226,20 @@ ${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>
             <input type="checkbox" checked={rude} onChange={(e) => setRude(e.target.checked)} disabled={running} />
             Rude mode
           </label>
+          <label className="flex items-center gap-2 text-sm text-stone-600">
+            <input type="checkbox" checked={freeStyle} onChange={(e) => setFreeStyle(e.target.checked)} disabled={running} />
+            Free style
+          </label>
+          <div className="flex items-center gap-1.5">
+            {([['objects', 'Objects'], ['animals', '+ Animals'], ['figures', '+ People']] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setCharacters(v)} disabled={running}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  characters === v ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                   : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
           {cells.length > 0 && !running && (
             <Button variant="outline" onClick={download}>
               <Download className="mr-2 h-4 w-4" />Save sheet
