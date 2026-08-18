@@ -46,7 +46,17 @@ const BRIEF = {
  *  card, not whether it used our exact words — "the Kop", "Anfield" and
  *  "scousers" are all Liverpool landing properly, and demanding the
  *  literal string would fail the best cards. */
-const DISLIKE_HINTS = ['liverpool', 'anfield', 'kop', 'scouse', 'merseyside', 'red of the wrong'];
+const DISLIKE_HINTS = [
+  'liverpool', 'anfield', 'kop', 'scouse', 'merseyside',
+  // ⚠️ THE OBLIQUE HALF, added 2026-08-19 after this check UNDERCOUNTED.
+  // It scored a run 0/3 that had actually produced "40 YEARS OF HATING
+  // REDS. ONE LOT CORRECTLY." — a real rivalry card that never says the
+  // name. Good cards reach for the sideways version, so a checker that
+  // only knows proper nouns marks the best lines wrong and would have
+  // sent me hunting for an engine fault that was not there.
+  'wrong red', 'other lot', 'one lot', 'other mob', 'rival',
+  'hating reds', 'the wrong', 'that lot',
+];
 const DETAIL_HINTS = ['shed', '1998', 'ninety-eight'];
 
 const hit = (text: string, hints: string[]) =>
