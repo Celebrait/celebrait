@@ -80,7 +80,10 @@ interface Concept {
   direction?: string;
 }
 interface Cell { concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean }
-interface Template { id: number; tone?: string | null; age?: number | null; front_text: string; imageUrl: string }
+/** `recipient` was always stored and always returned — the templates
+ *  route does a bare select() — it just was not declared here, which is
+ *  why the coverage grid could not see the market's first axis. */
+interface Template { id: number; tone?: string | null; age?: number | null; recipient?: string | null; front_text: string; imageUrl: string }
 
 /** Mirrors statedAge() on the server so the coverage grid can label a
  *  card before it is saved. Kept deliberately simple — the server value
@@ -156,6 +159,24 @@ export default function AdminOccasionStudioPage() {
     for (const tpl of rack) {
       const band = BANDS.find((b) => b.test(tpl.age ?? null));
       if (tpl.tone && band) grid[`${tpl.tone}:${band.key}`] = (grid[`${tpl.tone}:${band.key}`] ?? 0) + 1;
+    }
+    return grid;
+  }, [rack]);
+
+  /** ⚠️ RECIPIENT IS THE MARKET'S FIRST AXIS AND WE WERE BLIND TO IT.
+   *  The grid above counts tone × age, so it can tell you "five funny
+   *  cards in the 60s" but never "nine Dad cards and no Nan cards" —
+   *  even though every kept card stores its recipient. Aidan, building
+   *  the catalogue, 2026-08-19: "it will end up being a catalogue of
+   *  things I like haha". The axis he was most likely lopsided on was
+   *  the one screen meant to show gaps could not see.
+   *  RESEARCH_UK_CARD_MARKET.md: Thortful slices every occasion by
+   *  RECIPIENT first (35 slices), ahead of style and age. */
+  const byRecipient = useMemo(() => {
+    const grid: Record<string, number> = {};
+    for (const r of RELATIONSHIPS) grid[r.label] = 0;
+    for (const tpl of rack) {
+      if (tpl.recipient && grid[tpl.recipient] !== undefined) grid[tpl.recipient] += 1;
     }
     return grid;
   }, [rack]);
@@ -364,6 +385,21 @@ export default function AdminOccasionStudioPage() {
 
       {/* THE THREE — save straight off the grid */}
       {cells.length > 0 && (
+        <>
+        {/* ⚠️ THE KEEP TEST, stated where the decision is made. Kept cards
+            become RACK STOCK that customers edit the words on (the
+            edit-text route re-renders around the existing artwork), so
+            the question is not "is this a great card" — it is whether it
+            survives someone else's words. A card carried by its artwork
+            does. A card that IS one pun becomes a lovely picture with a
+            stranger's name on it, and belongs on the generate path
+            instead. Aidan's plan, 2026-08-19: pre-made cards on the
+            site, editable text, or generate your own three. */}
+        <p className="-mb-1 text-xs text-stone-400">
+          Keeping for the rack? Ask whether it would still be good with
+          <span className="font-medium text-stone-500"> someone else's words on it</span> — customers edit these.
+          If the whole card is one pun, it is a better one-off than stock.
+        </p>
         <div className="grid gap-3 sm:grid-cols-3">
           {cells.map((c, i) => (
             <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
@@ -390,6 +426,7 @@ export default function AdminOccasionStudioPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {/* KEEP RATE — is the prompt getting better? A number, not a feeling. */}
@@ -453,6 +490,32 @@ export default function AdminOccasionStudioPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* RECIPIENT — the market's first axis, and the one this page
+            used to be blind to. Same interaction: click a gap to aim. */}
+        <p className="mt-5 text-xs font-semibold text-stone-700">By recipient</p>
+        <p className="mt-0.5 text-xs text-stone-400">
+          How the market shelves birthday cards before anything else. Click one to aim the next brief at it.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {RELATIONSHIPS.map((r) => {
+            const n = byRecipient[r.label] ?? 0;
+            return (
+              <button
+                key={r.label}
+                type="button"
+                onClick={() => { setWho(r.label); if (r.implies) setGender(r.implies); }}
+                title={n === 0 ? 'Nothing kept for this recipient yet' : `${n} kept`}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  n === 0
+                    ? 'border-dashed border-stone-300 bg-stone-50 text-stone-400 hover:border-brand hover:text-brand-dark'
+                    : 'border-brand-muted bg-brand-muted/50 text-brand-dark hover:bg-brand-muted'}`}
+              >
+                {r.label} <span className="ml-1 tabular-nums opacity-70">{n}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
