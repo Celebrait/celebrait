@@ -178,7 +178,10 @@ export function freeStyleDna(level: CharacterLevel = 'objects'): string {
     : MOTIF_OBJECTS_ONLY;
   return `ART DIRECTION — YOU CHOOSE THE MEDIUM. There is no house style on this card. Your job is to pick the illustration idiom this particular subject deserves and execute it as a real designer would.
 
-1. NAME A REAL MEDIUM, PRECISELY. Not "illustration" — an actual craft with actual rules, chosen because it suits THIS subject: risograph, linocut, gouache, papercut, screen print, mid-century children's book, vintage travel poster, botanical plate, art deco, 90s zine photocopy, comic halftone, fashion-marker illustration, cyanotype, hand-painted signwriting, ceramic tile, embroidery, airbrushed 70s poster, woodblock, cut-paper collage, chalk pastel. Then commit to it completely — a linocut has real gouge marks and no gradients; gouache has visible brush edges and flat opaque colour; a riso has misregistration and limited inks. Half-committing to a medium is what makes work look generic.
+1. NAME A REAL MEDIUM, PRECISELY — AND ONE THAT BELONGS TO THIS SUBJECT. Not "illustration" — an actual craft with actual rules, chosen because it suits THIS subject: risograph, linocut, gouache, papercut, screen print, mid-century children's book, vintage travel poster, botanical plate, art deco, 90s zine photocopy, comic halftone, fashion-marker illustration, cyanotype, hand-painted signwriting, ceramic tile, embroidery, airbrushed 70s poster, woodblock, cut-paper collage, chalk pastel. Then commit to it completely — a linocut has real gouge marks and no gradients; gouache has visible brush edges and flat opaque colour; a riso has misregistration and limited inks. Half-committing to a medium is what makes work look generic.
+   ⚠️ CHOOSING THE MEDIUM IS A FIT DECISION, NOT A PICK FROM THAT LIST. Two tests, both applied BEFORE you commit:
+   · THE THUMB TEST — cover the words. Do the medium, the ground colour and the letterforms still tell someone roughly what world this card belongs to? A real observed failure: a Moana card for a four-year-old came back as a bright orange ground with heavy blue Swiss poster type. Handsome design, belonging to no world at all — it could have been a card about anything, and the artwork was doing none of the work. The line was fine; the look was borrowed from a different shop.
+   · WHO IS OPENING IT — a card for a small child and a card for a thirty-year-old cannot wear the same medium, however good the joke is. Editorial, brutalist, ironic and fashion idioms read ADULT. Children's-book gouache, papercut, crayon, storybook screen print read YOUNG. Take the age from the brief and let it rule out half the list before you start.
 
 2. ⚠️ IT MUST NOT LOOK AI-GENERATED. This is the whole test, and these are the tells that give it away:
    - a glossy, airbrushed, over-rendered sheen on things that should be flat
@@ -432,7 +435,8 @@ export const QUIRKY_FORMATS: Record<string, string> = {
   hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
   pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges — an underlying grid with its rhythm BROKEN DELIBERATELY in one or two places (one motif turned, one scaled up, one in the odd colour) so it never reads as wallpaper. CRUCIALLY, RESERVE A CLEAN AREA FOR THE TYPE: a calm panel, band or generous clearing where the plain ground shows through and the words sit alone. Do NOT thread the lettering through the gaps between motifs — that is how a dense card turns to mush. Rich and full, but organised.`,
   label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.`,
-  typeled: `COMPOSITION — TYPE-LED (THE WORDS ARE THE ARTWORK): there is NO motif and NO illustration on this card — no objects, no scene, no border art. The words, set HUGE and with total confidence, ARE the entire design, and every design decision lives inside them: scale contrast between words (one word can be five times the size of its neighbours), the stack and its alignment, the accent ink landing on exactly the right word, letterforms with real personality per the TYPE line. The ground is one flat confident colour doing quiet work underneath. Permitted garnish, used sparingly if at all: an underline, an oversized piece of punctuation, a single typographic flourish drawn from the lettering itself — never a pictorial element. The craft bar is HIGHER here, not lower: with nothing else on the card, any weakness in the setting is the whole card. Think of the best text-only cards in a good shop — bought purely because the words and their setting were enough.`,
+  typeled: `COMPOSITION — TYPE-LED (THE WORDS ARE THE ARTWORK): there is NO motif and NO illustration on this card — no objects, no scene, no border art. The words, set HUGE and with total confidence, ARE the entire design, and every design decision lives inside them: scale contrast between words (one word can be five times the size of its neighbours), the stack and its alignment, the accent ink landing on exactly the right word, letterforms with real personality per the TYPE line. The ground is one flat confident colour doing quiet work underneath. Permitted garnish, used sparingly if at all: an underline, an oversized piece of punctuation, a single typographic flourish drawn from the lettering itself — never a pictorial element. The craft bar is HIGHER here, not lower: with nothing else on the card, any weakness in the setting is the whole card. Think of the best text-only cards in a good shop — bought purely because the words and their setting were enough.
+⚠️ AND A TYPE-LED CARD STILL HAS TO BELONG SOMEWHERE. With no motif to carry the subject, the GROUND COLOUR and the LETTERFORMS are the only things left holding it, so both must be drawn from that world and not from the poster-design default: the sea's own blues and a carved wooden letter for an island film, terrace red and a condensed chant gothic for a football card, faded seaside enamel for a caravan-holiday card. Cover the words with your thumb — if what remains is a handsome poster that could be about anything, this card has failed even though the line is good. Heavy generic sans on a flat bright ground is the specific trap, and it is where this format goes wrong every time it goes wrong.`,
 };
 /** The INSIDE is a quieter room than the front. Same shop, lower
  *  volume: the words are the hero, the artwork only frames them. The
@@ -819,24 +823,37 @@ Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
  *  The bar is NOT "brilliant" — some lines will be flat and that is
  *  survivable when the customer sees three. The bar is NOTHING BROKEN:
  *  bland ships, nonsense never does. ~£0.003. */
-function landingCheckPrompt(): string {
+export function landingCheckPrompt(): string {
   return `You are a straight-talking person standing in a British card shop in 2026. You are shown the brief someone typed and the finished card lines written for it.
 
 ONE QUESTION PER CARD: is this actually any good? Would it land for the person who typed that brief — or is it, honestly, a bit crap?
 
 Judge it whole, the way a human does in the two seconds before they put a card back on the rack. Do not score it against a checklist. React to it.
 
-KILL IT if any of these are true:
+YOU ARE SHOWN TWO THINGS PER CARD: the LINE, and the LOOK it will be printed in — its medium, its colours and its lettering. A card is both. Judge both, and say which one you are killing.
+
+KILL THE LINE if any of these are true:
 - IT IS NOT ENGLISH. Invented words, mangled puns, phrases nobody says. A real observed failure: "A Proper Old Traffordy" for a Manchester United fan — it names the ground and means nothing. If you cannot say it out loud to another person without stumbling, it is dead.
+  ⚠️ BUT A CLEAN PORTMANTEAU IS NOT A MANGLED ONE, and this distinction is the whole wordplay angle. Card shops are built on deliberately invented words, and the test is whether a reader DECODES IT ON SIGHT with no help: "Fourana" on a four-year-old's Moana card is instantly two things at once and lands — it is a good card, not a broken word. "A Proper Old Traffordy" cannot be decoded because there is nothing to decode. Kill the ones that resolve to nothing; keep the ones that resolve instantly. Being invented is not the fault.
 - YOU HAVE TO EXPLAIN IT. A card that needs unpacking has already failed.
 - IT IS ABOUT NOTHING. Generic warmth that would suit anybody, or a joke that could sit on any card in the shop.
 - IT GUESSES AT THEIR LIFE. Claims about trips, possessions, expertise or habits nobody mentioned in the brief.
 - IT WOULD EMBARRASS THE SENDER. Wrong register for the relationship, or a joke that lands as an insult.
 - IT DOES NOT SOUND BRITISH in 2026 — Americanisms, dated slang, try-hard internet voice.
 
+KILL THE LOOK if any of these are true:
+- IT BELONGS TO NO WORLD. Cover the words with your thumb: the medium, the colours and the lettering should still tell you roughly what this card is about. A real observed failure: a Moana card for a four-year-old, printed as a bright orange ground with heavy blue poster type. Good design, wrong card — it could have been about anything, and the buyer is paying for artwork that is doing nothing.
+- IT IS THE WRONG AGE. An adult, ironic, editorial or brutalist look on a small child's card; a childish look on a grown adult's. The age is in the brief.
+- IT FIGHTS THE LINE. The words are warm and the look is cold, or the joke is a mutter and the artwork is shouting.
+- IT IS THE WRONG WORLD ENTIRELY. Colours and medium borrowed from a different subject than the one in the brief.
+
+Do NOT kill a look merely for being plain, quiet or type-only. A restrained card that clearly belongs to its subject is a good card.
+
+⚠️ WHO THE CARD IS FOR, on a small child's card: the WORDS are very often written for the ADULT reading it out, and that is normal, correct and how the whole aisle works — a card that makes a parent laugh about their four-year-old's obsession is doing its job, and "this is aimed at the grown-up" is NOT a reason to kill a line. Nobody buys a card for a four-year-old to read alone. It is the LOOK that must belong to the child. Words for the adult, artwork for the kid.
+
 PASS IT if it is simply good, or even just solid and true. Quiet and warm is a pass. Plain is a pass. You are not looking for brilliance in every card, you are keeping rubbish off the rack.
 
-Return JSON: {"cards":[{"verdict":"pass"|"kill","why":"<six words max, only when killing>"}]} — one per card, in the order given.`;
+Return JSON: {"cards":[{"verdict":"pass"|"kill","what":"words"|"look","why":"<six words max, only when killing>"}]} — one per card, in the order given. "what" says which half failed; if both did, say "look" and we will redraw it around the line.`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -1362,7 +1379,17 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'user', content: [
               'THE BRIEF THEY TYPED:', briefLines.slice(0, 6).join('\n'), '',
               'THE CARDS:',
-              ...judged.map((c, i) => `${i + 1}. [${c.angle}] "${c.front_text}"`),
+              // ⚠️ THE LOOK GOES IN TOO. This pass used to be handed the
+              // line alone, so it could not possibly catch a card whose
+              // words were fine and whose artwork belonged to another
+              // shop — which is exactly what got through (Aidan on a
+              // Moana set: "there's no way that look and feel lands").
+              ...judged.map((c, i) => [
+                `${i + 1}. [${c.angle}] "${c.front_text}"`,
+                `   LOOK: ${c.format ?? 'card'} — ${c.art_direction}`,
+                `   COLOURS: ${c.palette ?? 'unstated'}`,
+                `   LETTERING: ${c.typeface ?? 'unstated'}`,
+              ].join('\n')),
             ].join('\n') },
           ],
           response_format: { type: 'json_object' },
@@ -1372,24 +1399,66 @@ export function registerAdminCardLabRoutes(app: Express): void {
           .map((c, i) => ({ c, i, v: verdicts[i] }))
           .filter((x) => x.v?.verdict === 'kill');
         if (killed.length) {
+          // A card can fail on its words or on its look, and the two want
+          // opposite repairs: a bad line is rewritten around artwork that
+          // is already right, a bad look is redrawn around a line that is
+          // already right. Sending one undifferentiated "fix this" got the
+          // good half thrown away with the bad.
+          const isLook = (k: (typeof killed)[number]) => k.v?.what === 'look';
+          const badWords = killed.filter((k) => !isLook(k));
+          const badLook = killed.filter(isLook);
           console.warn('[CARD-LAB] landing check killed:',
-            killed.map((k) => `"${k.c.front_text}" — ${k.v?.why ?? ''}`));
+            killed.map((k) => `${isLook(k) ? 'LOOK' : 'WORDS'} "${k.c.front_text}" — ${k.v?.why ?? ''}`));
           const fix = await openai.chat.completions.create({
             ...conceptParams(1400, 0.6),
             messages: [
               { role: 'system', content: writerPrompt() },
               { role: 'user', content: briefLines.join('\n') },
               { role: 'assistant', content: JSON.stringify({ concepts: judged }) },
-              { role: 'user', content: `A reader in a card shop rejected ${killed.length === 1 ? 'this card' : 'these cards'}:\n${killed.map((k) => `  · "${k.c.front_text}" — ${k.v?.why ?? 'does not land'}`).join('\n')}\n\nRewrite ONLY those front_candidates, keeping every other concept and all artwork exactly as they are. The replacement must be something a British person would actually say out loud, about THIS subject, that needs no explaining. Return the complete corrected JSON.` },
+              { role: 'user', content: [
+                `A reader in a card shop rejected ${killed.length === 1 ? 'this card' : 'these cards'}. Fix exactly what is named and change NOTHING else — every other concept, and the untouched half of these ones, must come back byte-identical.`,
+                badWords.length ? [
+                  '',
+                  'THE WORDS FAILED on these — the artwork is fine and stays exactly as it is:',
+                  ...badWords.map((k) => `  · "${k.c.front_text}" — ${k.v?.why ?? 'does not land'}`),
+                  'Rewrite ONLY their front_candidates. The replacement must be something a British person would actually say out loud, about THIS subject, that needs no explaining.',
+                ].join('\n') : '',
+                badLook.length ? [
+                  '',
+                  'THE LOOK FAILED on these — the LINE IS GOOD AND MUST BE KEPT WORD FOR WORD:',
+                  ...badLook.map((k) => `  · "${k.c.front_text}" — ${k.v?.why ?? 'belongs to no world'}`),
+                  'Rewrite ONLY their art_direction, palette and typeface, so the card belongs unmistakably to this subject and suits the age in the brief. Cover the words with your thumb: what is left must still say what the card is about. Do not touch their front_candidates or inside_text.',
+                ].join('\n') : '',
+                '',
+                'Return the complete corrected JSON.',
+              ].filter(Boolean).join('\n') },
             ],
             response_format: { type: 'json_object' },
           });
           const reparsed = JSON.parse(fix.choices[0]?.message?.content ?? '{}').concepts ?? [];
           if (reparsed.length === judged.length) {
             judged = judged.map((c, i) => {
-              const wasKilled = killed.some((k) => k.i === i);
-              const line = shortlistOf(reparsed[i])[0];
-              return wasKilled && line && !isBanned(line) ? { ...c, front_text: line } : c;
+              const kill = killed.find((k) => k.i === i);
+              if (!kill) return c;
+              const fixed = reparsed[i] ?? {};
+
+              // Look repair: take the ARTWORK back and leave the line
+              // alone. Taking only front_text here — which is what this
+              // did before the look could fail — would have thrown the
+              // redraw away and shipped the same wrong-world card.
+              if (isLook(kill)) {
+                const art = String(fixed.art_direction ?? '').trim();
+                if (!art || namedArtefacts(art).length) return c;
+                return {
+                  ...c,
+                  art_direction: art,
+                  palette: String(fixed.palette ?? '').trim() || c.palette,
+                  typeface: String(fixed.typeface ?? '').trim() || c.typeface,
+                };
+              }
+
+              const line = shortlistOf(fixed)[0];
+              return line && !isBanned(line) ? { ...c, front_text: line } : c;
             });
           }
         }
