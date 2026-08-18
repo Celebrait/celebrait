@@ -40,6 +40,8 @@ const DEFAULT_BRIEFS = [
 
 interface Concept {
   angle: string;
+  /** The chosen style — see the studio's note. */
+  direction?: string;
   format?: string;
   front_text: string;
   inside_text?: string;
@@ -181,6 +183,7 @@ ${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>
 <figcaption><span class="angle">${esc(c.concept.angle)}</span>
 <strong>&ldquo;${esc(c.concept.front_text)}&rdquo;</strong>
 <span class="meta">${esc(c.briefLabel)}</span>
+<span class="meta">${esc(c.concept.direction ?? '')}</span>
 <span class="meta">${esc(c.concept.typeface ?? '')}</span>
 <span class="meta">${esc(c.concept.palette ?? '')}</span></figcaption></figure>`).join('')}</div>`;
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -263,6 +266,7 @@ ${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand">{c.concept.angle}</span>
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{c.briefLabel}</p>
+                {c.concept.direction && <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>}
                 {c.concept.typeface && <p className="text-[11px] text-stone-400">{c.concept.typeface}</p>}
                 <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="mt-1.5 h-8 w-full"
                   onClick={() => keep(i)} disabled={!c.imageUrl || c.saved || c.saving}>

@@ -74,6 +74,10 @@ const BANDS = [
 interface Concept {
   angle: string; format?: string; front_text: string; inside_text: string;
   art_direction: string; palette?: string; typeface?: string;
+  /** The style decision — shared across the set in house style, one per
+   *  card in free style. Shown on screen because an invisible decision
+   *  cannot be judged (Aidan: "how is this actually deciding style?"). */
+  direction?: string;
 }
 interface Cell { concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean }
 interface Template { id: number; tone?: string | null; age?: number | null; front_text: string; imageUrl: string }
@@ -368,6 +372,9 @@ export default function AdminOccasionStudioPage() {
               <div className="space-y-2 p-3">
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{c.concept.angle} · {c.concept.format}</p>
+                {c.concept.direction && (
+                  <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>
+                )}
                 <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="h-8 w-full"
                   onClick={() => save(i)} disabled={!c.imageUrl || c.saved || c.saving}>
                   {c.saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
