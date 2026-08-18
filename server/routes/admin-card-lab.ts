@@ -673,7 +673,7 @@ ${cheeky
   The occasion is NEVER a substitute for having something to say about them. If you find yourself adding it because the line felt thin, the line is thin — fix the line. And do not let all three cards lean on it: a set where every front says "birthday" is a monotonous set, whatever the artwork does.
 - INSIDE MODE: auto → write inside_text. own or blank → inside_text = "".
 
-FINAL CHECK — do this LAST, immediately before returning: ${cheeky ? 'FIRST count how many of your three cards carry genuine cheek on the front. If it is fewer than two, go back and make them ruder before you do anything else — this is the single commonest way this brief gets failed. Then ' : ''}read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR bolts the occasion onto the end of a line that had already finished (thumb-test it: cover the occasion clause, and if the rest is unharmed the clause is filler). Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
+FINAL CHECK — do this LAST, immediately before returning: FIRST, if the brief gave you a REAL DETAIL or a THING THEY CANNOT STAND, point at the card that uses each. If you cannot point at one, you have written a set about a stranger who likes a thing — go back and rebuild that card before anything else.${cheeky ? 'FIRST count how many of your three cards carry genuine cheek on the front. If it is fewer than two, go back and make them ruder before you do anything else — this is the single commonest way this brief gets failed. Then ' : ''}read all NINE candidate lines once more and name the TURN in each one out loud to yourself. REPLACE any line that has no nameable turn, OR contains "vibe"/"vibes", "level up", "boss", "legend", "goals" or "mode", OR uses a banned title formula ("Master/King/Queen/Lord of ___", "The only ___ in the family", "Born to ___", "Another year ___"), OR would need explaining in a pub, OR bolts the occasion onto the end of a line that had already finished (thumb-test it: cover the occasion clause, and if the rest is unharmed the clause is filler). Every candidate you hand over must be one you would be happy to see chosen — a shortlist with two dead lines in it is a shortlist of one.
 
 Return JSON: {"concepts":[{...},{...},{...}]} — one subject, three angles, three formats, three palettes, and three candidate lines inside each.`;
 }
@@ -1060,8 +1060,22 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `Recipient: ${body.who}`,
       body.gender !== 'unspecified' ? `Recipient gender: ${body.gender === 'him' ? 'male' : 'female'} — let it tune palette and type warmth only, never the joke` : '',
       body.age ? `Recipient age: ${body.age}` : '',
-      body.detail?.trim() ? `Something about them: ${body.detail.trim()} — this is gold, use it` : '',
-      body.dislikes?.trim() ? `Something they cannot stand: ${body.dislikes.trim()} — good comic fuel, but ONE card at most, and never the set's whole idea` : '',
+      // ⚠️ BOTH OF THESE ARE FLOORS, NOT PERMISSIONS, and they read as
+      // orders for the reason the cheek block does (see the note above
+      // conceptSystemPrompt): a hedged line loses every argument with the
+      // restraint rules below it. Observed 2026-08-18 — a brief carrying
+      // "same shed since 1998" AND "can't stand Liverpool" produced three
+      // cards using NEITHER, and the third then invented a habit nobody
+      // mentioned because it had nothing real left to say. The two fields
+      // that make a card personal were the two being dropped.
+      body.detail?.trim() ? `⚠️ THE ONE REAL DETAIL THEY GAVE US: ${body.detail.trim()}. This is the most specific thing you know about this person and it is worth more than the interest, because everyone who likes ${body.interest.trim()} is the same and only THIS one has that. AT LEAST ONE of your three cards must be built on it — not a passing mention, the actual idea of the card. If you cannot make it work in words, it goes in that card's artwork.` : '',
+      // Aidan 2026-08-18: "if they put in a dislike all 3 should maybe
+      // reference it? Just make that clear up front". Nobody types a
+      // rival by accident — filling this in IS the request. The old rule
+      // capped it at one card, which meant the buyer opted into a joke
+      // and got a two-in-three chance of not seeing it. The UI label now
+      // promises all three, so the prompt has to deliver all three.
+      body.dislikes?.trim() ? `⚠️ SOMETHING THEY CANNOT STAND: ${body.dislikes.trim()}. Rivalry and loathing are the richest comic fuel there is, and NOBODY FILLS THIS FIELD IN BY ACCIDENT — typing it is the buyer asking for this joke. ALL THREE of your cards touch it, each from a genuinely different direction: one can be the straight dig, one can take the recipient's side against it, one can treat it as a fact of life too obvious to argue with. What they must not be is the same joke three times, or three cards that are ABOUT the rival rather than about the recipient — the birthday is still theirs. Punch at the thing, never at the person receiving the card.` : '',
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
@@ -1234,8 +1248,19 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // has one idea. Words from the brief itself are exempt: every card
       // is legitimately about the interest.
       const STOP = new Set(['this','that','with','your','still','from','have','been','they','them','their','what','when','then','than','just','only','more','most','very','sixty','forty','fifty','thirty','years','year','birthday','happy']);
+      // ⚠️ THE DISLIKE IS EXEMPT, THE DETAIL IS NOT, and the asymmetry is
+      // the point. This detector was BUILT to stop a rivalry eating a set
+      // (the City-on-a-United-brief case in the note above) — but that
+      // rivalry arrived incidentally, buried in a detail field. One typed
+      // into the dedicated "Can't stand" box is the buyer ASKING for all
+      // three, so counting it as collapse made the two rules fight: the
+      // brief ordered three Liverpool cards, this retried them away, and
+      // the measured all-three rate sat at 1 run in 3.
+      // The detail stays counted because only ONE card has to carry it —
+      // a detail on all three genuinely is a set with one idea.
       const briefWords = new Set(
-        `${body.interest} ${body.who} ${body.occasion}`.toLowerCase().match(/[a-z']{4,}/g) ?? [],
+        `${body.interest} ${body.who} ${body.occasion} ${body.dislikes ?? ''}`
+          .toLowerCase().match(/[a-z']{4,}/g) ?? [],
       );
       const wordFreq = new Map<string, number>();
       for (const c of concepts) {
