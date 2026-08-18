@@ -19,7 +19,7 @@
 // subjects customers actually type will be better ones.
 
 import { useState, useEffect } from 'react';
-import { Loader2, Play, Download } from 'lucide-react';
+import { Loader2, Play, Download, Star, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -42,15 +42,21 @@ interface Concept {
   angle: string;
   format?: string;
   front_text: string;
+  inside_text?: string;
   art_direction: string;
   palette?: string;
   typeface?: string;
 }
 interface Cell {
   briefLabel: string;
+  /** The brief that produced it — needed to save a keeper with the same
+   *  occasion/recipient/interest the studio would have recorded. */
+  brief: { who: string; occasion: string; interest: string };
   concept: Concept;
   imageUrl?: string;
   error?: string;
+  saved?: boolean;
+  saving?: boolean;
 }
 
 function parseBriefs(text: string) {
@@ -64,6 +70,9 @@ export default function AdminCardBenchPage() {
   const { toast } = useToast();
   const [briefText, setBriefText] = useState(DEFAULT_BRIEFS);
   const [rude, setRude] = useState(false);
+  /** Same ladder as the studio — the bench was hardcoded to objects, so
+   *  a sweep could never test animals or figures. */
+  const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const [cells, setCells] = useState<Cell[]>([]);
@@ -93,19 +102,19 @@ export default function AdminCardBenchPage() {
         setProgress(`Writing ${b.interest}…`);
         const cr = await apiRequest('POST', '/api/admin/card-lab/concepts', {
           who: b.who, occasion: b.occasion, interest: b.interest,
-          insideMode: 'auto', cheeky: rude, characters: 'objects',
+          insideMode: 'auto', cheeky: rude, characters,
         });
         const { concepts = [] } = (await cr.json()) as { concepts?: Concept[] };
 
         // Show the words immediately — they are most of the value, and
         // waiting 25s per render before seeing anything is miserable.
-        setCells((prev) => [...prev, ...concepts.map((c) => ({ briefLabel: b.label, concept: c }))]);
+        setCells((prev) => [...prev, ...concepts.map((c) => ({ briefLabel: b.label, brief: b, concept: c }))]);
 
         await Promise.all(concepts.map(async (c) => {
           try {
             const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
               front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
-              typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', quality: 'low',
+              typeface: c.typeface, format: c.format ?? 'hero', characters, quality: 'low',
             });
             const rj = await rr.json();
             setCells((prev) => prev.map((cell) =>
@@ -123,6 +132,28 @@ export default function AdminCardBenchPage() {
       toast({ title: 'Bench failed', description: e?.message ?? '', variant: 'destructive' });
     } finally {
       setRunning(false);
+    }
+  };
+
+  /** A sweep turns up keepers as often as a focused session does, and
+   *  they used to die with the page. Same endpoint the studio uses, so
+   *  they land in the same rack. */
+  const keep = async (i: number) => {
+    const cell = cells[i];
+    if (!cell?.imageUrl || cell.saved || cell.saving) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: true } : x)));
+    try {
+      await apiRequest('POST', '/api/admin/card-templates', {
+        occasion: cell.brief.occasion, recipient: cell.brief.who, interest: cell.brief.interest,
+        angle: cell.concept.angle, front_text: cell.concept.front_text,
+        inside_text: cell.concept.inside_text, palette: cell.concept.palette,
+        typeface: cell.concept.typeface, format: cell.concept.format,
+        art_direction: cell.concept.art_direction, imageUrl: cell.imageUrl,
+      });
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saved: true, saving: false } : x)));
+    } catch (e: any) {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: false } : x)));
+      toast({ title: 'Could not save', description: e?.message ?? '', variant: 'destructive' });
     }
   };
 
@@ -215,6 +246,12 @@ ${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{c.briefLabel}</p>
                 {c.concept.typeface && <p className="text-[11px] text-stone-400">{c.concept.typeface}</p>}
+                <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="mt-1.5 h-8 w-full"
+                  onClick={() => keep(i)} disabled={!c.imageUrl || c.saved || c.saving}>
+                  {c.saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : c.saved ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Star className="mr-1.5 h-3.5 w-3.5" />}
+                  {c.saved ? 'Kept' : 'Keep'}
+                </Button>
               </div>
             </div>
           ))}
