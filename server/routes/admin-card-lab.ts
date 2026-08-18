@@ -569,6 +569,8 @@ MINE THE OCCASION AND THE PERSON TOO — most cards waste both, and they are fre
   ⚠️ WHO IS BUYING: usually a woman, buying for someone she loves — that is the person your set has to charm at a glance. The house default is therefore WARM AND ALIVE. Moody, dark, workwear-heavy styling is a deliberate CHOICE for when the recipient and subject genuinely call for it (a mate's dark humour, a heavy-metal dad) — it is never the resting state. If your three cards would all photograph like a menswear catalogue, the set has drifted; pull at least one toward warmth and light.
 
 IF THE SUBJECT IS A FICTIONAL WORLD, FRANCHISE, BAND OR TEAM, THE WORDS DO THE HEAVY LIFTING. The artwork is deliberately restricted for these subjects — we never draw their invented artefacts, logos or crests, because we print and sell these cards — so the picture alone CANNOT say which world this is. That job falls to the line, and the line must be up to it.
+  ✅ YOU MAY SAY THE NAME. Write "Moana", "Hogwarts", "Star Wars" in the words if that is the clearest way to land it — a title in plain text, set in our own lettering, is ordinary referential use and every card shop in Britain does it. What is NOT allowed is the PICTURE: the character, the logo, the wordmark's own styling. We have been too timid about this and it has cost us — cards ended up saying "the sea" when they could have said the name.
+  ⚠️ AND "SEA" IS NOT "MOANA". Naming the broad category instead of the specific property is the failure this keeps producing. Observed: a Moana brief returned "Seas the day", "You're shore to love" and "proper ocean energy" — three cards that would suit anyone who likes the beach, over artwork doing all the work. If your line would please someone who has never seen the film, it has failed.
   Mine that world's OWN VOCABULARY, which is where a property is unmistakable without reproducing anything: its invented words, its famous single lines, the phrases that got out into ordinary speech.
   ⚠️ FOR A TEAM OR A CLUB THIS IS THE WHOLE JOB, AND IT IS CURRENTLY BEING FAILED. Because we never draw a crest, the artwork can only ever say "football" — so if the WORDS do not say WHICH club, the card is about the sport and would suit any fan of any team. Observed failure on a Manchester United brief: "Birthday Form Looks Strong" over a generic scarf, radio and ticket. That is a football card, not a United card.
   Every club owns words that no other club can use: its ground, its ends and stands, its era-defining moments and managers, its nickname, its songs, the years everyone recites, the local rivalry. NAME ONE. Nobody owns those words, and they are instantly unmistakable to the person opening the card. If your line would work for a fan of a different club, it has failed — go back and find the thing only this one has. Words are the safe half of a franchise; artwork is the risky half — and happily the famous layer of any world is mostly WORDS, while the deep cuts are mostly objects, so aiming at what everyone knows keeps us legal and keeps the buyer with us at the same time.
@@ -1043,19 +1045,31 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // making a card.
     let alreadyUsed: string[] = [];
     try {
-      const prior = await db
-        .select({ front_text: cardGenerations.front_text })
-        .from(cardGenerations)
-        .where(sql`lower(interest) = ${body.interest.trim().toLowerCase()}`)
-        .orderBy(desc(cardGenerations.id))
-        .limit(24);
-      alreadyUsed = Array.from(new Set(prior.map((r) => r.front_text).filter(Boolean)));
+      // Two queries on purpose. The first catches repeats within a
+      // subject; the second catches STOCK PUNS that drift ACROSS
+      // subjects — "Seas the day" turned up for sea swimming, then
+      // Ibiza, then Moana, each time with a clean conscience because
+      // the interest never matched.
+      const [sameSubject, anySubject] = await Promise.all([
+        db.select({ front_text: cardGenerations.front_text })
+          .from(cardGenerations)
+          .where(sql`lower(interest) = ${body.interest.trim().toLowerCase()}`)
+          .orderBy(desc(cardGenerations.id))
+          .limit(24),
+        db.select({ front_text: cardGenerations.front_text })
+          .from(cardGenerations)
+          .orderBy(desc(cardGenerations.id))
+          .limit(40),
+      ]);
+      alreadyUsed = Array.from(new Set(
+        [...sameSubject, ...anySubject].map((r) => r.front_text).filter(Boolean),
+      ));
     } catch (e) {
       console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
     }
     if (alreadyUsed.length) {
       briefLines.push(
-        `⚠️ ALREADY USED for this subject — every one of these has been generated before, so they are OFF LIMITS and so is any near-variant of them. Go to a DIFFERENT corner of the world:\n${alreadyUsed.map((l) => `  · ${l}`).join('\n')}`,
+        `⚠️ ALREADY USED — every one of these has been generated before, for this subject or another one. They are OFF LIMITS, and so is any near-variant. Note especially any STOCK PUN in the list: a pun that works for one watery subject works for all of them, which is exactly how the same joke keeps reappearing. If your line rhymes with anything here, find a different corner of the world:\n${alreadyUsed.map((l) => `  · ${l}`).join('\n')}`,
       );
     }
 
