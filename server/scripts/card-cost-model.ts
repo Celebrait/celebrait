@@ -47,8 +47,8 @@ const rTok = tok(renderPrompt);
 
 // Writer + judge system prompts are private; approximate from the file
 // itself, which is dominated by them.
-const fs = await import('node:fs/promises');
-const src = await fs.readFile('server/routes/admin-card-lab.ts', 'utf8');
+import { readFileSync } from 'node:fs';
+const src = readFileSync('server/routes/admin-card-lab.ts', 'utf8');
 const writerTok = Math.round(tok(src) * 0.42);   // writer prompt share
 const judgeTok  = Math.round(tok(src) * 0.14);
 

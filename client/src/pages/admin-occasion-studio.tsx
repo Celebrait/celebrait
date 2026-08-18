@@ -173,11 +173,8 @@ export default function AdminOccasionStudioPage() {
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
       setCells(concepts.map((c) => ({ concept: c })));
-      // Denominator for keep-rate. Fire-and-forget on purpose.
-      void apiRequest('POST', '/api/admin/card-generations', {
-        occasion: world.key, tone, age, recipient: who, interest,
-        cards: concepts.map((c) => ({ angle: c.angle, front_text: c.front_text })),
-      }).catch(() => {});
+      // (Generations are logged server-side by /concepts — logging here
+      // too would double the keep-rate denominator.)
       await Promise.all(concepts.map(async (c, i) => {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {

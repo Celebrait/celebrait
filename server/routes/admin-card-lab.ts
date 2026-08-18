@@ -516,7 +516,9 @@ MINE THE OCCASION AND THE PERSON TOO — most cards waste both, and they are fre
   ⚠️ WHO IS BUYING: usually a woman, buying for someone she loves — that is the person your set has to charm at a glance. The house default is therefore WARM AND ALIVE. Moody, dark, workwear-heavy styling is a deliberate CHOICE for when the recipient and subject genuinely call for it (a mate's dark humour, a heavy-metal dad) — it is never the resting state. If your three cards would all photograph like a menswear catalogue, the set has drifted; pull at least one toward warmth and light.
 
 IF THE SUBJECT IS A FICTIONAL WORLD, FRANCHISE, BAND OR TEAM, THE WORDS DO THE HEAVY LIFTING. The artwork is deliberately restricted for these subjects — we never draw their invented artefacts, logos or crests, because we print and sell these cards — so the picture alone CANNOT say which world this is. That job falls to the line, and the line must be up to it.
-  Mine that world's OWN VOCABULARY, which is where a property is unmistakable without reproducing anything: its invented words, its famous single lines, the phrases that got out into ordinary speech. Words are the safe half of a franchise; artwork is the risky half — and happily the famous layer of any world is mostly WORDS, while the deep cuts are mostly objects, so aiming at what everyone knows keeps us legal and keeps the buyer with us at the same time.
+  Mine that world's OWN VOCABULARY, which is where a property is unmistakable without reproducing anything: its invented words, its famous single lines, the phrases that got out into ordinary speech.
+  ⚠️ FOR A TEAM OR A CLUB THIS IS THE WHOLE JOB, AND IT IS CURRENTLY BEING FAILED. Because we never draw a crest, the artwork can only ever say "football" — so if the WORDS do not say WHICH club, the card is about the sport and would suit any fan of any team. Observed failure on a Manchester United brief: "Birthday Form Looks Strong" over a generic scarf, radio and ticket. That is a football card, not a United card.
+  Every club owns words that no other club can use: its ground, its ends and stands, its era-defining moments and managers, its nickname, its songs, the years everyone recites, the local rivalry. NAME ONE. Nobody owns those words, and they are instantly unmistakable to the person opening the card. If your line would work for a fan of a different club, it has failed — go back and find the thing only this one has. Words are the safe half of a franchise; artwork is the risky half — and happily the famous layer of any world is mostly WORDS, while the deep cuts are mostly objects, so aiming at what everyone knows keeps us legal and keeps the buyer with us at the same time.
   IF THE WORLD HAS ONE FAMOUS WORD, THAT WORD MUST DO THE WORK, NEVER SIT AS FILLER. Observed failure: "Wand-erful Sister, Always Charming" for a Harry Potter fan. It contains "Always" — the single most quoted word in those books — and wastes it as an ordinary adverb, while "wand-erful" and "charming" describe generic witchcraft that would suit any witch card ever printed. The card that should have been written was built on "Always".
 
 THE THREE CARDS — one each, in this order.
@@ -739,6 +741,49 @@ Be genuinely hard on the shortlist, but remember that choosing is the job. Rewri
 Return JSON: {"cards":[{...},{...},{...}]} in the same order you were given.`;
 }
 
+/** THE LANDING CHECK — the last thing before a card is drawn.
+ *
+ *  Aidan, 2026-08-18, after "A Proper Old Traffordy" shipped past
+ *  fifteen rules: "we just need to ask the model is this cool for
+ *  someone who's typed in what they have... every single thing needs to
+ *  be landing - no crap at all. Is that really hard, are we
+ *  overstepping?"
+ *
+ *  We were overstepping on ARCHITECTURE, not standards. The writer had
+ *  accumulated ~15 competing rules and each new one made the others
+ *  quieter — the club-specificity rule added that morning drowned out
+ *  the parse rule that had been there for days, and produced a word
+ *  that is not a word.
+ *
+ *  So this is deliberately NOT a sixteenth rule. It is one separate
+ *  call with one job, reading the finished cards cold, asking the blunt
+ *  question a person in a shop would ask. The same move that fixed the
+ *  judge (choosing beats repairing): one job, done properly, beats one
+ *  call doing everything.
+ *
+ *  The bar is NOT "brilliant" — some lines will be flat and that is
+ *  survivable when the customer sees three. The bar is NOTHING BROKEN:
+ *  bland ships, nonsense never does. ~£0.003. */
+function landingCheckPrompt(): string {
+  return `You are a straight-talking person standing in a British card shop in 2026. You are shown the brief someone typed and the finished card lines written for it.
+
+ONE QUESTION PER CARD: is this actually any good? Would it land for the person who typed that brief — or is it, honestly, a bit crap?
+
+Judge it whole, the way a human does in the two seconds before they put a card back on the rack. Do not score it against a checklist. React to it.
+
+KILL IT if any of these are true:
+- IT IS NOT ENGLISH. Invented words, mangled puns, phrases nobody says. A real observed failure: "A Proper Old Traffordy" for a Manchester United fan — it names the ground and means nothing. If you cannot say it out loud to another person without stumbling, it is dead.
+- YOU HAVE TO EXPLAIN IT. A card that needs unpacking has already failed.
+- IT IS ABOUT NOTHING. Generic warmth that would suit anybody, or a joke that could sit on any card in the shop.
+- IT GUESSES AT THEIR LIFE. Claims about trips, possessions, expertise or habits nobody mentioned in the brief.
+- IT WOULD EMBARRASS THE SENDER. Wrong register for the relationship, or a joke that lands as an insult.
+- IT DOES NOT SOUND BRITISH in 2026 — Americanisms, dated slang, try-hard internet voice.
+
+PASS IT if it is simply good, or even just solid and true. Quiet and warm is a pass. Plain is a pass. You are not looking for brilliance in every card, you are keeping rubbish off the rack.
+
+Return JSON: {"cards":[{"verdict":"pass"|"kill","why":"<six words max, only when killing>"}]} — one per card, in the order given.`;
+}
+
 export function registerAdminCardLabRoutes(app: Express): void {
   // ── POST /api/admin/card-lab/concepts ────────────────────────────
   // ── THE CATALOGUE (SCOPE_OCCASION_FIRST WS4) ─────────────────────
@@ -934,6 +979,32 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `cheeky=${effectiveCheeky}`,
       `characters=${body.characters}`,
     ].filter(Boolean);
+
+    // ── MEMORY ACROSS RUNS ───────────────────────────────────────────
+    // The writer has none, so it finds the same best seam for a subject
+    // every single time: "Still the Reel Deal" and "£400 of gear" turned
+    // up across separate fishing runs days apart, which makes a rack feel
+    // thin however good the individual card is. We already log every line
+    // generated — this reads them back so the writer can be told what it
+    // has already used. Best-effort: a failure here must never block
+    // making a card.
+    let alreadyUsed: string[] = [];
+    try {
+      const prior = await db
+        .select({ front_text: cardGenerations.front_text })
+        .from(cardGenerations)
+        .where(sql`lower(interest) = ${body.interest.trim().toLowerCase()}`)
+        .orderBy(desc(cardGenerations.id))
+        .limit(24);
+      alreadyUsed = Array.from(new Set(prior.map((r) => r.front_text).filter(Boolean)));
+    } catch (e) {
+      console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
+    }
+    if (alreadyUsed.length) {
+      briefLines.push(
+        `⚠️ ALREADY USED for this subject — every one of these has been generated before, so they are OFF LIMITS and so is any near-variant of them. Go to a DIFFERENT corner of the world:\n${alreadyUsed.map((l) => `  · ${l}`).join('\n')}`,
+      );
+    }
 
     const startedAt = Date.now();
     try {
@@ -1211,6 +1282,71 @@ export function registerAdminCardLabRoutes(app: Express): void {
       } catch (e) {
         console.warn('[CARD-LAB] judge pass failed, shipping originals:', e);
       }
+
+      // ── LANDING CHECK ─────────────────────────────────────────────
+      // Anything killed here is rewritten once by the writer, which is
+      // told exactly what was wrong. A failure of this pass must never
+      // cost the customer their cards, so it ships what it has.
+      try {
+        const check = await openai.chat.completions.create({
+          ...conceptParams(500, 0.2),
+          messages: [
+            { role: 'system', content: landingCheckPrompt() },
+            { role: 'user', content: [
+              'THE BRIEF THEY TYPED:', briefLines.slice(0, 6).join('\n'), '',
+              'THE CARDS:',
+              ...judged.map((c, i) => `${i + 1}. [${c.angle}] "${c.front_text}"`),
+            ].join('\n') },
+          ],
+          response_format: { type: 'json_object' },
+        });
+        const verdicts = JSON.parse(check.choices[0]?.message?.content ?? '{}').cards ?? [];
+        const killed = judged
+          .map((c, i) => ({ c, i, v: verdicts[i] }))
+          .filter((x) => x.v?.verdict === 'kill');
+        if (killed.length) {
+          console.warn('[CARD-LAB] landing check killed:',
+            killed.map((k) => `"${k.c.front_text}" — ${k.v?.why ?? ''}`));
+          const fix = await openai.chat.completions.create({
+            ...conceptParams(1400, 0.6),
+            messages: [
+              { role: 'system', content: writerPrompt() },
+              { role: 'user', content: briefLines.join('\n') },
+              { role: 'assistant', content: JSON.stringify({ concepts: judged }) },
+              { role: 'user', content: `A reader in a card shop rejected ${killed.length === 1 ? 'this card' : 'these cards'}:\n${killed.map((k) => `  · "${k.c.front_text}" — ${k.v?.why ?? 'does not land'}`).join('\n')}\n\nRewrite ONLY those front_candidates, keeping every other concept and all artwork exactly as they are. The replacement must be something a British person would actually say out loud, about THIS subject, that needs no explaining. Return the complete corrected JSON.` },
+            ],
+            response_format: { type: 'json_object' },
+          });
+          const reparsed = JSON.parse(fix.choices[0]?.message?.content ?? '{}').concepts ?? [];
+          if (reparsed.length === judged.length) {
+            judged = judged.map((c, i) => {
+              const wasKilled = killed.some((k) => k.i === i);
+              const line = shortlistOf(reparsed[i])[0];
+              return wasKilled && line && !isBanned(line) ? { ...c, front_text: line } : c;
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[CARD-LAB] landing check failed, shipping as-is:', e);
+      }
+
+      // ⚠️ LOG SERVER-SIDE, not from the client. It began as a
+      // fire-and-forget POST from the studio, which meant the
+      // already-used list could only ever see what a client happened to
+      // report — so two identical fishing runs back to back produced
+      // identical lines, because run one was never recorded. Logging
+      // here makes the memory reliable and the keep-rate denominator
+      // complete no matter who calls the endpoint.
+      void db.insert(cardGenerations).values(judged.map((c) => ({
+        build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
+        occasion: occProfile.key,
+        tone: body.tone ?? null,
+        age: body.age ?? statedAge(body.occasion),
+        angle: c.angle ?? null,
+        recipient: body.who ?? null,
+        interest: body.interest.trim(),
+        front_text: c.front_text,
+      }))).catch((e) => console.warn('[CARD-LAB] generation log failed (non-fatal):', e));
 
       res.json({ concepts: judged, notes });
     } catch (err) {
