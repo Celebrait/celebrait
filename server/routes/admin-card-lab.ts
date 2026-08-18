@@ -156,6 +156,57 @@ const MOTIF_WITH_ANIMALS =
 const MOTIF_WITH_FIGURES =
   "PRIMARILY objects, food, drink, botanicals, the kit of a hobby. Animals and human figures are PERMITTED but never required. Where the subject genuinely needs a person present, HUMAN FIGURES AS GRAPHIC SHAPES. Figures are vintage-travel-poster silhouettes, NEVER portraits: shown from behind, cropped at the shoulders, small in the frame, or reduced to flat coloured shapes. Faces are absent or a bare suggestion (never rendered features, never eyes and mouth drawn in detail). A figure is a shape doing an action, not a person being depicted. NEVER a recognisable real individual — living or dead, famous or otherwise.";
 
+/** FREE STYLE — the house style stepped aside (Aidan 2026-08-18).
+ *
+ *  "Give me the option to toggle on the ai deciding what style to do.
+ *  Based on a specific brief of current, non ai, etc. Nail this and it
+ *  might work as gpt image 2 is bang on."
+ *
+ *  Deliberately NOT a sixth house style. It swaps the fixed MEDIUM for a
+ *  chosen one while keeping the whole craft floor — clean type, safe
+ *  margins, no invented facts, the IP rules. The bet is that our one
+ *  visual language, good as it is, was failing whole categories
+ *  (nightlife, kids, baby showers) and the model is now capable enough
+ *  to pick a better idiom than we can pre-specify.
+ *
+ *  Everything here is about QUALITY, not taste: name a real medium, and
+ *  avoid the specific things that make generated art look generated. */
+export function freeStyleDna(level: CharacterLevel = 'objects'): string {
+  const rule =
+    level === 'figures' ? MOTIF_WITH_FIGURES
+    : level === 'animals' ? MOTIF_WITH_ANIMALS
+    : MOTIF_OBJECTS_ONLY;
+  return `ART DIRECTION — YOU CHOOSE THE MEDIUM. There is no house style on this card. Your job is to pick the illustration idiom this particular subject deserves and execute it as a real designer would.
+
+1. NAME A REAL MEDIUM, PRECISELY. Not "illustration" — an actual craft with actual rules, chosen because it suits THIS subject: risograph, linocut, gouache, papercut, screen print, mid-century children's book, vintage travel poster, botanical plate, art deco, 90s zine photocopy, comic halftone, fashion-marker illustration, cyanotype, hand-painted signwriting, ceramic tile, embroidery, airbrushed 70s poster, woodblock, cut-paper collage, chalk pastel. Then commit to it completely — a linocut has real gouge marks and no gradients; gouache has visible brush edges and flat opaque colour; a riso has misregistration and limited inks. Half-committing to a medium is what makes work look generic.
+
+2. ⚠️ IT MUST NOT LOOK AI-GENERATED. This is the whole test, and these are the tells that give it away:
+   - a glossy, airbrushed, over-rendered sheen on things that should be flat
+   - plastic lighting: soft global glow, fake bokeh, everything lit from nowhere
+   - dead-centre symmetry, the subject floating in the middle of the frame
+   - over-detailed backgrounds with no hierarchy, every inch busy, nothing to rest on
+   - mushy, soft-focus edges where a real medium would leave a hard one
+   - the default digital palette of purple-to-teal gradients
+   - random decorative elements floating with no reason to be there
+   AVOID ALL OF IT. Real media have LIMITS — a fixed number of inks, a physical edge, a mark made by a tool — and it is those limits that read as human. Choose a medium and let its limits show.
+
+3. IT MUST LOOK LIKE 2026, not any other year. What a good British studio would put out now: confident, edited, a real point of view. NOT 2019 flat-vector corporate art, NOT 2021 pastel blobs, NOT stock-illustration people with oversized limbs, NOT the beige minimalism of a few years ago. Current means considered, not trendy.
+
+4. COMPOSITION IS A DECISION. Scale contrast, a clear focal point, deliberate empty space, something cropped by the frame. A card is looked at from three feet away on a shelf — it must read instantly, then reward a closer look.
+
+5. MOTIFS: ${rule}
+
+6. THE NON-NEGOTIABLES, whatever medium you choose:
+   - THE TYPE PRINTS PERFECTLY CLEAN: no texture, distressing, misregistration, ghosting or stray marks on the letters, however textured the artwork is. Every glyph solid and fully formed.
+   - SAFE MARGIN: every letter sits at least a tenth of the card's width clear of all four edges. This card gets trimmed. Artwork may bleed; type never does.
+   - The lettering personality is given in the TYPE line — obey it and draw it well.
+   - The palette is given in the PALETTE line — obey it exactly.
+   - Never draw a logo, wordmark, crest, badge or any invented artefact belonging to a film, book, game or brand.
+   - Render EXACTLY the words given, spelled correctly, nothing else.
+
+The bar: someone in a card shop picks it up and assumes a person made it.`;
+}
+
 export function quirkyDna(level: CharacterLevel = 'objects'): string {
   const rule =
     level === 'figures' ? MOTIF_WITH_FIGURES
@@ -413,6 +464,8 @@ const conceptsSchema = z.object({
   /** D3 — the buyer-facing tone for the birthday world. Ignored by
    *  occasions that have not been built out yet. */
   tone: z.enum(['funny', 'warm', 'cheeky']).default('funny'),
+  /** Let the model choose the medium instead of using the house style. */
+  freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
    *  signals that matter — register, gender, age — into mush a model had
    *  to guess at. Bounded fields instead: `who` is the relationship,
@@ -454,7 +507,7 @@ interface CardConcept {
   typeface?: string;
 }
 
-function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration): string {
+function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false): string {
   // ⚠️ The cheek block is INJECTED AT THE TOP and written as an order, not
   // a permission. Buried at the bottom and phrased "allowed and
   // encouraged", it did nothing at all: a cheeky=true run produced "Ales
@@ -560,7 +613,7 @@ DERIVE THE WORLD FROM THE BRIEF — the thing they love leads, the age and the r
 Then state it in the "direction" field and hold ALL THREE cards inside it.
 
 Each returned concept:
-- direction: ONE sentence, IDENTICAL on all three concepts, naming the visual world you have chosen for this set: its palette family, its type mood, and its density register (airy / balanced / full). This is the decision every other visual choice obeys. Derive it from the brief, not from habit.
+- direction: ONE sentence, IDENTICAL on all three concepts, naming the visual world you have chosen for this set: ${freeStyle ? 'the MEDIUM (a real, named illustration craft — linocut, gouache, riso, papercut, art deco, mid-century children\'s book and so on), plus its palette family and type mood' : 'its palette family, its type mood, and its density register (airy / balanced / full)'}. This is the decision every other visual choice obeys. Derive it from the brief, not from habit.${freeStyle ? ' ⚠️ FREE STYLE IS ON: there is no house look on this set, so the medium you name here IS the design decision. Pick the craft this subject genuinely deserves and say it precisely — the renderer will commit to it completely.' : ''}
 - angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
 - format: one of "statement", "hero", "pattern", "label", "typeled". EXACTLY ONE card is "typeled" (text-only) — that count is fixed, because left free it swings to all or nothing. The OTHER TWO follow the direction's density register rather than a forced spread: an airy world can be two minimal cards, a full world two dense ones. Vary them a little for interest, but never at the cost of the world — three quiet cards for a quiet subject is a good set, not a failure.
   "typeled" is the TEXT-ONLY card: no illustration at all, the words set huge ARE the artwork. Good shops rack plenty of these — bought purely because the words and their setting were enough — so EXACTLY ONE card per set is typeled — never none, never two. ⚠️ HISTORY, so this is not re-litigated: when the writer chose freely it took the minimal slot 7 sets out of 7 and "statement" vanished; nudged the other way, statement took it 7 out of 7. Fixing the COUNT at one ends the swing while leaving you free to choose which angle earns it.
@@ -964,7 +1017,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const effectiveCheeky = body.cheeky && !serious;
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
-      : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile);
+      : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle);
 
     const briefLines = [
       `Recipient: ${body.who}`,
@@ -1583,6 +1636,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
+      /** Let the model choose the medium instead of the house style. */
+      freeStyle: z.boolean().default(false),
       /** Tier is switchable so the lab can compare artefact profiles —
        *  all tiers output 1024x1024, so this changes CRISPNESS, not
        *  resolution. Print re-renders would use 'high'. */
@@ -1605,7 +1660,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     const prompt = [
-      quirkyDna(body.characters),
+      body.freeStyle ? freeStyleDna(body.characters) : quirkyDna(body.characters),
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
       '',

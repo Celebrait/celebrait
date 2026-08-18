@@ -117,6 +117,10 @@ export default function AdminOccasionStudioPage() {
    *  Sunday league team. Objects stays the DEFAULT because it is the
    *  house look and the only setting with no uncanny risk. */
   const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
+  /** Free style hands the medium choice to the model instead of using
+   *  the house look — see freeStyleDna(). Off by default: the house
+   *  style is still the brand. */
+  const [freeStyle, setFreeStyle] = useState(false);
   const [occasion, setOccasion] = useState('Birthday');
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
@@ -168,7 +172,7 @@ export default function AdminOccasionStudioPage() {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, interest, tone, cheeky, insideMode: 'auto', characters,
-        gender: effectiveGender, age, detail: detail.trim() || undefined,
+        gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         dislikes: dislikes.trim() || undefined,
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
@@ -179,7 +183,7 @@ export default function AdminOccasionStudioPage() {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
             front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
-            typeface: c.typeface, format: c.format ?? 'hero', characters,
+            typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle,
           });
           const rj = await rr.json();
           setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
@@ -324,6 +328,10 @@ export default function AdminOccasionStudioPage() {
           <label className="flex items-center gap-2 text-xs text-stone-600">
             <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
             Rude
+          </label>
+          <label className="flex items-center gap-2 text-xs text-stone-600">
+            <input type="checkbox" checked={freeStyle} onChange={(e) => setFreeStyle(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
+            Free style <span className="text-stone-400">— AI picks the medium</span>
           </label>
           {/* People are drawn as faceless graphic shapes only — never
               portraits, never a recognisable real person. */}

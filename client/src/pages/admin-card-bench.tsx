@@ -73,6 +73,10 @@ export default function AdminCardBenchPage() {
   /** Same ladder as the studio — the bench was hardcoded to objects, so
    *  a sweep could never test animals or figures. */
   const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
+  /** Free style hands the medium choice to the model instead of using
+   *  the house look — see freeStyleDna(). Off by default: the house
+   *  style is still the brand. */
+  const [freeStyle, setFreeStyle] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const [cells, setCells] = useState<Cell[]>([]);
@@ -102,7 +106,7 @@ export default function AdminCardBenchPage() {
         setProgress(`Writing ${b.interest}…`);
         const cr = await apiRequest('POST', '/api/admin/card-lab/concepts', {
           who: b.who, occasion: b.occasion, interest: b.interest,
-          insideMode: 'auto', cheeky: rude, characters,
+          insideMode: 'auto', cheeky: rude, characters, freeStyle,
         });
         const { concepts = [] } = (await cr.json()) as { concepts?: Concept[] };
 
@@ -114,7 +118,7 @@ export default function AdminCardBenchPage() {
           try {
             const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
               front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
-              typeface: c.typeface, format: c.format ?? 'hero', characters, quality: 'low',
+              typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle, quality: 'low',
             });
             const rj = await rr.json();
             setCells((prev) => prev.map((cell) =>
