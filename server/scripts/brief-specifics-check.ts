@@ -20,8 +20,9 @@
  * rules around it — the cheek block did exactly this and needed
  * rewriting as an order.
  *
- * So this checks the FLOOR, not the taste: across N runs, does a real
- * detail reach a card, and does a stated dislike reach exactly one?
+ * So this checks the FLOOR AND THE CEILING, not the taste: across N runs,
+ * does a real detail reach a card, and does a stated dislike reach one or
+ * two cards without eating all three?
  * Text only, no renders — about 5p a run.
  */
 import 'dotenv/config';
@@ -66,8 +67,11 @@ async function main(): Promise<void> {
 
   let detailRuns = 0;
   let dislikeRuns = 0;
-  // Aidan's call: filling the field in IS the request, so the bar is all
-  // three, not "at least one got there".
+  // The contract is ONE card guaranteed, a second only if it earns its
+  // place, never all three. Both bounds are failures worth counting
+  // separately: zero means the field is decorative again, three means
+  // the set collapsed onto the hated thing (Aidan: "too much").
+  let dislikeInRange = 0;
   let dislikeAllThree = 0;
 
   for (let r = 0; r < runs; r++) {
@@ -91,6 +95,7 @@ async function main(): Promise<void> {
 
     if (detailCards > 0) detailRuns += 1;
     if (dislikeCards > 0) dislikeRuns += 1;
+    if (dislikeCards >= 1 && dislikeCards <= 2) dislikeInRange += 1;
     if (dislikeCards === 3) dislikeAllThree += 1;
 
     console.log(`\nrun ${r + 1}:  detail on ${detailCards}/3   dislike on ${dislikeCards}/3`);
@@ -105,7 +110,8 @@ async function main(): Promise<void> {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`detail reached a card:        ${detailRuns}/${runs} runs`);
   console.log(`dislike reached a card:       ${dislikeRuns}/${runs} runs`);
-  console.log(`dislike on ALL THREE cards:    ${dislikeAllThree}/${runs} runs`);
+  console.log(`dislike on 1-2 cards (want all): ${dislikeInRange}/${runs} runs`);
+  console.log(`dislike on ALL THREE (want 0):  ${dislikeAllThree}/${runs} runs`);
   server.close();
   process.exit(0);
 }

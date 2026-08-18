@@ -312,10 +312,11 @@ export default function AdminOccasionStudioPage() {
             <div className="sm:col-span-3">
               <Label htmlFor="dislikes" className="text-xs font-semibold text-stone-700">
                 {/* The label states the contract, because the field only
-                    reads as worth filling in if you know what it buys —
-                    and because "worth one card" promised something the
-                    prompt was not reliably delivering (Aidan 2026-08-18). */}
-                Can't stand <span className="font-normal text-stone-400">— optional; fill this in and all three cards will use it</span>
+                    reads as worth filling in if you know what it buys.
+                    Back to one card after all-three was tried and cut
+                    (Aidan 2026-08-18) — but now it genuinely delivers the
+                    one, which the original "worth one card" did not. */}
+                Can't stand <span className="font-normal text-stone-400">— optional; we'll build one of the three cards around it</span>
               </Label>
               <Input id="dislikes" value={dislikes} onChange={(e) => setDislikes(e.target.value)} className="mt-1.5"
                 placeholder="Man City / mornings / oat milk" />

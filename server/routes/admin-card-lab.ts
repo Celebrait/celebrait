@@ -1072,13 +1072,24 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // mentioned because it had nothing real left to say. The two fields
       // that make a card personal were the two being dropped.
       body.detail?.trim() ? `⚠️ THE ONE REAL DETAIL THEY GAVE US: ${body.detail.trim()}. This is the most specific thing you know about this person and it is worth more than the interest, because everyone who likes ${body.interest.trim()} is the same and only THIS one has that. AT LEAST ONE of your three cards must be built on it — not a passing mention, the actual idea of the card. If you cannot make it work in words, it goes in that card's artwork.` : '',
-      // Aidan 2026-08-18: "if they put in a dislike all 3 should maybe
-      // reference it? Just make that clear up front". Nobody types a
-      // rival by accident — filling this in IS the request. The old rule
-      // capped it at one card, which meant the buyer opted into a joke
-      // and got a two-in-three chance of not seeing it. The UI label now
-      // promises all three, so the prompt has to deliver all three.
-      body.dislikes?.trim() ? `⚠️ SOMETHING THEY CANNOT STAND: ${body.dislikes.trim()}. Rivalry and loathing are the richest comic fuel there is, and NOBODY FILLS THIS FIELD IN BY ACCIDENT — typing it is the buyer asking for this joke. ALL THREE of your cards touch it, each from a genuinely different direction: one can be the straight dig, one can take the recipient's side against it, one can treat it as a fact of life too obvious to argue with. What they must not be is the same joke three times, or three cards that are ABOUT the rival rather than about the recipient — the birthday is still theirs. Punch at the thing, never at the person receiving the card.` : '',
+      // ⚠️ ONE CARD, AND IT HAS TO FUSE. This went 0 → 3 → 1 in a day and
+      // the middle step is worth keeping written down. It reached NO card
+      // when hedged; Aidan then asked for all three; seeing all three, he
+      // called it: "can't stand is too much isn't it? Left makes no sense
+      // and middle doesn't land."
+      // He was right both times. The original fault was that it never
+      // appeared, not that it appeared once — and forcing three made two
+      // cards contort round a joke that only had one good angle in it. The
+      // set that proved it: a murder-novels/hates-football brief where the
+      // only card that worked FUSED the two in one sentence ("murder
+      // novels improve everything, football improves nothing"), while
+      // another just stuck a crossed-out telly onto a crime-novel jacket —
+      // a picture carrying no joke at all.
+      // So it is guaranteed a card and capped at two, and it must pass the
+      // same fused-not-bolted-on test the occasion already has.
+      body.dislikes?.trim() ? `⚠️ SOMETHING THEY CANNOT STAND: ${body.dislikes.trim()}. Nobody fills this field in by accident, so EXACTLY ONE of your three cards is built on it — a second may touch it ONLY if that card is genuinely better for it, and never all three.
+  ⚠️ IT MUST BE FUSED, NOT BOLTED ON, and this is where it goes wrong: the dislike has to be doing WORK in the joke, not sitting next to it. FUSED — the loved thing and the hated thing are weighed against each other in one breath, so removing either breaks the line. BOLTED ON — a finished joke about the thing they love, with the hated thing added as a picture or a clause. A card that crossed out a television in the corner of an otherwise unrelated design is the failure: cover that element with your thumb and the card is unharmed, which means it was never load-bearing. If the dislike will not fuse, put it on a different card, or say it plainly and drily instead of decorating with it.
+  Punch at the thing, never at the person receiving the card — the birthday is still theirs.` : '',
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       `The thing they love: ${body.interest.trim()}`,
@@ -1251,19 +1262,17 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // has one idea. Words from the brief itself are exempt: every card
       // is legitimately about the interest.
       const STOP = new Set(['this','that','with','your','still','from','have','been','they','them','their','what','when','then','than','just','only','more','most','very','sixty','forty','fifty','thirty','years','year','birthday','happy']);
-      // ⚠️ THE DISLIKE IS EXEMPT, THE DETAIL IS NOT, and the asymmetry is
-      // the point. This detector was BUILT to stop a rivalry eating a set
-      // (the City-on-a-United-brief case in the note above) — but that
-      // rivalry arrived incidentally, buried in a detail field. One typed
-      // into the dedicated "Can't stand" box is the buyer ASKING for all
-      // three, so counting it as collapse made the two rules fight: the
-      // brief ordered three Liverpool cards, this retried them away, and
-      // the measured all-three rate sat at 1 run in 3.
-      // The detail stays counted because only ONE card has to carry it —
-      // a detail on all three genuinely is a set with one idea.
+      // ⚠️ THE DISLIKE IS DELIBERATELY *NOT* EXEMPT HERE. It was, for
+      // about an hour, while the brief demanded all three cards carry it —
+      // otherwise this detector saw three Liverpool cards, called it a
+      // collapse and retried them away, and the two rules fought.
+      // Aidan then saw all-three in the wild and reversed it ("can't stand
+      // is too much"), which puts this back to its original job: three
+      // cards about the hated thing IS a collapsed set, and it is now the
+      // guard that catches the very failure he spotted. Same for the
+      // detail, which only one card has to carry.
       const briefWords = new Set(
-        `${body.interest} ${body.who} ${body.occasion} ${body.dislikes ?? ''}`
-          .toLowerCase().match(/[a-z']{4,}/g) ?? [],
+        `${body.interest} ${body.who} ${body.occasion}`.toLowerCase().match(/[a-z']{4,}/g) ?? [],
       );
       const wordFreq = new Map<string, number>();
       for (const c of concepts) {
