@@ -108,6 +108,40 @@ const CASES: Case[] = [
     want: 'pass',
   },
 
+  // ── BROKEN ENGLISH THAT GOT THROUGH ─────────────────────────────
+  // Aidan, 2026-08-18: "Left didn't land." "Moana be 3 already" is not
+  // a sentence anyone says — it reads as a dropped verb — and it
+  // reached the render stage, where both providers then refused it for
+  // unrelated reasons. The not-English rule exists precisely for this
+  // and did not fire, so it is pinned.
+  {
+    name: 'dropped-verb line, not English (Moana, age 3)',
+    brief: 'Birthday card for my daughter turning 3. She loves Moana.',
+    line: 'Moana be 3 already',
+    look: "hero — a cresting paper wave and a small outrigger canoe, no figures",
+    colours: 'turquoise ground, deep teal, coral accent, sand',
+    lettering: "rounded playful children's book lettering",
+    want: 'kill',
+    wantWhat: 'words',
+  },
+
+  // ── AND THE ONE AIDAN QUERIED ───────────────────────────────────
+  // "Right 'properly' make sense?" — worth pinning either way. British
+  // "properly" intensifies an adjective ("properly good"), not a
+  // number: "Properly 3" is not something anyone says, even though
+  // "Properly Moana" is fine. Half the line works, which is what makes
+  // it a genuinely hard case rather than an obvious one.
+  {
+    name: 'half-idiomatic intensifier (Moana, age 3)',
+    brief: 'Birthday card for my daughter turning 3. She loves Moana.',
+    line: 'Properly 3. Properly Moana.',
+    look: 'statement — layered papercut waves and island leaves around a large numeral 3',
+    colours: 'teal ground, vivid sunset orange, coral, cream',
+    lettering: 'bold cut-paper lettering, proud and celebratory',
+    want: 'kill',
+    wantWhat: 'words',
+  },
+
   // ── THE WORDS FAILURE, so the two halves stay distinguishable ────
   // The original landing-check case. Names the ground, means nothing.
   // The look here is deliberately GOOD, so a check that lazily blames
