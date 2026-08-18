@@ -6,8 +6,31 @@
  * only ever counted image OUTPUT and ignored prompt tokens entirely,
  * which turned out to be the largest single line on the bill.
  *
- * Prices are per OpenAI's published table, Aug 2026. Re-check when a
- * model changes — this file is the estimate, the invoice is the truth.
+ * Prices are per OpenAI's published table, Aug 2026.
+ *
+ * ⚠️ MEASURED 2026-08-18 — the estimate below was 2.7x TOO HIGH.
+ * A controlled run of 10 sets (30 cards) on an otherwise-idle day cost
+ * $0.51, against a predicted $1.37. Actuals:
+ *
+ *     per set          $0.051   (~4p)
+ *     per card         $0.017   (~1.3p)
+ *     image prompt     62,811 tokens = $0.31  (62% OF THE BILL)
+ *     llm prompt       31,072 tokens = $0.08
+ *     per render       2,094 tokens (predicted 2,929)
+ *     per set, writer+judge combined  3,107 tokens
+ *
+ * WHERE THE ESTIMATE WENT WRONG: the writer prompt was guessed at 42%
+ * of this source FILE's token count, which is mostly code and comments
+ * rather than prompt — that alone was ~7x out. Lesson: measure the
+ * string you actually send, never a proxy for it.
+ *
+ * WHAT IT MEANS: at 4p a set the cost is negligible against an £8.99
+ * card (0.45% COGS), so trimming the render prompt is NOT worth doing
+ * for money — even though image prompt tokens really are 62% of spend,
+ * 40% off them saves about 1p a set. The number that would actually
+ * move: rendering at HIGH quality for print is $0.211 an image against
+ * $0.006 at low — 35x, and it dwarfs everything here. That is the
+ * Prodigi print-test question, not a prompt question.
  */
 import 'dotenv/config';
 import { quirkyDna, QUIRKY_FORMATS } from '../routes/admin-card-lab';
