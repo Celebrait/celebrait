@@ -78,6 +78,36 @@ const CASES: Case[] = [
     want: 'pass',
   },
 
+  // ── THE ADULT WHO LOVES A KIDS' FILM ─────────────────────────────
+  // Aidan kept this one: "was good as the card was for dad". It is here
+  // because it is the exact false positive the new age rule could
+  // spring — the recipient is a grown man, the look is children's-book
+  // gouache, and read carelessly that is "childish look on an adult's
+  // card, kill it". It is not. The storybook idiom belongs to the
+  // SUBJECT, and the subject is a children's film the recipient loves.
+  // Age rules the look only where the subject leaves it free.
+  //
+  // It also earns its place as the case that caught ME: run first
+  // against the daughter's brief instead of dad's, it was killed as
+  // "about dad, not her" — correct reasoning, wrong input.
+  //
+  // ⚠️ DO NOT WRITE THIS EXCEPTION INTO THE PROMPT. It passes on
+  // judgement alone, and spelling it out as an explicit clause was
+  // TRIED and made things WORSE — 5/5 became 4/5 twice, and the case
+  // it broke was the nan one, nowhere near the rule that was edited.
+  // The extra length diluted a guard on the other side of the prompt.
+  // Same lesson as the condensed front-scene prompt: past a point,
+  // more words drown the rules already there.
+  {
+    name: "adult recipient, children's-film subject, storybook look",
+    brief: 'Birthday card for my dad. He loves Moana, watches it with the grandkids.',
+    line: 'Dad takes Moana very seriously',
+    look: 'statement — a carved wooden oar with shells and a rolled map, palm leaves',
+    colours: 'warm sand ground, island green, deep pink, ocean blue',
+    lettering: "warm confident mid-century children's book lettering",
+    want: 'pass',
+  },
+
   // ── THE WORDS FAILURE, so the two halves stay distinguishable ────
   // The original landing-check case. Names the ground, means nothing.
   // The look here is deliberately GOOD, so a check that lazily blames
