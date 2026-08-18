@@ -318,7 +318,7 @@ export interface OccasionProfile {
 
 const PROFILE = (key: string, humour: HumourLevel, brief: string): OccasionProfile => ({ key, humour, brief });
 
-const OCCASION_PROFILES: Record<string, OccasionProfile> = {
+export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
   sympathy: PROFILE('sympathy', 'off',
     `Comfort. The reader has lost someone, and presence beats cleverness: plain, quiet, true words. ABSOLUTELY NO jokes, puns, wordplay, cheek or exclamation marks. No advice, no silver linings ("at least…"), no timelines ("time heals"), no assumed faith. The interest appears only as gentle solace — a quiet corner of their world, holding still. Soft, pale, muted palette; the ONE occasion where three quiet grounds is correct.`),
   getwell: PROFILE('getwell', 'gentle',
@@ -547,7 +547,7 @@ interface CardConcept {
   typeface?: string;
 }
 
-function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false): string {
+export function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false): string {
   // ⚠️ The cheek block is INJECTED AT THE TOP and written as an order, not
   // a permission. Buried at the bottom and phrased "allowed and
   // encouraged", it did nothing at all: a cheeky=true run produced "Ales
@@ -688,7 +688,7 @@ Each returned concept:
   ⚠️ BEFORE YOU WRITE THIS SENTENCE, name to yourself the two or three things ONLY this subject has — its own architecture, its own objects, its own light and hour, its own rituals. Then draw one of those. If you cannot name any, you do not know the subject well enough yet to art-direct it, and the honest move is a plainer motif done beautifully rather than a generic one dressed up.
   ✅ IF IT IS A REAL PLACE, DRAW THE PLACE — see case C in the style brief. Real venues, grounds, buildings and streets are open to us, and they are the most specific motif available: the ground under floodlights, the club's own low roofline against a dawn sky, the pier, the market. Nobody owns reality.
   Where the OCCASION has a world of its own, let it inflect this: its season, its light, one of its objects folded into the interest's own kit, or its number worked into the scene. Never a generic occasion prop (balloons, cake, a wrapped present, a tree) dropped next to the real subject. ${characters === 'objects'
-    ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters.'
+    ? 'Objects, food, botanicals, the kit of that world ONLY — NEVER humans, NEVER animals, NEVER characters. ⚠️ WHEN THE SUBJECT IS PEOPLE (grandkids, family, mates, a team), draw THE TRACES THEY LEAVE, never the furniture they sat on: crumbs and a tipped mug, felt-tips with the lids off, a drawing pinned up, cards mid-game, four spoons in one bowl. Observed failure — a "spending time with the grandkids" brief returned chairs, more chairs and a table, because chairs are what is left when you remove the people. Traces are warm and say who was there; empty seating is the absence of the subject.'
     : `OBJECTS ARE THE DEFAULT for every card. ${characters === 'figures'
         ? 'A characterful ANIMAL, or a HUMAN FIGURE drawn in the card\'s own medium (an illustrated face is fine and welcome; a photographic or semi-photographic one never is, and nor is a likeness of a private individual — a PUBLIC FIGURE may be satirical caricature, all per the style brief), is PERMITTED'
         : 'A characterful ANIMAL is PERMITTED (never humans or human faces)'} but is a CEILING, not an instruction.
