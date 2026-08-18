@@ -210,6 +210,24 @@ export function freeStyleDna(level: CharacterLevel = 'objects'): string {
 The bar: someone in a card shop picks it up and assumes a person made it.`;
 }
 
+/** ⚠️ THE IMAGE IS THE CARD — IT IS NOT A PICTURE OF ONE.
+ *
+ *  Observed 2026-08-18 (Aidan: "it's rendered it as a 3d greetings card
+ *  rather than a square image... think its a mistake"): a Moana card came
+ *  back as a PHOTOGRAPH of a peach greeting card lying on a grey surface,
+ *  drop shadow and all. The design was fine — it was just two inches
+ *  across in the middle of a picture of a desk, so the printed card would
+ *  have a picture of a card on it.
+ *
+ *  The cause was the closing line of every render prompt: "full-bleed
+ *  greeting-card front". "Greeting-card front" is a NOUN PHRASE naming an
+ *  object, and "full-bleed" is print jargon the image model does not
+ *  reliably read as an instruction. Asked for a greeting card, it drew
+ *  one. Shared here because all three render paths ended with that same
+ *  sentence and would otherwise drift apart. */
+export const IS_THE_CARD_ITSELF =
+  '⚠️ THE IMAGE IS THE PRINTED SURFACE ITSELF, NOT A PICTURE OF A CARD. You are drawing the artwork that gets printed, so it runs to all four edges of the image and beyond. NEVER show a greeting card as an object inside the picture: no card lying on a table, desk or surface, no paper edge or corner, no drop shadow, no rounded corners, no mount, no white margin framing the design, no mockup, no product photograph. A decorative border PRINTED ON the card is fine; the card appearing as a physical object within the image is not. If a viewer could point at the edge of a card inside this picture, it is wrong.';
+
 export function quirkyDna(level: CharacterLevel = 'objects'): string {
   const rule =
     level === 'figures' ? MOTIF_WITH_FIGURES
@@ -1544,7 +1562,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       '',
       textBlock,
       '',
-      'Square 1024x1024 full-bleed greeting-card INSIDE page.',
+      `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
     ].filter(Boolean).join('\n');
 
     try {
@@ -1614,7 +1632,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         '',
         `FRONT TEXT — render EXACTLY and ONLY: "${body.newText.trim()}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters. Compose the artwork AROUND these words, leaving them a clear zone of plain ground to sit in — the motifs fill the space the type leaves, never run behind it. Every word legible, nothing cropped. ABSOLUTELY NO other text anywhere in the image.`,
         '',
-        'Square 1024x1024 full-bleed greeting-card front.',
+        `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
       ].filter(Boolean).join('\n');
       try {
         const result = await getProvider('openai-2').generate({
@@ -1756,7 +1774,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${body.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',
-      'Square 1024x1024 full-bleed greeting-card front.',
+      `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
     ].join('\n');
 
     // OpenAI first. If its safety layer refuses (common once cheek is

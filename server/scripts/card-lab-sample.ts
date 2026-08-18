@@ -16,7 +16,13 @@
 import 'dotenv/config';
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { quirkyDna, QUIRKY_FORMATS, type CharacterLevel } from '../routes/admin-card-lab';
+import {
+  quirkyDna,
+  freeStyleDna,
+  QUIRKY_FORMATS,
+  IS_THE_CARD_ITSELF,
+  type CharacterLevel,
+} from '../routes/admin-card-lab';
 import { getProvider } from '../providers/registry';
 
 interface SampleConcept {
@@ -26,6 +32,11 @@ interface SampleConcept {
   palette?: string;
   typeface?: string;
   art_direction: string;
+  /** Per-concept, because free style is now half the surface we test and
+   *  a bug that only shows with the house style stepped aside (the
+   *  card-drawn-as-an-object one did) is untestable without it. */
+  freeStyle?: boolean;
+  characters?: CharacterLevel;
 }
 
 async function main(): Promise<void> {
@@ -44,8 +55,9 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < concepts.length; i++) {
     const c = concepts[i];
+    const level = c.characters ?? characters;
     const prompt = [
-      quirkyDna(characters),
+      c.freeStyle ? freeStyleDna(level) : quirkyDna(level),
       '',
       QUIRKY_FORMATS[c.format] ?? QUIRKY_FORMATS.hero,
       '',
@@ -55,7 +67,7 @@ async function main(): Promise<void> {
       '',
       `FRONT TEXT — render EXACTLY and ONLY: "${c.front_text}". Set it per the TYPOGRAPHY block: a real typeface, stacked into 2-3 flush-aligned lines, printing perfectly clean with no texture, distressing or stray marks on the letters, sitting in its own clear zone of ground. Every word legible, nothing cropped. ABSOLUTELY NO other text, letters, numbers, signatures or watermarks anywhere in the image.`,
       '',
-      'Square 1024x1024 full-bleed greeting-card front.',
+      `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
     ].join('\n');
 
     const result = await provider.generate({ prompt, quality, size: '1024x1024', slot: 'card_lab' });
