@@ -83,3 +83,41 @@ likely score 40–60%. Ship the verify loop, target ≥95%.
 
 Prompt polish continues to matter for QUALITY. It stops being the
 mechanism for CORRECTNESS.
+
+## The target architecture (Aidan, 2026-08-19, after the audit)
+
+*"Take the initial user information, recipient, age, interests,
+dislikes, and use it to create an ARCHETYPE of what that person will
+react to in relation to the interests provided. Let the AI be creative
+in terms of output design. Just make sure it's current and landing. Old
+can work if treated new!"*
+
+Three stages, replacing the single 8k-token lecture:
+
+**1. ARCHETYPE (new, ~1p).** A first cheap call that turns the brief
+into a model of the person: the era they came of age in, what they
+actually react to about THIS interest, what reads as cliché to them
+versus current, where the line is on cheek, what a card shop would get
+wrong about them. Dynamic per-brief inference instead of static rules —
+the model is genuinely good at "what lands for a 50-year-old Oasis fan"
+when asked directly; today that knowledge is smeared across forty
+standing instructions it half-reads.
+
+**2. CREATIVE GENERATION (short prompt).** Brief + archetype + the
+craft bar. Design free. The style directive is exactly Aidan's words:
+CURRENT AND LANDING — old media welcome when treated with a modern eye
+("old can work if treated new"), which is what the medium-spread fix
+already unlocked.
+
+**3. REFEREE (code).** The deterministic floors + per-card regeneration
+from the plan above. The guarantee lives here, not in the prompt.
+
+⚠️ INTERESTS ARE MANDATORY on the customer occasion builder — Aidan's
+explicit call. The blank-interest milestone cards remain a STUDIO
+capability for building spine stock; the customer flow always has an
+interest, and the archetype is built "in relation to the interests
+provided".
+
+The baseline harness therefore compares FOUR arms: bare prompt, current
+prompt, short+referee, and archetype+short+referee. Build order:
+harness → archetype call → referee → measure all four → keep what wins.
