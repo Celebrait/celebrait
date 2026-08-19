@@ -41,6 +41,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
 import { cardGenerations, cardTemplates, users } from '@shared/schema';
+import { isMilestone } from '@shared/catalogue';
 import { publicImageUrl } from '../image-storage';
 import { isR2Enabled, r2Put } from '../r2-storage';
 import { openai } from '../utils/shared';
@@ -1104,7 +1105,16 @@ export function registerAdminCardLabRoutes(app: Express): void {
       body.gender !== 'unspecified'
         ? `Recipient gender: ${body.gender === 'him' ? 'male (he/him)' : 'female (she/her)'} — ⚠️ TWO RULES. (1) It tunes palette and type warmth, and is NEVER the basis of the joke: no jokes that only work because of their gender, no gendered hobby clichés. (2) But it must NEVER BE CONTRADICTED. Any gendered word on the front — man, woman, lad, lass, bloke, girl, he, she, his, her, king, queen, sir, madam — reads as being ABOUT this recipient, even when you meant it about the subject, because this is their card. Getting it wrong is a factual error on something we print and post. If a line needs a gendered word that is not theirs, rewrite it neutrally or aim it elsewhere.`
         : '⚠️ NO GENDER STATED, so the cards must work for anyone: no gendered words on the front at all — no man/woman, lad/lass, bloke, girl, he/she/his/her, king/queen, sir/madam. Write it so it is true whoever opens it.',
-      body.age ? `Recipient age: ${body.age}` : '',
+      // ⚠️ MILESTONE vs ORDINARY AGE — computed here, not left to the
+      // writer, because "is 37 a milestone" is a fact about the UK card
+      // market and not a judgement call. Aidan 2026-08-19: "let's not
+      // fill every card with that number - only put it on every card if
+      // its a milestone but dont ignore if its not."
+      body.age
+        ? isMilestone(body.age)
+          ? `Recipient age: ${body.age} — ⚠️ THIS IS A MILESTONE, and the number is the event. It may lead on all three cards, in the words or worked into the artwork, and a milestone set that never shows its number has wasted the strongest thing in the brief.`
+          : `Recipient age: ${body.age} — ⚠️ NOT A MILESTONE. The number is TRUE but it is not the occasion: nobody throws a party for a ${body.age}th, so a set that stamps ${body.age} on all three cards is three cards about a number nobody cares about. AT MOST ONE card may use it. But do NOT discard it either — it still tells you the voice, the era they grew up in and what is funny to them, so let it shape every card while appearing on one.`
+        : '',
       // ⚠️ BOTH OF THESE ARE FLOORS, NOT PERMISSIONS, and they read as
       // orders for the reason the cheek block does (see the note above
       // conceptSystemPrompt): a hedged line loses every argument with the

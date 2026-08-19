@@ -123,11 +123,14 @@ export default function AdminOccasionStudioPage() {
    *  contains a creature or a person — dog people, horse riders, a
    *  Sunday league team. Objects stays the DEFAULT because it is the
    *  house look and the only setting with no uncanny risk. */
-  const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
+  const [characters, setCharacters] = useState<'objects' | 'animals'>('objects');
   /** Free style hands the medium choice to the model instead of using
-   *  the house look — see freeStyleDna(). Off by default: the house
-   *  style is still the brand. */
-  const [freeStyle, setFreeStyle] = useState(false);
+   *  the house look — see freeStyleDna().
+   *  ⚠️ NO LONGER A TOGGLE. Aidan 2026-08-19: "we're going with free
+   *  style on the art 100% of the time moving forward." A constant
+   *  rather than a defaulted-on checkbox, because a control nobody is
+   *  meant to change is just a way to produce a bad set by accident. */
+  const freeStyle = true;
   const [occasion, setOccasion] = useState('Birthday');
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
@@ -364,14 +367,20 @@ export default function AdminOccasionStudioPage() {
             <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
             Rude
           </label>
-          <label className="flex items-center gap-2 text-xs text-stone-600">
-            <input type="checkbox" checked={freeStyle} onChange={(e) => setFreeStyle(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
-            Free style <span className="text-stone-400">— AI picks the medium</span>
-          </label>
-          {/* People are drawn as faceless graphic shapes only — never
-              portraits, never a recognisable real person. */}
+          {/* ⚠️ FREE STYLE IS NO LONGER A CHOICE (Aidan 2026-08-19: "we're
+              going with free style on the art 100% of the time moving
+              forward"), so the toggle is gone rather than defaulted-on —
+              a checkbox nobody is meant to untick is just a way to
+              generate a bad set by accident. */}
+          {/* ⚠️ AND PEOPLE ARE GONE. Removed on the same call: figures on
+              a fictional-property brief resolve to ITS character (the
+              Moana card that drew Moana), and everywhere else a faceless
+              silhouette was rarely the strongest option anyway. Animals
+              stay available but the prompt still gates them — permitted
+              only where the subject's own world naturally contains one,
+              which is what stops kangaroos turning up on an Oasis card. */}
           <div className="flex items-center gap-1.5">
-            {([['objects', 'Objects'], ['animals', '+ Animals'], ['figures', '+ People']] as const).map(([v, l]) => (
+            {([['objects', 'Objects'], ['animals', '+ Animals']] as const).map(([v, l]) => (
               <button key={v} type="button" onClick={() => setCharacters(v)}
                 className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   characters === v ? 'border-brand bg-brand-muted/50 text-brand-dark'
