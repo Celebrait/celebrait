@@ -174,3 +174,52 @@ choice (law 4: the model will not vary its own structure unasked).
 Set shape target: one SHORT hit, one MID, one LONG read-aloud — three
 genuinely different reading experiences, not three lengths of the same
 sentence.
+
+## THE VISUAL DECISION — nailed down (end of audit)
+
+Aidan: this engine IS the customer product, so the style decision is
+what Celebrait sells. His instinct, made precise here: *"do what we did
+before but also let the AI run free."*
+
+**The concept: HOME REGISTER WITH LICENSED DEPARTURES.**
+
+The house discipline — flat, graphic, bold confident grounds, type
+doing the work, objects not scenes — is where every card STARTS. It is
+a home base, not a cage: the archetype is explicitly licensed to leave
+it when the person's world genuinely calls for something else (chrome
+for a 21st raver, watercolour for a nan, airbrush for an 80s petrolhead)
+— and a departure must be a DECISION the direction can name, never
+drift. This is not the old regime: the three-ink law stays dead, media
+stay unlisted, the departure licence is real.
+
+**Built as a studio toggle so the decision is made by eye, not debate:**
+- **CELEBRAIT** — archetype + home register with licensed departures
+- **OPEN** — archetype + no visual constraint ("current and landing"
+  only)
+Both modes share everything else: three length registers (short hit /
+mid / long read-aloud), format rotation with typeled pinned, the code
+referee. Same briefs through both, rendered side by side, Aidan judges;
+keep-rate arbitrates over time; customer purchases arbitrate for real
+once live.
+
+**Recommendation on record — CELEBRAIT as the default,** for four
+reasons: (1) Aidan's 28 keeps are the revealed taste and they are
+discipline-shaped to a card; (2) the moat — "AI generation anyone can
+do" is the commodity risk, and a recognisable rack is the defence;
+(3) print physics — flat graphic art survives the 1024→print upscale
+far better than painterly scenes (the 171-DPI finding); (4) nothing is
+lost — the range collapse was caused by the ink law, not the
+discipline, and the ink law is gone. But the toggle exists precisely so
+this is his call from pictures, and "unsure rn" is a legitimate state
+the build must not foreclose.
+
+## NEXT SESSION — one job, no detours
+
+Wire the winner into /concepts behind the toggle:
+1. Archetype call (with per-brief referee hints generated alongside).
+2. Short prompt ×2 variants (Celebrait register / Open) + length
+   registers + format rotation.
+3. Code referee with per-card regeneration.
+4. Harness against the LIVE route, both modes.
+5. Render one side-by-side sheet for the style call.
+Then, and only then: the catalogue restarts.
