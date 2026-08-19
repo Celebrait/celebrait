@@ -79,7 +79,12 @@ interface Concept {
    *  cannot be judged (Aidan: "how is this actually deciding style?"). */
   direction?: string;
 }
-interface Cell { concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean }
+interface Cell {
+  concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean;
+  /** Rendered lazily, only when a print file is asked for — every
+   *  inside costs a generation and most cards never need one. */
+  insideUrl?: string; printing?: boolean;
+}
 /** `recipient` was always stored and always returned — the templates
  *  route does a bare select() — it just was not declared here, which is
  *  why the coverage grid could not see the market's first axis. */
@@ -224,6 +229,65 @@ export default function AdminOccasionStudioPage() {
     } catch (e: any) {
       toast({ title: 'Generation failed', description: e?.message ?? '', variant: 'destructive' });
     } finally { setThinking(false); }
+  };
+
+  /** ⚠️ THE PRINT PATH THE LAB NEVER HAD. Everything here has only ever
+   *  been judged on a screen; whether flat illustration and crisp type
+   *  survive at 6 inches is the one question a monitor cannot answer,
+   *  and it gates the whole catalogue (Aidan 2026-08-19: "I need to
+   *  print a proper card, front and inside").
+   *
+   *  Renders the INSIDE first — in the front's own medium, which is why
+   *  render-inside now takes `direction` — then feeds both through the
+   *  same composeCardPrintStrip the real orders use, so the file that
+   *  downloads is the file a customer's card is printed from.
+   *
+   *  Quality is forced HIGH here regardless of the screen setting: this
+   *  is the one output where the 35× cost is obviously worth it, and
+   *  printing the cheap render would answer a question nobody asked. */
+  const printFile = async (i: number) => {
+    const cell = cells[i];
+    if (!cell?.imageUrl || cell.printing) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, printing: true } : x)));
+    try {
+      let inside = cell.insideUrl;
+      if (!inside) {
+        const ir = await apiRequest('POST', '/api/admin/card-lab/render-inside', {
+          mode: cell.concept.inside_text ? 'auto' : 'blank',
+          message: cell.concept.inside_text || undefined,
+          palette: cell.concept.palette, typeface: cell.concept.typeface,
+          art_direction: cell.concept.art_direction, characters,
+          freeStyle, direction: cell.concept.direction, quality: 'high',
+        });
+        inside = (await ir.json()).imageUrl as string;
+        setCells((prev) => prev.map((x, j) => (j === i ? { ...x, insideUrl: inside } : x)));
+      }
+
+      // Binary download, so nothing has to survive a base64 round trip —
+      // the strip is 6732×1713 and would be a ~20MB string otherwise.
+      const res = await fetch('/api/admin/card-lab/print-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          front: cell.imageUrl, inside,
+          filename: `${world.key}-${cell.concept.angle}-${(cell.concept.front_text || 'card').slice(0, 24)}`,
+        }),
+      });
+      if (!res.ok) throw new Error(`print asset failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `celebrait-print-${cell.concept.angle}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: 'Print file downloaded', description: '6732×1713 — upload this to Prodigi as the print asset.' });
+    } catch (e: any) {
+      toast({ title: 'Print file failed', description: e?.message ?? '', variant: 'destructive' });
+    } finally {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, printing: false } : x)));
+    }
   };
 
   const save = async (i: number) => {
@@ -436,6 +500,13 @@ export default function AdminOccasionStudioPage() {
                     : c.saved ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Star className="mr-1.5 h-3.5 w-3.5" />}
                   {c.saved ? 'Kept' : 'Keep'}
                 </Button>
+                {/* Print file — the 6732×1713 Prodigi strip, front and
+                    inside, composed by the same code real orders use. */}
+                <button type="button" onClick={() => printFile(i)}
+                  disabled={!c.imageUrl || c.printing}
+                  className="mt-1.5 w-full rounded-md border border-stone-200 px-2 py-1.5 text-[11px] font-medium text-stone-500 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-40">
+                  {c.printing ? 'Composing print file…' : 'Download print file'}
+                </button>
               </div>
             </div>
           ))}

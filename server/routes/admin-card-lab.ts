@@ -1636,6 +1636,64 @@ export function registerAdminCardLabRoutes(app: Express): void {
   //   blank — a styled but EMPTY page they can handwrite on
   // dear/from render as the greeting-card hierarchy the photo studio
   // already uses (To Dad … at the top, Love Aidan … underneath).
+  // ── POST /api/admin/card-lab/print-asset ─────────────────────────
+  // A Prodigi-ready 6732×1713 strip from a Lab card, downloaded as a
+  // file so Aidan can upload it by hand.
+  //
+  // WHY IT HAD TO EXIST (Aidan 2026-08-19: "I need to print a proper
+  // card, front and inside... able to download the file to upload to
+  // prodigi"): the Lab has never had a print path at all. It renders to
+  // a data URL and stores a template; composeCardPrintStrip has only
+  // ever been fed by the PHOTO product's pipeline. So the one thing we
+  // most need to check — whether flat illustration and crisp type
+  // survive at card size — could not be checked.
+  //
+  // Same compositor the real orders use, so what comes out is what a
+  // customer would receive. Panels: outer-rear (brand + sender) /
+  // outer-front (the card) / inside-left (cream + logo) / inner-back
+  // (the inside artwork).
+  //
+  // ⚠️ NO INTERMEDIATE UPSCALE, deliberately. The photo path makes a
+  // 3000×3000 Lanczos copy first, but that is for its own fulfilment
+  // consumers — routing 1024 → 3000 → 1683 only softens what a direct
+  // 1024 → 1683 resize does in one step. Neither invents detail: the
+  // source is 1024 and that is the real constraint this print is meant
+  // to measure.
+  app.post('/api/admin/card-lab/print-asset', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      front: z.string().startsWith('data:image/').max(30_000_000),
+      inside: z.string().startsWith('data:image/').max(30_000_000).optional(),
+      senderFirstName: z.string().max(40).optional(),
+      filename: z.string().max(80).optional(),
+    });
+    let body: z.infer<typeof schema>;
+    try {
+      body = schema.parse(req.body);
+    } catch {
+      return res.status(400).json({ message: 'Invalid request' });
+    }
+
+    const toBuffer = (dataUrl: string) =>
+      Buffer.from(dataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+
+    try {
+      const { composeCardPrintStrip } = await import('../studio/print-compositor');
+      const strip = await composeCardPrintStrip({
+        frontBuffer: toBuffer(body.front),
+        insideBuffer: body.inside ? toBuffer(body.inside) : null,
+        senderFirstName: body.senderFirstName ?? null,
+      });
+      const safe = (body.filename ?? 'celebrait-print').replace(/[^a-z0-9-_]/gi, '-').slice(0, 60);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', `attachment; filename="${safe}.png"`);
+      res.send(strip);
+    } catch (err) {
+      console.error('[CARD-LAB] print asset failed:', err);
+      res.status(500).json({ message: 'Could not compose the print asset' });
+    }
+  });
+
   app.post('/api/admin/card-lab/render-inside', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
@@ -1647,6 +1705,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
       typeface: z.string().max(200).optional(),
       art_direction: z.string().max(500).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
+      // ⚠️ THE INSIDE MUST MATCH THE FRONT'S MEDIUM. Fronts are free
+      // style on every card now, and this endpoint was always building
+      // its prompt from quirkyDna — so a riso front was being paired
+      // with a house-style inside. On screen you only ever see one at a
+      // time; folded in the hand it is obviously two different cards.
+      freeStyle: z.boolean().default(false),
+      direction: z.string().max(300).optional(),
+      quality: z.enum(['low', 'medium', 'high']).default('low'),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -1673,10 +1739,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
         ].filter(Boolean).join(' ');
 
     const prompt = [
-      quirkyDna(body.characters),
+      body.freeStyle ? freeStyleDna(body.characters) : quirkyDna(body.characters),
       '',
       QUIRKY_INSIDE,
       '',
+      body.direction ? `MEDIUM — THE FRONT OF THIS CARD WAS DRAWN IN: ${body.direction}. The inside is the SAME PIECE OF PRINT, so use that same medium, its same marks and its same hand. A different medium inside is two cards in one envelope.` : '',
       body.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${body.palette}` : '',
       body.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${body.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
       '',
@@ -1687,7 +1754,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
     try {
       const result = await getProvider('openai-2').generate({
-        prompt, quality: 'low', size: '1024x1024', slot: 'card_lab',
+        prompt, quality: body.quality, size: '1024x1024', slot: 'card_lab',
       });
       void logGeneration({
         cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
