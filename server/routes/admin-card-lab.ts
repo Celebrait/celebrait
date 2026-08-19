@@ -512,9 +512,15 @@ const conceptsSchema = z.object({
   // ONE interest, required. Choosing between three takes on the same
   // subject is a card-shop choice ("which do I like?"); choosing
   // between three subjects was a question about the recipient, which
-  // the sender had already answered by typing them. Required because
-  // "the thing they love" IS the product — an empty brief isn't its job.
-  interest: z.string().min(1).max(160),
+  // the sender had already answered by typing them.
+  // ⚠️ OPTIONAL ONLY WHEN AN AGE IS GIVEN (2026-08-19). "The thing they
+  // love" IS the product and an empty brief is not its job — but the
+  // catalogue's SPINE is milestone cards, and there the MILESTONE is the
+  // subject. "Thirties? Completed It Mate" contains no hobby; turning 40
+  // is the hobby. Blocking those made the highest-intent, most reusable
+  // stock in the shop literally unbuildable. Enforced below, not here,
+  // because the rule depends on `age`.
+  interest: z.string().max(160).optional(),
   insideMode: z.enum(['auto', 'own', 'blank']).default('auto'),
   ownInsideText: z.string().max(300).optional(),
   /** Opt-in cheek. Deliberately permissive in the LAB so we can find
@@ -1097,6 +1103,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // Birthday is the first occasion with its own world: its brief is
     // composed per request from the buyer's tone and any stated age,
     // rather than read from the static profile table.
+    // Interest OR age — one of them has to carry the card.
+    const statedAgeValue = body.age ?? statedAge(body.occasion);
+    const interestText = body.interest?.trim() ?? '';
+    if (!interestText && statedAgeValue === null) {
+      return res.status(400).json({
+        message: 'Give me either something they love or an age — one of them has to be the subject.',
+      });
+    }
+
     const classified = classifyOccasion(body.occasion);
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
@@ -1140,7 +1155,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // cards using NEITHER, and the third then invented a habit nobody
       // mentioned because it had nothing real left to say. The two fields
       // that make a card personal were the two being dropped.
-      body.detail?.trim() ? `⚠️ THE ONE REAL DETAIL THEY GAVE US: ${body.detail.trim()}. This is the most specific thing you know about this person and it is worth more than the interest, because everyone who likes ${body.interest.trim()} is the same and only THIS one has that. AT LEAST ONE of your three cards must be built on it — not a passing mention, the actual idea of the card. If you cannot make it work in words, it goes in that card's artwork.` : '',
+      body.detail?.trim() ? `⚠️ THE ONE REAL DETAIL THEY GAVE US: ${body.detail.trim()}. This is the most specific thing you know about this person and it is worth more than the interest, because everyone who likes ${interestText || 'the same things'} is the same and only THIS one has that. AT LEAST ONE of your three cards must be built on it — not a passing mention, the actual idea of the card. If you cannot make it work in words, it goes in that card's artwork.` : '',
       // ⚠️ ONE CARD, AND IT HAS TO FUSE. This went 0 → 3 → 1 in a day and
       // the middle step is worth keeping written down. It reached NO card
       // when hedged; Aidan then asked for all three; seeing all three, he
@@ -1161,7 +1176,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
   Punch at the thing, never at the person receiving the card — the birthday is still theirs.` : '',
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
-      `The thing they love: ${body.interest.trim()}`,
+      interestText
+        ? `The thing they love: ${interestText}`
+        : `⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. This is a RACK card: it has to work for anyone turning this age, so build all three from the AGE ITSELF using the age-band brief above — what that number means, what it is like to arrive at it, what everyone that age recognises. That is a real subject with real material, not an excuse for a blank card, and the specificity rules apply to it exactly as they would to a hobby: no generic warmth, no "another year older", nothing that would suit any age. A card about turning 50 must be unmistakably about FIFTY.`,
       `insideMode=${body.insideMode}`,
       `cheeky=${effectiveCheeky}`,
       `characters=${body.characters}`,
@@ -1185,7 +1202,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const [sameSubject, anySubject] = await Promise.all([
         db.select({ front_text: cardGenerations.front_text })
           .from(cardGenerations)
-          .where(sql`lower(interest) = ${body.interest.trim().toLowerCase()}`)
+          .where(sql`lower(interest) = ${interestText.toLowerCase()}`)
           .orderBy(desc(cardGenerations.id))
           .limit(24),
         db.select({ front_text: cardGenerations.front_text })
@@ -1355,7 +1372,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // guard that catches the very failure he spotted. Same for the
       // detail, which only one card has to carry.
       const briefWords = new Set(
-        `${body.interest} ${body.who} ${body.occasion}`.toLowerCase().match(/[a-z']{4,}/g) ?? [],
+        `${interestText} ${body.who} ${body.occasion}`.toLowerCase().match(/[a-z']{4,}/g) ?? [],
       );
       const wordFreq = new Map<string, number>();
       for (const c of concepts) {
@@ -1618,7 +1635,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         age: body.age ?? statedAge(body.occasion),
         angle: c.angle ?? null,
         recipient: body.who ?? null,
-        interest: body.interest.trim(),
+        interest: interestText || null,
         front_text: c.front_text,
       }))).catch((e) => console.warn('[CARD-LAB] generation log failed (non-fatal):', e));
 

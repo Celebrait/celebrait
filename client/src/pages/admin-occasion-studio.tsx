@@ -196,15 +196,19 @@ export default function AdminOccasionStudioPage() {
 
   const generate = async () => {
     if (thinking) return;
-    if (!interest.trim()) {
-      toast({ title: 'One thing they love, please', description: 'Every card grows from it.' });
+    // ⚠️ INTEREST *OR* AGE. An age-only brief makes a MILESTONE card,
+    // where the number is the subject — the spine of the catalogue and
+    // the most reusable stock we can hold. Blocking it made those
+    // unbuildable (2026-08-19).
+    if (!interest.trim() && age === null) {
+      toast({ title: 'Give me a subject', description: 'Either something they love, or an age — one of them has to carry the card.' });
       return;
     }
     setThinking(true);
     setCells([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, interest, tone, cheeky, insideMode: 'auto', characters,
+        who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         dislikes: dislikes.trim() || undefined,
       });
@@ -386,7 +390,7 @@ export default function AdminOccasionStudioPage() {
               className="mt-1.5" placeholder="60" />
           </div>
           <div>
-            <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love</Label>
+            <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love <span className="font-normal text-stone-400">— or leave blank with an age for a milestone card</span></Label>
             <Input id="int" value={interest} onChange={(e) => setInterest(e.target.value)} className="mt-1.5"
               placeholder="fishing / her allotment"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
