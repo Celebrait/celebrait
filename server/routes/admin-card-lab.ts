@@ -1130,7 +1130,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
 
 /** The home register — Aidan's look as a STARTING POINT with a real
  *  departure licence, never a cage (no ink counts, no media list). */
-const V2_CELEBRAIT_REGISTER = `THE LOOK — start every card from the Celebrait register: FLAT and GRAPHIC, one bold confident ground colour, type doing real work, objects not scenes, current not antique. You hold a LICENCE TO DEPART when this person's world genuinely calls for another look — take it when it is earned, and make the departure a named decision in "direction", never drift.`;
+const V2_CELEBRAIT_REGISTER = `THE LOOK — start every card from the Celebrait register: GRAPHIC and BOLD, one confident ground colour, type doing real work, objects not scenes, current not antique. The register is a SPECTRUM you may use all of: from pure flat print to gently dimensional 3D-FLAT — paper-cut depth, soft shadows, rounded sculptural forms, tactile materials — as long as it stays graphic and deliberate. Photorealism is never home. You also hold a LICENCE TO DEPART entirely when this person's world genuinely calls for another look — take it when it is earned, and make the departure a named decision in "direction", never drift.`;
 const V2_OPEN_REGISTER = `THE LOOK — design free: any medium, any palette, anything that is CURRENT and lands for this person. Old styles welcome when treated with a modern eye.`;
 
 function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format: string; register: string }>, occasionBrief: string): string {
@@ -1507,11 +1507,17 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const v2Angles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
         const otherFormats = ['statement', 'hero', 'pattern', 'label'].sort(() => Math.random() - 0.5);
         const typeledAt = Math.floor(Math.random() * 3);
-        // The LONG read-aloud card IS the typeled card — big text needs
-        // the room; the other two split short/mid between them.
-        const restRegisters = ['short', 'mid'];
+        // The typeled card is a COIN FLIP between the two things a
+        // text-only card can be: the LONG read-aloud, or the SHORT
+        // poster set enormous. Pinning long on every set made the punchy
+        // poster typeled structurally impossible and put a long card in
+        // every set — "long form seems to be coming through a lot"
+        // (Aidan). Now roughly half of sets carry a long card, half
+        // carry the big short poster instead.
+        const typeledRegister = Math.random() < 0.5 ? 'long' : 'short';
+        const restRegisters = typeledRegister === 'long' ? ['short', 'mid'] : ['mid', 'mid'];
         const slots = v2Angles.map((a, i) => ({ angle: a, format: i === typeledAt ? 'typeled' : otherFormats.pop()!,
-          register: i === typeledAt ? 'long' : restRegisters.shift()! }));
+          register: i === typeledAt ? typeledRegister : restRegisters.shift()! }));
         const sys = v2SystemPrompt(body.pipeline as 'celebrait' | 'open', slots, occProfile.brief);
         const userMsg = `${briefLines.join('\n')}\n\nWHO THIS PERSON IS (aim everything with this):\n${arch.archetype ?? ''}`;
 
