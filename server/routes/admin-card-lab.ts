@@ -1147,6 +1147,7 @@ THE BAR, per card:
 - Each card is its own idea; no distinctive word appears on two fronts.
 - No invented facts: no years, ages, habits or history the brief did not give you. A derived birth year may describe the RECIPIENT only, never the subject.
 - art_direction: one drawable sentence. Real places, caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
+- If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
 - If the register is rude: at least two fronts carry real masked swearing (f***, s***, bollocks...) and the joke survives with it removed.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
@@ -1484,13 +1485,23 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const archRes = await openai.chat.completions.create({
           ...conceptParams(900, 0.5),
           messages: [
-            { role: 'system', content: `You profile card recipients for a UK card maker. Return JSON {"archetype":"100-140 words: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them; where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases that signal this interest, INCLUDING slang and oblique references a fan would use"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
+            { role: 'system', content: `You profile card recipients for a UK card maker. Return JSON {"archetype":"100-140 words: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them; where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
             { role: 'user', content: briefLines.slice(0, 8).join('\n') },
           ],
           response_format: { type: 'json_object' },
         });
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
-        const hints: V2Hints = { interest: wordsToRe(arch.interest_words), dislike: wordsToRe(arch.dislike_words) };
+        // ⚠️ THE CUSTOMER'S OWN WORDS ARE ALWAYS HINTS. The archetype
+        // returned only oblique City references, so a card literally
+        // saying "Man City" was flagged dislike-missing — the referee
+        // false-alarming on a set that was right, burning a repair round
+        // and reporting a phantom violation. Literal tokens + archetype
+        // slang, both, at both ends.
+        const literalTokens = (t?: string) => (t ?? '').split(/[^a-zA-Z0-9']+/).filter((w) => w.length >= 3);
+        const hints: V2Hints = {
+          interest: wordsToRe([...literalTokens(interestText), ...(Array.isArray(arch.interest_words) ? arch.interest_words : [])]),
+          dislike: wordsToRe([...literalTokens(body.dislikes), ...(Array.isArray(arch.dislike_words) ? arch.dislike_words : [])]),
+        };
 
         // 2. STRUCTURE, chosen here (law 4): angles, formats, lengths.
         const v2Angles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
