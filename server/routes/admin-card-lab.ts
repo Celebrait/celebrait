@@ -620,23 +620,29 @@ interface CardConcept {
  *  of 7. A model asked to vary its own structure does not. */
 export type Angle = 'wordplay' | 'deadpan' | 'proud' | 'straight' | 'list';
 
-/** ⚠️ PROUD IS OUT OF ROTATION (Aidan: "proud has always felt a bit
- *  dead... what's it actually doing?"). It was DEADPAN'S MIRROR IMAGE —
- *  both turn on a mismatch between a thing and the response to it, one
- *  under-reacting and one over-reacting — and understatement is simply
- *  the funnier half in British. That is why it read as a weaker deadpan:
- *  structurally it was one.
- *  LIST replaces it as a genuinely different mechanism: the turn is in
- *  ACCUMULATION. It also FORCES specificity, which is our single biggest
- *  quality lever — a vague list collapses on contact, where a vague
- *  proud line still parses ("Nan knows a good border").
- *  A/B'd on three briefs, two runs: list better on all five comparisons.
- *  Its brief stays below and the value stays valid, so old rows resolve
- *  and it can be restored in one line. */
+/** ⚠️ NO ANGLE IS THE STANDING THIRD SLOT — this is the whole point of
+ *  the table, and it took two goes to get right.
+ *
+ *  First proud held it, and Aidan: "proud has always felt a bit dead."
+ *  It was deadpan's mirror image — both turn on a mismatch, one
+ *  under-reacting, one over-reacting — so it read as the weaker half of
+ *  a joke we already had.
+ *  Then LIST held it, and he was right again: "those lists don't do it
+ *  for me at all in bulk. Now and again yeah." A list has a very
+ *  recognisable silhouette, so three on a shelf read as one card with
+ *  the nouns swapped. I had judged five lines and never asked what
+ *  twenty look like side by side — the exact failure the standards
+ *  formula and the third-party verdict both were.
+ *
+ *  So the third slot ROTATES. Any shape distinctive enough to be good
+ *  is distinctive enough to tire, and the defence is that none of them
+ *  appears often enough to become the house tic. */
 const ANGLE_SETS: Angle[][] = [
+  ['wordplay', 'deadpan', 'proud'],
   ['wordplay', 'deadpan', 'list'],
   ['wordplay', 'deadpan', 'straight'],
-  ['wordplay', 'list', 'straight'],
+  ['wordplay', 'proud', 'list'],
+  ['wordplay', 'proud', 'straight'],
   ['deadpan', 'list', 'straight'],
 ];
 
@@ -645,14 +651,12 @@ const ANGLE_SETS: Angle[][] = [
  *  whose whole point is the joke's language, is nothing at all. Rude
  *  always gets the three joke angles. */
 export function pickAngles(tone: string | undefined, rnd = Math.random): Angle[] {
-  if (tone === 'rude') return ANGLE_SETS[0];
-  // Straight sits in three of the four possible sets, so an even draw
-  // would put it on three cards in four. Weighted to land it nearer one
-  // set in three — present often enough to matter, rare enough that a
-  // rack is still mostly cards with a joke in them.
-  const r = rnd();
-  if (r < 0.66) return ANGLE_SETS[0];
-  return ANGLE_SETS[1 + Math.floor(((r - 0.66) / 0.34) * 3)] ?? ANGLE_SETS[1];
+  // Rude never gets the straight card — a card with no joke, in the
+  // register whose whole point is the joke's language, is nothing.
+  const pool = tone === 'rude'
+    ? ANGLE_SETS.filter((a) => !a.includes('straight'))
+    : ANGLE_SETS;
+  return pool[Math.floor(rnd() * pool.length)] ?? pool[0];
 }
 
 export function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false, angles: Angle[] = ANGLE_SETS[0]): string {
