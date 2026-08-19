@@ -557,6 +557,10 @@ const conceptsSchema = z.object({
   /** D3 — the buyer-facing tone for the birthday world. Ignored by
    *  occasions that have not been built out yet. */
   tone: z.enum(['funny', 'warm', 'cheeky', 'rude']).default('funny'),
+  /** Override the rotated angle set. Admin/testing only — the studio
+   *  never sends it, so production always gets pickAngles(). Exists so
+   *  one angle can be A/B'd against another on an identical brief. */
+  angles: z.array(z.enum(['wordplay', 'deadpan', 'proud', 'straight', 'list'])).length(3).optional(),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -614,13 +618,26 @@ interface CardConcept {
  *  Chosen HERE rather than by the writer, for the reason the typeled
  *  count is pinned here: left free it took the minimal slot 7 sets out
  *  of 7. A model asked to vary its own structure does not. */
-export type Angle = 'wordplay' | 'deadpan' | 'proud' | 'straight';
+export type Angle = 'wordplay' | 'deadpan' | 'proud' | 'straight' | 'list';
 
+/** ⚠️ PROUD IS OUT OF ROTATION (Aidan: "proud has always felt a bit
+ *  dead... what's it actually doing?"). It was DEADPAN'S MIRROR IMAGE —
+ *  both turn on a mismatch between a thing and the response to it, one
+ *  under-reacting and one over-reacting — and understatement is simply
+ *  the funnier half in British. That is why it read as a weaker deadpan:
+ *  structurally it was one.
+ *  LIST replaces it as a genuinely different mechanism: the turn is in
+ *  ACCUMULATION. It also FORCES specificity, which is our single biggest
+ *  quality lever — a vague list collapses on contact, where a vague
+ *  proud line still parses ("Nan knows a good border").
+ *  A/B'd on three briefs, two runs: list better on all five comparisons.
+ *  Its brief stays below and the value stays valid, so old rows resolve
+ *  and it can be restored in one line. */
 const ANGLE_SETS: Angle[][] = [
-  ['wordplay', 'deadpan', 'proud'],
+  ['wordplay', 'deadpan', 'list'],
   ['wordplay', 'deadpan', 'straight'],
-  ['wordplay', 'proud', 'straight'],
-  ['deadpan', 'proud', 'straight'],
+  ['wordplay', 'list', 'straight'],
+  ['deadpan', 'list', 'straight'],
 ];
 
 /** Straight is the plain card — no joke, just the occasion said well.
@@ -715,6 +732,10 @@ THE THREE CARDS — one each, in this order.
   Failed: "Making birthdays grate again" — nothing is being grated, nothing is grating, so "grate" carries no second sense and the line is just "great" misspelled. TEST: say what the second meaning IS, in plain words. If you cannot, the pun is dead.
   ⚠️ AND THE SECOND MEANING HAS TO BE THE RIGHT ONE. A pun can resolve perfectly and still land on an idea that suits the brief badly — which is worse than a dead pun, because it reads as deliberate. Observed on an 18th: a pun on "proof of age" — clean wordplay, since the ID is exactly what they now get asked for — that resolved onto AGEING, a decline joke, on the one birthday entirely about arriving. Say the second meaning out loud AND check it is something you would want on this card.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
+⚠️ LIST — the turn is in the ACCUMULATION. Three or four SPECIFICS, stacked as separate short statements, and the LAST ONE TURNS IT. Everything before the turn is just true; the last item reframes the lot.
+  Every item is a concrete thing from their world — an object, a time, a quantity, a small indignity. No adjectives doing the work, no explaining, no joining words. The comedy is in WHAT GETS INCLUDED and in the order, which is why this only works if you have mined the subject properly: a vague list is nothing at all.
+  The rhythm is short-short-short-turn, and the turn can be a verdict, an absence, a total, or the one item that does not belong.
+
 ⚠️ STRAIGHT — THE PLAIN CARD, and the ONE angle exempt from the turn. Included only when it appears in your list above.
   There is no joke here and none is wanted: this is the card someone sends when they do not want to be funny, and every rack in Britain is full of them. Say the occasion properly and let the CRAFT be the card — the setting, the colour, the confidence of it.
   ⚠️ BUT PLAIN IS NOT GENERIC, and this is the only thing that matters about this angle. "To a wonderful Mum with love" is what the mass-market makes because it must suit everybody; we do not have that problem. A straight card is still unmistakably about THIS person — their colours, their world's own object, the number set beautifully — it simply does not make a joke about them. Every specificity rule above applies to it in full.
@@ -1194,7 +1215,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const effectiveCheeky = (body.cheeky || body.tone === 'rude') && !serious;
     // Which three of the four angles this set gets. Rotated here so the
     // three shapes stop being identical on every brief we have ever run.
-    const chosenAngles = pickAngles(body.tone);
+    const chosenAngles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle, chosenAngles);
