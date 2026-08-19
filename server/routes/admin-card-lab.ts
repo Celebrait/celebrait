@@ -1066,10 +1066,22 @@ const wordsToRe = (ws: unknown): RegExp | null => {
 };
 
 /** Every floor, in code. Returns named violations for the repair round. */
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
+  // ⚠️ THE LENGTH REGISTERS ARE FLOORS TOO. Without this a 20-word
+  // description landed in a SHORT slot and read as art direction on the
+  // front of a card. Short hits, mid breathes, long builds — enforced.
+  if (slots) {
+    fronts.forEach((f, i) => {
+      const words = f.trim().split(/\s+/).filter(Boolean).length;
+      const r = slots[i]?.register;
+      if (r === 'short' && words > 8) v.push(`length: card ${i + 1} is the SHORT card — max 8 words, it has ${words}`);
+      if (r === 'mid' && words > 14) v.push(`length: card ${i + 1} is the MID card — max 14 words, it has ${words}`);
+      if (r === 'long' && (words < 15 || words > 40)) v.push(`length: card ${i + 1} is the LONG read-aloud card — 20-35 words that build and land, it has ${words}`);
+    });
+  }
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
@@ -1510,7 +1522,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
             durationMs: 0, success: true });
           concepts = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[];
-          violations = v2Verify(concepts, v2b, hints);
+          violations = v2Verify(concepts, v2b, hints, slots);
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
@@ -2246,7 +2258,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
   app.post('/api/admin/card-lab/render', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
-      front_text: z.string().min(1).max(120),
+      // 300, not 120: the long read-aloud register (20-35 words) is a
+      // deliberate card now, and the old cap silently 400'd every one of
+      // them — "Invalid request" under each long card in the studio
+      // (Aidan 2026-08-19). The typeled render brief already knows how
+      // to set a long line.
+      front_text: z.string().min(1).max(300),
       art_direction: z.string().min(1).max(500),
       format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled']).default('hero'),
       palette: z.string().max(300).optional(),
