@@ -193,8 +193,20 @@ async function main(): Promise<void> {
     return ((await r.json()) as any).concepts ?? [];
   };
 
+  // live-celebrait / live-open hit the REAL route's v2 pipeline — the
+  // wired version of what the archetype/short arms prototyped.
+  const liveArm = (pipeline: string) => async (b: PanelBrief): Promise<Card[]> => {
+    const r = await fetch(`http://localhost:${port}/api/admin/card-lab/concepts`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ who: b.who, gender: b.gender ?? 'unspecified', occasion: 'Birthday',
+        age: b.age ?? undefined, interest: b.interest, dislikes: b.dislikes, tone: b.tone,
+        insideMode: 'auto', freeStyle: true, characters: 'objects', pipeline }),
+    });
+    return ((await r.json()) as any).concepts ?? [];
+  };
   const ARMS: Record<string, (b: PanelBrief) => Promise<Card[]>> = {
     current: currentArm, bare: bareArm, short: (b) => shortArm(b), archetype: archetypeArm,
+    'live-celebrait': liveArm('celebrait'), 'live-open': liveArm('open'),
   };
 
   // ⚠️ FULL RESULTS TO DISK, always. Aidan: "FYI I need to see these" —

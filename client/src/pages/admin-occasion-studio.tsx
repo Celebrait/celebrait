@@ -155,6 +155,11 @@ export default function AdminOccasionStudioPage() {
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
   const [tone, setTone] = useState<Tone>('funny');
+  /** THE ENGINE TOGGLE (AUDIT_BUILDER_PROMISE.md). celebrait = archetype
+   *  + home register with licensed departures; open = archetype, design
+   *  free; classic = the original pipeline, kept for comparison. The
+   *  style decision gets made by eye from this toggle's output. */
+  const [pipeline, setPipeline] = useState<'celebrait' | 'open' | 'classic'>('celebrait');
   const [cells, setCells] = useState<Cell[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
@@ -226,7 +231,7 @@ export default function AdminOccasionStudioPage() {
     setCells([]);
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
-        who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters,
+        who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         dislikes: dislikes.trim() || undefined,
       });
@@ -446,6 +451,17 @@ export default function AdminOccasionStudioPage() {
                   tone === t ? 'border-brand bg-brand-muted/50 text-brand-dark'
                              : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
                 {t}
+              </button>
+            ))}
+          </div>
+          {/* THE ENGINE — the audit's toggle, decided by eye. */}
+          <div className="flex items-center gap-1.5">
+            {([['celebrait', 'Celebrait'], ['open', 'Open'], ['classic', 'Classic']] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setPipeline(v)}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  pipeline === v ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                 : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                {l}
               </button>
             ))}
           </div>

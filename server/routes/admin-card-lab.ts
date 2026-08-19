@@ -564,6 +564,12 @@ const conceptsSchema = z.object({
    *  never sends it, so production always gets pickAngles(). Exists so
    *  one angle can be A/B'd against another on an identical brief. */
   angles: z.array(z.enum(['wordplay', 'deadpan', 'proud', 'straight', 'list'])).length(3).optional(),
+  /** THE ENGINE TOGGLE (AUDIT_BUILDER_PROMISE.md). 'classic' = the
+   *  original prompt-only pipeline. 'celebrait' = archetype -> short
+   *  prompt with the HOME REGISTER (flat/graphic/bold, licensed
+   *  departures) -> code referee. 'open' = same but no visual register.
+   *  Sympathy and other humour-off occasions always take classic. */
+  pipeline: z.enum(['classic', 'celebrait', 'open']).default('classic'),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -1031,6 +1037,111 @@ PASS IT if it is simply good, or even just solid and true. Quiet and warm is a p
 Return JSON: {"cards":[{"verdict":"pass"|"kill","what":"words"|"look","why":"<six words max, only when killing>"}]} — one per card, in the order given. "what" says which half failed; if both did, say "look" and we will redraw it around the line.`;
 }
 
+// ═══ V2 — ARCHETYPE → SHORT PROMPT → CODE REFEREE ═══════════════════
+// The winning baseline architecture (short 8/8, archetype 7/8 vs
+// classic 5-6/8 and unstable). Correctness lives HERE in code, not in
+// prompt lectures; the archetype supplies per-person aim AND the
+// oblique referee vocabulary a static hint list can never know
+// ("sky-blue" is Manchester City).
+
+const V2_SWEAR = /f\*+\w*|s\*+|c\*+|bollocks|bastard|wanker|prick|twat|bellend|knobhead|arse|piss|shag|tits|knob\b|fuck\w*|shit\w*/i;
+const V2_BANNED = /\b(vibes?|level up|bossin?|legend(ary)?|goals|beast mode|standards?)\b|\b(master|king|queen|lord|sultan|champion|guardian|keeper) of\b|extraordinaire|royalty/i;
+const V2_MALE = /\b(man|men|bloke|lad|lads|guy|boy|he|him|his|sir|king|gent)\b/i;
+const V2_FEMALE = /\b(woman|women|lass|girl|she|her|hers|madam|queen|lady|ladies)\b/i;
+const V2_OCC = /\bbirthday\b|\bhappy returns\b|\bmany happy\b|\bcandles?\b|\bcake\b|\bcelebrat/i;
+const V2_DAYS = new Set(['today','monday','tuesday','wednesday','thursday','friday','saturday','sunday','holiday','weekday','everyday','someday','yesterday','midday','day','days','matchday','payday','workday','doomsday','mayday']);
+const v2SaysOccasion = (t: string) =>
+  V2_OCC.test(t) || (t.toLowerCase().match(/\b[a-z']*day'?s?\b/g) ?? []).some((w) => !V2_DAYS.has(w.replace(/'s$|s$/, '')));
+
+interface V2Brief {
+  who: string; gender: 'him' | 'her' | 'unspecified'; age: number | null;
+  interest: string; dislikes?: string; tone: string; cheeky: boolean;
+}
+interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
+
+const wordsToRe = (ws: unknown): RegExp | null => {
+  const list = Array.isArray(ws) ? ws.map((w) => String(w).trim()).filter((w) => w.length > 1) : [];
+  if (!list.length) return null;
+  return new RegExp(list.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'i');
+};
+
+/** Every floor, in code. Returns named violations for the repair round. */
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints): string[] {
+  const v: string[] = [];
+  if (cards.length !== 3) return ['not-three-cards'];
+  const fronts = cards.map((c) => String(c.front_text ?? ''));
+  const arts = cards.map((c) => String(c.art_direction ?? ''));
+  const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
+
+  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real masked swearing');
+  if (b.dislikes && hints.dislike) {
+    const n = whole.filter((w) => hints.dislike!.test(w)).length;
+    if (n === 0) v.push(`dislike-missing: exactly one card must be built on "${b.dislikes}"`);
+    if (n === 3) v.push('dislike-everywhere: the dislike may carry at most two cards');
+  }
+  if (hints.interest) {
+    if (whole.filter((w) => hints.interest!.test(w)).length < 2) v.push(`generic-set: at least two cards must be unmistakably about ${b.interest}`);
+    if (!arts.some((a) => hints.interest!.test(a))) v.push(`generic-artwork: at least one art_direction must belong to ${b.interest}'s own world`);
+  }
+  const birthYear = b.age ? new Date().getFullYear() - b.age : null;
+  if (fronts.some((f) => (f.match(/\b(19|20)\d{2}\b/g) ?? []).some((y) => Number(y) !== birthYear)))
+    v.push('invented-year: remove any year the brief did not give you');
+  if (b.age) {
+    const lead = new RegExp(`^\\s*${b.age}[.\\s]`);
+    if (fronts.filter((f) => lead.test(f)).length > 1) v.push(`number-template: only one front may open with the bare number ${b.age}`);
+    const num = new RegExp(`\\b${b.age}\\b`);
+    if (cards.some((_, i) => num.test(fronts[i]) && num.test(arts[i]))) v.push('number-twice: the number goes in the words OR the artwork of a card, never both');
+  } else {
+    const n = fronts.filter(v2SaysOccasion).length;
+    if (n === 0) v.push('occasion-missing: exactly one front must say what the occasion is');
+    if (n === 3) v.push('occasion-everywhere: only one front names the occasion');
+  }
+  if (b.gender !== 'unspecified') {
+    const wrong = b.gender === 'her' ? V2_MALE : V2_FEMALE;
+    if (fronts.some((f) => wrong.test(f))) v.push('gender-clash: remove gendered words that contradict the recipient');
+  }
+  if (fronts.some((f) => V2_BANNED.test(f))) v.push('banned-word: a front uses a banned word or title formula (vibes/legend/standards/Master of...)');
+  for (const a of arts) {
+    const hit = namedArtefacts(a);
+    if (hit.length) { v.push(`ip-floor: the artwork asks for protected material (${hit.join(', ')}) — use that world's ordinary objects instead`); break; }
+  }
+  const seen = new Map<string, number>();
+  const briefWords = new Set(`${b.interest} ${b.who}`.toLowerCase().match(/[a-z']{4,}/g) ?? []);
+  for (const f of fronts) {
+    new Set(f.toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w)) ?? [])
+      .forEach((w) => seen.set(w, (seen.get(w) ?? 0) + 1));
+  }
+  const dupes = Array.from(seen.entries()).filter(([w, n]) => n >= 2 && !['still','another','birthday','happy','years','about','being'].includes(w));
+  if (dupes.length) v.push(`shared-vocab: "${dupes[0][0]}" appears on more than one front — each card gets its own vocabulary`);
+  return v;
+}
+
+/** The home register — Aidan's look as a STARTING POINT with a real
+ *  departure licence, never a cage (no ink counts, no media list). */
+const V2_CELEBRAIT_REGISTER = `THE LOOK — start every card from the Celebrait register: FLAT and GRAPHIC, one bold confident ground colour, type doing real work, objects not scenes, current not antique. You hold a LICENCE TO DEPART when this person's world genuinely calls for another look — take it when it is earned, and make the departure a named decision in "direction", never drift.`;
+const V2_OPEN_REGISTER = `THE LOOK — design free: any medium, any palette, anything that is CURRENT and lands for this person. Old styles welcome when treated with a modern eye.`;
+
+function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format: string; register: string }>, occasionBrief: string): string {
+  return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
+
+${occasionBrief}
+
+THE THREE SLOTS — one card each, exactly as assigned:
+${slots.map((s, i) => `${i + 1}. angle=${s.angle}, format=${s.format}, length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, stacked as short statements, the last few words land the turn)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}`).join('\n')}
+The typeled card is TEXT-ONLY: the words set huge ARE the artwork, and its art_direction describes the ground and the typographic treatment.
+
+THE BAR, per card:
+- It lands for THIS person — built from their world via the archetype, never the broad category. A card that suits anyone who vaguely likes the topic has failed.
+- Each card is its own idea; no distinctive word appears on two fronts.
+- No invented facts: no years, ages, habits or history the brief did not give you. A derived birth year may describe the RECIPIENT only, never the subject.
+- art_direction: one drawable sentence. Real places, caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
+${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
+- If the register is rude: at least two fronts carry real masked swearing (f***, s***, bollocks...) and the joke survives with it removed.
+- If a dislike is given: exactly ONE card is built on it, fused into the joke.
+
+Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
+}
+
 export function registerAdminCardLabRoutes(app: Express): void {
   // ── POST /api/admin/card-lab/concepts ────────────────────────────
   // ── THE CATALOGUE (SCOPE_OCCASION_FIRST WS4) ─────────────────────
@@ -1350,6 +1461,75 @@ export function registerAdminCardLabRoutes(app: Express): void {
       briefLines.push(
         `⚠️ ALREADY USED — every one of these has been generated before, for this subject or another one. They are OFF LIMITS, and so is any near-variant. Note especially any STOCK PUN in the list: a pun that works for one watery subject works for all of them, which is exactly how the same joke keeps reappearing. If your line rhymes with anything here, find a different corner of the world:\n${alreadyUsed.map((l) => `  · ${l}`).join('\n')}`,
       );
+    }
+
+    // ── V2 PIPELINE ───────────────────────────────────────────────
+    if (body.pipeline !== 'classic' && !serious) {
+      const v2b: V2Brief = { who: body.who, gender: body.gender, age: body.age ?? statedAgeValue,
+        interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky };
+      try {
+        // 1. ARCHETYPE + referee vocabulary in one call.
+        const archRes = await openai.chat.completions.create({
+          ...conceptParams(900, 0.5),
+          messages: [
+            { role: 'system', content: `You profile card recipients for a UK card maker. Return JSON {"archetype":"100-140 words: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them; where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases that signal this interest, INCLUDING slang and oblique references a fan would use"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
+            { role: 'user', content: briefLines.slice(0, 8).join('\n') },
+          ],
+          response_format: { type: 'json_object' },
+        });
+        const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
+        const hints: V2Hints = { interest: wordsToRe(arch.interest_words), dislike: wordsToRe(arch.dislike_words) };
+
+        // 2. STRUCTURE, chosen here (law 4): angles, formats, lengths.
+        const v2Angles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
+        const otherFormats = ['statement', 'hero', 'pattern', 'label'].sort(() => Math.random() - 0.5);
+        const typeledAt = Math.floor(Math.random() * 3);
+        // The LONG read-aloud card IS the typeled card — big text needs
+        // the room; the other two split short/mid between them.
+        const restRegisters = ['short', 'mid'];
+        const slots = v2Angles.map((a, i) => ({ angle: a, format: i === typeledAt ? 'typeled' : otherFormats.pop()!,
+          register: i === typeledAt ? 'long' : restRegisters.shift()! }));
+        const sys = v2SystemPrompt(body.pipeline as 'celebrait' | 'open', slots, occProfile.brief);
+        const userMsg = `${briefLines.join('\n')}\n\nWHO THIS PERSON IS (aim everything with this):\n${arch.archetype ?? ''}`;
+
+        // 3. GENERATE → 4. REFEREE with one named-violation repair round.
+        let concepts: CardConcept[] = [];
+        let violations: string[] = [];
+        for (let round = 0; round < 2; round++) {
+          const gen = await openai.chat.completions.create({
+            ...conceptParams(2200, 0.7),
+            messages: round === 0
+              ? [{ role: 'system', content: sys }, { role: 'user', content: userMsg }]
+              : [{ role: 'system', content: sys }, { role: 'user', content: userMsg },
+                 { role: 'assistant', content: JSON.stringify({ concepts }) },
+                 { role: 'user', content: `Your set broke these floors:\n${violations.map((x) => '- ' + x).join('\n')}\nFix ONLY what is named, keep everything good, return the complete corrected JSON.` }],
+            response_format: { type: 'json_object' },
+          });
+          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+            provider: 'openai', model: CONCEPT_MODEL, quality: null,
+            costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
+            durationMs: 0, success: true });
+          concepts = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[];
+          violations = v2Verify(concepts, v2b, hints);
+          if (!violations.length) break;
+          console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
+        }
+
+        void db.insert(cardGenerations).values(concepts.map((c) => ({
+          build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
+          occasion: occProfile.key, tone: body.tone ?? null, age: v2b.age,
+          angle: c.angle ?? null, recipient: body.who ?? null,
+          interest: interestText || null, front_text: c.front_text,
+          art_direction: c.art_direction ?? null,
+        }))).catch((e) => console.warn('[CARD-LAB:v2] generation log failed (non-fatal):', e));
+
+        // Violations still standing after the repair round ship VISIBLY,
+        // never silently — the studio can show them and the harness
+        // counts them. "Warned and shipped anyway" is the old world.
+        return res.json({ concepts, notes: [], archetype: arch.archetype ?? null, violations });
+      } catch (err) {
+        console.error('[CARD-LAB:v2] pipeline failed, falling back to classic:', err);
+      }
     }
 
     const startedAt = Date.now();
