@@ -121,3 +121,32 @@ provided".
 The baseline harness therefore compares FOUR arms: bare prompt, current
 prompt, short+referee, and archetype+short+referee. Build order:
 harness → archetype call → referee → measure all four → keep what wins.
+
+## Style governance (Aidan, closing the audit)
+
+*"Where does style come from? Think the only thing we really need to
+concern ourselves with is direct IP... but tbh I would let this run
+free and cut down as we go. Rather than block upwards."*
+
+**Style comes from the archetype + subject, unconstrained.** No media
+list, no palette law, no pre-emptive taste fences. PERMISSIVE BY
+DEFAULT, RESTRICT ON EVIDENCE — a rule may only exist because of an
+observed failure, named. (This is also what the data showed all week:
+the condense pass, the examples audit, the media list, the three-ink
+rule — four times, removing instruction beat adding it. And the rules
+that WORK are all named observed failures, which is exactly
+"cut down as we go".)
+
+The short list that is NOT style, and stays as hard floors:
+1. **Direct IP** — marks, characters, artefacts (legal; the
+   deterministic artefact floor stays).
+2. **Real people** — no likenesses of private individuals, caricature
+   rules for public figures (legal).
+3. **Print mechanics** — exact words rendered, type clean and inside
+   the safe margin, image is the card not a photo of one (physical
+   product).
+4. **Correctness** — no invented facts, no contradicted gender, no
+   wrong years (printed and posted).
+
+Everything else runs free and earns a ban only by failing in front of
+us. The keep rate and the acceptance harness are the pruning shears.
