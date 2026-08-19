@@ -223,3 +223,23 @@ Wire the winner into /concepts behind the toggle:
 4. Harness against the LIVE route, both modes.
 5. Render one side-by-side sheet for the style call.
 Then, and only then: the catalogue restarts.
+
+## Customer flow: blank interest is allowed after all (Aidan, refining)
+
+*"When this becomes front end, users should be able to test putting no
+interests in and just getting generic, that's when a random roll can go
+and just say happy birthday etc."*
+
+Supersedes the earlier "interests are MANDATORY on the customer
+builder": interest is ENCOURAGED (it is the product's magic) but a
+blank brief is a valid customer, not an error. The mechanics mostly
+exist already:
+- blank interest + AGE → the milestone path (the age is the subject;
+  live since 3dec242c)
+- blank interest + no age → the GENERIC ROLL: straight-angle-led sets,
+  beautifully made "Happy Birthday" variety — the spine stock
+  behaviour, served fresh. Needs the interest-or-age gate relaxed for
+  the customer surface only, with the straight/typeled angles weighted
+  up since there is no subject to joke about.
+The archetype still runs on whatever IS given (recipient, age, tone) —
+a blank brief has an audience even when it has no subject.
