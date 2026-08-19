@@ -230,6 +230,11 @@ export default function AdminOccasionStudioPage() {
     try {
       await apiRequest('POST', '/api/admin/card-templates', {
         occasion: world.key, tone, age, angle: cell.concept.angle, recipient: who, interest,
+        // Saved so the catalogue can shelve "For Her"/"For Him" — two of
+        // the market's top-level aisles. 'unspecified' is dropped rather
+        // than stored, because a card with no gender in its brief suits
+        // anyone and should appear in every aisle, not a third one.
+        gender: gender === 'unspecified' ? undefined : gender,
         front_text: cell.concept.front_text, inside_text: cell.concept.inside_text,
         palette: cell.concept.palette, typeface: cell.concept.typeface,
         format: cell.concept.format, art_direction: cell.concept.art_direction,

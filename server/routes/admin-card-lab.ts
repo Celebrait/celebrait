@@ -926,6 +926,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
       art_direction: z.string().max(600).optional(),
       tone: z.string().max(20).optional(),
       age: z.number().int().min(1).max(110).nullable().optional(),
+      // 'him' | 'her'; absent means the brief said nothing, which is a
+      // real state — those cards suit anyone and belong in every aisle.
+      gender: z.enum(['him', 'her']).optional(),
       imageUrl: z.string().startsWith('data:image/').max(8_000_000),
     });
     let body: z.infer<typeof schema>;
@@ -961,6 +964,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         art_direction: body.art_direction ?? null,
         tone: body.tone ?? null,
         age: body.age ?? null,
+        gender: body.gender ?? null,
         image_path: filename,
       }).returning();
       res.json({ id: row.id, imageUrl: publicImageUrl(filename) });

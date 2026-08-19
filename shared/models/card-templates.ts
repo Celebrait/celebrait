@@ -40,6 +40,17 @@ export const cardTemplates = pgTable("card_templates", {
   /** Stated age, when the brief carried a milestone. Null = ageless
    *  card, which is its own rack slot rather than missing data. */
   age: integer("age"),
+  /** 'him' | 'her' | null. THE ONE CATALOGUE AXIS WE CANNOT DERIVE.
+   *
+   *  Milestone and audience band both fall out of `age`, so they need
+   *  no columns. Gender does not — the brief carries it, the writer now
+   *  obeys it, and this row was throwing it away. "For Her" and "For
+   *  Him" are two of the market's top-level birthday aisles (Moonpig
+   *  lists them first, ahead of Mum and Dad), so without this the shop
+   *  cannot shelve its own stock the way every competitor does.
+   *  Null means the brief said nothing, which is a real state and NOT a
+   *  gap: those cards work for anyone and belong in every aisle. */
+  gender: text("gender"),
   /** Stored image filename (R2 key / local stored_images name). */
   image_path: text("image_path").notNull(),
   created_at: timestamp("created_at")
