@@ -140,3 +140,68 @@ is exactly our house style's home ground.
   brasher, unapologetically hilarious", rude as identity since 1981,
   38 UK stores. Rude is a POSITION, not a filter. Source:
   scribbler.com/pages/about-scribbler.
+
+## Third pass — the five unscanned milestone aisles (2026-08-19)
+
+Moonpig milestone pages for 16th, 30th, 50th, 70th, 80th. With the
+earlier 18th/21st/40th/60th scans this completes the ladder, and the
+ladder turns out to be the finding.
+
+**16th** — the odd one out, and NOT a small 18th. Celebratory and
+encouraging with the irony switched off: "OMG You're 16", "Sweet 16",
+"16 And A Superstar", "Look Who's Turning 16", "Xbox Level Unlocked".
+Gaming and youth-culture references replace self-deprecation entirely.
+Buyer is a parent, grandparent or aunt; recipient sub-aisles are
+daughter/son/niece/nephew/granddaughter. **Nobody roasts a
+sixteen-year-old.**
+
+**30th** — loss comedy. The twenties are the joke and the metaphor is
+always EXPIRY: "Lucy Maggie Twenties Has Now Expired", "Green Passing
+Of Your Twenties", "Funny Road Sign You Hit 30". Unmasked profanity at
+the top again ("Holy Fuck You Are 30"). Counterweighted by a straight
+"Fab at 30" lane.
+
+**50th** — DEFIANT, not declining. "Fab at 50", "50 Years Of Being
+Totally Fabulous", "50 Still Rocking It" on a cassette tape, and the
+deadpan "You are 50 Considered To Be A Mature And Sensible Age". Era
+nostalgia STARTS here (the cassette), five years earlier than the 60th
+scan suggested.
+
+**70th** — the joke ELEVATES the recipient instead of mocking them:
+"I'm Not Saying You're Old But If You Were A Whisky, You'd Be Really
+Expensive", "You've Seen It All, Done It All And Heard It All", "Worth
+Opening A Bottle Of Wine For". Vintage/whisky/art-deco framing —
+maturity as premium.
+
+**80th** — humour still present but SERVING sentiment: "80 Incredible
+Years Of You" beside "80th Only 27 In Celsius" and "Quality control
+obviously did a good job!". Gold, floral, champagne, art deco. Warmth
+leads and the joke supports it.
+
+### The arc, which is the actual finding
+
+Mockery PEAKS IN THE MIDDLE AND VANISHES AT BOTH ENDS:
+
+| band | what the joke does |
+|---|---|
+| kids | pure celebration, no joke at their expense |
+| 16 | encouragement — irony switched off |
+| 18–21 | the threshold itself |
+| 30–40 | loss and expiry ("twenties expired", "Thirties? Completed It Mate") |
+| 50 | defiance — fabulous, still rocking; era nostalgia begins |
+| 60 | era nostalgia leads, affectionate habits |
+| 70 | elevation — the joke PRAISES (whisky, vintage, seen it all) |
+| 80+ | warmth leads, humour serves the sentiment |
+
+Cards do span bands — the candles/heatwave joke appears at both 70 and
+80, and "Holy Fuck You Are ___" runs 30 through 50 — so the bands are
+centres of gravity, not walls.
+
+### Applied
+
+`birthdayAgeBlock()` had THREE bands (≤25 / ≤50 / >50) and they were
+wrong at both ends: a five-year-old was being handed the threshold
+brief about hangovers and car insurance, and 60/70/80 shared one
+"era & affection" block despite pulling in three different directions.
+Rebuilt to six bands on this scan. The birth-year carve-out flagged in
+the first pass is already implemented and stays.

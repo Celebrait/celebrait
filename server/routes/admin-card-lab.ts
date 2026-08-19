@@ -386,12 +386,29 @@ function birthdayAgeBlock(age: number | null): string {
   }
   // D1: the roast is allowed but CALIBRATED — the joke changes shape by
   // band, and decline mockery is banned at every age.
+  // ⚠️ SIX BANDS, from the milestone aisle scans in
+  // RESEARCH_UK_CARD_MARKET.md (16/30/50/70/80 added 2026-08-19). The
+  // three-band version was wrong at BOTH ends: a five-year-old got the
+  // threshold brief about hangovers and car insurance, and 60/70/80
+  // shared one block despite the shops pulling them three different
+  // ways. The arc the scans show is that MOCKERY PEAKS IN THE MIDDLE
+  // AND VANISHES AT BOTH ENDS — pure celebration for kids, encouragement
+  // at 16, threshold at 18–21, loss comedy at 30–40, defiance at 50,
+  // era at 60, praise at 70, warmth at 80.
   const band =
-    age <= 25
-      ? `AGE BAND — THRESHOLD (${age}). The joke is adulthood itself: newly legal, newly responsible, gloriously unprepared. Childhood expiring, the first proper hangover, having to phone about your own car insurance. Loud, energetic, meme-fluent. Palette runs bright and saturated; type bold and playful. ⚠️ The buyer at this age is very often a PARENT, GRANDPARENT or aunt — the card can be cheeky but must never be something a nan would be embarrassed to hand over.`
-      : age <= 50
-        ? `AGE BAND — KNOWING (${age}). Self-deprecation delivered with a completely straight face: the age is fine, it is the little surrenders that are funny — the good chair, the early night defended as a treat, the noise a person makes standing up. Era references from their youth land well here. Palette confident and adult; this is where a text-only card shines.`
-        : `AGE BAND — ERA & AFFECTION (${age}). Nostalgia leads and the affection is unmistakable: what the world was like when they arrived, the habits everyone in the family knows are theirs, the rituals they defend. ⚠️ NEVER decline, frailty, memory or "how much longer" jokes — that is the one way this band goes badly wrong. Warm, golden, vintage-leaning; classic serifs suit it.`;
+    age <= 12
+      ? `AGE BAND — CHILD (${age}). ⚠️ NOBODY IS BEING ROASTED. This is pure celebration: the number is huge and exciting, the thing they love is the whole world, and the card is delighted for them. NO irony, no self-deprecation, no jokes at their expense, and nothing about getting older — those are adult genres and they read as mean here.
+⚠️ WHO IS READING IT: the WORDS are usually read ALOUD by an adult, so they may carry a wink the grown-up enjoys — but the ARTWORK belongs entirely to the child and must delight THEM. Bright, saturated, generous; nothing muted, nothing editorial, nothing ironic.`
+      : age <= 17
+        ? `AGE BAND — TEEN (${age}). Encouraging, not ironic — this is the one adult-adjacent band where the roast is switched OFF. The shops run "Sweet 16", "OMG You're 16", "16 And A Superstar", gaming and youth-culture references; self-deprecation is conspicuously absent. Treat them as arriving somewhere good, never as losing anything. ⚠️ The buyer is almost always a PARENT, GRANDPARENT or aunt, so cheek must stay well inside what a nan will hand over.`
+        : age <= 25
+          ? `AGE BAND — THRESHOLD (${age}). The joke is adulthood itself: newly legal, newly responsible, gloriously unprepared. Childhood expiring, the first proper hangover, having to phone about your own car insurance. Loud, energetic, meme-fluent. Palette bright and saturated; type bold and playful. ⚠️ The buyer is very often a PARENT or GRANDPARENT — cheeky is fine, but never something a nan would be embarrassed to hand over.`
+          : age <= 49
+            ? `AGE BAND — LOSS & KNOWING (${age}). The decade just ended is the material, and the shops reach for EXPIRY every time: "twenties has now expired", "the passing of your twenties", "thirties? completed it mate". Alongside it, self-deprecation delivered completely straight — the age is fine, it is the little surrenders that are funny: the good chair, the early night defended as a treat, the noise a person makes standing up. Era references from their youth land well. Confident and adult; this is where a text-only card shines.`
+            : age <= 65
+              ? `AGE BAND — DEFIANCE & ERA (${age}). Not declining — DEFIANT. The shops are full of "fab at 50", "still rocking it", "considered to be a mature and sensible age" said with a completely straight face. Era nostalgia starts here, not at 60: the music, the telly, the tech of their youth is fair game and lands hard. Rich and alive rather than muted; a cassette, a record sleeve, a proper era motif does a lot of work.`
+              : `AGE BAND — ELEVATION (${age}). ⚠️ THE JOKE PRAISES THEM, IT DOES NOT MOCK THEM. The market's own line for this band is "I'm not saying you're old, but if you were a whisky you'd be really expensive" — maturity as PREMIUM. Vintage, aged, sought-after, seen-it-all-done-it-all. Nostalgia leads and the affection is unmistakable: what the world was like when they arrived, the habits everyone in the family knows are theirs.
+⚠️ NEVER decline, frailty, memory or "how much longer" jokes — the one way this band goes badly wrong.${age >= 76 ? ' ⚠️ AND AT THIS AGE WARMTH LEADS: humour still belongs on the card but it SERVES the sentiment rather than carrying it — "80 incredible years of you" is the register, with the joke supporting it.' : ''} Warm, golden, vintage-leaning; classic serifs suit it.`;
 
   // The birth-year carve-out, bounded tightly. Derived arithmetic on a
   // number the BUYER typed is not the invented-fact class — but it only
