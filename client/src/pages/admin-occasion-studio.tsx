@@ -39,8 +39,17 @@ import { Label } from '@/components/ui/label';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
-type Tone = 'funny' | 'warm' | 'cheeky';
-const TONES: Tone[] = ['funny', 'warm', 'cheeky'];
+/** ⚠️ THREE REGISTERS, EACH A DIFFERENT ASK (Aidan 2026-08-19): make
+ *  them laugh, make them feel something, make them swear.
+ *  "Cheeky" is retired — it was defined by sitting BETWEEN funny and
+ *  rude, which is the tell that it was not its own thing, and its
+ *  mickey-taking is just what funny does when sharp. Rude was a
+ *  CHECKBOX over another tone, which allowed rude+warm: gentle humour
+ *  with swearing over the top. It is a lane the market shelves on its
+ *  own (top-three bestsellers, and Scribbler's whole brand), so it is a
+ *  register here. */
+type Tone = 'funny' | 'warm' | 'rude';
+const TONES: Tone[] = ['funny', 'warm', 'rude'];
 
 /** Bounded relationships (Aidan 2026-08-17). Free text made register,
  *  gender and age into prose a model had to guess at; chips make them
@@ -146,7 +155,6 @@ export default function AdminOccasionStudioPage() {
   useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
   const [interest, setInterest] = useState('');
   const [tone, setTone] = useState<Tone>('funny');
-  const [cheeky, setCheeky] = useState(false);
   const [cells, setCells] = useState<Cell[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
@@ -197,6 +205,10 @@ export default function AdminOccasionStudioPage() {
 
   const typedAge = ageInput.trim() ? Number(ageInput.trim()) : NaN;
   const age = Number.isInteger(typedAge) && typedAge >= 1 && typedAge <= 110 ? typedAge : readAge(occasion);
+  /** Derived, not chosen — the rude REGISTER implies cheek. Under 18 it
+   *  is forced off whatever the chip says: a sweary card for a
+   *  five-year-old is not a preference, it is a mistake. */
+  const cheeky = tone === 'rude' && (age === null || age >= 18);
   const rel = RELATIONSHIPS.find((r) => r.label === who);
   const effectiveGender = rel?.implies ?? gender;
 
@@ -437,10 +449,15 @@ export default function AdminOccasionStudioPage() {
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 text-xs text-stone-600">
-            <input type="checkbox" checked={cheeky} onChange={(e) => setCheeky(e.target.checked)} className="h-3.5 w-3.5 accent-brand" />
-            Rude
-          </label>
+          {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.
+              As a checkbox it could be ticked alongside Warm, which put
+              the engine in gentle-humour mode and then swore over the
+              top. As a register that cannot happen by construction. */}
+          {tone === 'rude' && age !== null && age < 18 && (
+            <span className="text-xs font-medium text-amber-700">
+              Rude is off under 18 — this will generate clean.
+            </span>
+          )}
           {/* ⚠️ FREE STYLE IS NO LONGER A CHOICE (Aidan 2026-08-19: "we're
               going with free style on the art 100% of the time moving
               forward"), so the toggle is gone rather than defaulted-on —

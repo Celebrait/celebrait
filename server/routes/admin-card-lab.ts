@@ -367,15 +367,33 @@ export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
 // is the first occasion to get its own world rather than a shared
 // profile line — the pattern every other occasion will follow.
 
-export type BirthdayTone = 'funny' | 'warm' | 'cheeky';
+/** ⚠️ RUDE IS A REGISTER, NOT A MODIFIER (Aidan 2026-08-19). It was a
+ *  checkbox layered over another tone, which allowed rude+warm — the
+ *  engine switching to gentle humour and then swearing over the top.
+ *  RESEARCH_UK_CARD_MARKET.md is unambiguous that it deserves better:
+ *  unmasked profanity sits in the bestseller wall's top three, recurs
+ *  at 30 and 50, and Scribbler built 38 shops on it. It is a lane the
+ *  market shelves, so it is a tone here. The cheeky brief already
+ *  described itself as sitting "between funny and rude", so the axis
+ *  was always four points with one of them missing. */
+export type BirthdayTone = 'funny' | 'warm' | 'rude' | 'cheeky';
 
 /** D3: what the buyer picks. Each tone still yields three different
  *  cards through the existing angle machinery — the tone sets the
  *  register, the angles keep the range. */
 const BIRTHDAY_TONES: Record<BirthdayTone, string> = {
-  funny: `TONE — FUNNY. The biggest-selling birthday register in Britain. Make them laugh out loud, not smile politely. The joke is the product: if a card here has no laugh in it, it has failed even if it is warm and true.`,
+  funny: `TONE — FUNNY. The biggest-selling birthday register in Britain, and the widest: it runs from a gentle observation all the way to properly taking the mickey. Make them laugh out loud, not smile politely. The joke is the product: if a card here has no laugh in it, it has failed even if it is warm and true. Sharpness is welcome — the fond dig, the thing you would only say to someone you love, seaside-postcard innuendo — everything except actual swearing, which is its own register.`,
   warm: `TONE — WARM. Affection first, wit second — the card someone keeps on the mantelpiece for a month. Still SPECIFIC and still with a turn: warm is not vague, and "you're amazing" is not warmth, it is filler. Think fond, noticing, generous. No mickey-taking, no roasting, no age jokes at all in this tone.`,
-  cheeky: `TONE — CHEEKY. Mischief without swearing. Taking the mickey, the fond dig, the thing you would only say to someone you love. Sits between funny and rude: sharper than funny, cleaner than rude. Innuendo stays seaside-postcard.`,
+  // ⚠️ RETIRED 2026-08-19, kept only so old rows still resolve. Aidan:
+  // "Honestly I have a problem with Funny, cheeky warm, rude... Funny
+  // warm rude?" He is right: cheeky was defined by what it sat BETWEEN,
+  // which is the tell that it was not its own register. Its territory —
+  // mickey-taking without swearing — is simply what funny does when it
+  // is sharp, and that permission now lives in the funny brief. Three
+  // registers, and each one is a different ASK: make them laugh, make
+  // them feel something, make them swear.
+  cheeky: `TONE — FUNNY (SHARP). Make them laugh, and lean into the mickey-taking end of it: the fond dig, the thing you would only say to someone you love, seaside-postcard innuendo. No actual swearing — that is the rude register.`,
+  rude: `TONE — RUDE. The far end of the same axis cheeky sits on, and a lane of its own rather than a funny card with swearing added. The swearing is not the joke — it is the register the joke is told in, so the line underneath must still be sharp enough to survive with the words taken out. Affectionate always: this is how close friends actually speak to each other, never contempt. See the RUDE MODE block above for what is unlocked and how it is set.`,
 };
 
 /** The three age worlds. Bands from the research pack: what the market
@@ -538,7 +556,7 @@ const conceptsSchema = z.object({
   cheeky: z.boolean().default(false),
   /** D3 — the buyer-facing tone for the birthday world. Ignored by
    *  occasions that have not been built out yet. */
-  tone: z.enum(['funny', 'warm', 'cheeky']).default('funny'),
+  tone: z.enum(['funny', 'warm', 'cheeky', 'rude']).default('funny'),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -1127,7 +1145,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
       : classified;
     const serious = occProfile.humour === 'off';
-    const effectiveCheeky = body.cheeky && !serious;
+    // The rude TONE implies cheek; the legacy checkbox still works so
+    // the bench and any saved call sites keep behaving.
+    const effectiveCheeky = (body.cheeky || body.tone === 'rude') && !serious;
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle);
