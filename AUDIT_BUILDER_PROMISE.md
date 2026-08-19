@@ -243,3 +243,27 @@ exist already:
   up since there is no subject to joke about.
 The archetype still runs on whatever IS given (recipient, age, tone) —
 a blank brief has an audience even when it has no subject.
+
+## Known limit: the archetype is weakest exactly where currency matters most
+
+Aidan, on the key-covered 21st: *"how can it build that archetype for a
+21 year old???"* — and it largely can't. The model's picture of a
+21-year-old is frozen at its training cutoff, written mostly by people
+who are not 21, and saturated with a century of card conventions (hence
+the keys). For a 78-year-old the archetype is excellent — her era is
+fixed history. ACCURACY RUNS INVERSE TO HOW FAST THE RECIPIENT'S
+CULTURE MOVES.
+
+Mitigations, in order of realness:
+1. **Market scans are the anti-staleness tool.** The aisle research
+   samples what actually sells at 21 THIS YEAR (memes, threshold
+   swearing, no keys) — real current data, not model memory. The
+   threshold band carries it; refresh the scans seasonally, and for
+   currency-critical bands consider feeding scan excerpts into the
+   archetype call itself.
+2. **The buyer skews older than the recipient** at young milestones
+   (parents, grandparents buy the 21st), which blunts the worst of it —
+   but the product promise is landing with the RECIPIENT, so this is a
+   cushion, not a fix.
+3. **Keep-rate and, once live, purchases** are the only true feed of
+   what currently lands. They arrive with volume, not before.
