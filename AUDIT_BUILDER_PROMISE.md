@@ -247,7 +247,15 @@ a blank brief has an audience even when it has no subject.
 ## Known limit: the archetype is weakest exactly where currency matters most
 
 Aidan, on the key-covered 21st: *"how can it build that archetype for a
-21 year old???"* — and it largely can't. The model's picture of a
+21 year old???"* — my first answer ("it largely can't") was WRONG, and
+Aidan called it: the same set contained "camera-roll jeopardy" and
+"first-round politics", which no model ignorant of current 21-year-olds
+could write. The knowledge is there. The real fault was the archetype
+call's framing — "you profile card recipients" invited a century of
+CARD TRADITION to answer instead of the person, and the tradition says
+keys. Reframed to profile the person and quarantine card-genre
+knowledge as contamination. What remains true, smaller than first
+claimed: The model's picture of a
 21-year-old is frozen at its training cutoff, written mostly by people
 who are not 21, and saturated with a century of card conventions (hence
 the keys). For a 78-year-old the archetype is excellent — her era is

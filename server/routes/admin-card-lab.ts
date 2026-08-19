@@ -1511,7 +1511,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const archRes = await openai.chat.completions.create({
           ...conceptParams(900, 0.5),
           messages: [
-            { role: 'system', content: `You profile card recipients for a UK card maker. Return JSON {"archetype":"100-140 words: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them; where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
+            { role: 'system', content: `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a 21st, the tradition answers "ceremonial keys" while the actual person answers "camera roll, first rounds, group chats" — profile the person alive in ${new Date().getFullYear()}. Return JSON {"archetype":"100-140 words: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them; where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
             { role: 'user', content: briefLines.slice(0, 8).join('\n') },
           ],
           response_format: { type: 'json_object' },
@@ -1525,7 +1525,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // slang, both, at both ends.
         const literalTokens = (t?: string) => (t ?? '').split(/[^a-zA-Z0-9']+/).filter((w) => w.length >= 3);
         const hints: V2Hints = {
-          interest: wordsToRe([...literalTokens(interestText), ...(Array.isArray(arch.interest_words) ? arch.interest_words : [])]),
+          // No interest given = no interest floor. The archetype still
+          // returns words on age-only briefs (about the milestone), and
+          // feeding those in made the artwork floor demand devotion to
+          // an empty string — phantom violations, wasted repair rounds.
+          interest: interestText ? wordsToRe([...literalTokens(interestText), ...(Array.isArray(arch.interest_words) ? arch.interest_words : [])]) : null,
           dislike: wordsToRe([...literalTokens(body.dislikes), ...(Array.isArray(arch.dislike_words) ? arch.dislike_words : [])]),
         };
 
