@@ -1211,6 +1211,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // has already used. Best-effort: a failure here must never block
     // making a card.
     let alreadyUsed: string[] = [];
+    let alreadyDrawn: string[] = [];
     try {
       // Two queries on purpose. The first catches repeats within a
       // subject; the second catches STOCK PUNS that drift ACROSS
@@ -1218,7 +1219,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // Ibiza, then Moana, each time with a clean conscience because
       // the interest never matched.
       const [sameSubject, anySubject] = await Promise.all([
-        db.select({ front_text: cardGenerations.front_text })
+        db.select({ front_text: cardGenerations.front_text, art_direction: cardGenerations.art_direction })
           .from(cardGenerations)
           .where(sql`lower(interest) = ${interestText.toLowerCase()}`)
           .orderBy(desc(cardGenerations.id))
@@ -1231,8 +1232,20 @@ export function registerAdminCardLabRoutes(app: Express): void {
       alreadyUsed = Array.from(new Set(
         [...sameSubject, ...anySubject].map((r) => r.front_text).filter(Boolean),
       ));
+      // ⚠️ MOTIFS ONLY FOR THE SAME SUBJECT. A rosette means something
+      // on a dog card and nothing on a fishing one, so unlike stock
+      // PUNS — which drift across subjects and are excluded globally —
+      // artwork only needs guarding within its own world.
+      alreadyDrawn = Array.from(new Set(
+        sameSubject.map((r) => (r as any).art_direction).filter(Boolean),
+      )).slice(0, 12);
     } catch (e) {
       console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
+    }
+    if (alreadyDrawn.length) {
+      briefLines.push(
+        `⚠️ ALREADY DRAWN for this subject — these motifs are used up, and so is any near-variant of them. A rack shows these cards SIDE BY SIDE, so the same object twice is the same card twice however different the words are. Observed: four poodle sets produced two prize rosettes, because a set can only ever see itself. Go to a different corner of this world:\n${alreadyDrawn.map((a) => `  · ${a}`).join('\n')}`,
+      );
     }
     if (alreadyUsed.length) {
       briefLines.push(
@@ -1655,6 +1668,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         recipient: body.who ?? null,
         interest: interestText || null,
         front_text: c.front_text,
+        art_direction: c.art_direction ?? null,
       }))).catch((e) => console.warn('[CARD-LAB] generation log failed (non-fatal):', e));
 
       res.json({ concepts: judged, notes });

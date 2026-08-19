@@ -87,6 +87,15 @@ export const cardGenerations = pgTable("card_generations", {
   recipient: text("recipient"),
   interest: text("interest"),
   front_text: text("front_text").notNull(),
+  /** ⚠️ THE MOTIF, logged so it can be AVOIDED next time. The exclusion
+   *  list only ever held front_text, so words never repeated but PICTURES
+   *  repeated freely — four poodle sets produced two prize rosettes and
+   *  nobody could have known, because a set only ever sees itself
+   *  (Aidan's dog run, 2026-08-19). On a rack that is the difference
+   *  between a range and the same card twice, and it is invisible one
+   *  set at a time, which is exactly the class of failure this table
+   *  exists to catch. */
+  art_direction: text("art_direction"),
   /** Did it earn a place in the rack? The whole point of the table. */
   kept: boolean("kept").notNull().default(false),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
