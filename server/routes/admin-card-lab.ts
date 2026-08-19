@@ -417,7 +417,9 @@ function birthdayAgeBlock(age: number | null): string {
   // at 16, threshold at 18–21, loss comedy at 30–40, defiance at 50,
   // era at 60, praise at 70, warmth at 80.
   const band =
-    age <= 12
+    age <= 2
+      ? `AGE BAND — BABY (${age}). ⚠️ THE RECIPIENT CANNOT READ AND THE REAL AUDIENCE IS THE PARENTS — this card is a KEEPSAKE ABOUT the child, not a message TO them, and it will live in a memory box to be re-read years from now. The material is the year's FIRSTS and the tiny observed truths of this exact age: what they have just learned to do, what they are obsessed with, the daft daily rituals every parent of a ${age}-year-old recognises. A word-portrait of the baby is the card that gets kept. Warmth leads, wit is gentle, and NEVER a joke at the parents' exhaustion unless it lands as solidarity. Artwork stays bright, simple and joyful — but its job here is to charm the adults and the mantelpiece as much as the child.`
+      : age <= 12
       ? `AGE BAND — CHILD (${age}). ⚠️ NOBODY IS BEING ROASTED. This is pure celebration: the number is huge and exciting, the thing they love is the whole world, and the card is delighted for them. NO irony, no self-deprecation, no jokes at their expense, and nothing about getting older — those are adult genres and they read as mean here.
 ⚠️ WHO IS READING IT: the WORDS are usually read ALOUD by an adult, so they may carry a wink the grown-up enjoys — but the ARTWORK belongs entirely to the child and must delight THEM. Bright, saturated, generous; nothing muted, nothing editorial, nothing ironic.`
       : age <= 17
