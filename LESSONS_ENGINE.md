@@ -77,14 +77,25 @@ real observed failure. The rebuild reads this first.
 
 - **The buyer is not the fan.** A daughter buys the HP card for her
   dad. Famous layer only — the reference a non-fan could name.
-- **Words are the safe half of IP; pictures are the risk.** Say the
-  name, quote the short iconic phrase (it's the whole card), never
-  draw the mark/character/artefact. No human figures on fictional-
-  property briefs — any figure in that world's costume IS the
-  character (a Moana brief drew Moana).
-- **Specific beats category, words AND pictures.** Sea≠Moana, dance
-  music≠Ibiza, football≠United, wristbands≠DC10. Real places are open
-  and are the most specific motif available.
+- **IP: the hard core is SMALL — challenge any rule beyond it.**
+  (Aidan, closing: "this might limit visual reference that is ok.")
+  Genuinely load-bearing: actual logos/wordmarks/crests, faithful
+  copyrighted CHARACTERS as themselves (a Moana brief drew Moana),
+  photoreal likeness of private individuals. Everything else is OPEN
+  and must be POSITIVELY encouraged, not grudgingly permitted:
+  caricature of public figures, real places, the styling/kit/era of
+  any world, evocation as strong as you like. ⚠️ A prompt full of
+  bans teaches timidity BEYOND the ban — the Oasis set drew generic
+  speakers when parkas, bucket hats and Gallagher caricature were all
+  already allowed. Words got loud permission ("SAY THE NAME") and
+  recovered; pictures never got the equivalent. The rebuild grants it.
+  Quote the short iconic phrase — it is often the whole card.
+- **Specific beats category — confirmed by Aidan four separate times**
+  ("sea is not Moana" / "dance music generic aren't they?" / "why
+  would the model not show it better?" / the Royle mix-up). Keep the
+  LESSON, not the lectures: in the rebuild this is what the ARCHETYPE
+  produces, and what the acceptance harness tests for — not prompt
+  paragraphs.
 - **Read the whole brief before deciding what the subject is.**
   "The Royal Family on TV" + "Neighbours" in dislikes = the sitcom.
   Expect near-miss spellings. Split the set when genuinely ambiguous.
