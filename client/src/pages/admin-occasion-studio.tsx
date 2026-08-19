@@ -48,6 +48,12 @@ const TONES: Tone[] = ['funny', 'warm', 'cheeky'];
  *  `implies` carries the gender where the word already says it, so the
  *  buyer is only asked when it is genuinely ambiguous. */
 const RELATIONSHIPS: Array<{ label: string; implies?: 'him' | 'her' }> = [
+  // ⚠️ FIRST, AND DELIBERATELY. The catalogue's spine is stock that
+  // suits whoever picks it up, and every other chip here taints that —
+  // the prompt puts the relationship word on the FRONT for family, so a
+  // "universal" 30th built as Dad would print "Dad" (Aidan 2026-08-19:
+  // "For who though? Who's the recipient").
+  { label: 'Anyone' },
   { label: 'Mum', implies: 'her' },
   { label: 'Dad', implies: 'him' },
   { label: 'Nan', implies: 'her' },

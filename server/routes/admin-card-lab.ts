@@ -1123,7 +1123,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle);
 
     const briefLines = [
-      `Recipient: ${body.who}`,
+      // ⚠️ "ANYONE" IS A REAL ANSWER, not a missing one. Aidan, planning
+      // the spine: "For who though? Who's the recipient". Picking Dad to
+      // make a universal 30th card does not just set the register — the
+      // prompt tells the writer to put the relationship word ON THE
+      // FRONT for family, so it would print "Dad" and stop being stock
+      // that suits anyone. Same shape of hole as the required interest.
+      body.who.trim().toLowerCase() === 'anyone'
+        ? `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`
+        : `Recipient: ${body.who}`,
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
       // real failure. "Never the joke" stops gendered stereotyping — a
       // woman who fishes gets the same fishing world, not a pink rod —
