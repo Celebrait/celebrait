@@ -150,3 +150,27 @@ The short list that is NOT style, and stays as hard floors:
 
 Everything else runs free and earns a ban only by failing in front of
 us. The keep rate and the acceptance harness are the pruning shears.
+
+## Length is a register — one long card per set (Aidan, reviewing the rendered arms)
+
+*"When I say bare lands its the length of text - think there's some good
+resolve in there - nice finishing of the concepts - a good to have in
+the choices for me."*
+
+Bare had no length cap, and its best cards BUILD AND RESOLVE: "still
+doing away days, still chatting absolute s***, still redder than a
+service-station kebab at 2am." Setup stacked on setup, then the finish.
+The winning arm caps fronts at 8 words, so it structurally cannot write
+that card — Aidan was not rating bare's quality, he was spotting a
+missing register.
+
+So the set's variety includes LENGTH: one card per set may run long
+(~20-35 words), built to be read aloud, the last few words landing the
+turn. This folds together three separate discoveries: the old typeled
+long-line rule, the list angle's accumulation shape, and bare's
+unconstrained resolve. Pinned server-side like every other structural
+choice (law 4: the model will not vary its own structure unasked).
+
+Set shape target: one SHORT hit, one MID, one LONG read-aloud — three
+genuinely different reading experiences, not three lengths of the same
+sentence.
