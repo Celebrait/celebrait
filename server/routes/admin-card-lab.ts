@@ -1161,6 +1161,7 @@ THE BAR, per card:
 - No invented facts: no years, ages, habits or history the brief did not give you. A derived birth year may describe the RECIPIENT only, never the subject.
 - art_direction: one drawable sentence. Real places, caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
+- When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
 - If the register is rude: at least two fronts carry real masked swearing (f***, s***, bollocks...) and the joke survives with it removed.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
