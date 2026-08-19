@@ -1105,7 +1105,17 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   }
   if (hints.interest) {
     if (whole.filter((w) => hints.interest!.test(w)).length < 2) v.push(`generic-set: at least two cards must be unmistakably about ${b.interest}`);
-    if (!arts.some((a) => hints.interest!.test(a))) v.push(`generic-artwork: at least one art_direction must belong to ${b.interest}'s own world`);
+    // ⚠️ 100% OF ILLUSTRATED ARTWORK COMES FROM THEIR WORLD — per card,
+    // not per set (Aidan: "100% of cards must visually reference unless
+    // they are type only!!!"). One-per-set let a betting marquee ride
+    // through an Oasis set on another card's back. The dislike's world
+    // counts too — a fused dislike card is still their world.
+    cards.forEach((c, i) => {
+      if (String(c.format) === 'typeled') return;
+      const a = arts[i];
+      if (!hints.interest!.test(a) && !(hints.dislike && hints.dislike.test(a)))
+        v.push(`generic-artwork: card ${i + 1} is illustrated but its artwork has nothing of ${b.interest} in it — every illustrated card's artwork comes from their world (only type-only cards are exempt)`);
+    });
   }
   const birthYear = b.age ? new Date().getFullYear() - b.age : null;
   if (fronts.some((f) => (f.match(/\b(19|20)\d{2}\b/g) ?? []).some((y) => Number(y) !== birthYear)))
@@ -1159,7 +1169,7 @@ THE BAR, per card:
 - It lands for THIS person — built from their world via the archetype, never the broad category. A card that suits anyone who vaguely likes the topic has failed.
 - Each card is its own idea; no distinctive word appears on two fronts.
 - No invented facts: no years, ages, habits or history the brief did not give you. A derived birth year may describe the RECIPIENT only, never the subject.
-- art_direction: one drawable sentence. Real places, caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
+- art_direction: one drawable sentence. ⚠️ EVERY ILLUSTRATED CARD'S ARTWORK COMES FROM THEIR WORLD — 100%, not one of three; only the typeled card is exempt. If the picture would suit a different interest, it has failed however handsome. Real places (NAMED), caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
