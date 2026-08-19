@@ -600,7 +600,45 @@ interface CardConcept {
   typeface?: string;
 }
 
-export function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false): string {
+/** ⚠️ FOUR ANGLES, THREE SLOTS, ROTATED SERVER-SIDE.
+ *
+ *  Aidan 2026-08-19: "Think 3 but rotate as we do already cos we have 4
+ *  possible outcomes already don't we in terms of style?" — the better
+ *  answer to where a plain card lives than adding a fourth card.
+ *
+ *  It also fixes something nobody had noticed: every set we have ever
+ *  made was wordplay + deadpan + proud, IN THAT ORDER. Formats rotate,
+ *  the typeled count is pinned at one, palettes vary — and the three
+ *  shapes underneath were identical every single time.
+ *
+ *  Chosen HERE rather than by the writer, for the reason the typeled
+ *  count is pinned here: left free it took the minimal slot 7 sets out
+ *  of 7. A model asked to vary its own structure does not. */
+export type Angle = 'wordplay' | 'deadpan' | 'proud' | 'straight';
+
+const ANGLE_SETS: Angle[][] = [
+  ['wordplay', 'deadpan', 'proud'],
+  ['wordplay', 'deadpan', 'straight'],
+  ['wordplay', 'proud', 'straight'],
+  ['deadpan', 'proud', 'straight'],
+];
+
+/** Straight is the plain card — no joke, just the occasion said well.
+ *  ⚠️ NEVER ON THE RUDE REGISTER: a card with no joke, in the register
+ *  whose whole point is the joke's language, is nothing at all. Rude
+ *  always gets the three joke angles. */
+export function pickAngles(tone: string | undefined, rnd = Math.random): Angle[] {
+  if (tone === 'rude') return ANGLE_SETS[0];
+  // Straight sits in three of the four possible sets, so an even draw
+  // would put it on three cards in four. Weighted to land it nearer one
+  // set in three — present often enough to matter, rare enough that a
+  // rack is still mostly cards with a joke in them.
+  const r = rnd();
+  if (r < 0.66) return ANGLE_SETS[0];
+  return ANGLE_SETS[1 + Math.floor(((r - 0.66) / 0.34) * 3)] ?? ANGLE_SETS[1];
+}
+
+export function conceptSystemPrompt(characters: CharacterLevel, cheeky = false, profile: OccasionProfile = OCCASION_PROFILES.celebration, freeStyle = false, angles: Angle[] = ANGLE_SETS[0]): string {
   // ⚠️ The cheek block is INJECTED AT THE TOP and written as an order, not
   // a permission. Buried at the bottom and phrased "allowed and
   // encouraged", it did nothing at all: a cheeky=true run produced "Ales
@@ -677,6 +715,12 @@ THE THREE CARDS — one each, in this order.
   Failed: "Making birthdays grate again" — nothing is being grated, nothing is grating, so "grate" carries no second sense and the line is just "great" misspelled. TEST: say what the second meaning IS, in plain words. If you cannot, the pun is dead.
   ⚠️ AND THE SECOND MEANING HAS TO BE THE RIGHT ONE. A pun can resolve perfectly and still land on an idea that suits the brief badly — which is worse than a dead pun, because it reads as deliberate. Observed on an 18th: a pun on "proof of age" — clean wordplay, since the ID is exactly what they now get asked for — that resolved onto AGEING, a decline joke, on the one birthday entirely about arriving. Say the second meaning out loud AND check it is something you would want on this card.
 2. DEADPAN — the turn is in the UNDER-REACTION. This is the QUIETEST card, but quiet is not empty: deadpan only works when something genuinely ABSURD is being reported completely straight. Mine the daft truth of that world — the nine wasted hours, the £400 of kit for a £2 fish, the 5am alarm on a day off, the shed nobody else is allowed in — and state it flatly, with no wink and no punchline signposting. BEFORE you write this line, name to yourself ONE specific absurd fact about this world, ideally carrying a number, a ritual or a wasted effort. The line then REPORTS that fact. If you find yourself reaching for the birthday instead of the absurdity ("Another year, another …"), you have not mined hard enough — go back and find the daft fact. NO ABSURDITY MEANS NO JOKE: "Manchester United Comes First" and "The only mixologist in the family" are statements of fact with nothing being under-reacted to, and they came out dry. "Nine Hours, No Fish" works, because something ridiculous is being reported with a straight face.
+⚠️ STRAIGHT — THE PLAIN CARD, and the ONE angle exempt from the turn. Included only when it appears in your list above.
+  There is no joke here and none is wanted: this is the card someone sends when they do not want to be funny, and every rack in Britain is full of them. Say the occasion properly and let the CRAFT be the card — the setting, the colour, the confidence of it.
+  ⚠️ BUT PLAIN IS NOT GENERIC, and this is the only thing that matters about this angle. "To a wonderful Mum with love" is what the mass-market makes because it must suit everybody; we do not have that problem. A straight card is still unmistakably about THIS person — their colours, their world's own object, the number set beautifully — it simply does not make a joke about them. Every specificity rule above applies to it in full.
+  It usually wants the type-led or statement format, and often the best line is the plainest possible: the occasion, said once, set well.
+  ⚠️ AND IT IS NOT A HIDING PLACE. "No turn required" is not permission for a limp line: a straight card that could sit on any shelf in the country has failed harder than a weak joke, because it had nothing to hide behind.
+
 3. PROUD — the turn is in the DISPROPORTION: total, straight-faced seriousness about something gloriously SMALL. The respect is real; the thing being respected is trivial. That is the whole joke, and it lives in WHAT you take seriously, never in how grandly you say it.
   SAY IT ABOUT THEM, NOT TO THEM — addressing the recipient or declaring a rule is where every collapse of this angle began. But say only what you KNOW: you know they LOVE this thing, so take THAT seriously on their behalf — the devotion, the standards the subject demands of anyone who cares, the enthusiasm the family expects. Never a life you imagined for them.
   ⚠️ BANNED SHAPES, not banned words — a fresh synonym is the same failure. Reject on sight:
@@ -708,7 +752,7 @@ Then state it in the "direction" field and hold ALL THREE cards inside it.
 
 Each returned concept:
 - direction: ${freeStyle ? 'the MEDIUM this card is drawn in — a real, named illustration craft (linocut, gouache, riso, papercut, art deco, mid-century children\'s book, cyanotype, comic halftone and so on) plus its palette family and type mood. ⚠️ FREE STYLE IS ON, SO EACH OF THE THREE CARDS TAKES A DIFFERENT MEDIUM. There is no house look to hold them together and no reason to make three cards in one craft: give the buyer three genuinely different executions and let them point at the one they like. Choose three media that each suit the subject in a different way, and commit to each completely.' : 'ONE sentence, IDENTICAL on all three concepts, naming the visual world you have chosen for this set: its palette family, its type mood, and its density register (airy / balanced / full). This is the decision every other visual choice obeys, and holding all three inside it is what makes a set read as one designer\'s range rather than a sampler. Derive it from the brief, not from habit.'}
-- angle: "wordplay", "deadpan" or "proud" — one of each, in that order.
+- angle: EXACTLY these three, one each, IN THIS ORDER — ${angles.map((a) => `"${a}"`).join(', ')}. The set is chosen for you and rotates between briefs; do not substitute one for another.
 - format: one of "statement", "hero", "pattern", "label", "typeled". EXACTLY ONE card is "typeled" — never none, never two; the count is fixed because left free it swings to all or nothing. The other two follow the direction's density register rather than a forced spread: an airy world can take two minimal cards, a full world two dense ones. Three quiet cards for a quiet subject is a good set, not a failure.
   "typeled" is TEXT-ONLY: no illustration, the words set huge ARE the artwork, and art_direction describes the ground colour and typographic treatment instead of a motif. Good shops rack plenty of these.
   ⚠️ IT MAY BE SHORT OR LONG, and that is a real choice. SHORT (three to six words, enormous) hits like a poster and is often stronger. LONG (up to 20 words) is the card someone reads aloud in the shop — the observation too good to cut, the fake advice, the sentence that turns hard at the very end. If you go long, USE the length: a padded short line has failed, and the last few words must land the turn. Whichever you pick, this has to be your best line.
@@ -1148,9 +1192,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // The rude TONE implies cheek; the legacy checkbox still works so
     // the bench and any saved call sites keep behaving.
     const effectiveCheeky = (body.cheeky || body.tone === 'rude') && !serious;
+    // Which three of the four angles this set gets. Rotated here so the
+    // three shapes stop being identical on every brief we have ever run.
+    const chosenAngles = pickAngles(body.tone);
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
-      : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle);
+      : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle, chosenAngles);
 
     const briefLines = [
       // ⚠️ "ANYONE" IS A REAL ANSWER, not a missing one. Aidan, planning
