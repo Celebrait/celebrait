@@ -275,3 +275,18 @@ Mitigations, in order of realness:
    cushion, not a fix.
 3. **Keep-rate and, once live, purchases** are the only true feed of
    what currently lands. They arrive with volume, not before.
+
+## Design tribes (from Aidan's ChatGPT cross-check, 2026-08-19)
+
+Asked the same model conversationally about 21st cards, it returned
+sharper material than our pipeline extracts — proving the knowledge is
+in the model and the QUESTION is the bottleneck. Three upgrades lifted
+into the engine immediately (archetype commits to a TRIBE not the
+demographic average; BEAUTIFUL FIRST, JOKE SECOND as the register's
+order of operations; current = register and irony, never slang).
+
+BANKED FOR THE CATALOGUE: identify 10-15 design tribes per demographic
+(the chaotic friend / the gym one / the dog one / the dry one...) and
+build a visual direction per tribe — a stronger rack structure than
+volume-producing "21st birthday cards", and the thing mass stock
+cannot copy because our tribes get personalised per buyer.
