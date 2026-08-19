@@ -570,6 +570,18 @@ const conceptsSchema = z.object({
    *  departures) -> code referee. 'open' = same but no visual register.
    *  Sympathy and other humour-off occasions always take classic. */
   pipeline: z.enum(['classic', 'celebrait', 'open']).default('classic'),
+  /** ⚠️ CROSS-RUN MEMORY IS A RACK-BUILDING TOOL, NOT A CUSTOMER ONE
+   *  (Aidan 2026-08-19: "Why are we excluding when these are for new
+   *  users essentially"). The studio excludes lines and motifs used in
+   *  PREVIOUS runs because catalogue stock hangs side by side — but a
+   *  customer is a fresh pair of eyes, and steering them away from a
+   *  subject's best material because a STRANGER'S run used it means
+   *  every customer after the first gets second-choice cards. Two
+   *  people buying the same great card is a bestseller, not a bug.
+   *  Default true (the studio is today's only caller); the customer
+   *  flow sends false. Generations are LOGGED either way — the
+   *  keep-rate denominator and motif history must stay complete. */
+  memory: z.boolean().default(true),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -1437,6 +1449,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let alreadyUsed: string[] = [];
     let alreadyDrawn: string[] = [];
     try {
+      if (!body.memory) throw Object.assign(new Error('memory off'), { memoryOff: true });
       // Two queries on purpose. The first catches repeats within a
       // subject; the second catches STOCK PUNS that drift ACROSS
       // subjects — "Seas the day" turned up for sea swimming, then
@@ -1463,8 +1476,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       alreadyDrawn = Array.from(new Set(
         sameSubject.map((r) => (r as any).art_direction).filter(Boolean),
       )).slice(0, 12);
-    } catch (e) {
-      console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
+    } catch (e: any) {
+      if (!e?.memoryOff) console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
     }
     if (alreadyDrawn.length) {
       briefLines.push(
