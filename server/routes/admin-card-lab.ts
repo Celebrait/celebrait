@@ -1094,6 +1094,14 @@ const V2_SWEAR = /f\*+\w*|s\*+|c\*+|bollocks|bastard|wanker|prick|twat|bellend|k
  *  81-card rack came back with "ABOUT FUCKING TIME" sitting next to
  *  "Still hot as f***", and a mixture on a shelf reads as a misprint. */
 const V2_SWEAR_RAW = /\b(fuck\w*|shit\w*|cunt\w*)\b/i;
+/** ⚠️ THE COUNTERFEIT MASK. Once masking meant rude, the model started
+ *  asterisking words that are barely swearing at all — "sharp as h***"
+ *  twice in one set (Aidan: "Hell... is a crap swear word firstly but
+ *  shouldn't be blanked"). A mask on a mild word fails three ways: not
+ *  strong enough to need it, not strong enough to carry a rude card,
+ *  and the asterisks dress it up as scandal. Only f/s/c are masked;
+ *  anything else wearing asterisks is counterfeit. */
+const V2_MASK_WRONG = /\b[abd-eg-rt-z]\*{2,}\w*/i;
 const V2_BANNED = /\b(vibes?|level up|bossin?|legend(ary)?|goals|beast mode|standards?)\b|\b(master|king|queen|lord|sultan|champion|guardian|keeper) of\b|extraordinaire|royalty/i;
 const V2_MALE = /\b(man|men|bloke|lad|lads|guy|boy|he|him|his|sir|king|gent)\b/i;
 const V2_FEMALE = /\b(woman|women|lass|girl|she|her|hers|madam|queen|lady|ladies)\b/i;
@@ -1153,6 +1161,8 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const printed = `${c.front_text ?? ''} ${c.inside_text ?? ''}`;
     const hit = printed.match(V2_SWEAR_RAW);
     if (hit) v.push(`swear-unmasked: card ${i + 1} prints "${hit[0]}" in full — mask strong swearing as the first letter followed by asterisks`);
+    const fake = printed.match(V2_MASK_WRONG);
+    if (fake) v.push(`mask-counterfeit: card ${i + 1} masks "${fake[0]}" — only the strongest swearing is ever masked. A mild word prints in full, and if this line needs asterisks to feel rude it needs a genuinely stronger word or a better joke`);
   });
   if (b.dislikes && hints.dislike) {
     const n = whole.filter((w) => hints.dislike!.test(w)).length;
@@ -1259,7 +1269,7 @@ THE BAR, per card:
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
-- If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ STRONG SWEARING IS ALWAYS MASKED — write the first letter and then asterisks for the rest of the word, never the whole word, and never a mixture across the three cards, because a rack shows them side by side and one unmasked word among masked ones reads as a misprint. Mild British swearing prints normally; it is the strong ones that get masked.
+- If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ STRONG SWEARING IS ALWAYS MASKED — write the first letter and then asterisks for the rest of the word, never the whole word, and never a mixture across the three cards, because a rack shows them side by side and one unmasked word among masked ones reads as a misprint. Mild British swearing prints normally and is NEVER masked — asterisks on a mild word are counterfeit rudeness and an instant fail. And the barely-swears (the vicar-safe oath class) are not swearing at all: a rude card leaning on one wanted a real swear or a better joke.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
 Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
