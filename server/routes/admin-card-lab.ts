@@ -1508,13 +1508,25 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // `lower(NULL) = ''` is NULL, never true — so this query
           // returned ZERO rows and the motif guard below silently never
           // fired for the entire age-only spine. Observed on Aidan's
-          // 81-card rack, 2026-08-20: numerals built from era-objects
-          // six times over and TWO armchairs at 40 — the poodle-rosette
-          // failure again, in the one place nothing was watching.
-          // All age-only cards share one bucket ON PURPOSE: a 40 made of
-          // browser tabs and a 30 made of chat windows are the same IDEA,
-          // so they must be able to see each other.
-          .where(interestText ? sql`lower(interest) = ${interestText.toLowerCase()}` : sql`interest is null`)
+          // 81-card rack, 2026-08-20: TWO armchairs at 40.
+          //
+          // ⚠️ AND IT IS SCOPED TO THE AISLE, NOT THE WHOLE RACK.
+          // The first fix pooled every age-only card together, on the
+          // reasoning that a 40 built from browser tabs and a 30 built
+          // from chat windows are "the same idea". Aidan, immediately:
+          // "why are we not repeating the design when this is fresh for
+          // new users? Is this for my testing?" — and he is right. The
+          // whole rack side by side EXISTS ONLY IN THE STUDIO. A
+          // customer shopping a 40th sees the 40th aisle; they never
+          // load the 30th. A device carried across ages is not
+          // repetition, it is a RANGE, which is how card shops have
+          // always sold ("Aged 40", "Aged 50", same treatment).
+          // So the guard defends what a customer actually sees at once:
+          // the same age. IS NOT DISTINCT FROM keeps ageless cards as
+          // their own aisle rather than matching everything.
+          .where(interestText
+            ? sql`lower(interest) = ${interestText.toLowerCase()}`
+            : sql`interest is null and age is not distinct from ${statedAgeValue}`)
           .orderBy(desc(cardGenerations.id))
           .limit(24),
         db.select({ front_text: cardGenerations.front_text })
