@@ -8,7 +8,9 @@
 //
 // So this checks the two things that failed: does the tone survive to
 // the words, and do the three cards look like three cards.
-// Usage: npx tsx server/scripts/generic-roll-check.ts [runs] [tone]
+// Usage: npx tsx server/scripts/generic-roll-check.ts [runs] [tone] [age]
+// An age turns it into the AGE-ONLY spine check (the milestone branch)
+// rather than the fully blank one.
 import 'dotenv/config';
 import express from 'express';
 import { registerAdminCardLabRoutes } from '../routes/admin-card-lab';
@@ -27,21 +29,23 @@ const server = app.listen(0, async () => {
   const port = (server.address() as any).port;
   const runs = Number(process.argv[2] ?? 2);
   const tone = process.argv[3] ?? 'funny';
+  const age = process.argv[4] ? Number(process.argv[4]) : undefined;
   for (let i = 0; i < runs; i++) {
     const r = await fetch(`http://localhost:${port}/api/admin/card-lab/concepts`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        occasion: 'Birthday', who: 'Anyone', tone, pipeline: 'celebrait',
+        occasion: age ? `${age}th Birthday` : 'Birthday', who: 'Anyone', tone, pipeline: 'celebrait', age,
         interest: '', dislikes: '', characters: 'objects', insideMode: 'blank',
         freeStyle: true, memory: true,
       }),
     });
     const j: any = await r.json();
-    console.log(`\n### RUN ${i + 1} (${tone}) — status ${r.status}`);
+    console.log(`\n### RUN ${i + 1} (${tone}${age ? ', age ' + age : ', blank'}) — status ${r.status}`);
     if (!j.concepts) { console.log('   ', JSON.stringify(j).slice(0, 300)); continue; }
     for (const c of j.concepts) {
       console.log(`    [${c.angle}/${c.format}] "${c.front_text}"`);
       console.log(`        palette: ${c.palette}`);
+      console.log(`        art:     ${c.art_direction}`);
     }
   }
   server.close(); process.exit(0);
