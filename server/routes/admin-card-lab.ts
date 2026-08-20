@@ -1294,7 +1294,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       inside_text: z.string().max(600).optional(),
       palette: z.string().max(400).optional(),
       typeface: z.string().max(300).optional(),
-      format: z.string().max(40).optional(),
+      format: z.string().max(160).optional(),
       art_direction: z.string().max(600).optional(),
       tone: z.string().max(20).optional(),
       age: z.number().int().min(1).max(110).nullable().optional(),
@@ -2258,8 +2258,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
-    } catch {
-      return res.status(400).json({ message: 'Invalid request' });
+    } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
     }
 
     const toBuffer = (dataUrl: string) =>
@@ -2305,8 +2306,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
-    } catch {
-      return res.status(400).json({ message: 'Invalid request' });
+    } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
     }
 
     const dear = body.dear?.trim();
@@ -2368,7 +2370,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       currentText: z.string().max(120).optional(),
       // Everything needed to RE-RENDER instead of edit, when the layout
       // has to change (see the routing note below).
-      format: z.string().max(40).optional(),
+      format: z.string().max(160).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
@@ -2377,8 +2379,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
-    } catch {
-      return res.status(400).json({ message: 'Invalid request' });
+    } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
     }
 
     // ── ROUTE BY FORMAT (Aidan 2026-08-15) ──────────────────────────
@@ -2513,7 +2516,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // to set a long line.
       front_text: z.string().min(1).max(300),
       art_direction: z.string().min(1).max(500),
-      format: z.string().max(40).default('hero'),
+      format: z.string().max(160).default('hero'),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
@@ -2527,8 +2530,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
-    } catch {
-      return res.status(400).json({ message: 'Invalid request' });
+    } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
     }
 
     // art_direction reaches the image model verbatim, and it arrives from
