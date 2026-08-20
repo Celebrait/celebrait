@@ -585,6 +585,10 @@ const conceptsSchema = z.object({
    *  flow sends false. Generations are LOGGED either way — the
    *  keep-rate denominator and motif history must stay complete. */
   memory: z.boolean().default(true),
+  /** Recipient's first name, to be DESIGNED IN — lettered in the card's
+   *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
+   *  placeholder: the real name, generated in (Aidan 2026-08-20). */
+  recipientName: z.string().max(40).optional(),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -1070,7 +1074,7 @@ const v2SaysOccasion = (t: string) =>
 
 interface V2Brief {
   who: string; gender: 'him' | 'her' | 'unspecified'; age: number | null;
-  interest: string; dislikes?: string; tone: string; cheeky: boolean;
+  interest: string; dislikes?: string; tone: string; cheeky: boolean; name?: string;
 }
 interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
 
@@ -1132,6 +1136,17 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const n = fronts.filter(v2SaysOccasion).length;
     if (n === 0) v.push('occasion-missing: exactly one front must say what the occasion is');
     if (n === 3) v.push('occasion-everywhere: only one front names the occasion');
+  }
+  if (b.name) {
+    // ⚠️ EXACT-NAME FLOOR. If a front uses the name it must match
+    // letter-for-letter — a near-miss ("Evy" for "Evie") is the worst
+    // printable error there is. And at most ONE front carries it.
+    const escaped = b.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const exact = new RegExp(`\\b${escaped}\\b`, 'i');
+    const stem = b.name.slice(0, Math.max(3, b.name.length - 2)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const nearMiss = new RegExp(`\\b${stem}\\w*\\b`, 'i');
+    if (fronts.some((f) => !exact.test(f) && nearMiss.test(f))) v.push(`name-misspelt: the recipient's name must be spelled EXACTLY "${b.name}"`);
+    if (fronts.filter((f) => exact.test(f)).length > 1) v.push('name-everywhere: at most one front carries the name');
   }
   if (b.gender !== 'unspecified') {
     const wrong = b.gender === 'her' ? V2_MALE : V2_FEMALE;
@@ -1392,6 +1407,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       body.who.trim().toLowerCase() === 'anyone'
         ? `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`
         : `Recipient: ${body.who}`,
+      body.recipientName?.trim() ? `Recipient's first name: "${body.recipientName.trim()}" — ⚠️ EXACTLY ONE card may LEAD with the name, designed in: the name set large in the card's own lettering, or the name AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled name on a printed card is the worst error we can make. The name proves nothing else about them: no gender, age or era inferred from it. The other two cards may use it inside but not on the front.` : '',
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
       // real failure. "Never the joke" stops gendered stereotyping — a
       // woman who fishes gets the same fishing world, not a pink rod —
@@ -1507,7 +1523,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // ── V2 PIPELINE ───────────────────────────────────────────────
     if (body.pipeline !== 'classic' && !serious) {
       const v2b: V2Brief = { who: body.who, gender: body.gender, age: body.age ?? statedAgeValue,
-        interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky };
+        interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky,
+        name: body.recipientName?.trim() || undefined };
       try {
         // 1. ARCHETYPE + referee vocabulary in one call.
         const archRes = await openai.chat.completions.create({

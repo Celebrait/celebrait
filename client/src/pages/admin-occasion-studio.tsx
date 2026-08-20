@@ -137,6 +137,9 @@ export default function AdminOccasionStudioPage() {
   const [gender, setGender] = useState<'him' | 'her' | 'unspecified'>('unspecified');
   const [ageInput, setAgeInput] = useState('');
   const [detail, setDetail] = useState('');
+  /** Designed in, not a placeholder — one card may lead with the real
+   *  name in the card's own lettering ("EVIE IS ONE"). */
+  const [recipientName, setRecipientName] = useState('');
   const [dislikes, setDislikes] = useState('');
   /** The character ladder. The studio hardcoded 'objects' since it was
    *  built, silently locking out every subject whose world genuinely
@@ -232,6 +235,7 @@ export default function AdminOccasionStudioPage() {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
+        recipientName: recipientName.trim() || undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         dislikes: dislikes.trim() || undefined,
       });
@@ -430,6 +434,12 @@ export default function AdminOccasionStudioPage() {
               a joke is actually wanted. */}
           {tone !== 'warm' && (
             <div className="sm:col-span-3">
+              <div className="mb-3">
+                <Label htmlFor="rname" className="text-xs font-semibold text-stone-700">
+                  Their name <span className="font-normal text-stone-400">— optional; one card will design it in</span>
+                </Label>
+                <Input id="rname" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className="mt-1.5" placeholder="Evie" />
+              </div>
               <Label htmlFor="dislikes" className="text-xs font-semibold text-stone-700">
                 {/* The label states the contract, because the field only
                     reads as worth filling in if you know what it buys.
