@@ -1461,7 +1461,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
       interestText
-        ? `The thing they love: ${interestText}`
+        ? `The thing this card is about: ${interestText}
+⚠️ READ WHETHER THIS IS A LOVE OR A PLAN. People type UPCOMING things into this box — a trip, a move, a new job — and an EVENT reads FORWARD: the excitement ahead, the world they are about to walk into. Claim NO history with it: no "still", no "always", no "another year of" unless the brief itself says they have done it before. Telling a first-time visitor they "still pick New York" is a printed factual error. A lifelong love may look back; a plan may only look forward.`
         : `⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. This is a RACK card: it has to work for anyone turning this age, so build all three from the AGE ITSELF using the age-band brief above — what that number means, what it is like to arrive at it, what everyone that age recognises. That is a real subject with real material, not an excuse for a blank card, and the specificity rules apply to it exactly as they would to a hobby: no generic warmth, no "another year older", nothing that would suit any age. A card about turning 50 must be unmistakably about FIFTY.`,
       `insideMode=${body.insideMode}`,
       `cheeky=${effectiveCheeky}`,

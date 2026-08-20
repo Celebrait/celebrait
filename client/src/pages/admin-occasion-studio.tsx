@@ -417,7 +417,7 @@ export default function AdminOccasionStudioPage() {
               className="mt-1.5" placeholder="60" />
           </div>
           <div>
-            <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love <span className="font-normal text-stone-400">— or leave blank with an age for a milestone card</span></Label>
+            <Label htmlFor="int" className="text-xs font-semibold text-stone-700">One thing they love — or a trip, a plan, a big change <span className="font-normal text-stone-400">— or leave blank with an age for a milestone card</span></Label>
             <Input id="int" value={interest} onChange={(e) => setInterest(e.target.value)} className="mt-1.5"
               placeholder="fishing / her allotment"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void generate(); } }} />
