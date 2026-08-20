@@ -1225,6 +1225,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // 'him' | 'her'; absent means the brief said nothing, which is a
       // real state — those cards suit anyone and belong in every aisle.
       gender: z.enum(['him', 'her']).optional(),
+      // Fixed-word stock is a real product, not a failed edit-safe card
+      // (see the column's note). Absent = editable, which is both the
+      // common case and the safe read of an older client.
+      editable: z.boolean().optional(),
       imageUrl: z.string().startsWith('data:image/').max(8_000_000),
     });
     let body: z.infer<typeof schema>;
@@ -1261,6 +1265,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         tone: body.tone ?? null,
         age: body.age ?? null,
         gender: body.gender ?? null,
+        editable: body.editable ?? true,
         image_path: filename,
       }).returning();
       res.json({ id: row.id, imageUrl: publicImageUrl(filename) });

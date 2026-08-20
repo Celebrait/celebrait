@@ -96,6 +96,8 @@ interface Concept {
 }
 interface Cell {
   concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean;
+  /** Which way it was kept, so the button can say so afterwards. */
+  savedEditable?: boolean;
   /** Rendered lazily, only when a print file is asked for — every
    *  inside costs a generation and most cards never need one. */
   insideUrl?: string; printing?: boolean;
@@ -103,7 +105,7 @@ interface Cell {
 /** `recipient` was always stored and always returned — the templates
  *  route does a bare select() — it just was not declared here, which is
  *  why the coverage grid could not see the market's first axis. */
-interface Template { id: number; tone?: string | null; age?: number | null; recipient?: string | null; front_text: string; imageUrl: string }
+interface Template { id: number; tone?: string | null; age?: number | null; recipient?: string | null; front_text: string; imageUrl: string; editable?: boolean }
 
 /** Mirrors statedAge() on the server so the coverage grid can label a
  *  card before it is saved. Kept deliberately simple — the server value
@@ -323,7 +325,12 @@ export default function AdminOccasionStudioPage() {
     }
   };
 
-  const save = async (i: number) => {
+  /** `editable` is the card's own nature, decided here because here is
+   *  where it is being looked at. Artwork-carried card → editable, the
+   *  customer's words go on it. One-perfect-line card → fixed, sold as
+   *  written. Aidan, 2026-08-20: "only some can be personalised, others
+   *  just simply stock." */
+  const save = async (i: number, editable: boolean) => {
     const cell = cells[i];
     if (!cell?.imageUrl || cell.saved || cell.saving) return;
     setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: true } : x)));
@@ -335,12 +342,13 @@ export default function AdminOccasionStudioPage() {
         // than stored, because a card with no gender in its brief suits
         // anyone and should appear in every aisle, not a third one.
         gender: gender === 'unspecified' ? undefined : gender,
+        editable,
         front_text: cell.concept.front_text, inside_text: cell.concept.inside_text,
         palette: cell.concept.palette, typeface: cell.concept.typeface,
         format: cell.concept.format, art_direction: cell.concept.art_direction,
         imageUrl: cell.imageUrl,
       });
-      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saved: true, saving: false } : x)));
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saved: true, saving: false, savedEditable: editable } : x)));
       loadRack();
     } catch (e: any) {
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: false } : x)));
@@ -519,19 +527,21 @@ export default function AdminOccasionStudioPage() {
       {/* THE THREE — save straight off the grid */}
       {cells.length > 0 && (
         <>
-        {/* ⚠️ THE KEEP TEST, stated where the decision is made. Kept cards
-            become RACK STOCK that customers edit the words on (the
-            edit-text route re-renders around the existing artwork), so
-            the question is not "is this a great card" — it is whether it
-            survives someone else's words. A card carried by its artwork
-            does. A card that IS one pun becomes a lovely picture with a
-            stranger's name on it, and belongs on the generate path
-            instead. Aidan's plan, 2026-08-19: pre-made cards on the
-            site, editable text, or generate your own three. */}
+        {/* ⚠️ THE KEEP DECISION, stated where it is made — and it is TWO
+            questions, not one (Aidan, 2026-08-20: "every card doesn't
+            need to have the capability to have someone else's words
+            on… others just simply stock").
+            The old note asked only "would it survive a stranger's
+            words?" and told him to bin anything that would not. That
+            was throwing away the engine's best output: the card that IS
+            one perfect line. Real shops sell those — fixed, as written.
+            So the question is now which KIND of stock this is. */}
         <p className="-mb-1 text-xs text-stone-400">
-          Keeping for the rack? Ask whether it would still be good with
-          <span className="font-medium text-stone-500"> someone else's words on it</span> — customers edit these.
-          If the whole card is one pun, it is a better one-off than stock.
+          Two ways to keep.
+          <span className="font-medium text-stone-500"> Editable</span> = the artwork carries it,
+          so a customer's own words can go on. <span className="font-medium text-stone-500">Fixed</span> = the
+          words <em>are</em> the card — sold exactly as written, inside personalised.
+          If it is one perfect line, keep it fixed rather than losing it.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           {cells.map((c, i) => (
@@ -549,12 +559,26 @@ export default function AdminOccasionStudioPage() {
                 {c.concept.direction && (
                   <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>
                 )}
-                <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="h-8 w-full"
-                  onClick={() => save(i)} disabled={!c.imageUrl || c.saved || c.saving}>
-                  {c.saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    : c.saved ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Star className="mr-1.5 h-3.5 w-3.5" />}
-                  {c.saved ? 'Kept' : 'Keep'}
-                </Button>
+                {/* Two doors, one click each — the kind of stock IS the
+                    decision, so it should not cost a second interaction
+                    or hide behind a toggle that defaults to wrong. */}
+                {c.saved ? (
+                  <Button size="sm" variant="outline" className="h-8 w-full" disabled>
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Kept · {c.savedEditable === false ? 'fixed' : 'editable'}
+                  </Button>
+                ) : (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button size="sm" className="h-8" onClick={() => save(i, true)}
+                      disabled={!c.imageUrl || c.saving} title="Artwork carries it — customers can put their own words on">
+                      {c.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Star className="mr-1 h-3.5 w-3.5" />Editable</>}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8" onClick={() => save(i, false)}
+                      disabled={!c.imageUrl || c.saving} title="The words are the card — sold exactly as written">
+                      {c.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Star className="mr-1 h-3.5 w-3.5" />Fixed</>}
+                    </Button>
+                  </div>
+                )}
                 {/* Print file — the 6732×1713 Prodigi strip, front and
                     inside, composed by the same code real orders use. */}
                 <button type="button" onClick={() => printFile(i)}
@@ -665,8 +689,12 @@ export default function AdminOccasionStudioPage() {
           <p className="mb-2 text-xs font-semibold text-stone-700">The birthday rack — {rack.length} {rack.length === 1 ? 'card' : 'cards'}</p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {rack.map((t) => (
-              <div key={t.id} className="overflow-hidden rounded-lg border border-stone-200 bg-white" title={t.front_text}>
+              <div key={t.id} className="relative overflow-hidden rounded-lg border border-stone-200 bg-white"
+                title={`${t.front_text}${t.editable === false ? ' — fixed words' : ''}`}>
                 <img src={t.imageUrl} alt={t.front_text} crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+                {t.editable === false && (
+                  <span className="absolute right-1 top-1 rounded bg-stone-900/70 px-1 py-0.5 text-[9px] font-medium text-white">fixed</span>
+                )}
               </div>
             ))}
           </div>

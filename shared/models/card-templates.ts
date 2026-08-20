@@ -51,6 +51,24 @@ export const cardTemplates = pgTable("card_templates", {
    *  Null means the brief said nothing, which is a real state and NOT a
    *  gap: those cards work for anyone and belong in every aisle. */
   gender: text("gender"),
+  /** May the customer replace the front words?
+   *
+   *  Aidan, 2026-08-20: "every card doesn't need to have the capability
+   *  to have someone else's words on… others just simply stock."
+   *
+   *  This corrects a real curation error. The Keep test told him to
+   *  discard anything that wouldn't survive a stranger's words, which
+   *  quietly threw away a whole product: the card that IS one perfect
+   *  line. Those are the funniest things the engine makes and the rack's
+   *  best sellers — they just sell FIXED, exactly as written, the way
+   *  every card on a real shop's wall does.
+   *
+   *  So editability is a property of the card, not a gate on keeping it.
+   *  True = artwork carries it, words are a slot the customer fills.
+   *  False = the words ARE the card; the shop offers the inside only.
+   *  Defaults true, which is right for the 46 kept before this existed:
+   *  they were all curated under the survives-other-words bar. */
+  editable: boolean("editable").notNull().default(true),
   /** Stored image filename (R2 key / local stored_images name). */
   image_path: text("image_path").notNull(),
   created_at: timestamp("created_at")
