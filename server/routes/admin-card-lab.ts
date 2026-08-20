@@ -1503,7 +1503,18 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const [sameSubject, anySubject] = await Promise.all([
         db.select({ front_text: cardGenerations.front_text, art_direction: cardGenerations.art_direction })
           .from(cardGenerations)
-          .where(sql`lower(interest) = ${interestText.toLowerCase()}`)
+          // ⚠️ BLANK INTEREST IS A SUBJECT, NOT AN ABSENCE. Age-only
+          // briefs store interest as NULL (`interestText || null`), and
+          // `lower(NULL) = ''` is NULL, never true — so this query
+          // returned ZERO rows and the motif guard below silently never
+          // fired for the entire age-only spine. Observed on Aidan's
+          // 81-card rack, 2026-08-20: numerals built from era-objects
+          // six times over and TWO armchairs at 40 — the poodle-rosette
+          // failure again, in the one place nothing was watching.
+          // All age-only cards share one bucket ON PURPOSE: a 40 made of
+          // browser tabs and a 30 made of chat windows are the same IDEA,
+          // so they must be able to see each other.
+          .where(interestText ? sql`lower(interest) = ${interestText.toLowerCase()}` : sql`interest is null`)
           .orderBy(desc(cardGenerations.id))
           .limit(24),
         db.select({ front_text: cardGenerations.front_text })
