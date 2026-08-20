@@ -8,7 +8,7 @@
 //
 // Usage: npx tsx server/scripts/print-prompts.ts [age] [tone]
 import 'dotenv/config';
-import { archetypeSystemPrompt, v2SystemPrompt, pickAngles, birthdayProfile } from '../routes/admin-card-lab';
+import { archetypeSystemPrompt, v2SystemPrompt, pickAngles, birthdayProfile, freeStyleDna, QUIRKY_FORMATS, IS_THE_CARD_ITSELF } from '../routes/admin-card-lab';
 
 const age = process.argv[2] ? Number(process.argv[2]) : 18;
 const tone = process.argv[3] ?? 'funny';
@@ -30,6 +30,16 @@ console.log([`Occasion: ${age}th Birthday`,
   '⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. …(full text in the writer prompt below)',
   `cheeky=${tone === 'rude'}`].join('\n'));
 
-console.log(rule(`CALL 2 of 2 — THE WRITER (system) — tone=${tone}, age=${age}`));
+console.log(rule(`CALL 2 of 3 — THE WRITER (system) — tone=${tone}, age=${age}`));
 console.log(v2SystemPrompt('celebrait', slots, birthdayProfile(tone as any, age).brief));
+
+// ⚠️ THE THIRD CALL IS EASY TO FORGET AND IT IS WHERE THE PICTURE IS
+// ACTUALLY DECIDED. The writer returns words plus an art direction; a
+// separate image call draws it, carrying its own permanent style rules.
+console.log(rule('CALL 3 of 3 — THE IMAGE (one per card) — constant part'));
+console.log(freeStyleDna('objects'));
+console.log('\n--- plus ONE composition block, chosen by the slot ---\n');
+for (const [k, v] of Object.entries(QUIRKY_FORMATS)) console.log(`\n[${k}]\n${v}\n`);
+console.log('\n--- plus, per card: the art direction, PALETTE (obey exactly), TYPE (obey exactly), the front text, and: ---\n');
+console.log(IS_THE_CARD_ITSELF);
 process.exit(0);
