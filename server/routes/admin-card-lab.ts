@@ -1064,6 +1064,16 @@ Return JSON: {"cards":[{"verdict":"pass"|"kill","what":"words"|"look","why":"<si
 // ("sky-blue" is Manchester City).
 
 const V2_SWEAR = /f\*+\w*|s\*+|c\*+|bollocks|bastard|wanker|prick|twat|bellend|knobhead|arse|piss|shag|tits|knob\b|fuck\w*|shit\w*/i;
+/** ⚠️ STRONG SWEARING PRINTS MASKED — Aidan's decision, 2026-08-20.
+ *  Only the three that UK card shops actually asterisk. The mild
+ *  British end (bollocks, arse, bastard, wanker, prick, twat) prints in
+ *  full on purpose: "b*******" reads as a glitch, not as cheek, and no
+ *  rack in the country masks it.
+ *  This is a CODE floor rather than an instruction because the prompt
+ *  version of this rule failed in exactly the way law 5 predicts — the
+ *  81-card rack came back with "ABOUT FUCKING TIME" sitting next to
+ *  "Still hot as f***", and a mixture on a shelf reads as a misprint. */
+const V2_SWEAR_RAW = /\b(fuck\w*|shit\w*|cunt\w*)\b/i;
 const V2_BANNED = /\b(vibes?|level up|bossin?|legend(ary)?|goals|beast mode|standards?)\b|\b(master|king|queen|lord|sultan|champion|guardian|keeper) of\b|extraordinaire|royalty/i;
 const V2_MALE = /\b(man|men|bloke|lad|lads|guy|boy|he|him|his|sir|king|gent)\b/i;
 const V2_FEMALE = /\b(woman|women|lass|girl|she|her|hers|madam|queen|lady|ladies)\b/i;
@@ -1105,7 +1115,15 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
-  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing, set in full and never asterisked');
+  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing');
+  // Checks the inside as well as the front: both are printed, and an
+  // unmasked word inside a card whose front is masked is the same
+  // inconsistency one panel further in.
+  cards.forEach((c, i) => {
+    const printed = `${c.front_text ?? ''} ${c.inside_text ?? ''}`;
+    const hit = printed.match(V2_SWEAR_RAW);
+    if (hit) v.push(`swear-unmasked: card ${i + 1} prints "${hit[0]}" in full — mask strong swearing as the first letter followed by asterisks`);
+  });
   if (b.dislikes && hints.dislike) {
     const n = whole.filter((w) => hints.dislike!.test(w)).length;
     if (n === 0) v.push(`dislike-missing: exactly one card must be built on "${b.dislikes}"`);
@@ -1193,7 +1211,7 @@ THE BAR, per card:
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
-- If the register is rude: at least two fronts carry real swearing, SET IN FULL — never asterisked, starred or bleeped, because a masked word on a printed card reads as a misprint and half the rack was doing it either way. The joke must still survive with the swearing removed.
+- If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ STRONG SWEARING IS ALWAYS MASKED — write the first letter and then asterisks for the rest of the word, never the whole word, and never a mixture across the three cards, because a rack shows them side by side and one unmasked word among masked ones reads as a misprint. Mild British swearing prints normally; it is the strong ones that get masked.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
 Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
