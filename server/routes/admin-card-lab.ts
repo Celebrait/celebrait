@@ -1612,7 +1612,21 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
         // 2. STRUCTURE, chosen here (law 4): angles, formats, lengths.
         const v2Angles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
-        const otherFormats = ['statement', 'hero', 'pattern', 'label'].sort(() => Math.random() - 0.5);
+        // ⚠️ 'pattern' REMOVED, 2026-08-20. These labels reach the model
+        // as BARE WORDS with no definition, and "pattern" has exactly
+        // one sensible reading — repeated objects ringing centred text.
+        // So every pattern card came back as that same card, and since
+        // the format is assigned WITHOUT REFERENCE TO THE AGE, it came
+        // back as that same card at 18, at 21 and at 30. Aidan, seeing
+        // three of them side by side: "how the f can designs keep
+        // repeating across different age runs? Makes ZERO sense."
+        // It made sense: we ordered it three times.
+        // The survivors are loose enough to have real range. Layout is
+        // composition, composition is style, and style is the model's
+        // (the same call as the palette clause) — these three remain
+        // only to guarantee the three cards differ from EACH OTHER,
+        // which law 4 says the model will not do unprompted.
+        const otherFormats = ['statement', 'hero', 'label'].sort(() => Math.random() - 0.5);
         const typeledAt = Math.floor(Math.random() * 3);
         // The typeled card is a COIN FLIP between the two things a
         // text-only card can be: the LONG read-aloud, or the SHORT
