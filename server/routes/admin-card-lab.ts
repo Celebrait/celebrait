@@ -522,6 +522,7 @@ export function classifyOccasion(text: string | undefined): OccasionProfile {
 
 export const QUIRKY_FORMATS: Record<string, string> = {
   statement: `COMPOSITION — STATEMENT (MINIMAL): this card is almost EMPTY, and that is its power. THE NEGATIVE SPACE IS THE SUBJECT — at least 60% of the card is untouched ground, and it must feel deliberate, like a gallery wall, never like something is missing. ONE motif, beautifully drawn, ANCHORED: sitting on an implied baseline low in the frame, or held against one edge — never floating dead-centre in the middle of nowhere. ⚠️ BECAUSE THIS CARD IS MOSTLY EMPTY, THE MOTIF IS THE ONLY COLOUR EVENT ON IT — so it has to hold the card on its own. That is a question of CONTRAST AGAINST THE GROUND, not of volume: a deep ink on a chalky ground, a soft tone against a darker one, or a hot colour on a quiet field all work. What fails is a motif and a ground at the SAME weight, which reads washed out and unfinished. Minimal means FEW elements and DECISIVE contrast — never weak contrast, and never automatically loud colour. The type takes its own corner, flush-aligned, small and precise, at the opposite end of the card from the motif so the two hold the composition open between them — but kept well inside the safe margin, never crowded against the frame. No pattern, no border, no garnish, no texture-filling: restraint IS the design. Gallery-minimal.`,
+  scene: `COMPOSITION — SCENE (A PLACE WITH DEPTH): one coherent view into somewhere real from this person's world — a place, a room, a table, a stretch of their landscape — composed like a print someone would FRAME with no occasion attached. Depth is the point: a foreground you could touch, a distance worth looking into, and LIGHT that knows what time of day it is. Few elements, every one belonging in the same photograph, and a generous calm area of ground or sky left to breathe. If a number belongs on the card, it is DISCOVERED inside the scene's own structures — its architecture, its furniture, its horizon — never pasted on and never assembled from scattered props. The type sits small and quiet in the calmest corner, one confident block: on this format the PICTURE is the voice and the words are the aside, which is the opposite of every other format's rule and is exactly why this one exists. ⚠️ THE THUMB TEST APPLIES DOUBLE: a beautiful view that could be anywhere is wallpaper, however handsome — the scene must be unmistakably THEIRS, or unmistakably this occasion's. The bar: someone would frame it.`,
   hero: `COMPOSITION — HERO (BALANCED): ONE object drawn HUGE and cropped HARD by the frame edges so it reads as a fragment of something bigger. SCALE IS THE WHOLE IDEA and the crop should feel brave — an object that merely fills the frame has not gone far enough. Confident contour, flat fills, one loose colour-block or swash behind it, calm ground visible around. The type claims the clear band of ground the object leaves, set big enough to hold its own against it. Poster energy, not busy.`,
   pattern: `COMPOSITION — PATTERN (DENSE): the motif repeats bold across the whole card at varied scales, some cropped off the edges — an underlying grid with its rhythm BROKEN DELIBERATELY in one or two places (one motif turned, one scaled up, one in the odd colour) so it never reads as wallpaper. CRUCIALLY, RESERVE A CLEAN AREA FOR THE TYPE: a calm panel, band or generous clearing where the plain ground shows through and the words sit alone. Do NOT thread the lettering through the gaps between motifs — that is how a dense card turns to mush. Rich and full, but organised.`,
   label: `COMPOSITION — LABEL (DENSE): a punchy modern packet/label lockup — one bold simple border framing the card, the motif bunched large in the centre, halftone shading in a single ink. THE TYPE IS THE STRUCTURE: a stacked lockup with a clear hierarchy — one dominant line, one smaller supporting line — sitting in its own reserved band above or below the motif, never printed over it. Craft-beer-label energy, structured-busy.
@@ -1663,7 +1664,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // (the same call as the palette clause) — these three remain
         // only to guarantee the three cards differ from EACH OTHER,
         // which law 4 says the model will not do unprompted.
-        const otherFormats = ['statement', 'hero', 'label'].sort(() => Math.random() - 0.5);
+        // 'scene' added 2026-08-21: the terrace-40 card Aidan called "epic
+        // and really rare" was structurally three volunteered accidents —
+        // a scene inside a hero slot, an integrated numeral, quiet type.
+        // Rare because nothing dealt it. Now the server deals it (~half
+        // of sets draw the scene slot), and the block asks for the three
+        // QUALITIES without describing any particular scene — chasing
+        // that specific card would just build a rack of terraces.
+        const otherFormats = ['statement', 'hero', 'label', 'scene'].sort(() => Math.random() - 0.5);
         const typeledAt = Math.floor(Math.random() * 3);
         // The typeled card is a COIN FLIP between the two things a
         // text-only card can be: the LONG read-aloud, or the SHORT
@@ -2332,7 +2340,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       currentText: z.string().max(120).optional(),
       // Everything needed to RE-RENDER instead of edit, when the layout
       // has to change (see the routing note below).
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled']).optional(),
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled', 'scene']).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
@@ -2477,7 +2485,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // to set a long line.
       front_text: z.string().min(1).max(300),
       art_direction: z.string().min(1).max(500),
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled']).default('hero'),
+      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled', 'scene']).default('hero'),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
