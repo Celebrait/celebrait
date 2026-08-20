@@ -1105,7 +1105,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
-  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real masked swearing');
+  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing, set in full and never asterisked');
   if (b.dislikes && hints.dislike) {
     const n = whole.filter((w) => hints.dislike!.test(w)).length;
     if (n === 0) v.push(`dislike-missing: exactly one card must be built on "${b.dislikes}"`);
@@ -1193,7 +1193,7 @@ THE BAR, per card:
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
-- If the register is rude: at least two fronts carry real masked swearing (f***, s***, bollocks...) and the joke survives with it removed.
+- If the register is rude: at least two fronts carry real swearing, SET IN FULL — never asterisked, starred or bleeped, because a masked word on a printed card reads as a misprint and half the rack was doing it either way. The joke must still survive with the swearing removed.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
 Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
