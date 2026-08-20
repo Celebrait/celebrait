@@ -165,6 +165,10 @@ export default function AdminOccasionStudioPage() {
    *  free; classic = the original pipeline, kept for comparison. The
    *  style decision gets made by eye from this toggle's output. */
   const [pipeline, setPipeline] = useState<'celebrait' | 'open' | 'classic'>('celebrait');
+  /** LAB EXPERIMENT (Aidan): server still deals angle/length/ground,
+   *  but composition is the model's own — testing whether law 4 (a
+   *  model asked to vary its structure doesn't) holds on renders. */
+  const [freeComp, setFreeComp] = useState(false);
   const [cells, setCells] = useState<Cell[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
@@ -241,6 +245,7 @@ export default function AdminOccasionStudioPage() {
         who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
         recipientName: recipientName.trim() || undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
+        freeComposition: freeComp,
         dislikes: dislikes.trim() || undefined,
       });
       const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
@@ -484,6 +489,13 @@ export default function AdminOccasionStudioPage() {
                 {l}
               </button>
             ))}
+            <button type="button" onClick={() => setFreeComp((v) => !v)}
+              title="Experiment: no composition formats dealt — the model shapes each card itself"
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                freeComp ? 'border-amber-400 bg-amber-50 text-amber-700'
+                         : 'border-stone-200 bg-white text-stone-400 hover:border-amber-300'}`}>
+              Free comp
+            </button>
           </div>
           {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.
               As a checkbox it could be ticked alongside Warm, which put

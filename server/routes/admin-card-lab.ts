@@ -589,6 +589,13 @@ const conceptsSchema = z.object({
    *  flow sends false. Generations are LOGGED either way — the
    *  keep-rate denominator and motif history must stay complete. */
   memory: z.boolean().default(true),
+  /** LAB EXPERIMENT (Aidan, 2026-08-21: "drop any restraints here as a
+   *  toggle to see what the ai just DOES itself"). True = the server
+   *  deals angle, length, territory and ground weight as ever, but NOT
+   *  the composition format — the model shapes each card itself. Law 4
+   *  predicts three similar shapes; the toggle exists to test that
+   *  prediction on renders rather than assert it. */
+  freeComposition: z.boolean().default(false),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
@@ -685,9 +692,18 @@ const ANGLE_SETS: Angle[][] = [
 export function pickAngles(tone: string | undefined, rnd = Math.random): Angle[] {
   // Rude never gets the straight card — a card with no joke, in the
   // register whose whole point is the joke's language, is nothing.
-  const pool = tone === 'rude'
+  let pool = tone === 'rude'
     ? ANGLE_SETS.filter((a) => !a.includes('straight'))
     : ANGLE_SETS;
+  if (tone === 'rude') {
+    // Straight-free leaves 3 sets, 2 of which carry 'list' — so 2/3 of
+    // rude sets had a list card, and Aidan has now flagged list-fatigue
+    // three times ("that list style is coming through A LOT"). Doubling
+    // the listless set drops it to half without banning an angle that
+    // is genuinely good in moderation.
+    const listless = pool.filter((a) => !a.includes('list'));
+    pool = pool.concat(listless);
+  }
   return pool[Math.floor(rnd() * pool.length)] ?? pool[0];
 }
 
@@ -1222,17 +1238,18 @@ export function archetypeSystemPrompt(): string {
   return `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a milestone, the tradition answers with symbols from decades-old cards (observed: ceremonial keys on a 21st) while the actual person answers with what their days genuinely contain NOW — profile the person alive in ${new Date().getFullYear()}, whatever their age. Return JSON {"archetype":"100-140 words. FIRST commit to the most likely SPECIFIC TYPE this person is on the brief's evidence — not the demographic average. Every interest splits into distinct tribes at EVERY age (the competitive one, the ritualist, the kit-obsessed one, the quietly devoted one, the social one...) — pick the likeliest for THIS person and profile THAT person: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them (current is REGISTER and irony, never slang-stuffing — forced slang is the mum-trying failure); where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"],"palette_world":"THE COLOUR WORLD THIS PERSON'S SUBJECT ACTUALLY LIVES IN, 8-16 words, theirs rather than a designer's default: the light it happens in, the materials it is made of, the hour they love it at. Then give it TODAY'S FINISH — name the hues as a modern print shop would ink them, clean and alive, never aged down to seem tasteful. ⚠️ THE AGE MUST NOT TINT THE COLOUR. No reasoning that older means muted, heritage or sepia, and none that younger means neon — every age shops in the same modern shop, and 'they are 60 so soften it' is the exact failure this field keeps producing. If the brief gave you NO subject, work from WHO IT IS FOR and the REGISTER — a 40-year-old sister and a 40-year-old brother should not receive interchangeable cards, and the recipient tilting the whole design's feel is exactly what a good shop does with its For Her and For Him walls. ⚠️ BUT NEVER BY CLICHÉ: pink-because-she's-a-woman is as lazy as navy-because-he's-a-man, and both are failures. Think instead about what THIS person would actually pick up — its elegance or its wit, its warmth or its edge — and let that choose the colours. Name a ground and a leading colour, and never default to primary poster colour just because it is bold.","territories":["EXACTLY THREE, one per card, and this is the field that stops a set being one joke told three ways. Each must come from a DIFFERENT REGION OF THIS PERSON'S LIFE — if two of them could come up in the same conversation, replace one. ⚠️ Your FIRST instinct for this brief is the region everyone reaches for; keep it as one of the three at most, and go genuinely looking for the other two — what they do that nobody sees, what they are like with other people, what they actually spend their time and money on, what has changed for them lately. Name each in 3-8 words, as an AREA to explore and never as a joke or a line."]}. Concrete, ${new Date().getFullYear()}, UK.`;
 }
 
-export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format: string; register: string; territory?: string; ground?: string }>, occasionBrief: string): string {
+export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string }>, occasionBrief: string): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
 ${occasionBrief}
 
 THE THREE SLOTS — one card each, exactly as assigned:
-${slots.map((s, i) => `${i + 1}. angle=${s.angle}, format=${s.format}, length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, stacked as short statements, the last few words land the turn)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, GROUND: ${s.ground}` : ''}`).join('\n')}
+${slots.map((s, i) => `${i + 1}. angle=${s.angle}, ${s.format ? `format=${s.format}, ` : ''}length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, in whatever shape the thought wants — flowing sentences or short beats — with the last few words landing the turn. The stacked-fragment stack is one shape among several and it is currently overused)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, GROUND: ${s.ground}` : ''}`).join('\n')}
 ⚠️ GROUND tells you the WEIGHT of that card's background — soft (pale and full of light), mid (a true colour at easy depth) or deep (rich and saturated — still clean, never murky). It does NOT tell you the hue: take that from the subject's colour world.
-⚠️ AND NO TWO CARDS SHARE A LEADING HUE. The colour world has more than one colour in it — spread the three cards across it, one lead each. Weight variety alone is not variety: an observed set came back navy, teal and cream-with-blue — three depths of the same blue, which from three feet away is one card three times. Three weights AND three leads, all from the same world, is what makes a set read as three real choices.
+⚠️ AND NO TWO CARDS SHARE A LEADING HUE — nor may one ink thread through all three cards as ground on one, lead on another and accent on the third; observed, a single acid green stitched an entire set together and it read as one design decision made three times. The exception is a colour the SUBJECT owns (a club's red, a stout's black) — that colour is allowed to run through the set deliberately. The colour world has more than one colour in it — spread the three cards across it, one lead each. Weight variety alone is not variety: an observed set came back navy, teal and cream-with-blue — three depths of the same blue, which from three feet away is one card three times. Three weights AND three leads, all from the same world, is what makes a set read as three real choices.
 ⚠️ WHERE A SLOT NAMES A TERRITORY, THAT CARD LIVES THERE — words and artwork both. The three territories were chosen to be far apart on purpose, because the failure this prevents is three cards mining one seam and reading as one joke told three times. Do not let a second card drift into a first card's territory because the material there felt richer.
-The typeled card is TEXT-ONLY: the words set huge ARE the artwork, and its art_direction describes the ground and the typographic treatment. ⚠️ AND WHEN THE BRIEF NAMES A THING THEY LOVE, THE TYPELED CARD STILL BELONGS TO IT — through its words, or failing that its ground and lettering. Observed failure: a Manchester United brief returned a typeled front about tea and Sunday plans whose only anchor was the recipient's birth year — a card for anyone born that year, wearing this set's slot. The typeled card is never the set's day off from the subject.
+${slots.some((s) => !s.format) ? `⚠️ COMPOSITION IS YOURS THIS RUN — no formats assigned. Shape each card however it wants to be shaped. The one law: the three must be genuinely different SHAPES of card, judged at arm's length — three similar compositions is one card three times, and it is the known failure of self-chosen structure. Name each card's compositional idea in its art_direction.` : ''}${slots.some((s) => s.format === 'typeled') ? `
+The typeled card is TEXT-ONLY: the words set huge ARE the artwork,` : ''} and its art_direction describes the ground and the typographic treatment. ⚠️ AND WHEN THE BRIEF NAMES A THING THEY LOVE, THE TYPELED CARD STILL BELONGS TO IT — through its words, or failing that its ground and lettering. Observed failure: a Manchester United brief returned a typeled front about tea and Sunday plans whose only anchor was the recipient's birth year — a card for anyone born that year, wearing this set's slot. The typeled card is never the set's day off from the subject.
 
 THE BAR, per card:
 - It lands for THIS person — built from their world via the archetype, never the broad category. A card that suits anyone who vaguely likes the topic has failed.
@@ -1699,7 +1716,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const territories: string[] = Array.isArray(arch.territories)
           ? arch.territories.filter((t: unknown) => typeof t === 'string' && t.trim()).slice(0, 3)
           : [];
-        const slots = v2Angles.map((a, i) => ({ angle: a, format: i === typeledAt ? 'typeled' : otherFormats.pop()!,
+        const slots = v2Angles.map((a, i) => ({ angle: a,
+          format: body.freeComposition ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
           register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
           territory: territories.length === 3 ? territories[i] : undefined,
           // ⚠️ RANGE IS STRUCTURE, SO THE SERVER OWNS IT (law 4). Giving
@@ -2340,7 +2358,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       currentText: z.string().max(120).optional(),
       // Everything needed to RE-RENDER instead of edit, when the layout
       // has to change (see the routing note below).
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled', 'scene']).optional(),
+      format: z.string().max(40).optional(),
       art_direction: z.string().max(500).optional(),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
@@ -2371,7 +2389,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const prompt = [
         quirkyDna(body.characters),
         '',
-        QUIRKY_FORMATS[body.format === 'typeled' ? 'typeled' : body.format === 'label' ? 'label' : 'pattern'],
+        QUIRKY_FORMATS[body.format === 'typeled' ? 'typeled' : body.format === 'label' ? 'label' : 'pattern'] ?? '',
         '',
         `ILLUSTRATION: ${body.art_direction}`,
         body.palette ? `PALETTE (obey exactly): ${body.palette}` : '',
@@ -2485,7 +2503,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // to set a long line.
       front_text: z.string().min(1).max(300),
       art_direction: z.string().min(1).max(500),
-      format: z.enum(['statement', 'hero', 'pattern', 'label', 'editorial', 'typeled', 'scene']).default('hero'),
+      format: z.string().max(40).default('hero'),
       palette: z.string().max(300).optional(),
       typeface: z.string().max(200).optional(),
       characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
@@ -2515,7 +2533,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const prompt = [
       body.freeStyle ? freeStyleDna(body.characters) : quirkyDna(body.characters),
       '',
-      QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : body.format],
+      QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
       '',
       `ILLUSTRATION: ${body.art_direction}`,
       named.length
