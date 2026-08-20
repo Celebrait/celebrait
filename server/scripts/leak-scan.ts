@@ -31,7 +31,7 @@ for (const age of AGES) for (const tone of TONES) {
 // Literal examples = the leak surface. Anything the prompt renders in
 // quotes is a phrase the model can lift verbatim.
 const quoted = new Set<string>();
-for (const m of corpus.matchAll(/["“”']([a-z][a-z0-9''\- ]{4,40})["“”']/gi)) {
+for (const m of Array.from(corpus.matchAll(/["“”']([a-z][a-z0-9''\- ]{4,40})["“”']/gi))) {
   const t = m[1].trim().toLowerCase();
   if (t.split(/\s+/).length <= 6) quoted.add(t);
 }
@@ -39,8 +39,10 @@ for (const m of corpus.matchAll(/["“”']([a-z][a-z0-9''\- ]{4,40})["“”']/
 // these do not get caught by the quote rule but leak identically.
 const BARE = ['cassette', 'record sleeve', 'group chat', 'boarding pass', 'wristband',
   'rosette', 'ceremonial key', 'mortarboard', 'balloon', 'champagne', 'filofax'];
-const terms = [...quoted, ...BARE];
+const terms = Array.from(quoted).concat(BARE);
 
+async function main() {
+async function main() {
 const rows: Array<{ term: string; n: number }> = [];
 const total: any = await db.execute(sql`select count(*) c from card_generations`);
 const N = Number((total.rows ?? total)[0].c);
@@ -60,3 +62,7 @@ for (const { term, n } of rows) {
 }
 if (!rows.length) console.log('  (no rendered example appears in any generation)');
 process.exit(0);
+}
+void main();
+}
+void main();
