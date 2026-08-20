@@ -114,6 +114,16 @@ export const cardGenerations = pgTable("card_generations", {
    *  set at a time, which is exactly the class of failure this table
    *  exists to catch. */
   art_direction: text("art_direction"),
+  /** ⚠️ THE PALETTE, logged so it can be AVOIDED next time — the exact
+   *  sibling of art_direction above, and added for the same reason one
+   *  step later. Once the archetype started choosing colour from the
+   *  subject, an identical brief produced an identical colour world:
+   *  three separate blank warm-30 runs came back navy-and-oat, navy-and-
+   *  oat, navy-and-oat (Aidan, spotting it before it reached his rack:
+   *  "Does this now mean that every 30 warm card is gonna be paper-white
+   *  · deep smoky-blue · mid olive?"). Words had memory, motifs had
+   *  memory, colour had none. */
+  palette: text("palette"),
   /** Did it earn a place in the rack? The whole point of the table. */
   kept: boolean("kept").notNull().default(false),
   created_at: timestamp("created_at").notNull().default(sql`now()`),

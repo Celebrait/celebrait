@@ -1528,6 +1528,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // making a card.
     let alreadyUsed: string[] = [];
     let alreadyDrawn: string[] = [];
+    let alreadyColoured: string[] = [];
     try {
       if (!body.memory) throw Object.assign(new Error('memory off'), { memoryOff: true });
       // Two queries on purpose. The first catches repeats within a
@@ -1536,7 +1537,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // Ibiza, then Moana, each time with a clean conscience because
       // the interest never matched.
       const [sameSubject, anySubject] = await Promise.all([
-        db.select({ front_text: cardGenerations.front_text, art_direction: cardGenerations.art_direction })
+        db.select({ front_text: cardGenerations.front_text, art_direction: cardGenerations.art_direction, palette: cardGenerations.palette })
           .from(cardGenerations)
           // ⚠️ BLANK INTEREST IS A SUBJECT, NOT AN ABSENCE. Age-only
           // briefs store interest as NULL (`interestText || null`), and
@@ -1579,6 +1580,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
       alreadyDrawn = Array.from(new Set(
         sameSubject.map((r) => (r as any).art_direction).filter(Boolean),
       )).slice(0, 12);
+      alreadyColoured = Array.from(new Set(
+        sameSubject.map((r) => (r as any).palette).filter(Boolean),
+      )).slice(0, 9);
     } catch (e: any) {
       if (!e?.memoryOff) console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
     }
@@ -1604,7 +1608,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ...conceptParams(900, 0.5),
           messages: [
             { role: 'system', content: archetypeSystemPrompt() },
-            { role: 'user', content: briefLines.slice(0, 8).join('\n') },
+            { role: 'user', content: `${briefLines.slice(0, 8).join('\n')}${
+              alreadyColoured.length
+                ? `\n\n⚠️ COLOUR WORLDS ALREADY USED ON THIS AISLE — these are spent, and so is any near-variant. An identical brief will hand you the same palette every time unless you deliberately go somewhere else in this subject's colour world, and a rack of one colour scheme is the failure this prevents. Same subject, different light, different hour, different material:\n${alreadyColoured.map((c) => `  · ${c}`).join('\n')}`
+                : ''}` },
           ],
           response_format: { type: 'json_object' },
         });
@@ -1717,7 +1724,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           occasion: occProfile.key, tone: body.tone ?? null, age: v2b.age,
           angle: c.angle ?? null, recipient: body.who ?? null,
           interest: interestText || null, front_text: c.front_text,
-          art_direction: c.art_direction ?? null,
+          art_direction: c.art_direction ?? null, palette: c.palette ?? null,
         }))).catch((e) => console.warn('[CARD-LAB:v2] generation log failed (non-fatal):', e));
 
         // Violations still standing after the repair round ship VISIBLY,
@@ -2145,6 +2152,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         interest: interestText || null,
         front_text: c.front_text,
         art_direction: c.art_direction ?? null,
+        palette: c.palette ?? null,
       }))).catch((e) => console.warn('[CARD-LAB] generation log failed (non-fatal):', e));
 
       res.json({ concepts: judged, notes });
