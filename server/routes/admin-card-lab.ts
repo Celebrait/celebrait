@@ -1099,7 +1099,7 @@ const wordsToRe = (ws: unknown): RegExp | null => {
 };
 
 /** Every floor, in code. Returns named violations for the repair round. */
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
@@ -1118,6 +1118,16 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
+  // ⚠️ THE BIRTH-YEAR RATION. The derived year is legal per-set and a
+  // formula per-shelf: 19 fronts in two days opened "BORN IN [year]",
+  // because it is the one fact derivable from a blank brief (Aidan:
+  // "this year thing keeps popping up"). The server rations the device
+  // (~1/3 of aged sets); when it is resting, THE SPECIFIC birth year is
+  // banned — 1968 and 1999 on a United card are history, not birthdays,
+  // so this matches the exact derived year and nothing else.
+  if (opts?.restingYear && cards.some((c) => `${c.front_text ?? ''} ${c.art_direction ?? ''}`.includes(String(opts.restingYear)))) {
+    v.push(`year-rest: the birth year ${opts.restingYear} is resting this set — build the hook from their world instead`);
+  }
   if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing');
   // Checks the inside as well as the front: both are printed, and an
   // unmasked word inside a card whose front is masked is the same
@@ -1221,7 +1231,7 @@ ${slots.map((s, i) => `${i + 1}. angle=${s.angle}, format=${s.format}, length=${
 ⚠️ GROUND tells you the WEIGHT of that card's background — soft (pale and full of light), mid (a true colour at easy depth) or deep (rich and saturated — still clean, never murky). It does NOT tell you the hue: take that from the subject's colour world.
 ⚠️ AND NO TWO CARDS SHARE A LEADING HUE. The colour world has more than one colour in it — spread the three cards across it, one lead each. Weight variety alone is not variety: an observed set came back navy, teal and cream-with-blue — three depths of the same blue, which from three feet away is one card three times. Three weights AND three leads, all from the same world, is what makes a set read as three real choices.
 ⚠️ WHERE A SLOT NAMES A TERRITORY, THAT CARD LIVES THERE — words and artwork both. The three territories were chosen to be far apart on purpose, because the failure this prevents is three cards mining one seam and reading as one joke told three times. Do not let a second card drift into a first card's territory because the material there felt richer.
-The typeled card is TEXT-ONLY: the words set huge ARE the artwork, and its art_direction describes the ground and the typographic treatment.
+The typeled card is TEXT-ONLY: the words set huge ARE the artwork, and its art_direction describes the ground and the typographic treatment. ⚠️ AND WHEN THE BRIEF NAMES A THING THEY LOVE, THE TYPELED CARD STILL BELONGS TO IT — through its words, or failing that its ground and lettering. Observed failure: a Manchester United brief returned a typeled front about tea and Sunday plans whose only anchor was the recipient's birth year — a card for anyone born that year, wearing this set's slot. The typeled card is never the set's day off from the subject.
 
 THE BAR, per card:
 - It lands for THIS person — built from their world via the archetype, never the broad category. A card that suits anyone who vaguely likes the topic has failed.
@@ -1674,6 +1684,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // pins angle and length. Optional: a missing or short array just
         // leaves the slots unpinned rather than failing the set.
         const groundWeights = ['soft', 'mid', 'deep'].sort(() => Math.random() - 0.5);
+        // The year device stays alive but stops being every set's crutch.
+        const restingYear = statedAgeValue !== null && Math.random() >= 1 / 3
+          ? new Date().getFullYear() - statedAgeValue : undefined;
+        if (restingYear) briefLines.push(`⚠️ THE BIRTH-YEAR DEVICE IS RESTING THIS SET. Do not derive or print the year they were born, and do not open any card with a year — the rack is already full of that move. Years that belong to their WORLD (a famous season, a founding date) are still fair game. Find this set's hook in their world, not their birth certificate.`);
         const territories: string[] = Array.isArray(arch.territories)
           ? arch.territories.filter((t: unknown) => typeof t === 'string' && t.trim()).slice(0, 3)
           : [];
@@ -1719,7 +1733,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
             durationMs: 0, success: true });
           concepts = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[];
-          violations = v2Verify(concepts, v2b, hints, slots);
+          violations = v2Verify(concepts, v2b, hints, slots, { restingYear });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
