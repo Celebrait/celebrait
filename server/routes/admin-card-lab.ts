@@ -427,7 +427,7 @@ function birthdayAgeBlock(age: number | null): string {
         : age <= 25
           ? `AGE BAND — THRESHOLD (${age}). The joke is CROSSING A LINE: doors opening, permissions arriving, being trusted with things you are gloriously unprepared for. Loud, energetic, meme-fluent.
 ⚠️ USE THIS GENERATION'S ICONOGRAPHY, NOT THEIR GREAT-GRANDMOTHER'S. Observed failure: a 21st came back with ceremonial keys on all three cards — the "key of the door" is a tradition that died decades before this recipient was born, and to them it reads as wallpaper from a nan's card. The same goes for any symbol you know from OLD cards rather than from being ${age} now. Mine what crossing this line looks like THIS year — unless the brief itself asks for retro, in which case play it knowingly.
-⚠️ MINE THE FIRSTS THAT BELONG TO THIS EXACT AGE — the rituals only someone arriving HERE would recognise: what gets checked, what is suddenly allowed, what is being learned, what is being left behind, the day itself and the ones around it. Reach for that specific world, not for adulthood in the abstract.
+⚠️ MINE THE FIRSTS THAT BELONG TO THIS EXACT AGE — the things only someone arriving HERE would recognise. ⚠️ BUT NOT THE PAPERWORK OF IT: permissions, checks, forms, signatures and the admin of being newly allowed things is the seam every card reaches for first, and three cards deep it is one joke wearing three palettes (observed on the rack, 2026-08-20). The permissions are the least interesting true thing about this age. What it FEELS like to arrive here, and what these years are actually spent doing, is the material.
 ⚠️ AND DO NOT BORROW FROM THE LATER BANDS, which is how this one fails. Life admin, paperwork, passwords, insurance, mortgages, bad knees, early nights, aching backs and being tired all the time are THIRTIES AND FORTIES material. On an ${age}th they are somebody else's joke wearing this number: observed failure, "18 is mainly forms, passwords and a hangover" — true of any adult, and nothing at all to do with being eighteen.
 ⚠️ NEVER AN AGEING JOKE. Nobody here is old, declining or past anything. Observed failure: a card punning on "proof of age" that resolved instead onto AGEING — a clean pun landing on exactly the wrong idea. They are ARRIVING, and every line should know it.
 ⚠️ The buyer is very often a PARENT or GRANDPARENT — cheeky is fine, never something a nan would be embarrassed to hand over.`
@@ -1194,13 +1194,20 @@ const V2_CELEBRAIT_REGISTER = `THE LOOK — start every card from the Celebrait 
 ⚠️ "OBJECTS NOT SCENES" BANS CLUTTER, NOT PLACES. When the thing they love IS a place — an island, a city, a coastline, a ground — THE PLACE IS THE STRONGEST ARTWORK YOU HAVE, drawn in the register: the flat graphic landscape, the landmark silhouette, the travel-poster horizon at the right hour. Observed failure: an Ibiza brief drew wristbands and flyers three times over while the island — its rock in the sea, its white town, its sunrise terraces — never appeared; the kit of a night out says "clubbing", the place says IBIZA. You also hold a LICENCE TO DEPART entirely when this person's world genuinely calls for another look — take it when it is earned, and make the departure a named decision in "direction", never drift.`;
 const V2_OPEN_REGISTER = `THE LOOK — design free: any medium, any palette, anything that is CURRENT and lands for this person. Old styles welcome when treated with a modern eye. BEAUTIFUL FIRST, JOKE SECOND: gorgeous at arm's length, then you notice the line — the card someone photographs and sends to the group chat.`;
 
-function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format: string; register: string }>, occasionBrief: string): string {
+/** The first of the two calls: brief in, person out. Exported so
+ *  `print-prompts.ts` dumps the exact string production sends. */
+export function archetypeSystemPrompt(): string {
+  return `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a milestone, the tradition answers with symbols from decades-old cards (observed: ceremonial keys on a 21st) while the actual person answers with what their days genuinely contain NOW — profile the person alive in ${new Date().getFullYear()}, whatever their age. Return JSON {"archetype":"100-140 words. FIRST commit to the most likely SPECIFIC TYPE this person is on the brief's evidence — not the demographic average. Every interest splits into distinct tribes at EVERY age (the competitive one, the ritualist, the kit-obsessed one, the quietly devoted one, the social one...) — pick the likeliest for THIS person and profile THAT person: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them (current is REGISTER and irony, never slang-stuffing — forced slang is the mum-trying failure); where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"],"territories":["EXACTLY THREE, one per card, and this is the field that stops a set being one joke told three ways. Each must come from a DIFFERENT REGION OF THIS PERSON'S LIFE — if two of them could come up in the same conversation, replace one. ⚠️ Your FIRST instinct for this brief is the region everyone reaches for; keep it as one of the three at most, and go genuinely looking for the other two — what they do that nobody sees, what they are like with other people, what they actually spend their time and money on, what has changed for them lately. Name each in 3-8 words, as an AREA to explore and never as a joke or a line."]}. Concrete, ${new Date().getFullYear()}, UK.`;
+}
+
+export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format: string; register: string; territory?: string }>, occasionBrief: string): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
 ${occasionBrief}
 
 THE THREE SLOTS — one card each, exactly as assigned:
-${slots.map((s, i) => `${i + 1}. angle=${s.angle}, format=${s.format}, length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, stacked as short statements, the last few words land the turn)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}`).join('\n')}
+${slots.map((s, i) => `${i + 1}. angle=${s.angle}, format=${s.format}, length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, stacked as short statements, the last few words land the turn)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}`).join('\n')}
+⚠️ WHERE A SLOT NAMES A TERRITORY, THAT CARD LIVES THERE — words and artwork both. The three territories were chosen to be far apart on purpose, because the failure this prevents is three cards mining one seam and reading as one joke told three times. Do not let a second card drift into a first card's territory because the material there felt richer.
 The typeled card is TEXT-ONLY: the words set huge ARE the artwork, and its art_direction describes the ground and the typographic treatment.
 
 THE BAR, per card:
@@ -1588,7 +1595,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const archRes = await openai.chat.completions.create({
           ...conceptParams(900, 0.5),
           messages: [
-            { role: 'system', content: `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a milestone, the tradition answers with symbols from decades-old cards (observed: ceremonial keys on a 21st) while the actual person answers with what their days genuinely contain NOW — profile the person alive in ${new Date().getFullYear()}, whatever their age. Return JSON {"archetype":"100-140 words. FIRST commit to the most likely SPECIFIC TYPE this person is on the brief's evidence — not the demographic average. Every interest splits into distinct tribes at EVERY age (the competitive one, the ritualist, the kit-obsessed one, the quietly devoted one, the social one...) — pick the likeliest for THIS person and profile THAT person: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them (current is REGISTER and irony, never slang-stuffing — forced slang is the mum-trying failure); where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"]}. Concrete, ${new Date().getFullYear()}, UK.` },
+            { role: 'system', content: archetypeSystemPrompt() },
             { role: 'user', content: briefLines.slice(0, 8).join('\n') },
           ],
           response_format: { type: 'json_object' },
@@ -1637,8 +1644,21 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // carry the big short poster instead.
         const typeledRegister = Math.random() < 0.5 ? 'long' : 'short';
         const restRegisters = typeledRegister === 'long' ? ['short', 'mid'] : ['mid', 'mid'];
+        // Aidan's fix, 2026-08-20: "surely the ai can widen that scope...
+        // just widen its net when building the archetype". The archetype
+        // is the thing that supplies aim, and it was never asked for
+        // BREADTH — so an 18th kept returning one seam (ID checks,
+        // polling slips, card taps, signatures, terms) and all three
+        // cards mined it. Now it hands back three deliberately distant
+        // territories and the server pins one per slot, the same way it
+        // pins angle and length. Optional: a missing or short array just
+        // leaves the slots unpinned rather than failing the set.
+        const territories: string[] = Array.isArray(arch.territories)
+          ? arch.territories.filter((t: unknown) => typeof t === 'string' && t.trim()).slice(0, 3)
+          : [];
         const slots = v2Angles.map((a, i) => ({ angle: a, format: i === typeledAt ? 'typeled' : otherFormats.pop()!,
-          register: i === typeledAt ? typeledRegister : restRegisters.shift()! }));
+          register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
+          territory: territories.length === 3 ? territories[i] : undefined }));
         const sys = v2SystemPrompt(body.pipeline as 'celebrait' | 'open', slots, occProfile.brief);
         const userMsg = `${briefLines.join('\n')}\n\nWHO THIS PERSON IS (aim everything with this):\n${arch.archetype ?? ''}`;
 
