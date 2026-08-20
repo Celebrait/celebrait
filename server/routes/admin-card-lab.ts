@@ -276,6 +276,9 @@ const PROTECTED_ARTEFACTS: Array<[RegExp, string]> = [
   [/\bpok(e|é)ball(s)?\b|\bpikachu\b/i, 'Pokémon property'],
   [/\bone ring\b|\bthe precious\b/i, 'Tolkien property'],
   [/\bmickey (mouse )?ears\b|\bglass slipper(s)?\b/i, 'Disney property'],
+  // Observed 2026-08-20: a Moana 4th-birthday card drew two Kakamora as
+  // themselves — the world's own creatures are characters, not scenery.
+  [/\bkakamora(s)?\b|\bhei ?hei\b|\bte ?fiti\b|\bte ?k[aā]\b|\btamatoa\b|\bmaui'?s (fish ?)?hook\b|\bheart of te ?fiti\b/i, "Moana's characters and artefacts"],
   [/\b(club|team) (crest|badge|logo)(s)?\b|\bkit sponsor(s)?\b/i, 'club crests and badges'],
   // ⚠️ NARROWED 2026-08-18. This used to block the bare words "emblem",
   // "badge" and "coat of arms", which are ordinary decorative nouns — a
