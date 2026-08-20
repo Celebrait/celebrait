@@ -226,8 +226,10 @@ export default function AdminOccasionStudioPage() {
     // where the number is the subject — the spine of the catalogue and
     // the most reusable stock we can hold. Blocking it made those
     // unbuildable (2026-08-19).
-    if (!interest.trim() && age === null) {
-      toast({ title: 'Give me a subject', description: 'Either something they love, or an age — one of them has to carry the card.' });
+    // Fully blank is the GENERIC ROLL on the new engine — only Classic
+    // still needs a subject.
+    if (!interest.trim() && age === null && pipeline === 'classic') {
+      toast({ title: 'Give me a subject', description: 'Either something they love, or an age — or switch off Classic for a generic card.' });
       return;
     }
     setThinking(true);

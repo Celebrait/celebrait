@@ -1075,6 +1075,7 @@ const v2SaysOccasion = (t: string) =>
 interface V2Brief {
   who: string; gender: 'him' | 'her' | 'unspecified'; age: number | null;
   interest: string; dislikes?: string; tone: string; cheeky: boolean; name?: string;
+  generic?: boolean;
 }
 interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
 
@@ -1134,8 +1135,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     if (cards.some((_, i) => num.test(fronts[i]) && num.test(arts[i]))) v.push('number-twice: the number goes in the words OR the artwork of a card, never both');
   } else {
     const n = fronts.filter(v2SaysOccasion).length;
-    if (n === 0) v.push('occasion-missing: exactly one front must say what the occasion is');
-    if (n === 3) v.push('occasion-everywhere: only one front names the occasion');
+    if (n === 0) v.push('occasion-missing: at least one front must say what the occasion is');
+    // A GENERIC roll is ABOUT the occasion — all three may name it.
+    if (n === 3 && !b.generic) v.push('occasion-everywhere: only one front names the occasion');
   }
   if (b.name) {
     // ⚠️ EXACT-NAME FLOOR. If a front uses the name it must match
@@ -1376,7 +1378,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // Interest OR age — one of them has to carry the card.
     const statedAgeValue = body.age ?? statedAge(body.occasion);
     const interestText = body.interest?.trim() ?? '';
-    if (!interestText && statedAgeValue === null) {
+    // ⚠️ FULLY BLANK IS A VALID CUSTOMER ON V2 — the GENERIC ROLL
+    // (audit: "a random roll can go and just say happy birthday").
+    // Classic still requires a subject; it has no machinery for none.
+    const fullyGeneric = !interestText && statedAgeValue === null;
+    if (fullyGeneric && body.pipeline === 'classic') {
       return res.status(400).json({
         message: 'Give me either something they love or an age — one of them has to be the subject.',
       });
@@ -1392,7 +1398,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const effectiveCheeky = (body.cheeky || body.tone === 'rude') && !serious;
     // Which three of the four angles this set gets. Rotated here so the
     // three shapes stop being identical on every brief we have ever run.
-    const chosenAngles = (body.angles as Angle[] | undefined) ?? pickAngles(body.tone);
+    const chosenAngles = (body.angles as Angle[] | undefined)
+      ?? (fullyGeneric ? (['straight', 'deadpan', 'wordplay'] as Angle[]) : pickAngles(body.tone));
     const writerPrompt = () => serious
       ? seriousConceptSystemPrompt(occProfile)
       : conceptSystemPrompt(body.characters, effectiveCheeky, occProfile, body.freeStyle, chosenAngles);
@@ -1460,7 +1467,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
   Punch at the thing, never at the person receiving the card — the birthday is still theirs.` : '',
       `Occasion: ${body.occasion}`,
       body.from?.trim() ? `From: ${body.from.trim()}` : '',
-      interestText
+      fullyGeneric
+        ? `⚠️ NO SUBJECT AND NO AGE — THE GENERIC ROLL. This is the rack's plain, beautiful birthday card: it says the occasion wonderfully and claims nothing about the person, because nothing was given. The CRAFT is the card — the setting, the colour, the confidence. Warm and middle register; no invented facts, no age references, no assumed hobbies. Three genuinely different ways to say it well.`
+        : interestText
         ? `The thing this card is about: ${interestText}
 ⚠️ READ WHETHER THIS IS A LOVE OR A PLAN. People type UPCOMING things into this box — a trip, a move, a new job — and an EVENT reads FORWARD: the excitement ahead, the world they are about to walk into. Claim NO history with it: no "still", no "always", no "another year of" unless the brief itself says they have done it before. Telling a first-time visitor they "still pick New York" is a printed factual error. A lifelong love may look back; a plan may only look forward.`
         : `⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. This is a RACK card: it has to work for anyone turning this age, so build all three from the AGE ITSELF using the age-band brief above — what that number means, what it is like to arrive at it, what everyone that age recognises. That is a real subject with real material, not an excuse for a blank card, and the specificity rules apply to it exactly as they would to a hobby: no generic warmth, no "another year older", nothing that would suit any age. A card about turning 50 must be unmistakably about FIFTY.`,
@@ -1525,7 +1534,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     if (body.pipeline !== 'classic' && !serious) {
       const v2b: V2Brief = { who: body.who, gender: body.gender, age: body.age ?? statedAgeValue,
         interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky,
-        name: body.recipientName?.trim() || undefined };
+        name: body.recipientName?.trim() || undefined, generic: fullyGeneric };
       try {
         // 1. ARCHETYPE + referee vocabulary in one call.
         const archRes = await openai.chat.completions.create({
