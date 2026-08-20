@@ -30,12 +30,13 @@ const server = app.listen(0, async () => {
   const runs = Number(process.argv[2] ?? 2);
   const tone = process.argv[3] ?? 'funny';
   const age = process.argv[4] ? Number(process.argv[4]) : undefined;
+  const interest = process.argv[5] ?? '';
   for (let i = 0; i < runs; i++) {
     const r = await fetch(`http://localhost:${port}/api/admin/card-lab/concepts`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         occasion: age ? `${age}th Birthday` : 'Birthday', who: 'Anyone', tone, pipeline: 'celebrait', age,
-        interest: '', dislikes: '', characters: 'objects', insideMode: 'blank',
+        interest, dislikes: '', characters: 'objects', insideMode: 'blank',
         freeStyle: true, memory: true,
       }),
     });
