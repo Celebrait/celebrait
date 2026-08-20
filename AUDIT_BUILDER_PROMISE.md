@@ -290,3 +290,33 @@ BANKED FOR THE CATALOGUE: identify 10-15 design tribes per demographic
 build a visual direction per tribe — a stronger rack structure than
 volume-producing "21st birthday cards", and the thing mass stock
 cannot copy because our tribes get personalised per buyer.
+
+## The convergence: photo-in-their-world (banked 2026-08-20)
+
+Aidan: *"do we build a light touch photo upload option where they can
+get 3 versions of their artwork but with the person rendered in?"*
+
+Yes — this is the endgame USP: the two existing engines meeting. The
+photo product already does likeness (traffic-light verdicts, crop
+analysis, consent gate, front-scene prompts — all live); the occasion
+engine now does THEIR WORLD. The person rendered into their world —
+Dad in the away end — is the card nobody else can make.
+
+The committed shape:
+- Photo is the FIFTH RUNG of the personalisation ladder (nothing → age
+  → interest → name → photo), optional like every rung.
+- ONE photo card per set, same pattern as the name — hedges the
+  likeness lottery, contains cost, set survives a miss.
+- REUSE the photo product's likeness pipeline for that card (prompts,
+  verdicts, consent); the new work is aiming it at the archetype's
+  world, not teaching v2 faces.
+- Likeness keeps its traffic-light verdict — the one floor that can
+  never be regex.
+⚠️ Register risk to test first: likeness survives realistic rendering
+and degrades under flat-graphic stylisation — the Celebrait register
+may need a "photo card exception" or a likeness-safe corner of the
+spectrum. Test with real faces before promising anything.
+
+SEQUENCE: after the test prints (print quality gates faces hardest),
+the style decision, and catalogue round 1. A project week, not an
+evening.
