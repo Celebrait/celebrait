@@ -589,13 +589,14 @@ const conceptsSchema = z.object({
    *  flow sends false. Generations are LOGGED either way — the
    *  keep-rate denominator and motif history must stay complete. */
   memory: z.boolean().default(true),
-  /** LAB EXPERIMENT (Aidan, 2026-08-21: "drop any restraints here as a
-   *  toggle to see what the ai just DOES itself"). True = the server
-   *  deals angle, length, territory and ground weight as ever, but NOT
-   *  the composition format — the model shapes each card itself. Law 4
-   *  predicts three similar shapes; the toggle exists to test that
-   *  prediction on renders rather than assert it. */
-  freeComposition: z.boolean().default(false),
+  /** Composition mode. The experiment resolved with BOTH modes earning
+   *  a place (Aidan, 2026-08-21: "Funnily enough I like both lol...
+   *  bed this in so it alternates between the 2") — so ABSENT means the
+   *  server flips a fair coin per set, and the studio chip is now an
+   *  override for testing one mode deliberately. Every set logs which
+   *  mode made it (comp_mode), because the alternation is a standing
+   *  A/B that keep-rate should eventually settle. */
+  freeComposition: z.boolean().optional(),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
@@ -1726,8 +1727,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
         const territories: string[] = Array.isArray(arch.territories)
           ? arch.territories.filter((t: unknown) => typeof t === 'string' && t.trim()).slice(0, 3)
           : [];
+        // The coin. Explicit override wins; otherwise both modes serve.
+        const freeComp = body.freeComposition ?? Math.random() < 0.5;
         const slots = v2Angles.map((a, i) => ({ angle: a,
-          format: body.freeComposition ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
+          format: freeComp ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
           register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
           territory: territories.length === 3 ? territories[i] : undefined,
           // ⚠️ RANGE IS STRUCTURE, SO THE SERVER OWNS IT (law 4). Giving
@@ -1780,12 +1783,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
           angle: c.angle ?? null, recipient: body.who ?? null,
           interest: interestText || null, front_text: c.front_text,
           art_direction: c.art_direction ?? null, palette: c.palette ?? null,
+          comp_mode: freeComp ? 'free' : 'dealt',
         }))).catch((e) => console.warn('[CARD-LAB:v2] generation log failed (non-fatal):', e));
 
         // Violations still standing after the repair round ship VISIBLY,
         // never silently — the studio can show them and the harness
         // counts them. "Warned and shipped anyway" is the old world.
-        return res.json({ concepts, notes: [], archetype: arch.archetype ?? null, violations });
+        return res.json({ concepts, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt' });
       } catch (err) {
         console.error('[CARD-LAB:v2] pipeline failed, falling back to classic:', err);
       }

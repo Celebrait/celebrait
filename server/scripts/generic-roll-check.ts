@@ -32,7 +32,7 @@ const server = app.listen(0, async () => {
   const age = process.argv[4] ? Number(process.argv[4]) : undefined;
   const interest = process.argv[5] ?? '';
   const who = process.argv[6] ?? 'Anyone';
-  const freeComposition = process.argv[7] === 'free';
+  const freeComposition = process.argv[7] === 'free' ? true : process.argv[7] === 'dealt' ? false : undefined;
   const gender = who === 'Sister' || who === 'Mum' || who === 'Nan' ? 'her'
     : who === 'Brother' || who === 'Dad' || who === 'Grandad' ? 'him' : undefined;
   for (let i = 0; i < runs; i++) {
@@ -45,7 +45,7 @@ const server = app.listen(0, async () => {
       }),
     });
     const j: any = await r.json();
-    console.log(`\n### RUN ${i + 1} (${tone}${age ? ', age ' + age : ', blank'}) — status ${r.status}`);
+    console.log(`\n### RUN ${i + 1} (${tone}${age ? ', age ' + age : ', blank'}) — status ${r.status} — mode ${j.compMode ?? '?'}`);
     if (!j.concepts) { console.log('   ', JSON.stringify(j).slice(0, 300)); continue; }
     for (const c of j.concepts) {
       console.log(`    [${c.angle}/${c.format}] "${c.front_text}"`);

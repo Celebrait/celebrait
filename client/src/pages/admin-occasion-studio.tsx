@@ -96,6 +96,9 @@ interface Concept {
 }
 interface Cell {
   concept: Concept; imageUrl?: string; error?: string; saved?: boolean; saving?: boolean;
+  /** Which composition mode the server actually used ('free'/'dealt') —
+   *  shown on the card so the alternation stays legible to the eye. */
+  served?: string;
   /** Which way it was kept, so the button can say so afterwards. */
   savedEditable?: boolean;
   /** Rendered lazily, only when a print file is asked for — every
@@ -165,10 +168,10 @@ export default function AdminOccasionStudioPage() {
    *  free; classic = the original pipeline, kept for comparison. The
    *  style decision gets made by eye from this toggle's output. */
   const [pipeline, setPipeline] = useState<'celebrait' | 'open' | 'classic'>('celebrait');
-  /** LAB EXPERIMENT (Aidan): server still deals angle/length/ground,
-   *  but composition is the model's own — testing whether law 4 (a
-   *  model asked to vary its structure doesn't) holds on renders. */
-  const [freeComp, setFreeComp] = useState(false);
+  /** Composition mode. 'auto' = the server flips a coin per set — the
+   *  experiment ended with both modes keeping their place (Aidan: "I
+   *  like both lol"). Explicit modes remain for deliberate testing. */
+  const [compMode, setCompMode] = useState<'auto' | 'free' | 'dealt'>('auto');
   const [cells, setCells] = useState<Cell[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
@@ -245,11 +248,11 @@ export default function AdminOccasionStudioPage() {
         who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
         recipientName: recipientName.trim() || undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
-        freeComposition: freeComp,
+        freeComposition: compMode === 'auto' ? undefined : compMode === 'free',
         dislikes: dislikes.trim() || undefined,
       });
-      const { concepts = [] } = (await r.json()) as { concepts: Concept[] };
-      setCells(concepts.map((c) => ({ concept: c })));
+      const { concepts = [], compMode: served } = (await r.json()) as { concepts: Concept[]; compMode?: string };
+      setCells(concepts.map((c) => ({ concept: c, served })));
       // (Generations are logged server-side by /concepts — logging here
       // too would double the keep-rate denominator.)
       await Promise.all(concepts.map(async (c, i) => {
@@ -489,12 +492,13 @@ export default function AdminOccasionStudioPage() {
                 {l}
               </button>
             ))}
-            <button type="button" onClick={() => setFreeComp((v) => !v)}
-              title="Experiment: no composition formats dealt — the model shapes each card itself"
+            <button type="button"
+              onClick={() => setCompMode((v) => (v === 'auto' ? 'free' : v === 'free' ? 'dealt' : 'auto'))}
+              title="Auto flips a coin per set between dealt formats and free composition; click to pin one for testing"
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                freeComp ? 'border-amber-400 bg-amber-50 text-amber-700'
-                         : 'border-stone-200 bg-white text-stone-400 hover:border-amber-300'}`}>
-              Free comp
+                compMode === 'auto' ? 'border-stone-200 bg-white text-stone-500 hover:border-amber-300'
+                                    : 'border-amber-400 bg-amber-50 text-amber-700'}`}>
+              {compMode === 'auto' ? 'Comp: auto' : compMode === 'free' ? 'Comp: free' : 'Comp: dealt'}
             </button>
           </div>
           {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.
@@ -567,7 +571,7 @@ export default function AdminOccasionStudioPage() {
               </div>
               <div className="space-y-2 p-3">
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
-                <p className="text-[11px] text-stone-400">{c.concept.angle} · {c.concept.format}</p>
+                <p className="text-[11px] text-stone-400">{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>
                 {c.concept.direction && (
                   <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>
                 )}

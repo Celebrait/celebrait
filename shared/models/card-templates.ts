@@ -124,6 +124,11 @@ export const cardGenerations = pgTable("card_generations", {
    *  · deep smoky-blue · mid olive?"). Words had memory, motifs had
    *  memory, colour had none. */
   palette: text("palette"),
+  /** 'dealt' | 'free' — which composition mode made it (Aidan,
+   *  2026-08-21: "I like both... so can we bed this in so it alternates
+   *  between the 2"). The alternation is a STANDING A/B: without this
+   *  column, keep-rate can never say which mode earns its keeps. */
+  comp_mode: text("comp_mode"),
   /** Did it earn a place in the rack? The whole point of the table. */
   kept: boolean("kept").notNull().default(false),
   created_at: timestamp("created_at").notNull().default(sql`now()`),
