@@ -155,7 +155,16 @@ angle/length/territory/ground (law 4 — structure is the server's):
   generation logic, same floors, same referee.
 - `memory: false` (LOCKED decision: cross-run memory is a
   rack-building tool; customers are fresh eyes).
-- Daily cap (photo maker has one; same pattern).
+- Generation pricing — DECIDED (Aidan, 2026-08-21): FREE at the point
+  of use, with the promise said out loud: "Making cards is free — you
+  only pay when you print one." Cap: 5 sets/day, email sign-in after
+  the first set (the cap is abuse control ~40p/day worst case; the
+  sign-in is the lead capture the arrival-readiness work wants).
+  Tokens/top-ups REJECTED for launch — a payment wall in front of the
+  magic moment to recover pennies. Held in reserve if the Cost Ledger
+  shows generation spend per ACQUIRED CUSTOMER passing ~£1: the £1
+  unlimited-generations unlock, credited to the order (one charge, no
+  token ledger, same safety-net psychology).
 - comp_mode coin, colour system, IP posture: all inherited untouched.
 - IP-safe retry: customer-facing copy ("That one didn't come out —
   want us to have another go?") — same endpoint, gentler words.
@@ -264,7 +273,8 @@ occasion: {
    screen as a "+ add" link, funny/rude only.
 2. **Under-18 + "One of each"**: hide the chip, or quietly swap rude
    for a second funny?
-3. **Daily cap number** for the guided maker (photo maker precedent).
+3. ~~Daily cap number~~ — DECIDED: 5 sets/day, email-gated after the
+   first.
 4. **Entry point**: where does this live — /make, replacing the
    current maker's front door, or beside it? (Ties to the two-maker
    question.)
