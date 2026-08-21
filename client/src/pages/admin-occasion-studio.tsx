@@ -333,6 +333,35 @@ export default function AdminOccasionStudioPage() {
     }
   };
 
+  /** THE IP-SAFE RETRY (Aidan: "happy to risk it now and again") —
+   *  when a render is refused, rework only the ARTWORK and go again.
+   *  The front text is untouched; the words may name the property, the
+   *  picture may not. */
+  const ipSafeRetry = async (i: number) => {
+    const cell = cells[i];
+    if (!cell || cell.imageUrl) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: undefined } : x)));
+    try {
+      const fix = await apiRequest('POST', '/api/admin/card-lab/ip-safe-art', {
+        front_text: cell.concept.front_text, art_direction: cell.concept.art_direction,
+        interest: interest.trim() || undefined,
+      });
+      const { art_direction } = await fix.json();
+      const concept = { ...cell.concept, art_direction };
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
+      const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
+        front_text: concept.front_text, art_direction, palette: concept.palette,
+        typeface: concept.typeface, format: concept.format ?? 'hero', characters, freeStyle,
+      });
+      const rj = await rr.json();
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
+      const n = parseFloat(String(rj.costUsd ?? '').replace('$', ''));
+      if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+    } catch (e: any) {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: e?.message ?? 'still refused' } : x)));
+    }
+  };
+
   /** `editable` is the card's own nature, decided here because here is
    *  where it is being looked at. Artwork-carried card → editable, the
    *  customer's words go on it. One-perfect-line card → fixed, sold as
@@ -566,7 +595,13 @@ export default function AdminOccasionStudioPage() {
                 {c.imageUrl
                   ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
                   : c.error
-                    ? <div className="flex h-full items-center justify-center p-3 text-center text-xs text-red-600">{c.error}</div>
+                    ? <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-red-600">
+                        <span>{c.error}</span>
+                        <button type="button" onClick={() => ipSafeRetry(i)}
+                          className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-stone-600 transition-colors hover:border-brand hover:text-brand-dark">
+                          Try again — IP-safe artwork
+                        </button>
+                      </div>
                     : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}
               </div>
               <div className="space-y-2 p-3">

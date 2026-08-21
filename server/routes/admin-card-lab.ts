@@ -2510,6 +2510,64 @@ export function registerAdminCardLabRoutes(app: Express): void {
   // One front, gpt-image-2 LOW (~$0.006). The client fires three of
   // these in parallel — no batching server-side so each card can land
   // and reveal the moment it's ready.
+  // ── THE IP-SAFE RETRY ─────────────────────────────────────────────
+  // Aidan, on a Toy Story set where the writer asked for "the whole
+  // gang" and both image providers refused: "keep things as they are,
+  // but have a try again button that enforces the IP rule - same front
+  // end - happy to risk it now and again." So generation keeps its
+  // nerve (the risky attempt also makes the good cards), and this is
+  // the recovery: rewrite ONLY the artwork, keep the words, render
+  // again. The words may go on naming the property — that is the
+  // say-the-name rule — the picture carries the world through style.
+  app.post('/api/admin/card-lab/ip-safe-art', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const schema = z.object({
+      front_text: z.string().min(1).max(300),
+      art_direction: z.string().min(1).max(600),
+      interest: z.string().max(200).optional(),
+    });
+    let body: z.infer<typeof schema>;
+    try { body = schema.parse(req.body); } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
+    }
+    if (!openai) return res.status(503).json({ message: 'OpenAI not configured' });
+    const sys = `You fix exactly one problem: an art direction for a greeting-card illustration was refused because it asks for copyrighted characters or protected property. Rewrite it so the picture is genuinely clean — same energy, same compositional instinct, same world.
+⚠️ NO SUBSTITUTE CAST. Do not recreate the property's characters as described-but-unnamed lookalikes, role-equivalents or an ensemble that mirrors them — "a cowboy doll, a space ranger and a green dinosaur standing together" IS the protected cast, and a near-copy is more dangerous than the original because recognisably-similar is exactly what gets challenged. Walk away from the characters entirely.
+Instead, carry the world through what nobody owns: its setting and rooms, its colour signature, its era, the ordinary objects of that world that existed before the property did. The card's WORDS are unchanged and may keep naming the property — only the picture must be clean. Return JSON {"art_direction":"one drawable sentence"}.`;
+    try {
+      let art = '';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const gen = await openai.chat.completions.create({
+          ...conceptParams(300, 0.6),
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: `FRONT TEXT (unchanged): "${body.front_text}"
+REFUSED ART DIRECTION: ${body.art_direction}
+THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
+⚠️ Your previous rewrite still contained protected material — remove it completely this time.` : ''}` },
+          ],
+          response_format: { type: 'json_object' },
+        });
+        void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          provider: 'openai', model: CONCEPT_MODEL, quality: null,
+          costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
+          durationMs: 0, success: true });
+        art = String(JSON.parse(gen.choices[0]?.message?.content ?? '{}').art_direction ?? '').trim();
+        // Law 6: re-screen everything a fixer writes — a repairing LLM
+        // can reintroduce the exact failure it was asked to remove.
+        if (art && namedArtefacts(art).length === 0) break;
+      }
+      if (!art || namedArtefacts(art).length > 0) {
+        return res.status(422).json({ message: 'Could not produce a clean artwork brief for this one — try regenerating the set.' });
+      }
+      res.json({ art_direction: art });
+    } catch (err) {
+      console.error('[CARD-LAB] ip-safe-art failed:', err);
+      res.status(500).json({ message: 'Could not rework the artwork' });
+    }
+  });
+
   app.post('/api/admin/card-lab/render', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
