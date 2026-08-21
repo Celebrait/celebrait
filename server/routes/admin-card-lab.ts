@@ -337,11 +337,11 @@ export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
   engagement: PROFILE('engagement', 'full',
     `Excitement and the word YES. The ring is the obvious emblem — at most one card may nod to it, never all three. Champagne-bright palette welcome. The couple's shared world beats generic romance every time.`),
   baby: PROFILE('baby', 'gentle',
-    `Tenderness, plus the one permitted joke seam: sleep deprivation and the beautiful chaos ahead. ONE BABY unless the brief says otherwise — never assume twins or numbers; an invented "double" is a factual claim about someone's pregnancy and an observed failure. Palette is soft mid-tones and warm creams — never the moody masculine default, and NEITHER pink NOR blue may lead any card's palette unless the brief states a gender: a gender-reveal brief is DELIBERATELY neutral, that is the entire point (a pale blue ground on a gender-reveal card is a failed card). Smallness is the visual seam — tiny things beside big things.`),
+    `Tenderness, plus the one permitted joke seam: sleep deprivation and the beautiful chaos ahead. ⚠️ WHO THE RECIPIENT IS: the relationship chip is the SENDER'S relationship to them, never theirs to the baby. The default read is that the recipient IS the expecting parent at the centre of this — a card to "Sister" here means the sender's sister is the one having the baby. NEVER invent a different role for them (big sister, granny-to-be, aunty) — a claimed role we were not given is a printed factual error about someone's family (observed: a card to a 25-year-old sister opened "big-sister checklist", casting the recipient as the baby's sibling). Only the brief may assign a role. ONE BABY unless the brief says otherwise — never assume twins or numbers; an invented "double" is a factual claim about someone's pregnancy and an observed failure. Palette is soft mid-tones and warm creams — never the moody masculine default, and NEITHER pink NOR blue may lead any card's palette unless the brief states a gender: a gender-reveal brief is DELIBERATELY neutral, that is the entire point (a pale blue ground on a gender-reveal card is a failed card). Smallness is the visual seam — tiny things beside big things.`),
   babyshower: PROFILE('babyshower', 'gentle',
-    `Addressed to the PARENT(S)-TO-BE, before the birth — the baby is not a person yet and the card must not pretend otherwise: no name, no gender, no personality claims, and ONE baby unless the brief says otherwise. The seam is ANTICIPATION: the waiting, the nesting, impossibly tiny clothes next to full-sized life, the last of the quiet weekends. Warm and funny both live here — the humour aims at the parents' lovely oncoming chaos, never at the body, the bump or the due date (this card outlives a due date). Neither pink nor blue may lead any card unless the brief states a gender.`),
+    `Addressed to the PARENT(S)-TO-BE, before the birth — the baby is not a person yet and the card must not pretend otherwise: no name, no gender, no personality claims, and ONE baby unless the brief says otherwise. The seam is ANTICIPATION: the waiting, the nesting, impossibly tiny clothes next to full-sized life, the last of the quiet weekends. ⚠️ WHO THE RECIPIENT IS: the relationship chip is the SENDER'S relationship to them, never theirs to the baby. The default read is that the recipient IS the expecting parent at the centre of this — a card to "Sister" here means the sender's sister is the one having the baby. NEVER invent a different role for them (big sister, granny-to-be, aunty) — a claimed role we were not given is a printed factual error about someone's family (observed: a card to a 25-year-old sister opened "big-sister checklist", casting the recipient as the baby's sibling). Only the brief may assign a role. Warm and funny both live here — the humour aims at the parents' lovely oncoming chaos, never at the body, the bump or the due date (this card outlives a due date). Neither pink nor blue may lead any card unless the brief states a gender.`),
   genderreveal: PROFILE('genderreveal', 'gentle',
-    `THE SUSPENSE IS THE SUBJECT, and the one law is the card MUST NOT GUESS: deliberately, artfully NEUTRAL — neither pink nor blue may lead anywhere on the set, and a pale blue ground here is a failed card. Mine the reveal itself: the sealed envelope, the question mark, the split motif, the both-ways joke, the drum roll made visual. Playful and warm; never a preference joke ("hoping for a…"), never a stereotype about either answer, and the baby gets no personality yet.`),
+    `THE SUSPENSE IS THE SUBJECT, and the one law is the card MUST NOT GUESS: deliberately, artfully NEUTRAL — neither pink nor blue may lead anywhere on the set, and a pale blue ground here is a failed card. Mine the reveal itself: the sealed envelope, the question mark, the split motif, the both-ways joke, the drum roll made visual. ⚠️ WHO THE RECIPIENT IS: the relationship chip is the SENDER'S relationship to them, never theirs to the baby. The default read is that the recipient IS the expecting parent at the centre of this — a card to "Sister" here means the sender's sister is the one having the baby. NEVER invent a different role for them (big sister, granny-to-be, aunty) — a claimed role we were not given is a printed factual error about someone's family (observed: a card to a 25-year-old sister opened "big-sister checklist", casting the recipient as the baby's sibling). Only the brief may assign a role. Playful and warm; never a preference joke ("hoping for a…"), never a stereotype about either answer, and the baby gets no personality yet.`),
   graduation: PROFILE('graduation', 'full',
     `Pride in the achievement plus affectionate relief that it is finally over. Mine what they STUDIED or what comes next, not generic scrolls; mortarboard once per set at most. Bright, forward-looking palette.`),
   christmas: PROFILE('christmas', 'full',
@@ -1109,6 +1109,22 @@ const V2_SWEAR_RAW = /\b(fuck\w*|shit\w*|cunt\w*)\b/i;
  *  and the asterisks dress it up as scandal. Only f/s/c are masked;
  *  anything else wearing asterisks is counterfeit. */
 const V2_MASK_WRONG = /\b[abd-eg-rt-z]\*{2,}\w*/i;
+/** ⚠️ MASKING IS MECHANICAL, SO IT IS NO LONGER A NEGOTIATION. The
+ *  repair round lost this argument repeatedly — "for f**k's sake"
+ *  masked and "weirdly fucking certain" unmasked SHIPPED IN THE SAME
+ *  SET — because a model juggling the rude floor and the mask rule
+ *  keeps mis-weighing one of them. But unmasking is the one floor
+ *  breach we can fix deterministically: stem → first letter +
+ *  asterisks, suffix kept ("fucking" → "f***ing"). Applied to every
+ *  card before verify, so swear-unmasked can no longer occur at all.
+ *  Counterfeit masks still go to the referee — b**** cannot be
+ *  reconstructed in code. */
+export function autoMask(text: string): string {
+  return text
+    .replace(/\b(f|F)(?:uck|UCK)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
+    .replace(/\b(s|S)(?:hit|HIT)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
+    .replace(/\b(c|C)(?:unt|UNT)(\w*)/g, (_, a, suf) => `${a}***${suf}`);
+}
 const V2_BANNED = /\b(vibes?|level up|bossin?|legend(ary)?|goals|beast mode|standards?)\b|\b(master|king|queen|lord|sultan|champion|guardian|keeper) of\b|extraordinaire|royalty/i;
 const V2_MALE = /\b(man|men|bloke|lad|lads|guy|boy|he|him|his|sir|king|gent)\b/i;
 const V2_FEMALE = /\b(woman|women|lass|girl|she|her|hers|madam|queen|lady|ladies)\b/i;
@@ -1174,9 +1190,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // unmasked word inside a card whose front is masked is the same
   // inconsistency one panel further in.
   cards.forEach((c, i) => {
+    // swear-unmasked retired as a violation — autoMask() fixes it
+    // deterministically upstream; only the counterfeit needs the model.
     const printed = `${c.front_text ?? ''} ${c.inside_text ?? ''}`;
-    const hit = printed.match(V2_SWEAR_RAW);
-    if (hit) v.push(`swear-unmasked: card ${i + 1} prints "${hit[0]}" in full — mask strong swearing as the first letter followed by asterisks`);
     const fake = printed.match(V2_MASK_WRONG);
     if (fake) v.push(`mask-counterfeit: card ${i + 1} masks "${fake[0]}" — only the strongest swearing is ever masked. A mild word prints in full, and if this line needs asterisks to feel rude it needs a genuinely stronger word or a better joke`);
   });
@@ -1794,7 +1810,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
             provider: 'openai', model: CONCEPT_MODEL, quality: null,
             costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
             durationMs: 0, success: true });
-          concepts = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[];
+          concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
+            .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined });
           if (!violations.length) break;
