@@ -1131,7 +1131,7 @@ const wordsToRe = (ws: unknown): RegExp | null => {
 };
 
 /** Every floor, in code. Returns named violations for the repair round. */
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number }): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
@@ -1159,6 +1159,15 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // so this matches the exact derived year and nothing else.
   if (opts?.restingYear && cards.some((c) => `${c.front_text ?? ''} ${c.art_direction ?? ''}`.includes(String(opts.restingYear)))) {
     v.push(`year-rest: the birth year ${opts.restingYear} is resting this set — build the hook from their world instead`);
+  }
+  // ⚠️ AGE-AS-CONTEXT CAP (non-birthday occasions). The prompt asks for
+  // restraint; this guarantees the ceiling. Digits and ordinals only —
+  // a spelled-out number slips past, which the prompt still covers, but
+  // the common failure ("21, and your life...") is deterministic.
+  if (opts?.contextAge !== undefined) {
+    const ageRe = new RegExp(`\\b${opts.contextAge}(st|nd|rd|th)?\\b`);
+    const n = fronts.filter((f) => ageRe.test(f)).length;
+    if (n > 1) v.push(`age-context: ${n} fronts name the age ${opts.contextAge} — on this occasion the age is context, not material, and may appear on at most ONE card`);
   }
   if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing');
   // Checks the inside as well as the front: both are printed, and an
@@ -1562,7 +1571,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
         : interestText
         ? `The thing this card is about: ${interestText}
 ⚠️ READ WHETHER THIS IS A LOVE OR A PLAN. People type UPCOMING things into this box — a trip, a move, a new job — and an EVENT reads FORWARD: the excitement ahead, the world they are about to walk into. Claim NO history with it: no "still", no "always", no "another year of" unless the brief itself says they have done it before. Telling a first-time visitor they "still pick New York" is a printed factual error. A lifelong love may look back; a plan may only look forward.`
-        : `⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. This is a RACK card: it has to work for anyone turning this age, so build all three from the AGE ITSELF using the age-band brief above — what that number means, what it is like to arrive at it, what everyone that age recognises. That is a real subject with real material, not an excuse for a blank card, and the specificity rules apply to it exactly as they would to a hobby: no generic warmth, no "another year older", nothing that would suit any age. A card about turning 50 must be unmistakably about FIFTY.`,
+        : occProfile.key === 'birthday'
+        ? `⚠️ NO INTEREST GIVEN — THE MILESTONE IS THE SUBJECT. This is a RACK card: it has to work for anyone turning this age, so build all three from the AGE ITSELF using the age-band brief above — what that number means, what it is like to arrive at it, what everyone that age recognises. That is a real subject with real material, not an excuse for a blank card, and the specificity rules apply to it exactly as they would to a hobby: no generic warmth, no "another year older", nothing that would suit any age. A card about turning 50 must be unmistakably about FIFTY.`
+        : `⚠️ NO INTEREST GIVEN — THE OCCASION IS THE SUBJECT, never the age. This occasion has its own world (the brief above); build all three from it.${statedAgeValue !== null ? ` ⚠️ THE AGE IS CONTEXT, NOT MATERIAL: it tunes voice and era and is NOT a birthday — printing it on this occasion's card is the observed failure (a graduation set led every card with "twenty-one", which is a birthday card wearing a gown). The age may appear on AT MOST ONE card, and ONLY when the age itself is part of this occasion's story — a 50-year-old graduating, an 18-year-old retiring — where the number IS the remarkable thing. Otherwise no card names it.` : ''}`,
+      // Age-as-context also applies when an interest IS given on a
+      // non-birthday occasion — the interest branch above says nothing
+      // about age, and the model's milestone habits fill the silence.
+      occProfile.key !== 'birthday' && statedAgeValue !== null && interestText
+        ? `⚠️ THE AGE IS CONTEXT, NOT MATERIAL on this occasion: it tunes voice and era. At most one card may name it, and only when the age is genuinely part of this occasion's story; by default none do.`
+        : '',
       `insideMode=${body.insideMode}`,
       `cheeky=${effectiveCheeky}`,
       `characters=${body.characters}`,
@@ -1778,7 +1795,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
             costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
             durationMs: 0, success: true });
           concepts = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[];
-          violations = v2Verify(concepts, v2b, hints, slots, { restingYear });
+          violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
+            contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
