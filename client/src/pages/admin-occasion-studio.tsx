@@ -195,6 +195,11 @@ export default function AdminOccasionStudioPage() {
    *  like both lol"). Explicit modes remain for deliberate testing. */
   const [compMode, setCompMode] = useState<'auto' | 'free' | 'dealt'>('auto');
   const [cells, setCells] = useState<Cell[]>([]);
+  /** Floors still broken after the repair round. The engine ships them
+   *  VISIBLY by design — but the studio was swallowing the report, so a
+   *  counterfeit mask could sit on screen looking like nobody checked
+   *  (Aidan, on a shipped "h***": "It blocked hell lol"). */
+  const [standingViolations, setStandingViolations] = useState<string[]>([]);
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
   const [rack, setRack] = useState<Template[]>([]);
@@ -273,8 +278,9 @@ export default function AdminOccasionStudioPage() {
         freeComposition: compMode === 'auto' ? undefined : compMode === 'free',
         dislikes: dislikes.trim() || undefined,
       });
-      const { concepts = [], compMode: served } = (await r.json()) as { concepts: Concept[]; compMode?: string };
+      const { concepts = [], compMode: served, violations = [] } = (await r.json()) as { concepts: Concept[]; compMode?: string; violations?: string[] };
       setCells(concepts.map((c) => ({ concept: c, served })));
+      setStandingViolations(violations);
       // (Generations are logged server-side by /concepts — logging here
       // too would double the keep-rate denominator.)
       await Promise.all(concepts.map(async (c, i) => {
@@ -603,6 +609,12 @@ export default function AdminOccasionStudioPage() {
             was throwing away the engine's best output: the card that IS
             one perfect line. Real shops sell those — fixed, as written.
             So the question is now which KIND of stock this is. */}
+        {standingViolations.length > 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <span className="font-semibold">Shipped with standing floor violations</span> — the repair round couldn't fix these; treat the set with suspicion:
+            <ul className="mt-1 list-disc pl-4">{standingViolations.map((v, i) => <li key={i}>{v}</li>)}</ul>
+          </div>
+        )}
         <p className="-mb-1 text-xs text-stone-400">
           Two ways to keep.
           <span className="font-medium text-stone-500"> Editable</span> = the artwork carries it,
