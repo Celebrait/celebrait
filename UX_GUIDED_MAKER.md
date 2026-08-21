@@ -189,13 +189,54 @@ What we deliberately do NOT explain: why Rude vanished (under-18),
 how the engine works, anything about IP rules before they bite, and
 anything with the word "AI" in it.
 
+## Occasion-shaped from day one — build birthday, architect for all
+
+Decided 2026-08-21 (Aidan: "do we build this or consider the other
+categories and how they slot into the flow?"). The answer is BOTH, in
+this order: the other occasions cost one config schema now, or a
+rebuild later — because they do not all ask the same questions:
+
+| Occasion | The "age" question | Vibe | Dislike | Notes |
+|---|---|---|---|---|
+| Birthday | "How old are they turning?" | all four | funny/rude | the launch world |
+| Father's/Mother's Day | none | all four | funny/rude | dad-joke seam exists engine-side |
+| Anniversary | "How many years?" | all four | funny/rude | couple-addressed, engine rule exists |
+| New baby | none | warm (+gentle funny) | never | one-baby rule, neutral palette rules exist |
+| Retirement | none | all four | funny/rude | freedom seam exists |
+| Sympathy | none | NO VIBE STEP | never | humour off, serious path — the flow shrinks to 3 questions |
+
+So the shell is CONFIG-DRIVEN, one occasion in the config at launch:
+
+```
+occasion: {
+  key: 'birthday',
+  questions: ['who', 'age', 'vibe', 'interest', 'name'],
+  ageAsk: 'turning',      // 'turning' | 'years-together' | 'none'
+  tones: ['funny','warm','rude','mix'],
+  dislikeOn: ['funny','rude','mix'],
+}
+```
+
+- The maker RECEIVES its occasion (from the landing CTA / URL); it
+  does not ask. When world #2 is built, the ask becomes a Q0 chip
+  screen and nothing else changes.
+- The engine already runs every occasion above (profiles exist;
+  sympathy and other humour-off occasions take the serious path by
+  design). What the other worlds lack is what birthday got: the aisle
+  scans, band briefs and testing. That is ENGINE work per world,
+  weeks each — none of it blocks this build, and every future world
+  inherits the flow for the price of a config row.
+- Cost of this section: ~half a day of build. Cost of skipping it:
+  re-architecting the shell the week Father's Day lands.
+
 ## What this is NOT (v1 fences)
 
 - NOT the photo maker. No photos of people anywhere in this flow (no
   people in the occasion flow — locked). The two makers stay separate
   products until proven otherwise.
-- NOT occasions beyond Birthday. The flow ships when Birthday is
-  strong; the occasion chip row comes when a second world is built.
+- NOT occasions beyond Birthday AT LAUNCH — but the shell is
+  config-driven from day one (section above), so a new world is a
+  config row + engine work, never a flow rebuild.
 - NOT the catalogue/rack browse. Editable stock entry ("or pick one
   we made earlier") is its own build; leave a slot for it on the
   landing step, don't build it.
