@@ -33,13 +33,16 @@ const server = app.listen(0, async () => {
   const interest = process.argv[5] ?? '';
   const who = process.argv[6] ?? 'Anyone';
   const freeComposition = process.argv[7] === 'free' ? true : process.argv[7] === 'dealt' ? false : undefined;
-  const gender = who === 'Sister' || who === 'Mum' || who === 'Nan' ? 'her'
+  const gender = (process.argv[8] === 'him' || process.argv[8] === 'her') ? process.argv[8]
+    : who === 'Sister' || who === 'Mum' || who === 'Nan' ? 'her'
     : who === 'Brother' || who === 'Dad' || who === 'Grandad' ? 'him' : undefined;
   for (let i = 0; i < runs; i++) {
     const r = await fetch(`http://localhost:${port}/api/admin/card-lab/concepts`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        occasion: age ? `${age}th Birthday` : 'Birthday', who, gender, tone, pipeline: 'celebrait', age, freeComposition,
+        // OCC env var overrides the occasion — the non-birthday worlds
+        // are testable too (activated 2026-08-21).
+        occasion: process.env.OCC ?? (age ? `${age}th Birthday` : 'Birthday'), who, gender, tone, pipeline: 'celebrait', age, freeComposition,
         interest, dislikes: '', characters: 'objects', insideMode: 'blank',
         freeStyle: true, memory: true,
       }),

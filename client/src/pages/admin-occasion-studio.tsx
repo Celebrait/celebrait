@@ -123,13 +123,35 @@ function readAge(occasion: string): number | null {
  *  tones and age bands); the rest run on the shared engine until their
  *  worlds are written, and are marked so it is never ambiguous which
  *  you are testing. */
+/** ALL profile-backed occasions, activated for testing (Aidan,
+ *  2026-08-21: "activate the other occasions in the occasion builder so
+ *  we can properly test first... there are probably unseen things").
+ *  `built` still means "has its own WORLD" (bands, aisle scans) — only
+ *  birthday does. The rest run on their engine profiles; what testing
+ *  them surfaces goes into UX_GUIDED_MAKER.md's occasion config table.
+ *  Ordered roughly by UK card-aisle volume. */
 const WORLDS = [
   { key: 'birthday', label: 'Birthday', built: true },
+  { key: 'christmas', label: 'Christmas', built: false },
+  { key: "mother's day", label: "Mother's Day", built: false },
   { key: "father's day", label: "Father's Day", built: false },
+  { key: "valentine's day", label: "Valentine's", built: false },
   { key: 'anniversary', label: 'Anniversary', built: false },
+  { key: 'wedding', label: 'Wedding', built: false },
+  { key: 'engagement', label: 'Engagement', built: false },
   { key: 'new baby', label: 'New baby', built: false },
+  { key: 'baby shower', label: 'Baby shower', built: false },
+  { key: 'gender reveal', label: 'Gender reveal', built: false },
+  { key: 'new home', label: 'New home', built: false },
+  { key: 'new job', label: 'New job', built: false },
   { key: 'retirement', label: 'Retirement', built: false },
+  { key: 'graduation', label: 'Graduation', built: false },
+  { key: 'get well', label: 'Get well', built: false },
+  { key: 'thank you', label: 'Thank you', built: false },
+  { key: 'good luck', label: 'Good luck', built: false },
+  { key: 'congratulations', label: 'Congratulations', built: false },
   { key: 'sympathy', label: 'Sympathy', built: false },
+  { key: 'just because', label: 'Just because', built: false },
 ];
 
 interface BuildStat { build_commit: string | null; made: number; kept: number }
