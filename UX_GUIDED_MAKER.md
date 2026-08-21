@@ -55,11 +55,29 @@ Partner · Best mate · Friend · Colleague · Someone else.
 
 ### Q2 — "How old are they turning? (skip if you'd rather not say)"
 Number pad. Skip is a first-class button, not small print.
+- ⚠️ EXPLAIN WHAT THE AGE DOES (Aidan): giving it means the number
+  goes ON the card. Copy: "If it's a big one — 18, 21, 30, 40… — we
+  recommend it: the number becomes the star of the card. Any other age
+  we'll use with a lighter touch." (True to the engine: milestones
+  lead all three cards; ordinary ages appear once and still tune the
+  voice.) Skip copy: "Skip it and no age appears anywhere."
 - If age given: the band system does its work invisibly; under-18
-  quietly removes Rude from Q5 and the copy never mentions why.
+  quietly removes Rude from Q3 and the copy never mentions why.
 - If skipped: ageless card, no number anywhere (existing rule).
+- ⚠️ ORDER DEPENDENCY: age must come BEFORE the vibe step — the age
+  answer is what hides Rude. This is why vibe cannot be Q2.
 
-### Q3 — "Tell us one thing they're into. One's enough — the thing
+### Q3 — "What's the vibe?"
+Four chips: **Funny · Warm · Rude · One of each**. MOVED ABOVE the
+interest step (Aidan, 2026-08-21): the dislike option only exists on
+funny and rude, so tone has to be known before that screen renders.
+- Rude chip sets expectations honestly: "proper swearing, asterisked".
+- Rude hidden when age < 18; "One of each" under 18 resolves per the
+  open question below.
+- A dislike on a WARM card is joke fuel with no joke to power — the
+  engine builds the dislike card as a gag, so warm hides it.
+
+### Q4 — "Tell us one thing they're into. One's enough — the thing
 you'd mention first."
 Single free-text field. One thing only, by design (Aidan: "I don't
 think 2 things are needed").
@@ -68,29 +86,27 @@ think 2 things are needed").
 - **Skip = "Keep it classic"** — the generic roll is a real product
   (built, live), so skipping here is a choice, not a failure. Copy:
   "No worries — we'll make it a beautiful birthday card, no homework."
+- ⚠️ THE SPECIFICITY NUDGE — the single highest-value line of copy in
+  the whole flow, confirmed by weeks of testing (specific beats
+  category, four separate times): "The more specific, the better the
+  card — 'Man United' beats 'football', 'their allotment' beats
+  'gardening'."
 - ⚠️ The event-vs-love reading (a trip reads FORWARD) is engine-side
-  already; the question's phrasing deliberately allows both ("into"
-  covers a love and a plan).
+  already; the question's phrasing deliberately allows both — and one
+  sub-line makes it explicit: "A trip or a plan counts too."
+- **Dislike, on this screen, funny/rude only** (Aidan's call): a small
+  "+ something they can't stand?" link, not a step. Expectation set
+  where it's typed: "we'll build ONE of the three cards around it" —
+  the locked one-card rule, said up front so nobody wonders why the
+  other two ignore it.
 
-### Q4 — "Want their name on the front? (we'll design it in properly)"
+### Q5 — "Want their name on the front? (we'll design it in properly)"
 Name field + skip. Sets `recipientName`; one card leads with the name
 designed-in, exactly as the studio does.
-
-### Q5 — "Last one. What's the vibe?"
-Four chips: **Funny · Warm · Rude · One of each**.
-- "One of each" is NEW ENGINE WORK — see below. It may well become the
-  most-picked option: it defers the hardest decision and shows range,
-  which is the rack in miniature.
-- Rude hidden under 18 (from Q2), shown greyed with "not for kids'
-  cards" if age unknown? No — just hidden when age < 18, present
-  otherwise. Unknown age = present (adult default; the engine's floors
-  hold).
-
-### [Optional power step, decide later] — "Anything they can't stand?"
-The dislike produced some of the best cards in testing (Man City
-runs). But it's a sixth step. Recommendation: NOT a step —
-a small "+ add a dislike" link on Q3's screen for the people who
-want it. Keeps five-tap discipline; keeps the gold available.
+- ⚠️ SPELLING WARNING, prominent: "It'll be printed exactly as you
+  type it — worth a double-check." A misspelled name on a printed
+  card is the worst error the product can make, and the engine prints
+  letter-for-letter by design.
 
 ### Generate → THE PICK
 - Generation narration screen (exists — personalised step narration).
@@ -116,7 +132,7 @@ does not rebuild them.
 
 ## Engine work required (the only new backend)
 
-### 1. "One of each" = tone-per-slot (mixed mode)
+### 1. "One of each" = tone-per-slot (mixed mode) — Q3's fourth chip
 Today tone is per-SET. Mixed mode makes tone a slot property like
 angle/length/territory/ground (law 4 — structure is the server's):
 - Slots: one funny, one warm, one rude (order shuffled), each with its
@@ -150,6 +166,29 @@ If a UX idea needs a new prompt, it's out of scope for this build.
 
 ---
 
+## What testing says must be EXPLAINED (the microcopy list)
+
+Everything below is a lesson this engine actually paid for, surfaced
+as one line of customer copy at the moment it matters:
+
+| Where | The line (draft) | The lesson behind it |
+|---|---|---|
+| Age | "Big birthday? We recommend adding it — the number becomes the star." | Milestones lead all three; ordinary ages tread lightly |
+| Age skip | "Skip it and no age appears anywhere." | Wrong-guess age = ruined card; we never infer |
+| Vibe: Rude | "Proper swearing, asterisked." | Masked f/s/c, enforced in code |
+| Interest | "'Man United' beats 'football'." | Specific beats category — the biggest quality lever we have |
+| Interest | "A trip or a plan counts too." | Events read forward; no invented history |
+| Interest skip | "We'll make it a beautiful birthday card, no homework." | The generic roll is a product, not a fallback |
+| Dislike | "We'll build one of the three around it." | The locked one-card rule |
+| Name | "Printed exactly as you type it — double-check the spelling." | Letter-for-letter by design |
+| Generating | Expectation + narration screen, ~30–60s honest | Wait-state law: expectations up front |
+| A refused card | "That one didn't come out — want us to have another go?" | IP-safe retry, gentler words |
+| The pick | Tone label on each card when "One of each" | The mixed set must be legible |
+
+What we deliberately do NOT explain: why Rude vanished (under-18),
+how the engine works, anything about IP rules before they bite, and
+anything with the word "AI" in it.
+
 ## What this is NOT (v1 fences)
 
 - NOT the photo maker. No photos of people anywhere in this flow (no
@@ -180,8 +219,8 @@ If a UX idea needs a new prompt, it's out of scope for this build.
 
 ## Open questions for Aidan
 
-1. **Dislike**: "+ add" link on Q3 (recommended) or its own step, or
-   out of v1?
+1. ~~Dislike~~ — DECIDED (Aidan, 2026-08-21): lives on the interest
+   screen as a "+ add" link, funny/rude only.
 2. **Under-18 + "One of each"**: hide the chip, or quietly swap rude
    for a second funny?
 3. **Daily cap number** for the guided maker (photo maker precedent).
