@@ -150,7 +150,16 @@ const OFFSETS = {
 
 // Cream background — matches the card blank's lightest tone so blank panels
 // don't read as white printer paper against the printed scene panels.
-const CREAM_RGB = { r: 251, g: 245, b: 234 };
+// ⚠️ WHITE, NOT CREAM — and it was never our call. Aidan, 2026-08-21,
+// on reworking the Cape Town samples to white: "Prodigi prints white
+// anyway it ignores us lol". The warm cream this constant used to hold
+// (251,245,234) never survived onto a printed card — so the file was
+// quietly promising a tint the product doesn't have, and the only
+// place a customer ever SAW cream was the 3D preview. The file now
+// tells the truth. (Name kept so every call site stays diff-free;
+// follow-up: the 3D reveal's inside-left texture still renders warm —
+// client-side, cosmetic, worth aligning when next in that code.)
+const CREAM_RGB = { r: 255, g: 255, b: 255 };
 
 /** Scale a source image to fill a panel (cover semantics — crops edges if
  *  aspect ratios differ). */
