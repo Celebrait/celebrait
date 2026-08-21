@@ -117,6 +117,7 @@ const AdminCardLabPage = lazy(() => import("@/pages/admin-card-lab"));
 const AdminCardBenchPage = lazy(() => import("@/pages/admin-card-bench"));
 const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates"));
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
+const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
@@ -362,6 +363,14 @@ function Router() {
               <AdminLayout>
                 <AdminCardTemplatesPage />
               </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          {/* The guided maker preview — the customer flow rehearsed
+              behind admin auth, deliberately OUTSIDE AdminLayout so it
+              looks like what it is: the customer experience. */}
+          <Route path="/admin/guided-maker">
+            <RequireAdmin>
+              <AdminGuidedMakerPage />
             </RequireAdmin>
           </Route>
           <Route path="/admin/occasion-studio">
