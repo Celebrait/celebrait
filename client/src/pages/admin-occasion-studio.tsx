@@ -48,8 +48,11 @@ import { useToast } from '@/hooks/use-toast';
  *  with swearing over the top. It is a lane the market shelves on its
  *  own (top-three bestsellers, and Scribbler's whole brand), so it is a
  *  register here. */
-type Tone = 'funny' | 'warm' | 'rude';
-const TONES: Tone[] = ['funny', 'warm', 'rude'];
+type Tone = 'funny' | 'warm' | 'rude' | 'mix';
+/** 'mix' = One of each — the guided maker's fourth chip, benched here
+ *  first (lab-first rule): one funny, one warm, one rude in a set. */
+const TONES: Tone[] = ['funny', 'warm', 'rude', 'mix'];
+const TONE_LABELS: Record<Tone, string> = { funny: 'Funny', warm: 'Warm', rude: 'Rude', mix: 'One of each' };
 
 /** Bounded relationships (Aidan 2026-08-17). Free text made register,
  *  gender and age into prose a model had to guess at; chips make them
@@ -532,10 +535,10 @@ export default function AdminOccasionStudioPage() {
           <div className="flex gap-1.5">
             {TONES.map((t) => (
               <button key={t} type="button" onClick={() => setTone(t)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   tone === t ? 'border-brand bg-brand-muted/50 text-brand-dark'
                              : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
-                {t}
+                {TONE_LABELS[t]}
               </button>
             ))}
           </div>
@@ -718,7 +721,7 @@ export default function AdminOccasionStudioPage() {
               </tr>
             </thead>
             <tbody>
-              {TONES.map((t) => (
+              {TONES.filter((t) => t !== 'mix').map((t) => (
                 <tr key={t}>
                   <td className="p-1.5 text-left font-medium capitalize text-stone-600">{t}</td>
                   {BANDS.map((b) => {

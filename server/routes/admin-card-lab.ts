@@ -386,12 +386,12 @@ export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
  *  market shelves, so it is a tone here. The cheeky brief already
  *  described itself as sitting "between funny and rude", so the axis
  *  was always four points with one of them missing. */
-export type BirthdayTone = 'funny' | 'warm' | 'rude' | 'cheeky';
+export type BirthdayTone = 'funny' | 'warm' | 'rude' | 'cheeky' | 'mix';
 
 /** D3: what the buyer picks. Each tone still yields three different
  *  cards through the existing angle machinery — the tone sets the
  *  register, the angles keep the range. */
-const BIRTHDAY_TONES: Record<BirthdayTone, string> = {
+const BIRTHDAY_TONES: Record<Exclude<BirthdayTone, 'mix'>, string> = {
   funny: `TONE — FUNNY. The biggest-selling birthday register in Britain, and the widest: it runs from a gentle observation all the way to properly taking the mickey. Make them laugh out loud, not smile politely. The joke is the product: if a card here has no laugh in it, it has failed even if it is warm and true. Sharpness is welcome — the fond dig, the thing you would only say to someone you love, seaside-postcard innuendo — everything except actual swearing, which is its own register.`,
   warm: `TONE — WARM. Affection first, wit second — the card someone keeps on the mantelpiece for a month. Still SPECIFIC and still with a turn: warm is not vague, and "you're amazing" is not warmth, it is filler. Think fond, noticing, generous. No mickey-taking, no roasting, no age jokes at all in this tone.`,
   // ⚠️ RETIRED 2026-08-19, kept only so old rows still resolve. Aidan:
@@ -472,11 +472,13 @@ export function statedAge(occasion: string | undefined): number | null {
 
 /** The birthday occasion brief, composed per request. Replaces the
  *  static birthday profile whenever the occasion classifies as one. */
+const MIX_TONE_BRIEF = `TONE — ONE OF EACH. This set is a RANGE, not a register: each slot below names its own tone, and the three must be unmistakably different asks side by side. The funny card makes them laugh out loud — the joke is its product. The warm card makes them feel something — fond, noticing, specific, no mickey-taking, no age jokes. The rude card makes them swear — it alone carries real masked swearing, and its joke survives with the swearing removed. ⚠️ THE FAILURE IS BLUR: a warm card with a smirk, a funny card that is really just kind, a rude card whose only rudeness is the swear word. A buyer choosing between these three should feel three different cards, not one card at three volumes.`;
+
 export function birthdayProfile(tone: BirthdayTone, age: number | null): OccasionProfile {
   return {
     key: 'birthday',
     humour: tone === 'warm' ? 'gentle' : 'full',
-    brief: `${BIRTHDAY_TONES[tone]}
+    brief: `${tone === 'mix' ? MIX_TONE_BRIEF : BIRTHDAY_TONES[tone as Exclude<BirthdayTone, 'mix'>]}
 
 ${birthdayAgeBlock(age)}
 
@@ -572,7 +574,10 @@ const conceptsSchema = z.object({
   cheeky: z.boolean().default(false),
   /** D3 — the buyer-facing tone for the birthday world. Ignored by
    *  occasions that have not been built out yet. */
-  tone: z.enum(['funny', 'warm', 'cheeky', 'rude']).default('funny'),
+  /** 'mix' = ONE OF EACH (guided maker's fourth chip): one funny, one
+   *  warm, one rude card in a single set — tone becomes a slot property
+   *  like angle and ground. v2 only; classic has no slot machinery. */
+  tone: z.enum(['funny', 'warm', 'cheeky', 'rude', 'mix']).default('funny'),
   /** Override the rotated angle set. Admin/testing only — the studio
    *  never sends it, so production always gets pickAngles(). Exists so
    *  one angle can be A/B'd against another on an identical brief. */
@@ -1147,7 +1152,7 @@ const wordsToRe = (ws: unknown): RegExp | null => {
 };
 
 /** Every floor, in code. Returns named violations for the repair round. */
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number }): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
@@ -1184,6 +1189,10 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const ageRe = new RegExp(`\\b${opts.contextAge}(st|nd|rd|th)?\\b`);
     const n = fronts.filter((f) => ageRe.test(f)).length;
     if (n > 1) v.push(`age-context: ${n} fronts name the age ${opts.contextAge} — on this occasion the age is context, not material, and may appear on at most ONE card`);
+  }
+  // ONE-OF-EACH floors: the rude slot alone carries the swearing.
+  if (opts?.rudeSlot !== undefined) {
+    if (!V2_SWEAR.test(fronts[opts.rudeSlot] ?? '')) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing`);
   }
   if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing');
   // Checks the inside as well as the front: both are printed, and an
@@ -1280,13 +1289,13 @@ export function archetypeSystemPrompt(): string {
   return `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a milestone, the tradition answers with symbols from decades-old cards (observed: ceremonial keys on a 21st) while the actual person answers with what their days genuinely contain NOW — profile the person alive in ${new Date().getFullYear()}, whatever their age. Return JSON {"archetype":"100-140 words. FIRST commit to the most likely SPECIFIC TYPE this person is on the brief's evidence — not the demographic average. Every interest splits into distinct tribes at EVERY age (the competitive one, the ritualist, the kit-obsessed one, the quietly devoted one, the social one...) — pick the likeliest for THIS person and profile THAT person: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them (current is REGISTER and irony, never slang-stuffing — forced slang is the mum-trying failure); where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"],"palette_world":"THE COLOUR WORLD THIS PERSON'S SUBJECT ACTUALLY LIVES IN, 8-16 words, theirs rather than a designer's default: the light it happens in, the materials it is made of, the hour they love it at. Then give it TODAY'S FINISH — name the hues as a modern print shop would ink them, clean and alive, never aged down to seem tasteful. ⚠️ THE AGE MUST NOT TINT THE COLOUR. No reasoning that older means muted, heritage or sepia, and none that younger means neon — every age shops in the same modern shop, and 'they are 60 so soften it' is the exact failure this field keeps producing. If the brief gave you NO subject, work from WHO IT IS FOR and the REGISTER — a 40-year-old sister and a 40-year-old brother should not receive interchangeable cards, and the recipient tilting the whole design's feel is exactly what a good shop does with its For Her and For Him walls. ⚠️ BUT NEVER BY CLICHÉ: pink-because-she's-a-woman is as lazy as navy-because-he's-a-man, and both are failures. Think instead about what THIS person would actually pick up — its elegance or its wit, its warmth or its edge — and let that choose the colours. Name a ground and a leading colour, and never default to primary poster colour just because it is bold.","territories":["EXACTLY THREE, one per card, and this is the field that stops a set being one joke told three ways. Each must come from a DIFFERENT REGION OF THIS PERSON'S LIFE — if two of them could come up in the same conversation, replace one. ⚠️ Your FIRST instinct for this brief is the region everyone reaches for; keep it as one of the three at most, and go genuinely looking for the other two — what they do that nobody sees, what they are like with other people, what they actually spend their time and money on, what has changed for them lately. Name each in 3-8 words, as an AREA to explore and never as a joke or a line."]}. Concrete, ${new Date().getFullYear()}, UK.`;
 }
 
-export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string }>, occasionBrief: string): string {
+export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string }>, occasionBrief: string): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
 ${occasionBrief}
 
 THE THREE SLOTS — one card each, exactly as assigned:
-${slots.map((s, i) => `${i + 1}. angle=${s.angle}, ${s.format ? `format=${s.format}, ` : ''}length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, in whatever shape the thought wants — flowing sentences or short beats — with the last few words landing the turn. The stacked-fragment stack is one shape among several and it is currently overused)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, GROUND: ${s.ground}` : ''}`).join('\n')}
+${slots.map((s, i) => `${i + 1}. ${s.tone ? `TONE=${s.tone.toUpperCase()}, ` : ''}angle=${s.angle}, ${s.format ? `format=${s.format}, ` : ''}length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, in whatever shape the thought wants — flowing sentences or short beats — with the last few words landing the turn. The stacked-fragment stack is one shape among several and it is currently overused)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, GROUND: ${s.ground}` : ''}`).join('\n')}
 ⚠️ GROUND tells you the WEIGHT of that card's background — soft (pale and full of light), mid (a true colour at easy depth) or deep (rich and saturated — still clean, never murky). It does NOT tell you the hue: take that from the subject's colour world.
 ⚠️ AND NO TWO CARDS SHARE A LEADING HUE — nor may one ink thread through all three cards as ground on one, lead on another and accent on the third; observed, a single acid green stitched an entire set together and it read as one design decision made three times. The exception is a colour the SUBJECT owns as IDENTITY — a club's red, a stout's black: a colour a fan would name unprompted. ⚠️ OWNERSHIP IS NARROW. A place does not own its scenery: an island's sea blue, a city's stone, a venue's decor are backdrop, not identity, and claiming them as owned is how this exception gets gamed (observed: an Ibiza set threaded aqua-and-purple through all three cards on exactly that claim). ⚠️ AND EVEN A TRULY OWNED COLOUR IS A THREAD, NOT A UNIFORM: it may recur across the set, but each card still builds its OWN palette around it — different ground, different supporting inks, different balance. Three cards wearing the same full scheme is the failure this rule exists to stop, whoever owns the colour. The colour world has more than one colour in it — spread the three cards across it, one lead each. Weight variety alone is not variety: an observed set came back navy, teal and cream-with-blue — three depths of the same blue, which from three feet away is one card three times. Three weights AND three leads, all from the same world, is what makes a set read as three real choices.
 ⚠️ WHERE A SLOT NAMES A TERRITORY, THAT CARD LIVES THERE — words and artwork both. The three territories were chosen to be far apart on purpose, because the failure this prevents is three cards mining one seam and reading as one joke told three times. Do not let a second card drift into a first card's territory because the material there felt richer.
@@ -1508,7 +1517,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const serious = occProfile.humour === 'off';
     // The rude TONE implies cheek; the legacy checkbox still works so
     // the bench and any saved call sites keep behaving.
-    const effectiveCheeky = (body.cheeky || body.tone === 'rude') && !serious;
+    const effectiveCheeky = (body.cheeky || body.tone === 'rude') && body.tone !== 'mix' && !serious;
     // Which three of the four angles this set gets. Rotated here so the
     // three shapes stop being identical on every brief we have ever run.
     const chosenAngles = (body.angles as Angle[] | undefined)
@@ -1759,6 +1768,18 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // pins angle and length. Optional: a missing or short array just
         // leaves the slots unpinned rather than failing the set.
         const groundWeights = ['soft', 'mid', 'deep'].sort(() => Math.random() - 0.5);
+        // ONE OF EACH: tone becomes a slot property (law 4). Shuffled so
+        // the rude card isn't always third; the straight angle never
+        // lands on the rude slot (a no-joke card in the register whose
+        // whole point is the joke's language is nothing at all).
+        const mixTones = body.tone === 'mix' ? (['funny', 'warm', 'rude'] as const).slice().sort(() => Math.random() - 0.5) : null;
+        if (mixTones) {
+          const r = mixTones.indexOf('rude');
+          if (v2Angles[r] === 'straight') {
+            const swap = v2Angles.findIndex((a) => a !== 'straight');
+            [v2Angles[r], v2Angles[swap]] = [v2Angles[swap], v2Angles[r]];
+          }
+        }
         // The year device stays alive but stops being every set's crutch.
         const restingYear = statedAgeValue !== null && Math.random() >= 1 / 3
           ? new Date().getFullYear() - statedAgeValue : undefined;
@@ -1769,6 +1790,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // The coin. Explicit override wins; otherwise both modes serve.
         const freeComp = body.freeComposition ?? Math.random() < 0.5;
         const slots = v2Angles.map((a, i) => ({ angle: a,
+          tone: mixTones ? mixTones[i] : undefined,
           format: freeComp ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
           register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
           territory: territories.length === 3 ? territories[i] : undefined,
@@ -1813,6 +1835,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
             .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
+            rudeSlot: mixTones ? mixTones.indexOf('rude') : undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
@@ -1820,7 +1843,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
         void db.insert(cardGenerations).values(concepts.map((c) => ({
           build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
-          occasion: occProfile.key, tone: body.tone ?? null, age: v2b.age,
+          occasion: occProfile.key, tone: mixTones ? mixTones[concepts.indexOf(c)] : (body.tone ?? null), age: v2b.age,
           angle: c.angle ?? null, recipient: body.who ?? null,
           interest: interestText || null, front_text: c.front_text,
           art_direction: c.art_direction ?? null, palette: c.palette ?? null,
@@ -1830,7 +1853,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // Violations still standing after the repair round ship VISIBLY,
         // never silently — the studio can show them and the harness
         // counts them. "Warned and shipped anyway" is the old world.
-        return res.json({ concepts, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt' });
+        // ONE OF EACH: each card declares its tone so the pick screen
+        // can label the three (and keeps carry the right register).
+        const conceptsOut = mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts;
+        return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt' });
       } catch (err) {
         console.error('[CARD-LAB:v2] pipeline failed, falling back to classic:', err);
       }
