@@ -39,12 +39,20 @@ There is no single answer to "what do we lead with", because arrivals
 differ. The rule: **each surface leads with what its visitor came
 for.**
 
-- **Homepage** → leads with the BRAND MOMENT: the photo-route hero
-  (the 3D card, "Put them in the picture") stays — it is the moat,
-  the thing nobody else can screenshot. But immediately under it, the
-  **two-speed strip**: "In a hurry? Three cards in three minutes" →
-  quick maker · "Browse the rack" → catalogue. Then occasion rails.
-  The homepage's job is desire + orientation, never interrogation.
+- **Homepage** → leads with THE MAGIC DEMONSTRATED, quick-maker
+  first (REVISED 2026-08-22 — Aidan: "occasion builder approach is
+  just as valuable... targeting more of the market", and he is right:
+  the earlier photo-hero call over-weighted differentiation against
+  addressable intent — "upload a photo" quietly excludes the casual
+  majority). The hero is a live-feeling demo: a typed brief ("Dad ·
+  60 · his allotment") dissolving into three REAL cards, rotating
+  across audiences so it reads universal. CTA "Make theirs in
+  minutes"; secondary "Put them in the picture". ACT TWO, one scroll
+  down, is the photo route at full ceremony — the 3D card, the moat,
+  "the one they keep forever". Then rack rails. The demo must be
+  unmistakably ours (real engine output, specific briefs) or the
+  page reads as a generic AI card site — quality IS the
+  differentiation at the top of this funnel.
 - **/cards/… (catalogue + SEO pages)** → leads with CARDS, and its
   maker CTA is the QUICK maker (the arrival was searching for a
   card, not an experience). Photo route appears as the step-up rail.
@@ -112,6 +120,26 @@ needs roughly two studio sittings (~50 generated, keep ~25) to clear
 its hub bar — that is the content roadmap, and it is deliberately
 the same activity as engine QA (build stock = test worlds).
 
+## 5b. The pick, when goes multiply — the shortlist
+
+Three options is a gift; nine is paralysis. The quick maker's pick
+screen handles accumulation with ONE mechanic, the capped shortlist:
+
+- Each card: **"This one"** (ends the flow) or **keep it back** —
+  pins it to a shelf above the trio.
+- "Three new ones" rolls a fresh trio UNDER the shelf; the near-miss
+  is safe, so regenerating stops feeling like gambling a good card
+  away (loss aversion is why regen buttons go unpressed).
+- **The shelf caps at 3.** Keeping a fourth asks which drops — the
+  forced trade is the decision mechanism; comparison converges
+  instead of accumulating.
+- Everything un-kept **evaporates**. Generations are ephemeral; only
+  the PICKED card becomes a draft. No hoard in the studio, no image
+  storage for unpicked fronts, and the daily cap (5 sets) bounds a
+  session at 15 seen / 3 held / 1 chosen.
+- The live question is only ever "these three, or roll again?" —
+  never a gallery audit.
+
 ## 6. The two creation routes — separate flows, one platform
 
 **They stay separate.** The quick maker never asks for a photo; the
@@ -175,8 +203,8 @@ card images, generous white, no decoration competing with the cards.
 
 ## 10. Open calls for Aidan
 
-1. Homepage hero: photo-route 3D hero KEPT (recommended) or a
-   three-door hero?
+1. ~~Homepage hero~~ — DECIDED 2026-08-22: quick-maker demo hero,
+   photo route as act two at full ceremony.
 2. "Quick card" as the customer-facing name — better ideas welcome
 3. Kids aisle placement: inside birthday (recommended) or top-level?
 4. Buy-as-is on fixed cards at launch, or personalise-inside-only?

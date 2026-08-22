@@ -112,8 +112,10 @@ designed-in, exactly as the studio does.
 - Generation narration screen (exists — personalised step narration).
 - Three fronts land. This is the shop moment: cards big, minimal
   chrome, tone label per card when "One of each".
-- Actions per card: **This one** · (regen = "Start again with these
-  details" — the locked regen decision, no tweak workbench).
+- Actions per card: **This one** · **keep it back** (the shortlist,
+  see UX_PLATFORM_IA.md §5b: capped at 3, survives regens, un-kept
+  cards evaporate, only the picked card becomes a draft) · regen =
+  "Three new ones" (the locked regen decision, no tweak workbench).
 - Fronts count toward the daily cap (existing decision).
 
 ### THE INSIDE — "sign it off"
