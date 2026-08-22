@@ -1837,18 +1837,25 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // territories and the server pins one per slot, the same way it
         // pins angle and length. Optional: a missing or short array just
         // leaves the slots unpinned rather than failing the set.
-        // THE PRESENCE DEAL (Aidan, 2026-08-22: "too bold and heavy rn...
-        // I need my poster vibe but soft delicate tones coming through").
-        // His rack audit: ~80% of cards were at full volume in scale,
-        // weight AND darkness at once — a presence problem, not a colour
-        // one. One card per set at each volume, by construction: the
-        // loud poster drops to exactly one in three.
-        const groundWeights = ['whisper', 'mid', 'full'].sort(() => Math.random() - 0.5);
         // ONE OF EACH: tone becomes a slot property (law 4). Shuffled so
         // the rude card isn't always third; the straight angle never
         // lands on the rude slot (a no-joke card in the register whose
         // whole point is the joke's language is nothing at all).
         const mixTones = body.tone === 'mix' ? (['funny', 'warm', 'rude'] as const).slice().sort(() => Math.random() - 0.5) : null;
+        // THE PRESENCE DEAL, brief-aware (Aidan: "it should be based on
+        // user input as well right, not just randomly delivered?").
+        // The RANGE is still dealt — a set never sits at one volume —
+        // but the centre of gravity follows the brief: warm leans
+        // whisper, rude leans full, kids lean bright-and-loud (pure
+        // celebration, never moody), the default spans all three. In
+        // one-of-each sets presence pairs with each card's own tone.
+        const coinP = (x: string, y: string) => (Math.random() < 0.5 ? x : y);
+        const groundWeights = mixTones
+          ? mixTones.map((t) => (t === 'warm' ? 'whisper' : t === 'rude' ? 'full' : 'mid'))
+          : (body.tone === 'warm' ? ['whisper', 'mid', coinP('whisper', 'full')]
+            : body.tone === 'rude' ? ['mid', 'full', coinP('whisper', 'full')]
+            : statedAgeValue !== null && statedAgeValue <= 12 ? ['mid', 'full', coinP('mid', 'whisper')]
+            : ['whisper', 'mid', 'full']).sort(() => Math.random() - 0.5);
         if (mixTones) {
           const r = mixTones.indexOf('rude');
           if (v2Angles[r] === 'straight') {
