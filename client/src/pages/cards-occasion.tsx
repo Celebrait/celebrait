@@ -23,7 +23,7 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 
 interface CatalogueCard {
   id: number; front_text: string; tone?: string | null; age?: number | null;
-  recipient?: string | null; editable?: boolean; imageUrl: string;
+  recipient?: string | null; editable?: boolean; interest?: string | null; imageUrl: string;
 }
 interface AisleLink { slug: string; label: string; count: number }
 interface Payload {
@@ -54,10 +54,13 @@ export default function CardsOccasionPage() {
    *  remain the SEO surface — chips here are for the person browsing. */
   const [styleFilter, setStyleFilter] = useState<string | null>(null);
   const [ageFilter, setAgeFilter] = useState<number | null>(null);
-  /** Typed age search — finds ANY age on the wall, including ones
-   *  below the aisle threshold (Aidan: "I have cards for 6 year olds
-   *  here but there's no way of finding them"). */
-  const [ageQuery, setAgeQuery] = useState('');
+  /** One search box, two behaviours (Aidan: "Free search would be
+   *  cool tbh, like ibiza will find my ibiza cards" + the 6-year-old
+   *  problem): digits = an exact age (works below the aisle
+   *  threshold); words = free text over the card's front AND the
+   *  brief it was made from, so "ibiza" finds the Es Vedrà card whose
+   *  front never says Ibiza. */
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     setState('loading');
@@ -146,10 +149,10 @@ export default function CardsOccasionPage() {
                       <button key={l.slug} type="button" onClick={() => { setAgeQuery(''); setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug)); }}
                         className={`rounded-full border px-3 py-1 text-sm ${ageFilter === parseInt(l.slug) ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.slug}</button>
                     ))}
-                    <input value={ageQuery}
-                      onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 3); setAgeQuery(v); setAgeFilter(v ? parseInt(v) : null); }}
-                      placeholder="Any age…" inputMode="numeric"
-                      className="h-8 w-24 rounded-full border border-keeper-hair bg-white/70 px-3 text-sm text-keeper-body outline-none placeholder:text-keeper-meta focus:border-keeper-gold" />
+                    <input value={query}
+                      onChange={(e) => { const v = e.target.value.slice(0, 40); setQuery(v); setAgeFilter(/^\d{1,3}$/.test(v.trim()) ? parseInt(v.trim()) : null); }}
+                      placeholder="Search — ibiza, 6, fishing…"
+                      className="h-8 w-44 rounded-full border border-keeper-hair bg-white/70 px-3 text-sm text-keeper-body outline-none placeholder:text-keeper-meta focus:border-keeper-gold" />
                   </div>
                 )}
               </div>
@@ -161,7 +164,9 @@ export default function CardsOccasionPage() {
             <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4">
               {data.cards
                 .filter((c) => (styleFilter === null || (c.tone ?? '').toLowerCase() === styleFilter)
-                  && (ageFilter === null || c.age === ageFilter))
+                  && (ageFilter === null || c.age === ageFilter)
+                  && (ageFilter !== null || !query.trim() || /^\d{1,3}$/.test(query.trim())
+                    || `${c.front_text} ${c.interest ?? ''} ${c.recipient ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())))
                 .map((c) => (
                 <Link key={c.id} href={`/card/${c.id}`} className="group block">
                   <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />

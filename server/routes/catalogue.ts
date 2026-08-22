@@ -127,6 +127,9 @@ export function registerCatalogueRoutes(app: Express): void {
           age: t.age,
           recipient: t.recipient,
           editable: t.editable,
+          // The search haystack: the brief's interest finds cards whose
+          // front never names it ("Es Vedrà" cards match "ibiza").
+          interest: t.interest,
           imageUrl: publicImageUrl(t.image_path),
         })),
       });
