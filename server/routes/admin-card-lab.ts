@@ -1887,6 +1887,20 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // the three sit at different weights, which is what makes a
           // rack read as a range rather than a swatch.
           ground: groundWeights[i] }));
+        // ⚠️ WHISPER NEVER LANDS ON THE TYPE-AS-STRUCTURE FORMATS.
+        // typeled and label ORDER type set huge; whisper orders it
+        // small and quiet — dealt together, the render prompt argues
+        // with itself. Swap the whisper onto a compatible slot, or
+        // soften to mid when none exists. (Free comp has no formats,
+        // so no clash; in one-of-each this can cost the warm slot its
+        // whisper — mid is the honest compromise there.)
+        for (;;) {
+          const clash = slots.findIndex((sl) => sl.ground === 'whisper' && (sl.format === 'typeled' || sl.format === 'label'));
+          if (clash === -1) break;
+          const host = slots.findIndex((sl) => sl.ground !== 'whisper' && sl.format !== 'typeled' && sl.format !== 'label');
+          if (host !== -1) { const g = slots[clash].ground; slots[clash].ground = slots[host].ground; slots[host].ground = g; }
+          else { slots[clash].ground = 'mid'; }
+        }
         const sys = v2SystemPrompt(body.charm ? 'charm' : (body.pipeline as 'celebrait' | 'open'), slots, occProfile.brief);
         // Aidan, 2026-08-20: "whatever the user chooses MUST dictate to an
         // extent the palette as it builds the archetype." Colour was the one
