@@ -2611,72 +2611,41 @@ export function registerAdminCardLabRoutes(app: Express): void {
   // One front, gpt-image-2 LOW (~$0.006). The client fires three of
   // these in parallel — no batching server-side so each card can land
   // and reveal the moment it's ready.
-  // ── THE RACK AUDIT ────────────────────────────────────────────────
-  // Aidan, 2026-08-22: "scan my stock and analyse its content and
-  // categorise it properly in birthdays". The catalogue's aisles slice
-  // on age/recipient/tone — columns that early keeps often left blank
-  // (the studio grew those chips over time). This reads each card's OWN
-  // text and art direction and:
-  //   · FILLS blanks with what the card visibly says about itself
-  //   · NEVER overwrites a stored value — Aidan's chips are ground
-  //     truth; where the card contradicts them it REPORTS the mismatch
-  //     and leaves the row alone (his eye decides, not a classifier)
+  // ── THE SHELVING CHECK ────────────────────────────────────────────
+  // Was an LLM content scan; Aidan retired it after one real run
+  // ("Probably is a manual job tbh?") — the fill half found nothing
+  // (the studio chips already store every field) and judgement about
+  // where a card belongs is his, via the shelf editor. What SURVIVES
+  // is the part that needed no judgement: pure-code consistency checks
+  // for stored data that mis-shelves cards into wrong aisles —
+  // invisible across 154 tiles by eye, instant and free in code.
   app.post('/api/admin/card-lab/rack-audit', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
-    if (!openai) return res.status(503).json({ message: 'OpenAI not configured' });
     const occasion = String(req.body?.occasion ?? 'birthday').toLowerCase();
     try {
       const rows = await db.select().from(cardTemplates).where(eq(cardTemplates.occasion, occasion));
-      if (!rows.length) return res.json({ scanned: 0, filled: {}, mismatches: [] });
-
-      const filled = { age: 0, recipient: 0, tone: 0, gender: 0 };
       const mismatches: string[] = [];
-      const BATCH = 20;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const batch = rows.slice(i, i + BATCH);
-        const gen = await openai.chat.completions.create({
-          ...conceptParams(2400, 0),
-          messages: [
-            { role: 'system', content: `You catalogue greeting cards for a UK shop's aisles. For each card you get its front text, its artwork description, and what the shop currently knows. Judge ONLY from what the card itself visibly says or shows — never guess from vibes. Return JSON {"cards":[{"id":N,"age":number|null,"recipient":string|null,"tone":"funny"|"warm"|"rude"|null,"gender":"him"|"her"|null,"mismatch":string|null}]}.
-Rules:
-- age: only when the card names or depicts a specific age (words or artwork numeral). "FIFTY." = 50. Otherwise null.
-- recipient: only when the card addresses one by name — Mum, Dad, Nan, Grandad, Sister, Brother, Daughter, Son, Best mate, Friend, Colleague, Partner. Otherwise null.
-- tone: rude only if real swearing (masked or not) is on the card; warm if affection clearly leads with no mickey-taking; funny if a joke leads. Null if genuinely unclear.
-- gender: only from explicit gendered address ON the card ("queen", "fella"). Almost always null.
-- mismatch: when a KNOWN value contradicts the card (known age 40 but the card says FIFTY) — one short sentence naming both. Otherwise null. A blank known value is never a mismatch.` },
-            { role: 'user', content: JSON.stringify({ cards: batch.map((t) => ({
-              id: t.id, front_text: t.front_text, art_direction: t.art_direction,
-              known: { age: t.age, recipient: t.recipient, tone: t.tone, gender: t.gender },
-            })) }) },
-          ],
-          response_format: { type: 'json_object' },
-        });
-        void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-          provider: 'openai', model: CONCEPT_MODEL, quality: null,
-          costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
-          durationMs: 0, success: true });
-        const out = (JSON.parse(gen.choices[0]?.message?.content ?? '{}').cards ?? []) as Array<{
-          id: number; age: number | null; recipient: string | null; tone: string | null; gender: string | null; mismatch: string | null }>;
-        for (const c of out) {
-          const row = batch.find((r) => r.id === c.id);
-          if (!row) continue;
-          const patch: Record<string, unknown> = {};
-          if (row.age === null && Number.isInteger(c.age) && (c.age as number) >= 1 && (c.age as number) <= 110) { patch.age = c.age; filled.age++; }
-          if (!row.recipient && c.recipient) { patch.recipient = String(c.recipient).slice(0, 40); filled.recipient++; }
-          if (!row.tone && (c.tone === 'funny' || c.tone === 'warm' || c.tone === 'rude')) { patch.tone = c.tone; filled.tone++; }
-          if (!row.gender && (c.gender === 'him' || c.gender === 'her')) { patch.gender = c.gender; filled.gender++; }
-          if (Object.keys(patch).length) await db.update(cardTemplates).set(patch).where(eq(cardTemplates.id, c.id));
-          if (c.mismatch) mismatches.push(`#${c.id} "${row.front_text.slice(0, 40)}": ${c.mismatch}`);
+      const IMPLIES: Record<string, 'him' | 'her'> = { mum: 'her', nan: 'her', sister: 'her', daughter: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him' };
+      for (const t of rows) {
+        const implied = IMPLIES[(t.recipient ?? '').toLowerCase()];
+        if (implied && t.gender && t.gender !== implied) {
+          mismatches.push(`#${t.id} "${t.front_text.slice(0, 40)}": recipient ${t.recipient} implies ${implied} but gender is stored as ${t.gender} — it shelves in the wrong For Him/Her aisle`);
+        }
+        if (t.tone === 'rude' && !V2_SWEAR.test(t.front_text)) {
+          mismatches.push(`#${t.id} "${t.front_text.slice(0, 40)}": shelved rude but the front carries no swearing`);
+        }
+        if (t.age !== null && (t.age < 1 || t.age > 110)) {
+          mismatches.push(`#${t.id}: impossible age ${t.age}`);
         }
       }
-      res.json({ scanned: rows.length, filled, mismatches });
+      res.json({ scanned: rows.length, filled: {}, mismatches });
     } catch (err) {
-      console.error('[CARD-LAB] rack-audit failed:', err);
-      res.status(500).json({ message: 'The scan fell over — nothing was changed beyond what it reported' });
+      console.error('[CARD-LAB] shelving check failed:', err);
+      res.status(500).json({ message: 'The check fell over' });
     }
   });
 
-  // ── THE IP-SAFE RETRY ─────────────────────────────────────────────
+  // ── THE IP-SAFE RETRY  // ── THE IP-SAFE RETRY ─────────────────────────────────────────────
   // Aidan, on a Toy Story set where the writer asked for "the whole
   // gang" and both image providers refused: "keep things as they are,
   // but have a try again button that enforces the IP rule - same front

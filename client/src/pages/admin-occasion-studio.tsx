@@ -241,10 +241,8 @@ export default function AdminOccasionStudioPage() {
     try {
       const r = await apiRequest('POST', '/api/admin/card-lab/rack-audit', { occasion: world.key });
       const j = await r.json();
-      const f = j.filled ?? {};
-      const parts = [`${j.scanned} scanned`,
-        `filled — age: ${f.age ?? 0}, recipient: ${f.recipient ?? 0}, tone: ${f.tone ?? 0}, gender: ${f.gender ?? 0}`];
-      if (j.mismatches?.length) parts.push(`⚠️ ${j.mismatches.length} mismatches (left untouched): ${j.mismatches.join(' · ')}`);
+      const parts = [`${j.scanned} checked`];
+      parts.push(j.mismatches?.length ? `⚠️ ${j.mismatches.length} shelving problems — fix via the tile editor: ${j.mismatches.join(' · ')}` : 'shelving is consistent ✓');
       setAuditReport(parts.join(' — '));
       loadRack();
     } catch (e: any) {
@@ -866,7 +864,7 @@ export default function AdminOccasionStudioPage() {
             <p className="text-xs font-semibold text-stone-700">The birthday rack — {rack.length} {rack.length === 1 ? 'card' : 'cards'}</p>
             <button type="button" onClick={() => void runRackAudit()} disabled={auditBusy}
               className="rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-50">
-              {auditBusy ? 'Scanning the rack…' : 'Scan & categorise'}
+              {auditBusy ? 'Checking…' : 'Check shelving'}
             </button>
           </div>
           {auditReport && (
