@@ -56,5 +56,6 @@ const server = app.listen(0, async () => {
       console.log(`        art:     ${c.art_direction}`);
     }
   }
-  server.close(); process.exit(0);
+  server.close(); await new Promise((r) => setTimeout(r, 2000)); // let fire-and-forget generation logging land
+  process.exit(0);
 });

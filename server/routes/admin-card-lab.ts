@@ -1155,6 +1155,24 @@ interface V2Brief {
 }
 interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
 
+/** ── THE SEAM LEDGER ─────────────────────────────────────────────
+ *  Blank briefs converge on the demographic's most-shared material:
+ *  the civic checklist was spent, and the model moved next door to
+ *  the phone screen (18 tabs, notification badges — Aidan: "Why do
+ *  we keep referencing group chats?"). Bans are whack-a-mole: each
+ *  one shrinks blank-brief material and the model reaches for the
+ *  next-most-central cliché. So seams REST instead — the birth-year
+ *  ration generalised: when one carries more than its share of this
+ *  aisle's recent sets it sits out until its share falls. No seam
+ *  ever dies; none becomes the wallpaper. */
+const SEAM_LEDGER: Array<{ name: string; desc: string; re: RegExp }> = [
+  { name: 'the phone screen', desc: 'the group chat, tabs, notifications, screenshots, voice notes, battery, apps, the camera roll — life as it appears on a phone', re: /\b(phones?|screens?|chargers?|charging cables?|e-?tickets?|group[- ]?chats?|tabs open|notifications?|screenshots?|voice ?notes?|batter(?:y|ies)|apps?|app-style|scrolling|read receipts?|camera rolls?|selfies?|dms|typing bubbles?|shared locations?|screen time|wifi|social feeds?|online)\b/i },
+  { name: 'the civic checklist', desc: 'votes, ID, forms, contracts, admin — what is newly permitted', re: /\b(votes?|voting|ballots?|polling|id checks?|signatures?|terms (?:and|&) conditions|forms?|contracts?|paperwork|admin)\b/i },
+  { name: 'money admin', desc: 'split bills, overdrafts, rent, receipts, surcharges — the price of being this age', re: /\b(split(?:ting)? (?:the )?bill|split-?payments?|overdrafts?|payday|rent|council tax|receipts?|surcharges?|contactless|bank cards?|standing orders?|direct debits?)\b|£\d/i },
+  { name: 'the night out', desc: 'pres, taxis, the last train home, chips — the going-out ritual', re: /\b(pres|pre-?drinks|ubers?|taxis?|night ?bus(?:es)?|last train|guest ?lists?|dance ?floors?|kebabs?|club nights?|big nights?)\b/i },
+  { name: 'the early night', desc: 'cancelled plans, the sofa, in bed by nine — joy of missing out', re: /\b(cancell?ed plans?|early nights?|in bed by|staying in|no plans|sofas?|pyjamas|duvets?|naps?)\b/i },
+];
+
 const wordsToRe = (ws: unknown): RegExp | null => {
   const list = Array.isArray(ws) ? ws.map((w) => String(w).trim()).filter((w) => w.length > 1) : [];
   if (!list.length) return null;
@@ -1774,6 +1792,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let alreadyUsed: string[] = [];
     let alreadyDrawn: string[] = [];
     let alreadyColoured: string[] = [];
+    let restingSeams: Array<{ name: string; desc: string }> = [];
     try {
       if (!body.memory) throw Object.assign(new Error('memory off'), { memoryOff: true });
       // Two queries on purpose. The first catches repeats within a
@@ -1828,9 +1847,25 @@ export function registerAdminCardLabRoutes(app: Express): void {
       alreadyColoured = Array.from(new Set(
         sameSubject.map((r) => (r as any).palette).filter(Boolean),
       )).slice(0, 9);
+      // THE SEAM LEDGER reads the same aisle window. Blank lane only —
+      // an interest brief brings its own material and never converges.
+      if (!interestText) {
+        const texts = sameSubject.map((r) => `${r.front_text ?? ''} ${(r as any).art_direction ?? ''}`);
+        if (texts.length >= 9) {
+          restingSeams = SEAM_LEDGER
+            .map((sm) => ({ name: sm.name, desc: sm.desc, share: texts.filter((t) => sm.re.test(t)).length / texts.length }))
+            .filter((sm) => sm.share > 0.35)
+            .sort((a, b) => b.share - a.share)
+            .slice(0, 2);
+          if (restingSeams.length) console.log('[CARD-LAB:v2] resting seams:', restingSeams.map((sm) => sm.name).join(', '));
+        }
+      }
     } catch (e: any) {
       if (!e?.memoryOff) console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
     }
+    const restingSeamText = restingSeams.length
+      ? `⚠️ RESTING SEAMS — on this exact aisle, these regions of life have carried more than their share of recent sets, so TODAY they are OFF the menu entirely: no territory, no line, no artwork built from them. Resting, not banned — the ration is what stops one seam becoming this aisle's wallpaper:\n${restingSeams.map((sm) => `  · ${sm.name} — ${sm.desc}`).join('\n')}\nDig into what ELSE this life contains — the seams nobody has mined yet are sitting right there.`
+      : '';
     if (alreadyDrawn.length) {
       briefLines.push(
         `⚠️ ALREADY DRAWN for this subject — these motifs are used up, and so is any near-variant of them. A rack shows these cards SIDE BY SIDE, so the same object twice is the same card twice however different the words are. Observed: four poodle sets produced two prize rosettes, because a set can only ever see itself. Go to a different corner of this world:\n${alreadyDrawn.map((a) => `  · ${a}`).join('\n')}`,
@@ -1856,11 +1891,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'user', content: `${briefLines.slice(0, 8).join('\n')}${
               alreadyColoured.length
                 ? `\n\n⚠️ COLOUR WORLDS ALREADY USED ON THIS AISLE — these are spent, and so is any near-variant. An identical brief will hand you the same palette every time unless you deliberately go somewhere else in this subject's colour world, and a rack of one colour scheme is the failure this prevents. Same subject, different light, different hour, different material:\n${alreadyColoured.map((c) => `  · ${c}`).join('\n')}`
-                : ''}` },
+                : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}` },
           ],
           response_format: { type: 'json_object' },
         });
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
+        if (restingSeamText) briefLines.push(restingSeamText);
         // ⚠️ THE CUSTOMER'S OWN WORDS ARE ALWAYS HINTS. The archetype
         // returned only oblique City references, so a card literally
         // saying "Man City" was flagged dislike-missing — the referee
