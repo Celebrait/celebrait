@@ -1604,7 +1604,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // FRONT for family, so it would print "Dad" and stop being stock
       // that suits anyone. Same shape of hole as the required interest.
       body.who.trim().toLowerCase() === 'anyone'
-        ? `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`
+        ? (body.gender
+          ? `Recipient: NOT NAMED, BUT KNOWN — a ${body.gender === 'her' ? 'her' : 'him'} of this age. ⚠️ NO relationship word anywhere on the front (no Mum, sister, mate, "to my ___") — a daughter, a mate and a colleague should all be able to buy it. But the NEUTRALITY STOPS AT THE RELATIONSHIP: the taste, palette, objects and whole aesthetic may lean fully ${body.gender === 'her' ? 'hers' : 'his'} — that is why the gender was given. Observed failure: an Anyone+her 16th came back as chargers, keys and AirPods — capable-kit neutral, nothing a 16-year-old girl would screenshot. Relationship-neutral, taste-committed.`
+          : `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`)
         : `Recipient: ${body.who}`,
       body.recipientName?.trim() ? `Recipient's first name: "${body.recipientName.trim()}" — ⚠️ EXACTLY ONE card may LEAD with the name, designed in: the name set large in the card's own lettering, or the name AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled name on a printed card is the worst error we can make. The name proves nothing else about them: no gender, age or era inferred from it. The other two cards may use it inside but not on the front.` : '',
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
@@ -1841,7 +1843,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // the rude card isn't always third; the straight angle never
         // lands on the rude slot (a no-joke card in the register whose
         // whole point is the joke's language is nothing at all).
-        const mixTones = body.tone === 'mix' ? (['funny', 'warm', 'rude'] as const).slice().sort(() => Math.random() - 0.5) : null;
+        // Under-18 always clean is an ENGINE rule, not a UI courtesy —
+        // the studio has no tone gate and dealt a swearing slot to a 16
+        // brief. One-of-each under 18 = funny, warm, and a second funny.
+        const mixBase = statedAgeValue !== null && statedAgeValue < 18
+          ? (['funny', 'warm', 'funny'] as const) : (['funny', 'warm', 'rude'] as const);
+        const mixTones = body.tone === 'mix' ? mixBase.slice().sort(() => Math.random() - 0.5) : null;
         // THE PRESENCE DEAL, brief-aware (Aidan: "it should be based on
         // user input as well right, not just randomly delivered?").
         // The RANGE is still dealt — a set never sits at one volume —
@@ -1935,7 +1942,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
             .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
-            rudeSlot: mixTones ? mixTones.indexOf('rude') : undefined,
+            rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
