@@ -240,6 +240,8 @@ export default function AdminOccasionStudioPage() {
         published: shelfCard.published ?? true,
         editable: shelfCard.editable ?? true,
         aisle_tags: shelfCard.aisle_tags ?? [],
+        tone: (shelfCard.tone as 'funny' | 'warm' | 'rude') ?? null,
+        age: shelfCard.age ?? null,
       });
       setShelfCard(null);
       loadRack();
@@ -874,6 +876,27 @@ export default function AdminOccasionStudioPage() {
                 className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-medium text-stone-700">
                 {(shelfCard.editable ?? true) ? 'Editable words' : 'Fixed words'}
               </button>
+            </div>
+            {/* THE CATEGORY ASSIGNER (Aidan: "shelve based on age and
+                warm funny rude too") — tone and age ARE aisles; fixing
+                them here reshelves the card everywhere at once. */}
+            <p className="mt-4 text-xs font-semibold text-stone-600">Shelve as</p>
+            <div className="mt-2 flex items-center gap-1.5">
+              {(['funny', 'warm', 'rude'] as const).map((t) => (
+                <button key={t} type="button"
+                  onClick={() => setShelfCard({ ...shelfCard, tone: shelfCard.tone === t ? null : t })}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-medium capitalize ${shelfCard.tone === t ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 text-stone-500 hover:border-brand/50'}`}>
+                  {t}
+                </button>
+              ))}
+              <input
+                value={shelfCard.age ?? ''}
+                onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ''), 10); setShelfCard({ ...shelfCard, age: Number.isInteger(n) ? n : null }); }}
+                placeholder="Age"
+                inputMode="numeric"
+                className="ml-1 h-7 w-16 rounded-md border border-stone-200 px-2 text-center text-[12px] text-stone-700 outline-none focus:border-brand"
+              />
+              <span className="text-[10px] text-stone-400">blank = ageless</span>
             </div>
             <p className="mt-4 text-xs font-semibold text-stone-600">Also shelve in</p>
             <p className="text-[11px] text-stone-400">On top of the aisles its age, tone and recipient already give it.</p>
