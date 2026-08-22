@@ -64,7 +64,7 @@ for.**
 ## 3. Sitemap
 
 ```
-/                       Homepage: photo hero → two-speed strip → occasion rails → how-it-works → social proof
+/                       Homepage: quick-maker demo hero → photo route act two → occasion rails → proof
 /cards                  Catalogue hub: occasion tiles + bestseller wall
 /cards/birthday         Occasion page (the uniform template, §4)
 /cards/birthday/18th    Age aisle (one per: 1st…13th, 16th, 18th, 21st, 30th…80th)
