@@ -1472,6 +1472,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       editable: z.boolean().optional(),
       tone: z.enum(['funny', 'warm', 'rude']).nullable().optional(),
       age: z.number().int().min(1).max(110).nullable().optional(),
+      age_max: z.number().int().min(1).max(110).nullable().optional(),
       recipient: z.string().max(40).nullable().optional(),
       gender: z.enum(['him', 'her']).nullable().optional(),
       aisle_tags: z.array(z.string().regex(TAG)).max(12).optional(),

@@ -116,7 +116,7 @@ interface Cell {
  *  route does a bare select() — it just was not declared here, which is
  *  why the coverage grid could not see the market's first axis. */
 interface Template {
-  id: number; tone?: string | null; age?: number | null; recipient?: string | null;
+  id: number; tone?: string | null; age?: number | null; age_max?: number | null; recipient?: string | null;
   gender?: 'him' | 'her' | null;
   front_text: string; imageUrl: string; editable?: boolean;
   published?: boolean; aisle_tags?: string[];
@@ -247,6 +247,7 @@ export default function AdminOccasionStudioPage() {
         aisle_tags: shelfCard.aisle_tags ?? [],
         tone: (shelfCard.tone as 'funny' | 'warm' | 'rude') ?? null,
         age: shelfCard.age ?? null,
+        age_max: shelfCard.age_max ?? null,
         recipient: shelfCard.recipient ?? null,
         gender: shelfCard.gender ?? null,
       });
@@ -903,7 +904,15 @@ export default function AdminOccasionStudioPage() {
                 inputMode="numeric"
                 className="ml-1 h-7 w-16 rounded-md border border-stone-200 px-2 text-center text-[12px] text-stone-700 outline-none focus:border-brand"
               />
-              <span className="text-[10px] text-stone-400">blank = ageless</span>
+              <span className="text-[10px] text-stone-400">to</span>
+              <input
+                value={shelfCard.age_max ?? ''}
+                onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ''), 10); setShelfCard({ ...shelfCard, age_max: Number.isInteger(n) ? n : null }); }}
+                placeholder="—"
+                inputMode="numeric"
+                className="h-7 w-14 rounded-md border border-stone-200 px-2 text-center text-[12px] text-stone-700 outline-none focus:border-brand"
+              />
+              <span className="text-[10px] text-stone-400">blank = ageless · to = range (30 to 80)</span>
             </div>
             {/* FULL BRIEF OVERRIDE (Aidan: "can we over-ride the briefs
                 cos they might be wrong") — the brief was sometimes

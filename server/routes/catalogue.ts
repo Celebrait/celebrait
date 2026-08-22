@@ -97,7 +97,7 @@ export function registerCatalogueRoutes(app: Express): void {
           const implied = ({ mum: 'her', nan: 'her', sister: 'her', daughter: 'her', granddaughter: 'her', niece: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him', grandson: 'him', nephew: 'him' } as Record<string, string>)[(t.recipient ?? '').toLowerCase()];
           return t.gender === f.gender || implied === f.gender;
         }
-        if (f.kind === 'age') return t.age === f.age;
+        if (f.kind === 'age') return t.age === f.age || (t.age !== null && t.age_max !== null && f.age >= t.age && f.age <= t.age_max);
         if (f.kind === 'recipient') return (t.recipient ?? '').toLowerCase() === f.who;
         return (t.tone ?? '').toLowerCase() === f.tone;
       };
@@ -136,6 +136,7 @@ export function registerCatalogueRoutes(app: Express): void {
           front_text: t.front_text,
           tone: t.tone,
           age: t.age,
+          age_max: t.age_max,
           recipient: t.recipient,
           editable: t.editable,
           // The search haystack: the brief's interest finds cards whose

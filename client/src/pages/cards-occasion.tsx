@@ -22,7 +22,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 
 interface CatalogueCard {
-  id: number; front_text: string; tone?: string | null; age?: number | null;
+  id: number; front_text: string; tone?: string | null; age?: number | null; age_max?: number | null;
   recipient?: string | null; editable?: boolean; interest?: string | null; imageUrl: string;
 }
 interface AisleLink { slug: string; label: string; count: number }
@@ -164,7 +164,7 @@ export default function CardsOccasionPage() {
             <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4">
               {data.cards
                 .filter((c) => (styleFilter === null || (c.tone ?? '').toLowerCase() === styleFilter)
-                  && (ageFilter === null || c.age === ageFilter)
+                  && (ageFilter === null || c.age === ageFilter || (c.age != null && c.age_max != null && ageFilter >= c.age && ageFilter <= c.age_max))
                   && (ageFilter !== null || !query.trim() || /^\d{1,3}$/.test(query.trim())
                     || `${c.front_text} ${c.interest ?? ''} ${c.recipient ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())))
                 .map((c) => (

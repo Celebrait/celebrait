@@ -40,6 +40,11 @@ export const cardTemplates = pgTable("card_templates", {
   /** Stated age, when the brief carried a milestone. Null = ageless
    *  card, which is its own rack slot rather than missing data. */
   age: integer("age"),
+  /** Optional upper bound making `age` a RANGE (Aidan, 2026-08-22, on
+   *  a YES/NO-list card: "could be anyone over 30 tbh"). age=30 +
+   *  age_max=80 shelves the card in every milestone aisle from 30 to
+   *  80 and matches any typed age between. Null = exact age as ever. */
+  age_max: integer("age_max"),
   /** 'him' | 'her' | null. THE ONE CATALOGUE AXIS WE CANNOT DERIVE.
    *
    *  Milestone and audience band both fall out of `age`, so they need
