@@ -1385,6 +1385,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
         editable: body.editable ?? true,
         image_path: filename,
       }).returning();
+      // Going forward every keep prepares its own inside — display
+      // asset for the shop, no generation needed at browse time.
+      void prepareTemplateInside(row.id);
       res.json({ id: row.id, imageUrl: publicImageUrl(filename) });
     } catch (err) {
       console.error('[CARD-TEMPLATES] save failed:', err);
@@ -2388,6 +2391,88 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
   });
 
+  /** The one place the inside image is made — the route below, the
+   *  keep-time render and the backfill all call this, so the four can
+   *  never drift apart. */
+  async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; message?: string; dear?: string; from?: string;
+    palette?: string | null; typeface?: string | null; art_direction?: string | null; direction?: string | null;
+    characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high' }) {
+    const dear = o.dear?.trim();
+    const from = o.from?.trim();
+    const message = o.message?.trim();
+    const textBlock = o.mode === 'blank'
+      ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
+      : [
+          'TEXT — render EXACTLY these words and nothing else, typeset per the TYPOGRAPHY block (a real typeface, printing perfectly clean, no texture or stray marks on the letters):',
+          dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
+          message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
+          from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
+          'Clear vertical hierarchy and real space between the three parts. NO other text of any kind anywhere in the image.',
+        ].filter(Boolean).join(' ');
+    const prompt = [
+      o.freeStyle ? freeStyleDna(o.characters ?? 'objects') : quirkyDna(o.characters ?? 'objects'),
+      '',
+      QUIRKY_INSIDE,
+      '',
+      o.direction ? `MEDIUM — THE FRONT OF THIS CARD WAS DRAWN IN: ${o.direction}. The inside is the SAME PIECE OF PRINT, so use that same medium, its same marks and its same hand. A different medium inside is two cards in one envelope.` : '',
+      o.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${o.palette}` : '',
+      o.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${o.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
+      '',
+      textBlock,
+      '',
+      `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
+    ].filter(Boolean).join('\n');
+    const result = await getProvider('openai-2').generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
+    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+      provider: result.provider, model: result.model, quality: o.quality ?? 'low',
+      costCents: result.costCents, durationMs: result.durationMs, success: true });
+    return result;
+  }
+
+  /** Render + store a template's pre-made inside. Fire-and-forget from
+   *  Keep; awaited by the backfill. Never throws. */
+  async function prepareTemplateInside(templateId: number): Promise<boolean> {
+    try {
+      const [t] = await db.select().from(cardTemplates).where(eq(cardTemplates.id, templateId));
+      if (!t || t.inside_image_path || !t.inside_text?.trim()) return false;
+      const result = await generateInsideImage({
+        mode: 'auto', message: t.inside_text, palette: t.palette, typeface: t.typeface,
+        art_direction: t.art_direction, freeStyle: true, quality: 'low',
+      });
+      const buffer = Buffer.from(result.imageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      const filename = `template_inside_${randomUUID()}.png`;
+      if (isR2Enabled()) await r2Put(filename, buffer, 'image/png');
+      else await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
+      await db.update(cardTemplates).set({ inside_image_path: filename }).where(eq(cardTemplates.id, templateId));
+      return true;
+    } catch (e) {
+      console.warn('[CARD-TEMPLATES] inside prepare failed (non-fatal):', (e as any)?.message ?? e);
+      return false;
+    }
+  }
+
+  // ── POST /api/admin/card-lab/prepare-insides ─────────────────────
+  // The backfill: renders pre-made insides for published templates
+  // that lack one, a batch per call (long jobs vs request timeouts —
+  // the studio button loops until remaining hits zero).
+  app.post('/api/admin/card-lab/prepare-insides', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const occasion = String(req.body?.occasion ?? 'birthday').toLowerCase();
+    try {
+      const pending = (await db.select().from(cardTemplates).where(eq(cardTemplates.occasion, occasion)))
+        .filter((t) => t.published && !t.inside_image_path && t.inside_text?.trim());
+      const batch = pending.slice(0, 6);
+      let done = 0;
+      for (const t of batch) { if (await prepareTemplateInside(t.id)) done++; }
+      res.json({ prepared: done, remaining: pending.length - done, missingMessage:
+        (await db.select().from(cardTemplates).where(eq(cardTemplates.occasion, occasion)))
+          .filter((t) => t.published && !t.inside_text?.trim()).length });
+    } catch (err) {
+      console.error('[CARD-LAB] prepare-insides failed:', err);
+      res.status(500).json({ message: 'Preparing insides fell over' });
+    }
+  });
+
   app.post('/api/admin/card-lab/render-inside', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
@@ -2416,46 +2501,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
     }
 
-    const dear = body.dear?.trim();
-    const from = body.from?.trim();
-    const message = body.message?.trim();
-
-    // A blank inside is still DESIGNED — a plain white square reads as a
-    // printing error, but a busy one is unwritable. Palest ground, one
-    // whisper of a motif, nothing else.
-    const textBlock = body.mode === 'blank'
-      ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
-      : [
-          'TEXT — render EXACTLY these words and nothing else, typeset per the TYPOGRAPHY block (a real typeface, printing perfectly clean, no texture or stray marks on the letters):',
-          dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
-          message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
-          from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
-          'Clear vertical hierarchy and real space between the three parts. NO other text of any kind anywhere in the image.',
-        ].filter(Boolean).join(' ');
-
-    const prompt = [
-      body.freeStyle ? freeStyleDna(body.characters) : quirkyDna(body.characters),
-      '',
-      QUIRKY_INSIDE,
-      '',
-      body.direction ? `MEDIUM — THE FRONT OF THIS CARD WAS DRAWN IN: ${body.direction}. The inside is the SAME PIECE OF PRINT, so use that same medium, its same marks and its same hand. A different medium inside is two cards in one envelope.` : '',
-      body.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${body.palette}` : '',
-      body.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${body.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
-      '',
-      textBlock,
-      '',
-      `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
-    ].filter(Boolean).join('\n');
-
     try {
-      const result = await getProvider('openai-2').generate({
-        prompt, quality: body.quality, size: '1024x1024', slot: 'card_lab',
-      });
-      void logGeneration({
-        cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-        provider: result.provider, model: result.model, quality: 'low',
-        costCents: result.costCents, durationMs: result.durationMs, success: true,
-      });
+      const result = await generateInsideImage(body);
       res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
     } catch (err: any) {
       console.error('[CARD-LAB] render-inside error:', err?.message ?? err);

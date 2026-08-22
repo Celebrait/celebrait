@@ -56,6 +56,7 @@ export function registerCatalogueRoutes(app: Express): void {
         id: t.id, occasion: t.occasion, front_text: t.front_text, inside_text: t.inside_text,
         tone: t.tone, age: t.age, recipient: t.recipient, editable: t.editable,
         imageUrl: publicImageUrl(t.image_path),
+        insideImageUrl: t.inside_image_path ? publicImageUrl(t.inside_image_path) : null,
       } });
     } catch (err) {
       console.error('[CATALOGUE] card failed:', err);

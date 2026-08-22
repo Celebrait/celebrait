@@ -18,13 +18,14 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { Loader2, Check, Truck, PenLine } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
+import { Card3DViewer } from '@/components/card-3d-viewer';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 interface ProductCard {
   id: number; occasion: string; front_text: string; inside_text?: string | null;
   tone?: string | null; age?: number | null; recipient?: string | null;
-  editable?: boolean; imageUrl: string;
+  editable?: boolean; imageUrl: string; insideImageUrl?: string | null;
 }
 
 export default function CardProductPage() {
@@ -88,19 +89,29 @@ export default function CardProductPage() {
         </nav>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
-          {/* THE CARD — large, ajar, on the paper ground. */}
+          {/* THE CARD — the real 3D card when its inside is prepared
+              (rests ajar, tap to open — the locked interaction model as
+              product photography); the flat ajar fallback otherwise. */}
           <div className="mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative aspect-square" style={{ perspective: '1400px' }}>
-              <div className="absolute inset-[3%] rounded-r-lg rounded-l-sm bg-[#FFFDF8] shadow-[inset_-2px_0_6px_rgba(33,29,25,0.08)]" />
-              <div
-                className="absolute inset-[3%] origin-left overflow-hidden rounded-r-lg rounded-l-sm bg-white [transform:rotateY(-18deg)]"
-                style={{ boxShadow: '4px 8px 24px rgba(33,29,25,0.16), 16px 28px 60px -20px rgba(33,29,25,0.35)' }}
-              >
-                <img src={card.imageUrl} alt={card.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10" />
+            {card.insideImageUrl ? (
+              <div className="aspect-square">
+                <Card3DViewer frontImageUrl={card.imageUrl} insideImageUrl={card.insideImageUrl} className="h-full w-full" framingMargin={1.3} />
               </div>
-            </div>
-            <p className="mt-4 text-center text-xs text-keeper-meta">148 × 148&nbsp;mm folded · 300gsm · blank-ready inside · envelope included</p>
+            ) : (
+              <div className="relative aspect-square" style={{ perspective: '1400px' }}>
+                <div className="absolute inset-[3%] rounded-r-lg rounded-l-sm bg-[#FFFDF8] shadow-[inset_-2px_0_6px_rgba(33,29,25,0.08)]" />
+                <div
+                  className="absolute inset-[3%] origin-left overflow-hidden rounded-r-lg rounded-l-sm bg-white [transform:rotateY(-18deg)]"
+                  style={{ boxShadow: '4px 8px 24px rgba(33,29,25,0.16), 16px 28px 60px -20px rgba(33,29,25,0.35)' }}
+                >
+                  <img src={card.imageUrl} alt={card.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10" />
+                </div>
+              </div>
+            )}
+            <p className="mt-4 text-center text-xs text-keeper-meta">
+              {card.insideImageUrl ? 'Tap the card to look inside · ' : ''}148 × 148&nbsp;mm folded · 300gsm · envelope included
+            </p>
           </div>
 
           {/* THE BUY PANEL */}

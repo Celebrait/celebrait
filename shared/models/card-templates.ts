@@ -81,6 +81,14 @@ export const cardTemplates = pgTable("card_templates", {
   aisle_tags: text("aisle_tags").array().notNull().default(sql`'{}'::text[]`),
   /** Stored image filename (R2 key / local stored_images name). */
   image_path: text("image_path").notNull(),
+  /** The PRE-MADE INSIDE (Aidan, 2026-08-22: "we can have all the
+   *  cards on the front end catalogue pre-made, no generation
+   *  required, and they can open like 3d cards do"). The card's own
+   *  message rendered as designed typography, no Dear/From — the
+   *  display asset and the no-personalisation order asset. Orders
+   *  that add Dear/From re-render once at purchase. Null = not yet
+   *  prepared; the product page falls back to the flat ajar view. */
+  inside_image_path: text("inside_image_path"),
   created_at: timestamp("created_at")
     .notNull()
     .default(sql`now()`),

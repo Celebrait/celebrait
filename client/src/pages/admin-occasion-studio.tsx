@@ -231,6 +231,30 @@ export default function AdminOccasionStudioPage() {
       toast({ title: 'Could not save', description: e?.message ?? '', variant: 'destructive' });
     } finally { setShelfBusy(false); }
   };
+  const [prepBusy, setPrepBusy] = useState(false);
+  const [prepNote, setPrepNote] = useState<string | null>(null);
+  /** Backfill the pre-made insides — loops the batched endpoint until
+   *  nothing remains, so the shop's cards can open in 3D. */
+  const prepareInsides = async () => {
+    if (prepBusy) return;
+    setPrepBusy(true); setPrepNote('Preparing…');
+    try {
+      let total = 0;
+      for (let i = 0; i < 40; i++) {
+        const r = await apiRequest('POST', '/api/admin/card-lab/prepare-insides', { occasion: world.key });
+        const j = await r.json();
+        total += j.prepared ?? 0;
+        setPrepNote(`Prepared ${total} so far — ${j.remaining} to go…`);
+        if (!j.remaining) {
+          setPrepNote(`Done — ${total} insides prepared.${j.missingMessage ? ` ⚠️ ${j.missingMessage} published cards have no message to render (they'll show flat).` : ''}`);
+          break;
+        }
+      }
+      loadRack();
+    } catch (e: any) {
+      setPrepNote(`Stopped: ${e?.message ?? ''} — click again to resume`);
+    } finally { setPrepBusy(false); }
+  };
   const [auditBusy, setAuditBusy] = useState(false);
   const [auditReport, setAuditReport] = useState<string | null>(null);
   /** "Scan my stock and categorise it properly" — fills blank aisle
@@ -862,11 +886,20 @@ export default function AdminOccasionStudioPage() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold text-stone-700">The birthday rack — {rack.length} {rack.length === 1 ? 'card' : 'cards'}</p>
-            <button type="button" onClick={() => void runRackAudit()} disabled={auditBusy}
-              className="rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-50">
-              {auditBusy ? 'Checking…' : 'Check shelving'}
-            </button>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={() => void prepareInsides()} disabled={prepBusy}
+                className="rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-50">
+                {prepBusy ? 'Preparing insides…' : 'Prepare insides'}
+              </button>
+              <button type="button" onClick={() => void runRackAudit()} disabled={auditBusy}
+                className="rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-50">
+                {auditBusy ? 'Checking…' : 'Check shelving'}
+              </button>
+            </div>
           </div>
+          {prepNote && (
+            <p className="mb-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-600">{prepNote}</p>
+          )}
           {auditReport && (
             <p className="mb-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-600">{auditReport}</p>
           )}
