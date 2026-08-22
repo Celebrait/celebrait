@@ -1132,7 +1132,13 @@ export function autoMask(text: string): string {
   return text
     .replace(/\b(f|F)(?:uck|UCK)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
     .replace(/\b(s|S)(?:hit|HIT)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
-    .replace(/\b(c|C)(?:unt|UNT)(\w*)/g, (_, a, suf) => `${a}***${suf}`);
+    .replace(/\b(c|C)(?:unt|UNT)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
+    // Canonicalise masks the model wrote itself — "s**t", "sh*t",
+    // "f*ck" — to the house shape: first letter, three asterisks,
+    // suffix kept ("s***", "f***ing"). Idempotent on correct masks.
+    .replace(/\b(f|F)[*]+(?:c?k)?(\w*)/g, (_, a, suf) => `${a}***${suf}`)
+    .replace(/\b(s|S)h?[*]+(?:i?t)?(\w*)/g, (_, a, suf) => `${a}***${suf}`)
+    .replace(/\b(c|C)[*]+(?:n?t)?(\w*)/g, (_, a, suf) => `${a}***${suf}`);
 }
 const V2_BANNED = /\b(vibes?|level up|bossin?|legend(ary)?|goals|beast mode|standards?)\b|\b(master|king|queen|lord|sultan|champion|guardian|keeper) of\b|extraordinaire|royalty/i;
 const V2_MALE = /\b(man|men|bloke|lad|lads|guy|boy|he|him|his|sir|king|gent)\b/i;
@@ -1332,7 +1338,7 @@ ${slots.map((s, i) => `${i + 1}. ${s.tone ? `TONE=${s.tone.toUpperCase()}, ` : '
 ⚠️ PRESENCE tells you that card's VOLUME, and the three differ on purpose — a set that all projects is a shelf that shouts:
 · whisper — a pale, light-filled ground with real empty space; type SMALL and quiet, a caption or an aside, never the artwork; marks fine and delicate. The picture speaks, the words murmur.
 · mid — a true colour at easy depth, type present but not dominant.
-· full — the poster: big confident type, saturated commitment, the current house swagger.
+· full — the poster: big confident type, saturated commitment — IN THIS BRIEF'S AESTHETIC. Swagger is a voice, not a look: a full-presence card in a delicate or feminine world commits just as loudly to THAT world's materials and hues, and reaching for the red-black-chrome hardware kit because the volume is up is a default, not a register.
 PRESENCE does not choose the hue — take that from the subject's colour world.
 ⚠️ AND NO TWO CARDS SHARE A LEADING HUE — nor may one ink thread through all three cards as ground on one, lead on another and accent on the third; observed, a single acid green stitched an entire set together and it read as one design decision made three times. The exception is a colour the SUBJECT owns as IDENTITY — a club's red, a stout's black: a colour a fan would name unprompted. ⚠️ OWNERSHIP IS NARROW. A place does not own its scenery: an island's sea blue, a city's stone, a venue's decor are backdrop, not identity, and claiming them as owned is how this exception gets gamed (observed: an Ibiza set threaded aqua-and-purple through all three cards on exactly that claim). ⚠️ AND EVEN A TRULY OWNED COLOUR IS A THREAD, NOT A UNIFORM: it may recur across the set, but each card still builds its OWN palette around it — different ground, different supporting inks, different balance. Three cards wearing the same full scheme is the failure this rule exists to stop, whoever owns the colour. The colour world has more than one colour in it — spread the three cards across it, one lead each. Weight variety alone is not variety: an observed set came back navy, teal and cream-with-blue — three depths of the same blue, which from three feet away is one card three times. Three weights AND three leads, all from the same world, is what makes a set read as three real choices.
 ⚠️ WHERE A SLOT NAMES A TERRITORY, THAT CARD LIVES THERE — words and artwork both. The three territories were chosen to be far apart on purpose, because the failure this prevents is three cards mining one seam and reading as one joke told three times. Do not let a second card drift into a first card's territory because the material there felt richer.
@@ -1348,6 +1354,7 @@ THE BAR, per card:
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${V2_CELEBRAIT_REGISTER && ''}${visual === 'charm' ? V2_CHARM_REGISTER : visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
 - If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ MASKING HAS EXACTLY THREE WORDS. Only the f-word, the s-word and the c-word are ever masked (first letter, then asterisks). EVERYTHING ELSE PRINTS IN FULL, always: hell, damn, bloody, bitch, bastard, bollocks, arse, prick, twat and their kin are not maskable, and asterisks on any of them is an instant fail — observed twice in one set ("Son of a B****", "hush the h*** up"), both counterfeit rudeness that reads as a misprint. If a line leans on hell or damn to feel rude, it wanted one of the real three or a better joke.
+- THE RUDE CARD IS NOT EXEMPT FROM THE PERSON. Rude lives in the SENTENCE; the artwork still belongs to the recipient's world and taste. When the brief leans a taste — a her, a nan, a soft or delicate aesthetic — the rude card wears that aesthetic WITH the filthy line: the sweetest-looking card with the worst mouth is the stronger joke and the bigger seller. Observed failure: an 18-year-old-her brief returned a rude card of calculator, wifi symbol and red-black chrome — nothing of her on it — because the slot assumed rude means masculine poster. It does not.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
 Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
