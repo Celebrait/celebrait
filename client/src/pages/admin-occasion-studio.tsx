@@ -113,6 +113,7 @@ interface Cell {
  *  why the coverage grid could not see the market's first axis. */
 interface Template {
   id: number; tone?: string | null; age?: number | null; recipient?: string | null;
+  gender?: 'him' | 'her' | null;
   front_text: string; imageUrl: string; editable?: boolean;
   published?: boolean; aisle_tags?: string[];
 }
@@ -242,6 +243,8 @@ export default function AdminOccasionStudioPage() {
         aisle_tags: shelfCard.aisle_tags ?? [],
         tone: (shelfCard.tone as 'funny' | 'warm' | 'rude') ?? null,
         age: shelfCard.age ?? null,
+        recipient: shelfCard.recipient ?? null,
+        gender: shelfCard.gender ?? null,
       });
       setShelfCard(null);
       loadRack();
@@ -897,6 +900,27 @@ export default function AdminOccasionStudioPage() {
                 className="ml-1 h-7 w-16 rounded-md border border-stone-200 px-2 text-center text-[12px] text-stone-700 outline-none focus:border-brand"
               />
               <span className="text-[10px] text-stone-400">blank = ageless</span>
+            </div>
+            {/* FULL BRIEF OVERRIDE (Aidan: "can we over-ride the briefs
+                cos they might be wrong") — the brief was sometimes
+                spit-ball testing; every shelving field is editable. */}
+            <p className="mt-4 text-xs font-semibold text-stone-600">Made for</p>
+            <div className="mt-2 flex items-center gap-2">
+              <select value={shelfCard.recipient ?? 'Anyone'}
+                onChange={(e) => setShelfCard({ ...shelfCard, recipient: e.target.value })}
+                className="h-8 rounded-md border border-stone-200 bg-white px-2 text-[12px] text-stone-700 outline-none focus:border-brand">
+                {['Anyone', 'Mum', 'Dad', 'Nan', 'Grandad', 'Sister', 'Brother', 'Daughter', 'Son', 'Partner', 'Best mate', 'Friend', 'Colleague'].map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              {(['him', 'her'] as const).map((g) => (
+                <button key={g} type="button"
+                  onClick={() => setShelfCard({ ...shelfCard, gender: shelfCard.gender === g ? null : g })}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-medium ${shelfCard.gender === g ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 text-stone-500 hover:border-brand/50'}`}>
+                  {g}
+                </button>
+              ))}
+              <span className="text-[10px] text-stone-400">neither = no lean</span>
             </div>
             <p className="mt-4 text-xs font-semibold text-stone-600">Also shelve in</p>
             <p className="text-[11px] text-stone-400">On top of the aisles its age, tone and recipient already give it.</p>
