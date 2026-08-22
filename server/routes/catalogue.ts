@@ -23,7 +23,7 @@ const AISLE_MIN = 8;
 /** The aisles the platform knows how to slice. Extended by adding a
  *  row here — the client renders whatever this returns. */
 const MILESTONES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 16, 18, 21, 25, 30, 40, 50, 60, 70, 80];
-const RECIPIENTS = ['mum', 'dad', 'nan', 'grandad', 'sister', 'brother', 'daughter', 'son', 'partner', 'best mate', 'friend', 'colleague'];
+const RECIPIENTS = ['mum', 'dad', 'nan', 'grandad', 'sister', 'brother', 'daughter', 'son', 'grandson', 'granddaughter', 'niece', 'nephew', 'partner', 'best mate', 'friend', 'colleague'];
 const STYLES = ['funny', 'warm', 'rude'];
 
 function ordinal(n: number): string {
@@ -94,7 +94,7 @@ export function registerCatalogueRoutes(app: Express): void {
         if (tags.includes(slug)) return true;
         if (f.kind === 'kids') return t.age !== null && t.age >= 1 && t.age <= 12;
         if (f.kind === 'gender') {
-          const implied = ({ mum: 'her', nan: 'her', sister: 'her', daughter: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him' } as Record<string, string>)[(t.recipient ?? '').toLowerCase()];
+          const implied = ({ mum: 'her', nan: 'her', sister: 'her', daughter: 'her', granddaughter: 'her', niece: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him', grandson: 'him', nephew: 'him' } as Record<string, string>)[(t.recipient ?? '').toLowerCase()];
           return t.gender === f.gender || implied === f.gender;
         }
         if (f.kind === 'age') return t.age === f.age;

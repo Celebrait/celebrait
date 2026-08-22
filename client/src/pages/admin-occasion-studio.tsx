@@ -74,6 +74,10 @@ const RELATIONSHIPS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Brother', implies: 'him' },
   { label: 'Daughter', implies: 'her' },
   { label: 'Son', implies: 'him' },
+  { label: 'Granddaughter', implies: 'her' },
+  { label: 'Grandson', implies: 'him' },
+  { label: 'Niece', implies: 'her' },
+  { label: 'Nephew', implies: 'him' },
   { label: 'Partner' },
   { label: 'Best mate' },
   { label: 'Friend' },
@@ -216,7 +220,7 @@ export default function AdminOccasionStudioPage() {
    *  an Anyone card can also shelve in for-mum AND for-nan). */
   const [shelfCard, setShelfCard] = useState<Template | null>(null);
   const [shelfBusy, setShelfBusy] = useState(false);
-  const EXTRA_AISLES = ['for-her', 'for-him', 'kids', 'for-mum', 'for-dad', 'for-nan', 'for-grandad', 'for-sister', 'for-brother', 'for-daughter', 'for-son', 'for-partner', 'for-best-mate', 'for-friend', 'for-colleague'];
+  const EXTRA_AISLES = ['for-her', 'for-him', 'kids', 'for-mum', 'for-dad', 'for-nan', 'for-grandad', 'for-sister', 'for-brother', 'for-daughter', 'for-son', 'for-granddaughter', 'for-grandson', 'for-niece', 'for-nephew', 'for-partner', 'for-best-mate', 'for-friend', 'for-colleague'];
   /** The bin. Server route existed all along ("curation needs a
    *  bin"); the rack UI never surfaced it. Gone means gone from rack
    *  and shop — the stored image is left behind on purpose (pennies,
@@ -909,7 +913,7 @@ export default function AdminOccasionStudioPage() {
               <select value={shelfCard.recipient ?? 'Anyone'}
                 onChange={(e) => setShelfCard({ ...shelfCard, recipient: e.target.value })}
                 className="h-8 rounded-md border border-stone-200 bg-white px-2 text-[12px] text-stone-700 outline-none focus:border-brand">
-                {['Anyone', 'Mum', 'Dad', 'Nan', 'Grandad', 'Sister', 'Brother', 'Daughter', 'Son', 'Partner', 'Best mate', 'Friend', 'Colleague'].map((r) => (
+                {['Anyone', 'Mum', 'Dad', 'Nan', 'Grandad', 'Sister', 'Brother', 'Daughter', 'Son', 'Granddaughter', 'Grandson', 'Niece', 'Nephew', 'Partner', 'Best mate', 'Friend', 'Colleague'].map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>

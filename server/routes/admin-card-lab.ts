@@ -2672,7 +2672,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     try {
       const rows = await db.select().from(cardTemplates).where(eq(cardTemplates.occasion, occasion));
       const mismatches: string[] = [];
-      const IMPLIES: Record<string, 'him' | 'her'> = { mum: 'her', nan: 'her', sister: 'her', daughter: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him' };
+      const IMPLIES: Record<string, 'him' | 'her'> = { mum: 'her', nan: 'her', sister: 'her', daughter: 'her', granddaughter: 'her', niece: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him', grandson: 'him', nephew: 'him' };
       for (const t of rows) {
         const implied = IMPLIES[(t.recipient ?? '').toLowerCase()];
         if (implied && t.gender && t.gender !== implied) {

@@ -50,6 +50,8 @@ const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
   { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
   { label: 'Daughter', implies: 'her' }, { label: 'Son', implies: 'him' },
+  { label: 'Granddaughter', implies: 'her' }, { label: 'Grandson', implies: 'him' },
+  { label: 'Niece', implies: 'her' }, { label: 'Nephew', implies: 'him' },
   { label: 'Partner' }, { label: 'Best mate' }, { label: 'Friend' },
   { label: 'Colleague' }, { label: 'Someone else' },
 ];
