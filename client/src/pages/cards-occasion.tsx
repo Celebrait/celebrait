@@ -54,6 +54,10 @@ export default function CardsOccasionPage() {
    *  remain the SEO surface — chips here are for the person browsing. */
   const [styleFilter, setStyleFilter] = useState<string | null>(null);
   const [ageFilter, setAgeFilter] = useState<number | null>(null);
+  /** Typed age search — finds ANY age on the wall, including ones
+   *  below the aisle threshold (Aidan: "I have cards for 6 year olds
+   *  here but there's no way of finding them"). */
+  const [ageQuery, setAgeQuery] = useState('');
 
   useEffect(() => {
     setState('loading');
@@ -138,10 +142,14 @@ export default function CardsOccasionPage() {
                     <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Age</span>
                     <button type="button" onClick={() => setAgeFilter(null)}
                       className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
-                    {data.aisles.ages.map((l) => (
-                      <button key={l.slug} type="button" onClick={() => setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug))}
+                    {data.aisles.ages.filter((l) => l.slug !== 'kids').map((l) => (
+                      <button key={l.slug} type="button" onClick={() => { setAgeQuery(''); setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug)); }}
                         className={`rounded-full border px-3 py-1 text-sm ${ageFilter === parseInt(l.slug) ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.slug}</button>
                     ))}
+                    <input value={ageQuery}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 3); setAgeQuery(v); setAgeFilter(v ? parseInt(v) : null); }}
+                      placeholder="Any age…" inputMode="numeric"
+                      className="h-8 w-24 rounded-full border border-keeper-hair bg-white/70 px-3 text-sm text-keeper-body outline-none placeholder:text-keeper-meta focus:border-keeper-gold" />
                   </div>
                 )}
               </div>

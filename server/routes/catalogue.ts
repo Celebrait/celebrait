@@ -33,6 +33,9 @@ function ordinal(n: number): string {
 
 /** Parse an aisle slug into a where-clause fragment, or null. */
 function aisleFilter(slug: string) {
+  // Kids is a real aisle (the taxonomy: a different product) — tagged
+  // 'kids' or simply aged 1-12.
+  if (slug === 'kids') return { kind: 'kids' as const };
   const m = slug.match(/^(\d{1,3})(st|nd|rd|th)$/);
   if (m) return { kind: 'age' as const, age: Number(m[1]) };
   if (slug.startsWith('for-')) {
@@ -85,6 +88,7 @@ export function registerCatalogueRoutes(app: Express): void {
         if (!f) return false;
         const tags: string[] = (t.aisle_tags as string[] | null) ?? [];
         if (tags.includes(slug)) return true;
+        if (f.kind === 'kids') return t.age !== null && t.age >= 1 && t.age <= 12;
         if (f.kind === 'age') return t.age === f.age;
         if (f.kind === 'recipient') return (t.recipient ?? '').toLowerCase() === f.who;
         return (t.tone ?? '').toLowerCase() === f.tone;
@@ -101,8 +105,10 @@ export function registerCatalogueRoutes(app: Express): void {
 
       const countFor = (slug: string) => all.filter((t) => inAisle(t, slug)).length;
       const aisles = {
-        ages: MILESTONES.map((n) => ({ slug: ordinal(n), label: `${ordinal(n)} birthday`, count: countFor(ordinal(n)) }))
-          .filter((a) => a.count >= AISLE_MIN),
+        ages: [
+          ...MILESTONES.map((n) => ({ slug: ordinal(n), label: `${ordinal(n)} birthday`, count: countFor(ordinal(n)) })),
+          { slug: 'kids', label: 'Kids', count: countFor('kids') },
+        ].filter((a) => a.count >= AISLE_MIN),
         recipients: RECIPIENTS.map((w) => ({ slug: `for-${w.replace(/ /g, '-')}`, label: `For ${w}`, count: countFor(`for-${w.replace(/ /g, '-')}`) }))
           .filter((a) => a.count >= AISLE_MIN),
         styles: STYLES.map((t) => ({ slug: t, label: t, count: countFor(t) }))
