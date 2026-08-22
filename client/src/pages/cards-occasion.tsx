@@ -146,7 +146,7 @@ export default function CardsOccasionPage() {
                     <button type="button" onClick={() => setAgeFilter(null)}
                       className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
                     {data.aisles.ages.filter((l) => l.slug !== 'kids').map((l) => (
-                      <button key={l.slug} type="button" onClick={() => { setAgeQuery(''); setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug)); }}
+                      <button key={l.slug} type="button" onClick={() => { setQuery(''); setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug)); }}
                         className={`rounded-full border px-3 py-1 text-sm ${ageFilter === parseInt(l.slug) ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.slug}</button>
                     ))}
                     <input value={query}
