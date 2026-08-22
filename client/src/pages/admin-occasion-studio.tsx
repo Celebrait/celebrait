@@ -643,7 +643,7 @@ export default function AdminOccasionStudioPage() {
               </div>
               <div className="space-y-2 p-3">
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
-                <p className="text-[11px] text-stone-400">{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>
+                <p className="text-[11px] text-stone-400">{(c.concept as any).tone ? `${(c.concept as any).tone} · ` : ''}{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>
                 {c.concept.direction && (
                   <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>
                 )}
