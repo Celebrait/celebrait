@@ -108,11 +108,36 @@ export const BLOG_POSTS: BlogPostMeta[] = [
 ];
 
 /** Full lookup for the server injector: static pages + blog posts. */
+/** The catalogue's SEO, generated from the URL grammar so the server
+ *  injector and the client hook can never disagree (single source).
+ *  /cards/birthday → "Birthday Cards"; /cards/birthday/18th →
+ *  "18th Birthday Cards"; /for-mum → "Birthday Cards for Mum". */
+const CATALOGUE_OCCASIONS: Record<string, string> = { birthday: 'Birthday' };
+export function catalogueSeoForPath(path: string): PageSeo | null {
+  const m = path.match(/^\/cards\/([a-z-]+)(?:\/([a-z0-9-]+))?$/);
+  if (!m) return null;
+  const occ = CATALOGUE_OCCASIONS[m[1]];
+  if (!occ) return null;
+  const aisle = m[2] ?? null;
+  const cap = (t: string) => t.replace(/\b\w/g, (c) => c.toUpperCase());
+  const title = !aisle ? `${occ} Cards`
+    : /^\d/.test(aisle) ? `${aisle} ${occ} Cards`
+    : aisle.startsWith('for-') ? `${occ} Cards for ${cap(aisle.slice(4).replace(/-/g, ' '))}`
+    : `${cap(aisle)} ${occ} Cards`;
+  return {
+    path,
+    title: `${title} — Personalised & Made For Them | Celebrait`,
+    description: `Real ${title.toLowerCase()} to send as-is or make theirs — or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £8.99.`,
+  };
+}
+
 export function seoForPath(rawPath: string): PageSeo | null {
   const path =
     rawPath.length > 1 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
   const page = PAGE_SEO.find((p) => p.path === path);
   if (page) return page;
+  const cat = catalogueSeoForPath(path);
+  if (cat) return cat;
   const m = path.match(/^\/blog\/([a-z0-9-]+)$/);
   if (m) {
     const post = BLOG_POSTS.find((p) => p.slug === m[1]);

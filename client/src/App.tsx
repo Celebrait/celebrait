@@ -118,6 +118,7 @@ const AdminCardBenchPage = lazy(() => import("@/pages/admin-card-bench"));
 const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates"));
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
+const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
@@ -364,6 +365,13 @@ function Router() {
                 <AdminCardTemplatesPage />
               </AdminLayout>
             </RequireAdmin>
+          </Route>
+          {/* THE PUBLIC CATALOGUE — no auth; the SEO surface. */}
+          <Route path="/cards/:occasion/:aisle">
+            <CardsOccasionPage />
+          </Route>
+          <Route path="/cards/:occasion">
+            <CardsOccasionPage />
           </Route>
           {/* The guided maker preview — the customer flow rehearsed
               behind admin auth, deliberately OUTSIDE AdminLayout so it
