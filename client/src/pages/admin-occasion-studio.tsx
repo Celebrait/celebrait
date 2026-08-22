@@ -216,6 +216,22 @@ export default function AdminOccasionStudioPage() {
   const [shelfCard, setShelfCard] = useState<Template | null>(null);
   const [shelfBusy, setShelfBusy] = useState(false);
   const EXTRA_AISLES = ['for-mum', 'for-dad', 'for-nan', 'for-grandad', 'for-sister', 'for-brother', 'for-daughter', 'for-son', 'for-partner', 'for-best-mate', 'for-friend', 'for-colleague'];
+  /** The bin. Server route existed all along ("curation needs a
+   *  bin"); the rack UI never surfaced it. Gone means gone from rack
+   *  and shop — the stored image is left behind on purpose (pennies,
+   *  and a botched delete of the wrong object is unrecoverable). */
+  const deleteShelf = async () => {
+    if (!shelfCard || shelfBusy) return;
+    if (!window.confirm(`Delete "${shelfCard.front_text.slice(0, 50)}" for good? It leaves the rack and the shop — no undo.`)) return;
+    setShelfBusy(true);
+    try {
+      await apiRequest('DELETE', `/api/admin/card-templates/${shelfCard.id}`);
+      setShelfCard(null);
+      loadRack();
+    } catch (e: any) {
+      toast({ title: 'Could not delete', description: e?.message ?? '', variant: 'destructive' });
+    } finally { setShelfBusy(false); }
+  };
   const saveShelf = async () => {
     if (!shelfCard || shelfBusy) return;
     setShelfBusy(true);
@@ -873,11 +889,17 @@ export default function AdminOccasionStudioPage() {
                 );
               })}
             </div>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex items-center justify-between gap-2">
+              <button type="button" onClick={() => void deleteShelf()} disabled={shelfBusy}
+                className="text-xs font-medium text-red-500 underline-offset-2 hover:underline disabled:opacity-50">
+                Delete for good
+              </button>
+              <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setShelfCard(null)}>Cancel</Button>
               <Button size="sm" onClick={() => void saveShelf()} disabled={shelfBusy}>
                 {shelfBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null} Save
               </Button>
+              </div>
             </div>
           </div>
         </div>
