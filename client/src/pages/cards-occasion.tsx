@@ -51,6 +51,11 @@ export default function CardsOccasionPage() {
 
   const [data, setData] = useState<Payload | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
+  /** In-page narrowing (Aidan: "Do we need Funny, Warm, Rude filters?
+   *  Wb ages?"). Filters the loaded wall client-side; the aisle PAGES
+   *  remain the SEO surface — chips here are for the person browsing. */
+  const [styleFilter, setStyleFilter] = useState<string | null>(null);
+  const [ageFilter, setAgeFilter] = useState<number | null>(null);
 
   useEffect(() => {
     setState('loading');
@@ -125,9 +130,43 @@ export default function CardsOccasionPage() {
               </Link>
             </div>
 
-            {/* THE WALL — cards that look like cards. 2-up on mobile. */}
-            <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4">
-              {data.cards.map((c) => (
+            {/* Filters — narrowing without leaving the wall. Only shown
+                when the hub has the variety to warrant them. */}
+            {!aisle && (data.aisles.styles.length > 1 || data.aisles.ages.length > 1) && (
+              <div className="mt-8 space-y-2.5">
+                {data.aisles.styles.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Style</span>
+                    <button type="button" onClick={() => setStyleFilter(null)}
+                      className={`rounded-full border px-3 py-1 text-sm ${styleFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
+                    {data.aisles.styles.map((l) => (
+                      <button key={l.slug} type="button" onClick={() => setStyleFilter(styleFilter === l.slug ? null : l.slug)}
+                        className={`rounded-full border px-3 py-1 text-sm capitalize ${styleFilter === l.slug ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.label}</button>
+                    ))}
+                  </div>
+                )}
+                {data.aisles.ages.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Age</span>
+                    <button type="button" onClick={() => setAgeFilter(null)}
+                      className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
+                    {data.aisles.ages.map((l) => (
+                      <button key={l.slug} type="button" onClick={() => setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug))}
+                        className={`rounded-full border px-3 py-1 text-sm ${ageFilter === parseInt(l.slug) ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.slug}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* THE WALL — cards that look like cards. 2-up on every
+                phone (md, not sm, is the 3-up breakpoint — larger
+                phones were crossing 640px and getting cramped 3-up). */}
+            <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4">
+              {data.cards
+                .filter((c) => (styleFilter === null || (c.tone ?? '').toLowerCase() === styleFilter)
+                  && (ageFilter === null || c.age === ageFilter))
+                .map((c) => (
                 <Link key={c.id} href={`/card/${c.id}`} className="group block">
                   <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
                   <div className="mt-3 px-0.5">
