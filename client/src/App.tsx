@@ -119,6 +119,7 @@ const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates")
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
+const CardProductPage = lazy(() => import("@/pages/card-product"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
@@ -367,6 +368,9 @@ function Router() {
             </RequireAdmin>
           </Route>
           {/* THE PUBLIC CATALOGUE — no auth; the SEO surface. */}
+          <Route path="/card/:id">
+            <CardProductPage />
+          </Route>
           <Route path="/cards/:occasion/:aisle">
             <CardsOccasionPage />
           </Route>

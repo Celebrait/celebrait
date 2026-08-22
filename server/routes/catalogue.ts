@@ -44,6 +44,25 @@ function aisleFilter(slug: string) {
 }
 
 export function registerCatalogueRoutes(app: Express): void {
+  // GET /api/catalogue/card/:id — the product page payload. Public,
+  // published cards only; admin fields stay server-side.
+  app.get('/api/catalogue/card/:id', async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) return res.status(400).json({ message: 'Bad id' });
+      const [t] = await db.select().from(cardTemplates).where(eq(cardTemplates.id, id));
+      if (!t || !t.published) return res.status(404).json({ message: 'No such card' });
+      res.json({ card: {
+        id: t.id, occasion: t.occasion, front_text: t.front_text, inside_text: t.inside_text,
+        tone: t.tone, age: t.age, recipient: t.recipient, editable: t.editable,
+        imageUrl: publicImageUrl(t.image_path),
+      } });
+    } catch (err) {
+      console.error('[CATALOGUE] card failed:', err);
+      res.status(500).json({ message: 'Could not load the card' });
+    }
+  });
+
   // GET /api/catalogue/:occasion — the hub payload: cards + which
   // aisles have cleared their threshold. One round trip per page.
   app.get('/api/catalogue/:occasion', async (req: Request, res: Response) => {
