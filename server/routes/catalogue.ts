@@ -51,37 +51,42 @@ export function registerCatalogueRoutes(app: Express): void {
       const occasion = String(req.params.occasion).toLowerCase();
       const aisle = typeof req.query.aisle === 'string' ? req.query.aisle : null;
 
-      const base = eq(cardTemplates.occasion, occasion);
-      let where = base as ReturnType<typeof and>;
-      if (aisle) {
-        const f = aisleFilter(aisle);
-        if (!f) return res.status(404).json({ message: 'No such aisle' });
-        where = and(base,
-          f.kind === 'age' ? eq(cardTemplates.age, f.age)
-          : f.kind === 'recipient' ? sql`lower(${cardTemplates.recipient}) = ${f.who}`
-          : eq(cardTemplates.tone, f.tone))!;
-      }
+      // Published only, and aisle membership is DERIVED ∪ TAGGED: a
+      // card sits in every aisle its fields imply PLUS any it was
+      // hand-shelved into (overlap by design). Membership is computed
+      // in JS off one slim fetch — at catalogue scale (hundreds, not
+      // thousands) that beats three OR-heavy grouped queries.
+      const all = await db.select().from(cardTemplates)
+        .where(and(eq(cardTemplates.occasion, occasion), eq(cardTemplates.published, true))!)
+        .orderBy(desc(cardTemplates.id));
 
-      const rows = await db.select().from(cardTemplates).where(where).orderBy(desc(cardTemplates.id)).limit(120);
+      const inAisle = (t: typeof all[number], slug: string): boolean => {
+        const f = aisleFilter(slug);
+        if (!f) return false;
+        const tags: string[] = (t.aisle_tags as string[] | null) ?? [];
+        if (tags.includes(slug)) return true;
+        if (f.kind === 'age') return t.age === f.age;
+        if (f.kind === 'recipient') return (t.recipient ?? '').toLowerCase() === f.who;
+        return (t.tone ?? '').toLowerCase() === f.tone;
+      };
+
+      const rows = aisle
+        ? (aisleFilter(aisle) ? all.filter((t) => inAisle(t, aisle)) : null)
+        : all;
+      if (rows === null) return res.status(404).json({ message: 'No such aisle' });
 
       // Threshold gate: a bare page is worse than no page.
       const min = aisle ? AISLE_MIN : HUB_MIN;
       if (rows.length < min) return res.status(404).json({ message: 'Not enough cards here yet' });
 
-      // Aisle availability for the rails — counts in one grouped query
-      // per axis, filtered to threshold server-side.
-      const [byAge, byWho, byTone] = await Promise.all([
-        db.select({ k: cardTemplates.age, n: sql<number>`count(*)` }).from(cardTemplates).where(base).groupBy(cardTemplates.age),
-        db.select({ k: sql<string>`lower(${cardTemplates.recipient})`, n: sql<number>`count(*)` }).from(cardTemplates).where(base).groupBy(sql`lower(${cardTemplates.recipient})`),
-        db.select({ k: cardTemplates.tone, n: sql<number>`count(*)` }).from(cardTemplates).where(base).groupBy(cardTemplates.tone),
-      ]);
+      const countFor = (slug: string) => all.filter((t) => inAisle(t, slug)).length;
       const aisles = {
-        ages: byAge.filter((r) => r.k !== null && Number(r.n) >= AISLE_MIN && MILESTONES.includes(r.k as number))
-          .map((r) => ({ slug: ordinal(r.k as number), label: `${ordinal(r.k as number)} birthday`, count: Number(r.n) })),
-        recipients: byWho.filter((r) => r.k && Number(r.n) >= AISLE_MIN && RECIPIENTS.includes(r.k))
-          .map((r) => ({ slug: `for-${r.k.replace(/ /g, '-')}`, label: `For ${r.k}`, count: Number(r.n) })),
-        styles: byTone.filter((r) => r.k && Number(r.n) >= AISLE_MIN && STYLES.includes(r.k as string))
-          .map((r) => ({ slug: r.k as string, label: r.k as string, count: Number(r.n) })),
+        ages: MILESTONES.map((n) => ({ slug: ordinal(n), label: `${ordinal(n)} birthday`, count: countFor(ordinal(n)) }))
+          .filter((a) => a.count >= AISLE_MIN),
+        recipients: RECIPIENTS.map((w) => ({ slug: `for-${w.replace(/ /g, '-')}`, label: `For ${w}`, count: countFor(`for-${w.replace(/ /g, '-')}`) }))
+          .filter((a) => a.count >= AISLE_MIN),
+        styles: STYLES.map((t) => ({ slug: t, label: t, count: countFor(t) }))
+          .filter((a) => a.count >= AISLE_MIN),
       };
 
       res.json({
@@ -89,7 +94,7 @@ export function registerCatalogueRoutes(app: Express): void {
         aisle,
         count: rows.length,
         aisles,
-        cards: rows.map((t) => ({
+        cards: rows.slice(0, 120).map((t) => ({
           id: t.id,
           front_text: t.front_text,
           tone: t.tone,

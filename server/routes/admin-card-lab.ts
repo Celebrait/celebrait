@@ -1454,6 +1454,40 @@ export function registerAdminCardLabRoutes(app: Express): void {
     });
   });
 
+  // ── SHELF CONTROL (Aidan, 2026-08-22: "I should have the ability to
+  // categorise, fixed or editable, and stick them in categories") —
+  // the per-card curation PATCH. Only the fields curation owns; every
+  // one optional; aisle tags validated against the known slugs so a
+  // typo cannot mint a phantom aisle.
+  app.patch('/api/admin/card-templates/:id', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'Bad id' });
+    const TAG = /^(for-[a-z-]+|funny|warm|rude|kids)$/;
+    const schema = z.object({
+      published: z.boolean().optional(),
+      editable: z.boolean().optional(),
+      tone: z.enum(['funny', 'warm', 'rude']).nullable().optional(),
+      age: z.number().int().min(1).max(110).nullable().optional(),
+      recipient: z.string().max(40).nullable().optional(),
+      gender: z.enum(['him', 'her']).nullable().optional(),
+      aisle_tags: z.array(z.string().regex(TAG)).max(12).optional(),
+    });
+    let body: z.infer<typeof schema>;
+    try { body = schema.parse(req.body); } catch (e: any) {
+      const issue = e?.issues?.[0];
+      return res.status(400).json({ message: `Invalid request${issue ? ` — ${issue.path?.join('.')}: ${issue.message}` : ''}` });
+    }
+    try {
+      const [row] = await db.update(cardTemplates).set(body).where(eq(cardTemplates.id, id)).returning();
+      if (!row) return res.status(404).json({ message: 'No such template' });
+      res.json({ ok: true, template: { ...row, imageUrl: publicImageUrl(row.image_path) } });
+    } catch (err) {
+      console.error('[CARD-TEMPLATES] patch failed:', err);
+      res.status(500).json({ message: 'Could not update the card' });
+    }
+  });
+
   // Curation needs a bin. The R2 object is left behind on purpose —
   // orphan images are pennies, a botched delete of the wrong object is
   // an unrecoverable template.

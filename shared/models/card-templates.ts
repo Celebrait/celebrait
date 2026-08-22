@@ -69,6 +69,16 @@ export const cardTemplates = pgTable("card_templates", {
    *  Defaults true, which is right for the 46 kept before this existed:
    *  they were all curated under the survives-other-words bar. */
   editable: boolean("editable").notNull().default(true),
+  /** On the public shelf? Keep = on the rack; this is the pull-it-off
+   *  switch (Aidan, 2026-08-22: the builder→live-stock path needs
+   *  curation control). Defaults TRUE — the rack has always meant "what
+   *  this occasion's world will sell", and the existing stock was
+   *  curated under that meaning; hiding is the exception, per card. */
+  published: boolean("published").notNull().default(true),
+  /** EXTRA aisles, beyond what age/tone/recipient derive — slugs like
+   *  'for-mum', 'for-nan'. A card can overlap categories (his ask);
+   *  tags UNION with the derived slicing, never replace it. */
+  aisle_tags: text("aisle_tags").array().notNull().default(sql`'{}'::text[]`),
   /** Stored image filename (R2 key / local stored_images name). */
   image_path: text("image_path").notNull(),
   created_at: timestamp("created_at")
