@@ -434,7 +434,7 @@ function birthdayAgeBlock(age: number | null): string {
         : age <= 25
           ? `AGE BAND — THRESHOLD (${age}). The joke is CROSSING A LINE: doors opening, permissions arriving, being trusted with things you are gloriously unprepared for. Loud, energetic, meme-fluent.
 ⚠️ USE THIS GENERATION'S ICONOGRAPHY, NOT THEIR GREAT-GRANDMOTHER'S. Observed failure: a 21st came back with ceremonial keys on all three cards — the "key of the door" is a tradition that died decades before this recipient was born, and to them it reads as wallpaper from a nan's card. The same goes for any symbol you know from OLD cards rather than from being ${age} now. Mine what crossing this line looks like THIS year — unless the brief itself asks for retro, in which case play it knowingly.
-⚠️ MINE THE FIRSTS THAT BELONG TO THIS EXACT AGE — the things only someone arriving HERE would recognise. ⚠️ BUT NOT THE PAPERWORK OF IT: permissions, checks, forms, signatures and the admin of being newly allowed things is the seam every card reaches for first, and three cards deep it is one joke wearing three palettes (observed on the rack, 2026-08-20). The permissions are the least interesting true thing about this age. What it FEELS like to arrive here, and what these years are actually spent doing, is the material.
+⚠️ MINE THE FIRSTS THAT BELONG TO THIS EXACT AGE — the things only someone arriving HERE would recognise. ⚠️ BUT NOT THE PAPERWORK OF IT: permissions, checks, forms, signatures and the admin of being newly allowed things is the seam every card reaches for first, and three cards deep it is one joke wearing three palettes (observed on the rack, 2026-08-20; back again by 2026-08-22 as "Votes. Venues." — this seam is now also enforced in code). The permissions are the least interesting true thing about this age. What it FEELS like to arrive here, and what these years are actually spent doing, is the material.
 ⚠️ AND DO NOT BORROW FROM THE LATER BANDS, which is how this one fails. Life admin, paperwork, passwords, insurance, mortgages, bad knees, early nights, aching backs and being tired all the time are THIRTIES AND FORTIES material. On an ${age}th they are somebody else's joke wearing this number: observed failure, "18 is mainly forms, passwords and a hangover" — true of any adult, and nothing at all to do with being eighteen.
 ⚠️ NEVER AN AGEING JOKE. Nobody here is old, declining or past anything. Observed failure: a card punning on "proof of age" that resolved instead onto AGEING — a clean pun landing on exactly the wrong idea. They are ARRIVING, and every line should know it.
 ⚠️ The buyer is very often a PARENT or GRANDPARENT — cheeky is fine, never something a nan would be embarrassed to hand over.`
@@ -1181,6 +1181,19 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   if (opts?.restingYear && cards.some((c) => `${c.front_text ?? ''} ${c.art_direction ?? ''}`.includes(String(opts.restingYear)))) {
     v.push(`year-rest: the birth year ${opts.restingYear} is resting this set — build the hook from their world instead`);
   }
+  // ⚠️ THE CIVIC-ADMIN SEAM, 18-25 ONLY, AS A FLOOR. Prompt-banned
+  // since 2026-08-20 and still resurfacing (law 5: prompt rules hold
+  // ~85% and this seam is magnetic — Aidan caught "Votes. Venues.
+  // Group-chat chaos." fresh off the current engine). Tokens TIGHT
+  // (law 9); "venues" deliberately absent — a party venue is
+  // legitimate 18th material.
+  if (b.age !== null && b.age !== undefined && b.age >= 18 && b.age <= 25) {
+    const CIVIC = /\b(votes?|voting|ballots?|polling|id checks?|signatures?|terms (and|&) conditions|forms?|contracts?|paperwork)\b/i;
+    fronts.forEach((f, i) => {
+      if (CIVIC.test(f)) v.push(`civic-seam: card ${i + 1} leans on the civic/admin checklist ("${(f.match(CIVIC) ?? [''])[0]}") — the most worn seam at this age. Build from what these years are actually SPENT doing, not what is newly permitted`);
+    });
+  }
+
   // ⚠️ AGE-AS-CONTEXT CAP (non-birthday occasions). The prompt asks for
   // restraint; this guarantees the ceiling. Digits and ordinals only —
   // a spelled-out number slips past, which the prompt still covers, but
