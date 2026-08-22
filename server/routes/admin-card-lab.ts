@@ -608,6 +608,9 @@ const conceptsSchema = z.object({
    *  mode made it (comp_mode), because the alternation is a standing
    *  A/B that keep-rate should eventually settle. */
   freeComposition: z.boolean().optional(),
+  /** The charm register toggle — naive hand-drawn / object-mascots /
+   *  hand-lettering, daft over dry. Studio chip; off = poster voice. */
+  charm: z.boolean().default(false),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
@@ -1294,6 +1297,17 @@ THE SUBJECT LENDS THE HUES; THE BRAND SETS THE FINISH. Take WHICH colours from t
 ⚠️ WHAT FAILS IS THE TOKEN CHECKLIST: unrelated props laid out flat to prove the theme, or a number assembled from twenty tiny things. Observed on one 25th for a trip to Ibiza: a boarding pass, a phone, sunglasses and a flight path; then a phone, a skyline, earbuds and an airport pint; then sunglasses, a wristband, earphones and a bus ticket. Four proofs of the topic, no picture, three times running.
 THE TEST: would these things be photographed together for their OWN sake, or have they been gathered onto a surface to prove the theme? ⚠️ AND THE TEST CANNOT BE PASSED BY ASSERTING IT. Saying in the art direction that the objects "belong together" or calling the arrangement a still life does not make it one — observed, and it is the tell that the card knows what it is doing. A picture earns it or it does not. THE ORDER OF OPERATIONS IS BEAUTIFUL FIRST, JOKE SECOND: gorgeous at arm's length, then you notice the line — good enough that whoever receives it shows it to somebody else. The register is a SPECTRUM you may use all of: from pure flat print to gently dimensional 3D-FLAT — paper-cut depth, soft shadows, rounded sculptural forms, tactile materials — as long as it stays graphic and deliberate. Photorealism is never home.
 ⚠️ "OBJECTS NOT SCENES" BANS CLUTTER, NOT PLACES. When the thing they love IS a place — an island, a city, a coastline, a ground — THE PLACE IS THE STRONGEST ARTWORK YOU HAVE, drawn in the register: the flat graphic landscape, the landmark silhouette, the travel-poster horizon at the right hour. Observed failure: an Ibiza brief drew wristbands and flyers three times over while the island — its rock in the sea, its white town, its sunrise terraces — never appeared; the kit of a night out says "clubbing", the place says IBIZA. You also hold a LICENCE TO DEPART entirely when this person's world genuinely calls for another look — take it when it is earned, and make the departure a named decision in "direction", never drift.`;
+/** LANES 1-3 from the Thortful gap analysis (Aidan, 2026-08-22:
+ *  "feels masculine... what are we missing?"): naive hand-drawn charm,
+ *  generic object-mascots, hand-lettering — the daft-warm half of the
+ *  market our poster register never makes. A TOGGLE, not a takeover:
+ *  the poster voice stays the default. */
+const V2_CHARM_REGISTER = `THE LOOK — THE CHARM REGISTER, a deliberate change of voice: warmth beats polish and SILLY beats clever. Three lanes; pick whichever suits each card, and commit completely:
+· NAIVE HAND-DRAWN — wobbly lines, simple shapes, deliberately imperfect, drawn with the confidence of someone who could draw it straight and chose not to. The wonk is the charm and must read as LOVED, never as failed.
+· A CHARACTER MADE FROM AN ORDINARY THING — an everyday object given a simple face and a flicker of personality: dot eyes, one small line of a mouth. Always a GENERIC object that belongs to nobody; never a franchise creature, never a mascot that already exists.
+· HAND-LETTERING — script and hand-drawn letterforms, warmly imperfect in rhythm while every glyph still prints clean-edged and fully legible.
+The joke here is DAFT, not dry: the pun delivered with a straight face, the small silly scene that makes someone grin across a shop. Beautiful still counts — but here beautiful means CHARMING, not polished. The colour law applies unchanged: fresh and clean, leaning soft brights and warm tints, still popping, never dinge, never mud.`;
+
 const V2_OPEN_REGISTER = `THE LOOK — design free: any medium, any palette, anything that is CURRENT and lands for this person. Old styles welcome when treated with a modern eye. BEAUTIFUL FIRST, JOKE SECOND: gorgeous at arm's length, then you notice the line — good enough that whoever receives it shows it to somebody else.`;
 
 /** The first of the two calls: brief in, person out. Exported so
@@ -1302,7 +1316,7 @@ export function archetypeSystemPrompt(): string {
   return `You profile REAL PEOPLE for a UK card maker — the person, never the card tradition. ⚠️ Anything you know from old greeting cards is CONTAMINATION here, not insight: asked about a milestone, the tradition answers with symbols from decades-old cards (observed: ceremonial keys on a 21st) while the actual person answers with what their days genuinely contain NOW — profile the person alive in ${new Date().getFullYear()}, whatever their age. Return JSON {"archetype":"100-140 words. FIRST commit to the most likely SPECIFIC TYPE this person is on the brief's evidence — not the demographic average. Every interest splits into distinct tribes at EVERY age (the competitive one, the ritualist, the kit-obsessed one, the quietly devoted one, the social one...) — pick the likeliest for THIS person and profile THAT person: the era they came of age in; what they ACTUALLY react to about this interest (famous layer + insider rituals); what reads cliché vs current to them (current is REGISTER and irony, never slang-stuffing — forced slang is the mum-trying failure); where the line is on cheek for this relationship","interest_words":["12-20 words/short phrases ONLY THIS EXACT SUBJECT owns — its places, people, eras, nicknames, rituals, slang. NEVER words that fit the broad category: for a football club, 'matchday' and 'team news' fit every club and prove nothing; 'Stretford End' proves everything"],"dislike_words":["same for the dislike, or empty"],"palette_world":"THE COLOUR WORLD THIS PERSON'S SUBJECT ACTUALLY LIVES IN, 8-16 words, theirs rather than a designer's default: the light it happens in, the materials it is made of, the hour they love it at. Then give it TODAY'S FINISH — name the hues as a modern print shop would ink them, clean and alive, never aged down to seem tasteful. ⚠️ THE AGE MUST NOT TINT THE COLOUR. No reasoning that older means muted, heritage or sepia, and none that younger means neon — every age shops in the same modern shop, and 'they are 60 so soften it' is the exact failure this field keeps producing. If the brief gave you NO subject, work from WHO IT IS FOR and the REGISTER — a 40-year-old sister and a 40-year-old brother should not receive interchangeable cards, and the recipient tilting the whole design's feel is exactly what a good shop does with its For Her and For Him walls. ⚠️ BUT NEVER BY CLICHÉ: pink-because-she's-a-woman is as lazy as navy-because-he's-a-man, and both are failures. Think instead about what THIS person would actually pick up — its elegance or its wit, its warmth or its edge — and let that choose the colours. Name a ground and a leading colour, and never default to primary poster colour just because it is bold.","territories":["EXACTLY THREE, one per card, and this is the field that stops a set being one joke told three ways. Each must come from a DIFFERENT REGION OF THIS PERSON'S LIFE — if two of them could come up in the same conversation, replace one. ⚠️ Your FIRST instinct for this brief is the region everyone reaches for; keep it as one of the three at most, and go genuinely looking for the other two. ⚠️ EXCEPTION — for milestone birthdays 18 to 25 the first-instinct region (permissions, admin, proof-of-age, the civic checklist of what is newly allowed) is SPENT: it may not be a territory at all, even once. Everything those years are actually spent doing is open — what they do that nobody sees, what they are like with other people, what they actually spend their time and money on, what has changed for them lately. Name each in 3-8 words, as an AREA to explore and never as a joke or a line."]}. Concrete, ${new Date().getFullYear()}, UK.`;
 }
 
-export function v2SystemPrompt(visual: 'celebrait' | 'open', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string }>, occasionBrief: string): string {
+export function v2SystemPrompt(visual: 'celebrait' | 'open' | 'charm', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string }>, occasionBrief: string): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
 ${occasionBrief}
@@ -1322,7 +1336,7 @@ THE BAR, per card:
 - art_direction: one drawable sentence. ⚠️ EVERY ILLUSTRATED CARD'S ARTWORK COMES FROM THEIR WORLD — 100%, not one of three; only the typeled card is exempt. If the picture would suit a different interest, it has failed however handsome. Real places (NAMED), caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; the Stretford End is one.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
-${V2_CELEBRAIT_REGISTER && ''}${visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
+${V2_CELEBRAIT_REGISTER && ''}${visual === 'charm' ? V2_CHARM_REGISTER : visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
 - If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ MASKING HAS EXACTLY THREE WORDS. Only the f-word, the s-word and the c-word are ever masked (first letter, then asterisks). EVERYTHING ELSE PRINTS IN FULL, always: hell, damn, bloody, bitch, bastard, bollocks, arse, prick, twat and their kin are not maskable, and asterisks on any of them is an instant fail — observed twice in one set ("Son of a B****", "hush the h*** up"), both counterfeit rudeness that reads as a misprint. If a line leans on hell or damn to feel rude, it wanted one of the real three or a better joke.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
@@ -1855,7 +1869,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // the three sit at different weights, which is what makes a
           // rack read as a range rather than a swatch.
           ground: groundWeights[i] }));
-        const sys = v2SystemPrompt(body.pipeline as 'celebrait' | 'open', slots, occProfile.brief);
+        const sys = v2SystemPrompt(body.charm ? 'charm' : (body.pipeline as 'celebrait' | 'open'), slots, occProfile.brief);
         // Aidan, 2026-08-20: "whatever the user chooses MUST dictate to an
         // extent the palette as it builds the archetype." Colour was the one
         // thing the archetype never spoke about, so it was decided downstream
@@ -2784,6 +2798,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
        *  all tiers output 1024x1024, so this changes CRISPNESS, not
        *  resolution. Print re-renders would use 'high'. */
       quality: z.enum(['low', 'medium', 'high']).default('low'),
+      charm: z.boolean().default(false),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -2807,6 +2822,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
       '',
+      body.charm ? `CHARM LICENCE — this card may be naive hand-drawn ON PURPOSE: wobbly confident linework, simple shapes, imperfect edges as a chosen style that reads loved, never failed. An ordinary object given a simple face (dot eyes, one small mouth line) is welcome — always generic, never a character that exists. Script and hand-lettered type welcome — warmly imperfect rhythm, every glyph still clean-edged and legible. The against-the-AI-look rules still apply: this is a chosen craft, not sloppiness.` : '',
       `ILLUSTRATION: ${body.art_direction}`,
       named.length
         ? `⚠️ OVERRIDE — the brief above names ${named.join(', ')}, which belong to someone else's property and must NOT appear. Do not draw them in any form, however stylised, and do not draw a near-copy under another name. Replace each with an ORDINARY generic object from the same world that anyone could own, and keep everything else about the composition. The palette and mood carry the reference; the protected objects do not.`

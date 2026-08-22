@@ -42,7 +42,7 @@ const server = app.listen(0, async () => {
       body: JSON.stringify({
         // OCC env var overrides the occasion — the non-birthday worlds
         // are testable too (activated 2026-08-21).
-        occasion: process.env.OCC ?? (age ? `${age}th Birthday` : 'Birthday'), who, gender, tone, pipeline: 'celebrait', age, freeComposition,
+        occasion: process.env.OCC ?? (age ? `${age}th Birthday` : 'Birthday'), who, gender, tone, pipeline: 'celebrait', age, freeComposition, charm: process.env.CHARM === '1',
         interest, dislikes: '', characters: 'objects', insideMode: 'blank',
         freeStyle: true, memory: true,
       }),

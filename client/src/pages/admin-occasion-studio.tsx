@@ -206,6 +206,9 @@ export default function AdminOccasionStudioPage() {
    *  experiment ended with both modes keeping their place (Aidan: "I
    *  like both lol"). Explicit modes remain for deliberate testing. */
   const [compMode, setCompMode] = useState<'auto' | 'free' | 'dealt'>('auto');
+  /** The charm register: naive hand-drawn / object-mascots /
+   *  hand-lettering — daft over dry. Off = the poster voice. */
+  const [charm, setCharm] = useState(false);
   const [cells, setCells] = useState<Cell[]>([]);
   /** Floors still broken after the repair round. The engine ships them
    *  VISIBLY by design — but the studio was swallowing the report, so a
@@ -372,6 +375,7 @@ export default function AdminOccasionStudioPage() {
         recipientName: recipientName.trim() || undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         freeComposition: compMode === 'auto' ? undefined : compMode === 'free',
+        charm,
         dislikes: dislikes.trim() || undefined,
       });
       const { concepts = [], compMode: served, violations = [] } = (await r.json()) as { concepts: Concept[]; compMode?: string; violations?: string[] };
@@ -383,7 +387,7 @@ export default function AdminOccasionStudioPage() {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
             front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
-            typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle,
+            typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle, charm,
           });
           const rj = await rr.json();
           setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
@@ -645,6 +649,12 @@ export default function AdminOccasionStudioPage() {
                 {l}
               </button>
             ))}
+            <button type="button" onClick={() => setCharm((v) => !v)}
+              title="The charm register: naive hand-drawn, object mascots, hand-lettering — daft over dry"
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                charm ? 'border-pink-400 bg-pink-50 text-pink-700' : 'border-stone-200 bg-white text-stone-400 hover:border-pink-300'}`}>
+              Charm
+            </button>
             <button type="button"
               onClick={() => setCompMode((v) => (v === 'auto' ? 'free' : v === 'free' ? 'dealt' : 'auto'))}
               title="Auto flips a coin per set between dealt formats and free composition; click to pin one for testing"
