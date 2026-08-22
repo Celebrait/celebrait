@@ -36,6 +36,10 @@ function aisleFilter(slug: string) {
   // Kids is a real aisle (the taxonomy: a different product) — tagged
   // 'kids' or simply aged 1-12.
   if (slug === 'kids') return { kind: 'kids' as const };
+  // The market's top two aisles — checked before the recipient grammar
+  // ('for-her' would otherwise fall through it and 404).
+  if (slug === 'for-her') return { kind: 'gender' as const, gender: 'her' as const };
+  if (slug === 'for-him') return { kind: 'gender' as const, gender: 'him' as const };
   const m = slug.match(/^(\d{1,3})(st|nd|rd|th)$/);
   if (m) return { kind: 'age' as const, age: Number(m[1]) };
   if (slug.startsWith('for-')) {
@@ -89,6 +93,10 @@ export function registerCatalogueRoutes(app: Express): void {
         const tags: string[] = (t.aisle_tags as string[] | null) ?? [];
         if (tags.includes(slug)) return true;
         if (f.kind === 'kids') return t.age !== null && t.age >= 1 && t.age <= 12;
+        if (f.kind === 'gender') {
+          const implied = ({ mum: 'her', nan: 'her', sister: 'her', daughter: 'her', dad: 'him', grandad: 'him', brother: 'him', son: 'him' } as Record<string, string>)[(t.recipient ?? '').toLowerCase()];
+          return t.gender === f.gender || implied === f.gender;
+        }
         if (f.kind === 'age') return t.age === f.age;
         if (f.kind === 'recipient') return (t.recipient ?? '').toLowerCase() === f.who;
         return (t.tone ?? '').toLowerCase() === f.tone;
@@ -109,8 +117,11 @@ export function registerCatalogueRoutes(app: Express): void {
           ...MILESTONES.map((n) => ({ slug: ordinal(n), label: `${ordinal(n)} birthday`, count: countFor(ordinal(n)) })),
           { slug: 'kids', label: 'Kids', count: countFor('kids') },
         ].filter((a) => a.count >= AISLE_MIN),
-        recipients: RECIPIENTS.map((w) => ({ slug: `for-${w.replace(/ /g, '-')}`, label: `For ${w}`, count: countFor(`for-${w.replace(/ /g, '-')}`) }))
-          .filter((a) => a.count >= AISLE_MIN),
+        recipients: [
+          { slug: 'for-her', label: 'For her', count: countFor('for-her') },
+          { slug: 'for-him', label: 'For him', count: countFor('for-him') },
+          ...RECIPIENTS.map((w) => ({ slug: `for-${w.replace(/ /g, '-')}`, label: `For ${w}`, count: countFor(`for-${w.replace(/ /g, '-')}`) })),
+        ].filter((a) => a.count >= AISLE_MIN),
         styles: STYLES.map((t) => ({ slug: t, label: t, count: countFor(t) }))
           .filter((a) => a.count >= AISLE_MIN),
       };

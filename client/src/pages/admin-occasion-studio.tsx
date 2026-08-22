@@ -215,7 +215,7 @@ export default function AdminOccasionStudioPage() {
    *  an Anyone card can also shelve in for-mum AND for-nan). */
   const [shelfCard, setShelfCard] = useState<Template | null>(null);
   const [shelfBusy, setShelfBusy] = useState(false);
-  const EXTRA_AISLES = ['kids', 'for-mum', 'for-dad', 'for-nan', 'for-grandad', 'for-sister', 'for-brother', 'for-daughter', 'for-son', 'for-partner', 'for-best-mate', 'for-friend', 'for-colleague'];
+  const EXTRA_AISLES = ['for-her', 'for-him', 'kids', 'for-mum', 'for-dad', 'for-nan', 'for-grandad', 'for-sister', 'for-brother', 'for-daughter', 'for-son', 'for-partner', 'for-best-mate', 'for-friend', 'for-colleague'];
   /** The bin. Server route existed all along ("curation needs a
    *  bin"); the rack UI never surfaced it. Gone means gone from rack
    *  and shop — the stored image is left behind on purpose (pennies,
