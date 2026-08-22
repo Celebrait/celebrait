@@ -98,9 +98,17 @@ Top to bottom:
 5. **The step-up** — photo-route rail: "Or put them in the picture"
 6. FAQ block (delivery, editability, sizes — the schema.org fodder)
 
-Every card tile: front image, the line, price, two actions —
-**"Make it theirs"** (editable → short wizard; fixed → inside-only
-personalisation) and buy-as-is.
+Every card tile: front image, the line, price, one action —
+**"Personalise inside"**. FRONT-WORD EDITING IS PARKED FOR LAUNCH
+(Aidan, 2026-08-22): each editable card would need per-card tailoring
+of WHICH part is editable ("Mum" swappable to "Sister", the rest
+locked), and that region-marking system doesn't exist yet — so all
+stock sells fixed, and the editable/fixed flag waits in the schema
+for the day it does. The inside is the personalisation: each card's
+own pre-written message as the default (the engine wrote one per card
+at generation; Keep stored it), with write-your-own and leave-blank
+as the escapes, plus Dear/From. No AI generation on public pages —
+anonymous gen is a cost tap; the builder is the gated home of it.
 
 ## 5. Stock thresholds (what unlocks a page)
 
@@ -207,6 +215,8 @@ card images, generous white, no decoration competing with the cards.
    photo route as act two at full ceremony.
 2. "Quick card" as the customer-facing name — better ideas welcome
 3. Kids aisle placement: inside birthday (recommended) or top-level?
-4. Buy-as-is on fixed cards at launch, or personalise-inside-only?
+4. ~~Buy-as-is vs personalise-inside~~ — DECIDED 2026-08-22: all
+   stock fixed at launch; inside personalisation with the card's own
+   message as default.
 5. Which occasion gets stocked second (Christmas recommended —
    September SEO clock).

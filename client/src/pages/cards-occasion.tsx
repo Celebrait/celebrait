@@ -162,7 +162,7 @@ export default function CardsOccasionPage() {
                     <div className="mt-1.5 flex items-baseline justify-between">
                       <span className="text-sm font-semibold text-keeper-ink">£8.99</span>
                       <span className="text-[11px] text-keeper-meta transition-colors group-hover:text-keeper-gold">
-                        {c.editable === false ? 'Personalise inside →' : 'Make it theirs →'}
+                        Personalise inside →
                       </span>
                     </div>
                   </div>

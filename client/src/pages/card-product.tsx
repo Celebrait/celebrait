@@ -31,14 +31,22 @@ export default function CardProductPage() {
   const params = useParams<{ id: string }>();
   const [card, setCard] = useState<ProductCard | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'missing'>('loading');
-  const [ownWords, setOwnWords] = useState('');
-  const [insideMsg, setInsideMsg] = useState('');
+  /** THE INSIDE (Aidan, 2026-08-22): every stock card ships with its
+   *  own pre-written message — the engine wrote one per card in the
+   *  card's register, and Keep stored it. The default choice arrives
+   *  already made; two light escapes. No AI-generate button here on
+   *  purpose: anonymous generation on a public page is a cost tap,
+   *  and the builder (email-gated) is where generation lives. */
+  const [insideMode, setInsideMode] = useState<'ours' | 'own' | 'blank'>('ours');
+  const [dear, setDear] = useState('');
+  const [from, setFrom] = useState('');
+  const [ownMsg, setOwnMsg] = useState('');
   const [notice, setNotice] = useState(false);
 
   useEffect(() => {
     fetch(`/api/catalogue/card/${params.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => { setCard(j.card); setState('ok'); document.title = `“${j.card.front_text.slice(0, 48)}” — £8.99 | Celebrait`; })
+      .then((j) => { setCard(j.card); setState('ok'); if (!j.card.inside_text) setInsideMode('own'); document.title = `“${j.card.front_text.slice(0, 48)}” — £8.99 | Celebrait`; })
       .catch(() => setState('missing'));
   }, [params.id]);
 
@@ -64,8 +72,6 @@ export default function CardProductPage() {
       </div>
     );
   }
-
-  const editable = card.editable !== false;
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -109,24 +115,42 @@ export default function CardProductPage() {
               <span className="text-sm text-keeper-meta">+ postage from £3.95, straight to their door</span>
             </div>
 
-            {/* Personalisation — the point of the shop. */}
-            <div className="mt-7 space-y-5 rounded-2xl border border-keeper-hair bg-white/70 p-5 backdrop-blur-sm">
-              {editable ? (
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-semibold text-keeper-ink"><PenLine className="h-3.5 w-3.5 text-keeper-gold" /> Your words on the front</label>
-                  <p className="mt-0.5 text-xs text-keeper-meta">This design carries anyone's words — leave blank to keep the original line.</p>
-                  <input value={ownWords} onChange={(e) => setOwnWords(e.target.value)} placeholder={card.front_text}
-                    className="mt-2 w-full rounded-lg border border-keeper-hair bg-white px-3 py-2.5 text-sm text-keeper-body outline-none focus:border-keeper-gold" />
-                </div>
-              ) : (
-                <p className="text-sm text-keeper-body"><span className="font-semibold">The words are the card</span> — this design is sold exactly as written, and the inside is all yours.</p>
+            {/* THE INSIDE — the default arrives already written. */}
+            <div className="mt-7 rounded-2xl border border-keeper-hair bg-white/70 p-5 backdrop-blur-sm">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-keeper-ink"><PenLine className="h-3.5 w-3.5 text-keeper-gold" /> Inside the card</p>
+
+              {card.inside_text && (
+                <label className={`mt-3 block cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'ours' ? 'border-keeper-gold bg-keeper-gold-wash/60' : 'border-keeper-hair bg-white'}`}>
+                  <input type="radio" name="inside" className="sr-only" checked={insideMode === 'ours'} onChange={() => setInsideMode('ours')} />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-keeper-gold">This card's message</span>
+                  <p className="mt-1.5 font-display text-[15px] leading-snug text-keeper-ink">“{card.inside_text}”</p>
+                  <p className="mt-1 text-[11px] text-keeper-meta">Written for this card — set inside in its own style.</p>
+                </label>
               )}
-              <div>
-                <label className="flex items-center gap-1.5 text-sm font-semibold text-keeper-ink"><PenLine className="h-3.5 w-3.5 text-keeper-gold" /> Your message inside</label>
-                <p className="mt-0.5 text-xs text-keeper-meta">Set in the card's own style — or leave blank to write it by hand.</p>
-                <textarea value={insideMsg} onChange={(e) => setInsideMsg(e.target.value)} placeholder="Dear…"
-                  className="mt-2 min-h-[88px] w-full rounded-lg border border-keeper-hair bg-white px-3 py-2.5 text-sm text-keeper-body outline-none focus:border-keeper-gold" />
-              </div>
+
+              <label className={`mt-2.5 block cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'own' ? 'border-keeper-gold bg-keeper-gold-wash/60' : 'border-keeper-hair bg-white'}`}>
+                <input type="radio" name="inside" className="sr-only" checked={insideMode === 'own'} onChange={() => setInsideMode('own')} />
+                <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Write your own</span>
+                {insideMode === 'own' && (
+                  <textarea value={ownMsg} onChange={(e) => setOwnMsg(e.target.value)} placeholder="Your message…" autoFocus
+                    className="mt-2 min-h-[80px] w-full rounded-lg border border-keeper-hair bg-white px-3 py-2.5 text-sm text-keeper-body outline-none focus:border-keeper-gold" />
+                )}
+              </label>
+
+              <label className={`mt-2.5 block cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'blank' ? 'border-keeper-gold bg-keeper-gold-wash/60' : 'border-keeper-hair bg-white'}`}>
+                <input type="radio" name="inside" className="sr-only" checked={insideMode === 'blank'} onChange={() => setInsideMode('blank')} />
+                <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Leave it blank</span>
+                <span className="ml-2 text-xs text-keeper-meta">— you'll write it by hand when it arrives</span>
+              </label>
+
+              {insideMode !== 'blank' && (
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="Dear… (optional)"
+                    className="rounded-lg border border-keeper-hair bg-white px-3 py-2.5 text-sm text-keeper-body outline-none focus:border-keeper-gold" />
+                  <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From… (optional)"
+                    className="rounded-lg border border-keeper-hair bg-white px-3 py-2.5 text-sm text-keeper-body outline-none focus:border-keeper-gold" />
+                </div>
+              )}
             </div>
 
             <button type="button" onClick={() => setNotice(true)}
