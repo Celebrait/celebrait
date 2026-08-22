@@ -1459,7 +1459,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
       occasion: z.string().min(1).max(80),
-      angle: z.string().max(40).optional(),
+      angle: z.string().max(160).optional(),
       recipient: z.string().max(120).optional(),
       interest: z.string().max(200).optional(),
       front_text: z.string().min(1).max(300),
@@ -1482,8 +1482,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let body: z.infer<typeof schema>;
     try {
       body = schema.parse(req.body);
-    } catch {
-      return res.status(400).json({ message: 'Invalid template' });
+    } catch (err) {
+      const issue = err instanceof z.ZodError ? err.issues[0] : null;
+      return res.status(400).json({ message: issue ? `Invalid template — ${issue.path.join('.')}: ${issue.message}` : 'Invalid template' });
     }
     try {
       const buffer = Buffer.from(body.imageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
