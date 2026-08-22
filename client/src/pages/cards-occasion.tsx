@@ -33,8 +33,6 @@ interface Payload {
 }
 
 const OCCASION_LABELS: Record<string, string> = { birthday: 'Birthday' };
-/** Wireframed doors — real chips the day their worlds are stocked. */
-const COMING_OCCASIONS = ['Christmas', "Mother's Day", 'Anniversary', 'New baby'];
 
 function aisleTitle(occasion: string, aisle: string | null): string {
   const occ = OCCASION_LABELS[occasion] ?? occasion;
@@ -93,16 +91,6 @@ export default function CardsOccasionPage() {
             Every card here was made for a real person's brief — not a warehouse.
             Send one as it is, or make it theirs.
           </p>
-        </div>
-
-        {/* Occasion doors — the site opening up; future worlds wireframed. */}
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-keeper-gold bg-keeper-gold-wash px-3.5 py-1.5 text-sm font-medium text-keeper-gold">Birthday</span>
-          {COMING_OCCASIONS.map((o) => (
-            <span key={o} className="cursor-default rounded-full border border-keeper-hair bg-white/60 px-3.5 py-1.5 text-sm text-keeper-stone" title="Coming soon">
-              {o} <span className="text-[10px] text-keeper-meta">soon</span>
-            </span>
-          ))}
         </div>
 
         {state === 'loading' && (
