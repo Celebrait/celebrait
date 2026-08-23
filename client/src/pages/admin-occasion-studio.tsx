@@ -217,6 +217,7 @@ export default function AdminOccasionStudioPage() {
    *  counterfeit mask could sit on screen looking like nobody checked
    *  (Aidan, on a shipped "h***": "It blocked hell lol"). */
   const [standingViolations, setStandingViolations] = useState<string[]>([]);
+  const [ledgerNote, setLedgerNote] = useState('');
   const [thinking, setThinking] = useState(false);
   const [spendUsd, setSpendUsd] = useState(0);
   const [rack, setRack] = useState<Template[]>([]);
@@ -380,9 +381,14 @@ export default function AdminOccasionStudioPage() {
         charm,
         dislikes: dislikes.trim() || undefined,
       });
-      const { concepts = [], compMode: served, violations = [] } = (await r.json()) as { concepts: Concept[]; compMode?: string; violations?: string[] };
+      const { concepts = [], compMode: served, violations = [], ledger } = (await r.json()) as { concepts: Concept[]; compMode?: string; violations?: string[]; ledger?: { resting?: string[]; paleGroundResting?: boolean; seamBudget?: boolean } };
       setCells(concepts.map((c) => ({ concept: c, served })));
       setStandingViolations(violations);
+      setLedgerNote([
+        ledger?.resting?.length ? `resting: ${ledger.resting.join(', ')}` : '',
+        ledger?.seamBudget ? 'seam budget on (aisle running samey)' : '',
+        ledger?.paleGroundResting ? 'pale ground resting' : '',
+      ].filter(Boolean).join(' · '));
       // (Generations are logged server-side by /concepts — logging here
       // too would double the keep-rate denominator.)
       await Promise.all(concepts.map(async (c, i) => {
@@ -718,7 +724,10 @@ export default function AdminOccasionStudioPage() {
             was throwing away the engine's best output: the card that IS
             one perfect line. Real shops sell those — fixed, as written.
             So the question is now which KIND of stock this is. */}
-        {standingViolations.length > 0 && (
+        {ledgerNote && (
+        <p className="text-xs text-stone-400">The ledger is steering this aisle — {ledgerNote}</p>
+      )}
+      {standingViolations.length > 0 && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <span className="font-semibold">Shipped with standing floor violations</span> — the repair round couldn't fix these; treat the set with suspicion:
             <ul className="mt-1 list-disc pl-4">{standingViolations.map((v, i) => <li key={i}>{v}</li>)}</ul>

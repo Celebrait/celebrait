@@ -1168,7 +1168,7 @@ interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
 const SEAM_LEDGER: Array<{ name: string; desc: string; re: RegExp }> = [
   { name: 'the phone screen', desc: 'the group chat, tabs, notifications, screenshots, voice notes, battery, apps, the camera roll — life as it appears on a phone', re: /\b(phones?|screens?|chargers?|charging cables?|e-?tickets?|group[- ]?chats?|tabs open|notifications?|screenshots?|voice ?notes?|batter(?:y|ies)|apps?|app-style|scrolling|read receipts?|camera rolls?|selfies?|dms|typing bubbles?|shared locations?|screen time|wifi|social feeds?|online)\b/i },
   { name: 'the civic checklist', desc: 'votes, ID, forms, contracts, admin — what is newly permitted', re: /\b(votes?|voting|ballots?|polling|id checks?|signatures?|terms (?:and|&) conditions|forms?|contracts?|paperwork|admin)\b/i },
-  { name: 'money admin', desc: 'split bills, overdrafts, rent, receipts, surcharges — the price of being this age', re: /\b(split(?:ting)? (?:the )?bill|split-?payments?|overdrafts?|payday|rent|council tax|receipts?|surcharges?|contactless|bank cards?|standing orders?|direct debits?)\b|£\d/i },
+  { name: 'money admin', desc: 'split bills, overdrafts, rent, receipts, surcharges — the price of being this age', re: /\b(split(?:ting)? (?:the )?bill|split-?payments?|overdrafts?|payday|rent|council tax|receipts?|surcharges?|contactless|bank cards?|standing orders?|direct debits?|bookings?|booked)\b|£\d/i },
   { name: 'the night out', desc: 'pres, taxis, the last train home, chips — the going-out ritual', re: /\b(pres|pre-?drinks|ubers?|taxis?|night ?bus(?:es)?|last train|guest ?lists?|dance ?floors?|kebabs?|club nights?|big nights?)\b/i },
   { name: 'the early night', desc: 'cancelled plans, the sofa, in bed by nine — joy of missing out', re: /\b(cancell?ed plans?|early nights?|in bed by|staying in|no plans|sofas?|pyjamas|duvets?|naps?)\b/i },
 ];
@@ -1810,6 +1810,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let alreadyColoured: string[] = [];
     let restingSeams: Array<{ name: string; desc: string }> = [];
     let paleGroundShare = 0;
+    let seamUnionShare = 0;
     try {
       if (!body.memory) throw Object.assign(new Error('memory off'), { memoryOff: true });
       // Two queries on purpose. The first catches repeats within a
@@ -1891,7 +1892,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
             .filter((sm) => sm.share > 0.35)
             .sort((a, b) => b.share - a.share)
             .slice(0, 2);
-          if (restingSeams.length) console.log('[CARD-LAB:v2] resting seams:', restingSeams.map((sm) => sm.name).join(', '));
+          // THE UNION GAP: with one phone card, one money card and one
+          // admin card per set, every seam sits at ~33% — under its own
+          // threshold — while 100% of cards are seam cards (observed:
+          // an 18-her set of camera-roll, group-chat and
+          // booking-receipt-signing). The union watches the total.
+          seamUnionShare = texts.filter((t) => SEAM_LEDGER.some((sm) => sm.re.test(t))).length / texts.length;
+          if (restingSeams.length || seamUnionShare > 0.5) console.log(`[CARD-LAB:v2] ledger — resting: ${restingSeams.map((sm) => sm.name).join(', ') || 'none'}; seam union ${seamUnionShare.toFixed(2)}`);
         }
       }
     } catch (e: any) {
@@ -1899,6 +1906,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
     const groundRestText = paleGroundShare > 0.55
       ? `⚠️ THE PALE GROUND IS RESTING — ${Math.round(paleGroundShare * 100)}% of this aisle's recent cards sit on cream, chalk or paper, which from three feet away is one shop in one colour. THIS SET: only the whisper-presence card may take a neutral ground. The mid and full cards each take a TRUE-COLOUR ground from the subject's world — a colour from a tube, committed to, not a paler neutral — different families per the lead rule.`
+      : '';
+    const seamBudgetText = seamUnionShare > 0.5
+      ? `⚠️ SEAM BUDGET — ${Math.round(seamUnionShare * 100)}% of this aisle's recent cards live in the same few regions (screens, life admin, money, nights out, early nights). THIS SET: at most ONE card may live in ANY of those regions combined. The other two come from everything else a life contains — what they make, tend, collect, notice, defend, are known for among the people who love them.`
       : '';
     const restingSeamText = restingSeams.length
       ? `⚠️ RESTING SEAMS — on this exact aisle, these regions of life have carried more than their share of recent sets, so TODAY they are OFF the menu entirely: no territory, no line, no artwork built from them. Resting, not banned — the ration is what stops one seam becoming this aisle's wallpaper:\n${restingSeams.map((sm) => `  · ${sm.name} — ${sm.desc}`).join('\n')}\nDig into what ELSE this life contains — the seams nobody has mined yet are sitting right there.`
@@ -1928,13 +1938,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'user', content: `${briefLines.slice(0, 8).join('\n')}${
               alreadyColoured.length
                 ? `\n\n⚠️ COLOUR WORLDS ALREADY USED ON THIS AISLE — these are spent, and so is any near-variant. An identical brief will hand you the same palette every time unless you deliberately go somewhere else in this subject's colour world, and a rack of one colour scheme is the failure this prevents. Same subject, different light, different hour, different material:\n${alreadyColoured.map((c) => `  · ${c}`).join('\n')}`
-                : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}${groundRestText ? `\n\n${groundRestText}` : ''}` },
+                : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}${groundRestText ? `\n\n${groundRestText}` : ''}${seamBudgetText ? `\n\n${seamBudgetText}` : ''}` },
           ],
           response_format: { type: 'json_object' },
         });
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
         if (restingSeamText) briefLines.push(restingSeamText);
         if (groundRestText) briefLines.push(groundRestText);
+        if (seamBudgetText) briefLines.push(seamBudgetText);
         // ⚠️ THE CUSTOMER'S OWN WORDS ARE ALWAYS HINTS. The archetype
         // returned only oblique City references, so a card literally
         // saying "Man City" was flagged dislike-missing — the referee
@@ -2118,7 +2129,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // ONE OF EACH: each card declares its tone so the pick screen
         // can label the three (and keeps carry the right register).
         const conceptsOut = mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts;
-        return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt' });
+        return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt',
+          ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText } });
       } catch (err) {
         console.error('[CARD-LAB:v2] pipeline failed, falling back to classic:', err);
       }
