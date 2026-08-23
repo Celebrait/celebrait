@@ -426,10 +426,11 @@ export default function AdminGuidedMakerPage() {
 
         {question === 'interest' && (
           <>
-            <h1 className="text-2xl font-semibold text-stone-800">Tell us one thing they’re into.</h1>
+            <h1 className="text-2xl font-semibold text-stone-800">What’s their thing?</h1>
             <p className="mt-2 text-sm text-stone-500">
-              One’s enough — the thing you’d mention first. The more specific, the better the card:
-              ‘Man United’ beats ‘football’. A trip or a plan counts too.
+              The thing you’d mention first if you were describing them — a passion, a place,
+              a plan, a party theme, a claim to fame, a running joke. The more specific the
+              better: ‘Man United’ beats ‘football’.
             </p>
             <Input value={interest} onChange={(e) => setInterest(e.target.value)} placeholder={placeholder} className="mt-6 h-12" />
             {vibe && config.dislikeOn.includes(vibe) && (
