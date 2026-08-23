@@ -47,10 +47,13 @@ const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
 ];
 const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
 
+/** Customer-facing labels only — the engine still receives
+ *  funny/warm/rude/mix underneath (Aidan, 2026-08-24: "rude sounds
+ *  too much like xxx"; Cheeky is the UK card-rack word for it). */
 const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
-  funny: { label: 'Funny', sub: 'make them laugh out loud' },
-  warm: { label: 'Warm', sub: 'the one they keep on the mantelpiece' },
-  rude: { label: 'Rude', sub: 'proper swearing, asterisked' },
+  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
+  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
+  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
   mix: { label: 'One of each', sub: 'three cards, three vibes — you choose after' },
 };
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
