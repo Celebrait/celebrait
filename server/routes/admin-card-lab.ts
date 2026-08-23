@@ -71,7 +71,7 @@ function conceptParams(maxTokens: number, temperature: number) {
   return { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
 }
 
-async function requireAdmin(req: Request, res: Response): Promise<boolean> {
+export async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
   if (typeof otpUserId !== 'string' || otpUserId.length === 0) {
     res.status(403).json({ message: 'Admin access required' });
@@ -88,6 +88,35 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   }
   return true;
 }
+
+/** ── FRIENDS & FAMILY RESEARCH GATE ─────────────────────────────────
+ *  The market-research walk-through (Aidan, 2026-08-24): no login —
+ *  a key in the shared link gates the four engine endpoints, and
+ *  per-endpoint daily caps bound the damage of a leaked link.
+ *  RESEARCH_KEY unset = the whole surface is off. In-memory counters
+ *  reset on deploy, which is fine for a research window. */
+const researchCounts = new Map<string, { day: string; n: number }>();
+const RESEARCH_CAPS: Record<string, number> = { concepts: 60, render: 220, 'render-inside': 90, 'ip-safe-art': 40, response: 100 };
+export const requireResearch = (kind: string) => async (req: Request, res: Response): Promise<boolean> => {
+  const key = process.env.RESEARCH_KEY;
+  const given = String(req.headers['x-research-key'] ?? req.query.k ?? '');
+  if (!key || given !== key) {
+    res.status(403).json({ message: 'This preview link isn’t active any more' });
+    return false;
+  }
+  const day = new Date().toISOString().slice(0, 10);
+  const c = researchCounts.get(kind);
+  const n = c?.day === day ? c.n : 0;
+  if (n >= (RESEARCH_CAPS[kind] ?? 0)) {
+    res.status(429).json({ message: 'Today’s preview budget is used up — try again tomorrow' });
+    return false;
+  }
+  researchCounts.set(kind, { day, n: n + 1 });
+  return true;
+};
+type Gate = (req: Request, res: Response) => Promise<boolean>;
+const guarded = (gate: Gate, h: (req: Request, res: Response) => Promise<unknown> | void) =>
+  async (req: Request, res: Response) => { if (await gate(req, res)) await h(req, res); };
 
 // ── THE HOUSE STYLE — "Celebrait Quirky" ─────────────────────────────
 // Direction locked from Aidan's three references (2026-08-15): the
@@ -1728,8 +1757,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     });
   });
 
-  app.post('/api/admin/card-lab/concepts', async (req: Request, res: Response) => {
-    if (!(await requireAdmin(req, res))) return;
+  const conceptsHandler = async (req: Request, res: Response) => {
     if (!openai) return res.status(503).json({ message: 'OpenAI not configured' });
     let body: z.infer<typeof conceptsSchema>;
     try {
@@ -2637,7 +2665,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       console.error('[CARD-LAB] concepts error:', err);
       res.status(500).json({ message: 'Concept generation failed' });
     }
-  });
+  };
 
   // ── POST /api/admin/card-lab/render-inside ──────────────────────
   // Signed-off front → the inside. Three modes, matching the studio:
@@ -2787,8 +2815,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
   });
 
-  app.post('/api/admin/card-lab/render-inside', async (req: Request, res: Response) => {
-    if (!(await requireAdmin(req, res))) return;
+  const render_insideHandler = async (req: Request, res: Response) => {
     const schema = z.object({
       mode: z.enum(['auto', 'own', 'blank']).default('auto'),
       message: z.string().max(300).optional(),
@@ -2822,7 +2849,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       console.error('[CARD-LAB] render-inside error:', err?.message ?? err);
       res.status(502).json({ message: err?.message ?? 'Inside render failed' });
     }
-  });
+  };
 
   // ── POST /api/admin/card-lab/edit-text ──────────────────────────
   // Gemini image-to-image: change ONLY the lettering, keep the artwork
@@ -3015,8 +3042,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
   // the recovery: rewrite ONLY the artwork, keep the words, render
   // again. The words may go on naming the property — that is the
   // say-the-name rule — the picture carries the world through style.
-  app.post('/api/admin/card-lab/ip-safe-art', async (req: Request, res: Response) => {
-    if (!(await requireAdmin(req, res))) return;
+  const ip_safe_artHandler = async (req: Request, res: Response) => {
     const schema = z.object({
       front_text: z.string().min(1).max(300),
       art_direction: z.string().min(1).max(600),
@@ -3062,10 +3088,9 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       console.error('[CARD-LAB] ip-safe-art failed:', err);
       res.status(500).json({ message: 'Could not rework the artwork' });
     }
-  });
+  };
 
-  app.post('/api/admin/card-lab/render', async (req: Request, res: Response) => {
-    if (!(await requireAdmin(req, res))) return;
+  const renderHandler = async (req: Request, res: Response) => {
     const schema = z.object({
       // 300, not 120: the long read-aloud register (20-35 words) is a
       // deliberate card now, and the old cap silently 400'd every one of
@@ -3178,5 +3203,16 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
         });
       }
     }
-  });
+  };
+
+  // Every engine door, twice: the studio's (admin) and the F&F
+  // research link's (key + caps). Same handlers, different gates.
+  app.post('/api/admin/card-lab/concepts', guarded(requireAdmin, conceptsHandler));
+  app.post('/api/research/concepts', guarded(requireResearch('concepts'), conceptsHandler));
+  app.post('/api/admin/card-lab/render', guarded(requireAdmin, renderHandler));
+  app.post('/api/research/render', guarded(requireResearch('render'), renderHandler));
+  app.post('/api/admin/card-lab/render-inside', guarded(requireAdmin, render_insideHandler));
+  app.post('/api/research/render-inside', guarded(requireResearch('render-inside'), render_insideHandler));
+  app.post('/api/admin/card-lab/ip-safe-art', guarded(requireAdmin, ip_safe_artHandler));
+  app.post('/api/research/ip-safe-art', guarded(requireResearch('ip-safe-art'), ip_safe_artHandler));
 }

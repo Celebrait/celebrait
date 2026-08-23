@@ -37,6 +37,7 @@ import { registerAdminCustomersRoutes } from "./routes/admin-customers";
 import { registerAdminCompCodeRoutes } from "./routes/admin-comp-codes";
 import { registerAdminCardLabRoutes } from "./routes/admin-card-lab";
 import { registerCatalogueRoutes } from "./routes/catalogue";
+import { registerResearchRoutes } from "./routes/research";
 import { registerAdminPhotoLabRoutes } from "./routes/admin-photo-lab";
 import { registerClientErrorRoutes } from "./routes/client-errors";
 import { registerContactRoutes } from "./routes/contact";
@@ -423,6 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminCompCodeRoutes(app);
   registerAdminCardLabRoutes(app);
   registerCatalogueRoutes(app);
+  registerResearchRoutes(app);
   registerAdminPhotoLabRoutes(app);
   registerClientErrorRoutes(app);
   registerContactRoutes(app);

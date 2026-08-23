@@ -118,6 +118,8 @@ const AdminCardBenchPage = lazy(() => import("@/pages/admin-card-bench"));
 const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates"));
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
+const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
+const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
 const CardProductPage = lazy(() => import("@/pages/card-product"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
@@ -166,6 +168,9 @@ function Router() {
           <Route path="/hero-poc" component={HeroScrollPocPage} />
           <Route path="/card-capture" component={CardCapturePage} />
           <Route path="/login" component={LoginPage} />
+          {/* F&F research walk-through — keyed link, no login; the
+              server-side RESEARCH_KEY gate is the real door. */}
+          <Route path="/research" component={ResearchMakerPage} />
           <Route path="/pricing" component={PricingPage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
@@ -380,6 +385,13 @@ function Router() {
           {/* The guided maker preview — the customer flow rehearsed
               behind admin auth, deliberately OUTSIDE AdminLayout so it
               looks like what it is: the customer experience. */}
+          <Route path="/admin/research">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminResearchPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
           <Route path="/admin/guided-maker">
             <RequireAdmin>
               <AdminGuidedMakerPage />
