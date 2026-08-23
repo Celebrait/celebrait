@@ -574,8 +574,8 @@ export default function ResearchMakerPage() {
             <h1 className="text-2xl font-semibold text-stone-800">What’s their thing?</h1>
             <p className="mt-2 text-sm text-stone-500">
               The thing you’d mention first if you were describing them — a passion, a place,
-              a plan, a party theme, a claim to fame, a running joke. The more specific the
-              better: ‘Man United’ beats ‘football’.
+              a plan, a party theme, a claim to fame, a running joke. The more specific, the
+              better the card.
             </p>
             <Input value={interest} onChange={(e) => setInterest(e.target.value)} placeholder={placeholder} className="mt-6 h-12" />
             {vibe && DISLIKE_ON.includes(vibe) && (
