@@ -96,7 +96,7 @@ export async function requireAdmin(req: Request, res: Response): Promise<boolean
  *  RESEARCH_KEY unset = the whole surface is off. In-memory counters
  *  reset on deploy, which is fine for a research window. */
 const researchCounts = new Map<string, { day: string; n: number }>();
-const RESEARCH_CAPS: Record<string, number> = { concepts: 60, render: 220, 'render-inside': 90, 'ip-safe-art': 40, response: 100 };
+const RESEARCH_CAPS: Record<string, number> = { concepts: 60, render: 220, 'render-inside': 90, 'ip-safe-art': 40, response: 100, ping: 5000 };
 export const requireResearch = (kind: string) => async (req: Request, res: Response): Promise<boolean> => {
   const key = process.env.RESEARCH_KEY;
   const given = String(req.headers['x-research-key'] ?? req.query.k ?? '');
@@ -3215,4 +3215,8 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
   app.post('/api/research/render-inside', guarded(requireResearch('render-inside'), render_insideHandler));
   app.post('/api/admin/card-lab/ip-safe-art', guarded(requireAdmin, ip_safe_artHandler));
   app.post('/api/research/ip-safe-art', guarded(requireResearch('ip-safe-art'), ip_safe_artHandler));
+  // The link check: a bad key must fail on ARRIVAL, not after five
+  // answered questions and a generation wait (observed: Aidan hitting
+  // the literal YOUR-KEY placeholder and only learning at generate).
+  app.get('/api/research/ping', guarded(requireResearch('ping'), async (_req: Request, res: Response) => { res.json({ ok: true }); }));
 }

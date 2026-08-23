@@ -87,6 +87,13 @@ type Phase = 'welcome' | 'questions' | 'generating' | 'pick' | 'signoff' | 'insi
 
 export default function ResearchMakerPage() {
   const [phase, setPhase] = useState<Phase>('welcome');
+  /** Checked on arrival so a mangled link fails at the front door. */
+  const [linkOk, setLinkOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch(`/api/research/ping`, { headers: { 'x-research-key': key() } })
+      .then((r) => setLinkOk(r.ok))
+      .catch(() => setLinkOk(true)); // network blip: let them through, the real calls re-check
+  }, []);
   const [qIndex, setQIndex] = useState(0);
 
   // Answers
@@ -289,6 +296,19 @@ export default function ResearchMakerPage() {
   );
 
   // ── Screens ────────────────────────────────────────────────────────
+  if (linkOk === false) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-[#FBF9F5] px-6 py-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto h-10 w-auto" />
+        <h1 className="mt-8 text-2xl font-semibold text-stone-800">This preview link isn’t quite right.</h1>
+        <p className="mt-3 text-sm text-stone-500">
+          It may have been trimmed on its way to you — try tapping the original link again,
+          or ask whoever sent it for a fresh one.
+        </p>
+      </div>
+    );
+  }
+
   if (phase === 'welcome') {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-[#FBF9F5] px-6 py-10 text-center">
