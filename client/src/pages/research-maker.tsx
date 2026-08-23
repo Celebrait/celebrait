@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import celebraitLogo from '@/assets/celebrait.webp';
 
 // ── The research key + soft cap ──────────────────────────────────────
 const key = () => new URLSearchParams(window.location.search).get('k') ?? '';
@@ -288,17 +289,25 @@ export default function ResearchMakerPage() {
   if (phase === 'welcome') {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-[#FBF9F5] px-6 py-10 text-center">
-        <p className="text-lg font-semibold text-stone-700">celebrait<span className="text-brand">.</span></p>
-        <h1 className="mt-6 text-2xl font-semibold text-stone-800">Make someone a birthday card. Properly.</h1>
-        <p className="mt-3 text-sm text-stone-500">
-          Five quick questions about them, and we design three real cards — front and inside.
-          Takes about two minutes, and your honest opinion at the end is the whole point.
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto h-10 w-auto" />
+        <h1 className="mt-8 text-2xl font-semibold text-stone-800">Thank you for helping test our birthday card maker.</h1>
+        <p className="mt-4 text-sm leading-relaxed text-stone-600">
+          Celebrait designs one-of-a-kind greeting cards — you tell us a little about
+          someone, and we write and illustrate three completely original cards for them,
+          front and inside, ready to print and post.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-stone-600">
+          Today you're one of the first people outside the building to try it. Answer five
+          quick questions about someone with a birthday coming up, pick your favourite of
+          the three, and then tell us honestly what you thought — about two minutes
+          of making, one minute of questions.
         </p>
         <Button className="mt-8 h-12 w-full text-base" onClick={() => setPhase(setsUsed() >= 2 ? 'capped' : 'questions')}>
           Let’s make one
         </Button>
         <p className="mt-6 text-xs text-stone-400">
-          Friends &amp; family preview — we’ll keep the cards you make and your answers, to make Celebrait better. That’s the deal.
+          Friends &amp; family preview — we’ll keep the cards you make and your answers,
+          to make Celebrait better. That’s the deal, and thank you for taking the time.
         </p>
       </div>
     );
