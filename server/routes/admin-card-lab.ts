@@ -1211,7 +1211,7 @@ export function leadColourFamily(palette: string): string | null {
 }
 
 /** Every floor, in code. Returns named violations for the repair round. */
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number }): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
@@ -1351,6 +1351,50 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   const birthYear = b.age ? new Date().getFullYear() - b.age : null;
   if (fronts.some((f) => (f.match(/\b(19|20)\d{2}\b/g) ?? []).some((y) => Number(y) !== birthYear)))
     v.push('invented-year: remove any year the brief did not give you');
+  // ⚠️ THE OCCASION FLOOR ASSUMED AGE MEANS BIRTHDAY. A Christmas
+  // brief with an age skipped the says-the-occasion check entirely and
+  // shipped three birthday-shaped fishing cards with no Christmas in
+  // them (Aidan's trip-up test, 2026-08-24). For any non-birthday
+  // occasion, at least one card must unmistakably land ITS occasion —
+  // words or artwork — whatever else the brief carries.
+  if (opts?.occasionKey && opts.occasionKey !== 'birthday') {
+    const OCC_WORLD: Record<string, RegExp> = {
+      'christmas': /christmas|xmas|festive|stocking|tinsel|bauble|advent|mistletoe|sleigh|nativit|carol|wreath|december 25|yule/i,
+      "mother's day": /mother'?s day|mothering sunday|\bmum\b|\bmam\b/i,
+      "father's day": /father'?s day|\bdad\b/i,
+      "valentine's day": /valentine|be mine|\bmy love\b/i,
+      'anniversary': /anniversar|years together|married|wedding day/i,
+      'wedding': /wedding|married|marriage|bride|groom|newlywed|big day|aisle/i,
+      'engagement': /engage|proposal|proposed|\bring\b|fianc/i,
+      'new baby': /\bbaby\b|newborn|new arrival|welcome to the world/i,
+      'baby shower': /\bbaby\b|shower|\bbump\b|almost here/i,
+      'gender reveal': /reveal|\bbaby\b|boy or girl|pink or blue/i,
+      'new home': /new home|new house|new flat|moving|moved in|keys|housewarming|address/i,
+      'new job': /new job|new role|first day|promotion|desk|colleagues/i,
+      'retirement': /retire|clocking off|last day|pension|free at last/i,
+      'graduation': /graduat|degree|university|\bexams?\b|cap and gown|results/i,
+      'get well': /get well|feel better|recovery|recover|mend|on the mend|poorly/i,
+      'thank you': /thank|grateful|gratitude|cheers for/i,
+      'good luck': /good luck|luck|fingers crossed|smash it|you've got this/i,
+      'congratulations': /congrat|well done|proud|you did it|smashed it/i,
+      'sympathy': /sympathy|sorry|loss|thinking of you|with you/i,
+      'just because': /./i,
+    };
+    const re = OCC_WORLD[opts.occasionKey];
+    if (re) {
+      const n = cards.filter((c, i) => re.test(fronts[i]) || re.test(arts[i]) || re.test(String(c.inside_text ?? ''))).length;
+      if (n === 0) v.push(`occasion-missing: not one card lands ${opts.occasionKey} — whatever else the brief gives you, at least one card must unmistakably be a ${opts.occasionKey} card in its words or artwork`);
+    }
+    // And the AGE is context here, never the subject: a numeral built
+    // large in the ARTWORK is the age shouting on the wrong occasion
+    // (observed: a giant 10 as a float on a Christmas card).
+    if (b.age) {
+      const num = new RegExp(`\\b${b.age}\\b`);
+      cards.forEach((c, i) => {
+        if (num.test(String(c.art_direction ?? ''))) v.push(`age-artwork: card ${i + 1} builds the number ${b.age} into its artwork — on a ${opts.occasionKey} card the age is context at most, never the subject; the occasion owns the artwork`);
+      });
+    }
+  }
   if (b.age) {
     const lead = new RegExp(`^\\s*${b.age}[.\\s]`);
     if (fronts.filter((f) => lead.test(f)).length > 1) v.push(`number-template: only one front may open with the bare number ${b.age}`);
@@ -1400,7 +1444,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words that describe every art direction are stoplisted; what's
   // left is subject matter, and a subject appears on ONE card per set.
   {
-    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms'].map((w) => w));
+    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple'].map((w) => w));
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
       new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
@@ -2141,7 +2185,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
             .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
             rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : undefined,
-            contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined });
+            contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined,
+            occasionKey: occKey });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
