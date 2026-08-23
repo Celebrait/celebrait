@@ -1681,6 +1681,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     const classified = classifyOccasion(body.occasion);
+    /** ⚠️ ONE OCCASION VOCABULARY. Templates shelve under the studio's
+     *  world key; generation logs used to store the PROFILE key
+     *  ('mothersday' vs "mother's day", band briefs like '40th
+     *  Birthday' raw) — so per-world stats and the aisle memory window
+     *  spoke different dialects. Everything below logs and queries
+     *  occKey: birthday variants collapse to 'birthday', everything
+     *  else is the typed occasion lowercased (= the world key, now the
+     *  client sends keys). */
+    const occKey = classified.key === 'birthday' ? 'birthday' : body.occasion.trim().toLowerCase();
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
       : classified;
@@ -1827,7 +1836,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // their own aisle rather than matching everything.
           .where(interestText
             ? sql`lower(interest) = ${interestText.toLowerCase()}`
-            : sql`interest is null and age is not distinct from ${statedAgeValue}`)
+            // Occasion-scoped: a Christmas 40 must not share its memory
+            // window (motifs, palettes, seam ledger) with birthday 40s —
+            // cross-occasion bleed made every occasion feel like
+            // birthday by default.
+            : sql`interest is null and age is not distinct from ${statedAgeValue} and occasion = ${occKey}`)
           .orderBy(desc(cardGenerations.id))
           .limit(24),
         db.select({ front_text: cardGenerations.front_text })
@@ -2068,7 +2081,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
         void db.insert(cardGenerations).values(concepts.map((c) => ({
           build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
-          occasion: occProfile.key, tone: mixTones ? mixTones[concepts.indexOf(c)] : (body.tone ?? null), age: v2b.age,
+          occasion: occKey, tone: mixTones ? mixTones[concepts.indexOf(c)] : (body.tone ?? null), age: v2b.age,
           angle: c.angle ?? null, recipient: body.who ?? null,
           interest: interestText || null, front_text: c.front_text,
           art_direction: c.art_direction ?? null, palette: c.palette ?? null,
@@ -2495,7 +2508,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // complete no matter who calls the endpoint.
       void db.insert(cardGenerations).values(judged.map((c) => ({
         build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
-        occasion: occProfile.key,
+        occasion: occKey,
         tone: body.tone ?? null,
         age: body.age ?? statedAge(body.occasion),
         angle: c.angle ?? null,

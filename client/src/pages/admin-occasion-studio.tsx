@@ -194,7 +194,9 @@ export default function AdminOccasionStudioPage() {
    *  meant to change is just a way to produce a bad set by accident. */
   const freeStyle = true;
   const [occasion, setOccasion] = useState('Birthday');
-  useEffect(() => { setOccasion(world.built ? 'Birthday' : world.label); }, [world.key]);
+  // The KEY, not the label — 'Valentine's' (label) and "valentine's
+  // day" (key) were reaching the server as different occasions.
+  useEffect(() => { setOccasion(world.built ? 'Birthday' : world.key); }, [world.key]);
   const [interest, setInterest] = useState('');
   const [tone, setTone] = useState<Tone>('funny');
   /** THE ENGINE TOGGLE (AUDIT_BUILDER_PROMISE.md). celebrait = archetype
@@ -525,6 +527,7 @@ export default function AdminOccasionStudioPage() {
    *  the work rather than waiting to be told. */
   const aimAt = (t: Tone, bandKey: string) => {
     setTone(t);
+    if (!world.built) return; // the gap grid is birthday machinery — never let it clobber another world's occasion
     const band = BANDS.find((b) => b.key === bandKey);
     setOccasion(band?.sample ? `${band.sample} Birthday` : 'Birthday');
   };
