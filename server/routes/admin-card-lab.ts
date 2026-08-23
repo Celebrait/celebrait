@@ -2106,6 +2106,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
             costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
             durationMs: 0, success: true });
           concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
+            // Free-comp writers ramble in the metadata fields; every
+            // downstream schema caps format/angle at 160, so the clamp
+            // lives HERE — once, at the source (observed: a
+            // compositional idea over 160 chars 400ing the render).
+            .map((c) => ({ ...c, format: typeof c.format === 'string' ? c.format.replace(/\s+/g, ' ').trim().slice(0, 158) : c.format, angle: typeof c.angle === 'string' ? c.angle.replace(/\s+/g, ' ').trim().slice(0, 158) : c.angle }))
             .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
             rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : undefined,
