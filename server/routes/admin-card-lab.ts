@@ -1387,6 +1387,7 @@ const V2_CELEBRAIT_REGISTER = `THE LOOK — start every card from the Celebrait 
 ⚠️ COLOUR — THE ONE RULE THAT APPLIES TO EVERY CARD WE MAKE, however much or little the brief gave you.
 FRESH, CLEAN, POPPING — the card looks printed THIS YEAR, whatever its volume. Soft and bold are equally welcome and both have to POP: a soft palette earns it through light and real contrast — a pale ground with one ink that truly means it — and a bold one through commitment, not noise. Every card, soft or bold, should feel like it belongs in the same modern shop.
 ⚠️ THE TWO DITCHES, both observed on our own rack. One: DINGE — greyed-down, muddied, antiqued colour, the heritage varnish that makes new work look like old stock (a gardening 60th came back in compost browns and varnish sepia, dull as a parish notice; a 40th came back on a deep avocado ground swallowing a black doorway — swamp murk wearing green). Greens are welcome and live in DAYLIGHT here — sage, pistachio, olive on clean light grounds — never as a dark murky field. Two: the flat primary poster trio with industrial type, which made a month of cards read narrow and blokey. Between those ditches is the whole modern road, and all of it is open.
+⚠️ GREENERY IS NOT A NEUTRAL: a leaf, sprig, houseplant or botanical garnish is a COLOUR DECISION, and it keeps stitching green through whole sets uninvited (observed in one day: a monstera beside a wall calendar, a sprig printed on a moisturiser tube, cherry leaves on a colander card — none asked for by their subject). Foliage enters only when the subject's world genuinely contains it, never as filler beside an unrelated object.
 ⚠️ AND THE SCRAPBOOK IS BANNED: when a line is a LIST, do not illustrate the list — ephemera piled as artwork (planners, ticked checklists, paper tags, binder clips, stamps, sticky tabs) in fussy heritage inks is instantly the ugliest card on any wall (observed on a 40th: a red leather planner with rings, tabs and a ticked checklist, dense as a stationery drawer). A list line wants ONE clean subject beside it, or a type-led setting where the words themselves are the design — never its own inventory drawn out item by item.
 THE SUBJECT LENDS THE HUES; THE BRAND SETS THE FINISH. Take WHICH colours from their world — then print them the way a modern shop would, clean and alive, never faded down to seem tasteful. An allotment card is leaf and tomato and cream in today's inks, not soil and sepia.
 ⚠️ AGE NEVER CHOOSES THE PALETTE. A 60th is printed in inks exactly as current as a 21st — era belongs in a motif if anywhere, never in the colour. "Older person, so mute it" is the assumption this rule exists to kill.
@@ -1804,6 +1805,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     let alreadyDrawn: string[] = [];
     let alreadyColoured: string[] = [];
     let restingSeams: Array<{ name: string; desc: string }> = [];
+    let paleGroundShare = 0;
     try {
       if (!body.memory) throw Object.assign(new Error('memory off'), { memoryOff: true });
       // Two queries on purpose. The first catches repeats within a
@@ -1862,6 +1864,19 @@ export function registerAdminCardLabRoutes(app: Express): void {
       alreadyColoured = Array.from(new Set(
         sameSubject.map((r) => (r as any).palette).filter(Boolean),
       )).slice(0, 9);
+      // THE GROUND LEDGER: the shared-lead floor exempts neutrals so
+      // whisper cards can be pale — and cream-ground-plus-one-accent
+      // became the uniform hiding in that exemption (Aidan, two runs
+      // side by side: "the overall palette seems samey"). Measure the
+      // aisle's neutral-ground share; the injection below rests it.
+      {
+        const NEUTRAL_GROUND = /\b(white|cream|chalk|paper|putty|stone|shell|ivory|bone|oat|milk|parchment|receipt|linen|eggshell|mineral)\b/i;
+        const grounds = sameSubject.map((r) => String((r as any).palette ?? '').split('+')[0]).filter((g) => g.trim());
+        if (grounds.length >= 9) {
+          paleGroundShare = grounds.filter((g) => NEUTRAL_GROUND.test(g)).length / grounds.length;
+          if (paleGroundShare > 0.55) console.log(`[CARD-LAB:v2] pale-ground share ${paleGroundShare.toFixed(2)} — resting the neutral ground`);
+        }
+      }
       // THE SEAM LEDGER reads the same aisle window. Blank lane only —
       // an interest brief brings its own material and never converges.
       if (!interestText) {
@@ -1878,6 +1893,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     } catch (e: any) {
       if (!e?.memoryOff) console.warn('[CARD-LAB] could not read prior lines (non-fatal):', e);
     }
+    const groundRestText = paleGroundShare > 0.55
+      ? `⚠️ THE PALE GROUND IS RESTING — ${Math.round(paleGroundShare * 100)}% of this aisle's recent cards sit on cream, chalk or paper, which from three feet away is one shop in one colour. THIS SET: only the whisper-presence card may take a neutral ground. The mid and full cards each take a TRUE-COLOUR ground from the subject's world — a colour from a tube, committed to, not a paler neutral — different families per the lead rule.`
+      : '';
     const restingSeamText = restingSeams.length
       ? `⚠️ RESTING SEAMS — on this exact aisle, these regions of life have carried more than their share of recent sets, so TODAY they are OFF the menu entirely: no territory, no line, no artwork built from them. Resting, not banned — the ration is what stops one seam becoming this aisle's wallpaper:\n${restingSeams.map((sm) => `  · ${sm.name} — ${sm.desc}`).join('\n')}\nDig into what ELSE this life contains — the seams nobody has mined yet are sitting right there.`
       : '';
@@ -1906,12 +1924,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
             { role: 'user', content: `${briefLines.slice(0, 8).join('\n')}${
               alreadyColoured.length
                 ? `\n\n⚠️ COLOUR WORLDS ALREADY USED ON THIS AISLE — these are spent, and so is any near-variant. An identical brief will hand you the same palette every time unless you deliberately go somewhere else in this subject's colour world, and a rack of one colour scheme is the failure this prevents. Same subject, different light, different hour, different material:\n${alreadyColoured.map((c) => `  · ${c}`).join('\n')}`
-                : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}` },
+                : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}${groundRestText ? `\n\n${groundRestText}` : ''}` },
           ],
           response_format: { type: 'json_object' },
         });
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
         if (restingSeamText) briefLines.push(restingSeamText);
+        if (groundRestText) briefLines.push(groundRestText);
         // ⚠️ THE CUSTOMER'S OWN WORDS ARE ALWAYS HINTS. The archetype
         // returned only oblique City references, so a card literally
         // saying "Man City" was flagged dislike-missing — the referee
