@@ -397,7 +397,7 @@ export default function AdminGuidedMakerPage() {
           <>
             <h1 className="text-2xl font-semibold text-stone-800">
               How old are they turning?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-stone-100 px-2.5 py-1 align-middle text-xs font-medium text-stone-500">optional</span>
+              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
             </h1>
             <p className="mt-2 text-sm text-stone-500">
               Totally fine to skip — no age will appear anywhere. But if it’s a big one — 18, 21,
@@ -426,7 +426,10 @@ export default function AdminGuidedMakerPage() {
 
         {question === 'interest' && (
           <>
-            <h1 className="text-2xl font-semibold text-stone-800">What’s their thing?</h1>
+            <h1 className="text-2xl font-semibold text-stone-800">
+              What’s their thing?
+              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
+            </h1>
             <p className="mt-2 text-sm text-stone-500">
               The thing you’d mention first if you were describing them — a passion, a place,
               a plan, a party theme, a claim to fame, a running joke. The more specific, the
@@ -449,7 +452,10 @@ export default function AdminGuidedMakerPage() {
 
         {question === 'name' && (
           <>
-            <h1 className="text-2xl font-semibold text-stone-800">Want their name on the front?</h1>
+            <h1 className="text-2xl font-semibold text-stone-800">
+              Want their name on the front?
+              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
+            </h1>
             <p className="mt-2 text-sm text-stone-500">We’ll design it in properly — one of the cards will make it the artwork.</p>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Their first name (optional)" className="mt-6 h-12" />
             {name.trim() && <p className="mt-2 text-xs font-medium text-amber-700">It’ll be printed exactly as you type it — worth a double-check.</p>}
