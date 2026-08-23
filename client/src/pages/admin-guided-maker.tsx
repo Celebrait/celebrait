@@ -222,9 +222,10 @@ export default function AdminGuidedMakerPage() {
     const c = cells[picked].concept;
     setInsideBusy(true);
     try {
-      const body = message.trim()
-        ? { mode: 'own', message: [dear.trim() && `Dear ${dear.trim()},`, message.trim(), from.trim() && `From ${from.trim()}`].filter(Boolean).join('\n\n') }
-        : { mode: 'blank' };
+      // Exactly as typed — no auto "Dear"/"From" wrapping (observed:
+      // "Dear Dear Mum" / "From From Aidan" printed on a real inside).
+      const joined = [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n');
+      const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       const ir = await apiRequest('POST', '/api/admin/card-lab/render-inside', {
         ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction,
         characters: 'objects', freeStyle: true, direction: c.direction,
@@ -317,10 +318,10 @@ export default function AdminGuidedMakerPage() {
         <h1 className="mt-8 text-xl font-semibold text-stone-800">Sign it off</h1>
         <p className="mt-1 text-sm text-stone-500">We’ll set your words inside, in the card’s own style — or leave the message blank and write it by hand when it arrives.</p>
         <div className="mt-5 space-y-3">
-          <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="Dear… (optional)" className="h-11" />
+          <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum, / To the best Nan… (optional)" className="h-11" />
           <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message (optional — blank inside is a real choice)"
             className="min-h-[96px] w-full rounded-md border border-stone-200 bg-white p-3 text-sm" />
-          <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="From… (optional)" className="h-11" />
+          <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — Love, Aidan / From all of us… (optional)" className="h-11" />
         </div>
         <Button className="mt-6 h-12 w-full text-base" onClick={() => void renderInside()} disabled={insideBusy}>
           {insideBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
