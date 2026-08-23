@@ -1336,6 +1336,18 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
         v.push(`generic-artwork: card ${i + 1} is illustrated but its artwork has nothing of ${b.interest} in it — every illustrated card's artwork comes from their world (only type-only cards are exempt)`);
     });
   }
+  // Phone-UI AS ARTWORK on an older brief — prompt-banned as "current
+  // means current to them" and back within hours (a 70 built from a
+  // notification bar and read receipts). A phone OBJECT in a scene is
+  // fine at any age; the SCREEN'S UI as the design language is the
+  // young end's idiom and rings false above 60.
+  if (b.age !== null && b.age !== undefined && b.age >= 60) {
+    const UI = /\b(notification(s| bar)?|read receipts?|app (icons?|grids?|screens?)|home ?screens?|lock ?screens?|calendar app|screenshots?|typing bubbles?|message bubbles?|phone ui|status bar)\b/i;
+    cards.forEach((c, i) => {
+      const m = String(c.art_direction ?? '').match(UI);
+      if (m) v.push(`ui-idiom: card ${i + 1} builds its artwork from phone-screen UI ("${m[0]}") on a ${b.age} brief — that is the young end's visual idiom and it rings false here; draw from this person's OWN current world instead`);
+    });
+  }
   const birthYear = b.age ? new Date().getFullYear() - b.age : null;
   if (fronts.some((f) => (f.match(/\b(19|20)\d{2}\b/g) ?? []).some((y) => Number(y) !== birthYear)))
     v.push('invented-year: remove any year the brief did not give you');
@@ -1382,6 +1394,21 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   }
   const dupes = Array.from(seen.entries()).filter(([w, n]) => n >= 2 && !['still','another','birthday','happy','years','about','being'].includes(w));
   if (dupes.length) v.push(`shared-vocab: "${dupes[0][0]}" appears on more than one front — each card gets its own vocabulary`);
+  // The same floor for PICTURES: two cards of one set drew trainers
+  // (yellow pair on the warm card, second pair under the locker) and
+  // nothing checked, because shared-vocab reads fronts only. Craft
+  // words that describe every art direction are stoplisted; what's
+  // left is subject matter, and a subject appears on ONE card per set.
+  {
+    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms'].map((w) => w));
+    const seenArt = new Map<string, number>();
+    for (const a2 of arts) {
+      new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
+        .forEach((w) => seenArt.set(w, (seenArt.get(w) ?? 0) + 1));
+    }
+    const artDupes = Array.from(seenArt.entries()).filter(([, n]) => n >= 2);
+    if (artDupes.length) v.push(`shared-motif: "${artDupes[0][0]}" is drawn on more than one card — a rack shows these side by side, and the same object twice is the same card twice; each card draws from a different corner of the world`);
+  }
   return v;
 }
 
