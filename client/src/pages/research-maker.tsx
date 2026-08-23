@@ -340,6 +340,7 @@ export default function ResearchMakerPage() {
   if (phase === 'capped') {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-[#FBF9F5] px-6 py-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
         <h1 className="text-2xl font-semibold text-stone-800">You’ve made your two — thank you!</h1>
         <p className="mt-3 text-sm text-stone-500">
           That’s the preview allowance done. If you’ve got more thoughts, message Aidan directly — he wants them.
@@ -350,10 +351,13 @@ export default function ResearchMakerPage() {
 
   if (phase === 'generating') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#FBF9F5] px-6 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand" />
-        <p className="text-lg font-medium text-stone-700">{narration}</p>
-        <p className="text-sm text-stone-400">Three cards, about a minute. Worth it.</p>
+      <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+          <p className="text-lg font-medium text-stone-700">{narration}</p>
+          <p className="text-sm text-stone-400">Three cards, about a minute. Worth it.</p>
+        </div>
       </div>
     );
   }
@@ -362,6 +366,7 @@ export default function ResearchMakerPage() {
     const allSettled = cells.every((c) => c.imageUrl || c.error);
     return (
       <div className="mx-auto min-h-screen max-w-4xl bg-[#FBF9F5] px-4 py-10">
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
         <h1 className="text-center text-2xl font-semibold text-stone-800">Three cards. Pick the one.</h1>
         {!allSettled && <p className="mt-2 text-center text-sm text-stone-400">Still drawing…</p>}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -405,9 +410,12 @@ export default function ResearchMakerPage() {
     const c = cells[picked];
     return (
       <div className="mx-auto min-h-screen max-w-md bg-[#FBF9F5] px-4 py-10">
-        <button type="button" onClick={() => setPhase('pick')} className="mb-6 flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600">
-          <ArrowLeft className="h-4 w-4" /> Back to the three
-        </button>
+        <div className="mb-6 flex items-center justify-between">
+          <button type="button" onClick={() => setPhase('pick')} className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600">
+            <ArrowLeft className="h-4 w-4" /> Back to the three
+          </button>
+          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        </div>
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
           {c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
         </div>
@@ -431,6 +439,7 @@ export default function ResearchMakerPage() {
     const c = cells[picked];
     return (
       <div className="mx-auto min-h-screen max-w-3xl bg-[#FBF9F5] px-4 py-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
         <h1 className="text-2xl font-semibold text-stone-800">There it is.</h1>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
@@ -466,7 +475,7 @@ export default function ResearchMakerPage() {
           {sIndex > 0
             ? <button type="button" onClick={() => setSIndex(sIndex - 1)} className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600"><ArrowLeft className="h-4 w-4" /> Back</button>
             : <span />}
-          <span className="text-sm font-semibold text-stone-700">celebrait<span className="text-brand">.</span></span>
+          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         </div>
         <div className="flex flex-1 flex-col justify-center py-8">
           <h1 className="text-xl font-semibold text-stone-800">{q.title}</h1>
@@ -510,6 +519,7 @@ export default function ResearchMakerPage() {
   if (phase === 'thanks') {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-[#FBF9F5] px-6 py-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
         <h1 className="text-2xl font-semibold text-stone-800">That’s genuinely useful — thank you.</h1>
         <p className="mt-3 text-sm text-stone-500">Every answer shapes what gets built next.</p>
         {setsUsed() < 2 && (
@@ -532,7 +542,7 @@ export default function ResearchMakerPage() {
         {qIndex > 0
           ? <button type="button" onClick={back} className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600"><ArrowLeft className="h-4 w-4" /> Back</button>
           : <span />}
-        <span className="text-sm font-semibold text-stone-700">celebrait<span className="text-brand">.</span></span>
+        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
       </div>
 
       <div className="flex flex-1 flex-col justify-center py-8">
