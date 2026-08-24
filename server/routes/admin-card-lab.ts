@@ -422,7 +422,7 @@ export type BirthdayTone = 'funny' | 'warm' | 'rude' | 'cheeky' | 'mix';
  *  register, the angles keep the range. */
 const BIRTHDAY_TONES: Record<Exclude<BirthdayTone, 'mix'>, string> = {
   funny: `TONE — FUNNY. The biggest-selling birthday register in Britain, and the widest: it runs from a gentle observation all the way to properly taking the mickey. Make them laugh out loud, not smile politely. The joke is the product: if a card here has no laugh in it, it has failed even if it is warm and true. Sharpness is welcome — the fond dig, the thing you would only say to someone you love, seaside-postcard innuendo — everything except actual swearing, which is its own register.`,
-  warm: `TONE — WARM. Affection first, wit second — the card someone keeps on the mantelpiece for a month. Still SPECIFIC and still with a turn: warm is not vague, and "you're amazing" is not warmth, it is filler. Think fond, noticing, generous. No mickey-taking, no roasting, no age jokes at all in this tone.`,
+  warm: `TONE — WARM. Affection first — the card someone keeps on the mantelpiece for a month. Still SPECIFIC: warm is not vague, and "you're amazing" is not warmth, it is filler. The turn here is the NOTICING — one true detail of theirs, landed plainly — and that is enough: a warm card is never required to be witty, and plainly lovely beats cleverly fond whenever the two compete. Think fond, noticing, generous. No mickey-taking, no roasting, no age jokes at all in this tone.`,
   // ⚠️ RETIRED 2026-08-19, kept only so old rows still resolve. Aidan:
   // "Honestly I have a problem with Funny, cheeky warm, rude... Funny
   // warm rude?" He is right: cheeky was defined by what it sat BETWEEN,
@@ -727,6 +727,12 @@ const ANGLE_SETS: Angle[][] = [
   ['wordplay', 'proud', 'list'],
   ['wordplay', 'proud', 'straight'],
   ['deadpan', 'list', 'straight'],
+  // ⚠️ The wordplay-free deals (2026-08-24). Tester feedback: "too
+  // much dad jokes" — and wordplay sat in 5 of 6 deals, a near-fixture
+  // that made the pun the wall's wallpaper. These two drop it to ~62%
+  // of sets: still a pun shop, no longer pun wallpaper.
+  ['deadpan', 'proud', 'straight'],
+  ['deadpan', 'proud', 'list'],
 ];
 
 /** Straight is the plain card — no joke, just the occasion said well.
@@ -739,14 +745,21 @@ export function pickAngles(tone: string | undefined, rnd = Math.random): Angle[]
   let pool = tone === 'rude'
     ? ANGLE_SETS.filter((a) => !a.includes('straight'))
     : ANGLE_SETS;
+  if (tone === 'warm') {
+    // A warm buyer wants at least one card that just SAYS it. Straight
+    // sat in half of warm deals — same odds as funny, which is how
+    // "even the tender cards smirk" happened. Doubling the
+    // straight-carrying deals guarantees the plain card two sets in
+    // three; funny keeps the original odds.
+    const straightful = pool.filter((a) => a.includes('straight'));
+    pool = pool.concat(straightful);
+  }
   if (tone === 'rude') {
-    // Straight-free leaves 3 sets, 2 of which carry 'list' — so 2/3 of
-    // rude sets had a list card, and Aidan has now flagged list-fatigue
-    // three times ("that list style is coming through A LOT"). Doubling
-    // the listless set drops it to half without banning an angle that
-    // is genuinely good in moderation.
+    // List-fatigue ration (flagged three times). With the wordplay-free
+    // deals the straight-free pool is 4 sets, 3 carrying 'list' —
+    // doubling the listless set twice holds list at half.
     const listless = pool.filter((a) => !a.includes('list'));
-    pool = pool.concat(listless);
+    pool = pool.concat(listless, listless);
   }
   return pool[Math.floor(rnd() * pool.length)] ?? pool[0];
 }
@@ -1039,6 +1052,7 @@ Judge every candidate line, and the inside_text, against these, in order:
 4. THE TURN — the test that matters most. EVERY card, all three angles, must contain a surprise you can name in five words or fewer. Quirk is the house voice here, not one of three flavours: a line with NO turn is DRY, and dry is a FAIL even when the line is true, warm, well written and correctly aimed. Judge the turn by its angle:
    • wordplay: the turn is in the LANGUAGE. The pun must be smooth and must actually land. A groan is a fail; a pun that needs explaining is a fail.
    • deadpan: the turn is in the UNDER-REACTION — something absurd reported with a completely straight face. A flat statement of fact with nothing daft in it is the classic dry fail ("Manchester United Comes First", "The only mixologist in the family"). Quiet is fine; empty is not.
+   • ON THE WARM REGISTER the turn is the NOTICING, not a gag: one specific, true, surprising detail that proves the card is about THIS exact person satisfies the turn completely. A warm line that lands its detail plainly is NOT dry — dry on warm means GENERIC, never means unfunny. Wit on a warm card is welcome only when it arrives on its own; it is never required. (Tester feedback, 2026-08-24: "too much dad jokes" — the register never sat down.)
    • proud: the turn is in the DISPROPORTION — total straight-faced seriousness about something trivial. ⚠️ REJECT ANY LINE THAT IS A TITLE. "[Grand noun] of the [Thing]" is the reflex and it is banned: Master of the Tackle Box, Sovereign of the Stream, Sultan of Suds, Baron of Bar Banter, Pub Quiz Royalty, anything Extraordinaire. They are interchangeable, they could be written from a thesaurus without knowing the person, and three of them in a row make the whole shop look like one idea. Prefer the line that sounds like something you would actually say to them in a pub: a plain fact of authority, an absurd credential with a number in it, a house rule, a flat verdict, a backhanded honour. If the shortlist offers a title AND a spoken line, take the spoken line every time.
 5. NO INVENTED FACTS — an instant fail, and the only criterion about being WRONG rather than weak. TWO KINDS, both fatal:
    (a) INVENTED BIOGRAPHY. We know only what the brief says: the thing they love, their age if given, and anything in the extra fields. A line asserting a trip they have taken, a place they have been, a thing they own, an expertise they hold or a habit they keep is a stranger guessing at a life. Test it as the BUYER would: could they read this and think "that's not true"? Observed failures for a mum whose brief said only "New York City": "A weekend away, and somehow you've already found the proper deli"; "She can spot a decent slice instantly". Both well written, both invention. The good card from the same brief claimed nothing about her at all.
