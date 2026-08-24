@@ -1995,9 +1995,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
           if (paleGroundShare > 0.55) console.log(`[CARD-LAB:v2] pale-ground share ${paleGroundShare.toFixed(2)} — resting the neutral ground`);
         }
       }
-      // THE SEAM LEDGER reads the same aisle window. Blank lane only —
-      // an interest brief brings its own material and never converges.
-      if (!interestText) {
+      // THE SEAM LEDGER reads the same aisle window — which is already
+      // scoped per-interest, so each interest aisle rations its OWN hot
+      // seams. Originally blank-lane only ("an interest brings its own
+      // material and never converges") — disproved 2026-08-24: two
+      // cocktails-with-the-girls sets both dealt booking-logistics
+      // deadpan cards. Interest briefs converge on the interest's own
+      // first-instinct seam; the ration applies everywhere.
+      {
         const texts = sameSubject.map((r) => `${r.front_text ?? ''} ${(r as any).art_direction ?? ''}`);
         if (texts.length >= 9) {
           restingSeams = SEAM_LEDGER
