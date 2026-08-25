@@ -436,7 +436,7 @@ export default function AdminGuidedMakerPage() {
         {question === 'age' && (
           <>
             <h1 className="text-2xl font-semibold text-stone-800">
-              How old are they turning?
+              Should we mention their age?
               <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
             </h1>
             <p className="mt-2 text-sm text-stone-500">
