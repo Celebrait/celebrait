@@ -57,7 +57,18 @@ const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
   mix: { label: 'One of each', sub: 'three cards, three vibes — you choose after' },
 };
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
-const PLACEHOLDERS = ['fishing', 'Ibiza', 'their allotment', 'Man United', 'Toy Story'];
+/** A deliberate mix of short and long — teaching that a word works
+ *  and so does a whole little story. */
+const PLACEHOLDERS = [
+  'fishing',
+  'just passed her driving test',
+  'Man United',
+  'a Barbie-themed party',
+  'her allotment',
+  'Ibiza with the girls in June',
+  'Toy Story',
+  '30 years of questionable golf',
+];
 
 // ── The survey ───────────────────────────────────────────────────────
 interface SurveyQ {
@@ -135,9 +146,22 @@ export default function ResearchMakerPage() {
     [ageNum],
   );
 
-  const [placeholder, setPlaceholder] = useState(PLACEHOLDERS[0]);
+  /** Typewriter placeholder: types each example out, holds, deletes,
+   *  moves on — the animation itself says "this box takes anything". */
+  const [placeholder, setPlaceholder] = useState('');
   useEffect(() => {
-    const t = setInterval(() => setPlaceholder((p) => PLACEHOLDERS[(PLACEHOLDERS.indexOf(p) + 1) % PLACEHOLDERS.length]), 2600);
+    let idx = 0, pos = 0, deleting = false, hold = 0;
+    const t = setInterval(() => {
+      const word = PLACEHOLDERS[idx];
+      if (!deleting) {
+        if (pos < word.length) pos++;
+        else if (++hold > 22) { deleting = true; hold = 0; }
+      } else {
+        pos = Math.max(0, pos - 2);
+        if (pos === 0) { deleting = false; idx = (idx + 1) % PLACEHOLDERS.length; }
+      }
+      setPlaceholder(word.slice(0, pos));
+    }, 65);
     return () => clearInterval(t);
   }, []);
 
