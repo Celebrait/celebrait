@@ -399,7 +399,7 @@ export default function ResearchMakerPage() {
               onClick={() => { setPicked(i); setPhase('signoff'); }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
-              <div className="relative aspect-square bg-stone-100">
+              <div className={`relative aspect-square bg-stone-100 transition-shadow duration-500 ${!c.imageUrl && !c.error ? 'ring-2 ring-brand/40 shadow-[0_0_32px_rgba(91,84,217,0.45)]' : ''}`}>
                 {c.imageUrl
                   ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous"
                       className="h-full w-full object-cover opacity-0 transition-opacity duration-700"
@@ -413,9 +413,9 @@ export default function ResearchMakerPage() {
                         </button>
                       </div>
                     : <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden bg-[#FDFBF7] p-6 text-center">
-                        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-stone-200/50 via-transparent to-stone-200/50" />
-                        <p className="relative text-sm font-medium italic leading-snug text-stone-500">“{c.concept.front_text}”</p>
-                        <p className="relative flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-400">
+                        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-brand-muted/70 via-transparent to-brand-muted/70" />
+                        <p className="relative text-sm font-medium italic leading-snug text-stone-600">“{c.concept.front_text}”</p>
+                        <p className="relative flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
                           <Loader2 className="h-3 w-3 animate-spin" /> drawing this one
                         </p>
                       </div>}
