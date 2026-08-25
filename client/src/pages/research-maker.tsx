@@ -232,7 +232,7 @@ export default function ResearchMakerPage() {
       await Promise.all(concepts.map((c, i) => renderCell(i, c)));
     } catch (e: any) {
       setPhase('questions');
-      setQIndex(QUESTIONS.length - 1);
+      setQIndex(questions.length - 1);
       alert(e?.message ?? 'That didn’t work — give it another go');
     }
   };
@@ -302,10 +302,9 @@ export default function ResearchMakerPage() {
           who, gender, age: ageNum, vibe,
           interest: interest.trim() || null, dislike: dislike.trim() || null, name: name.trim() || null,
         },
-        cards: cells.map((c) => ({ front_text: c.concept.front_text, tone: c.concept.tone, angle: c.concept.angle })),
+        cards: cells.map((c) => ({ front_text: c.concept.front_text, tone: c.concept.tone, angle: c.concept.angle, imageUrl: c.imageUrl })),
         picked_index: picked,
         regen_used: regenUsed,
-        pickedImageUrl: picked !== null ? cells[picked]?.imageUrl : undefined,
         insideImageUrl: insideUrl ?? undefined,
         answers: finalAnswers,
       });

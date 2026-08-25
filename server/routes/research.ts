@@ -72,6 +72,10 @@ export function registerResearchRoutes(app: Express): void {
         front_text: z.string().max(400),
         tone: z.string().max(20).optional(),
         angle: z.string().max(160).optional(),
+        // Every card the tester SAW, as a data URL (Aidan: "I want to
+        // see the cards they see, plus the one they choose"). 25mb
+        // body limit comfortably takes three fronts + an inside.
+        imageUrl: z.string().optional(),
       })).max(3).optional(),
       picked_index: z.number().int().min(0).max(2).nullable().optional(),
       regen_used: z.boolean().optional(),
@@ -87,14 +91,20 @@ export function registerResearchRoutes(app: Express): void {
       return res.status(400).json({ message: issue ? `Invalid response — ${issue.path.join('.')}: ${issue.message}` : 'Invalid response' });
     }
     try {
+      const cardPaths = await Promise.all(
+        (body.cards ?? []).map((c, i) => storeImage(c.imageUrl, `card${i}`)),
+      );
+      const cardsStored = body.cards?.map(({ imageUrl: _drop, ...rest }, i) => ({ ...rest, image_path: cardPaths[i] })) ?? null;
       const [picked, inside] = await Promise.all([
-        storeImage(body.pickedImageUrl, 'front'),
+        body.picked_index != null && cardPaths[body.picked_index]
+          ? Promise.resolve(cardPaths[body.picked_index])
+          : storeImage(body.pickedImageUrl, 'front'),
         storeImage(body.insideImageUrl, 'inside'),
       ]);
       const [row] = await db.insert(researchResponses).values({
         tester_name: body.tester_name?.trim() || null,
         brief: body.brief ?? null,
-        cards: body.cards ?? null,
+        cards: cardsStored,
         picked_index: body.picked_index ?? null,
         regen_used: body.regen_used ?? false,
         picked_image_path: picked,
@@ -117,6 +127,9 @@ export function registerResearchRoutes(app: Express): void {
       res.json({
         responses: rows.map((r) => ({
           ...r,
+          cards: Array.isArray(r.cards)
+            ? (r.cards as Array<Record<string, unknown>>).map((c) => ({ ...c, imageUrl: c.image_path ? publicImageUrl(String(c.image_path)) : null }))
+            : r.cards,
           pickedImageUrl: r.picked_image_path ? publicImageUrl(r.picked_image_path) : null,
           insideImageUrl: r.inside_image_path ? publicImageUrl(r.inside_image_path) : null,
         })),

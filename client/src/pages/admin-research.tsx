@@ -14,7 +14,7 @@ interface ResearchRow {
   created_at: string;
   tester_name: string | null;
   brief: Record<string, unknown> | null;
-  cards: Array<{ front_text: string; tone?: string; angle?: string }> | null;
+  cards: Array<{ front_text: string; tone?: string; angle?: string; imageUrl?: string | null }> | null;
   picked_index: number | null;
   regen_used: boolean;
   pickedImageUrl: string | null;
@@ -95,6 +95,16 @@ export default function AdminResearchPage() {
               )}
             </div>
             <div className="space-y-3">
+              {r.cards && r.cards.some((c) => c.imageUrl) && (
+                <div className="flex gap-2">
+                  {r.cards.map((c, i) => c.imageUrl ? (
+                    <div key={i} className={`relative w-24 overflow-hidden rounded-md border-2 ${i === r.picked_index ? 'border-brand' : 'border-transparent opacity-70'}`}>
+                      <img src={c.imageUrl} alt={c.front_text} crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+                      {i === r.picked_index && <span className="absolute right-1 top-1 rounded bg-white/90 px-1 text-[10px] font-bold text-brand">★</span>}
+                    </div>
+                  ) : null)}
+                </div>
+              )}
               {r.cards && (
                 <div className="space-y-1">
                   {r.cards.map((c, i) => (
