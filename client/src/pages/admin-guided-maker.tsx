@@ -490,12 +490,13 @@ export default function AdminGuidedMakerPage() {
         {question === 'age' && (
           <>
             <h1 className="text-2xl font-semibold text-stone-800">
-              Should we mention their age?
+              How old are they turning?
               <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
             </h1>
             <p className="mt-2 text-sm text-stone-500">
-              Totally fine to skip — no age will appear anywhere. But if it’s a big one — 18, 21,
-              30, 40… — we recommend it: the number becomes the star of the card.
+              The age does two jobs: it tunes the whole card — the jokes, the references, the look —
+              and if it’s a big one (18, 21, 30, 40…) the number itself becomes the star.
+              Skip it and everything stays completely age-free.
             </p>
             <Input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, '').slice(0, 3))}
               inputMode="numeric" placeholder="Their age" className="mt-6 h-14 text-center text-2xl" />
