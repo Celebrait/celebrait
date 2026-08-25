@@ -377,7 +377,9 @@ export default function ResearchMakerPage() {
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
               <div className="relative aspect-square bg-stone-100">
                 {c.imageUrl
-                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous"
+                      className="h-full w-full object-cover opacity-0 transition-opacity duration-700"
+                      onLoad={(e) => e.currentTarget.classList.remove('opacity-0')} />
                   : c.error
                     ? <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-xs text-stone-500">
                         <span>{c.error}</span>
@@ -386,7 +388,13 @@ export default function ResearchMakerPage() {
                           {c.retrying ? 'Having another go…' : 'Have another go'}
                         </button>
                       </div>
-                    : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}
+                    : <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden bg-[#FDFBF7] p-6 text-center">
+                        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-stone-200/50 via-transparent to-stone-200/50" />
+                        <p className="relative text-sm font-medium italic leading-snug text-stone-500">“{c.concept.front_text}”</p>
+                        <p className="relative flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-400">
+                          <Loader2 className="h-3 w-3 animate-spin" /> drawing this one
+                        </p>
+                      </div>}
                 {c.concept.tone && (
                   <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium capitalize text-stone-600">
                     {c.concept.tone}
