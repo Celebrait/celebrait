@@ -31,9 +31,9 @@ async function researchPost(path: string, body: unknown): Promise<any> {
 }
 
 // ── Question config (mirrors the guided maker) ───────────────────────
-type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'name';
+type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
 type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-const QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name'];
+const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name'];
 
 const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
@@ -114,7 +114,6 @@ export default function ResearchMakerPage() {
   const [vibe, setVibe] = useState<Vibe | null>(null);
   const [interest, setInterest] = useState('');
   const [dislike, setDislike] = useState('');
-  const [showDislike, setShowDislike] = useState(false);
   const [name, setName] = useState('');
 
   // The set
@@ -167,13 +166,22 @@ export default function ResearchMakerPage() {
     return () => clearInterval(t);
   }, []);
 
-  const question = QUESTIONS[qIndex];
+  /** The dislike gets its OWN screen when the vibe can use it (Aidan:
+   *  buried as a + link it was missed, and it needs its why explained
+   *  to be considered properly). Inserted after the mention question. */
+  const questions = useMemo<QuestionKey[]>(
+    () => (vibe && DISLIKE_ON.includes(vibe)
+      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name']
+      : BASE_QUESTIONS),
+    [vibe],
+  );
+  const question = questions[qIndex];
   const canNext =
     question === 'who' ? who !== null :
     question === 'vibe' ? vibe !== null : true;
 
   const next = () => {
-    if (qIndex < QUESTIONS.length - 1) setQIndex(qIndex + 1);
+    if (qIndex < questions.length - 1) setQIndex(qIndex + 1);
     else void generate();
   };
   const back = () => { if (qIndex > 0) setQIndex(qIndex - 1); };
@@ -690,17 +698,22 @@ export default function ResearchMakerPage() {
               whatever you’d bring up first about them. The more specific, the better the card.
             </p>
             <Input value={interest} onChange={(e) => setInterest(e.target.value)} placeholder={placeholder} className="mt-6 h-12" />
-            {vibe && DISLIKE_ON.includes(vibe) && (
-              showDislike
-                ? <div className="mt-4">
-                    <Input value={dislike} onChange={(e) => setDislike(e.target.value)} placeholder="Something they can’t stand" className="h-11" />
-                    <p className="mt-1.5 text-xs text-stone-400">This is joke fuel: one of the three cards will make light of it — taking the mickey out of the thing they hate, never out of them.</p>
-                  </div>
-                : <button type="button" onClick={() => setShowDislike(true)} className="mt-4 text-sm text-brand underline-offset-2 hover:underline">
-                    + something they can’t stand? It makes for a great joke
-                  </button>
-            )}
             <p className="mt-3 text-xs text-stone-400">Or skip it — we’ll make it a beautiful birthday card, no homework.</p>
+          </>
+        )}
+
+        {question === 'dislike' && (
+          <>
+            <h1 className="text-2xl font-semibold text-stone-800">
+              Anything they can’t stand?
+              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
+            </h1>
+            <p className="mt-2 text-sm text-stone-500">
+              This one’s pure joke fuel. Tell us the thing — the rival team, mornings, oat milk,
+              slow walkers — and one of your three cards will be built around it: making light of
+              the thing they hate, never of them. Some of our funniest cards start here.
+            </p>
+            <Input value={dislike} onChange={(e) => setDislike(e.target.value)} placeholder="The rival team / mornings / slow walkers" className="mt-6 h-12" />
           </>
         )}
 
@@ -719,14 +732,14 @@ export default function ResearchMakerPage() {
 
       <div className="pb-4">
         <Button className="h-12 w-full text-base" disabled={!canNext} onClick={next}>
-          {qIndex === QUESTIONS.length - 1 ? 'Make their card' : 'Next'}
+          {qIndex === questions.length - 1 ? 'Make their card' : 'Next'}
         </Button>
-        {(question === 'age' || question === 'interest' || question === 'name') && (
+        {(question === 'age' || question === 'interest' || question === 'dislike' || question === 'name') && (
           <button type="button" onClick={next} className="mt-3 w-full text-center text-sm text-stone-400 hover:text-stone-600">
             Skip this one
           </button>
         )}
-        <Dots count={QUESTIONS.length} at={qIndex} />
+        <Dots count={questions.length} at={qIndex} />
       </div>
     </div>
   );
