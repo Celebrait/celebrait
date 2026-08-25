@@ -310,6 +310,19 @@ export default function AdminGuidedMakerPage() {
     );
   }
 
+  if (phase === 'signoff' && picked !== null && insideBusy) {
+    return (
+      <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+          <p className="text-lg font-medium text-stone-700">Designing the inside to match the front…</p>
+          <p className="text-sm text-stone-400">Your words, set in the card’s own style — about half a minute.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === 'signoff' && picked !== null) {
     const c = cells[picked];
     return (
@@ -323,8 +336,9 @@ export default function AdminGuidedMakerPage() {
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
           {c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
         </div>
-        <h1 className="mt-8 text-xl font-semibold text-stone-800">Sign it off</h1>
-        <p className="mt-1 text-sm text-stone-500">We’ll set your words inside, in the card’s own style — or leave the message blank and write it by hand when it arrives.</p>
+        <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">FRONT CHOSEN — ONE MORE STEP</p>
+        <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Now the inside of the card</h1>
+        <p className="mt-1 text-sm text-stone-500">Every card gets a designed inside to match its front. Type your message and we’ll set it in the card’s own style — or leave it blank and write by hand when it arrives.</p>
         <div className="mt-5 space-y-3">
           <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum, / To the best Nan… (optional)" className="h-11" />
           <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message (optional — blank inside is a real choice)"
@@ -333,7 +347,7 @@ export default function AdminGuidedMakerPage() {
         </div>
         <Button className="mt-6 h-12 w-full text-base" onClick={() => void renderInside()} disabled={insideBusy}>
           {insideBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-          {insideBusy ? 'Setting the inside…' : 'Finish the card'}
+          {insideBusy ? 'Designing the inside…' : 'Design the inside'}
         </Button>
       </div>
     );
