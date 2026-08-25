@@ -304,7 +304,8 @@ export default function AdminGuidedMakerPage() {
       <div className="mx-auto min-h-screen max-w-4xl bg-[#FBF9F5] px-4 py-10">
         <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
         <h1 className="text-center text-2xl font-semibold text-stone-800">Three cards. Pick the one.</h1>
-        {!allSettled && <p className="mt-2 text-center text-sm text-stone-400">Still drawing…</p>}
+        <p className="mt-2 text-center text-sm text-stone-500">Tap your favourite — next we’ll design its inside, with your words in it.</p>
+        {!allSettled && <p className="mt-1.5 text-center text-sm text-stone-400">Still drawing…</p>}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {cells.map((c, i) => (
             <button key={i} type="button" disabled={!c.imageUrl}
