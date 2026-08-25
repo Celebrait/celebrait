@@ -23,9 +23,10 @@ interface ResearchRow {
 }
 
 const ANSWER_LABELS: Record<string, string> = {
+  likeness: 'Did it look like them?',
   would_send: 'Would they have sent it?',
   expected_price: 'Expected price',
-  price_feel: '£8.99 feels…',
+  price_feel: 'Named price feels…',
   first_use: 'First real use',
   friction: 'Friction',
   vs_market: 'vs Moonpig/Thortful',
@@ -33,6 +34,7 @@ const ANSWER_LABELS: Record<string, string> = {
 
 function briefLine(b: Record<string, unknown> | null): string {
   if (!b) return '—';
+  if (b.route === 'photo') return 'Photo route';
   return [
     b.who, b.gender && `(${b.gender})`, b.age && `turning ${b.age}`, b.vibe,
     b.interest && `loves ${b.interest}`, b.dislike && `can't stand ${b.dislike}`, b.name && `name ${b.name}`,
@@ -59,7 +61,7 @@ export default function AdminResearchPage() {
         <h1 className="text-xl font-bold text-stone-900">Research responses</h1>
         <p className="text-sm text-stone-500">
           {rows.length} walk-through{rows.length === 1 ? '' : 's'} · share the maker at
-          <code className="mx-1 rounded bg-stone-100 px-1.5 py-0.5 text-xs">/research?k=YOUR-KEY</code>
+          <code className="mx-1 rounded bg-stone-100 px-1.5 py-0.5 text-xs">/research?k=…</code> or the photo route at <code className="mx-1 rounded bg-stone-100 px-1.5 py-0.5 text-xs">/research/photo?k=…</code>
           (set RESEARCH_KEY on the server to switch it on)
         </p>
       </div>

@@ -12,8 +12,9 @@ import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { randomUUID as uuid } from 'crypto';
 import { db } from '../db';
-import { researchResponses } from '@shared/schema';
+import { researchResponses, users } from '@shared/schema';
 import { requireAdmin, requireResearch } from './admin-card-lab';
 import { isR2Enabled, r2Put } from '../r2-storage';
 import { publicImageUrl } from '../image-storage';
@@ -36,6 +37,31 @@ async function storeImage(dataUrl: unknown, label: string): Promise<string | nul
 }
 
 export function registerResearchRoutes(app: Express): void {
+  // POST /api/research/photo/session — the no-signup door to the REAL
+  // photo studio (Aidan: "No studio sign up etc. Just want the same
+  // public facing for friends and fam"). The key silently mints a
+  // throwaway tester account and logs the browser in, so the studio's
+  // whole authed pipeline works untouched and the tester never sees a
+  // signup screen. One mint per browser (re-used if already signed in);
+  // tester accounts are flagged by their email domain for later
+  // cleanup and are invisible to marketing (opt-in stays false).
+  app.post('/api/research/photo/session', async (req: Request, res: Response) => {
+    if (!(await requireResearch('photo-session')(req, res))) return;
+    try {
+      const existing = (req as any).session?.otpUserId;
+      if (typeof existing === 'string' && existing.length > 0) return res.json({ ok: true, reused: true });
+      const [u] = await db.insert(users).values({
+        email: `research+${uuid().slice(0, 12)}@testers.celebrait.co.uk`,
+        firstName: 'Research tester',
+      }).returning({ id: users.id });
+      (req as any).session.otpUserId = u.id;
+      res.json({ ok: true, reused: false });
+    } catch (err) {
+      console.error('[RESEARCH] session mint failed:', err);
+      res.status(500).json({ message: 'Could not open the maker — try again' });
+    }
+  });
+
   // POST /api/research/response — one row per completed walk-through.
   app.post('/api/research/response', async (req: Request, res: Response) => {
     if (!(await requireResearch('response')(req, res))) return;

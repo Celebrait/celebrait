@@ -120,6 +120,7 @@ const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
+const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
 const CardProductPage = lazy(() => import("@/pages/card-product"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
@@ -171,6 +172,7 @@ function Router() {
           {/* F&F research walk-through — keyed link, no login; the
               server-side RESEARCH_KEY gate is the real door. */}
           <Route path="/research" component={ResearchMakerPage} />
+          <Route path="/research/photo" component={ResearchPhotoPage} />
           <Route path="/pricing" component={PricingPage} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />

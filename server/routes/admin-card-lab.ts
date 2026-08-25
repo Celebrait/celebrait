@@ -96,7 +96,7 @@ export async function requireAdmin(req: Request, res: Response): Promise<boolean
  *  RESEARCH_KEY unset = the whole surface is off. In-memory counters
  *  reset on deploy, which is fine for a research window. */
 const researchCounts = new Map<string, { day: string; n: number }>();
-const RESEARCH_CAPS: Record<string, number> = { concepts: 60, render: 220, 'render-inside': 90, 'ip-safe-art': 40, response: 100, ping: 5000 };
+const RESEARCH_CAPS: Record<string, number> = { concepts: 60, render: 220, 'render-inside': 90, 'ip-safe-art': 40, response: 100, ping: 5000, 'photo-session': 40 };
 export const requireResearch = (kind: string) => async (req: Request, res: Response): Promise<boolean> => {
   const key = process.env.RESEARCH_KEY;
   const given = String(req.headers['x-research-key'] ?? req.query.k ?? '');

@@ -71,7 +71,7 @@ interface SurveyQ {
 const SURVEY: SurveyQ[] = [
   { id: 'would_send', title: 'Honestly — would you have sent that card to a real person?', kind: 'choice', options: ['Yes, exactly as it is', 'Yes, with a tweak or two', 'No'] },
   { id: 'expected_price', title: 'What would you expect to pay for it, printed and posted to their door?', kind: 'text', sub: 'Whatever number feels right — there’s no wrong answer.' },
-  { id: 'price_feel', title: 'It’s £8.99 + postage. How does that feel?', kind: 'choice', options: ['Bargain', 'Fair', 'A bit steep', 'Wouldn’t pay that'] },
+  { id: 'price_feel', title: 'It’s £5.99 + postage. How does that feel?', kind: 'choice', options: ['Bargain', 'Fair', 'A bit steep', 'Wouldn’t pay that'] },
   { id: 'first_use', title: 'Who would you make one for first — and for what occasion?', kind: 'text', sub: 'e.g. “my sister, her 30th” — this genuinely shapes what we build next.' },
   { id: 'friction', title: 'Did anything nearly stop you, or annoy you along the way?', kind: 'text', optional: true },
   { id: 'vs_market', title: 'Compared to Moonpig or Thortful, this is…', kind: 'choice', options: ['Much better', 'A bit better', 'About the same', 'Worse'] },
