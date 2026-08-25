@@ -309,11 +309,19 @@ export default function AdminGuidedMakerPage() {
             </button>
           ))}
         </div>
-        <p className="mt-6 text-center">
-          <button type="button" onClick={() => void generate()} className="text-sm text-stone-400 underline-offset-2 hover:underline">
-            None of them? Start again with these details
-          </button>
-        </p>
+        <div className="mt-6 text-center text-sm text-stone-400">
+          <p>None of them quite right?</p>
+          <p className="mt-2 flex items-center justify-center gap-4">
+            <button type="button" onClick={() => { setPhase('questions'); setQIndex(0); }}
+              className="font-medium text-brand underline-offset-2 hover:underline">
+              Change the details
+            </button>
+            <span className="text-stone-300">·</span>
+            <button type="button" onClick={() => void generate()} className="underline-offset-2 hover:underline">
+              Same details, three new cards
+            </button>
+          </p>
+        </div>
       </div>
     );
   }
