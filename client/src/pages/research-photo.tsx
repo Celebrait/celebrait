@@ -138,6 +138,19 @@ export default function ResearchPhotoPage() {
     );
   }
 
+  if (phase === 'survey' && submitBusy) {
+    return (
+      <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
+        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+          <p className="text-lg font-medium text-stone-700">Sending your answers…</p>
+          <p className="text-sm text-stone-400">Your cards travel with them — just a few seconds.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === 'survey') {
     const q = SURVEY[sIndex];
     const value = answers[q.id] ?? '';
