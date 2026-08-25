@@ -40,7 +40,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { cardGenerations, cardTemplates, users } from '@shared/schema';
+import { cardGenerations, cardTemplates, users, researchRenders } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
 import { publicImageUrl } from '../image-storage';
 import { isR2Enabled, r2Put } from '../r2-storage';
@@ -112,8 +112,26 @@ export const requireResearch = (kind: string) => async (req: Request, res: Respo
     return false;
   }
   researchCounts.set(kind, { day, n: n + 1 });
+  (req as any).researchKind = kind;
   return true;
 };
+
+/** Research renders are captured server-side AS MADE, so a tester who
+ *  never finishes still leaves their cards in the readout. Never
+ *  throws; a failed capture must not fail the render. */
+async function persistResearchRender(req: Request, frontText: string | undefined, imageUrl: string | undefined, kind: 'front' | 'inside'): Promise<void> {
+  try {
+    if (!(req as any).researchKind) return;
+    if (typeof imageUrl !== 'string' || !imageUrl.startsWith('data:image/') || imageUrl.length > 12_000_000) return;
+    const buffer = Buffer.from(imageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const filename = `research_live_${randomUUID()}.png`;
+    if (isR2Enabled()) await r2Put(filename, buffer, 'image/png');
+    else await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
+    await db.insert(researchRenders).values({ kind, front_text: frontText?.slice(0, 400) ?? null, image_path: filename });
+  } catch (err) {
+    console.warn('[RESEARCH] live render capture failed (non-fatal):', err);
+  }
+}
 type Gate = (req: Request, res: Response) => Promise<boolean>;
 const guarded = (gate: Gate, h: (req: Request, res: Response) => Promise<unknown> | void) =>
   async (req: Request, res: Response) => { if (await gate(req, res)) await h(req, res); };
@@ -1064,6 +1082,7 @@ Judge every candidate line, and the inside_text, against these, in order:
 8. PICTURE — the words and the described artwork must complete each other. If the line would work over ANY picture, it FAILS.
 9. CLEAN CRAFT — parses as a natural sentence, correctly spelled, max one exclamation mark, no "vibes/level up/boss/legend/goals/mode".
 10. A REAL CLAIM — restate the line as ONE plain sentence about the recipient or their thing. If you cannot, the line is register-shaped noise and FAILS, however good it sounds. Observed failures, all from one set: "Zestier. 100% f***ing correct." (a verdict with no claim to rule on — zestier than what? correct about what?); "May your birthday feel like a lemon-spritz holiday brain has approved" (a syntax pile-up with a word missing); "making a kitchen feel sunny by choosing things properly — that's what this birthday reminds me of" (an invented trait bridging an object to a person, wearing sentiment as a costume). Each SOUNDS like our register; none SAYS anything. A PRONOUN POINTING AT NOTHING is the same failure in miniature: "This can f*** right off" (observed on a 70th) — this WHAT? If the line's pronoun has no antecedent the reader can name, the claim is not there. The verdict shapes ("Immaculate.") are earned only when there is a proposition being judged. ⚠️ THIS FLOOR IS ABOUT EMPTINESS, NEVER SIZE: a two-word whisper passes when its claim restates ("something sweet is on its way to you"); do not fail a line for being quiet, small or simple — fail it only when the restatement genuinely is not there.
+11. THE FIRST READ — a stranger gets the line in ONE pass, read aloud at card-shop speed. If the reader must re-read to work out who is doing what to whom, it FAILS however smart. Observed: "Kerry plans for the lights like the weather might need convincing" — grammatical, a real claim underneath, and a real buyer's verdict was "this does not make sense". Compression is never worth a second read: where the shortlist holds a clever-dense candidate and a plain-clear one, the plain one wins. This floor is floor 10 inverted — one kills lines that say nothing, this kills lines that say something too tightly to be received.
 
 HOW TO CHOOSE between three candidates that all pass: take the one with the STRONGEST TURN — the biggest double-take for the least effort from the reader. Where two are equally sharp, prefer the more SPECIFIC to this person's world, then the shorter. Never pick a line just because it is safest; a safe line is a dry line wearing a coat.
 
@@ -2863,6 +2882,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
     try {
       const result = await generateInsideImage(body);
+      void persistResearchRender(req, undefined, result.imageUrl, 'inside');
       res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
     } catch (err: any) {
       console.error('[CARD-LAB] render-inside error:', err?.message ?? err);
@@ -3199,6 +3219,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
 
     try {
       const result = await attempt('openai-2');
+      void persistResearchRender(req, body.front_text, result.imageUrl, 'front');
       res.json({
         imageUrl: result.imageUrl, costUsd: result.costUsd,
         durationMs: result.durationMs, drawnBy: 'openai',
@@ -3211,6 +3232,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       console.warn('[CARD-LAB] openai refused, trying gemini:', err?.message);
       try {
         const result = await attempt('gemini-flash');
+        void persistResearchRender(req, body.front_text, result.imageUrl, 'front');
         res.json({
           imageUrl: result.imageUrl, costUsd: result.costUsd,
           durationMs: result.durationMs, drawnBy: 'gemini (openai refused)',

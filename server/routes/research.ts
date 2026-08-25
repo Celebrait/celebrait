@@ -14,7 +14,7 @@ import path from 'path';
 import { z } from 'zod';
 import { randomUUID as uuid } from 'crypto';
 import { db } from '../db';
-import { researchResponses, users } from '@shared/schema';
+import { researchResponses, researchRenders, users } from '@shared/schema';
 import { requireAdmin, requireResearch } from './admin-card-lab';
 import { isR2Enabled, r2Put } from '../r2-storage';
 import { publicImageUrl } from '../image-storage';
@@ -124,6 +124,8 @@ export function registerResearchRoutes(app: Express): void {
     try {
       const rows = await db.select().from(researchResponses)
         .orderBy(desc(researchResponses.id)).limit(200);
+      const liveRenders = await db.select().from(researchRenders)
+        .orderBy(desc(researchRenders.id)).limit(150);
       res.json({
         responses: rows.map((r) => ({
           ...r,
@@ -132,6 +134,10 @@ export function registerResearchRoutes(app: Express): void {
             : r.cards,
           pickedImageUrl: r.picked_image_path ? publicImageUrl(r.picked_image_path) : null,
           insideImageUrl: r.inside_image_path ? publicImageUrl(r.inside_image_path) : null,
+        })),
+        renders: liveRenders.map((r) => ({
+          id: r.id, created_at: r.created_at, kind: r.kind, front_text: r.front_text,
+          imageUrl: r.image_path ? publicImageUrl(r.image_path) : null,
         })),
       });
     } catch (err) {

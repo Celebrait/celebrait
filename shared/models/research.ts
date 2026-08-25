@@ -25,3 +25,15 @@ export const researchResponses = pgTable("research_responses", {
   /** The six survey answers, keyed by question id. */
   answers: jsonb("answers"),
 });
+
+/** Every image rendered through the research gate, captured AS MADE —
+ *  so abandoned walk-throughs still leave their cards behind (Aidan:
+ *  "I need to see everyone's cards generated even before they
+ *  submit"). Fire-and-forget from the render handlers. */
+export const researchRenders = pgTable("research_renders", {
+  id: serial("id").primaryKey(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  kind: text("kind").notNull().default("front"),
+  front_text: text("front_text"),
+  image_path: text("image_path"),
+});

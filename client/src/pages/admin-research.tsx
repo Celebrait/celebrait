@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
+interface LiveRender { id: number; created_at: string; kind: string; front_text: string | null; imageUrl: string | null }
+
 interface ResearchRow {
   id: number;
   created_at: string;
@@ -43,12 +45,13 @@ function briefLine(b: Record<string, unknown> | null): string {
 
 export default function AdminResearchPage() {
   const [rows, setRows] = useState<ResearchRow[] | null>(null);
+  const [renders, setRenders] = useState<LiveRender[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     apiRequest('GET', '/api/admin/research')
       .then((r) => r.json())
-      .then((j) => setRows(j.responses ?? []))
+      .then((j) => { setRows(j.responses ?? []); setRenders(j.renders ?? []); })
       .catch((e) => setError(e?.message ?? 'Could not load'));
   }, []);
 
@@ -129,6 +132,24 @@ export default function AdminResearchPage() {
           </div>
         </div>
       ))}
+
+      {/* Everything generated through the research gate, captured as
+          made — abandoned walk-throughs leave their cards here. */}
+      {renders.length > 0 && (
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
+          <h2 className="font-semibold text-stone-800">Everything generated <span className="ml-1 text-xs font-normal text-stone-400">— live capture, including walk-throughs never finished</span></h2>
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6">
+            {renders.map((r) => (
+              <div key={r.id} className="group relative overflow-hidden rounded-md border border-stone-100">
+                {r.imageUrl && <img src={r.imageUrl} alt={r.front_text ?? r.kind} crossOrigin="anonymous" loading="lazy" className="aspect-square w-full object-cover" />}
+                <div className="absolute inset-x-0 bottom-0 hidden bg-black/60 p-1 group-hover:block">
+                  <p className="line-clamp-2 text-[10px] leading-tight text-white">{r.kind === 'inside' ? '(inside) ' : ''}{r.front_text ?? ''}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
