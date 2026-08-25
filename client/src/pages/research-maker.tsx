@@ -409,7 +409,7 @@ export default function ResearchMakerPage() {
               onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setPhase('signoff'); }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
-              <div className={`relative aspect-square bg-stone-100 transition-shadow duration-500 ${!c.imageUrl && !c.error ? 'ring-2 ring-brand/40 shadow-[0_0_32px_rgba(91,84,217,0.45)]' : ''}`}>
+              <div className="relative aspect-square bg-stone-100">
                 {c.imageUrl
                   ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous"
                       className="h-full w-full object-cover opacity-0 transition-opacity duration-700"
@@ -422,10 +422,9 @@ export default function ResearchMakerPage() {
                           {c.retrying ? 'Having another go…' : 'Have another go'}
                         </button>
                       </div>
-                    : <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden bg-[#FDFBF7] p-6 text-center">
-                        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-brand-muted/70 via-transparent to-brand-muted/70" />
-                        <p className="relative text-sm font-medium italic leading-snug text-stone-600">“{c.concept.front_text}”</p>
-                        <p className="relative flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
+                    : <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#FDFBF7] p-6 text-center">
+                        <p className="text-sm font-medium italic leading-snug text-stone-600">“{c.concept.front_text}”</p>
+                        <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-brand">
                           <Loader2 className="h-3 w-3 animate-spin" /> drawing this one
                         </p>
                       </div>}
@@ -485,35 +484,36 @@ export default function ResearchMakerPage() {
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">FRONT CHOSEN — ONE MORE STEP</p>
         <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Now the inside of the card</h1>
         <p className="mt-1 text-sm text-stone-500">Every card gets a designed inside to match its front. Choose what goes in it — we’ll set the words in the card’s own style.</p>
-        <div className="mt-5 space-y-2.5">
-          {c.concept.inside_text && (
-            <div role="button" tabIndex={0} onClick={() => setInsideMode('ours')}
-              className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'ours' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
+        <div className="mt-5">
+          {/* One clear decision: accept the card's message, or write. */}
+          <div className="grid grid-cols-2 gap-2">
+            {c.concept.inside_text && (
+              <button type="button" onClick={() => setInsideMode('ours')}
+                className={`rounded-xl border p-3 text-sm font-semibold transition-colors ${insideMode === 'ours' ? 'border-brand bg-brand text-white' : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'}`}>
+                Use our message
+              </button>
+            )}
+            <button type="button" onClick={() => setInsideMode('own')}
+              className={`rounded-xl border p-3 text-sm font-semibold transition-colors ${insideMode === 'own' ? 'border-brand bg-brand text-white' : 'border-stone-200 bg-white text-stone-600 hover:border-brand/50'} ${!c.concept.inside_text ? 'col-span-2' : ''}`}>
+              Write my own
+            </button>
+          </div>
+          {insideMode === 'ours' && c.concept.inside_text && (
+            <div className="mt-3 rounded-xl border border-brand/40 bg-brand-muted/30 p-3.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-brand">Written for this card</span>
               <p className="mt-1 text-sm leading-snug text-stone-700">“{c.concept.inside_text}”</p>
             </div>
           )}
-          <div role="button" tabIndex={0} onClick={() => setInsideMode('own')}
-            className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'own' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
-            <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Write your own</span>
+          <div className="mt-3 space-y-2.5">
+            <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum,… (optional)" className="h-11" />
             {insideMode === 'own' && (
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" autoFocus
-                className="mt-2 min-h-[88px] w-full rounded-md border border-stone-200 bg-white p-3 text-sm" />
+                className="min-h-[88px] w-full rounded-md border border-stone-200 bg-white p-3 text-sm" />
             )}
+            <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — Love, Aidan… (optional)" className="h-11" />
           </div>
-          <div role="button" tabIndex={0} onClick={() => setInsideMode('blank')}
-            className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'blank' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
-            <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Leave it blank</span>
-            <span className="ml-2 text-xs text-stone-400">— you’ll write it by hand when it arrives</span>
-          </div>
-          {insideMode !== 'blank' && (
-            <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
-              <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum,… (optional)" className="h-11" />
-              <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — Love, Aidan… (optional)" className="h-11" />
-            </div>
-          )}
         </div>
-        <Button className="mt-6 h-12 w-full text-base" onClick={() => void renderInside()} disabled={insideBusy}>
+        <Button className="mt-6 h-12 w-full text-base" onClick={() => void renderInside()} disabled={insideBusy || (insideMode === 'own' && !message.trim())}>
           {insideBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {insideBusy ? 'Designing the inside…' : 'Design the inside'}
         </Button>
@@ -537,7 +537,7 @@ export default function ResearchMakerPage() {
             <p className="p-2 text-xs text-stone-400">The inside</p>
           </div>
         </div>
-        <Button className="mt-8 h-12 w-full max-w-sm text-base" onClick={() => { setSIndex(0); setPhase('survey'); }}>
+        <Button className="mt-8 h-12 w-full max-w-sm animate-pulse text-base shadow-[0_0_28px_rgba(91,84,217,0.5)]" onClick={() => { setSIndex(0); setPhase('survey'); }}>
           Six quick questions — 60 seconds
         </Button>
         <p className="mt-3 text-xs text-stone-400">Your answers are the reason this preview exists.</p>
@@ -734,7 +734,12 @@ export default function ResearchMakerPage() {
         <Button className="h-12 w-full text-base" disabled={!canNext} onClick={next}>
           {qIndex === questions.length - 1 ? 'Make their card' : 'Next'}
         </Button>
-        {(question === 'age' || question === 'interest' || question === 'dislike' || question === 'name') && (
+        {(question === 'dislike' || question === 'name') && (
+          <Button variant="outline" className="mt-3 h-12 w-full text-base" onClick={next}>
+            Skip this one
+          </Button>
+        )}
+        {(question === 'age' || question === 'interest') && (
           <button type="button" onClick={next} className="mt-3 w-full text-center text-sm text-stone-400 hover:text-stone-600">
             Skip this one
           </button>
