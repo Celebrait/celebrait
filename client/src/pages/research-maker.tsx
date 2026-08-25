@@ -645,10 +645,10 @@ export default function ResearchMakerPage() {
               showDislike
                 ? <div className="mt-4">
                     <Input value={dislike} onChange={(e) => setDislike(e.target.value)} placeholder="Something they can’t stand" className="h-11" />
-                    <p className="mt-1.5 text-xs text-stone-400">We’ll build one of the three cards around it.</p>
+                    <p className="mt-1.5 text-xs text-stone-400">This is joke fuel: one of the three cards will make light of it — taking the mickey out of the thing they hate, never out of them.</p>
                   </div>
                 : <button type="button" onClick={() => setShowDislike(true)} className="mt-4 text-sm text-brand underline-offset-2 hover:underline">
-                    + something they can’t stand?
+                    + something they can’t stand? It makes for a great joke
                   </button>
             )}
             <p className="mt-3 text-xs text-stone-400">Or skip it — we’ll make it a beautiful birthday card, no homework.</p>
