@@ -122,7 +122,9 @@ export default function ResearchMakerPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [regenUsed, setRegenUsed] = useState(false);
 
-  // Sign-off
+  // Sign-off — 'ours' is the AI message the writer already composed
+  // for the picked card; it costs nothing and arrives pre-selected.
+  const [insideMode, setInsideMode] = useState<'ours' | 'own' | 'blank'>('ours');
   const [dear, setDear] = useState('');
   const [message, setMessage] = useState('');
   const [from, setFrom] = useState('');
@@ -265,7 +267,8 @@ export default function ResearchMakerPage() {
     try {
       // Exactly as typed — no auto "Dear"/"From" wrapping (observed:
       // "Dear Dear Mum" / "From From Aidan" printed on a real inside).
-      const joined = [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n');
+      const core = insideMode === 'ours' ? (c.inside_text ?? '') : insideMode === 'own' ? message.trim() : '';
+      const joined = insideMode === 'blank' ? '' : [dear.trim(), core, from.trim()].filter(Boolean).join('\n\n');
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       const ir = await researchPost('render-inside', {
         ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction,
@@ -396,7 +399,7 @@ export default function ResearchMakerPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {cells.map((c, i) => (
             <button key={i} type="button" disabled={!c.imageUrl}
-              onClick={() => { setPicked(i); setPhase('signoff'); }}
+              onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setPhase('signoff'); }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
               <div className={`relative aspect-square bg-stone-100 transition-shadow duration-500 ${!c.imageUrl && !c.error ? 'ring-2 ring-brand/40 shadow-[0_0_32px_rgba(91,84,217,0.45)]' : ''}`}>
@@ -474,12 +477,34 @@ export default function ResearchMakerPage() {
         </div>
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">FRONT CHOSEN — ONE MORE STEP</p>
         <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Now the inside of the card</h1>
-        <p className="mt-1 text-sm text-stone-500">Every card gets a designed inside to match its front. Type your message and we’ll set it in the card’s own style — or leave it blank and write by hand when it arrives.</p>
-        <div className="mt-5 space-y-3">
-          <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum, / To the best Nan… (optional)" className="h-11" />
-          <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message (optional — blank inside is a real choice)"
-            className="min-h-[96px] w-full rounded-md border border-stone-200 bg-white p-3 text-sm" />
-          <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — Love, Aidan / From all of us… (optional)" className="h-11" />
+        <p className="mt-1 text-sm text-stone-500">Every card gets a designed inside to match its front. Choose what goes in it — we’ll set the words in the card’s own style.</p>
+        <div className="mt-5 space-y-2.5">
+          {c.concept.inside_text && (
+            <div role="button" tabIndex={0} onClick={() => setInsideMode('ours')}
+              className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'ours' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
+              <span className="text-xs font-semibold uppercase tracking-wide text-brand">Written for this card</span>
+              <p className="mt-1 text-sm leading-snug text-stone-700">“{c.concept.inside_text}”</p>
+            </div>
+          )}
+          <div role="button" tabIndex={0} onClick={() => setInsideMode('own')}
+            className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'own' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Write your own</span>
+            {insideMode === 'own' && (
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" autoFocus
+                className="mt-2 min-h-[88px] w-full rounded-md border border-stone-200 bg-white p-3 text-sm" />
+            )}
+          </div>
+          <div role="button" tabIndex={0} onClick={() => setInsideMode('blank')}
+            className={`cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'blank' ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Leave it blank</span>
+            <span className="ml-2 text-xs text-stone-400">— you’ll write it by hand when it arrives</span>
+          </div>
+          {insideMode !== 'blank' && (
+            <div className="grid grid-cols-1 gap-2.5 pt-1 sm:grid-cols-2">
+              <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — Dear Mum,… (optional)" className="h-11" />
+              <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — Love, Aidan… (optional)" className="h-11" />
+            </div>
+          )}
         </div>
         <Button className="mt-6 h-12 w-full text-base" onClick={() => void renderInside()} disabled={insideBusy}>
           {insideBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
