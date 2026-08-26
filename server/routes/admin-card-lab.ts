@@ -1471,7 +1471,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     // (false-fired on a "40." type poster, shipped as a phantom).
     const isTypeled = (c: CardConcept) => /type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${String(c.art_direction ?? '').slice(0, 40)}`);
     if (cards.some((c, i) => !isTypeled(c) && num.test(fronts[i]) && num.test(arts[i]))) v.push('number-twice: the number goes in the words OR the artwork of a card, never both (type-led cards exempt — their words are the artwork)');
-  } else {
+  } else if (!opts?.occasionKey || opts.occasionKey === 'birthday') {
     const n = fronts.filter(v2SaysOccasion).length;
     if (n === 0) v.push('occasion-missing: at least one front must say what the occasion is');
     // A GENERIC roll is ABOUT the occasion — all three may name it.
@@ -1498,7 +1498,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     if (hit.length) { v.push(`ip-floor: the artwork asks for protected material (${hit.join(', ')}) — use that world's ordinary objects instead`); break; }
   }
   const seen = new Map<string, number>();
-  const briefWords = new Set(`${b.interest} ${b.who}`.toLowerCase().match(/[a-z']{4,}/g) ?? []);
+  const briefWords = new Set(`${b.interest} ${b.who} ${opts?.occasionKey ?? ''}`.toLowerCase().match(/[a-z']{4,}/g) ?? []);
   for (const f of fronts) {
     new Set(f.toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w)) ?? [])
       .forEach((w) => seen.set(w, (seen.get(w) ?? 0) + 1));
@@ -1511,7 +1511,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words that describe every art direction are stoplisted; what's
   // left is subject matter, and a subject appears on ONE card per set.
   {
-    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple'].map((w) => w));
+    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered'].map((w) => w));
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
       new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
