@@ -394,8 +394,10 @@ export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
   christmas: PROFILE('christmas', 'full',
     `THE CHRISTMAS WORLD. Every rack in Britain is full of generic Christmas cards — ours exist because the sender chose THIS person, so the person leads and Christmas inflects, never the reverse. The strongest shape FUSES their world with the season's own rituals: their thing meeting Christmas morning, their kit in winter light. A card that works for anyone's Christmas has failed exactly as a card that works for any fan has.
 ⚠️ THE SPENT SEAM: the naughty list, Santa's surveillance, "been good this year", coal — Christmas's own civic checklist, the first joke every card reaches for and the most worn material in the entire market. It may not appear at all. Sprout-hatred and wrapping-paper chaos are one notch behind it: permitted only fused to THIS person, never as the joke on their own.
-THE REGISTERS HERE: funny = the family Christmas observed — the dinner politics, the rituals this person owns, the role they play in the day. Warm = the year's gratitude landing at Christmas — what they were to you all year, said at the moment the year pauses. Rude = the mates-and-siblings register, swearing rules unchanged; Christmas doesn't soften it, it just gives it a setting.
-SANTA AND THE MAGIC: for recipients 12 and under, the wonder is the material — Santa, reindeer, the magic played absolutely straight. For adults, Santa is never the subject; the season's adult magic is light, food, drink, arrival, the house full.
+THE REGISTERS HERE: funny = the family Christmas observed — the dinner politics, the rituals this person owns, the role they play in the day. Warm = the year's gratitude landing at Christmas — what they were to you all year, said at the moment the year pauses.
+RUDE AT CHRISTMAS IS ITS OWN SHAPE — one properly filthy HERO card, two sharp festive-funny cards beside it where the mild words (bloody, arse, bollocks) land naturally; three fully sweary Christmas fronts is a birthday habit and the observed failure. The hero comes from one of Christmas rude's three real lanes: THE RELIEF EXHALE (done with it all, the season said with a swear and love), THE INNUENDO LANE (stuffing, sack, crackers, baubles — the seaside postcard in tinsel), or SURVIVING THE FAMILY (siblings and mates, affectionate always). ⚠️ THE CEILING IS ADULT: at the top of rude, grown-up vice winks are PERMITTED for peer and rack briefs — the drink, the hangover, the party-season excess, the "let it snow" class of gag — sold on every edgy rack in Britain. Wink, never instruction; never for family-grade relationships like nan or mum, never anywhere near a brief with a child in it.
+THE CHRISTMAS CAST IS OPEN AT EVERY AGE — and this OVERRIDES the usual no-people habit: Santa, elves, reindeer, snowmen, robins are FOLK CHARACTERS, drawable as illustrated figures on any card. For 12-and-under the magic plays absolutely straight and the wonder is the material. For adults the cast plays with a WINK — Santa off-duty, the reindeer knackered, the elf on strike, behind the scenes of the season. Illustrated folk figures always: never photoreal people, never a franchise's specific character or design (no Grinch, no film elves, no branded snowmen).
+STYLE AT CHRISTMAS: nostalgia is the season's LIVING idiom, not dinge — mid-century retro Santa art, vintage label and matchbox kitsch, the look of old annuals are all CURRENT here and welcome lanes beside the house register. Print them clean and alive as ever; the dinge ban is about murk, never about era.
 NO INTEREST GIVEN: mine their CHRISTMAS ROLE — the host, the early decorator, the one who owns the gravy, the Christmas-Eve panic shopper, the one who makes it feel like Christmas. Roles are personal; symbols are wallpaper.
 COLOUR: Christmas does not own red-green-gold, and three cards in that uniform is the observed failure. The person's world lends the hues; the season lends its LIGHT — frost, candlelight, winter dusk, one hot red earned rather than issued. AT MOST one festive object folded into their own kit; baubles, trees or tinsel stapled beside the subject remain BANNED.`),
   valentines: PROFILE('valentines', 'gentle',
@@ -1333,7 +1335,14 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   if (opts?.rudeSlot !== undefined) {
     if (!V2_SWEAR.test(fronts[opts.rudeSlot] ?? '')) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing`);
   }
-  if (b.cheeky && fronts.filter((f) => V2_SWEAR.test(f)).length < 2) v.push('rude-floor: at least TWO fronts need real swearing');
+  // A world setting, not a constant: birthday rude is banter about the
+  // person (two sweary fronts); christmas rude is the market's
+  // one-filthy-hero shape — two floor failures shipped amber before
+  // this bent (Aidan: "rude christmas warrants something else").
+  if (b.cheeky) {
+    const need = opts?.occasionKey === 'christmas' ? 1 : 2;
+    if (fronts.filter((f) => V2_SWEAR.test(f)).length < need) v.push(`rude-floor: at least ${need === 1 ? 'ONE front needs' : 'TWO fronts need'} real swearing`);
+  }
   // Checks the inside as well as the front: both are printed, and an
   // unmasked word inside a card whose front is masked is the same
   // inconsistency one panel further in.
@@ -1582,7 +1591,7 @@ THE BAR, per card:
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; find the thing only THEIRS owns.
 - When an artwork uses a real place, art_direction NAMES the actual place and one drawable feature of it — never its category. "A stadium" draws a stock stadium; the named ground with its own roofline, brickwork or setting draws THEIRS. Same for any landmark, venue or street.
 ${visual === 'charm' ? V2_CHARM_REGISTER : visual === 'celebrait' ? V2_CELEBRAIT_REGISTER : V2_OPEN_REGISTER}
-- If the register is rude: at least two fronts carry real swearing, and the joke must still survive with it removed. ⚠️ MASKING HAS EXACTLY THREE WORDS. Only the f-word, the s-word and the c-word are ever masked (first letter, then asterisks). EVERYTHING ELSE PRINTS IN FULL, always: hell, damn, bloody, bitch, bastard, bollocks, arse, prick, twat and their kin are not maskable, and asterisks on any of them is an instant fail — observed twice in one set ("Son of a B****", "hush the h*** up"), both counterfeit rudeness that reads as a misprint. If a line leans on hell or damn to feel rude, it wanted one of the real three or a better joke.
+- If the register is rude: real swearing is REQUIRED, and the joke must still survive with it removed. Distribution: by default at least two fronts carry it — but when a slot above is marked TONE=RUDE outside one-of-each, the swearing CONCENTRATES there (that card is the set's filthy hero and MUST carry one of the three real words on its front; the occasion brief explains the shape). A rude set with no real swearing anywhere has failed its entire register, whatever the occasion. ⚠️ MASKING HAS EXACTLY THREE WORDS. Only the f-word, the s-word and the c-word are ever masked (first letter, then asterisks). EVERYTHING ELSE PRINTS IN FULL, always: hell, damn, bloody, bitch, bastard, bollocks, arse, prick, twat and their kin are not maskable, and asterisks on any of them is an instant fail — observed twice in one set ("Son of a B****", "hush the h*** up"), both counterfeit rudeness that reads as a misprint. If a line leans on hell or damn to feel rude, it wanted one of the real three or a better joke.
 - A SWEAR HAS THREE DEPLOYMENTS and the brief picks the blend: the PUNCH (insult banter, blunt verdicts), the CONSPIRACY (affectionate filth, we're-terrible-together), and the FILTHY COMPLIMENT (a loving sentence wearing the worst word — "a f***ing delight"). Rude does NOT default to punch: that is the model's reflex, and on a her-leaning or soft-aesthetic brief it is why rude keeps landing masculine. Choose the stance on the brief's evidence — punch belongs to banter relationships that earn it, conspiracy and the filthy compliment carry everything else.
 - AIMED SWEARS FIRE ONLY ALONG THEIR HOME DIRECTION. bitch is woman-to-woman conspiracy ONLY — between sisters, best mates, close her-relationships it is affection ("Happy birthday, you absolute bitch"); anywhere else the same letters are a slur. bastard, prick and twat are its bloke-banter mirror — him-briefs, brothers, best mates. Never cross the directions, never aim any of them at nan- or colleague-grade relationships, and a brief with NO gender evidence gets no aimed nouns at all — an aimed word has to know who it is aimed at, so ungendered rack cards run on the intensifiers (f***ing as decoration, arse, bollocks).
 - THE RUDE CARD IS NOT EXEMPT FROM THE PERSON. Rude lives in the SENTENCE; the artwork still belongs to the recipient's world and taste. When the brief leans a taste — a her, a nan, a soft or delicate aesthetic — the rude card wears that aesthetic WITH the filthy line: the sweetest-looking card with the worst mouth is the stronger joke and the bigger seller. Observed failure: an 18-year-old-her brief returned a rude card of calculator, wifi symbol and red-black chrome — nothing of her on it — because the slot assumed rude means masculine poster. It does not.
@@ -2187,8 +2196,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
           : [];
         // The coin. Explicit override wins; otherwise both modes serve.
         const freeComp = body.freeComposition ?? Math.random() < 0.5;
+        // Christmas rude: ONE dealt filthy hero (stable across repair
+        // rounds), marked on its slot so the writer aims the swearing
+        // there and the rude-slot floor enforces it.
+        const xmasHero = occKey === 'christmas' && body.tone === 'rude' && !mixTones ? Math.floor(Math.random() * 3) : null;
         const slots = v2Angles.map((a, i) => ({ angle: a,
-          tone: mixTones ? mixTones[i] : undefined,
+          tone: mixTones ? mixTones[i] : (xmasHero === i ? 'rude' : undefined),
           format: freeComp ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
           register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
           territory: territories.length === 3 ? territories[i] : undefined,
@@ -2255,7 +2268,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             .map((c) => ({ ...c, format: typeof c.format === 'string' ? c.format.replace(/\s+/g, ' ').trim().slice(0, 158) : c.format, angle: typeof c.angle === 'string' ? c.angle.replace(/\s+/g, ' ').trim().slice(0, 158) : c.angle }))
             .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
-            rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : undefined,
+            rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : xmasHero ?? undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined,
             occasionKey: occKey });
           if (!violations.length) break;
