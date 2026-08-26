@@ -144,7 +144,7 @@ function readAge(occasion: string): number | null {
  *  Ordered roughly by UK card-aisle volume. */
 const WORLDS = [
   { key: 'birthday', label: 'Birthday', built: true },
-  { key: 'christmas', label: 'Christmas', built: false },
+  { key: 'christmas', label: 'Christmas', built: true },
   { key: "mother's day", label: "Mother's Day", built: false },
   { key: "father's day", label: "Father's Day", built: false },
   { key: "valentine's day", label: "Valentine's", built: false },
@@ -196,7 +196,9 @@ export default function AdminOccasionStudioPage() {
   const [occasion, setOccasion] = useState('Birthday');
   // The KEY, not the label — 'Valentine's' (label) and "valentine's
   // day" (key) were reaching the server as different occasions.
-  useEffect(() => { setOccasion(world.built ? 'Birthday' : world.key); }, [world.key]);
+  // key-based, not built-based: 'built' is a label, and christmas is
+  // now built too — built!==birthday any more.
+  useEffect(() => { setOccasion(world.key === 'birthday' ? 'Birthday' : world.key); }, [world.key]);
   const [interest, setInterest] = useState('');
   const [tone, setTone] = useState<Tone>('funny');
   /** THE ENGINE TOGGLE (AUDIT_BUILDER_PROMISE.md). celebrait = archetype
