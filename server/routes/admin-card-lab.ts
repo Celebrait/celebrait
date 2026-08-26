@@ -372,6 +372,31 @@ export interface OccasionProfile {
 
 const PROFILE = (key: string, humour: HumourLevel, brief: string): OccasionProfile => ({ key, humour, brief });
 
+/** ── THE CHRISTMAS WORLD, tone-scoped ──────────────────────────────
+ *  One static block meant every tone read every register's guidance —
+ *  a WARM Elf roll came back swearing on all three fronts because the
+ *  rude lanes sat in its brief (law 1: text is a menu). Like
+ *  birthdayProfile, the world assembles per tone: shared core + the
+ *  chosen register's paragraph only. */
+const CHRISTMAS_CORE = `THE CHRISTMAS WORLD. Every rack in Britain is full of generic Christmas cards — ours exist because the sender chose THIS person, so the person leads and Christmas inflects, never the reverse. The strongest shape FUSES their world with the season's own rituals: their thing meeting Christmas morning, their kit in winter light. A card that works for anyone's Christmas has failed exactly as a card that works for any fan has.
+⚠️ THE SPENT SEAM: the naughty list, Santa's surveillance, "been good this year", coal — Christmas's own civic checklist, the first joke every card reaches for and the most worn material in the entire market. It may not appear at all. Sprout-hatred and wrapping-paper chaos are one notch behind it: permitted only fused to THIS person, never as the joke on their own.
+THE CHRISTMAS CAST IS OPEN AT EVERY AGE — and this OVERRIDES the usual no-people habit: Santa, elves, reindeer, snowmen, robins are FOLK CHARACTERS, drawable as illustrated figures on any card. For 12-and-under the magic plays absolutely straight and the wonder is the material. For adults the cast plays with a WINK — Santa off-duty, the reindeer knackered, the elf on strike, behind the scenes of the season. Illustrated folk figures always: never photoreal people, never a franchise's specific character or design (no Grinch, no film elves, no branded snowmen).
+STYLE AT CHRISTMAS: nostalgia is the season's LIVING idiom, not dinge — mid-century retro Santa art, vintage label and matchbox kitsch, the look of old annuals are all CURRENT here and welcome lanes beside the house register. Print them clean and alive as ever; the dinge ban is about murk, never about era.
+NO INTEREST GIVEN: mine their CHRISTMAS ROLE — the host, the early decorator, the one who owns the gravy, the Christmas-Eve panic shopper, the one who makes it feel like Christmas. Roles are personal; symbols are wallpaper.
+COLOUR: Christmas does not own red-green-gold, and three cards in that uniform is the observed failure. The person's world lends the hues; the season lends its LIGHT — frost, candlelight, winter dusk, one hot red earned rather than issued. AT MOST one festive object folded into their own kit; baubles, trees or tinsel stapled beside the subject remain BANNED.`;
+const CHRISTMAS_TONES: Record<string, string> = {
+  rude: `RUDE AT CHRISTMAS IS ITS OWN SHAPE — but ALL THREE cards are RUDE: a buyer who chose Rude gets three rude options, never one rude card chaperoned by two polite ones (observed failure: "Service resumed. Bring plates." shipped as a rude set's card). The GRADUATION is the shape: ONE filthy HERO carries a real masked swear; the other two are rude by other means — mild words printed in full (bloody, bollocks, arse, bastard) or the innuendo lane — and every front reads unmistakably rude in VOICE even where its words stay technically clean. ⚠️ THE COSY AFTERMATH IS NOT RUDE: the wrapping-everywhere, somehow-it-looks-right room has now worn a rude set's slot three times — it is warm material and BANNED from this register; an innuendo third means actual innuendo, not festive mess described fondly. ⚠️ THE CEILING IS ADULT: at the top of rude, grown-up vice winks are PERMITTED for peer and rack briefs — the drink, the hangover, the party-season excess, the "let it snow" class of gag — sold on every edgy rack in Britain. Wink, never instruction; never for family-grade relationships like nan or mum, never anywhere near a brief with a child in it.`,
+  warm: `TONE HERE — WARM AT CHRISTMAS: the year's gratitude landing at the moment the year pauses — what they were to you all year, the ritual of them at Christmas, the room they make feel like Christmas. The fond aftermath and the quiet morning belong to THIS register. ABSOLUTELY NO swearing of any grade — not the strong words, not bloody/bollocks/arse: warmth carries this card, and a swear on a warm Christmas card is a register failure, not an edge.`,
+  funny: `TONE HERE — FUNNY AT CHRISTMAS: the family Christmas observed — the dinner politics, the rituals this person owns, the role they play in the day, the season's absurdities reported straight. NO swearing of any grade — the laugh is the product and swearing is rude's register, not funny's seasoning.`,
+};
+export function christmasProfile(tone: string | undefined): OccasionProfile {
+  const t = tone === 'mix' ? 'mix' : (tone ?? 'funny');
+  const toneText = t === 'mix'
+    ? `ONE OF EACH AT CHRISTMAS: each slot's tone applies ONLY to its own card. The rude slot follows the rude rules; the funny and warm cards carry NO swearing of any grade.\n${CHRISTMAS_TONES.rude}`
+    : CHRISTMAS_TONES[t] ?? CHRISTMAS_TONES.funny;
+  return PROFILE('christmas', 'full', `${CHRISTMAS_CORE}\n${toneText}`);
+}
+
 export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
   sympathy: PROFILE('sympathy', 'off',
     `Comfort. The reader has lost someone, and presence beats cleverness: plain, quiet, true words. ABSOLUTELY NO jokes, puns, wordplay, cheek or exclamation marks. No advice, no silver linings ("at least…"), no timelines ("time heals"), no assumed faith. The interest appears only as gentle solace — a quiet corner of their world, holding still. Soft, pale, muted palette; the ONE occasion where three quiet grounds is correct.`),
@@ -391,15 +416,7 @@ export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
     `THE SUSPENSE IS THE SUBJECT, and the one law is the card MUST NOT GUESS: deliberately, artfully NEUTRAL — neither pink nor blue may lead anywhere on the set, and a pale blue ground here is a failed card. Mine the reveal itself: the sealed envelope, the question mark, the split motif, the both-ways joke, the drum roll made visual. ⚠️ WHO THE RECIPIENT IS: the relationship chip is the SENDER'S relationship to them, never theirs to the baby. The default read is that the recipient IS the expecting parent at the centre of this — a card to "Sister" here means the sender's sister is the one having the baby. NEVER invent a different role for them (big sister, granny-to-be, aunty) — a claimed role we were not given is a printed factual error about someone's family (observed: a card to a 25-year-old sister opened "big-sister checklist", casting the recipient as the baby's sibling). Only the brief may assign a role. Playful and warm; never a preference joke ("hoping for a…"), never a stereotype about either answer, and the baby gets no personality yet.`),
   graduation: PROFILE('graduation', 'full',
     `Pride in the achievement plus affectionate relief that it is finally over. Mine what they STUDIED or what comes next, not generic scrolls; mortarboard once per set at most. Bright, forward-looking palette.`),
-  christmas: PROFILE('christmas', 'full',
-    `THE CHRISTMAS WORLD. Every rack in Britain is full of generic Christmas cards — ours exist because the sender chose THIS person, so the person leads and Christmas inflects, never the reverse. The strongest shape FUSES their world with the season's own rituals: their thing meeting Christmas morning, their kit in winter light. A card that works for anyone's Christmas has failed exactly as a card that works for any fan has.
-⚠️ THE SPENT SEAM: the naughty list, Santa's surveillance, "been good this year", coal — Christmas's own civic checklist, the first joke every card reaches for and the most worn material in the entire market. It may not appear at all. Sprout-hatred and wrapping-paper chaos are one notch behind it: permitted only fused to THIS person, never as the joke on their own.
-THE REGISTERS HERE: funny = the family Christmas observed — the dinner politics, the rituals this person owns, the role they play in the day. Warm = the year's gratitude landing at Christmas — what they were to you all year, said at the moment the year pauses.
-RUDE AT CHRISTMAS IS ITS OWN SHAPE — but ALL THREE cards are RUDE: a buyer who chose Rude gets three rude options, never one rude card chaperoned by two polite ones (observed failure: "Service resumed. Bring plates." shipped as a rude set's card). The GRADUATION is the shape: ONE filthy HERO carries a real masked swear; the other two are rude by other means — mild words printed in full (bloody, bollocks, arse, bastard) or the innuendo lane — and every front reads unmistakably rude in VOICE even where its words stay technically clean. ⚠️ THE COSY AFTERMATH IS NOT RUDE: the wrapping-everywhere, somehow-it-looks-right room has now worn a rude set's slot three times — it is warm material and BANNED from this register; an innuendo third means actual innuendo, not festive mess described fondly. The hero comes from one of Christmas rude's three real lanes: THE RELIEF EXHALE (done with it all, the season said with a swear and love), THE INNUENDO LANE (stuffing, sack, crackers, baubles — the seaside postcard in tinsel), or SURVIVING THE FAMILY (siblings and mates, affectionate always). ⚠️ THE CEILING IS ADULT: at the top of rude, grown-up vice winks are PERMITTED for peer and rack briefs — the drink, the hangover, the party-season excess, the "let it snow" class of gag — sold on every edgy rack in Britain. Wink, never instruction; never for family-grade relationships like nan or mum, never anywhere near a brief with a child in it.
-THE CHRISTMAS CAST IS OPEN AT EVERY AGE — and this OVERRIDES the usual no-people habit: Santa, elves, reindeer, snowmen, robins are FOLK CHARACTERS, drawable as illustrated figures on any card. For 12-and-under the magic plays absolutely straight and the wonder is the material. For adults the cast plays with a WINK — Santa off-duty, the reindeer knackered, the elf on strike, behind the scenes of the season. Illustrated folk figures always: never photoreal people, never a franchise's specific character or design (no Grinch, no film elves, no branded snowmen).
-STYLE AT CHRISTMAS: nostalgia is the season's LIVING idiom, not dinge — mid-century retro Santa art, vintage label and matchbox kitsch, the look of old annuals are all CURRENT here and welcome lanes beside the house register. Print them clean and alive as ever; the dinge ban is about murk, never about era.
-NO INTEREST GIVEN: mine their CHRISTMAS ROLE — the host, the early decorator, the one who owns the gravy, the Christmas-Eve panic shopper, the one who makes it feel like Christmas. Roles are personal; symbols are wallpaper.
-COLOUR: Christmas does not own red-green-gold, and three cards in that uniform is the observed failure. The person's world lends the hues; the season lends its LIGHT — frost, candlelight, winter dusk, one hot red earned rather than issued. AT MOST one festive object folded into their own kit; baubles, trees or tinsel stapled beside the subject remain BANNED.`),
+  christmas: PROFILE('christmas', 'full', CHRISTMAS_CORE),
   valentines: PROFILE('valentines', 'gentle',
     `Romance with wit, private not public — the best line sounds like it could only pass between these two. Innuendo stays seaside-postcard unless rude mode. Red is welcome but not obligatory; an unexpected palette reads more personal than crimson.`),
   thankyou: PROFILE('thankyou', 'gentle',
@@ -1353,6 +1370,21 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       if (rudeCount < 2) v.push('rude-register: only one front carries any swearing — the hero swears properly and at least one more front carries a mild (bloody/bollocks/arse); the third may live on innuendo but never reads merely festive');
     }
   }
+  // ⚠️ CLEAN REGISTERS ARE CLEAN — IN CODE. Swearing was enforced on
+  // rude but prohibited nowhere: a WARM set shipped with a swear on
+  // every front ("Smiling's my f***ing favourite" pasted into a
+  // family-film quote). Real swears and milds are rude-only; in
+  // one-of-each only the rude slot may carry them.
+  {
+    const V2_MILD_ALL = /\b(bloody|bollocks?|arsed?|bastards?|pricks?|twats?|damn(ed)?|hell|bitch(es)?|sod(ding)?|crap(py)?|piss(ed|ing)?|knob(head)?s?|shite)\b/i;
+    cards.forEach((c, i) => {
+      if (b.cheeky) return;
+      if (opts?.rudeSlot !== undefined && i === opts.rudeSlot) return;
+      const t = `${c.front_text ?? ''} ${c.inside_text ?? ''}`;
+      const hit = t.match(V2_SWEAR) ?? t.match(V2_MILD_ALL);
+      if (hit) v.push(`swear-on-clean: card ${i + 1} carries "${hit[0]}" on a clean register — swearing of any grade belongs to rude only; rewrite the line without it`);
+    });
+  }
   // Checks the inside as well as the front: both are printed, and an
   // unmasked word inside a card whose front is masked is the same
   // inconsistency one panel further in.
@@ -1854,6 +1886,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const occKey = classified.key === 'birthday' ? 'birthday' : body.occasion.trim().toLowerCase();
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
+      : classified.key === 'christmas' ? christmasProfile(body.tone)
       : classified;
     const serious = occProfile.humour === 'off';
     // The rude TONE implies cheek; the legacy checkbox still works so
