@@ -246,40 +246,100 @@ changes:
 
 ---
 
-## 8. OPEN DECISIONS (Aidan's, not mine)
+## 8. DECISIONS — MADE 2026-08-27
 
-1. **Does the free-first-card offer apply to all three doors, or photo
-   only?** `/api/user/free-card` exists and is photo-era. A free rack
-   card costs us ~£2 of print; a free maker card costs print + tokens; a
-   free photo card is the current acquisition hook. **Recommendation:
-   photo only** — it's the differentiator worth subsidising, and the
-   rack sells on impulse without a giveaway.
-2. **Price per door.** `cards.price` is NOT NULL. Rack and maker at the
-   same £8.99, or does the rack undercut (£5.99 as tested in research)?
-   Research answers land in `/admin/research`.
-3. **Does the maker require sign-in?** Guest maker = we pay for
-   generation with no email captured. **Recommendation: guest can
-   generate, sign-in (or email) required to keep or buy** — the research
-   tool proves people will walk the flow without an account.
-4. **Basket or single-card checkout?** Rack browsing invites multi-buy
-   (Christmas especially — "one design × twenty" from
-   `next_digital_card_strategy` thinking). V1 single-card is honest;
-   Christmas may force the question.
+All seven settled with Aidan. These are the spec now, not options.
+
+### 8a. Pricing — a three-tier ladder by effort
+
+| Door | Price | Why it's higher/lower |
+|---|---|---|
+| **Rack** (browse the store) | **£4.99** | Pre-made, zero generation spend, impulse buy |
+| **Made-for-you** (generate 3) | **£5.99** | Written and drawn for them, ~£0.06 of tokens |
+| **Photo** (upload) | **£6.99** | The differentiator, highest production cost |
+
+⚠️ **This supersedes the £8.99 anchor** (`next_pricing_and_regen_economics.md`
+and the rejected £1 soft-launch). The ladder's logic is that customers
+instantly understand *pre-made < made-for-you < made-from-your-photo*,
+and the cost ladder matches the price ladder.
+
+⚠️ **Unit cost is still unverified.** Shipping is known — charge £3.95
+against £2.82 inc-VAT true cost (Royal Mail 24), clearing **£1.13**. The
+*card print* cost is not in this repo and lands only with the
+outstanding Prodigi test print. At ~£2/card the £4.99 tier nets ~£4.30
+and the ladder is comfortable; at £3.50+ the bottom tier gets thin.
+**The test print is now a pricing dependency, not just a quality one.**
+
+### 8b. Free first card — PHOTO ONLY
+
+Subsidise the differentiator. The rack sells on impulse without a
+giveaway, and the offer needs an account while the rack is guest-first.
+Cost of the hook: print + AI, offset by £1.13 of postage margin —
+roughly **£1.50–2.50 of CAC per free card**.
+
+### 8c. Maker gate — GENERATE FREE, SIGN IN TO KEEP OR BUY
+
+The research tool proved people walk the whole flow without an account.
+They feel the magic first; the ask lands at the moment they want the
+card. ~£0.06 exposure per curious visitor, bounded by the existing
+daily caps.
+
+### 8d. Basket — YES, FROM THE START
+
+- **Postage: flat £3.95 per ORDER, any quantity.** Prodigi bills
+  shipping per order with items combined, so the second card ships
+  essentially free to us. This is the strongest multi-buy lever we have
+  and it is close to costless.
+- **Mixed doors allowed in one basket** — rack + made-for-you + photo,
+  one shipment. They're all `cards` rows by then; fulfilment doesn't
+  care.
+- **No same-design quantity in v1.** One design × twenty recipients is
+  the *sender's card* — a separate product (recipient list, per-copy
+  inside, pack pricing) worth building properly for next Christmas, not
+  bolted on now.
 
 ---
+
+## 8e. THE ORDER MODEL — the basket's real cost
+
+The one genuinely structural consequence:
+
+```
+TODAY:  studio_orders.cardId  integer NOT NULL     -- one order, one card
+NEEDED: order → many cards                          -- one order, N cards
+```
+
+- **21 usages** of `cardId` in `studio-checkout.ts` to migrate, plus 1
+  in `print-provider.ts`, 2 in `prodigi-provider.ts`.
+- **Prodigi is already basket-shaped**: its submission builds
+  `items: [{ ..., copies: 1 }]` — an array with a copies field. Multi-item
+  orders need mapping work, not a new integration.
+- **Money columns already sum-friendly**: `printAmount`, `shippingAmount`,
+  `totalAmount` are order-level. Card price becomes a line-item sum;
+  shipping is charged once per order (§8d).
+
+Shape: an `order_items` table (`orderId`, `cardId`, `unitPrice`) with
+`studio_orders.cardId` retained-but-deprecated for existing rows, or
+back-filled and dropped. **Decide at build time; the back-fill is
+trivial (one row per existing order).**
 
 ## 9. SEQUENCE
 
 | Phase | Work | Unblocks |
 |---|---|---|
-| **0** | `cards.source` column + `MakerDraftState` type | everything |
-| **1** | Door 1: template→card copy + guest order + `/order/:token` | **first live revenue** |
-| **2** | Stripe + Prodigi live env (needs the test print) | real money |
-| **3** | Door 2: `/make` promoted from research, draft-on-generate | the maker as product |
-| **4** | Drafts tab source-aware; recovery copy source-aware | retention across doors |
-| **5** | IA reframe: empty states, `/studio/new-card` chooser | coherence |
-| **6** | LP rebuild — three doors that genuinely open | the shopfront |
+| **0** | `cards.source` column · `MakerDraftState` type · price-by-source in `shared/pricing.ts` | everything |
+| **1** | **Order model → line items** (`order_items`, migrate 24 `cardId` usages, Prodigi multi-item mapping, shipping charged once) | the basket, and every door after it |
+| **2** | Door 1: template→card copy · guest orders · `/order/:token` status page | **first live revenue** |
+| **3** | Stripe + Prodigi live env — gated on the test print (which also settles §8a costs) | real money |
+| **4** | Door 2: `/make` promoted from research · draft-on-generate · sign-in at keep | the maker as product |
+| **5** | Drafts tab source-aware · recovery copy source-aware · basket UI polish | retention across doors |
+| **6** | IA reframe: empty states, `/studio/new-card` chooser, "your cards" language | coherence |
+| **7** | LP rebuild — three doors that genuinely open | the shopfront |
 
-Phase 1 is the shortest path to money and touches nothing that already
-works. Phase 6 is last on purpose: **design the shopfront when the doors
-open, not before.**
+**Phase 1 moved ahead of the rack** because "basket from the start"
+means the order model must be right *before* the first real order lands
+— migrating live orders later is far worse than doing it now with zero
+rows to migrate.
+
+**Phase 7 stays last on purpose**: design the shopfront when the doors
+open, not before.
