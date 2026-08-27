@@ -239,7 +239,7 @@ export function FreeCardInvite() {
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
                       Then three dates that matter, and your first card is{' '}
-                      <span className="line-through">£8.99</span> <b>£0</b> —
+                      <span className="line-through">£6.99</span> <b>£0</b> —
                       just the postage.
                     </p>
                   )}
@@ -290,7 +290,7 @@ export function FreeCardInvite() {
                       start here. Tell us <b>three dates that matter</b> — a
                       birthday, an anniversary, any day — and your first card
                       is free.{' '}
-                      <span className="text-stone-400 line-through">£8.99</span>{' '}
+                      <span className="text-stone-400 line-through">£6.99</span>{' '}
                       <b>£0</b>, just the postage.
                     </p>
                   ) : (
@@ -298,7 +298,7 @@ export function FreeCardInvite() {
                       The right moment probably hasn't come round yet. So start the
                       other way: tell us <b>three dates that matter</b> — a birthday,
                       an anniversary, any day — and your first card is on us.{' '}
-                      <span className="text-stone-400 line-through">£8.99</span>{' '}
+                      <span className="text-stone-400 line-through">£6.99</span>{' '}
                       <b>£0</b>, just the postage. It waits for the moment.
                     </p>
                   )}

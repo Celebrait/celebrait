@@ -203,7 +203,7 @@ export function WorldSection({
           {unlocked ? (
             <>
               <b className="text-keeper-ink">Your first card’s free</b> —{' '}
-              <span className="line-through">£8.99</span> £0, just the postage.
+              <span className="line-through">£6.99</span> £0, just the postage.
               It’s waiting whenever a moment comes round.
             </>
           ) : (

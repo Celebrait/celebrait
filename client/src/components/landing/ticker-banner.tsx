@@ -65,7 +65,7 @@ export function TickerBanner() {
         </span>
         <span className="hidden sm:inline">
           Your first card is on us.{' '}
-          <span className="line-through opacity-70">£8.99</span> <b>£0</b>,
+          <span className="line-through opacity-70">£6.99</span> <b>£0</b>,
           just the postage. Claim it ›
         </span>
       </button>

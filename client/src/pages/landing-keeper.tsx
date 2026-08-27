@@ -967,7 +967,7 @@ function HeroSection() {
             <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
               The result? A close to perfect greetings card they'll{' '}
               <span className="font-medium text-keeper-ink">probably keep</span> from just
-              £8.99. From idea to production in just 5 minutes*
+              £4.99. From idea to production in just 5 minutes*
             </p>
             {/* The wink — the asterisk is the joke, so keep it quiet and
                 right under the claim it qualifies. */}
@@ -1612,11 +1612,11 @@ function ObjectSection() {
           </ul>
           <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-meta">
             Every card is printed to order, just for them — allow up to 72
-            hours, then it's in the post. Standard £3.95 (Royal Mail 24) ·
+            hours, then it's in the post. Standard £2.95 (Royal Mail 24) ·
             Express £8.95 · Overnight £13.95.
           </p>
           <p className="mt-4 font-mono text-[12px] text-keeper-meta">
-            Today you make it → within 72 hrs it's printed → then posted from £3.95
+            Today you make it → within 72 hrs it's printed → then posted from £2.95
           </p>
           {/* The "Straight to them / Or to you first" pair used to sit here
               as two 13px cards. It's now its own section (HandoverSection)
@@ -1636,7 +1636,7 @@ function PriceSection() {
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
           {/* Leads with the offer, not the list price — the free first card
-              is the reason to start, and £8.99 is what it's worth. CAP Code
+              is the reason to start, and £6.99 is what it's worth. CAP Code
               on "free": the postage you can't avoid has to sit with the
               claim, not in smallprint, and the one-per-account condition
               has to be stated. Hence both on the line under the number.
@@ -1652,12 +1652,12 @@ function PriceSection() {
             </span>
             <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
               <span className="sr-only">Normally </span>
-              <s>£8.99</s>
+              <s>£6.99</s>
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            You just pay standard postage, from £3.95. One per account;
-            after that, cards are £8.99 plus postage. Make and preview as
+            You just pay standard postage, £2.95. One per account;
+            after that, cards are from £4.99 plus postage. Make and preview as
             many as you like for free — you only pay when you post one.
             Printed to order, allow up to 72 hours.
           </p>

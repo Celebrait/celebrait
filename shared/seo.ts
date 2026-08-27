@@ -32,13 +32,13 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/',
     title: 'Personalised Greetings Cards — Put Them In The Picture | Celebrait',
     description:
-      'Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from £8.99.',
+      'Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from £4.99.',
   },
   {
     path: '/pricing',
-    title: 'Pricing — Personalised Photo Greetings Cards from £8.99 | Celebrait',
+    title: 'Pricing — Personalised Greetings Cards from £4.99 | Celebrait',
     description:
-      'One price, no subscriptions: £8.99 per printed card plus postage from £3.95. Free to design, free digital version included. Printed to order in the UK within 72 hours.',
+      'No subscriptions: printed cards from £4.99 plus £2.95 postage — £4.99 off the shelf, £5.99 made for them, £6.99 from your photo. Free to design, free digital version included. Printed to order in the UK within 72 hours.',
   },
   {
     path: '/contact',
@@ -127,7 +127,7 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
   return {
     path,
     title: `${title} — Personalised & Made For Them | Celebrait`,
-    description: `Real ${title.toLowerCase()} to send as-is or make theirs — or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £8.99.`,
+    description: `Real ${title.toLowerCase()} to send as-is or make theirs — or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £4.99.`,
   };
 }
 

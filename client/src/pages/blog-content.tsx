@@ -109,7 +109,7 @@ function Cta({ line }: { line: string }) {
     <div className="mt-12 rounded-2xl border border-keeper-hair bg-white p-6 text-center shadow-sm">
       <p className="font-display text-xl font-semibold text-keeper-ink">{line}</p>
       <p className="mt-2 text-sm text-keeper-meta">
-        Free to make. You only pay if you print &amp; post: £8.99 + postage.
+        Free to make. You only pay if you print &amp; post: from £4.99 + postage.
       </p>
       <Link
         href="/studio/new-card"
@@ -196,7 +196,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
       <P>
         With Celebrait, designing is free and you can re-roll the artwork as
         many times as you like before buying. A printed card is{' '}
-        <Strong>£8.99 plus postage (from £3.95)</Strong>, posted anywhere in
+        <Strong>from £4.99 plus postage (£2.95)</Strong>, posted anywhere in
         the UK, straight to them or to you to hand over. A free digital
         version is included with every printed card.
       </P>
@@ -376,7 +376,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
         Ben because of that one trip in 2019 is better. And{' '}
         <Strong>print it</Strong>. The entire magic of a card like this is
         that it ends up framed, on the fridge, kept. Ours are 280gsm,
-        printed to order in the UK, £8.99 plus postage, straight to their
+        printed to order in the UK, from £4.99 plus postage, straight to their
         door or yours.
       </P>
 

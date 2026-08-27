@@ -272,6 +272,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           id: cards.id,
           userId: cards.userId,
           status: cards.status,
+          // Which door made it — checkout prices from this (§8a).
+          source: cards.source,
           conversationData: cards.conversationData,
           frontImageUrl: cards.frontImageUrl,
           insideImageUrl: cards.insideImageUrl,

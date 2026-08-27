@@ -75,10 +75,15 @@ export const PRICING_TIERS: PricingTier[] = [
     name: 'Printed & posted',
     tagline: 'For them',
     blurb: 'The real thing in the post — with a free digital link to share too.',
-    // Card price only. UK postage is a separate line at checkout
-    // (UK_SHIPPING_STANDARD_GBP below); overnight is an optional add-on.
-    price: { GBP: 899, ZAR: 19900 },
+    // ⚠️ THE "FROM" PRICE, NOT THE ONLY PRICE (2026-08-27). Cards are
+    // priced by door — £4.99 off the shelf, £5.99 made for them, £6.99
+    // from your photo (CARD_PRICES_GBP). This tier exists for the
+    // /pricing page's headline, so it carries the cheapest. The AMOUNT
+    // CHARGED always comes from cardPriceGBP(card.source), never from
+    // here — see UX_THREE_DOORS.md §8a.
+    price: { GBP: 499, ZAR: 19900 },
     features: [
+      '£4.99 off the shelf · £5.99 made for them · £6.99 from your photo',
       '280gsm gloss-coated art card, HP Indigo print',
       'Posted in a kraft envelope, tracked',
       'Sustainably sourced, plastic-free & recyclable',

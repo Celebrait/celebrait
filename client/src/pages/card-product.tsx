@@ -21,6 +21,13 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { cardPriceGBP, getShippingTier } from '@shared/pricing';
+
+/** Rack cards are the £4.99 door — priced from the ladder, never
+ *  hardcoded, so a price change lands everywhere at once. */
+const RACK_PRICE = cardPriceGBP('rack');
+const POSTAGE = getShippingTier('standard').price;
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 interface ProductCard {
   id: number; occasion: string; front_text: string; inside_text?: string | null;
@@ -126,8 +133,8 @@ export default function CardProductPage() {
             )}
 
             <div className="mt-4 flex items-baseline gap-3">
-              <span className="font-display text-3xl font-bold text-keeper-ink">£8.99</span>
-              <span className="text-sm text-keeper-meta">+ postage from £3.95, straight to their door</span>
+              <span className="font-display text-3xl font-bold text-keeper-ink">{gbp(RACK_PRICE)}</span>
+              <span className="text-sm text-keeper-meta">+ {gbp(POSTAGE)} postage, straight to their door</span>
             </div>
 
             {/* THE INSIDE — the default arrives already written. */}
@@ -170,7 +177,7 @@ export default function CardProductPage() {
 
             <button type="button" onClick={() => setNotice(true)}
               className="mt-6 w-full rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black">
-              Buy this card — £8.99
+              Buy this card — {gbp(RACK_PRICE)}
             </button>
             {notice && (
               <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

@@ -190,7 +190,7 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              £8.99 plus postage — HP Indigo printed on 280gsm gloss card,
+              From £4.99 plus postage — HP Indigo printed on 280gsm gloss card,
               posted in a kraft envelope.
             </p>
 

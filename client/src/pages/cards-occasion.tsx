@@ -13,6 +13,9 @@
 // come without pretending they exist.
 
 import { useEffect, useState } from 'react';
+import { cardPriceGBP } from '@shared/pricing';
+
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 import { Link, useParams } from 'wouter';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useSeo } from '@/lib/use-seo';
@@ -173,7 +176,7 @@ export default function CardsOccasionPage() {
                   <div className="mt-3 px-0.5">
                     <p className="line-clamp-2 min-h-[2.4em] text-[13px] font-medium leading-snug text-keeper-body">“{c.front_text}”</p>
                     <div className="mt-1.5 flex items-baseline justify-between">
-                      <span className="text-sm font-semibold text-keeper-ink">£8.99</span>
+                      <span className="text-sm font-semibold text-keeper-ink">{gbp(cardPriceGBP('rack'))}</span>
                       <span className="text-[11px] text-keeper-meta transition-colors group-hover:text-keeper-gold">
                         Personalise inside →
                       </span>

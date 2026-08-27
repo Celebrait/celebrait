@@ -30,6 +30,7 @@ import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import {
   tierPriceGBP,
+  cardPriceGBP,
   SHIPPING_TIERS,
   getShippingTier,
   envelopeStickerGBP,
@@ -43,6 +44,8 @@ import {
 interface CardSummary {
   id: number;
   status: string | null;
+  /** Which door made this card — decides its price (§8a). */
+  source?: string;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
   state?: {
@@ -82,6 +85,8 @@ type ProductChoice = 'digital' | 'print' | 'both';
 // card is the only product and includes a free digital link, so digital
 // is always £0 and there's no bundle discount. Postage is a separate line
 // priced from the chosen delivery tier (SHIPPING_TIERS).
+/** The FROM price, for skeleton/loading states only. The real charge is
+ *  cardPriceGBP(card.source) — see printPrice below. */
 const PRINT_PRICE = tierPriceGBP('printed');
 
 // Wax-seal sticker offer — OFF for soft launch. See the comment at the
@@ -107,8 +112,15 @@ function totalsFor(
    *  at order create and refuses the request if it's bad, so a made-up
    *  code can only ever change pixels, not what's charged. */
   compCode?: boolean,
+  /** Which door made this card — decides its price (§8a). Undefined
+   *  while the card is still loading; falls back to the photo price,
+   *  which is the historic product and the safest over-estimate. */
+  cardSource?: string,
 ) {
-  const printAmount = freeCard ? 0 : PRINT_PRICE;
+  // Priced by the door that made this card, mirroring the server so the
+  // shown total always equals the charge (UX_THREE_DOORS.md §8a).
+  const printPrice = cardPriceGBP(cardSource);
+  const printAmount = freeCard ? 0 : printPrice;
   const digitalAmount = 0;
   const shippingAmount = compCode ? 0 : getShippingTier(tier).price;
   const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
@@ -244,7 +256,7 @@ export default function CheckoutPage() {
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0),
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source),
     [effectiveTier, shipTo, addSticker, freeCardApplied, compCode],
   );
 
@@ -469,7 +481,7 @@ export default function CheckoutPage() {
                 {freeCardApplied ? (
                   <p className="text-lg font-semibold text-keeper-ink mt-3">
                     <span className="mr-1.5 font-normal text-keeper-meta line-through">
-                      {formatGBP(PRINT_PRICE)}
+                      {formatGBP(cardPriceGBP(card?.source))}
                     </span>
                     Free{' '}
                     <span className="text-xs font-normal text-keeper-meta">
@@ -730,7 +742,7 @@ export default function CheckoutPage() {
                     : 'Square, 280gsm gloss art card'
                 }
                 amount={totals.printAmount}
-                original={freeCardApplied ? PRINT_PRICE : undefined}
+                original={freeCardApplied ? cardPriceGBP(card?.source) : undefined}
               />
               {/* Always included free with the printed card. */}
               <LineItem
@@ -943,7 +955,7 @@ function LineItem({
   sub?: string;
   amount: number;
   muted?: boolean;
-  /** Pre-discount price, shown struck through (the free-card £8.99). */
+  /** Pre-discount price, shown struck through (the free-card photo price). */
   original?: number;
 }) {
   return (

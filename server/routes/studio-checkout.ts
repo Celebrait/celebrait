@@ -43,6 +43,7 @@ import {
 import type { PrintProviderStatus } from '../studio/print-provider';
 import {
   tierPriceGBP,
+  cardPriceGBP,
   getShippingTier,
   envelopeStickerGBP,
   DEFAULT_SHIPPING_TIER,
@@ -221,6 +222,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             insideImageUrl: cards.insideImageUrl,
             conversationData: cards.conversationData,
             viewToken: cards.viewToken,
+            // Which door made it — decides the price (§8a).
+            source: cards.source,
           })
           .from(cards)
           .where(eq(cards.id, cardId))
@@ -272,7 +275,11 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const shippingTier: ShippingTierId = freeCardApplied
           ? 'standard'
           : (body.shippingTier ?? DEFAULT_SHIPPING_TIER);
-        const printAmount0 = freeCardApplied ? 0 : PRINT_PRICE;
+        // ⚠️ PRICED BY DOOR, not by a flat tier (UX_THREE_DOORS.md §8a):
+        // £4.99 off the shelf, £5.99 made for them, £6.99 from a photo.
+        // The SERVER decides from the stored card.source — a crafted POST
+        // can't buy a photo card at rack price.
+        const printAmount0 = freeCardApplied ? 0 : cardPriceGBP(card.source);
         const digitalAmount = 0;
         const shippingAmount0 = getShippingTier(shippingTier).price;
 

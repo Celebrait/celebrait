@@ -144,7 +144,7 @@ export default function StudioMomentsPage() {
                   Unlocked — your first card’s on us
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  <span className="line-through text-keeper-meta">£8.99</span>{' '}
+                  <span className="line-through text-keeper-meta">£6.99</span>{' '}
                   <span className="font-semibold text-go">Free</span> — just
                   cover the postage. It’s waiting whenever a moment comes round.
                 </p>

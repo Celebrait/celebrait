@@ -62,7 +62,7 @@ export function OccasionsPromoSection() {
             <strong className="text-keeper-ink">
               Your first card's on us
             </strong>{' '}
-            — <span className="line-through">£8.99</span> <b>£0</b>, just the
+            — <span className="line-through">£6.99</span> <b>£0</b>, just the
             postage.
           </p>
 
