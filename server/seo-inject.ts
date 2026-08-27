@@ -24,6 +24,10 @@
 // it silently.
 
 import { seoForPath, SITE_ORIGIN } from '@shared/seo';
+import type { PageSeo } from '@shared/seo';
+import { eq } from 'drizzle-orm';
+import { db } from './db';
+import { cardTemplates } from '@shared/schema';
 
 function escapeAttr(s: string): string {
   return s
@@ -49,6 +53,33 @@ const SHARE_OG = {
 
 function isShareLinkPath(p: string): boolean {
   return /^\/c\/[\w-]+/.test(p) || /^\/card\/\d+\/view/.test(p);
+}
+
+/** Product pages are the long-tail landing pages, and their money
+ *  words (the interest) live in the DB — so /card/:id metadata is
+ *  looked up per request. Anything else falls through to the sync
+ *  registry. Never throws: a DB blip serves base metadata. */
+export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
+  const m = requestPath.match(/^\/card\/(\d+)$/);
+  if (m) {
+    try {
+      const [t] = await db.select().from(cardTemplates).where(eq(cardTemplates.id, Number(m[1])));
+      if (t && t.published) {
+        const occ = t.occasion.replace(/\b\w/g, (c) => c.toUpperCase());
+        const interest = (t.interest ?? '').trim();
+        const intCap = interest.replace(/\b\w/g, (c) => c.toUpperCase());
+        const seo: PageSeo = {
+          path: requestPath,
+          title: `${interest ? `${intCap} ` : ''}${occ} Card — “${t.front_text.slice(0, 60)}” | Celebrait`,
+          description: `A one-of-a-kind ${t.occasion} card${interest ? ` for someone who loves ${interest}` : ''} — “${t.front_text.slice(0, 90)}”. Designed inside and out, printed on 300gsm and posted anywhere in the UK. £8.99 + postage.`,
+        };
+        return applySeo(templateHtml, seo);
+      }
+    } catch (err) {
+      console.warn('[SEO] card lookup failed (non-fatal):', err);
+    }
+  }
+  return injectSeo(templateHtml, requestPath);
 }
 
 export function injectSeo(templateHtml: string, requestPath: string): string {
@@ -83,6 +114,10 @@ export function injectSeo(templateHtml: string, requestPath: string): string {
     return templateHtml.replace(/^\s*<link rel="canonical"[^>]*>\s*$/m, '');
   }
 
+  return applySeo(templateHtml, seo);
+}
+
+function applySeo(templateHtml: string, seo: PageSeo): string {
   const title = escapeAttr(seo.title);
   const desc = escapeAttr(seo.description);
   const canonical =

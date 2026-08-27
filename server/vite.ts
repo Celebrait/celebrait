@@ -4,7 +4,7 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
-import { injectSeo } from "./seo-inject";
+import { injectSeoAsync } from "./seo-inject";
 
 const viteLogger = createLogger();
 
@@ -67,7 +67,7 @@ export async function setupVite(app: Express, server: Server) {
       res
         .status(200)
         .set({ "Content-Type": "text/html" })
-        .end(injectSeo(page, url.split("?")[0]));
+        .end(await injectSeoAsync(page, url.split("?")[0]));
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -117,11 +117,11 @@ export function serveStatic(app: Express) {
     path.resolve(distPath, "index.html"),
     "utf-8",
   );
-  app.use("*", (req, res) => {
+  app.use("*", async (req, res) => {
     res.set("Cache-Control", "no-cache");
     res
       .status(200)
       .set({ "Content-Type": "text/html" })
-      .end(injectSeo(indexTemplate, req.originalUrl.split("?")[0]));
+      .end(await injectSeoAsync(indexTemplate, req.originalUrl.split("?")[0]));
   });
 }

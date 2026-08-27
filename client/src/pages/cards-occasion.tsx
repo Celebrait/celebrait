@@ -28,7 +28,7 @@ interface CatalogueCard {
 interface AisleLink { slug: string; label: string; count: number }
 interface Payload {
   occasion: string; aisle: string | null; count: number;
-  aisles: { ages: AisleLink[]; recipients: AisleLink[]; styles: AisleLink[] };
+  aisles: { ages: AisleLink[]; recipients: AisleLink[]; styles: AisleLink[]; interests?: AisleLink[] };
   cards: CatalogueCard[];
 }
 
@@ -190,6 +190,7 @@ export default function CardsOccasionPage() {
                   { heading: 'Shop by age', links: data.aisles.ages },
                   { heading: 'Shop by recipient', links: data.aisles.recipients },
                   { heading: 'Shop by style', links: data.aisles.styles },
+                  { heading: 'Shop by their thing', links: data.aisles.interests ?? [] },
                 ].filter((r) => r.links.length > 0).map((r) => (
                   <div key={r.heading}>
                     <h2 className="font-display text-base font-bold text-keeper-ink">{r.heading}</h2>

@@ -19,6 +19,18 @@ import { publicImageUrl } from '../image-storage';
 /** Thresholds from UX_PLATFORM_IA.md §5. */
 const HUB_MIN = 24;
 const AISLE_MIN = 8;
+/** Interest aisles are the long-tail pSEO play — tiny search volumes,
+ *  zero competition, hundreds of pages in aggregate. Three cards is
+ *  enough to not be thin; the stocking sessions feed them for free. */
+const INTEREST_MIN = 3;
+
+/** 'the cheeseboard' -> 'the-cheeseboard'; single vocabulary for URLs,
+ *  lookups and rails. */
+const slugifyInterest = (t: string | null | undefined): string | null => {
+  if (!t) return null;
+  const s = t.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return s.length >= 3 ? s : null;
+};
 
 /** The aisles the platform knows how to slice. Extended by adding a
  *  row here — the client renders whatever this returns. */
@@ -62,6 +74,7 @@ export function registerCatalogueRoutes(app: Express): void {
       res.json({ card: {
         id: t.id, occasion: t.occasion, front_text: t.front_text, inside_text: t.inside_text,
         tone: t.tone, age: t.age, recipient: t.recipient, editable: t.editable,
+        interest: t.interest,
         imageUrl: publicImageUrl(t.image_path),
         insideImageUrl: t.inside_image_path ? publicImageUrl(t.inside_image_path) : null,
       } });
@@ -102,13 +115,17 @@ export function registerCatalogueRoutes(app: Express): void {
         return (t.tone ?? '').toLowerCase() === f.tone;
       };
 
+      // An aisle slug is grammar (ages/recipients/styles) or, failing
+      // that, an INTEREST slug — the long-tail lane.
+      const isInterestAisle = !!aisle && !aisleFilter(aisle);
       const rows = aisle
-        ? (aisleFilter(aisle) ? all.filter((t) => inAisle(t, aisle)) : null)
+        ? (isInterestAisle
+          ? all.filter((t) => slugifyInterest(t.interest) === aisle)
+          : all.filter((t) => inAisle(t, aisle)))
         : all;
-      if (rows === null) return res.status(404).json({ message: 'No such aisle' });
 
       // Threshold gate: a bare page is worse than no page.
-      const min = aisle ? AISLE_MIN : HUB_MIN;
+      const min = aisle ? (isInterestAisle ? INTEREST_MIN : AISLE_MIN) : HUB_MIN;
       if (rows.length < min) return res.status(404).json({ message: 'Not enough cards here yet' });
 
       const countFor = (slug: string) => all.filter((t) => inAisle(t, slug)).length;
@@ -124,6 +141,22 @@ export function registerCatalogueRoutes(app: Express): void {
         ].filter((a) => a.count >= AISLE_MIN),
         styles: STYLES.map((t) => ({ slug: t, label: t, count: countFor(t) }))
           .filter((a) => a.count >= AISLE_MIN),
+        // The long-tail rail: every interest with enough stock becomes
+        // a crawlable landing page, fed automatically by keeps.
+        interests: (() => {
+          const byslug = new Map<string, { slug: string; label: string; count: number }>();
+          for (const t of all) {
+            const slug = slugifyInterest(t.interest);
+            if (!slug || aisleFilter(slug)) continue; // never shadow the grammar
+            const e = byslug.get(slug);
+            if (e) e.count += 1;
+            else byslug.set(slug, { slug, label: String(t.interest).trim(), count: 1 });
+          }
+          return Array.from(byslug.values())
+            .filter((e) => e.count >= INTEREST_MIN)
+            .sort((x, y) => y.count - x.count)
+            .slice(0, 60);
+        })(),
       };
 
       res.json({

@@ -25,6 +25,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 interface ProductCard {
   id: number; occasion: string; front_text: string; inside_text?: string | null;
   tone?: string | null; age?: number | null; recipient?: string | null;
+  interest?: string | null;
   editable?: boolean; imageUrl: string; insideImageUrl?: string | null;
 }
 
@@ -47,7 +48,7 @@ export default function CardProductPage() {
   useEffect(() => {
     fetch(`/api/catalogue/card/${params.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => { setCard(j.card); setState('ok'); if (!j.card.inside_text) setInsideMode('own'); document.title = `“${j.card.front_text.slice(0, 48)}” — £8.99 | Celebrait`; })
+      .then((j) => { setCard(j.card); setState('ok'); if (!j.card.inside_text) setInsideMode('own'); document.title = `${j.card.interest ? `${String(j.card.interest).replace(/\b\w/g, (c: string) => c.toUpperCase())} ` : ''}${j.card.occasion.replace(/\b\w/g, (c: string) => c.toUpperCase())} Card — “${j.card.front_text.slice(0, 48)}” | Celebrait`; })
       .catch(() => setState('missing'));
   }, [params.id]);
 
@@ -104,7 +105,7 @@ export default function CardProductPage() {
                   className="absolute inset-[3%] origin-left overflow-hidden rounded-r-lg rounded-l-sm bg-white [transform:rotateY(-18deg)]"
                   style={{ boxShadow: '4px 8px 24px rgba(33,29,25,0.16), 16px 28px 60px -20px rgba(33,29,25,0.35)' }}
                 >
-                  <img src={card.imageUrl} alt={card.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  <img src={card.imageUrl} alt={`${card.interest ? `${card.interest} ` : ''}${card.occasion} card — ${card.front_text}`} crossOrigin="anonymous" className="h-full w-full object-cover" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10" />
                 </div>
               </div>
@@ -120,6 +121,9 @@ export default function CardProductPage() {
               {[card.tone, card.age && `${card.age}th`, card.recipient && card.recipient !== 'Anyone' && `for ${card.recipient}`].filter(Boolean).join(' · ') || 'birthday card'}
             </p>
             <h1 className="mt-2 font-display text-2xl font-bold leading-snug text-keeper-ink sm:text-3xl">“{card.front_text}”</h1>
+            {card.interest && (
+              <p className="mt-2 text-sm text-keeper-meta">Made for someone who loves <span className="font-medium text-keeper-body">{card.interest}</span> — yours to send as-is.</p>
+            )}
 
             <div className="mt-4 flex items-baseline gap-3">
               <span className="font-display text-3xl font-bold text-keeper-ink">£8.99</span>

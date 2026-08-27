@@ -123,7 +123,7 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
   const title = !aisle ? `${occ} Cards`
     : /^\d/.test(aisle) ? `${aisle} ${occ} Cards`
     : aisle.startsWith('for-') ? `${occ} Cards for ${cap(aisle.slice(4).replace(/-/g, ' '))}`
-    : `${cap(aisle)} ${occ} Cards`;
+    : `${cap(aisle.replace(/-/g, ' '))} ${occ} Cards`;
   return {
     path,
     title: `${title} — Personalised & Made For Them | Celebrait`,
