@@ -263,12 +263,23 @@ and the rejected £1 soft-launch). The ladder's logic is that customers
 instantly understand *pre-made < made-for-you < made-from-your-photo*,
 and the cost ladder matches the price ladder.
 
-⚠️ **Unit cost is still unverified.** Shipping is known — charge £3.95
-against £2.82 inc-VAT true cost (Royal Mail 24), clearing **£1.13**. The
-*card print* cost is not in this repo and lands only with the
-outstanding Prodigi test print. At ~£2/card the £4.99 tier nets ~£4.30
-and the ladder is comfortable; at £3.50+ the bottom tier gets thin.
-**The test print is now a pricing dependency, not just a quality one.**
+✅ **The ladder clears cost comfortably.** Real figures (Prodigi live
+invoices, `next_pricing_and_regen_economics`): card item **£0.60 ex /
+~£0.72 inc**, Standard shipping **£2.82 inc** against £3.95 charged,
+generation **~£0.21** per set of three, Stripe ~1.5% + 20p.
+
+| Door | Collected (card + £3.95) | Cost | Net |
+|---|---|---|---|
+| Rack £4.99 | £8.94 | £3.54 print+ship | **~£5.05** |
+| Made-for-you £5.99 | £9.94 | £3.75 (+ tokens) | **~£5.85** |
+| Photo £6.99 | £10.94 | £3.75+ (+ tokens) | **~£6.85** |
+
+And the basket compounds it: a second card adds ~£0.72 of cost against
+£4.99+ of revenue, because **shipping is already paid** (§8d).
+
+The test print remains a **quality** gate — and settles the
+low-vs-high render question (35× cost) — but it is *not* a pricing
+blocker. Prices can be set now.
 
 ### 8b. Free first card — PHOTO ONLY
 
