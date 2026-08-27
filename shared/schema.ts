@@ -21,6 +21,13 @@ export const cards = pgTable("cards", {
   userId: varchar("user_id").references(() => users.id),
   parentCardId: integer("parent_card_id"),
   cardType: text("card_type").notNull().default('printed'),
+  /** WHICH DOOR MADE THIS CARD (UX_THREE_DOORS.md §4a): 'photo' (upload),
+   *  'maker' (generate 3) or 'rack' (bought off the shelf). Defaults to
+   *  'photo' so every pre-existing row is correctly labelled without a
+   *  data migration. Drives: which draft-state shape sits in
+   *  conversationData, where resume sends the user, which recovery
+   *  email copy fires, and the card's price (cardPriceGBP). */
+  source: text("source").notNull().default('photo'),
   printOption: text("print_option").default('front-and-inside'),
   sceneType: text("scene_type").notNull(),
   conversationData: jsonb("conversation_data"),

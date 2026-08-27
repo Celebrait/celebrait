@@ -24,6 +24,45 @@ export type FrontMode = 'write' | 'none';
 // reliable. See front_scene variant templates for the prompt differences.
 export type PhotoMode = 'one_person' | 'group';
 
+/** ── THE MAKER'S DRAFT STATE (UX_THREE_DOORS.md §4b) ────────────────
+ *  Deliberately a SIBLING of CardDraftState, not an extension of it.
+ *  CardDraftState is the photo journey's memory — its `step` indexes a
+ *  fixed six-screen list and `isReadyToGenerateFront()` hard-requires a
+ *  photo — so bolting maker fields on would either break the photo
+ *  flow's gates or bloat it into a union of optionals nobody can read.
+ *
+ *  A maker draft only exists AFTER the three cards have rendered (the
+ *  money boundary): the five questions are cheap and re-typable, so
+ *  nothing is written until real spend has happened and a real decision
+ *  is pending. Resume is therefore always "you made three, pick one".
+ *
+ *  `cards.source === 'maker'` says to parse conversationData as this. */
+export interface MakerDraftState {
+  version: 1;
+  source: 'maker';
+  /** What they typed — kept so "start again with these details" can
+   *  re-run the brief without re-asking, exactly as the studio's
+   *  re-roll does. */
+  brief: {
+    who: string;
+    gender?: 'him' | 'her';
+    age?: number | null;
+    interest?: string;
+    dislike?: string;
+    recipientName?: string;
+    tone: 'funny' | 'warm' | 'rude' | 'mix';
+    occasion: string;
+  };
+  /** A NAMED state, never an index into another flow's screen list. */
+  resumeAt: 'pick' | 'inside' | 'done';
+  /** Which of the three front attempts they chose (mirrors
+   *  cards.selectedFrontAttemptId; kept here so the brief and the
+   *  choice travel together). */
+  pickedAttemptId?: number;
+  /** How the inside was settled — mirrors the maker's three-way choice. */
+  insideMode?: 'ours' | 'own' | 'blank';
+}
+
 export interface CardDraftState {
   /** Schema version. Bumps force-migrate older drafts on read. */
   version: 1;

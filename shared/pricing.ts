@@ -212,7 +212,7 @@ export const OVERNIGHT_DELIVERY = {
  *  units (pence). Superseded by SHIPPING_TIERS (the full picker); kept as
  *  the back-compat default when no tier is chosen. Mirrors
  *  getShippingTier('standard').price. */
-export const UK_SHIPPING_STANDARD_GBP = 395;
+export const UK_SHIPPING_STANDARD_GBP = 295;
 
 /** Optional wax-seal envelope sticker ("only open on your special day"),
  *  minor units (pence). An OPT-IN add-on (Kevin 2026-07-21) — it's pricey,
@@ -237,6 +237,33 @@ export function envelopeStickerGBP(
 export function tierPriceGBP(id: TierId): number {
   return getTier(id).price.GBP;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// PRICE BY DOOR — the three-tier ladder (Aidan, 2026-08-27).
+// See UX_THREE_DOORS.md §8a. Supersedes the flat £8.99: customers read
+// pre-made < made-for-you < made-from-your-photo instantly, and the
+// cost ladder matches the price ladder. Every card's price derives
+// from its `source`, so a basket of mixed doors totals correctly.
+// ─────────────────────────────────────────────────────────────────────
+
+/** Which door produced a card. Mirrors `cards.source`. */
+export type CardSource = 'rack' | 'maker' | 'photo';
+
+export const CARD_PRICES_GBP: Record<CardSource, number> = {
+  rack: 499,   // pre-made stock, no generation spend
+  maker: 599,  // written and drawn for them (~£0.21 of tokens)
+  photo: 699,  // the differentiator, highest production cost
+};
+
+/** The GBP price (minor units) of a card from a given door. Unknown or
+ *  legacy sources fall back to `photo` — the historic £8.99 product was
+ *  the photo card, so an unlabelled row is a photo row. */
+export function cardPriceGBP(source: string | null | undefined): number {
+  return CARD_PRICES_GBP[(source ?? 'photo') as CardSource] ?? CARD_PRICES_GBP.photo;
+}
+
+/** The cheapest door, for "from £X" copy. */
+export const CARD_PRICE_FROM_GBP = Math.min(...Object.values(CARD_PRICES_GBP));
 
 /** Format a TierPrice for display. Returns "Free" when 0. */
 export function formatPrice(price: TierPrice, currency: CurrencyCode): string {
