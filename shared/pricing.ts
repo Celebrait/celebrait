@@ -141,7 +141,13 @@ export const SHIPPING_TIERS: ShippingTier[] = [
     name: 'Standard',
     carrier: 'Royal Mail 24, tracked',
     prodigiMethod: 'Standard',
-    price: 395,
+    // £2.95 (Aidan, 2026-08-27). Deliberately AT COST — true inc-VAT
+    // cost is £2.82, so standard postage clears ~13p. Postage is a
+    // conversion lever, not a margin line: the card carries the margin
+    // (see UX_THREE_DOORS.md §8a) and with the basket this is charged
+    // ONCE per order however many cards are in it. ⚠️ Any Prodigi
+    // shipping increase puts this underwater — watch it.
+    price: 295,
     shippingEstimate: '1–2 working days',
   },
   {

@@ -265,14 +265,15 @@ and the cost ladder matches the price ladder.
 
 ✅ **The ladder clears cost comfortably.** Real figures (Prodigi live
 invoices, `next_pricing_and_regen_economics`): card item **£0.60 ex /
-~£0.72 inc**, Standard shipping **£2.82 inc** against £3.95 charged,
-generation **~£0.21** per set of three, Stripe ~1.5% + 20p.
+~£0.72 inc**, Standard shipping **£2.82 inc** against **£2.95 charged**
+(postage at cost — see §8d), generation **~£0.21** per set of three,
+Stripe ~1.5% + 20p.
 
-| Door | Collected (card + £3.95) | Cost | Net |
+| Door | Collected (card + £2.95) | Cost | Net |
 |---|---|---|---|
-| Rack £4.99 | £8.94 | £3.54 print+ship | **~£5.05** |
-| Made-for-you £5.99 | £9.94 | £3.75 (+ tokens) | **~£5.85** |
-| Photo £6.99 | £10.94 | £3.75+ (+ tokens) | **~£6.85** |
+| Rack £4.99 | £7.94 | £3.54 print+ship | **~£4.05** |
+| Made-for-you £5.99 | £8.94 | £3.75 (+ tokens) | **~£4.85** |
+| Photo £6.99 | £9.94 | £3.75+ (+ tokens) | **~£5.85** |
 
 And the basket compounds it: a second card adds ~£0.72 of cost against
 £4.99+ of revenue, because **shipping is already paid** (§8d).
@@ -297,10 +298,15 @@ daily caps.
 
 ### 8d. Basket — YES, FROM THE START
 
-- **Postage: flat £3.95 per ORDER, any quantity.** Prodigi bills
-  shipping per order with items combined, so the second card ships
-  essentially free to us. This is the strongest multi-buy lever we have
-  and it is close to costless.
+- **Postage: flat £2.95 per ORDER, any quantity** (dropped from £3.95,
+  2026-08-27). Prodigi's true inc-VAT cost is £2.82, so this is
+  **deliberately at cost — ~13p** — treating postage as a conversion
+  lever and letting the card carry the margin. Prodigi bills shipping
+  per order with items combined, so the second card ships essentially
+  free to us; charged ONCE per order however many cards.
+  ⚠️ **Zero headroom: any Prodigi shipping rise puts standard postage
+  underwater.** Express (£8.95 vs £7.74) and Overnight (£13.95 vs
+  £12.90) keep their ~£1 cushions and are unchanged.
 - **Mixed doors allowed in one basket** — rack + made-for-you + photo,
   one shipment. They're all `cards` rows by then; fulfilment doesn't
   care.
@@ -338,7 +344,7 @@ trivial (one row per existing order).**
 
 | Phase | Work | Unblocks |
 |---|---|---|
-| **0** | `cards.source` column · `MakerDraftState` type · price-by-source in `shared/pricing.ts` | everything |
+| **0** | `cards.source` column · `MakerDraftState` type · price-by-source in `shared/pricing.ts` · **copy sweep** (landing, product page, blog, SEO and free-card copy still quote £8.99 + £3.95) | everything |
 | **1** | **Order model → line items** (`order_items`, migrate 24 `cardId` usages, Prodigi multi-item mapping, shipping charged once) | the basket, and every door after it |
 | **2** | Door 1: template→card copy · guest orders · `/order/:token` status page | **first live revenue** |
 | **3** | Stripe + Prodigi live env — gated on the test print (which also settles §8a costs) | real money |
