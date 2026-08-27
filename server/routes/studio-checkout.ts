@@ -71,6 +71,9 @@ function generateShareToken(): string {
 // POST can't slip through with a bad postcode or missing country.
 const checkoutSchema = z.object({
   customerEmail: z.string().email(),
+  /** Proves ownership of an ANONYMOUS card (guest rack buys). Ignored
+   *  when signed in. */
+  cardToken: z.string().max(64).optional(),
   customerName: z.string().min(1),
   customerPhone: z.string().optional(),
   // Print-led V1: every order is print + free digital, forced server-side.
@@ -177,10 +180,13 @@ export function registerStudioCheckoutRoutes(app: Express): void {
   // `payment.clientToken` (embedded) to finish the transaction.
   app.post(
     '/api/studio/cards/:id/checkout',
-    isAuthenticated,
+    // ⚠️ NOT isAuthenticated — the rack sells to GUESTS (Door 1,
+    // UX_THREE_DOORS.md §6). Identity is resolved below: a signed-in
+    // user must own the card; an anonymous buyer must present the
+    // card's unguessable token. Both paths are checked before a single
+    // pence is quoted.
     async (req: Request, res: Response) => {
-      const userId = getUserId(req);
-      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+      const userId = getUserId(req) ?? null;
 
       const cardId = parseInt(req.params.id, 10);
       if (!Number.isFinite(cardId)) return res.status(400).json({ message: 'Invalid card id' });
@@ -224,6 +230,9 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             viewToken: cards.viewToken,
             // Which door made it — decides the price (§8a).
             source: cards.source,
+            // Guest ownership proof + the rack's stored front.
+            imageKey: cards.imageKey,
+            frontImagePath: cards.frontImagePath,
           })
           .from(cards)
           .where(eq(cards.id, cardId))
@@ -231,14 +240,28 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 
         const card = cardRows[0];
         if (!card) return res.status(404).json({ message: 'Card not found' });
-        if (card.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+        // OWNERSHIP, two ways. Signed in: the card must be yours.
+        // Anonymous: the card must belong to nobody AND you must hold
+        // its token (returned once when the card was created) — so ids
+        // can't be enumerated to buy or read someone else's card.
+        if (userId) {
+          if (card.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+        } else {
+          const token = typeof body.cardToken === 'string' ? body.cardToken : '';
+          if (card.userId !== null || !card.imageKey || token !== card.imageKey) {
+            return res.status(403).json({ message: 'Not your card' });
+          }
+        }
         // Must be fully finished — front-first generation passes through
         // 'front-ready' (front image exists, inside not yet generated),
         // and only 'completed' guarantees the inside is done too (write
         // AND blank both generate an inside). Checking frontImageUrl alone
         // let a half-generated card be bought with no inside (audit
         // 2026-07-02).
-        if (card.status !== 'completed' || !card.frontImageUrl) {
+        // Rack cards store frontImagePath and never had a legacy
+        // frontImageUrl, so accept either — the print path already
+        // resolves path-first (resolveStoredImageUrl).
+        if (card.status !== 'completed' || !(card.frontImageUrl || card.frontImagePath)) {
           return res.status(400).json({ message: 'Card is not finished generating yet' });
         }
 
@@ -266,7 +289,11 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // NOT consumed here — only when this order actually pays (see
         // consumeFreeCardCredit in markOrderPaidAndDispatch), so an
         // abandoned session never burns it. See server/studio/free-card.ts.
-        const freeCardApplied = (await getFreeCardStatus(userId)).eligible;
+        // Account-only by nature (one per account) and photo-only by
+        // decision (§8b) — a guest rack buyer is never eligible.
+        const freeCardApplied = userId
+          ? (await getFreeCardStatus(userId)).eligible && card.source === 'photo'
+          : false;
 
         // Every order: printed card + free digital link. Digital is £0.
         // Postage is a separate line, priced from the chosen delivery tier
@@ -339,7 +366,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           })
           .from(studioOrders)
           .where(
-            freeCardApplied
+            freeCardApplied && userId
               ? // Free-card checkouts also expire pending FREE orders on the
                 // user's OTHER cards — two tabs on two different cards could
                 // otherwise mint two live £3.95 sessions that each ship a

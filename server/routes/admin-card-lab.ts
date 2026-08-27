@@ -2868,40 +2868,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
   /** The one place the inside image is made — the route below, the
    *  keep-time render and the backfill all call this, so the four can
    *  never drift apart. */
-  async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; message?: string; dear?: string; from?: string;
-    palette?: string | null; typeface?: string | null; art_direction?: string | null; direction?: string | null;
-    characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high' }) {
-    const dear = o.dear?.trim();
-    const from = o.from?.trim();
-    const message = o.message?.trim();
-    const textBlock = o.mode === 'blank'
-      ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
-      : [
-          'TEXT — render EXACTLY these words and nothing else, typeset per the TYPOGRAPHY block (a real typeface, printing perfectly clean, no texture or stray marks on the letters):',
-          dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
-          message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
-          from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
-          'Clear vertical hierarchy and real space between the three parts. NO other text of any kind anywhere in the image.',
-        ].filter(Boolean).join(' ');
-    const prompt = [
-      o.freeStyle ? freeStyleDna(o.characters ?? 'objects') : quirkyDna(o.characters ?? 'objects'),
-      '',
-      QUIRKY_INSIDE,
-      '',
-      o.direction ? `MEDIUM — THE FRONT OF THIS CARD WAS DRAWN IN: ${o.direction}. The inside is the SAME PIECE OF PRINT, so use that same medium, its same marks and its same hand. A different medium inside is two cards in one envelope.` : '',
-      o.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${o.palette}` : '',
-      o.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${o.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
-      '',
-      textBlock,
-      '',
-      `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
-    ].filter(Boolean).join('\n');
-    const result = await getProvider('openai-2').generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
-    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-      provider: result.provider, model: result.model, quality: o.quality ?? 'low',
-      costCents: result.costCents, durationMs: result.durationMs, success: true });
-    return result;
-  }
+  // generateInsideImage now lives at module scope (exported) so the
+  // shop route can reuse it — see below the route registrations.
 
   /** Render + store a template's pre-made inside. Fire-and-forget from
    *  Keep; awaited by the backfill. Never throws. */
@@ -3354,4 +3322,43 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
   // answered questions and a generation wait (observed: Aidan hitting
   // the literal YOUR-KEY placeholder and only learning at generate).
   app.get('/api/research/ping', guarded(requireResearch('ping'), async (_req: Request, res: Response) => { res.json({ ok: true }); }));
+}
+
+/** Render an inside page. Hoisted to module scope 2026-08-27 so the
+ *  SHOP can render a customer's own inside on a rack card without
+ *  importing admin routes (UX_THREE_DOORS.md §5, Door 1). Closes over
+ *  nothing but module-level helpers. */
+export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; message?: string; dear?: string; from?: string;
+  palette?: string | null; typeface?: string | null; art_direction?: string | null; direction?: string | null;
+  characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high' }) {
+  const dear = o.dear?.trim();
+  const from = o.from?.trim();
+  const message = o.message?.trim();
+  const textBlock = o.mode === 'blank'
+    ? 'ZERO TEXT: this inside page is deliberately EMPTY so the sender can handwrite their own message. Render NO words, letters or numbers anywhere. Just the palest ground from the palette with one small, delicate motif echo in a single corner and generous clean space everywhere else.'
+    : [
+        'TEXT — render EXACTLY these words and nothing else, typeset per the TYPOGRAPHY block (a real typeface, printing perfectly clean, no texture or stray marks on the letters):',
+        dear ? `Top of the page, smaller and quieter: "${dear}"` : '',
+        message ? `Centre of the page, the largest and most prominent text, with generous line spacing: "${message}"` : '',
+        from ? `Bottom of the page, smaller and quieter, sitting below the message: "${from}"` : '',
+        'Clear vertical hierarchy and real space between the three parts. NO other text of any kind anywhere in the image.',
+      ].filter(Boolean).join(' ');
+  const prompt = [
+    o.freeStyle ? freeStyleDna(o.characters ?? 'objects') : quirkyDna(o.characters ?? 'objects'),
+    '',
+    QUIRKY_INSIDE,
+    '',
+    o.direction ? `MEDIUM — THE FRONT OF THIS CARD WAS DRAWN IN: ${o.direction}. The inside is the SAME PIECE OF PRINT, so use that same medium, its same marks and its same hand. A different medium inside is two cards in one envelope.` : '',
+    o.palette ? `PALETTE (same family as the front, but use its palest tone as the ground): ${o.palette}` : '',
+    o.art_direction ? `THE FRONT OF THIS CARD SHOWED: ${o.art_direction}. Echo it only faintly — a small motif in a corner or a light border. Do NOT reproduce it at size.` : '',
+    '',
+    textBlock,
+    '',
+    `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
+  ].filter(Boolean).join('\n');
+  const result = await getProvider('openai-2').generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
+  void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+    provider: result.provider, model: result.model, quality: o.quality ?? 'low',
+    costCents: result.costCents, durationMs: result.durationMs, success: true });
+  return result;
 }
