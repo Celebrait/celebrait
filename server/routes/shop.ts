@@ -27,6 +27,8 @@ import { cards, cardTemplates, orderItems, studioOrders } from '@shared/schema';
 import { cardPriceGBP } from '@shared/pricing';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
+import { markOrderPaidAndDispatch } from './studio-checkout';
+import { getPaymentProvider } from '../studio/payment-provider';
 
 /** The rack card's stored state — the `rack` variant of the draft
  *  shapes (UX_THREE_DOORS.md §4b). No resume, no steps: a rack card is
@@ -141,6 +143,43 @@ export function registerShopRoutes(app: Express): void {
     }
   });
 
+  // ── GET /api/shop/cards/:id ────────────────────────────────────────
+  // The buy page's card summary, token-gated for guests. A signed-in
+  // owner may read their own card without the token.
+  app.get('/api/shop/cards/:id', async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'Bad card id' });
+    try {
+      const [card] = await db
+        .select({
+          id: cards.id, userId: cards.userId, source: cards.source, status: cards.status,
+          imageKey: cards.imageKey, frontImagePath: cards.frontImagePath,
+          insideImagePath: cards.insideImagePath, conversationData: cards.conversationData,
+        })
+        .from(cards).where(eq(cards.id, id));
+      if (!card) return res.status(404).json({ message: 'No such card' });
+      const sessionUser = (req as any).session?.otpUserId ?? null;
+      const token = String(req.query.token ?? '');
+      const owns = sessionUser && card.userId === sessionUser;
+      const holdsToken = card.userId === null && card.imageKey && token === card.imageKey;
+      if (!owns && !holdsToken) return res.status(403).json({ message: 'Not your card' });
+      res.json({
+        card: {
+          id: card.id,
+          source: card.source,
+          status: card.status,
+          frontImageUrl: card.frontImagePath ? publicImageUrl(card.frontImagePath) : null,
+          insideImageUrl: card.insideImagePath ? publicImageUrl(card.insideImagePath) : null,
+          price: cardPriceGBP(card.source),
+          insideMode: (card.conversationData as RackCardState | null)?.insideMode ?? null,
+        },
+      });
+    } catch (err) {
+      console.error('[SHOP] card summary failed:', err);
+      res.status(500).json({ message: 'Could not load that card' });
+    }
+  });
+
   // ── GET /api/shop/orders/:id ───────────────────────────────────────
   // A guest's order status. The order id IS the token: it's a v4 uuid
   // (gen_random_uuid), so it can't be enumerated, and it arrives in the
@@ -154,6 +193,7 @@ export function registerShopRoutes(app: Express): void {
         .select({
           id: studioOrders.id,
           paymentStatus: studioOrders.paymentStatus,
+          paymentReference: studioOrders.paymentReference,
           fulfillmentStatus: studioOrders.fulfillmentStatus,
           trackingNumber: studioOrders.trackingNumber,
           customerEmail: studioOrders.customerEmail,
@@ -168,6 +208,41 @@ export function registerShopRoutes(app: Express): void {
         .from(studioOrders)
         .where(eq(studioOrders.id, id));
       if (!order) return res.status(404).json({ message: 'No such order' });
+
+      // Reconcile against Stripe if still unpaid — the guest lands here
+      // straight from the gateway, often before the webhook. Mirrors the
+      // studio order route; markOrderPaidAndDispatch is idempotent so
+      // this never double-fires against the webhook.
+      if (order.paymentStatus !== 'paid' && order.paymentReference) {
+        try {
+          const provider = getPaymentProvider();
+          if (provider.name === 'stripe') {
+            const st = await provider.getStatus(order.paymentReference);
+            if (st.status === 'paid') {
+              await markOrderPaidAndDispatch(order.id, st.amountPaid);
+              const [fresh] = await db
+                .select({
+                  id: studioOrders.id,
+                  paymentStatus: studioOrders.paymentStatus,
+                  fulfillmentStatus: studioOrders.fulfillmentStatus,
+                  trackingNumber: studioOrders.trackingNumber,
+                  customerEmail: studioOrders.customerEmail,
+                  shipTo: studioOrders.shipTo,
+                  shippingTier: studioOrders.shippingTier,
+                  totalAmount: studioOrders.totalAmount,
+                  printAmount: studioOrders.printAmount,
+                  shippingAmount: studioOrders.shippingAmount,
+                  createdAt: studioOrders.createdAt,
+                  trackingUrl: studioOrders.trackingUrl,
+                })
+                .from(studioOrders).where(eq(studioOrders.id, id));
+              if (fresh) Object.assign(order, fresh);
+            }
+          }
+        } catch (err) {
+          console.warn('[SHOP] stripe reconcile failed (non-fatal):', err);
+        }
+      }
 
       const items = await db
         .select({ cardId: orderItems.cardId, unitPrice: orderItems.unitPrice, position: orderItems.position })
@@ -186,6 +261,8 @@ export function registerShopRoutes(app: Express): void {
       res.json({
         order: {
           ...order,
+          // Internal references stay internal.
+          paymentReference: undefined,
           // Never leak the buyer's full email to a link-holder.
           customerEmail: order.customerEmail ? order.customerEmail.replace(/^(.).*(@.*)$/, '$1•••$2') : null,
         },

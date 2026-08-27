@@ -499,8 +499,15 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           description: freeCardApplied
             ? `Celebrait card #${cardId} — first card free, postage only`
             : `Celebrait card #${cardId}`,
-          returnUrl: `${origin}/checkout/success?orderId=${order.id}`,
-          cancelUrl: `${origin}/checkout/cancelled?orderId=${order.id}&cardId=${cardId}`,
+          // Guests can't reach /checkout/success (RequireAuth) — their
+          // journey lands on the public tokenised order page instead
+          // (UX_THREE_DOORS.md §6.1).
+          returnUrl: userId
+            ? `${origin}/checkout/success?orderId=${order.id}`
+            : `${origin}/order/${order.id}?from=payment`,
+          cancelUrl: userId
+            ? `${origin}/checkout/cancelled?orderId=${order.id}&cardId=${cardId}`
+            : `${origin}/buy/${cardId}?cancelled=1`,
         });
 
         await db
@@ -1049,7 +1056,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 // the flip fires the emails exactly once; everyone else sees
 // alreadyPaid and no-ops. Without that guard a webhook + a reconcile
 // landing together would double-send the receipt.
-async function markOrderPaidAndDispatch(
+export async function markOrderPaidAndDispatch(
   orderId: string,
   amountPaid?: number,
 ): Promise<{ ok: true; alreadyPaid?: boolean }> {
@@ -1174,7 +1181,10 @@ export async function submitPrintOrder(
   const orderedCards = orderedCardIds.map((id) => byId.get(id)).filter(Boolean) as typeof cardRows;
   // The first card carries the order-level context (recipient, sender).
   const card = orderedCards[0];
-  if (!card || !card.frontImageUrl) {
+  // Path OR legacy URL — rack cards only ever store frontImagePath, so
+  // checking the legacy URL alone silently skipped printing every rack
+  // order (caught by the first E2E guest buy, 2026-08-27).
+  if (!card || !(card.frontImageUrl || card.frontImagePath)) {
     console.warn('[STUDIO-CHECKOUT] print submit: card/front image missing for order', order.id);
     return;
   }

@@ -121,6 +121,8 @@ const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
+const BuyPage = lazy(() => import("@/pages/buy"));
+const OrderStatusPage = lazy(() => import("@/pages/order-status"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
 const CardProductPage = lazy(() => import("@/pages/card-product"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
@@ -305,6 +307,10 @@ function Router() {
           {/* Studio checkout — auth-gated. Static paths first; the
               parameterised route comes last so wouter doesn't greedily
               match `/checkout/success` as `:cardId='success'`. */}
+          {/* Guest commerce (Door 1) — deliberately OUTSIDE RequireAuth:
+              the rack sells with no account, ownership is token-based. */}
+          <Route path="/buy/:cardId" component={BuyPage} />
+          <Route path="/order/:orderId" component={OrderStatusPage} />
           <Route path="/checkout/dev-confirm">
             <RequireAuth>
               <CheckoutDevConfirmPage />

@@ -15,7 +15,8 @@
 // never pretends an order happened.
 
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'wouter';
+import { Link, useParams, useLocation } from 'wouter';
+import { rackTokenKey } from '@/pages/buy';
 import { Loader2, Check, Truck, PenLine } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { Card3DViewer } from '@/components/card-3d-viewer';
@@ -50,7 +51,41 @@ export default function CardProductPage() {
   const [dear, setDear] = useState('');
   const [from, setFrom] = useState('');
   const [ownMsg, setOwnMsg] = useState('');
-  const [notice, setNotice] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState('');
+  const [, navigate] = useLocation();
+
+  /** The rack's buy path (UX_THREE_DOORS.md §5, Door 1): turn the
+   *  template into THIS person's card, pocket its ownership token,
+   *  and head to the slim guest checkout. 'Write your own' is the
+   *  only branch that renders, so it's the only slow one. */
+  const buy = async () => {
+    if (!card || buying) return;
+    if (insideMode === 'own' && !ownMsg.trim()) {
+      setBuyError('Write your message first — or choose one of the other options.');
+      return;
+    }
+    setBuying(true); setBuyError('');
+    try {
+      const r = await fetch(`/api/shop/templates/${card.id}/card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          insideMode,
+          message: insideMode === 'own' ? ownMsg.trim() : undefined,
+          dear: dear.trim() || undefined,
+          from: from.trim() || undefined,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.message ?? 'That didn’t work — try again');
+      sessionStorage.setItem(rackTokenKey(j.cardId), j.cardToken);
+      navigate(`/buy/${j.cardId}`);
+    } catch (e: any) {
+      setBuyError(e?.message ?? 'That didn’t work — try again');
+      setBuying(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`/api/catalogue/card/${params.id}`)
@@ -175,14 +210,14 @@ export default function CardProductPage() {
               )}
             </div>
 
-            <button type="button" onClick={() => setNotice(true)}
-              className="mt-6 w-full rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black">
-              Buy this card — {gbp(RACK_PRICE)}
+            <button type="button" onClick={() => void buy()} disabled={buying}
+              className="mt-6 w-full rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-60">
+              {buying
+                ? (insideMode === 'own' ? 'Setting your words inside…' : 'Getting your card ready…')
+                : `Buy this card — ${gbp(RACK_PRICE)}`}
             </button>
-            {notice && (
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Checkout for rack cards is landing shortly — this page is the preview build. The studio can make and send cards today.
-              </p>
+            {buyError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{buyError}</p>
             )}
             <p className="mt-3 text-center text-xs text-keeper-meta">No account needed to buy a card — only our card builder asks you to sign up.</p>
 
