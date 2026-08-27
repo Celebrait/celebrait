@@ -1563,6 +1563,13 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const nearMiss = new RegExp(`\\b${stem}\\w*\\b`, 'i');
     if (fronts.some((f) => !exact.test(f) && nearMiss.test(f))) v.push(`name-misspelt: the recipient's name must be spelled EXACTLY "${b.name}"`);
     if (fronts.filter((f) => exact.test(f)).length > 1) v.push('name-everywhere: at most one front carries the name');
+    // And the FLOOR, not just the ceiling: the brief promised "one card
+    // will design it in" — a given name that appears nowhere broke the
+    // promise (observed: "Rob", three cards, none his, 2026-08-28).
+    // Front or artwork counts: the name AS the artwork is the genre.
+    if (!cards.some((c, i) => exact.test(fronts[i]) || exact.test(arts[i]))) {
+      v.push(`name-missing: the brief gave the name "${b.name}" and promised one card designs it in — exactly ONE card must carry it, strongest as the front's own artwork`);
+    }
   }
   if (b.gender !== 'unspecified') {
     const wrong = b.gender === 'her' ? V2_MALE : V2_FEMALE;
