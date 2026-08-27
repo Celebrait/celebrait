@@ -382,6 +382,7 @@ const CHRISTMAS_CORE = `THE CHRISTMAS WORLD. Every rack in Britain is full of ge
 ⚠️ THE SPENT SEAM: the naughty list, Santa's surveillance, "been good this year", coal — Christmas's own civic checklist, the first joke every card reaches for and the most worn material in the entire market. It may not appear at all. Sprout-hatred and wrapping-paper chaos are one notch behind it: permitted only fused to THIS person, never as the joke on their own.
 THE CHRISTMAS CAST IS OPEN AT EVERY AGE — and this OVERRIDES the usual no-people habit: Santa, elves, reindeer, snowmen, robins are FOLK CHARACTERS, drawable as illustrated figures on any card. For 12-and-under the magic plays absolutely straight and the wonder is the material. For adults the cast plays with a WINK — Santa off-duty, the reindeer knackered, the elf on strike, behind the scenes of the season. Illustrated folk figures always: never photoreal people, never a franchise's specific character or design (no Grinch, no film elves, no branded snowmen).
 STYLE AT CHRISTMAS: nostalgia is the season's LIVING idiom, not dinge — mid-century retro Santa art, vintage label and matchbox kitsch, the look of old annuals are all CURRENT here and welcome lanes beside the house register. Print them clean and alive as ever; the dinge ban is about murk, never about era.
+⚠️ WORDPLAY HERE MAY NEVER PUN ON THE OCCASION ITSELF. Puns on Christmas/present/season/trim/wrap/serve are the cracker shelf — the most worn wordplay in the entire market, and the audit found them in seven of ten sets ("Christmas Has Presence", "Present tense", "beautifully seasoned", "Trim and proper", "SERVE THE SEASON" — all spent, all banned). A Christmas pun lands only when it puns on the MATERIAL — the ritual, the kit, the role ("oven time and over-time" is the shape: the cook's shift, not the season's name).
 NO INTEREST GIVEN: mine their CHRISTMAS ROLE — the host, the early decorator, the one who owns the gravy, the Christmas-Eve panic shopper, the one who makes it feel like Christmas. Roles are personal; symbols are wallpaper.
 COLOUR: Christmas does not own red-green-gold, and three cards in that uniform is the observed failure. The person's world lends the hues; the season lends its LIGHT — frost, candlelight, winter dusk, one hot red earned rather than issued. AT MOST one festive object folded into their own kit; baubles, trees or tinsel stapled beside the subject remain BANNED.`;
 const CHRISTMAS_TONES: Record<string, string> = {
@@ -1259,6 +1260,10 @@ const SEAM_LEDGER: Array<{ name: string; desc: string; re: RegExp }> = [
   { name: 'the early night', desc: 'cancelled plans, the sofa, in bed by nine — joy of missing out', re: /\b(cancell?ed plans?|early nights?|in bed by|staying in|no plans|sofas?|pyjamas|duvets?|naps?)\b/i },
   // Christmas's own magnet, spotted in week one: the fond aftermath.
   { name: 'the aftermath', desc: 'wrapping everywhere, boxes underfoot, the beautiful mess — the somehow-it-looks-right room', re: /\b(paper everywhere|wrapping(?:'s| is)? everywhere|boxes underfoot|torn wrapping|aftermath|beautiful mess|looks exactly (?:right|as)|glorious mess)\b/i },
+  // Audit 2026-08-27: post-Christmas comedown in 4 of 10 probe sets.
+  { name: 'the comedown', desc: 'Boxing Day, leftovers, Twixmas, the cold plate, the house exhaling', re: /\b(boxing day|leftovers?|twixmas|cold plate|house exhal|slow pours?|post-christmas|tidy-?up)\b/i },
+  // And the kids' sweet-haul, verbatim across both kids probes.
+  { name: 'the sweet haul', desc: 'chocolate coins, selection boxes, stripy chews, the stocking stash', re: /\b(chocolate coins?|selection box(?:es)?|stripy (?:chews?|sweets?)|sweet (?:stash|haul)|stocking(?:'s)? (?:sweets|stash))\b/i },
 ];
 
 const wordsToRe = (ws: unknown): RegExp | null => {
@@ -1369,6 +1374,16 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       const rudeCount = fronts.filter((f) => V2_SWEAR.test(f) || MILD.test(f)).length;
       if (rudeCount < 2) v.push('rude-register: only one front carries any swearing — the hero swears properly and at least one more front carries a mild (bloody/bollocks/arse); the third may live on innuendo but never reads merely festive');
     }
+  }
+  // ⚠️ KIDS' CHRISTMAS BRINGS THE CAST — IN CODE. The world opened
+  // Santa/reindeer/snowmen at every age and the audit found ZERO cast
+  // across thirty cards including two kids' sets: the no-people
+  // reflex outvotes permission. For 12-and-under, at least one card
+  // features the cast; adults keep permission-only.
+  if (opts?.occasionKey === 'christmas' && b.age !== null && b.age !== undefined && b.age <= 12) {
+    const CAST = /\b(santa|father christmas|elf|elves|reindeer|rudolph|snowman|snowmen|sleigh)\b/i;
+    if (!cards.some((c) => CAST.test(`${c.front_text ?? ''} ${c.art_direction ?? ''}`)))
+      v.push('cast-missing: a kids\' Christmas set with no Santa, reindeer or snowman anywhere — at this age the magic IS the material; at least one card brings the cast, played absolutely straight');
   }
   // ⚠️ CLEAN REGISTERS ARE CLEAN — IN CODE. Swearing was enforced on
   // rude but prohibited nowhere: a WARM set shipped with a swear on
