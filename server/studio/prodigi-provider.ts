@@ -227,33 +227,50 @@ export const prodigiPrintProvider: PrintProvider = {
     const sku = req.shipTo === "sender" ? skuSelfSend : skuDirect;
     const shippingMethod = req.shippingMethod ?? defaultShippingMethod;
 
-    // Compose the card's front + inside into the single 6732×1713 flat spread
-    // this SKU's lone "default" print area expects, then upload it to R2 and
-    // hand Prodigi its public URL. (front/inside are separate square images in
-    // our system; Prodigi wants them stitched into one four-panel strip.) The
-    // strip is identical for both SKUs — the inside image already carries the
-    // message (or a clear centre for handwriting) from generation.
-    const frontBuffer = await fetchImageBuffer(req.frontImageUrl);
-    const insideBuffer = req.insideImageUrl
-      ? await fetchImageBuffer(req.insideImageUrl)
-      : null;
-    const strip = await composeCardPrintStrip({
-      frontBuffer,
-      insideBuffer,
-      senderFirstName: req.senderFirstName ?? null,
-    });
-    const stripName = `${cardImageBaseName(req.cardId, req.imageKey)}_print_strip.png`;
-    await storeImageToCustomFilename(strip.toString("base64"), stripName);
-    const stripUrl = publicImageUrl(stripName);
-    if (!/^https?:/i.test(stripUrl)) {
-      throw new Error(
-        `Composed print strip URL is not absolute ("${stripUrl}") — Prodigi ` +
-          "can't fetch it. R2 must be enabled for Prodigi orders.",
-      );
-    }
-    const assets: Array<{ printArea: string; url: string }> = [
-      { printArea: "default", url: stripUrl },
-    ];
+    // Compose EACH card's front + inside into the single 6732×1713 flat
+    // spread this SKU's lone "default" print area expects, upload it to R2
+    // and hand Prodigi its public URL. (front/inside are separate square
+    // images in our system; Prodigi wants them stitched into one four-panel
+    // strip.) The strip is identical for both SKUs — the inside image
+    // already carries the message (or a clear centre for handwriting).
+    //
+    // A basket order composes one strip per card and sends one ITEM per
+    // card in a single shipment (UX_THREE_DOORS.md §8d) — which is why
+    // postage is charged once however many cards are in the order.
+    if (!req.cards.length) throw new Error("Print order has no cards");
+    const items = await Promise.all(
+      req.cards.map(async (card, i) => {
+        const frontBuffer = await fetchImageBuffer(card.frontImageUrl);
+        const insideBuffer = card.insideImageUrl
+          ? await fetchImageBuffer(card.insideImageUrl)
+          : null;
+        const strip = await composeCardPrintStrip({
+          frontBuffer,
+          insideBuffer,
+          senderFirstName: req.senderFirstName ?? null,
+        });
+        const stripName = `${cardImageBaseName(card.cardId, card.imageKey)}_print_strip.png`;
+        await storeImageToCustomFilename(strip.toString("base64"), stripName);
+        const stripUrl = publicImageUrl(stripName);
+        if (!/^https?:/i.test(stripUrl)) {
+          throw new Error(
+            `Composed print strip URL is not absolute ("${stripUrl}") — Prodigi ` +
+              "can't fetch it. R2 must be enabled for Prodigi orders.",
+          );
+        }
+        return {
+          merchantReference: `card-${card.cardId}`,
+          sku,
+          copies: 1,
+          sizing: "fillPrintArea",
+          assets: [{ printArea: "default", url: stripUrl }] as Array<{
+            printArea: string;
+            url: string;
+          }>,
+          _position: i,
+        };
+      }),
+    );
 
     const body: Record<string, unknown> = {
       // Our order id → Prodigi merchantReference so their webhooks/support
@@ -265,15 +282,7 @@ export const prodigiPrintProvider: PrintProvider = {
         name: req.recipientName,
         address: toProdigiAddress(req.shippingAddress),
       },
-      items: [
-        {
-          merchantReference: `card-${req.cardId}`,
-          sku,
-          copies: 1,
-          sizing: "fillPrintArea",
-          assets,
-        },
-      ],
+      items: items.map(({ _position, ...item }) => item),
     };
 
     // Envelope seal — round packaging sticker on the OUTSIDE of the kraft

@@ -15,7 +15,7 @@ import { randomBytes } from 'crypto';
 import { eq, desc, and, ne, or, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import {
+import { orderItems,
   cards,
   users,
   studioOrders,
@@ -30,7 +30,7 @@ import {
   consumeFreeCardCredit,
 } from '../studio/free-card';
 import { validateCompCode, consumeCompCode } from '../studio/comp-code';
-import { getPrintProvider } from '../studio/print-provider';
+import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import {
   sendRecipientCardArrivedEmail,
@@ -413,6 +413,20 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 
         const order = inserted[0];
         if (!order) throw new Error('Failed to insert order');
+
+        // ONE ORDER, MANY CARDS (UX_THREE_DOORS.md §8e). Today every
+        // order holds exactly one card, so this writes a single line —
+        // but the print path and the totals already read from HERE, so
+        // opening the basket is a matter of pushing more rows in, not
+        // re-plumbing checkout. studio_orders.cardId stays as the first
+        // card for the legacy reads.
+        await db.insert(orderItems).values({
+          orderId: order.id,
+          cardId,
+          unitPrice: printAmount,
+          source: card.source ?? null,
+          position: 0,
+        });
 
         const origin = `${req.protocol}://${req.get('host')}`;
 
@@ -1102,8 +1116,22 @@ export async function submitPrintOrder(
     return;
   }
 
+  // EVERY card in the order, in basket order (UX_THREE_DOORS.md §8e).
+  // Line items are the source of truth; order.cardId is the legacy
+  // first-card mirror and only backs us up if the items are somehow
+  // missing (pre-backfill rows).
+  const itemRows = await db
+    .select({ cardId: orderItems.cardId, position: orderItems.position })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id))
+    .orderBy(orderItems.position);
+  const orderedCardIds = itemRows.length
+    ? itemRows.map((r) => r.cardId)
+    : [order.cardId];
+
   const cardRows = await db
     .select({
+      id: cards.id,
       userId: cards.userId,
       imageKey: cards.imageKey,
       frontImageUrl: cards.frontImageUrl,
@@ -1113,11 +1141,21 @@ export async function submitPrintOrder(
       conversationData: cards.conversationData,
     })
     .from(cards)
-    .where(eq(cards.id, order.cardId))
-    .limit(1);
-  const card = cardRows[0];
+    .where(inArray(cards.id, orderedCardIds));
+  // Preserve basket order — the DB returns whatever order it likes.
+  const byId = new Map(cardRows.map((c) => [c.id, c]));
+  const orderedCards = orderedCardIds.map((id) => byId.get(id)).filter(Boolean) as typeof cardRows;
+  // The first card carries the order-level context (recipient, sender).
+  const card = orderedCards[0];
   if (!card || !card.frontImageUrl) {
     console.warn('[STUDIO-CHECKOUT] print submit: card/front image missing for order', order.id);
+    return;
+  }
+  if (orderedCards.length !== orderedCardIds.length) {
+    // Never print a partial basket: the customer paid for all of them.
+    console.error(
+      `[STUDIO-CHECKOUT] print submit ABORTED for order ${order.id} — ${orderedCardIds.length} cards ordered, ${orderedCards.length} resolvable`,
+    );
     return;
   }
 
@@ -1139,29 +1177,34 @@ export async function submitPrintOrder(
     senderFirstName = userRows[0]?.firstName?.trim() || null;
   }
 
-  const frontImageUrl = resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl);
-  const insideImageUrl = resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl);
-  if (!frontImageUrl) {
-    // Guarded above via card.frontImageUrl, but keep the narrow check so
-    // the provider contract (non-null front) holds by construction.
-    console.warn('[STUDIO-CHECKOUT] print submit: no resolvable front image for order', order.id);
-    return;
+  // One print card per basket line. A single unresolvable front aborts
+  // the whole submission rather than silently posting a short order.
+  const printCards: PrintOrderCard[] = [];
+  for (const c of orderedCards) {
+    const front = resolveStoredImageUrl(c.frontImagePath, c.frontImageUrl);
+    if (!front) {
+      console.warn('[STUDIO-CHECKOUT] print submit: no resolvable front image for card', c.id, 'order', order.id);
+      return;
+    }
+    printCards.push({
+      cardId: c.id,
+      frontImageUrl: front,
+      insideImageUrl: resolveStoredImageUrl(c.insideImagePath, c.insideImageUrl),
+      imageKey: c.imageKey,
+    });
   }
 
   try {
     const provider = getPrintProvider();
     const result = await provider.submitOrder({
       studioOrderId: order.id,
-      cardId: order.cardId,
-      frontImageUrl,
-      insideImageUrl,
+      cards: printCards,
       shipTo: shipTo as 'sender' | 'recipient',
       // The customer opted into the wax-seal sticker (charge > 0 = chosen).
       envelopeSticker: (order.envelopeStickerAmount ?? 0) > 0,
       shippingAddress: shippingAddress as ShippingAddress,
       recipientName,
       giftMessage: order.giftMessage ?? undefined,
-      imageKey: card.imageKey,
       senderFirstName,
       shippingMethod: getShippingTier(
         (order.shippingTier as ShippingTierId) ?? DEFAULT_SHIPPING_TIER,

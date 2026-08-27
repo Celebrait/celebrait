@@ -13,11 +13,23 @@
 import type { ShippingAddress } from "@shared/schema";
 import { prodigiPrintProvider } from "./prodigi-provider";
 
-export interface PrintOrderRequest {
-  studioOrderId: string;
+/** One card in a print order. An order may hold several — the basket
+ *  (UX_THREE_DOORS.md §8d) posts them in ONE shipment, which is why
+ *  shipping is charged once and Prodigi receives one item per card. */
+export interface PrintOrderCard {
   cardId: number;
   frontImageUrl: string;
   insideImageUrl: string | null;
+  /** Card's stable per-card secret — names the composed print-strip
+   *  object so it can't be enumerated from the sequential card id.
+   *  Legacy cards fall back to the bare id. */
+  imageKey?: string | null;
+}
+
+export interface PrintOrderRequest {
+  studioOrderId: string;
+  /** Every card in this order, in basket order. Always at least one. */
+  cards: PrintOrderCard[];
   // Delivery destination. Drives the Prodigi SKU: 'recipient' → Direct
   // Delivery (-DIR, Kraft envelope, we post it); 'sender' → Self Send
   // (-BLA, cellophane sleeve + spare envelopes, the creator posts it).
@@ -31,11 +43,6 @@ export interface PrintOrderRequest {
   // Prodigi shippingMethod for the chosen delivery speed
   // (Standard|Express|Overnight). Defaults to Standard when absent.
   shippingMethod?: string;
-  // Card's stable per-card secret — used to name the composed print-strip
-  // object so it can't be enumerated from the sequential card id (matches
-  // the front/inside key scheme). Optional: legacy cards fall back to the
-  // bare card id.
-  imageKey?: string | null;
   // Sender's first name (captured at signup) for the back-of-card signed
   // credit. Absent → the compositor falls back to a "Made with Celebrait"
   // wordmark.
