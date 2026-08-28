@@ -14,6 +14,8 @@ import { Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import celebraitLogo from '@/assets/celebrait.webp';
+import { CropDialog } from '@/components/studio/crop-dialog';
+import type { CropBounds } from '@shared/models/photos';
 
 // ── The research key + soft cap ──────────────────────────────────────
 const key = () => new URLSearchParams(window.location.search).get('k') ?? '';
@@ -87,6 +89,13 @@ const SURVEY: SurveyQ[] = [
   { id: 'friction', title: 'Did anything nearly stop you, or annoy you along the way?', kind: 'text', optional: true },
   { id: 'vs_market', title: 'Compared to Moonpig or Thortful, this is…', kind: 'choice', options: ['Much better', 'A bit better', 'About the same', 'Worse'] },
 ];
+/** Asked only when the tester actually saw both versions. */
+const CAMEO_Q: SurveyQ = {
+  id: 'cameo_feel',
+  title: 'You saw your card with them painted in — honestly, how was it?',
+  kind: 'choice',
+  options: ['Loved it — instantly better', 'Liked it, but preferred the original', 'Didn’t quite look like them', 'Bit weird — not for me'],
+};
 
 interface Concept {
   angle: string; format?: string; front_text: string; inside_text?: string;
@@ -94,7 +103,7 @@ interface Concept {
 }
 interface CardCell { concept: Concept; imageUrl?: string; error?: string; retrying?: boolean }
 
-type Phase = 'welcome' | 'questions' | 'generating' | 'pick' | 'signoff' | 'inside' | 'done' | 'survey' | 'thanks' | 'capped';
+type Phase = 'welcome' | 'questions' | 'generating' | 'pick' | 'cameo' | 'signoff' | 'inside' | 'done' | 'survey' | 'thanks' | 'capped';
 
 export default function ResearchMakerPage() {
   const [phase, setPhase] = useState<Phase>('welcome');
@@ -120,6 +129,74 @@ export default function ResearchMakerPage() {
   const [cells, setCells] = useState<CardCell[]>([]);
   const [picked, setPicked] = useState<number | null>(null);
   const [regenUsed, setRegenUsed] = useState(false);
+
+  // ── THE CAMEO (Aidan, 2026-08-28) — after picking, offer to paint
+  // the people from a photo into the chosen card. The rule the lab
+  // settled: people stay exactly as they are, the world bends around
+  // them. Re-posing/directing belongs to the pro photo route.
+  const [cameoSrc, setCameoSrc] = useState<string | null>(null);      // photo awaiting crop
+  const [cameoPhoto, setCameoPhoto] = useState<string | null>(null);  // cropped data URL sent to render
+  const [cameoUrl, setCameoUrl] = useState<string | null>(null);      // the painted-in version
+  const [cameoBusy, setCameoBusy] = useState(false);
+  const [cameoKept, setCameoKept] = useState<boolean | null>(null);   // their choice between the two
+  const [cameoError, setCameoError] = useState('');
+  const resetCameo = () => { setCameoSrc(null); setCameoPhoto(null); setCameoUrl(null); setCameoBusy(false); setCameoKept(null); setCameoError(''); };
+  /** The cameo question joins the survey only for testers who saw both
+   *  versions — everyone else gets the original six. */
+  const survey = useMemo<SurveyQ[]>(() => (cameoUrl ? [SURVEY[0], CAMEO_Q, ...SURVEY.slice(1)] : SURVEY), [cameoUrl]);
+
+  /** Read a photo file → downscaled data URL (long edge ≤1600px), so a
+   *  12MB phone photo never travels. Mirrors the studio's helper. */
+  const readCameoFile = async (file: File): Promise<string> => {
+    const asDataUrl = () => new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('read failed'));
+      r.readAsDataURL(file);
+    });
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
+      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+      if (scale === 1 && file.size <= 1_500_000) { bitmap.close(); return await asDataUrl(); }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      return canvas.toDataURL('image/jpeg', 0.9);
+    } catch { return await asDataUrl(); }
+  };
+
+  /** Apply the crop box client-side — no server round-trip needed just
+   *  to trim a reference photo. */
+  const cropToDataUrl = (src: string, b: CropBounds) => new Promise<string>((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = b.width; canvas.height = b.height;
+      canvas.getContext('2d')!.drawImage(img, b.x, b.y, b.width, b.height, 0, 0, b.width, b.height);
+      res(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = () => rej(new Error('decode failed'));
+    img.src = src;
+  });
+
+  const renderCameo = async (photo: string) => {
+    if (picked === null) return;
+    const c = cells[picked].concept;
+    setCameoBusy(true); setCameoError('');
+    try {
+      const rj = await researchPost('render', {
+        front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
+        typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true,
+        cameoPhoto: photo,
+      });
+      setCameoUrl(rj.imageUrl);
+    } catch (e: any) {
+      setCameoError(e?.message ?? 'That didn’t work — you can try another photo, or carry on without.');
+      setCameoPhoto(null);
+    } finally {
+      setCameoBusy(false);
+    }
+  };
 
   // Sign-off — 'ours' is the AI message the writer already composed
   // for the picked card; it costs nothing and arrives pre-selected.
@@ -212,7 +289,7 @@ export default function ResearchMakerPage() {
     localStorage.setItem(SETS_KEY, String(setsUsed() + 1));
     if (isRegen) setRegenUsed(true);
     setPhase('generating');
-    setCells([]); setPicked(null); setInsideUrl(null);
+    setCells([]); setPicked(null); setInsideUrl(null); resetCameo();
     try {
       const j = await researchPost('concepts', {
         occasion: ageNum !== null ? `${ageNum}th Birthday` : 'Birthday',
@@ -302,11 +379,21 @@ export default function ResearchMakerPage() {
           who, gender, age: ageNum, vibe,
           interest: interest.trim() || null, dislike: dislike.trim() || null, name: name.trim() || null,
         },
-        cards: cells.map((c) => ({ front_text: c.concept.front_text, tone: c.concept.tone, angle: c.concept.angle, imageUrl: c.imageUrl })),
+        cards: [
+          ...cells.map((c) => ({ front_text: c.concept.front_text, tone: c.concept.tone, angle: c.concept.angle, imageUrl: c.imageUrl })),
+          // The painted-in version travels too — it's half the experiment.
+          ...(cameoUrl && picked !== null
+            ? [{ front_text: cells[picked].concept.front_text, tone: 'cameo', angle: 'painted-in cameo', imageUrl: cameoUrl }]
+            : []),
+        ],
         picked_index: picked,
         regen_used: regenUsed,
+        pickedImageUrl: cameoKept && cameoUrl ? cameoUrl : undefined,
         insideImageUrl: insideUrl ?? undefined,
-        answers: finalAnswers,
+        answers: {
+          ...finalAnswers,
+          ...(cameoUrl ? { cameo_used: 'yes', cameo_kept: cameoKept ? 'yes' : 'no' } : {}),
+        },
       });
       setSubmitted(true);
       setPhase('thanks');
@@ -407,7 +494,7 @@ export default function ResearchMakerPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {cells.map((c, i) => (
             <button key={i} type="button" disabled={!c.imageUrl}
-              onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setPhase('signoff'); }}
+              onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); resetCameo(); setPhase('cameo'); }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
               <div className="relative aspect-square bg-stone-100">
@@ -456,6 +543,96 @@ export default function ResearchMakerPage() {
     );
   }
 
+  // ── THE CAMEO OFFER — new since 2026-08-28, signposted as such.
+  if (phase === 'cameo' && picked !== null) {
+    const c = cells[picked];
+    // Result state: both versions exist — they choose, and the choice
+    // itself is the research signal.
+    if (cameoUrl) {
+      return (
+        <div className="mx-auto min-h-screen max-w-3xl bg-[#FBF9F5] px-4 py-10">
+          <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
+          <h1 className="text-center text-2xl font-semibold text-stone-800">There they are. Which one are you sending?</h1>
+          <p className="mt-2 text-center text-sm text-stone-500">No wrong answer — tap the one you'd actually put in the post.</p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {([[false, 'The original', c.imageUrl!], [true, 'With them in it', cameoUrl]] as const).map(([keep, label, url]) => (
+              <button key={label} type="button"
+                onClick={() => { setCameoKept(keep); setPhase('signoff'); }}
+                className="overflow-hidden rounded-2xl border-2 border-transparent bg-white text-left transition-all hover:border-brand/60">
+                <img src={url} alt={label} crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+                <p className="p-3 text-center text-sm font-medium text-stone-700">{label}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (cameoBusy) {
+      return (
+        <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
+          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
+            <p className="text-lg font-medium text-stone-700">Painting them into your card…</p>
+            <p className="text-sm text-stone-400">Same people, same poses — redrawn in the card's own style. About half a minute.</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="mx-auto min-h-screen max-w-md bg-[#FBF9F5] px-4 py-10">
+        <div className="mb-6 flex items-center justify-between">
+          <button type="button" onClick={() => setPhase('pick')} className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600">
+            <ArrowLeft className="h-4 w-4" /> Back to the three
+          </button>
+          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+          {c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
+        </div>
+        <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">BRAND NEW — YOU'RE THE FIRST TO TRY IT</p>
+        <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Want them actually in the picture?</h1>
+        <p className="mt-2 text-sm leading-relaxed text-stone-500">
+          Add a photo — a group one works too — and we'll paint the people into this exact
+          card: everyone kept, same poses, redrawn in the card's own art style. You'll see
+          both versions and choose which to keep.
+        </p>
+        {cameoError && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{cameoError}</p>}
+        <label className="mt-6 block">
+          <input type="file" accept="image/*" className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void readCameoFile(f).then(setCameoSrc);
+              e.target.value = '';
+            }} />
+          <span className="flex h-12 w-full cursor-pointer items-center justify-center rounded-md bg-brand text-base font-semibold text-white transition-colors hover:bg-brand-dark">
+            Add a photo
+          </span>
+        </label>
+        <Button variant="outline" className="mt-3 h-12 w-full text-base" onClick={() => setPhase('signoff')}>
+          Skip — keep it as it is
+        </Button>
+        <p className="mt-4 text-center text-xs text-stone-400">
+          We save the finished card artwork to review — never your photo itself.
+        </p>
+        <CropDialog
+          src={cameoSrc}
+          autoFace={false}
+          onCancel={() => setCameoSrc(null)}
+          onConfirm={(bounds) => {
+            const src = cameoSrc;
+            setCameoSrc(null);
+            if (!src) return;
+            void cropToDataUrl(src, bounds).then((photo) => {
+              setCameoPhoto(photo);
+              return renderCameo(photo);
+            }).catch(() => setCameoError('That photo wouldn’t crop — try another one.'));
+          }}
+        />
+      </div>
+    );
+  }
+
   if (phase === 'signoff' && picked !== null && insideBusy) {
     return (
       <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
@@ -480,7 +657,7 @@ export default function ResearchMakerPage() {
           <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         </div>
         <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-          {c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
+          {c.imageUrl && <img src={cameoKept && cameoUrl ? cameoUrl : c.imageUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
         </div>
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">FRONT CHOSEN — ONE MORE STEP</p>
         <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Now the inside of the card</h1>
@@ -530,7 +707,7 @@ export default function ResearchMakerPage() {
         <h1 className="text-2xl font-semibold text-stone-800">There it is.</h1>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-            {c.imageUrl && <img src={c.imageUrl} alt="front" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
+            {c.imageUrl && <img src={cameoKept && cameoUrl ? cameoUrl : c.imageUrl} alt="front" crossOrigin="anonymous" className="aspect-square w-full object-cover" />}
             <p className="p-2 text-xs text-stone-400">The front</p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
@@ -560,9 +737,9 @@ export default function ResearchMakerPage() {
   }
 
   if (phase === 'survey') {
-    const q = SURVEY[sIndex];
+    const q = survey[sIndex];
     const value = answers[q.id] ?? '';
-    const isLast = sIndex === SURVEY.length - 1;
+    const isLast = sIndex === survey.length - 1;
     const advance = (v: string) => {
       const nextAnswers = { ...answers, [q.id]: v };
       setAnswers(nextAnswers);
@@ -611,7 +788,7 @@ export default function ResearchMakerPage() {
             </>
           )}
         </div>
-        <Dots count={SURVEY.length} at={sIndex} />
+        <Dots count={survey.length} at={sIndex} />
       </div>
     );
   }
@@ -626,7 +803,7 @@ export default function ResearchMakerPage() {
           <Button variant="outline" className="mt-8 h-11"
             onClick={() => {
               setPhase('questions'); setQIndex(0); setCells([]); setPicked(null); setInsideUrl(null);
-              setAnswers({}); setSIndex(0); setSubmitted(false); setRegenUsed(false);
+              setAnswers({}); setSIndex(0); setSubmitted(false); setRegenUsed(false); resetCameo();
             }}>
             Make one more
           </Button>

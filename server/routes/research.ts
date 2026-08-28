@@ -76,7 +76,9 @@ export function registerResearchRoutes(app: Express): void {
         // see the cards they see, plus the one they choose"). 25mb
         // body limit comfortably takes three fronts + an inside.
         imageUrl: z.string().optional(),
-      })).max(3).optional(),
+      // 3 fronts + optionally the painted-in cameo version (tagged by
+      // tone: 'cameo') — everything the tester saw.
+      })).max(4).optional(),
       picked_index: z.number().int().min(0).max(2).nullable().optional(),
       regen_used: z.boolean().optional(),
       pickedImageUrl: z.string().optional(),
@@ -95,10 +97,14 @@ export function registerResearchRoutes(app: Express): void {
         (body.cards ?? []).map((c, i) => storeImage(c.imageUrl, `card${i}`)),
       );
       const cardsStored = body.cards?.map(({ imageUrl: _drop, ...rest }, i) => ({ ...rest, image_path: cardPaths[i] })) ?? null;
+      // An explicit pickedImageUrl wins over the index — it's how the
+      // client says "they kept the cameo version, not the original".
       const [picked, inside] = await Promise.all([
-        body.picked_index != null && cardPaths[body.picked_index]
-          ? Promise.resolve(cardPaths[body.picked_index])
-          : storeImage(body.pickedImageUrl, 'front'),
+        body.pickedImageUrl
+          ? storeImage(body.pickedImageUrl, 'front')
+          : body.picked_index != null && cardPaths[body.picked_index]
+            ? Promise.resolve(cardPaths[body.picked_index])
+            : Promise.resolve(null),
         storeImage(body.insideImageUrl, 'inside'),
       ]);
       const [row] = await db.insert(researchResponses).values({
