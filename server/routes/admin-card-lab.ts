@@ -3218,6 +3218,10 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
        *  resolution. Print re-renders would use 'high'. */
       quality: z.enum(['low', 'medium', 'high']).default('low'),
       charm: z.boolean().default(false),
+      /** THE CAMEO (lab test, 2026-08-28): a reference photo of the
+       *  recipient — this card paints them INTO its world as an
+       *  illustrated character. One card per set, chosen client-side. */
+      cameoPhoto: z.string().startsWith('data:image/').max(12_000_000).optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -3242,7 +3246,8 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
       '',
       body.charm ? `CHARM LICENCE — this card may be naive hand-drawn ON PURPOSE: wobbly confident linework, simple shapes, imperfect edges as a chosen style that reads loved, never failed. An ordinary object given a simple face (dot eyes, one small mouth line) is welcome — always generic, never a character that exists. Script and hand-lettered type welcome — warmly imperfect rhythm, every glyph still clean-edged and legible. The against-the-AI-look rules still apply: this is a chosen craft, not sloppiness.` : '',
-      `ILLUSTRATION: ${body.art_direction}`,
+      body.cameoPhoto ? `⚠️ THE CAMEO — THE PERSON IN THE REFERENCE PHOTO IS THE CARD'S STAR. Paint THEM into this world as its central character, drawn in exactly the same flat illustrated style as everything else — never photoreal, never a pasted photo. LIKENESS IS THE WHOLE POINT: hold their real face shape, hairstyle and colour, skin tone, glasses or facial hair if present, and their vibe — a warm, recognisable portrait-as-illustration that would make someone who loves them grin. Adapt the scene so they belong in it, doing its thing.` : '',
+      `ILLUSTRATION: ${body.art_direction}${body.cameoPhoto ? ' — with the person from the reference photo as the central character, taking part.' : ''}`,
       named.length
         ? `⚠️ OVERRIDE — the brief above names ${named.join(', ')}, which belong to someone else's property and must NOT appear. Do not draw them in any form, however stylised, and do not draw a near-copy under another name. Replace each with an ORDINARY generic object from the same world that anyone could own, and keep everything else about the composition. The palette and mood carry the reference; the protected objects do not.`
         : '',
@@ -3262,6 +3267,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       const provider = getProvider(providerId);
       const result = await provider.generate({
         prompt,
+        referenceImageBase64: body.cameoPhoto,
         quality: body.quality,
         size: '1024x1024',
         slot: 'card_lab',
