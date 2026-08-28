@@ -224,6 +224,9 @@ export default function AdminOccasionStudioPage() {
    *  ONE card of the three paints them in as an illustrated character.
    *  Lab-only for now; likeness quality is exactly what we're testing. */
   const [cameoPhoto, setCameoPhoto] = useState<string | null>(null);
+  /** ×1 = one card of the set carries the likeness (the product shape);
+   *  ×3 = every card does, type-led included — a lab-only A/B/C. */
+  const [cameoAll, setCameoAll] = useState(false);
   const onCameoFile = (f: File | null) => {
     if (!f) { setCameoPhoto(null); return; }
     const reader = new FileReader();
@@ -404,8 +407,9 @@ export default function AdminOccasionStudioPage() {
       // (Generations are logged server-side by /concepts — logging here
       // too would double the keep-rate denominator.)
       // The cameo lands on exactly ONE card — the first that isn't
-      // type-only (a cameo on a text-only card is nothing).
-      const cameoAt = cameoPhoto
+      // type-only (a cameo on a text-only card is nothing) — unless ×3
+      // is on, where every card carries it, type-led included.
+      const cameoAt = cameoPhoto && !cameoAll
         ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
         : -1;
       await Promise.all(concepts.map(async (c, i) => {
@@ -413,7 +417,7 @@ export default function AdminOccasionStudioPage() {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
             front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
             typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle, charm,
-            ...(i === cameoAt ? { cameoPhoto } : {}),
+            ...(cameoPhoto && (cameoAll || i === cameoAt) ? { cameoPhoto } : {}),
           });
           const rj = await rr.json();
           setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
@@ -730,8 +734,12 @@ export default function AdminOccasionStudioPage() {
             {cameoPhoto ? (
               <>
                 <img src={cameoPhoto} alt="cameo" className="h-4 w-4 rounded-full object-cover" />
-                cameo on
-                <button type="button" onClick={(e) => { e.preventDefault(); setCameoPhoto(null); }} className="ml-0.5 text-stone-400 hover:text-stone-600">×</button>
+                <button type="button" title="How many of the three carry the likeness"
+                  onClick={(e) => { e.preventDefault(); setCameoAll((v) => !v); }}
+                  className="font-medium hover:underline">
+                  {cameoAll ? 'cameo ×3' : 'cameo ×1'}
+                </button>
+                <button type="button" onClick={(e) => { e.preventDefault(); setCameoPhoto(null); setCameoAll(false); }} className="ml-0.5 text-stone-400 hover:text-stone-600">×</button>
               </>
             ) : (
               '+ Photo cameo'
