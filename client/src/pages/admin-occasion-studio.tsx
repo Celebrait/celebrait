@@ -111,6 +111,10 @@ interface Cell {
   /** Rendered lazily, only when a print file is asked for — every
    *  inside costs a generation and most cards never need one. */
   insideUrl?: string; printing?: boolean;
+  /** "Put them in" — the same recipe re-rendered with the cameo photo.
+   *  Held BESIDE imageUrl, never in it: keep/print always use the
+   *  original, so a real face can never be saved as stock. */
+  cameoUrl?: string; cameoBusy?: boolean; showCameo?: boolean;
 }
 /** `recipient` was always stored and always returned — the templates
  *  route does a bare select() — it just was not declared here, which is
@@ -520,6 +524,32 @@ export default function AdminOccasionStudioPage() {
     }
   };
 
+  /** "PUT THEM IN" — the feature being tested for the maker (Aidan,
+   *  2026-08-28): re-render THIS card's exact recipe with the cameo
+   *  photo, then flip between the two in place. The flip is the test:
+   *  does it read as "your card, now with them in it", or as a
+   *  different card that stole the caption? */
+  const putThemIn = async (i: number) => {
+    const cell = cells[i];
+    if (!cell?.imageUrl || !cameoPhoto || cell.cameoBusy) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: true } : x)));
+    try {
+      const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
+        front_text: cell.concept.front_text, art_direction: cell.concept.art_direction,
+        palette: cell.concept.palette, typeface: cell.concept.typeface,
+        format: cell.concept.format ?? 'hero', characters, freeStyle, charm,
+        cameoPhoto,
+      });
+      const rj = await rr.json();
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false, cameoUrl: rj.imageUrl, showCameo: true } : x)));
+      const n = parseFloat(String(rj.costUsd ?? '').replace('$', ''));
+      if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+    } catch (e: any) {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false } : x)));
+      toast({ title: 'Couldn’t paint them in', description: e?.message ?? 'Try again', variant: 'destructive' });
+    }
+  };
+
   /** `editable` is the card's own nature, decided here because here is
    *  where it is being looked at. Artwork-carried card → editable, the
    *  customer's words go on it. One-perfect-line card → fixed, sold as
@@ -786,7 +816,7 @@ export default function AdminOccasionStudioPage() {
             <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="aspect-square bg-stone-50">
                 {c.imageUrl
-                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  ? <img src={c.showCameo && c.cameoUrl ? c.cameoUrl : c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
                   : c.error
                     ? <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-red-600">
                         <span>{c.error}</span>
@@ -798,6 +828,25 @@ export default function AdminOccasionStudioPage() {
                     : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}
               </div>
               <div className="space-y-2 p-3">
+                {/* The "put them in" test: button until it renders, then a
+                    flip — flipping in place is how you judge "same card?" */}
+                {cameoPhoto && c.imageUrl && !c.cameoUrl && (
+                  <button type="button" onClick={() => putThemIn(i)} disabled={c.cameoBusy}
+                    className="w-full rounded-md border border-brand/40 bg-brand-muted/30 px-2 py-1.5 text-[11px] font-medium text-brand-dark transition-colors hover:border-brand disabled:opacity-60">
+                    {c.cameoBusy ? 'Painting them in…' : 'Put them in this one'}
+                  </button>
+                )}
+                {c.cameoUrl && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([[false, 'Original'], [true, 'With them']] as const).map(([v, l]) => (
+                      <button key={l} type="button" onClick={() => setCells((prev) => prev.map((x, j) => (j === i ? { ...x, showCameo: v } : x)))}
+                        className={`rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                          (c.showCameo ?? false) === v ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{(c.concept as any).tone ? `${(c.concept as any).tone} · ` : ''}{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>
                 {c.concept.direction && (
