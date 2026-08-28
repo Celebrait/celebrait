@@ -359,7 +359,7 @@ export default function AdminCardLabPage() {
                 onClick={() => { if (o.imageUrl) { setChosen(i); setStep(3); } }}
                 className="group rounded-xl border border-stone-200 bg-white overflow-hidden text-left shadow-sm hover:border-brand hover:shadow-md disabled:cursor-wait transition-all">
                 <div className="aspect-square bg-stone-50 relative">
-                  {o.imageUrl ? <img src={o.imageUrl} alt={o.concept.front_text} className="h-full w-full object-cover" />
+                  {o.imageUrl ? <img src={o.imageUrl} alt={o.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
                     : o.error ? <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-red-500">{o.error}</div>
                     : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
                         <Loader2 className="w-6 h-6 animate-spin" /><span className="text-[11px]">painting…</span>
@@ -410,7 +410,7 @@ export default function AdminCardLabPage() {
                 ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-stone-400">
                     <Loader2 className="w-6 h-6 animate-spin" /><span className="text-[11px]">painting…</span>
                   </div>
-                : <img src={card.imageUrl} alt={card.concept.front_text} className="h-full w-full object-cover" />}
+                : <img src={card.imageUrl} alt={card.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />}
             </div>
           </div>
           <div className="space-y-4">
@@ -471,7 +471,7 @@ export default function AdminCardLabPage() {
         <div className="grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-stone-200 bg-white overflow-hidden shadow-sm">
             <p className="bg-stone-50 px-3 py-1.5 text-[10px] uppercase tracking-wider text-stone-400">your front</p>
-            <img src={card.imageUrl} alt="" className="w-full" />
+            <img src={card.imageUrl} alt="" crossOrigin="anonymous" className="w-full" />
           </div>
           <div className="space-y-4">
             <div>
@@ -528,12 +528,12 @@ export default function AdminCardLabPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-stone-200 overflow-hidden">
               <p className="bg-stone-50 px-2 py-1 text-[10px] uppercase tracking-wider text-stone-400">front</p>
-              <img src={card.imageUrl} alt="" className="w-full" />
+              <img src={card.imageUrl} alt="" crossOrigin="anonymous" className="w-full" />
             </div>
             {insideUrl && (
               <div className="rounded-lg border border-stone-200 overflow-hidden">
                 <p className="bg-stone-50 px-2 py-1 text-[10px] uppercase tracking-wider text-stone-400">inside</p>
-                <img src={insideUrl} alt="" className="w-full" />
+                <img src={insideUrl} alt="" crossOrigin="anonymous" className="w-full" />
               </div>
             )}
           </div>

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { ThumbImg } from '@/components/thumb-img';
 
 interface LiveRender { id: number; created_at: string; kind: string; front_text: string | null; imageUrl: string | null }
 
@@ -91,10 +92,10 @@ export default function AdminResearchPage() {
           <div className="mt-4 grid gap-4 sm:grid-cols-[200px_1fr]">
             <div className="space-y-2">
               {r.pickedImageUrl
-                ? <img src={r.pickedImageUrl} alt="picked front" crossOrigin="anonymous" className="aspect-square w-full rounded-lg border border-stone-100 object-cover" />
+                ? <ThumbImg src={r.pickedImageUrl} alt="picked front" className="aspect-square w-full rounded-lg border border-stone-100 object-cover" />
                 : <div className="flex aspect-square items-center justify-center rounded-lg bg-stone-50 text-xs text-stone-400">no pick saved</div>}
               {r.insideImageUrl && (
-                <img src={r.insideImageUrl} alt="inside" crossOrigin="anonymous" className="aspect-square w-full rounded-lg border border-stone-100 object-cover" />
+                <ThumbImg src={r.insideImageUrl} alt="inside" className="aspect-square w-full rounded-lg border border-stone-100 object-cover" />
               )}
             </div>
             <div className="space-y-3">
@@ -102,7 +103,7 @@ export default function AdminResearchPage() {
                 <div className="flex gap-2">
                   {r.cards.map((c, i) => c.imageUrl ? (
                     <div key={i} className={`relative w-24 overflow-hidden rounded-md border-2 ${i === r.picked_index ? 'border-brand' : 'border-transparent opacity-70'}`}>
-                      <img src={c.imageUrl} alt={c.front_text} crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+                      <ThumbImg src={c.imageUrl} alt={c.front_text} className="aspect-square w-full object-cover" />
                       {i === r.picked_index && <span className="absolute right-1 top-1 rounded bg-white/90 px-1 text-[10px] font-bold text-brand">★</span>}
                     </div>
                   ) : null)}
@@ -141,7 +142,7 @@ export default function AdminResearchPage() {
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6">
             {renders.map((r) => (
               <div key={r.id} className="group relative overflow-hidden rounded-md border border-stone-100">
-                {r.imageUrl && <img src={r.imageUrl} alt={r.front_text ?? r.kind} crossOrigin="anonymous" loading="lazy" className="aspect-square w-full object-cover" />}
+                {r.imageUrl && <ThumbImg src={r.imageUrl} alt={r.front_text ?? r.kind} className="aspect-square w-full object-cover" />}
                 <div className="absolute inset-x-0 bottom-0 hidden bg-black/60 p-1 group-hover:block">
                   <p className="line-clamp-2 text-[10px] leading-tight text-white">{r.kind === 'inside' ? '(inside) ' : ''}{r.front_text ?? ''}</p>
                 </div>

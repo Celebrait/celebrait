@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThumbImg } from '@/components/thumb-img';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -90,7 +91,7 @@ export default function AdminCardTemplatesPage() {
             <div key={t.id} className="group overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="aspect-square bg-stone-50">
                 {/* crossOrigin: card-image rule — see project_3d_card_cors_cache_poisoning */}
-                <img src={t.imageUrl} alt={t.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                <ThumbImg src={t.imageUrl} alt={t.front_text} className="h-full w-full object-cover" />
               </div>
               <div className="space-y-1 p-3">
                 <div className="flex items-start justify-between gap-2">

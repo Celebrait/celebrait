@@ -98,7 +98,11 @@ export async function r2Put(
   const res = await client().fetch(objectUrl(key), {
     method: 'PUT',
     body: new Uint8Array(body),
-    headers: { 'content-type': contentType },
+    // Every key is content-addressed (uuid / imageKey names, never
+    // rewritten in place) so a year-long immutable edge cache is safe —
+    // measured 2026-08-28: the zone default was 4h, so the long tail of
+    // catalogue images was a perpetual CDN MISS (0.46s vs 0.11s TTFB).
+    headers: { 'content-type': contentType, 'cache-control': 'public, max-age=31536000, immutable' },
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

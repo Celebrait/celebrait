@@ -11,6 +11,8 @@
 // (150–300px) the fold reads correctly — the 80px failures that
 // justified WebGL were thumbnail-scale.
 
+import { ThumbImg } from '@/components/thumb-img';
+
 interface AjarTileProps {
   imageUrl: string;
   alt: string;
@@ -30,11 +32,9 @@ export function AjarTile({ imageUrl, alt }: AjarTileProps) {
             '2px 4px 14px rgba(33,29,25,0.18), 8px 14px 32px -12px rgba(33,29,25,0.28)',
         }}
       >
-        <img
+        <ThumbImg
           src={imageUrl}
           alt={alt}
-          loading="lazy"
-          crossOrigin="anonymous"
           className="h-full w-full object-cover"
         />
         {/* Cover sheen — the fold catching the light. */}

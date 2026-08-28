@@ -179,7 +179,7 @@ img{width:100%;display:block}figcaption{padding:10px 12px;display:flex;flex-dire
 <h1>Card bench${rude ? ' — rude mode' : ''}</h1>
 <p class="sub">build ${esc(build?.commit ?? 'unknown')} · ${esc(ranAt ?? '')} · $${spendUsd.toFixed(3)}</p>
 <div class="grid">${cells.map((c) => `<figure>
-${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>'}
+${c.imageUrl ? `<img src="${c.imageUrl}" crossorigin="anonymous">` : '<div style="aspect-ratio:1"></div>'}
 <figcaption><span class="angle">${esc(c.concept.angle)}</span>
 <strong>&ldquo;${esc(c.concept.front_text)}&rdquo;</strong>
 <span class="meta">${esc(c.briefLabel)}</span>
@@ -257,7 +257,7 @@ ${c.imageUrl ? `<img src="${c.imageUrl}">` : '<div style="aspect-ratio:1"></div>
             <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="aspect-square bg-stone-50">
                 {c.imageUrl
-                  ? <img src={c.imageUrl} alt={c.concept.front_text} className="h-full w-full object-cover" />
+                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
                   : c.error
                     ? <div className="flex h-full items-center justify-center p-3 text-center text-xs text-red-600">{c.error}</div>
                     : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}

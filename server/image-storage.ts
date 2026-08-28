@@ -3,7 +3,7 @@ import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
 import { isR2Enabled, r2Put, r2Get, r2Copy, r2PublicUrl, r2DeleteByPrefix } from './r2-storage';
 
-const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
+export const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
 const TEMP_DIR = path.join(process.cwd(), 'temp_images');
 
 /**
@@ -125,6 +125,42 @@ async function storeDisplayWebpSibling(
   } catch (err) {
     // Never fatal — the viewer falls back to the PNG.
     console.warn(`[STORAGE] display webp skipped for ${pngFilename}:`, (err as Error)?.message ?? err);
+  }
+  // THE THUMB TIER (2026-08-28, "images loading slow" — measured 1.4MB
+  // PNGs behind 250px catalogue tiles). Same sibling pattern, grid-sized.
+  await storeThumbSibling(pngFilename, imageBuffer);
+}
+
+/** `<base>.png` → `<base>_t.webp` — the GRID tier (~512px, q78, tens of
+ *  KB). Catalogue tiles, studio thumbnails and admin grids load this;
+ *  product pages, 3D textures and print keep the full asset. Best-effort
+ *  like the display webp — a miss just means the client's onError falls
+ *  back to the PNG. */
+export function thumbFilename(pngFilename: string): string {
+  return pngFilename.replace(/\.png$/i, '_t.webp');
+}
+export async function storeThumbSibling(
+  pngFilename: string,
+  imageBuffer: Buffer,
+): Promise<boolean> {
+  if (!/\.png$/i.test(pngFilename)) return false;
+  try {
+    const { default: sharp } = await import('sharp');
+    const thumb = await sharp(imageBuffer)
+      .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 78 })
+      .toBuffer();
+    const name = thumbFilename(pngFilename);
+    if (isR2Enabled()) {
+      await r2Put(name, thumb, 'image/webp');
+    } else {
+      await fs.writeFile(path.join(IMAGES_DIR, name), thumb);
+    }
+    console.log(`[STORAGE] thumb ${name} (${thumb.length} bytes)`);
+    return true;
+  } catch (err) {
+    console.warn(`[STORAGE] thumb skipped for ${pngFilename}:`, (err as Error)?.message ?? err);
+    return false;
   }
 }
 
