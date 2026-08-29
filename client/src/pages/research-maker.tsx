@@ -33,9 +33,9 @@ async function researchPost(path: string, body: unknown): Promise<any> {
 }
 
 // ── Question config (mirrors the guided maker) ───────────────────────
-type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
+type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name' | 'photo';
 type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name'];
+const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name', 'photo'];
 
 const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
@@ -139,11 +139,18 @@ export default function ResearchMakerPage() {
   const [cameoUrl, setCameoUrl] = useState<string | null>(null);      // the painted-in version
   const [cameoBusy, setCameoBusy] = useState(false);
   const [cameoKept, setCameoKept] = useState<boolean | null>(null);   // their choice between the two
+  /** In-set cameo (photo given UP FRONT, Aidan 2026-08-29): which card
+   *  index carries the likeness, or null. The pick screen is then the
+   *  head-to-head — does the cameo card WIN against clean cards? */
+  const [cameoInSet, setCameoInSet] = useState<number | null>(null);
   const [cameoError, setCameoError] = useState('');
   const resetCameo = () => { setCameoSrc(null); setCameoPhoto(null); setCameoUrl(null); setCameoBusy(false); setCameoKept(null); setCameoError(''); };
   /** The cameo question joins the survey only for testers who saw both
    *  versions — everyone else gets the original six. */
-  const survey = useMemo<SurveyQ[]>(() => (cameoUrl ? [SURVEY[0], CAMEO_Q, ...SURVEY.slice(1)] : SURVEY), [cameoUrl]);
+  const survey = useMemo<SurveyQ[]>(
+    () => (cameoUrl || cameoInSet !== null ? [SURVEY[0], CAMEO_Q, ...SURVEY.slice(1)] : SURVEY),
+    [cameoUrl, cameoInSet],
+  );
 
   /** Read a photo file → downscaled data URL (long edge ≤1600px), so a
    *  12MB phone photo never travels. Mirrors the studio's helper. */
@@ -248,7 +255,7 @@ export default function ResearchMakerPage() {
    *  to be considered properly). Inserted after the mention question. */
   const questions = useMemo<QuestionKey[]>(
     () => (vibe && DISLIKE_ON.includes(vibe)
-      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name']
+      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name', 'photo']
       : BASE_QUESTIONS),
     [vibe],
   );
@@ -289,7 +296,10 @@ export default function ResearchMakerPage() {
     localStorage.setItem(SETS_KEY, String(setsUsed() + 1));
     if (isRegen) setRegenUsed(true);
     setPhase('generating');
-    setCells([]); setPicked(null); setInsideUrl(null); resetCameo();
+    setCells([]); setPicked(null); setInsideUrl(null);
+    // The PHOTO is part of the brief now, so it survives regens — only
+    // the after-pick derivations reset.
+    setCameoUrl(null); setCameoKept(null); setCameoError(''); setCameoInSet(null);
     try {
       const j = await researchPost('concepts', {
         occasion: ageNum !== null ? `${ageNum}th Birthday` : 'Birthday',
@@ -304,9 +314,15 @@ export default function ResearchMakerPage() {
       });
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back — try again');
+      // The lab's ×1 rule: the cameo lands on the first card that isn't
+      // type-only — a likeness on a text-only card is nothing.
+      const cameoAt = cameoPhoto
+        ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
+        : -1;
+      setCameoInSet(cameoAt >= 0 ? cameoAt : null);
       setCells(concepts.map((c) => ({ concept: c })));
       setPhase('pick');
-      await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      await Promise.all(concepts.map((c, i) => renderCell(i, c, i === cameoAt)));
     } catch (e: any) {
       setPhase('questions');
       setQIndex(questions.length - 1);
@@ -314,11 +330,12 @@ export default function ResearchMakerPage() {
     }
   };
 
-  const renderCell = async (i: number, c: Concept) => {
+  const renderCell = async (i: number, c: Concept, withCameo = false) => {
     try {
       const rj = await researchPost('render', {
         front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
         typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true,
+        ...(withCameo && cameoPhoto ? { cameoPhoto } : {}),
       });
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined } : x)));
     } catch {
@@ -380,7 +397,11 @@ export default function ResearchMakerPage() {
           interest: interest.trim() || null, dislike: dislike.trim() || null, name: name.trim() || null,
         },
         cards: [
-          ...cells.map((c) => ({ front_text: c.concept.front_text, tone: c.concept.tone, angle: c.concept.angle, imageUrl: c.imageUrl })),
+          ...cells.map((c, i) => ({
+            front_text: c.concept.front_text, tone: c.concept.tone,
+            angle: i === cameoInSet ? `${c.concept.angle ?? ''} · cameo`.trim() : c.concept.angle,
+            imageUrl: c.imageUrl,
+          })),
           // The painted-in version travels too — it's half the experiment.
           ...(cameoUrl && picked !== null
             ? [{ front_text: cells[picked].concept.front_text, tone: 'cameo', angle: 'painted-in cameo', imageUrl: cameoUrl }]
@@ -392,7 +413,13 @@ export default function ResearchMakerPage() {
         insideImageUrl: insideUrl ?? undefined,
         answers: {
           ...finalAnswers,
-          ...(cameoUrl ? { cameo_used: 'yes', cameo_kept: cameoKept ? 'yes' : 'no' } : {}),
+          // Two experiment arms: in-set (photo up front, did the cameo
+          // card WIN the pick?) vs after-pick (did they keep it?).
+          ...(cameoInSet !== null
+            ? { cameo_used: 'yes', cameo_arm: 'in-set', cameo_kept: picked === cameoInSet ? 'yes' : 'no' }
+            : cameoUrl
+              ? { cameo_used: 'yes', cameo_arm: 'after-pick', cameo_kept: cameoKept ? 'yes' : 'no' }
+              : {}),
         },
       });
       setSubmitted(true);
@@ -442,7 +469,7 @@ export default function ResearchMakerPage() {
           front and inside, ready to print and post.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-stone-600">
-          Today you're one of the first people outside the building to try it. Answer five
+          Today you're one of the first people outside the building to try it. Answer a few
           quick questions about someone with a birthday coming up, pick your favourite of
           the three, and then tell us honestly what you thought — about two minutes
           of making, one minute of questions.
@@ -494,7 +521,13 @@ export default function ResearchMakerPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {cells.map((c, i) => (
             <button key={i} type="button" disabled={!c.imageUrl}
-              onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); resetCameo(); setPhase('cameo'); }}
+              onClick={() => {
+                setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own');
+                // Photo given up front → the cameo already competed in
+                // the pick; straight on. No photo → offer it now.
+                if (cameoInSet !== null || cameoPhoto) { setPhase('signoff'); }
+                else { setCameoUrl(null); setCameoKept(null); setCameoError(''); setPhase('cameo'); }
+              }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
                 picked === i ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
               <div className="relative aspect-square bg-stone-100">
@@ -803,7 +836,7 @@ export default function ResearchMakerPage() {
           <Button variant="outline" className="mt-8 h-11"
             onClick={() => {
               setPhase('questions'); setQIndex(0); setCells([]); setPicked(null); setInsideUrl(null);
-              setAnswers({}); setSIndex(0); setSubmitted(false); setRegenUsed(false); resetCameo();
+              setAnswers({}); setSIndex(0); setSubmitted(false); setRegenUsed(false); resetCameo(); setCameoInSet(null);
             }}>
             Make one more
           </Button>
@@ -919,13 +952,61 @@ export default function ResearchMakerPage() {
             {name.trim() && <p className="mt-2 text-xs font-medium text-amber-700">It’ll be printed exactly as you type it — worth a double-check.</p>}
           </>
         )}
+
+        {question === 'photo' && (
+          <>
+            <h1 className="text-2xl font-semibold text-stone-800">
+              Got a photo of them?
+              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">brand new</span>
+            </h1>
+            <p className="mt-2 text-sm text-stone-500">
+              One of your three cards will paint them right into the artwork — everyone in
+              the photo, just as they are, in the card's own style. A group photo works too.
+              Or skip it and all three stay illustration-only.
+            </p>
+            {cameoError && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{cameoError}</p>}
+            {cameoPhoto ? (
+              <div className="mt-6 flex items-center gap-3 rounded-xl border border-brand/40 bg-brand-muted/30 p-3">
+                <img src={cameoPhoto} alt="their photo" className="h-14 w-14 rounded-lg object-cover" />
+                <span className="text-sm font-medium text-stone-700">In they go.</span>
+                <button type="button" onClick={() => { setCameoPhoto(null); }}
+                  className="ml-auto text-sm text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline">Remove</button>
+              </div>
+            ) : (
+              <label className="mt-6 block">
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void readCameoFile(f).then(setCameoSrc);
+                    e.target.value = '';
+                  }} />
+                <span className="flex h-12 w-full cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white text-base font-medium text-stone-700 transition-colors hover:border-brand">
+                  Add a photo
+                </span>
+              </label>
+            )}
+            <p className="mt-3 text-xs text-stone-400">We save the finished card artwork to review — never your photo itself.</p>
+            <CropDialog
+              src={cameoSrc}
+              autoFace={false}
+              onCancel={() => setCameoSrc(null)}
+              onConfirm={(bounds) => {
+                const src = cameoSrc;
+                setCameoSrc(null);
+                if (!src) return;
+                void cropToDataUrl(src, bounds).then(setCameoPhoto)
+                  .catch(() => setCameoError('That photo wouldn’t crop — try another one.'));
+              }}
+            />
+          </>
+        )}
       </div>
 
       <div className="pb-4">
         <Button className="h-12 w-full text-base" disabled={!canNext} onClick={next}>
           {qIndex === questions.length - 1 ? 'Make their card' : 'Next'}
         </Button>
-        {(question === 'dislike' || question === 'name') && (
+        {(question === 'dislike' || question === 'name' || (question === 'photo' && !cameoPhoto)) && (
           <Button variant="outline" className="mt-3 h-12 w-full text-base" onClick={next}>
             Skip this one
           </Button>
