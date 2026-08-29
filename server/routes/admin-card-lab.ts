@@ -1538,7 +1538,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words or artwork — whatever else the brief carries.
   if (opts?.occasionKey && opts.occasionKey !== 'birthday') {
     const OCC_WORLD: Record<string, RegExp> = {
-      'christmas': /christmas|xmas|festive|stocking|tinsel|bauble|advent|mistletoe|sleigh|nativit|carol|wreath|december 25|yule/i,
+      'christmas': /christmas|xmas|festive|stocking|tinsel|bauble|advent|mistletoe|sleigh|nativit|carol|wreath|december|yule|snow|holly|robin|mince pie|mulled|cracker|turkey|santa|reindeer|elf\b|elves|eggnog|gingerbread|candy cane|fairy lights|pigs in blankets|sprouts?\b/i,
       "mother's day": /mother'?s day|mothering sunday|\bmum\b|\bmam\b/i,
       "father's day": /father'?s day|\bdad\b/i,
       "valentine's day": /valentine|be mine|\bmy love\b/i,
@@ -1561,8 +1561,16 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     };
     const re = OCC_WORLD[opts.occasionKey];
     if (re) {
-      const n = cards.filter((c, i) => re.test(fronts[i]) || re.test(arts[i]) || re.test(String(c.inside_text ?? ''))).length;
-      if (n === 0) v.push(`occasion-missing: not one card lands ${opts.occasionKey} — whatever else the brief gives you, at least one card must unmistakably be a ${opts.occasionKey} card in its words or artwork`);
+      // PER CARD, not per set (Aidan 2026-08-30, telly-listings set:
+      // "Left 2, zero Xmas?"). This is stock for the occasion's rack
+      // and every card sells ALONE — one card carrying the greeting
+      // cannot excuse its siblings from the season. The signal must be
+      // FUSED (the world's light, one of its objects folded into the
+      // kit, or the words) — the stapled-prop ban stands unchanged.
+      cards.forEach((c, i) => {
+        if (!(re.test(fronts[i]) || re.test(arts[i]) || re.test(String(c.inside_text ?? ''))))
+          v.push(`occasion-missing: card ${i + 1} never lands ${opts.occasionKey} in its words or artwork — it sells alone on the ${opts.occasionKey} rack, and right now it could be any week of the year; fold the season into its own world (its light, one of its objects in the kit, or the words), never a stapled prop`);
+      });
     }
     // And the AGE is context here, never the subject: a numeral built
     // large in the ARTWORK is the age shouting on the wrong occasion
@@ -1630,7 +1638,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words that describe every art direction are stoplisted; what's
   // left is subject matter, and a subject appears on ONE card per set.
   {
-    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered'].map((w) => w));
+    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly'].map((w) => w));
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
       new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
