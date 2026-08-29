@@ -211,6 +211,15 @@ const MOTIF_WITH_ANIMALS =
  *  cameo existed, and left in place they win the tug-of-war — observed
  *  2026-08-29: a sunset-swim cameo rendered acres of empty sea, no
  *  person at all. */
+/** Type-led and statement compositions are person-hostile by spec (the
+ *  type IS the card / 60% empty ground) and they BEAT the cameo when
+ *  both run — observed: 'put them in' on a type-led card returned pure
+ *  typography, nobody in it. When a photo rides one of those formats,
+ *  the composition flexes to the type-plus-portrait poster instead:
+ *  the words keep the card, the people join it. */
+const CAMEO_TYPE_PLUS_THEM =
+  `COMPOSITION — THE WORDS, AND THEM: this card keeps its typographic soul — big, confident stacked type does the talking, set exactly as a type-led card would set it — but the frame is SHARED with one large illustrated subject: the people from the reference photo at portrait scale, beneath or beside the stacked lines, the way a bold editorial poster pairs a headline with its star. Type first, them second, NOTHING else: flat ground in the card's own palette, no scene-building, no props, no clutter. The people are drawn in the same graphic voice as the type — flat, confident, edited.`;
+
 const MOTIF_CAMEO =
   `THE PEOPLE FROM THE REFERENCE PHOTO ARE THE SUBJECT OF THIS CARD — EXACTLY those people, and only them: count the people in the photo and paint that many, never an invented extra (whatever the words imply), never one dropped. THE FACE IS THE LIKENESS and it is locked: features, hairstyle and colour, skin tone, glasses, facial hair — recognisable at a glance, drawn in the card's own medium, simplified to the level that medium works at, never photographic, never semi-photographic skin or wet glossy eyes. THE REST IS THE SCENE'S: clothing, pose, activity and expression all come from this card's world and mood — they are CAUGHT MID-ACTION doing this world's thing, composed close like a sports poster (the move coming toward the viewer, face large), never standing beside the activity or watching it from the rail. Around them: objects, food, drink, the kit of this world. This card IS the photo product; the usual no-people and never-the-recipient rules do not apply here.`;
 
@@ -3253,7 +3262,9 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
     const prompt = [
       body.freeStyle ? freeStyleDna(body.characters, !!body.cameoPhoto) : quirkyDna(body.characters, !!body.cameoPhoto),
       '',
-      QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
+      body.cameoPhoto && (body.format === 'typeled' || body.format === 'statement')
+        ? CAMEO_TYPE_PLUS_THEM
+        : QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
       '',
       body.charm ? `CHARM LICENCE — this card may be naive hand-drawn ON PURPOSE: wobbly confident linework, simple shapes, imperfect edges as a chosen style that reads loved, never failed. An ordinary object given a simple face (dot eyes, one small mouth line) is welcome — always generic, never a character that exists. Script and hand-lettered type welcome — warmly imperfect rhythm, every glyph still clean-edged and legible. The against-the-AI-look rules still apply: this is a chosen craft, not sloppiness.` : '',
       body.cameoPhoto ? `⚠️ THE CAMEO — THE PEOPLE IN THE REFERENCE PHOTO ARE THE CARD'S STARS, PAINTED INTO ITS WORLD AS FULL PARTICIPANTS. THE FACE IS SACRED: each person's face is a faithful illustrated likeness — face shape and features, hairstyle and colour, skin tone, glasses or facial hair — instantly recognisable to someone who loves them, drawn in the card's own flat style, never photoreal. EVERYTHING BELOW THE CHIN BELONGS TO THE SCENE: dress them for this world, and paint them CAUGHT IN THE ACT of its activity — mid-glide, mid-cast, mid-pour, whatever this world does — never standing beside it, never leaning on the barrier watching, never posing for the camera while the activity happens behind them. Their clothes, posture and expression come from the card, not from the photo. COMPOSE THE ACTION CLOSE, the way a sports poster does: the move comes TOWARD the viewer so the face stays large while the body is genuinely doing the thing — action at portrait distance, not action far away. EVERYONE in the photo appears; never drop, add or swap anyone. PORTRAIT SCALE, ALWAYS: faces big enough to recognise across a room — never a distant figure, never turned away, never a silhouette. A likeness nobody can see is a failed card.` : '',
