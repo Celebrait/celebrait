@@ -1397,6 +1397,22 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       if (rudeCount < 2) v.push('rude-register: only one front carries any swearing — the hero swears properly and at least one more front carries a mild (bloody/bollocks/arse); the third may live on innuendo but never reads merely festive');
     }
   }
+  // ⚠️ NO SWEAR WORD ON TWO FRONTS OF ONE SET — IN CODE. The engines
+  // fixed joke variety; vocabulary variety needs its own floor or the
+  // same word becomes the set's tic (observed: bollocks on two of
+  // three, first bench after the engines shipped).
+  if (b.cheeky || opts?.rudeSlot !== undefined) {
+    const LEX = /\b[fsc]\*{2,}[a-z'’]*|\b(?:bloody|bollocks?|arsed?|bastards?|pricks?|twats?|damn(?:ed)?|hell|bitch(?:es)?|sod(?:ding)?|crap(?:py)?|piss(?:ed|ing)?|knob(?:head)?s?|shite)\b/gi;
+    const stem = (w: string) => w.toLowerCase().replace(/(?:ed|ing|es|s)$/,'');
+    const seen = new Map<string, number>();
+    fronts.forEach((f, i) => {
+      const lexemes = Array.from(new Set((f.match(LEX) ?? []).map(stem)));
+      for (const l of lexemes) {
+        if (seen.has(l)) v.push(`swear-variety: "${l}" appears on cards ${seen.get(l)! + 1} and ${i + 1} — the same swear twice reads as a tic, not a register; three rude cards draw from different corners of the vocabulary`);
+        else seen.set(l, i);
+      }
+    });
+  }
   // ⚠️ ONE CARD SAYS MERRY CHRISTMAS — IN CODE (Aidan: "some kinda
   // wording is required here at least 1x"). Straight or riffed
   // (Merry Winemas / Merry Bollocks Christmas) both count.
@@ -1928,6 +1944,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // rather than read from the static profile table.
     // Interest OR age — one of them has to carry the card.
     const statedAgeValue = body.age ?? statedAge(body.occasion);
+    // The UI promises "rude is off under 18 — this will generate clean",
+    // but until 2026-08-30 only the UI enforced it; a direct call with
+    // tone=rude and a child's age dealt rude engines straight into the
+    // child age-band brief. The server now keeps the promise itself.
+    if (statedAgeValue !== null && statedAgeValue < 18 && body.tone === 'rude') body.tone = 'funny';
     const interestText = body.interest?.trim() ?? '';
     // ⚠️ FULLY BLANK IS A VALID CUSTOMER ON V2 — the GENERIC ROLL
     // (audit: "a random roll can go and just say happy birthday").
@@ -2320,8 +2341,16 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // deals a single engine to its rude slot. Shuffled so the roast
         // isn't always card one.
         const rudeMechKeys = Object.keys(RUDE_MECHS).sort(() => Math.random() - 0.5);
+        // ⚠️ The enforced-swear slot (mix's lone rude card, the christmas
+        // hero) is REQUIRED by code floor to carry a real masked swear —
+        // the swear-light INNUENDO engine can never land there or the
+        // writer gets contradictory orders and the repair round fights
+        // itself. Four engines, three slots: innuendo swaps to the bench.
+        if (xmasHero !== null && rudeMechKeys[xmasHero] === 'innuendo') {
+          [rudeMechKeys[xmasHero], rudeMechKeys[3]] = [rudeMechKeys[3], rudeMechKeys[xmasHero]];
+        }
         const rudeMechFor = (i: number): string | undefined => {
-          if (mixTones) return mixTones[i] === 'rude' ? rudeMechKeys[0] : undefined;
+          if (mixTones) return mixTones[i] === 'rude' ? rudeMechKeys.find((k) => k !== 'innuendo') : undefined;
           return body.tone === 'rude' ? rudeMechKeys[i % rudeMechKeys.length] : undefined;
         };
         const slots = v2Angles.map((a, i) => ({ angle: a,
