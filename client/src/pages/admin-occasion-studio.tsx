@@ -414,8 +414,13 @@ export default function AdminOccasionStudioPage() {
       // type-only (a cameo on a text-only card is nothing) — unless ×3
       // is on, where every card carries it, type-led included.
       const cameoAt = cameoPhoto && !cameoAll
-        ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
+        ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only|statement/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
         : -1;
+      if (cameoPhoto) {
+        // Mark the dealt card(s) so the grid says which render carries
+        // them — an invisible deal made the sunset-swim set unreadable.
+        setCells((prev) => prev.map((x, i) => (cameoAll || i === cameoAt ? { ...x, dealtCameo: true } : x)));
+      }
       await Promise.all(concepts.map(async (c, i) => {
         try {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {

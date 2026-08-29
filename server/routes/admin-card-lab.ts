@@ -205,6 +205,15 @@ const MOTIF_OBJECTS_ONLY =
 const MOTIF_WITH_ANIMALS =
   "PRIMARILY objects, food, drink, botanicals, the kit of a hobby. A characterful ANIMAL is PERMITTED but never required — use one only if this subject's own world genuinely contains that animal. Animals are drawn in the same flat hand-illustrated style, never cutesy-greetings-card, never in novelty human costume beyond one deadpan prop. STILL absolutely no humans and no human faces.";
 
+/** When a reference photo rides the render, the character rules flip:
+ *  the PEOPLE ARE THE SUBJECT. The objects-mode still-life ban and the
+ *  figures-mode "never the recipient" line were both written before the
+ *  cameo existed, and left in place they win the tug-of-war — observed
+ *  2026-08-29: a sunset-swim cameo rendered acres of empty sea, no
+ *  person at all. */
+const MOTIF_CAMEO =
+  `THE PEOPLE FROM THE REFERENCE PHOTO ARE THE SUBJECT OF THIS CARD — EXACTLY those people, and only them: count the people in the photo and paint that many, never an invented extra (whatever the words imply), never one dropped. They appear close to the viewer at portrait scale, faces clear and recognisable. Around and behind them: objects, food, drink, the kit of this world. Their faces are drawn in the card's own medium — simplified to the level that medium works at, never photographic, never semi-photographic skin or wet glossy eyes — but they must stay RECOGNISABLE as the people in the photo: face shape, hairstyle and colour, skin tone, build, glasses or facial hair. This card IS the photo product; the usual no-people and never-the-recipient rules do not apply here.`;
+
 const MOTIF_WITH_FIGURES =
   `PRIMARILY objects, food, drink, botanicals, the kit of a hobby. Animals and human figures are PERMITTED but never required. Where the subject genuinely needs a person present, HUMAN FIGURES AS GRAPHIC SHAPES. Figures are ILLUSTRATED, never photographic.
   ✅ FACES ARE ALLOWED WHEN THE MEDIUM CARRIES THEM. A mid-century children's-book face, a linocut face, a papercut face, a fashion-illustration face — drawn with the same marks as everything else on the card and simplified to the level that medium works at. Two dots and a line is a face, and a good one. This is how greeting cards have always looked, and being frightened of it left every person on our cards an anonymous silhouette.
@@ -228,9 +237,9 @@ const MOTIF_WITH_FIGURES =
  *
  *  Everything here is about QUALITY, not taste: name a real medium, and
  *  avoid the specific things that make generated art look generated. */
-export function freeStyleDna(level: CharacterLevel = 'objects'): string {
-  const rule =
-    level === 'figures' ? MOTIF_WITH_FIGURES
+export function freeStyleDna(level: CharacterLevel = 'objects', cameo = false): string {
+  const rule = cameo ? MOTIF_CAMEO
+    : level === 'figures' ? MOTIF_WITH_FIGURES
     : level === 'animals' ? MOTIF_WITH_ANIMALS
     : MOTIF_OBJECTS_ONLY;
   return `ART DIRECTION — YOU CHOOSE THE MEDIUM. There is no house style on this card. Your job is to pick the illustration idiom this particular subject deserves and execute it as a real designer would.
@@ -289,9 +298,9 @@ The bar: someone in a card shop picks it up and assumes a person made it.`;
 export const IS_THE_CARD_ITSELF =
   '⚠️ THE IMAGE IS THE PRINTED SURFACE ITSELF, NOT A PICTURE OF A CARD. You are drawing the artwork that gets printed, so it runs to all four edges of the image and beyond. NEVER show a greeting card as an object inside the picture: no card lying on a table, desk or surface, no paper edge or corner, no drop shadow, no rounded corners, no mount, no white margin framing the design, no mockup, no product photograph. A decorative border PRINTED ON the card is fine; the card appearing as a physical object within the image is not. If a viewer could point at the edge of a card inside this picture, it is wrong.';
 
-export function quirkyDna(level: CharacterLevel = 'objects'): string {
-  const rule =
-    level === 'figures' ? MOTIF_WITH_FIGURES
+export function quirkyDna(level: CharacterLevel = 'objects', cameo = false): string {
+  const rule = cameo ? MOTIF_CAMEO
+    : level === 'figures' ? MOTIF_WITH_FIGURES
     : level === 'animals' ? MOTIF_WITH_ANIMALS
     : MOTIF_OBJECTS_ONLY;
   return QUIRKY_DNA_BASE.replace('__MOTIF_RULE__', rule);
@@ -3242,13 +3251,18 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
     }
 
     const prompt = [
-      body.freeStyle ? freeStyleDna(body.characters) : quirkyDna(body.characters),
+      body.freeStyle ? freeStyleDna(body.characters, !!body.cameoPhoto) : quirkyDna(body.characters, !!body.cameoPhoto),
       '',
       QUIRKY_FORMATS[body.format === 'editorial' ? 'hero' : (body.format ?? '')] ?? '',
       '',
       body.charm ? `CHARM LICENCE — this card may be naive hand-drawn ON PURPOSE: wobbly confident linework, simple shapes, imperfect edges as a chosen style that reads loved, never failed. An ordinary object given a simple face (dot eyes, one small mouth line) is welcome — always generic, never a character that exists. Script and hand-lettered type welcome — warmly imperfect rhythm, every glyph still clean-edged and legible. The against-the-AI-look rules still apply: this is a chosen craft, not sloppiness.` : '',
-      body.cameoPhoto ? `⚠️ THE CAMEO — THE PEOPLE IN THE REFERENCE PHOTO ARE THE CARD'S STARS. Every person in the photo appears — never drop, add or swap anyone. KEEP THEM AS THEY ARE: same poses, same grouping, same expressions — do not re-pose, re-stage or re-imagine them. LIKENESS IS THE WHOLE POINT: hold each real face shape, hairstyle and colour, skin tone, build, glasses or facial hair if present. Redraw them in exactly the same flat illustrated style as everything else — never photoreal, never a pasted photo — and let the card's world wrap AROUND them: the scene adapts to the people, the people never adapt to the scene.` : '',
-      `ILLUSTRATION: ${body.art_direction}${body.cameoPhoto ? ' — built around the people from the reference photo, kept exactly as they are in the photo, redrawn in this style.' : ''}`,
+      body.cameoPhoto ? `⚠️ THE CAMEO — THE PEOPLE IN THE REFERENCE PHOTO ARE THE CARD'S STARS. Every person in the photo appears — never drop, add or swap anyone. KEEP THEM AS THEY ARE: same poses, same grouping, same expressions — do not re-pose, re-stage or re-imagine them. LIKENESS IS THE WHOLE POINT: hold each real face shape, hairstyle and colour, skin tone, build, glasses or facial hair if present. Redraw them in exactly the same flat illustrated style as everything else — never photoreal, never a pasted photo — and let the card's world wrap AROUND them: the scene adapts to the people, the people never adapt to the scene. PORTRAIT SCALE, ALWAYS: their faces must be big enough to recognise across a room — never a distant figure, never turned away, never a silhouette. If the artwork wants a wide scene, the people stand CLOSE TO THE VIEWER, faces clear, with the whole scene behind them. A likeness nobody can see is a failed card.` : '',
+      // With a cameo, the PEOPLE are the grammatical subject of the
+      // illustration — a suffix loses to a strong scene (the sunset-swim
+      // card painted the vista and dropped her entirely).
+      body.cameoPhoto
+        ? `ILLUSTRATION: THE PEOPLE FROM THE REFERENCE PHOTO — close to the viewer at portrait scale, faces clear and recognisable, kept exactly as they are in the photo, redrawn in this style — standing in this world: ${body.art_direction}`
+        : `ILLUSTRATION: ${body.art_direction}`,
       named.length
         ? `⚠️ OVERRIDE — the brief above names ${named.join(', ')}, which belong to someone else's property and must NOT appear. Do not draw them in any form, however stylised, and do not draw a near-copy under another name. Replace each with an ORDINARY generic object from the same world that anyone could own, and keep everything else about the composition. The palette and mood carry the reference; the protected objects do not.`
         : '',

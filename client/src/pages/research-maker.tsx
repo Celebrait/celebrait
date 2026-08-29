@@ -317,7 +317,7 @@ export default function ResearchMakerPage() {
       // The lab's ×1 rule: the cameo lands on the first card that isn't
       // type-only — a likeness on a text-only card is nothing.
       const cameoAt = cameoPhoto
-        ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
+        ? concepts.findIndex((c) => !/type[- ]?led|text[- ]?only|statement/i.test(`${c.format ?? ''} ${(c.art_direction ?? '').slice(0, 40)}`))
         : -1;
       setCameoInSet(cameoAt >= 0 ? cameoAt : null);
       setCells(concepts.map((c) => ({ concept: c })));
@@ -525,7 +525,7 @@ export default function ResearchMakerPage() {
                 setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own');
                 // Photo given up front → the cameo already competed in
                 // the pick; straight on. No photo → offer it now.
-                if (cameoInSet !== null || cameoPhoto) { setPhase('signoff'); }
+                if (cameoInSet !== null) { setPhase('signoff'); }
                 else { setCameoUrl(null); setCameoKept(null); setCameoError(''); setPhase('cameo'); }
               }}
               className={`overflow-hidden rounded-2xl border-2 bg-white text-left transition-all ${
