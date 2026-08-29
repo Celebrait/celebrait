@@ -474,6 +474,10 @@ export default function ResearchMakerPage() {
           the three, and then tell us honestly what you thought — about two minutes
           of making, one minute of questions.
         </p>
+        <p className="mt-3 text-sm leading-relaxed text-stone-600">
+          One tip before you start: <span className="font-medium text-stone-700">have a photo of
+          them handy</span> — at the end, we can paint them right into their card.
+        </p>
         <Button className="mt-8 h-12 w-full text-base" onClick={() => setPhase(setsUsed() >= 2 ? 'capped' : 'questions')}>
           Let’s make one
         </Button>
