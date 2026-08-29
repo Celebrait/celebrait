@@ -115,6 +115,9 @@ interface Cell {
    *  Held BESIDE imageUrl, never in it: keep/print always use the
    *  original, so a real face can never be saved as stock. */
   cameoUrl?: string; cameoBusy?: boolean; showCameo?: boolean;
+  /** True on the card the ×1 deal routed the photo through — its
+   *  imageUrl IS the cameo render. */
+  dealtCameo?: boolean;
 }
 /** `recipient` was always stored and always returned — the templates
  *  route does a bare select() — it just was not declared here, which is
@@ -835,7 +838,10 @@ export default function AdminOccasionStudioPage() {
               <div className="space-y-2 p-3">
                 {/* The "put them in" test: button until it renders, then a
                     flip — flipping in place is how you judge "same card?" */}
-                {cameoPhoto && c.imageUrl && !c.cameoUrl && (
+                {c.dealtCameo && (
+                  <p className="rounded-md bg-brand-muted/40 px-2 py-1 text-[11px] font-medium text-brand-dark">The cameo card — they're painted into this one</p>
+                )}
+                {cameoPhoto && c.imageUrl && !c.cameoUrl && !c.dealtCameo && (
                   <button type="button" onClick={() => putThemIn(i)} disabled={c.cameoBusy}
                     className="w-full rounded-md border border-brand/40 bg-brand-muted/30 px-2 py-1.5 text-[11px] font-medium text-brand-dark transition-colors hover:border-brand disabled:opacity-60">
                     {c.cameoBusy ? 'Painting them in…' : 'Put them in this one'}
