@@ -92,7 +92,7 @@ const SURVEY: SurveyQ[] = [
 /** Asked only when the tester actually saw both versions. */
 const CAMEO_Q: SurveyQ = {
   id: 'cameo_feel',
-  title: 'You saw your card with them painted in — honestly, how was it?',
+  title: 'You saw your card with them in it — honestly, how was it?',
   kind: 'choice',
   options: ['Loved it — instantly better', 'Liked it, but preferred the original', 'Didn’t quite look like them', 'Bit weird — not for me'],
 };
@@ -476,7 +476,7 @@ export default function ResearchMakerPage() {
         </p>
         <p className="mt-3 text-sm leading-relaxed text-stone-600">
           One tip before you start: <span className="font-medium text-stone-700">have a photo of
-          them handy</span> — at the end, we can paint them right into their card.
+          them handy</span> — at the end, we can put them right in the card.
         </p>
         <Button className="mt-8 h-12 w-full text-base" onClick={() => setPhase(setsUsed() >= 2 ? 'capped' : 'questions')}>
           Let’s make one
@@ -610,8 +610,8 @@ export default function ResearchMakerPage() {
           <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
           <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
             <Loader2 className="h-8 w-8 animate-spin text-brand" />
-            <p className="text-lg font-medium text-stone-700">Painting them into your card…</p>
-            <p className="text-sm text-stone-400">Same people, same poses — redrawn in the card's own style. About half a minute.</p>
+            <p className="text-lg font-medium text-stone-700">Putting them into your card…</p>
+            <p className="text-sm text-stone-400">Everyone from your photo, drawn in the card's own style. About half a minute.</p>
           </div>
         </div>
       );
@@ -630,9 +630,9 @@ export default function ResearchMakerPage() {
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.14em] text-brand">BRAND NEW — YOU'RE THE FIRST TO TRY IT</p>
         <h1 className="mt-1.5 text-xl font-semibold text-stone-800">Want them actually in the picture?</h1>
         <p className="mt-2 text-sm leading-relaxed text-stone-500">
-          Add a photo — a group one works too — and we'll paint the people into this exact
-          card: everyone kept, same poses, redrawn in the card's own art style. You'll see
-          both versions and choose which to keep.
+          Add a photo — a group one works too — and we'll put them into this exact card,
+          drawn in its own art style, right in the middle of things. You'll see both
+          versions and choose which to keep.
         </p>
         {cameoError && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{cameoError}</p>}
         <label className="mt-6 block">
@@ -964,8 +964,8 @@ export default function ResearchMakerPage() {
               <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">brand new</span>
             </h1>
             <p className="mt-2 text-sm text-stone-500">
-              One of your three cards will paint them right into the artwork — everyone in
-              the photo, just as they are, in the card's own style. A group photo works too.
+              One of your three cards will have them right there in the artwork — drawn in
+              the card's own style, in the middle of it all. A group photo works too.
               Or skip it and all three stay illustration-only.
             </p>
             {cameoError && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{cameoError}</p>}
