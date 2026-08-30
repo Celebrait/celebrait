@@ -1327,6 +1327,44 @@ export function leadColourFamily(palette: string): string | null {
 }
 
 /** Every floor, in code. Returns named violations for the repair round. */
+/** THE SENSE REFEREE (2026-08-30). Discovered the hard way: the twelve
+ *  model-judged floors lived only in the LEGACY judge, and the v2 path
+ *  returns before ever calling it — every gallery entry was a dead
+ *  letter for celebrait sets, which is why "Merry Christmas to the one
+ *  where Boxing Day really starts" (a snapped relative clause) shipped.
+ *  This runs the condensed sense floors as a cheap model pass and
+ *  feeds NAMED violations into the same repair round as the code
+ *  floors. Never fatal: on API failure it returns [] and the set
+ *  ships on code floors alone, as before. */
+export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[]): Promise<string[]> {
+  try {
+    const r = await client.chat.completions.create({
+      ...conceptParams(700, 0.2),
+      messages: [
+        { role: 'system', content: `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack. Then judge these floors:
+- PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE).
+- FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
+- REAL CLAIM: the line restates as one plain sentence about the recipient or their thing; register-shaped noise with no claim fails.
+- SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at.
+Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.` },
+        { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
+      ],
+      response_format: { type: 'json_object' },
+    });
+    const parsed = JSON.parse(r.choices[0]?.message?.content ?? '{}');
+    const out: string[] = [];
+    (Array.isArray(parsed.cards) ? parsed.cards : []).forEach((c: any, i: number) => {
+      (Array.isArray(c?.violations) ? c.violations : []).forEach((viol: unknown) => {
+        if (typeof viol === 'string' && viol.trim()) out.push(`sense: card ${i + 1} — ${viol.trim()}`);
+      });
+    });
+    return out;
+  } catch (err) {
+    console.warn('[CARD-LAB:v2] sense referee failed (non-fatal):', (err as Error)?.message ?? err);
+    return [];
+  }
+}
+
 export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
@@ -1643,7 +1681,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words that describe every art direction are stoplisted; what's
   // left is subject matter, and a subject appears on ONE card per set.
   {
-    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly','their','there','where','which','every','while','being','through'].map((w) => w));
+    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly','their','there','where','which','every','while','being','through','under','over','about'].map((w) => w));
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
       new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
@@ -2439,6 +2477,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
             rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : xmasHero ?? undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined,
             occasionKey: occKey });
+          // The sense referee rides the same loop: its violations repair
+          // exactly like the code floors' and ship visibly when standing.
+          violations = violations.concat(await v2SenseCheck(openai, concepts));
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
