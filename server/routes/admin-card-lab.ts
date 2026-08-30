@@ -520,7 +520,7 @@ function birthdayAgeBlock(age: number | null): string {
       ? `AGE BAND — BABY (${age}). ⚠️ THE RECIPIENT CANNOT READ AND THE REAL AUDIENCE IS THE PARENTS — this card is a KEEPSAKE ABOUT the child, not a message TO them, and it will live in a memory box to be re-read years from now. The material is the year's FIRSTS and the tiny observed truths of this exact age: what they have just learned to do, what they are obsessed with, the daft daily rituals every parent of a ${age}-year-old recognises. A word-portrait of the baby is the card that gets kept. Warmth leads, wit is gentle, and NEVER a joke at the parents' exhaustion unless it lands as solidarity. The artwork's job here is to charm the adults and the mantelpiece as much as the child.`
       : age <= 12
       ? `AGE BAND — CHILD (${age}). ⚠️ NOBODY IS BEING ROASTED. This is pure celebration: the number is huge and exciting, the thing they love is the whole world, and the card is delighted for them. NO irony, no self-deprecation, no jokes at their expense, and nothing about getting older — those are adult genres and they read as mean here.
-⚠️ WHO IS READING IT: the WORDS are usually read ALOUD by an adult, so they may carry a wink the grown-up enjoys — but the ARTWORK belongs entirely to the child and must delight THEM. Nothing editorial, nothing ironic — the register is delight.`
+⚠️ WHO IS READING IT: the WORDS are usually read ALOUD by an adult — but the CHILD is the one hearing them, and the line must land for the child FIRST, at once, in words the child owns. A wink the grown-up enjoys is permitted on AT MOST ONE card of the set, riding on top of a line the child still receives — never replacing it. THE OBSERVED FAILURE IS THE SET THAT IS ALL WINK: three knowing adult jokes about the child's world ('snack briefing', 'evidence check', a 42-word deadpan 'operation') with nothing a 10-year-old would feel. Office and operations vocabulary is banned outright at this age. The ARTWORK belongs entirely to the child and must delight THEM. Nothing editorial, nothing ironic — the register is delight, played absolutely straight.`
       : age <= 17
         ? `AGE BAND — TEEN (${age}). Encouraging, not ironic — this is the one adult-adjacent band where the roast is switched OFF. The shops run "Sweet 16", "OMG You're 16", "16 And A Superstar", gaming and youth-culture references; self-deprecation is conspicuously absent. Treat them as arriving somewhere good, never as losing anything. ⚠️ The buyer is almost always a PARENT, GRANDPARENT or aunt, so cheek must stay well inside what a nan will hand over.`
         : age <= 25
@@ -1336,7 +1336,7 @@ export function leadColourFamily(palette: string): string | null {
  *  feeds NAMED violations into the same repair round as the code
  *  floors. Never fatal: on API failure it returns [] and the set
  *  ships on code floors alone, as before. */
-export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[]): Promise<string[]> {
+export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null): Promise<string[]> {
   try {
     const r = await client.chat.completions.create({
       ...conceptParams(700, 0.2),
@@ -1346,7 +1346,8 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
 - REAL CLAIM: the line restates as one plain sentence about the recipient or their thing; register-shaped noise with no claim fails.
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at.
-Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.` },
+${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
+` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.` },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
@@ -1434,6 +1435,22 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       const MILD = /\b(bloody|bollocks?|arsed?|bastards?|pricks?|twats?|damn(ed)?|hell|bitch(es)?|sod(ding)?|crap(py)?|piss(ed|ing)?|knob(head)?s?)\b/i;
       const rudeCount = fronts.filter((f) => V2_SWEAR.test(f) || MILD.test(f)).length;
       if (rudeCount < 2) v.push('rude-register: only one front carries any swearing — the hero swears properly and at least one more front carries a mild (bloody/bollocks/arse); the third may live on innuendo but never reads merely festive');
+    }
+  }
+  // ⚠️ KIDS' CARDS ARE FOR THE KID — IN CODE (Aidan 2026-08-30: a
+  // 10-year-old's set came back as three adult decode-jokes, one of
+  // them 42 words of 'properly run Christmas Eve operation'). Two
+  // regexable symptoms of the adult-wink disease:
+  {
+    const kidAge = (opts?.contextAge ?? b.age);
+    if (kidAge !== null && kidAge !== undefined && kidAge <= 12) {
+      const ADULT_FRAME = /\b(briefing|operations?|operational|logistics|compliance|audit(ed)?|protocols?|workflows?|deliverables?|stakeholders?|admin|itinerary|delivery window|evidence check|risk assessment|quarterly|spreadsheets?)\b/i;
+      fronts.forEach((f, i) => {
+        const words = f.trim().split(/\s+/).length;
+        if (words > 16) v.push(`kids-length: card ${i + 1} is ${words} words — a card for a ${kidAge}-year-old is short enough to be read aloud in one breath and understood at once; long knowing sentences are adult cards wearing a kid's brief`);
+        const hit = f.match(ADULT_FRAME);
+        if (hit) v.push(`kids-adult-frame: card ${i + 1} says "${hit[0]}" — office/operations vocabulary is the grown-up wink eating the card; a ${kidAge}-year-old's card plays its magic straight in words the child owns`);
+      });
     }
   }
   // ⚠️ NO SWEAR WORD ON TWO FRONTS OF ONE SET — IN CODE. The engines
@@ -2325,7 +2342,11 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // every set — "long form seems to be coming through a lot"
         // (Aidan). Now roughly half of sets carry a long card, half
         // carry the big short poster instead.
-        const typeledRegister = Math.random() < 0.5 ? 'long' : 'short';
+        // Kids' sets never deal the LONG register: a 20-35 word read-aloud
+        // is an adult form, and the observed 42-word 'Christmas Eve
+        // operation' rode in on exactly that slot.
+        const kidsSet = statedAgeValue !== null && statedAgeValue <= 12;
+        const typeledRegister = kidsSet ? 'short' : (Math.random() < 0.5 ? 'long' : 'short');
         const restRegisters = typeledRegister === 'long' ? ['short', 'mid'] : ['mid', 'mid'];
         // Aidan's fix, 2026-08-20: "surely the ai can widen that scope...
         // just widen its net when building the archetype". The archetype
@@ -2479,7 +2500,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             occasionKey: occKey });
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
-          violations = violations.concat(await v2SenseCheck(openai, concepts));
+          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue));
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
