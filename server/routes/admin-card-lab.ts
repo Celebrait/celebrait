@@ -1336,6 +1336,34 @@ export function leadColourFamily(palette: string): string | null {
  *  feeds NAMED violations into the same repair round as the code
  *  floors. Never fatal: on API failure it returns [] and the set
  *  ships on code floors alone, as before. */
+/** THE STOCK-PUN GUARD, code-side (2026-08-30). Replaces feeding 40
+ *  cross-subject fronts into the writer prompt as an avoid-list —
+ *  which law 1 turned into a menu (the anti-jumper leak). A repeated
+ *  pun is a LEXICAL event, so code can catch it: any 3-word run (or
+ *  rare longer word) shared with a recent front across subjects. */
+export function stockPunCheck(fronts: string[], recentFronts: string[]): string[] {
+  const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const trigrams = (t: string) => {
+    const w = norm(t).split(' ');
+    const out = new Set<string>();
+    for (let i = 0; i + 2 < w.length; i++) out.add(w.slice(i, i + 3).join(' '));
+    return out;
+  };
+  const STOP = new Set(['christmas', 'birthday', 'merry', 'happy', 'the', 'and', 'you', 'your', 'this', 'that', 'with', 'for']);
+  const rare = (t: string) => new Set(norm(t).split(' ').filter((x) => x.length >= 7 && !STOP.has(x)));
+  const v: string[] = [];
+  fronts.forEach((f, i) => {
+    const tg = trigrams(f); const rw = rare(f);
+    for (const r of recentFronts) {
+      const shared3 = Array.from(trigrams(r)).find((t) => tg.has(t) && t.split(' ').some((x) => x.length >= 5 && !STOP.has(x)));
+      if (shared3) { v.push(`stock-pun: card ${i + 1} repeats "${shared3}" from a recent card on another subject — a pun that travels between subjects is the rack telling one joke in every aisle; find a different corner`); break; }
+      const sharedRare = Array.from(rare(r)).filter((x) => rw.has(x));
+      if (sharedRare.length >= 3) { v.push(`stock-pun: card ${i + 1} shares "${sharedRare.slice(0, 2).join('", "')}" with a recent card on another subject — the same distinctive vocabulary twice across the rack is one idea recycled; find a different corner`); break; }
+    }
+  });
+  return v;
+}
+
 export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null): Promise<string[]> {
   try {
     const r = await client.chat.completions.create({
@@ -2149,6 +2177,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // has already used. Best-effort: a failure here must never block
     // making a card.
     let alreadyUsed: string[] = [];
+    let recentAnyFronts: string[] = [];
     let alreadyDrawn: string[] = [];
     let alreadyColoured: string[] = [];
     let restingSeams: Array<{ name: string; desc: string }> = [];
@@ -2199,9 +2228,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
           .orderBy(desc(cardGenerations.id))
           .limit(40),
       ]);
-      alreadyUsed = Array.from(new Set(
-        [...sameSubject, ...anySubject].map((r) => r.front_text).filter(Boolean),
-      ));
+      // ⚠️ ONLY THE SAME SUBJECT'S FRONTS ENTER THE PROMPT (2026-08-30).
+      // The cross-subject window used to ride along as avoid-list, and
+      // law 1 ate it: a works-do card's anti-jumper verdict surfaced in
+      // the next advent brief as "Advent beats Christmas jumpers" —
+      // twice. A menu with a "don't" sign is still a menu. The
+      // cross-subject stock-pun guard is now a CODE check after
+      // generation (below), with zero prompt exposure.
+      alreadyUsed = Array.from(new Set(sameSubject.map((r) => r.front_text).filter(Boolean)));
+      recentAnyFronts = anySubject.map((r) => r.front_text).filter(Boolean);
       // ⚠️ MOTIFS ONLY FOR THE SAME SUBJECT. A rosette means something
       // on a dog card and nothing on a fishing one, so unlike stock
       // PUNS — which drift across subjects and are excluded globally —
@@ -2501,6 +2536,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
           violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue));
+          violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
