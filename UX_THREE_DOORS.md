@@ -361,6 +361,13 @@ trivial (one row per existing order).**
 - **The wait state** — "searching 400 airlines" trained the world to wait when the frame promises bespoke work. Generation's ~60s + the personalised narration IS a flight-search interstitial.
 - **One search, three doors** — occasion+age+interest is also a catalogue query. Results lead with the generated set (£5.99, "made for them") over matching rack cards (£4.99, "ready now"), Skyscanner-mixing the corridor in one screen. Photo door stays its own entrance.
 
+**Banked 2026-08-30 — the field decisions (mock: claude.ai/code/artifact/d7bc2e3c-92d2-410b-8bac-3e10e8e0b831, brand-palette v4):**
+- **The bar asks facts, filters ask preferences**: occasion · who · one thing they love · needed by. Nothing else by default.
+- **Tone = a results filter, never a form field** — default set is one-of-each (the range IS the answer, the pick is the tone decision); chips (One of each / All funny / All warm / Cheekier) re-deal = "same details, three new cards" as edit-search.
+- **Age = conditional field** (birthday → "Turning"; kid relationship → "their age", drives the kids register). **Name + can't-stand behind "+ add a detail"** disclosure.
+- **Photo**: forewarned under the bar, collected after the pick (the research-proven pattern). Pro photo route keeps its own nav door.
+- Promise bar uses the cta readiness green; everything else paper/ink/violet per tailwind.config.ts.
+
 ⚠️ **Register: Airbnb, never Skyscanner.** Booking is commodity-comparison; the brand is the keeper. Warm confident search bar OVER a browsable shelf — never a form gating an empty page (flights force the form because flights can't be browsed; cards can).
 
 **Phase 1 moved ahead of the rack** because "basket from the start"
