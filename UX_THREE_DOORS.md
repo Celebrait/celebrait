@@ -353,6 +353,16 @@ trivial (one row per existing order).**
 | **6** | IA reframe: empty states, `/studio/new-card` chooser, "your cards" language | coherence |
 | **7** | LP rebuild — three doors that genuinely open | the shopfront |
 
+### 9b. LP concept — the booking engine (Aidan, 2026-08-30)
+
+"Kinda like a booking experience... arrive on landing, preselect occasion, dates, interest, then generate and it's like searching for flights." The mapping holds and solves three standing problems:
+
+- **The date field** — booking sites run on date anxiety and so do cards ("will it arrive by the 14th?"). Date in the search bar → honest urgency on every result ("order by Tuesday") → and every typed date feeds the address-book/reminders retention engine for free. Nobody else in the market asks the date first.
+- **The wait state** — "searching 400 airlines" trained the world to wait when the frame promises bespoke work. Generation's ~60s + the personalised narration IS a flight-search interstitial.
+- **One search, three doors** — occasion+age+interest is also a catalogue query. Results lead with the generated set (£5.99, "made for them") over matching rack cards (£4.99, "ready now"), Skyscanner-mixing the corridor in one screen. Photo door stays its own entrance.
+
+⚠️ **Register: Airbnb, never Skyscanner.** Booking is commodity-comparison; the brand is the keeper. Warm confident search bar OVER a browsable shelf — never a form gating an empty page (flights force the form because flights can't be browsed; cards can).
+
 **Phase 1 moved ahead of the rack** because "basket from the start"
 means the order model must be right *before* the first real order lands
 — migrating live orders later is far worse than doing it now with zero
