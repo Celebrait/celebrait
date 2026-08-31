@@ -1481,6 +1481,19 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       });
     }
   }
+  // ⚠️ THE MASKING LAW IS CODE NOW (2026-08-31). Two cards reached the
+  // KEPT rack printing "fucking" and "clusterfuck" in full — the law
+  // (only f/s/c words, first letter + asterisks) lived in the prompt
+  // alone. Any unmasked hard swear, anywhere in the card, is a named
+  // violation regardless of tone.
+  {
+    const UNMASKED = /\b(fuck\w*|shit\w*|cunt\w*|\w*fuck\w*)\b/i;
+    cards.forEach((c, i) => {
+      const t = `${c.front_text ?? ''} ${c.inside_text ?? ''}`;
+      const hit = t.match(UNMASKED);
+      if (hit) v.push(`unmasked-swear: card ${i + 1} prints "${hit[0]}" in full — the three hard words are ALWAYS masked (first letter + asterisks), on every tone, no exceptions; mask it or choose a different word`);
+    });
+  }
   // ⚠️ NO SWEAR WORD ON TWO FRONTS OF ONE SET — IN CODE. The engines
   // fixed joke variety; vocabulary variety needs its own floor or the
   // same word becomes the set's tic (observed: bollocks on two of
