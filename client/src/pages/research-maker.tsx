@@ -33,9 +33,15 @@ async function researchPost(path: string, body: unknown): Promise<any> {
 }
 
 // ── Question config (mirrors the guided maker) ───────────────────────
-type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name' | 'photo';
+type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
 type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name', 'photo'];
+// Photo is FOREWARNED at the welcome and COLLECTED after the pick
+// (Aidan 2026-08-31: "only ask for the photo post the 3 reveal? It
+// worked really well before"). The in-set arm was tested and reverted:
+// the before/after flip on a card they already love is the stronger
+// moment, and a missed likeness after the pick costs one declinable
+// render instead of poisoning the set. Matches the banked LP design.
+const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name'];
 
 const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
@@ -255,7 +261,7 @@ export default function ResearchMakerPage() {
    *  to be considered properly). Inserted after the mention question. */
   const questions = useMemo<QuestionKey[]>(
     () => (vibe && DISLIKE_ON.includes(vibe)
-      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name', 'photo']
+      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name']
       : BASE_QUESTIONS),
     [vibe],
   );
@@ -476,7 +482,7 @@ export default function ResearchMakerPage() {
         </p>
         <p className="mt-3 text-sm leading-relaxed text-stone-600">
           One tip before you start: <span className="font-medium text-stone-700">have a photo of
-          them handy</span> — at the end, we can put them right in the card.
+          them handy</span> — after you pick your favourite, we can put them right in the card.
         </p>
         <Button className="mt-8 h-12 w-full text-base" onClick={() => setPhase(setsUsed() >= 2 ? 'capped' : 'questions')}>
           Let’s make one
@@ -956,61 +962,13 @@ export default function ResearchMakerPage() {
             {name.trim() && <p className="mt-2 text-xs font-medium text-amber-700">It’ll be printed exactly as you type it — worth a double-check.</p>}
           </>
         )}
-
-        {question === 'photo' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">
-              Got a photo of them?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">brand new</span>
-            </h1>
-            <p className="mt-2 text-sm text-stone-500">
-              One of your three cards will have them right there in the artwork — drawn in
-              the card's own style, in the middle of it all. A group photo works too.
-              Or skip it and all three stay illustration-only.
-            </p>
-            {cameoError && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{cameoError}</p>}
-            {cameoPhoto ? (
-              <div className="mt-6 flex items-center gap-3 rounded-xl border border-brand/40 bg-brand-muted/30 p-3">
-                <img src={cameoPhoto} alt="their photo" className="h-14 w-14 rounded-lg object-cover" />
-                <span className="text-sm font-medium text-stone-700">In they go.</span>
-                <button type="button" onClick={() => { setCameoPhoto(null); }}
-                  className="ml-auto text-sm text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline">Remove</button>
-              </div>
-            ) : (
-              <label className="mt-6 block">
-                <input type="file" accept="image/*" className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void readCameoFile(f).then(setCameoSrc);
-                    e.target.value = '';
-                  }} />
-                <span className="flex h-12 w-full cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white text-base font-medium text-stone-700 transition-colors hover:border-brand">
-                  Add a photo
-                </span>
-              </label>
-            )}
-            <p className="mt-3 text-xs text-stone-400">We save the finished card artwork to review — never your photo itself.</p>
-            <CropDialog
-              src={cameoSrc}
-              autoFace={false}
-              onCancel={() => setCameoSrc(null)}
-              onConfirm={(bounds) => {
-                const src = cameoSrc;
-                setCameoSrc(null);
-                if (!src) return;
-                void cropToDataUrl(src, bounds).then(setCameoPhoto)
-                  .catch(() => setCameoError('That photo wouldn’t crop — try another one.'));
-              }}
-            />
-          </>
-        )}
       </div>
 
       <div className="pb-4">
         <Button className="h-12 w-full text-base" disabled={!canNext} onClick={next}>
           {qIndex === questions.length - 1 ? 'Make their card' : 'Next'}
         </Button>
-        {(question === 'dislike' || question === 'name' || (question === 'photo' && !cameoPhoto)) && (
+        {(question === 'dislike' || question === 'name') && (
           <Button variant="outline" className="mt-3 h-12 w-full text-base" onClick={next}>
             Skip this one
           </Button>
