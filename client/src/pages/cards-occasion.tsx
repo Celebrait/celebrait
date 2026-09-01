@@ -148,6 +148,12 @@ export default function CardsOccasionPage() {
                     <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Age</span>
                     <button type="button" onClick={() => setAgeFilter(null)}
                       className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
+                    {data.aisles.ages.some((l) => l.slug === 'kids') && (
+                      <Link href={`/cards/${occasion}/kids`}
+                        className="rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-sm text-keeper-body hover:border-keeper-gold">
+                        Kids
+                      </Link>
+                    )}
                     {data.aisles.ages.filter((l) => l.slug !== 'kids').map((l) => (
                       <button key={l.slug} type="button" onClick={() => { setQuery(''); setAgeFilter(ageFilter === parseInt(l.slug) ? null : parseInt(l.slug)); }}
                         className={`rounded-full border px-3 py-1 text-sm ${ageFilter === parseInt(l.slug) ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>{l.slug}</button>
