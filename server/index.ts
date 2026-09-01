@@ -1,6 +1,7 @@
 // server/index.ts
 // Make sure env vars from .env are loaded BEFORE anything else uses process.env
 import "dotenv/config";
+import { runStartupRetag } from "./startup-retag";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
@@ -132,6 +133,8 @@ app.use((req, res, next) => {
   app.get("/c", (_req, res) => res.redirect(302, CARD_QR_DESTINATION));
 
   const server = await registerRoutes(app);
+  // One-off data passes ride boot: idempotent, guarded, loud.
+  void runStartupRetag();
 
   // Set server timeout for long-running AI processing
   server.timeout = 600000; // 10 minute timeout
