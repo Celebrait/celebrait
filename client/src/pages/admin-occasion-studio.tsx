@@ -860,6 +860,13 @@ export default function AdminOccasionStudioPage() {
                 )}
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{(c.concept as any).tone ? `${(c.concept as any).tone} · ` : ''}{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>
+                {(c.concept as any).deal && (
+                  <p className="text-[10.5px] text-stone-400" title={(c.concept as any).deal.territory ?? ''}>
+                    dealt: {[(c.concept as any).deal.register, (c.concept as any).deal.presence,
+                      (c.concept as any).deal.engine && `engine: ${(c.concept as any).deal.engine}`,
+                      (c.concept as any).deal.cast && 'cast card'].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 {c.concept.direction && (
                   <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>
                 )}

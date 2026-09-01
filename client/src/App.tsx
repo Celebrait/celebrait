@@ -117,6 +117,7 @@ const AdminCardLabPage = lazy(() => import("@/pages/admin-card-lab"));
 const AdminCardBenchPage = lazy(() => import("@/pages/admin-card-bench"));
 const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates"));
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
+const AdminEnginePage = lazy(() => import("@/pages/admin-engine"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
@@ -409,6 +410,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminOccasionStudioPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/engine">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminEnginePage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

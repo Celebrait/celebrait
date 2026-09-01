@@ -155,3 +155,47 @@ real observed failure. The rebuild reads this first.
   Green locally proves nothing about his screen. Schema changes ship
   WITH their prod SQL or the .catch() swallows the failure silently.
 - Aidan runs no commands, ever. Deploy = push. Report results.
+
+## The weekend of the buyer's eye (2026-08-28 → 08-31)
+
+Twenty-odd rules, every one earned by Aidan reacting to a real card at
+card-shop speed. The distilled laws:
+
+- **The floors you grade are the product you get.** Rude was defined by
+  swear-regexes, so the writer shipped swearing instead of jokes
+  (Goodhart). Fix: DEAL the comedy engine per slot (roast / innuendo /
+  too-honest truth / misplaced formality) and grade the swear-strip.
+- **Check which pipeline actually runs your judge.** The twelve
+  model-judged sense floors lived in the LEGACY judge; the v2 path
+  returned before reaching it. Every gallery entry was a dead letter
+  until v2SenseCheck. Before adding a floor, trace the call path.
+- **Make referees hand in their working.** "Write the scene sentence"
+  catches what "check the line makes sense" waves through. Same trick
+  as the swear-strip: force the work product, not the promise.
+- **A menu with a don't sign is still a menu.** Cross-subject fronts
+  fed to the writer as an avoid-list leaked their STANCES into new
+  sets (the anti-jumper card). Guards that need examples run in code
+  (stockPunCheck); the writer only ever sees its own aisle.
+- **Rack-level rules beat set-level rules for stock.** Occasion must
+  land on every card's FACE (cards sell alone; the inside is
+  invisible); swear variety per set still let "bollocks" become the
+  RACK's tic across keeps — curation catches what floors can't.
+- **The kids register needs cages, not guidance.** The
+  wink-for-the-adult licence ate every kids' set until the wink was
+  capped (one card, max), LONG register undealt ≤12, office vocabulary
+  banned in code, and the child test armed in the sense referee.
+- **First-read failure shapes, the gallery so far:** the TELEGRAM,
+  the BORROWED TERM, the INVENTED COMPOUND, the UNANCHORED SCENARIO,
+  the GARDEN-PATH PUN (puns must parse as plain English first), the
+  SWEAR-TAG ("X. F***ing obviously." — twice across subjects = dead),
+  and the DECODER TRAP (you can decode them; the buyer gets one second
+  — judge at their speed).
+- **Identity objects are colour-locked.** A United scarf in
+  yellow/black is a factual error; palette variety routes AROUND
+  allegiance through neutral objects.
+- **The masking law is code** (f/s/c always first-letter+asterisks) —
+  two keeps printed obscenity in full while it lived in prompt alone.
+- **The factory must show its parts.** /admin/engine renders the live
+  prompts and floors from the running code; each card in the studio
+  shows its dealt slot. House rule from here: every engine change
+  lands with its lesson in this file.

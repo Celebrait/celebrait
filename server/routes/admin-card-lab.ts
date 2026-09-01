@@ -1364,18 +1364,22 @@ export function stockPunCheck(fronts: string[], recentFronts: string[]): string[
   return v;
 }
 
-export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null): Promise<string[]> {
-  try {
-    const r = await client.chat.completions.create({
-      ...conceptParams(700, 0.2),
-      messages: [
-        { role: 'system', content: `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack. Then judge these floors:
+export function senseSystemPrompt(recipientAge?: number | null): string {
+  return `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack. Then judge these floors:
 - PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE). ⚠️ PUNS MUST PARSE TOO — the GARDEN-PATH PUN fails here: wordplay that substitutes into an idiom but leaves the literal sentence ungrammatical, forcing the reader to re-group the words ("You can spot a fake tortilla aisle away" — the dropped article makes it read as a fake tortilla-aisle; "an aisle away" parses AND keeps the joke; a real buyer's verdict was "makes zero sense"). Read every pun as plain English first: if the surface sentence is broken until you find the substitution, it FAILS.
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
 - REAL CLAIM: the line restates as one plain sentence about the recipient or their thing; register-shaped noise with no claim fails.
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at. A standalone two-word swear sentence tagged onto a clean claim ("F***ing obviously.") fails even when the claim survives — the swear is decoration, not register.
 ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
-` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.` },
+` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
+}
+
+export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null): Promise<string[]> {
+  try {
+    const r = await client.chat.completions.create({
+      ...conceptParams(700, 0.2),
+      messages: [
+        { role: 'system', content: senseSystemPrompt(recipientAge) },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
@@ -2048,6 +2052,58 @@ export function registerAdminCardLabRoutes(app: Express): void {
     });
   });
 
+  // ── THE LIVE RULEBOOK ────────────────────────────────────────────
+  // /api/admin/engine — the factory shows its own parts. Every text
+  // below is the REAL constant/function the pipeline uses, rendered at
+  // request time, so this page cannot drift from the code. (Aidan
+  // 2026-08-31: "for my photo route I control the prompt and
+  // understand what it's doing every time... but not for this.")
+  app.get('/api/admin/engine', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const sampleSlots = [
+      { angle: 'wordplay', format: 'typeled', register: 'short', territory: 'their world, corner A (sample)', ground: 'full', rudeMech: undefined as string | undefined },
+      { angle: 'deadpan', format: 'hero', register: 'mid', territory: 'their world, corner B (sample)', ground: 'mid', rudeMech: 'roast' },
+      { angle: 'straight', format: 'scene', register: 'long', territory: 'their world, corner C (sample)', ground: 'whisper', rudeMech: undefined },
+    ];
+    res.json({
+      build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
+      sections: [
+        { title: 'The writer — full system prompt (sample deal shown)', kind: 'prompt',
+          note: 'This is the exact prompt the writer receives, built with a SAMPLE three-slot deal so the slot lines are visible. Real deals vary per set: angles, formats, lengths, territories and presence are dealt by the server; rude sets also deal a comedy engine per slot.',
+          text: v2SystemPrompt('celebrait', sampleSlots, OCCASION_PROFILES.birthday?.brief ?? '') },
+        { title: 'The four rude engines (dealt one per rude slot)', kind: 'rules',
+          text: Object.entries(RUDE_MECHS).map(([k, v]) => `${k.toUpperCase()}\n${v}`).join('\n\n') },
+        { title: 'The sense referee (runs on every set, feeds the repair round)', kind: 'prompt',
+          note: 'Shown with the child test armed (recipient age 8). Adult sets omit that block.',
+          text: senseSystemPrompt(8) },
+        { title: 'Art direction DNA — objects mode (the default)', kind: 'prompt',
+          text: freeStyleDna('objects') },
+        { title: 'Art direction DNA — cameo (a reference photo flips the character rules)', kind: 'prompt',
+          text: freeStyleDna('objects', true) },
+        { title: 'Code floors (regex/deterministic, named violations, one repair round)', kind: 'rules',
+          note: 'These run in v2Verify after every writer round. Standing violations ship VISIBLY in the yellow box, never silently.',
+          text: [
+            'length — each card obeys its dealt register (short ≤8 words, mid ≤14, long 20–35)',
+            'rude-slot / rude-floor / rude-register — swearing lands where the deal says (mix\'s rude card and the christmas hero MUST carry a real masked swear; birthday rude wants two sweary fronts; christmas grades down from one filthy hero)',
+            'unmasked-swear — f/s/c words are ALWAYS masked (first letter + asterisks), every tone',
+            'swear-tag — a standalone "F***ing [word]." sentence bolted after a claim is a template, not a joke',
+            'swear-variety — no swear word on two fronts of one set',
+            'swear-on-clean — clean registers carry no swearing of any grade',
+            'greeting-missing — one christmas front says Merry Christmas',
+            'cast-missing — kids\' christmas brings Santa/reindeer/snowman on at least one card',
+            'kids-length / kids-adult-frame — ≤16-word fronts and no office vocabulary for recipients 12 and under',
+            'occasion-missing — EVERY card lands the occasion on its FACE (front words or artwork; the inside is invisible on a rack)',
+            'name-missing / number-twice / age-artwork — the name lands exactly once; the milestone number behaves',
+            'shared-lead / colour-thread — no two cards lead the same hue; no ink stitches all three',
+            'shared-vocab / shared-motif — each card has its own words and drawn objects',
+            'generic-artwork / generic-set — illustrated cards draw from THEIR world',
+            'dislike-everywhere — the can\'t-stand carries at most two cards',
+            'stock-pun — cross-subject phrase recurrence, checked in code (recent fronts never enter the prompt)',
+          ].join('\n') },
+      ],
+    });
+  });
+
   const conceptsHandler = async (req: Request, res: Response) => {
     if (!openai) return res.status(503).json({ message: 'OpenAI not configured' });
     let body: z.infer<typeof conceptsSchema>;
@@ -2580,7 +2636,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // counts them. "Warned and shipped anyway" is the old world.
         // ONE OF EACH: each card declares its tone so the pick screen
         // can label the three (and keeps carry the right register).
-        const conceptsOut = mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts;
+        // THE DEAL IS VISIBLE (Aidan 2026-08-31: "we make so many changes
+        // but don't really have a log of the prompts"): every card
+        // carries what the server dealt it, so a set explains itself.
+        const conceptsOut = (mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts)
+          .map((c, i) => ({ ...c, deal: slots[i] ? {
+            angle: slots[i].angle, format: slots[i].format ?? 'free', register: slots[i].register,
+            territory: slots[i].territory, presence: slots[i].ground, tone: slots[i].tone,
+            cast: slots[i].cast || undefined, engine: slots[i].rudeMech,
+          } : undefined }));
         return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt',
           ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText } });
       } catch (err) {
