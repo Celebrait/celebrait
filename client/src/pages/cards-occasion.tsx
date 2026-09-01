@@ -143,11 +143,20 @@ export default function CardsOccasionPage() {
                     ))}
                   </div>
                 )}
-                {data.aisles.ages.length > 1 && (
+                {/* The age row renders when ANY age aisle exists — on
+                    mostly-ageless occasions (christmas) the Kids door
+                    and the search must not vanish with the numeric
+                    chips (the >1 gate hid both). Numeric milestone
+                    chips only appear where numeric aisles exist. */}
+                {(
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Age</span>
-                    <button type="button" onClick={() => setAgeFilter(null)}
-                      className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
+                    {data.aisles.ages.length > 0 && (
+                      <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Age</span>
+                    )}
+                    {data.aisles.ages.filter((l) => l.slug !== 'kids').length > 0 && (
+                      <button type="button" onClick={() => setAgeFilter(null)}
+                        className={`rounded-full border px-3 py-1 text-sm ${ageFilter === null ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`}>All</button>
+                    )}
                     {data.aisles.ages.some((l) => l.slug === 'kids') && (
                       <Link href={`/cards/${occasion}/kids`}
                         className="rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-sm text-keeper-body hover:border-keeper-gold">
