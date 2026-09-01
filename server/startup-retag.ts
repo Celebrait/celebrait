@@ -50,6 +50,147 @@ const RETAGS: Retag[] = [
   { id: 229, set: { interest: 'Christmas films' }, onlyIf: { interest: 'Elf the movie' } },
 ];
 
+/** PASS 2 — THE FULL SHELVING (2026-08-31, "need you to shelve every
+ *  one as per attached — look at each visually and concept wise").
+ *  Every published christmas card was reviewed by eye (contact sheets)
+ *  and by concept. Tone resolved from 'mix' to its real register;
+ *  merchandising aisle tags assigned where the card clearly sells to
+ *  a relationship (tags are ADDITIVE per the schema — they union with
+ *  derived aisles, never replace); gender lean only where the card's
+ *  own text genders it; PS5 brand label → 'gaming'. Tag guards: tags
+ *  apply only while aisle_tags is still empty; tone/interest guards on
+ *  current value — Aidan's later edits always win. */
+type Shelve = { id: number; set: { tone?: string; tags?: string[]; gender?: string; interest?: string }; onlyIf: { tone?: string; interest?: string } };
+const SHELVING: Shelve[] = [
+  { id: 217, set: { tags: ['for-nan', 'for-mum'] }, onlyIf: {  } },
+  { id: 218, set: { tags: ['for-partner', 'for-sister'] }, onlyIf: {  } },
+  { id: 219, set: { tags: ['for-best-mate', 'for-brother'] }, onlyIf: {  } },
+  { id: 220, set: { tags: ['for-sister', 'for-best-mate'] }, onlyIf: {  } },
+  { id: 223, set: { tags: ['for-best-mate'] }, onlyIf: {  } },
+  { id: 225, set: { tags: ['for-best-mate'] }, onlyIf: {  } },
+  { id: 226, set: { tags: ['for-best-mate'] }, onlyIf: {  } },
+  { id: 227, set: { tags: ['for-sister', 'for-best-mate'], gender: 'her' }, onlyIf: {  } },
+  { id: 228, set: { tags: ['for-brother', 'for-dad'] }, onlyIf: {  } },
+  { id: 230, set: { tone: 'funny', tags: ['for-mum', 'for-partner'] }, onlyIf: { tone: 'mix' } },
+  { id: 231, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 232, set: { tone: 'funny', tags: ['for-brother', 'for-son'] }, onlyIf: { tone: 'mix' } },
+  { id: 233, set: { tone: 'warm', tags: ['for-partner'] }, onlyIf: { tone: 'mix' } },
+  { id: 234, set: { tone: 'funny', tags: ['for-mum', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 235, set: { tone: 'rude', tags: ['for-brother', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 236, set: { tags: ['for-nan', 'for-mum'] }, onlyIf: {  } },
+  { id: 242, set: { tags: ['for-mum', 'for-partner'] }, onlyIf: {  } },
+  { id: 243, set: { tone: 'funny', tags: ['for-mum', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 244, set: { tone: 'rude', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 245, set: { tone: 'funny', tags: ['for-sister', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 246, set: { tone: 'rude', tags: ['for-best-mate', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 247, set: { tone: 'funny', tags: ['for-partner', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 249, set: { tone: 'funny', tags: ['for-dad', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 250, set: { tone: 'rude', tags: ['for-partner'] }, onlyIf: { tone: 'mix' } },
+  { id: 251, set: { tone: 'funny', tags: ['for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 254, set: { tags: ['for-mum', 'for-nan'] }, onlyIf: {  } },
+  { id: 255, set: { tags: ['for-mum', 'for-nan'] }, onlyIf: {  } },
+  { id: 256, set: { tone: 'funny', tags: ['for-grandad'] }, onlyIf: { tone: 'warm' } },
+  { id: 257, set: { tone: 'rude', tags: ['for-sister', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 258, set: { tone: 'warm', tags: ['for-mum', 'for-nan'] }, onlyIf: { tone: 'mix' } },
+  { id: 259, set: { tone: 'warm', tags: ['for-nan', 'for-mum'] }, onlyIf: { tone: 'mix' } },
+  { id: 260, set: { tone: 'warm', tags: ['for-sister', 'for-best-mate'], gender: 'her' }, onlyIf: { tone: 'mix' } },
+  { id: 261, set: { tone: 'funny', tags: ['for-best-mate', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 262, set: { tone: 'rude', tags: ['for-best-mate', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 263, set: { tone: 'warm', tags: ['for-mum', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 264, set: { tone: 'warm', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 265, set: { tone: 'funny', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 266, set: { tone: 'rude', tags: ['for-brother', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 267, set: { tone: 'funny', tags: ['for-mum', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 268, set: { tone: 'funny', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 271, set: { tone: 'funny', tags: ['for-mum', 'for-partner'] }, onlyIf: { tone: 'mix' } },
+  { id: 272, set: { tone: 'funny', tags: ['for-dad', 'for-mum'] }, onlyIf: { tone: 'mix' } },
+  { id: 273, set: { tone: 'rude', tags: ['for-brother', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 274, set: { tone: 'funny', tags: ['for-dad', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 275, set: { tone: 'warm', tags: ['for-nan', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 276, set: { tone: 'funny', tags: ['for-mum', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 277, set: { tone: 'funny', tags: ['for-mum', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 278, set: { tone: 'funny', tags: ['for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 279, set: { tone: 'funny', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 280, set: { tone: 'warm', tags: ['for-nan', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 282, set: { tags: ['for-mum'] }, onlyIf: {  } },
+  { id: 283, set: { tags: ['for-son', 'for-daughter'] }, onlyIf: {  } },
+  { id: 287, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 288, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 289, set: { tone: 'warm', tags: ['for-partner', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 290, set: { tone: 'rude', tags: ['for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 291, set: { tags: ['for-sister', 'for-best-mate'] }, onlyIf: {  } },
+  { id: 292, set: { tone: 'rude', tags: ['for-brother', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 293, set: { tags: ['for-dad', 'for-grandad'] }, onlyIf: {  } },
+  { id: 294, set: { tone: 'funny', tags: ['for-dad', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 295, set: { tone: 'warm', tags: ['for-dad', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 296, set: { tone: 'funny', tags: ['for-dad', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 297, set: { tone: 'warm', tags: ['for-grandad', 'for-dad'] }, onlyIf: { tone: 'mix' } },
+  { id: 298, set: { tone: 'funny', tags: ['for-dad', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 299, set: { tone: 'funny', tags: ['for-sister', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 300, set: { tone: 'rude', tags: ['for-best-mate', 'for-brother'] }, onlyIf: { tone: 'mix' } },
+  { id: 306, set: { tone: 'warm', tags: ['for-sister', 'for-mum'] }, onlyIf: { tone: 'mix' } },
+  { id: 307, set: { tone: 'warm', tags: ['for-best-mate', 'for-sister'] }, onlyIf: { tone: 'mix' } },
+  { id: 308, set: { tone: 'rude', tags: ['for-partner', 'for-best-mate'] }, onlyIf: { tone: 'mix' } },
+  { id: 309, set: { tone: 'warm', tags: ['for-nan', 'for-grandad'] }, onlyIf: { tone: 'mix' } },
+  { id: 312, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 313, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 314, set: { tone: 'warm' }, onlyIf: { tone: 'mix' } },
+  { id: 315, set: { tone: 'warm' }, onlyIf: { tone: 'mix' } },
+  { id: 316, set: { tone: 'warm' }, onlyIf: { tone: 'mix' } },
+  { id: 317, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 318, set: { tone: 'warm' }, onlyIf: { tone: 'mix' } },
+  { id: 319, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 320, set: { tone: 'warm' }, onlyIf: { tone: 'mix' } },
+  { id: 321, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 322, set: { tone: 'funny' }, onlyIf: { tone: 'mix' } },
+  { id: 323, set: { tone: 'funny', interest: 'gaming' }, onlyIf: { tone: 'mix', interest: 'PS5' } },
+  { id: 324, set: { tone: 'funny', interest: 'gaming' }, onlyIf: { tone: 'mix', interest: 'PS5' } },
+  { id: 325, set: { tone: 'funny', interest: 'gaming' }, onlyIf: { tone: 'mix', interest: 'PS5' } },
+];
+
+async function runShelvingPass(): Promise<void> {
+  let applied = 0;
+  for (const r of SHELVING) {
+    try {
+      const sets = [
+        r.set.tone !== undefined ? sql`tone = ${r.set.tone}` : null,
+        r.set.gender !== undefined ? sql`gender = ${r.set.gender}` : null,
+        r.set.interest !== undefined ? sql`interest = ${r.set.interest}` : null,
+        r.set.tags !== undefined && r.set.tags.length ? sql`aisle_tags = ${r.set.tags}` : null,
+      ].filter((x): x is NonNullable<typeof x> => x !== null);
+      if (!sets.length) continue;
+      const guards = [sql`id = ${r.id}`];
+      if (r.onlyIf.tone !== undefined) guards.push(sql`tone = ${r.onlyIf.tone}`);
+      if (r.onlyIf.interest !== undefined) guards.push(sql`interest = ${r.onlyIf.interest}`);
+      // tags only land on an untagged card; tone/gender/interest are
+      // value-guarded, so split when both kinds ride one row
+      if (r.set.tags !== undefined && r.set.tags.length) {
+        // Tags are our own slug constants — inline as a proper text[]
+        // literal (drizzle binds a JS array as a record otherwise).
+        const arrayLit = `ARRAY[${r.set.tags.map((t) => `'${t.replace(/'/g, "''")}'`).join(',')}]::text[]`;
+        const tagResult = await db.execute(
+          sql`update card_templates set aisle_tags = ${sql.raw(arrayLit)} where id = ${r.id} and aisle_tags = '{}'::text[]`,
+        );
+        applied += (tagResult as unknown as { rowCount?: number }).rowCount ?? 0;
+      }
+      const nonTagSets = [
+        r.set.tone !== undefined ? sql`tone = ${r.set.tone}` : null,
+        r.set.gender !== undefined ? sql`gender = ${r.set.gender}` : null,
+        r.set.interest !== undefined ? sql`interest = ${r.set.interest}` : null,
+      ].filter((x): x is NonNullable<typeof x> => x !== null);
+      if (nonTagSets.length) {
+        const result = await db.execute(
+          sql`update card_templates set ${sql.join(nonTagSets, sql`, `)} where ${sql.join(guards, sql` and `)}`,
+        );
+        applied += (result as unknown as { rowCount?: number }).rowCount ?? 0;
+      }
+    } catch (err) {
+      console.warn(`[RETAG:P2] template ${r.id} failed (non-fatal):`, (err as Error)?.message ?? err);
+    }
+  }
+  console.log(applied ? `[RETAG:P2] shelving pass applied ${applied} change(s)` : '[RETAG:P2] shelving pass: nothing to do');
+}
+
 export async function runStartupRetag(): Promise<void> {
   let applied = 0;
   for (const r of RETAGS) {
@@ -73,4 +214,5 @@ export async function runStartupRetag(): Promise<void> {
     }
   }
   console.log(applied ? `[RETAG] 2026-08-31 pass applied ${applied} change(s)` : '[RETAG] 2026-08-31 pass: nothing to do (already applied)');
+  await runShelvingPass();
 }
