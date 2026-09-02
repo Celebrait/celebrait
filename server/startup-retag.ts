@@ -229,6 +229,45 @@ async function runCutPass(): Promise<void> {
   console.log(applied ? `[RETAG:P3] cut pass applied ${applied} change(s)` : '[RETAG:P3] cut pass: nothing to do');
 }
 
+/** PASS 4 — THE BIRTHDAY CUT (2026-09-02, "Do the same for bday,
+ *  good uns only that land!"). All 120 reviewed by eye. 32 unpublished:
+ *  12 masking-illegal (unmasked or malformed swears, pre-law stock),
+ *  5 hard IP (Mr Men / Thomas / Toy Story characters drawn or named —
+ *  the Moana class), 11 from the banned paperwork/verification/UI-art
+ *  seam (incl. the canonical 'Votes. Venues.' card itself), 4
+ *  decoder/metallic/meta. Spared by the aisle-third rule: #96 (21st
+ *  aisle), #137 (50th), #196 (40th), #216 (cocktails). Label hygiene
+ *  rides along. */
+const BDAY_CUTS: number[] = [36, 39, 40, 54, 56, 60, 67, 69, 70, 75, 88, 89, 91, 93, 98, 107, 110, 112, 114, 123, 127, 143, 151, 152, 158, 161, 162, 166, 167, 182, 202, 205];
+const BDAY_RELABELS: Array<{ id: number; to: string; from: string }> = [
+  { id: 106, to: 'proper tea', from: 'Talking shite' },
+  { id: 169, to: 'gadgets', from: 'apple products' },
+  { id: 154, to: 'her icons', from: 'Elvis Presly' },
+  { id: 155, to: 'her icons', from: 'Elvis Presly' },
+  { id: 38, to: 'sunshine', from: 'Mr Men' },
+  { id: 142, to: 'Manchester United', from: 'Manchester united' },
+  { id: 144, to: 'Manchester United', from: 'manchester united' },
+  { id: 281, to: 'Ibiza', from: 'Raving in Ibiza' },
+];
+
+async function runBdayCutPass(): Promise<void> {
+  let applied = 0;
+  for (const id of BDAY_CUTS) {
+    try {
+      const r = await db.execute(sql`update card_templates set published = false where id = ${id} and published = true`);
+      const n = (r as unknown as { rowCount?: number }).rowCount ?? 0;
+      if (n > 0) { applied += n; console.log(`[RETAG:P4] unpublished template ${id}`); }
+    } catch (err) { console.warn(`[RETAG:P4] cut ${id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  for (const rl of BDAY_RELABELS) {
+    try {
+      const r = await db.execute(sql`update card_templates set interest = ${rl.to} where id = ${rl.id} and interest = ${rl.from}`);
+      applied += (r as unknown as { rowCount?: number }).rowCount ?? 0;
+    } catch (err) { console.warn(`[RETAG:P4] relabel ${rl.id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  console.log(applied ? `[RETAG:P4] birthday cut applied ${applied} change(s)` : '[RETAG:P4] birthday cut: nothing to do');
+}
+
 export async function runStartupRetag(): Promise<void> {
   let applied = 0;
   for (const r of RETAGS) {
@@ -254,4 +293,5 @@ export async function runStartupRetag(): Promise<void> {
   console.log(applied ? `[RETAG] 2026-08-31 pass applied ${applied} change(s)` : '[RETAG] 2026-08-31 pass: nothing to do (already applied)');
   await runShelvingPass();
   await runCutPass();
+  await runBdayCutPass();
 }
