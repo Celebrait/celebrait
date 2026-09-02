@@ -41,6 +41,12 @@ export const PAGE_SEO: PageSeo[] = [
       'Tell us who it’s for and when they need it. We write and illustrate three original cards just for them — or pick one straight off the shelf. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
+    path: '/lp3',
+    title: 'A Card Made For Them, Not Picked For Them | Celebrait',
+    description:
+      'Tell us who it’s for. We write and illustrate three original cards for that one person in about a minute, or put them in the picture from a photo. Printed on 280gsm card and posted first class from £4.99.',
+  },
+  {
     path: '/make',
     title: 'Making their card… | Celebrait',
     description: 'Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and posted first class.',

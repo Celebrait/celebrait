@@ -669,7 +669,7 @@ function prefetchVideo() {
   }
 }
 
-function HeroProof() {
+export function HeroProof() {
   const [playing, setPlaying] = useState(false);
   // `started` gates the poster overlay + the native controls: the modal
   // opens on a clean poster, and the chrome only appears once it's
