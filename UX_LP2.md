@@ -197,7 +197,7 @@ gallery now.
 | **C** | Draft-on-generate + keep/buy: `cards` row + 3 attempts on render, guest token, Keep → sign-in, Buy → `/buy/:id` at £5.99. Drafts tab shows maker drafts. | `server/routes/make.ts`, `pages/buy.tsx` | ½–1 day |
 | **D** | Polish + flip: mobile QA, a11y pass, perf (LCP), analytics events on bar/wait/results/pick, then `/` → LP2 (old LP kept at `/lp-classic` for a fortnight). | — | ½ day |
 
-Phase A ships today. B starts immediately after.
+**Status:** Phase A shipped `0a2ecc49`; Phase B shipped `fee6449c` (2026-09-02) — `/make` real, guest gate `requireGuestMaker` on `/api/make/*` (per-IP / per-user / global daily caps, `GUEST_MAKER_OFF=1` kills it). Verified live: brief screen, wait screen with narration, failure screen. NOT yet exercised end-to-end (OpenAI credits exhausted at build time): results → pick → cameo → inside → done. First job when credits land: run a full brief through dev before Phase C.
 
 ---
 
