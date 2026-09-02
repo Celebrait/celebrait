@@ -35,6 +35,17 @@ export const PAGE_SEO: PageSeo[] = [
       'Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from £4.99.',
   },
   {
+    path: '/door',
+    title: 'Cards Made For One Person | Celebrait',
+    description:
+      'A card made for them: tell us who and we write and illustrate three originals in a minute. Or a scene made around them, from one photo. Printed on 280gsm card and posted first class from £4.99.',
+  },
+  {
+    path: '/make',
+    title: 'Making their card… | Celebrait',
+    description: 'Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and posted first class.',
+  },
+  {
     path: '/pricing',
     title: 'Pricing — Personalised Greetings Cards from £4.99 | Celebrait',
     description:
