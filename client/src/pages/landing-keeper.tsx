@@ -106,7 +106,7 @@ const Card3DViewer = lazy(() =>
 const EASE = [0.22, 1, 0.36, 1] as const;
 // Fraunces Bold for every display headline (Kevin 2026-07-04). Serif
 // wants gentler negative tracking than the grotesque did.
-const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
+export const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 
 function Rise({
   children,
@@ -328,7 +328,7 @@ function CardPair({
 // code", which is the strongest reason we have for paying that cost.
 // The invite modal is mounted on this page and listens for CLAIM_EVENT,
 // same mechanism the ticker and the corner pill already use.
-function PrimaryCta({ large = false }: { large?: boolean }) {
+export function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const authed = !isLoading && isAuthenticated;
   const cls = `inline-flex items-center justify-center rounded-full bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
@@ -362,7 +362,7 @@ const TRUST_CHIPS = [
   { icon: Truck, label: 'Straight to them — or to you to hand over' },
 ] as const;
 
-function TrustChips({ center = false }: { center?: boolean }) {
+export function TrustChips({ center = false }: { center?: boolean }) {
   return (
     <div className={`mt-5 flex flex-wrap gap-2 ${center ? 'justify-center' : ''}`}>
       {TRUST_CHIPS.map(({ icon: Icon, label }) => (
@@ -1088,7 +1088,7 @@ const PROOF_EXAMPLES: ProofExample[] = [
   NEW_YORK_EXAMPLE,
 ];
 
-function ProofSection() {
+export function ProofSection() {
   const reduced = useReducedMotion();
   const [cardOpen, setCardOpen] = useState(false);
   // Carousel index. `many` gates every carousel affordance so a lone
@@ -1355,7 +1355,7 @@ function ProofSection() {
 // together", so the two photos always travel together; but one example is
 // enough to make it (Kevin 2026-07-17 — the carousel here is gone, and with
 // it the 4 extra lifestyle shots it would have needed).
-function InsideSection() {
+export function InsideSection() {
   const reduced = useReducedMotion();
 
   return (
@@ -1447,7 +1447,7 @@ const HANDOVER: Array<{
   },
 ];
 
-function HandoverSection() {
+export function HandoverSection() {
   return (
     // Same chassis as THE INSIDE ("The magic's digital. The card isn't.") —
     // text left, staggered pair of shots right (Kevin 2026-07-17), so the
