@@ -199,3 +199,22 @@ card-shop speed. The distilled laws:
   prompts and floors from the running code; each card in the studio
   shows its dealt slot. House rule from here: every engine change
   lands with its lesson in this file.
+
+## The curation pass (2026-09-02)
+
+- **Keep ≠ publish.** Keeping is the builder's verdict, publishing is
+  the merchant's — merging them put QA output on the shop. Both racks
+  now cut to the salesperson test: would this card alone convince a
+  stranger the maker is worth £5.99?
+- **Your review inherits the blind spots of the API it reads.** The
+  catalogue's newest-120 cap hid the 27 oldest cards from the hub, the
+  "complete" curation review AND the thumb backfill — an invisible
+  shelf still serving on aisle pages. When auditing "everything",
+  verify the count against the source of truth, not a payload.
+- **Old stock ages out of the constitution silently.** 48 cuts were
+  almost all pre-law cards (unmasked swears, drawn IP characters, the
+  banned seam) that today's engine cannot produce. After every new
+  floor, ask what already-published stock now violates it.
+- **The aisle-third rule cuts both ways** — four borderline cards were
+  spared solely to keep aisles above threshold; note them for
+  replacement when better stock lands (#96, #137, #196, #216).
