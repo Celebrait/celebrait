@@ -21,7 +21,10 @@ import { cardPriceGBP, SHIPPING_TIERS } from '@shared/pricing';
 import logoUrl from '@/assets/celebrait.webp';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
-const H2 = `${DISPLAY} text-[clamp(28px,4vw,42px)] leading-[1.08]`;
+// Typography discipline (Aidan, 2026-09-02: "too much?"): ONE display
+// moment per screen, one body size, one meta size. Eyebrows only where
+// they label a price. Nothing else shouts.
+const H2 = `${DISPLAY} text-[clamp(24px,3vw,34px)] leading-[1.1]`;
 
 function Wire({ label }: { label: string }) {
   return (
@@ -43,7 +46,7 @@ function ShopHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-40">
       <div className="border-b border-keeper-hair bg-keeper-paper/95 text-center text-[12px] text-keeper-meta backdrop-blur">
-        <span className="inline-block py-1.5">Printed to order in the UK · posted first class · <b className="text-keeper-ink">{standard ? gbp(standard.price) : '£2.95'}</b> postage per order</span>
+        <span className="inline-block py-1.5"><span className="hidden sm:inline">Printed to order in the UK · </span>Posted first class · <b className="text-keeper-ink">{standard ? gbp(standard.price) : '£2.95'}</b> postage<span className="hidden sm:inline"> per order</span></span>
       </div>
       <div className="mx-auto mt-3 max-w-6xl px-4 sm:px-6">
         <div className="flex items-center justify-between gap-3 rounded-full border border-keeper-hair bg-white/90 py-2 pl-5 pr-2 shadow-[0_1px_2px_rgba(33,29,25,0.05),0_10px_30px_-16px_rgba(33,29,25,0.25)] backdrop-blur">
@@ -104,20 +107,19 @@ function HeroSection() {
     <section className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="grid items-center gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-12">
         <div>
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.22em] text-brand-dark">Personalised greetings cards · printed &amp; posted</p>
-          <h1 className={`${DISPLAY} mt-3 max-w-[14ch] text-[clamp(38px,6vw,64px)] leading-[1.02] text-balance`}>
+          <h1 className={`${DISPLAY} max-w-[15ch] text-[clamp(32px,4.6vw,52px)] leading-[1.06] text-balance`}>
             A card made <em className="not-italic text-brand-dark">for them</em>. Not picked for them.
           </h1>
-          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-keeper-body">
-            Tell us who it's for. We write and illustrate three original cards for that one person —
-            then you pick, add your words, and it's printed and in the post. Got a photo? They can be in it.
+          <p className="mt-4 max-w-[44ch] text-[16px] leading-relaxed text-keeper-body">
+            Tell us who it's for and one thing they love. We write and illustrate three original cards
+            for that one person. You pick, add your words, and it's printed and in the post.
           </p>
-          <div className="mt-8"><WhoPill /></div>
+          <div className="mt-7"><WhoPill /></div>
         </div>
         <div className="relative">
           <HeroProof />
           <p className="mt-10 text-[12.5px] text-keeper-meta sm:mt-12">
-            A real one. Made from a phone photo and the words <i>Happy Birthday Mummy</i>. <span className="text-keeper-ink">Tap to watch her open it.</span>
+            A real one, from a phone photo and the words <i>Happy Birthday Mummy</i>.
           </p>
         </div>
       </div>
@@ -170,8 +172,7 @@ function ShelfSection() {
             c ? (
               <Link key={c.id} href={`/card/${c.id}`} className="group block">
                 <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
-                <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-dark">{briefFor(c, c.occ)}</p>
-                <p className="line-clamp-2 text-[12.5px] leading-snug text-keeper-body">“{c.front_text}”</p>
+                <p className="mt-2 truncate text-[12.5px] text-keeper-meta">{briefFor(c, c.occ)}</p>
               </Link>
             ) : <div key={i} className="aspect-square animate-pulse rounded-lg bg-keeper-hair/50" />,
           )}
@@ -236,7 +237,7 @@ export default function LandingThree() {
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <ShopHeader />
-      <main className="space-y-20 pb-24 pt-36 md:space-y-28 md:pt-40">
+      <main className="space-y-16 pb-24 pt-32 md:space-y-24 md:pt-36">
         <HeroSection />
         <ShelfSection />
         <DepthsSection />

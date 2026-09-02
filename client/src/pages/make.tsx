@@ -84,7 +84,12 @@ export default function MakePage() {
   const [, navigate] = useLocation();
   const [brief, setBrief] = useState<Brief>(readBrief);
   const [vibe, setVibe] = useState<Vibe>('mix');
-  const [phase, setPhase] = useState<Phase>(brief.who ? 'generating' : 'brief');
+  // The engine deals its archetype from the interest, the age, the name and
+  // the dislike — "who" alone would starve it. So the door (the LP pill) can
+  // be two facts, but nothing generates until the brief has the one thing
+  // they love. Everything already known arrives prefilled and isn't re-asked.
+  const [phase, setPhase] = useState<Phase>(brief.who && brief.thing ? 'generating' : 'brief');
+  const [more, setMore] = useState(false);
   const [failMsg, setFailMsg] = useState('');
 
   const ageNum = useMemo(() => { const n = parseInt(brief.age, 10); return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null; }, [brief.age]);
@@ -244,19 +249,54 @@ export default function MakePage() {
     return (
       <div className={shell}><Backdrop /><KeeperHeader />
         <main className="mx-auto max-w-md px-4 pb-24 pt-36 sm:px-6">
-          <h1 className="font-display text-3xl font-bold text-keeper-ink">Who's the card for?</h1>
-          <p className="mt-2 text-sm text-keeper-meta">Two things and we're off — everything else is optional.</p>
+          {brief.who ? (
+            <>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-dark">{occasionLabel} · for your {brief.who.toLowerCase()}</p>
+              <h1 className="mt-1.5 font-display text-3xl font-bold text-keeper-ink">One thing they love.</h1>
+              <p className="mt-2 text-sm text-keeper-meta">This is what the three cards get built around — the more them, the better. A hobby, a team, a habit, a running joke.</p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-bold text-keeper-ink">Who's the card for?</h1>
+              <p className="mt-2 text-sm text-keeper-meta">Who it's for, and one thing they love. That's all the engine needs.</p>
+            </>
+          )}
           <div className="mt-6 space-y-3">
-            <select value={brief.occasion} onChange={(e) => setBrief({ ...brief, occasion: e.target.value })} className="h-11 w-full rounded-md border border-keeper-hair bg-white px-3 text-sm">
-              <option value="birthday">Birthday</option><option value="christmas">Christmas</option>
-            </select>
-            <Input value={brief.who} onChange={(e) => setBrief({ ...brief, who: e.target.value })} placeholder="Who it's for — Mum, Dad, best mate…" className="h-11" />
-            <Input value={brief.thing} onChange={(e) => setBrief({ ...brief, thing: e.target.value })} placeholder="One thing they love (optional)" className="h-11" />
-            {brief.occasion === 'birthday' && <Input value={brief.age} onChange={(e) => setBrief({ ...brief, age: e.target.value.replace(/\D/g, '').slice(0, 3) })} placeholder="Turning (optional)" className="h-11" inputMode="numeric" />}
+            {!brief.who && (
+              <>
+                <select value={brief.occasion} onChange={(e) => setBrief({ ...brief, occasion: e.target.value })} className="h-11 w-full rounded-md border border-keeper-hair bg-white px-3 text-sm">
+                  <option value="birthday">Birthday</option><option value="christmas">Christmas</option>
+                </select>
+                <Input value={brief.who} onChange={(e) => setBrief({ ...brief, who: e.target.value })} placeholder="Who it's for — Mum, Dad, best mate…" className="h-11" />
+              </>
+            )}
+            <Input value={brief.thing} onChange={(e) => setBrief({ ...brief, thing: e.target.value.slice(0, 80) })} placeholder="fishing · the allotment · Boxing Day football" className="h-11" autoFocus={!!brief.who} />
+            <div className="flex flex-wrap gap-1.5">
+              {(brief.occasion === 'christmas'
+                ? ['the works do', 'Elf on the Shelf', 'the cheeseboard', 'Boxing Day football', 'a proper roast', 'the dog']
+                : ['gardening', 'a proper cup of tea', 'Strictly', 'golf', 'the dog', 'a good gin']
+              ).map((chip) => (
+                <button key={chip} type="button" onClick={() => setBrief({ ...brief, thing: chip })}
+                  className={`rounded-full border px-3 py-1 text-[12.5px] ${brief.thing === chip ? 'border-brand-dark bg-brand-muted text-brand-dark' : 'border-keeper-hair bg-white text-keeper-body hover:border-brand-dark'}`}>
+                  {chip}
+                </button>
+              ))}
+            </div>
+            {brief.occasion === 'birthday' && <Input value={brief.age} onChange={(e) => setBrief({ ...brief, age: e.target.value.replace(/\D/g, '').slice(0, 3) })} placeholder="Turning… (optional, but it changes the cards)" className="h-11" inputMode="numeric" />}
+            <button type="button" onClick={() => setMore((v) => !v)} className="text-[13px] font-semibold text-brand-dark hover:underline">
+              {more ? '– fewer details' : "+ their name, or something they can't stand"}
+            </button>
+            {more && (
+              <>
+                <Input value={brief.name} onChange={(e) => setBrief({ ...brief, name: e.target.value.slice(0, 40) })} placeholder="Their name — goes on one card's artwork" className="h-11" />
+                <Input value={brief.cant} onChange={(e) => setBrief({ ...brief, cant: e.target.value.slice(0, 60) })} placeholder="Can't stand — one card gets built around it" className="h-11" />
+              </>
+            )}
           </div>
-          <Button className="mt-6 h-12 w-full text-base" disabled={!brief.who.trim()} onClick={() => void generate()}>
-            <Sparkles className="mr-2 h-4 w-4" /> Find their card
+          <Button className="mt-6 h-12 w-full text-base" disabled={!brief.who.trim() || !brief.thing.trim()} onClick={() => void generate()}>
+            <Sparkles className="mr-2 h-4 w-4" /> Write their three cards
           </Button>
+          <p className="mt-3 text-center text-xs text-keeper-meta">About a minute. Got a photo of them handy? After you pick, we can put them right in the card.</p>
         </main>
       </div>
     );
