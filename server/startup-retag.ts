@@ -191,6 +191,44 @@ async function runShelvingPass(): Promise<void> {
   console.log(applied ? `[RETAG:P2] shelving pass applied ${applied} change(s)` : '[RETAG:P2] shelving pass: nothing to do');
 }
 
+/** PASS 3 — THE CUT (2026-09-02, "Just cut the bad ones"). Eleven
+ *  cards UNPUBLISHED (not deleted — rows stay as builder history, one
+ *  click back in the dialog): two masking-illegal, Aidan's own
+ *  unparseable card, the adult-ops kids card, a nativity card with
+ *  Santa in it (Santa is not in the nativity), pre-referee decoder
+ *  rambles, label-phrases with no claim, an orphaned NY poster, and
+ *  the weakest of the bollocks family. #264 spared to keep the
+ *  real-ale aisle alive; the vice cards spared per the ceiling call.
+ *  Plus two repairs: #237/#302 lose their mislabelled age-10 so they
+ *  shelve as the adult cards they are. */
+const CUTS: number[] = [222, 228, 229, 240, 249, 256, 269, 290, 301, 303, 313];
+const AGE_REPAIRS: Array<{ id: number; tags: string[] }> = [
+  { id: 237, tags: ['for-dad', 'for-mum'] },
+  { id: 302, tags: ['for-best-mate', 'for-sister'] },
+];
+
+async function runCutPass(): Promise<void> {
+  let applied = 0;
+  for (const id of CUTS) {
+    try {
+      const r = await db.execute(sql`update card_templates set published = false where id = ${id} and published = true`);
+      const n = (r as unknown as { rowCount?: number }).rowCount ?? 0;
+      if (n > 0) { applied += n; console.log(`[RETAG:P3] unpublished template ${id}`); }
+    } catch (err) { console.warn(`[RETAG:P3] cut ${id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  for (const r2 of AGE_REPAIRS) {
+    try {
+      const r = await db.execute(sql`update card_templates set age = null where id = ${r2.id} and age = 10`);
+      const n = (r as unknown as { rowCount?: number }).rowCount ?? 0;
+      if (n > 0) { applied += n; console.log(`[RETAG:P3] cleared mislabelled age on ${r2.id}`); }
+      const arrayLit = `ARRAY[${r2.tags.map((t) => `'${t}'`).join(',')}]::text[]`;
+      const rt = await db.execute(sql`update card_templates set aisle_tags = ${sql.raw(arrayLit)} where id = ${r2.id} and aisle_tags = '{}'::text[]`);
+      applied += (rt as unknown as { rowCount?: number }).rowCount ?? 0;
+    } catch (err) { console.warn(`[RETAG:P3] repair ${r2.id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  console.log(applied ? `[RETAG:P3] cut pass applied ${applied} change(s)` : '[RETAG:P3] cut pass: nothing to do');
+}
+
 export async function runStartupRetag(): Promise<void> {
   let applied = 0;
   for (const r of RETAGS) {
@@ -215,4 +253,5 @@ export async function runStartupRetag(): Promise<void> {
   }
   console.log(applied ? `[RETAG] 2026-08-31 pass applied ${applied} change(s)` : '[RETAG] 2026-08-31 pass: nothing to do (already applied)');
   await runShelvingPass();
+  await runCutPass();
 }
