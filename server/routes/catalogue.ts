@@ -164,7 +164,11 @@ export function registerCatalogueRoutes(app: Express): void {
         aisle,
         count: rows.length,
         aisles,
-        cards: rows.slice(0, 120).map((t) => ({
+        // Cap raised from 120 (2026-09-02): the old cap silently hid the
+        // 27 oldest cards from the hub, the curation review AND the
+        // thumb backfill — a whole invisible shelf. Thumbs are ~30KB
+        // now, so the payload can afford the honesty.
+        cards: rows.slice(0, 250).map((t) => ({
           id: t.id,
           front_text: t.front_text,
           tone: t.tone,

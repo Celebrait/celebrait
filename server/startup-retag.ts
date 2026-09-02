@@ -238,6 +238,16 @@ async function runCutPass(): Promise<void> {
  *  decoder/metallic/meta. Spared by the aisle-third rule: #96 (21st
  *  aisle), #137 (50th), #196 (40th), #216 (cocktails). Label hygiene
  *  rides along. */
+// Era-zero addendum (the API's 120-card cap hid ids 1-35 from the
+// review AND from the thumb backfill — cap raised in catalogue.ts):
+// five more cuts, two property names off the labels.
+const BDAY_CUTS_2: number[] = [3, 13, 24, 25, 28];
+const BDAY_RELABELS_2: Array<{ id: number; to: string; from: string }> = [
+  { id: 19, to: 'ocean adventures', from: 'Moana' },
+  { id: 20, to: 'ocean adventures', from: 'Moana' },
+  { id: 21, to: 'political chaos', from: 'Donald Trump' },
+];
+
 const BDAY_CUTS: number[] = [36, 39, 40, 54, 56, 60, 67, 69, 70, 75, 88, 89, 91, 93, 98, 107, 110, 112, 114, 123, 127, 143, 151, 152, 158, 161, 162, 166, 167, 182, 202, 205];
 const BDAY_RELABELS: Array<{ id: number; to: string; from: string }> = [
   { id: 106, to: 'proper tea', from: 'Talking shite' },
@@ -260,6 +270,19 @@ async function runBdayCutPass(): Promise<void> {
     } catch (err) { console.warn(`[RETAG:P4] cut ${id} failed (non-fatal):`, (err as Error)?.message ?? err); }
   }
   for (const rl of BDAY_RELABELS) {
+    try {
+      const r = await db.execute(sql`update card_templates set interest = ${rl.to} where id = ${rl.id} and interest = ${rl.from}`);
+      applied += (r as unknown as { rowCount?: number }).rowCount ?? 0;
+    } catch (err) { console.warn(`[RETAG:P4] relabel ${rl.id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  for (const id of BDAY_CUTS_2) {
+    try {
+      const r = await db.execute(sql`update card_templates set published = false where id = ${id} and published = true`);
+      const n = (r as unknown as { rowCount?: number }).rowCount ?? 0;
+      if (n > 0) { applied += n; console.log(`[RETAG:P4] unpublished era-zero template ${id}`); }
+    } catch (err) { console.warn(`[RETAG:P4] cut ${id} failed (non-fatal):`, (err as Error)?.message ?? err); }
+  }
+  for (const rl of BDAY_RELABELS_2) {
     try {
       const r = await db.execute(sql`update card_templates set interest = ${rl.to} where id = ${rl.id} and interest = ${rl.from}`);
       applied += (r as unknown as { rowCount?: number }).rowCount ?? 0;
