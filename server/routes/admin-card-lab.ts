@@ -132,6 +132,49 @@ async function persistResearchRender(req: Request, frontText: string | undefined
     console.warn('[RESEARCH] live render capture failed (non-fatal):', err);
   }
 }
+/** ── THE GUEST MAKER GATE (LP2 Phase B, UX_LP2.md §3 / THREE_DOORS §8c)
+ *  "Generate free, sign in to keep or buy." No key: the public /make
+ *  route calls the same four engine handlers. Exposure is bounded two
+ *  ways — a per-IP daily cap (a curious visitor gets a few sets, not
+ *  an evening's entertainment) and a global daily cap (a bad day costs
+ *  a known amount). Signed-in users get a roomier per-user cap.
+ *  In-memory counters, reset on deploy — acceptable for launch; the
+ *  numbers live here so they can be tuned without a schema. */
+const guestCounts = new Map<string, { day: string; n: number }>();
+const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6 };
+const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20 };
+const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200 };
+const bump = (key: string, cap: number): boolean => {
+  const day = new Date().toISOString().slice(0, 10);
+  const c = guestCounts.get(key);
+  const n = c?.day === day ? c.n : 0;
+  if (n >= cap) return false;
+  guestCounts.set(key, { day, n: n + 1 });
+  return true;
+};
+export const requireGuestMaker = (kind: string) => async (req: Request, res: Response): Promise<boolean> => {
+  if (process.env.GUEST_MAKER_OFF === '1') {
+    res.status(503).json({ message: 'The maker is resting for a moment — the shelf is open' });
+    return false;
+  }
+  const userId = (req as any).session?.otpUserId ?? null;
+  const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim();
+  const who = userId ? `u:${userId}` : `ip:${ip}`;
+  const cap = userId ? (USER_CAPS[kind] ?? 0) : (GUEST_CAPS_PER_IP[kind] ?? 0);
+  if (!bump(`${who}:${kind}`, cap)) {
+    res.status(429).json({ message: userId
+      ? 'You’ve made a lot of cards today — the rest are in your studio, and the shelf is open'
+      : 'That’s a lot of cards for one day — sign in to keep going, or take one off the shelf' });
+    return false;
+  }
+  if (!bump(`global:${kind}`, GUEST_CAPS_GLOBAL[kind] ?? 0)) {
+    res.status(429).json({ message: 'We’ve made a lot of cards today — the shelf is open, and we’re back tomorrow' });
+    return false;
+  }
+  (req as any).makerKind = kind;
+  return true;
+};
+
 type Gate = (req: Request, res: Response) => Promise<boolean>;
 const guarded = (gate: Gate, h: (req: Request, res: Response) => Promise<unknown> | void) =>
   async (req: Request, res: Response) => { if (await gate(req, res)) await h(req, res); };
@@ -3626,6 +3669,11 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
   // answered questions and a generation wait (observed: Aidan hitting
   // the literal YOUR-KEY placeholder and only learning at generate).
   app.get('/api/research/ping', guarded(requireResearch('ping'), async (_req: Request, res: Response) => { res.json({ ok: true }); }));
+  // DOOR 2 — the public maker. Same handlers, third gate, no key.
+  app.post('/api/make/concepts', guarded(requireGuestMaker('concepts'), conceptsHandler));
+  app.post('/api/make/render', guarded(requireGuestMaker('render'), renderHandler));
+  app.post('/api/make/render-inside', guarded(requireGuestMaker('render-inside'), render_insideHandler));
+  app.post('/api/make/ip-safe-art', guarded(requireGuestMaker('ip-safe-art'), ip_safe_artHandler));
 }
 
 /** Render an inside page. Hoisted to module scope 2026-08-27 so the
