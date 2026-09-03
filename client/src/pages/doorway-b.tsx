@@ -67,14 +67,11 @@ export default function DoorwayBPage() {
   useSeo('/door2');
   const [, navigate] = useLocation();
   const [cards, setCards] = useState<CatalogueCard[]>([]);
+  // Birthdays only in the wall (Aidan 2026-09-02) — the evergreen rack.
   useEffect(() => {
-    Promise.all(['christmas', 'birthday'].map((o) => fetch(`/api/catalogue/${o}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)))
-      .then(([x, b]: Array<RackPayload | null>) => {
-        const a = x?.cards ?? [], c = b?.cards ?? [];
-        const out: CatalogueCard[] = [];
-        for (let i = 0; i < 10; i++) { if (c[i]) out.push(c[i]); if (a[i]) out.push(a[i]); }
-        setCards(out);
-      });
+    fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null))
+      .then((b: RackPayload | null) => setCards((b?.cards ?? []).slice(0, 20) as CatalogueCard[]))
+      .catch(() => {});
   }, []);
 
   return (
