@@ -68,9 +68,16 @@ export default function DoorwayBPage() {
   const [, navigate] = useLocation();
   const [cards, setCards] = useState<CatalogueCard[]>([]);
   // Birthdays only in the wall (Aidan 2026-09-02) — the evergreen rack.
+  // A fresh shuffle of the WHOLE birthday rack on every visit, twenty
+  // drawn ("randomise the carousel a bit more"), so no two arrivals see
+  // the same wall and the newest cards don't always lead.
   useEffect(() => {
     fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null))
-      .then((b: RackPayload | null) => setCards((b?.cards ?? []).slice(0, 20) as CatalogueCard[]))
+      .then((b: RackPayload | null) => {
+        const pool = [...((b?.cards ?? []) as CatalogueCard[])];
+        for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+        setCards(pool.slice(0, 20));
+      })
       .catch(() => {});
   }, []);
 
