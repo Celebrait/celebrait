@@ -19,6 +19,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
 import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe } from '@/components/brief-questions';
+import { rackTokenKey } from '@/pages/buy';
+import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
@@ -125,6 +128,44 @@ export default function MakePage() {
   const isKid = isKidBrief(brief);
   const occasionLabel = occasionLabelFor(brief);
   const whoName = brief.name.trim() || brief.who.trim();
+
+  // ── Phase C: keep and buy ──────────────────────────────────────────
+  // Nothing is written until the card is finished and wanted. Saving
+  // mints a `cards` row (source 'maker') and a token that proves a
+  // guest owns it — the rack's pattern, so /buy needs nothing new.
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { openAuth } = useAuthModal();
+  const [saved, setSaved] = useState<{ cardId: number; cardToken: string } | null>(null);
+  const [saving, setSaving] = useState<'' | 'buy' | 'keep'>('');
+  const [saveError, setSaveError] = useState('');
+  const savedRef = useRef<{ cardId: number; cardToken: string } | null>(null);
+  const saveCard = async (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string) => {
+    if (savedRef.current) return savedRef.current;
+    const j = await makePost('cards', {
+      frontImageUrl: front, insideImageUrl: inside, cameo: cameoKept && !!cameoUrl, insideMode: mode,
+      brief: { who: brief.who.trim(), gender: brief.gender, age: ageNum, interest: brief.thing.trim() || undefined, dislike: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, tone: brief.vibe, occasion: occasionLabel },
+      concept: { front_text: c.front_text, inside_text: c.inside_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, direction: c.direction },
+      message: msg || undefined,
+    });
+    const s = { cardId: j.cardId as number, cardToken: j.cardToken as string };
+    try { sessionStorage.setItem(rackTokenKey(s.cardId), s.cardToken); } catch { /* private mode: buy still works this session */ }
+    savedRef.current = s; setSaved(s);
+    return s;
+  };
+  // "Keep it": sign in, come back here with ?claim=<id>, adopt the card
+  // by its token, then on to the studio. (The token can't ride the
+  // session — OTP verify regenerates it — so it lives in the browser.)
+  useEffect(() => {
+    const claim = new URLSearchParams(window.location.search).get('claim');
+    if (!claim || authLoading) return;
+    if (!isAuthenticated) { openAuth(`/make?claim=${claim}`); return; }
+    const token = (() => { try { return sessionStorage.getItem(rackTokenKey(claim)) ?? ''; } catch { return ''; } })();
+    fetch(`/api/make/cards/${claim}/claim`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: token }) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then(() => navigate(`/studio/card/${claim}`))
+      .catch(() => navigate('/studio'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated]);
   const forWho = whoName ? `${whoName}'s` : 'the';
 
   const [cells, setCells] = useState<CardCell[]>([]);
@@ -436,11 +477,36 @@ export default function MakePage() {
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button type="button" disabled className={commit} title="Guest checkout for made-for-them cards lands with Phase C">Buy it — {gbp(cardPriceGBP('maker'))}</button>
-            <Link href="/studio" className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium"><Lock className="w-4 h-4" strokeWidth={1.75} /> Keep it — sign in</Link>
-            <button type="button" onClick={() => navigate('/door')} className={textLink}>Make another</button>
+            <button type="button" disabled={!!saving || !chosenFront} className={commit}
+              onClick={() => {
+                if (!chosenFront) return;
+                setSaving('buy'); setSaveError('');
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideMode === 'own' ? [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n') : [dear.trim(), cells[picked].concept.inside_text ?? '', from.trim()].filter(Boolean).join('\n\n'))
+                  .then((s) => navigate(`/buy/${s.cardId}`))
+                  .catch((e: any) => { setSaveError(e?.message ?? 'That didn’t save — try again'); setSaving(''); });
+              }}>
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it — {gbp(cardPriceGBP('maker'))}
+            </button>
+            <button type="button" disabled={!!saving || !chosenFront}
+              className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"
+              onClick={() => {
+                if (!chosenFront) return;
+                setSaving('keep'); setSaveError('');
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideMode === 'own' ? [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n') : [dear.trim(), cells[picked].concept.inside_text ?? '', from.trim()].filter(Boolean).join('\n\n'))
+                  .then((s) => {
+                    // Signed in: the row is already theirs. Guest: sign in,
+                    // then come back to claim it by token.
+                    if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
+                    else { setSaving(''); openAuth(`/make?claim=${s.cardId}`); }
+                  })
+                  .catch((e: any) => { setSaveError(e?.message ?? 'That didn’t save — try again'); setSaving(''); });
+              }}>
+              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Keep it — sign in'}
+            </button>
+            <button type="button" onClick={() => navigate('/door2')} className={textLink}>Make another</button>
           </div>
-          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage. Buying lands with the next release — signing in keeps it in your studio.</p>
+          {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
+          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved — it’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
         </div>
       </MakeShell>
     );

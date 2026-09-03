@@ -141,9 +141,9 @@ async function persistResearchRender(req: Request, frontText: string | undefined
  *  In-memory counters, reset on deploy — acceptable for launch; the
  *  numbers live here so they can be tuned without a schema. */
 const guestCounts = new Map<string, { day: string; n: number }>();
-const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6 };
-const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20 };
-const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200 };
+const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12 };
+const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40 };
+const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800 };
 const bump = (key: string, cap: number): boolean => {
   const day = new Date().toISOString().slice(0, 10);
   const c = guestCounts.get(key);
