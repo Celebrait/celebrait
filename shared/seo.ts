@@ -42,7 +42,7 @@ export const PAGE_SEO: PageSeo[] = [
   },
   {
     path: '/door2',
-    title: 'Three Cards, Made For Them. You Pick The One | Celebrait',
+    title: 'A Personalised Greetings Card They’ll Probably Keep, In Under 2 Minutes | Celebrait',
     description:
       'Tell us who the card is for and we write and illustrate three originals in a minute — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
   },

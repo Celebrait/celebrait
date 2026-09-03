@@ -31,8 +31,6 @@ import { cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-/** "Say goodbye to …" — the three pains, rotating (Aidan 2026-09-02). */
-const ENDINGS = ['not knowing which card suits them', '“that one will do”', 'staring at a generic rack'];
 
 
 /** The drifting wall — the rack's cards, interleaved across occasions,
@@ -87,21 +85,7 @@ export default function DoorwayBPage() {
   // "Get started" swaps the hero copy for the questions, same spot. A
   // brief already in the URL means they're mid-way — open on the questions.
   const [started, setStarted] = useState<boolean>(() => brief.who.trim().length > 0);
-  // The rotating ending (the old LP's persona mechanic): three pains,
-  // 2.2s each, 200ms fade, paused while the tab is hidden, still under
-  // reduced motion.
   const reduced = useReducedMotion();
-  const [ending, setEnding] = useState(0);
-  const [endingVisible, setEndingVisible] = useState(true);
-  useEffect(() => {
-    if (reduced || started) return;
-    const t = window.setInterval(() => {
-      if (document.hidden) return;
-      setEndingVisible(false);
-      window.setTimeout(() => { setEnding((e) => (e + 1) % ENDINGS.length); setEndingVisible(true); }, 200);
-    }, 2600);
-    return () => window.clearInterval(t);
-  }, [reduced, started]);
   const [cards, setCards] = useState<CatalogueCard[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -134,23 +118,14 @@ export default function DoorwayBPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
             {!started ? (
               <>
-                {/* "Say goodbye to" + a rotating ending with the LP's violet
-                    shimmer and a soft glow. The endings wrap to two lines
-                    at every width, so all three sit invisibly in the same
-                    grid cell to fix the height — the page never reflows
-                    as the words change (the old LP's sizer trick). */}
-                <h1 className={`mt-4 max-w-[22ch] text-[clamp(40px,7vw,74px)] leading-[1.04] ${DISPLAY}`}>
-                  Say goodbye to
-                  <span className="grid">
-                    {ENDINGS.map((e) => <span key={e} aria-hidden className="invisible col-start-1 row-start-1 px-1">{e}</span>)}
-                    <span className="col-start-1 row-start-1 transition-opacity duration-200 [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.38))]" style={{ opacity: endingVisible ? 1 : 0 }}>
-                      <ShimmerWord reduced={!!reduced}>{ENDINGS[ending]}</ShimmerWord>
-                    </span>
-                  </span>
+                {/* The sole headline (Aidan 2026-09-02). "probably keep"
+                    carries the LP's violet shimmer and a soft glow. */}
+                <h1 className={`mt-4 max-w-[28ch] text-[clamp(30px,4.6vw,54px)] leading-[1.08] ${DISPLAY}`}>
+                  Create a personalised greetings card they'll{' '}
+                  <span className="-mx-1 inline-block [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.38))]">
+                    <ShimmerWord reduced={!!reduced}>probably keep</ShimmerWord>
+                  </span>, in under 2 minutes.
                 </h1>
-                <p className="mt-5 max-w-[36rem] text-[17px] leading-relaxed text-keeper-body">
-                  Create a personalised greetings card they'll probably keep, in under 2 minutes.
-                </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <button type="button" onClick={() => setStarted(true)}
                     className="inline-flex items-center gap-2 rounded-full bg-keeper-ink px-7 py-3.5 text-[15px] font-semibold text-keeper-paper shadow-[0_10px_30px_-12px_rgba(33,29,25,0.5)] transition-colors hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
