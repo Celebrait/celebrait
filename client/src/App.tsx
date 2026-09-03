@@ -120,6 +120,7 @@ const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio
 const AdminEnginePage = lazy(() => import("@/pages/admin-engine"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const DoorwayPage = lazy(() => import("@/pages/doorway"));
+const DoorwayBPage = lazy(() => import("@/pages/doorway-b"));
 const MakePage = lazy(() => import("@/pages/make"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
@@ -313,6 +314,7 @@ function Router() {
           {/* Guest commerce (Door 1) — deliberately OUTSIDE RequireAuth:
               the rack sells with no account, ownership is token-based. */}
           <Route path="/door" component={DoorwayPage} />
+          <Route path="/door2" component={DoorwayBPage} />
           <Route path="/make" component={MakePage} />
           <Route path="/buy/:cardId" component={BuyPage} />
           <Route path="/order/:orderId" component={OrderStatusPage} />

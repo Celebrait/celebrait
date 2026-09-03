@@ -41,6 +41,12 @@ export const PAGE_SEO: PageSeo[] = [
       'A card made for them: tell us who and we write and illustrate three originals in a minute. Or a scene made around them, from one photo. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
+    path: '/door2',
+    title: 'Cards Made For One Person | Celebrait',
+    description:
+      'Tell us who the card is for and we write and illustrate three originals in a minute — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
+  },
+  {
     path: '/make',
     title: 'Making their card… | Celebrait',
     description: 'Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and posted first class.',

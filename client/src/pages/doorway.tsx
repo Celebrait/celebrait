@@ -12,6 +12,9 @@
 // then THE RACK ITSELF — components/catalogue/rack-wall.tsx, the same
 // component /cards renders — mounted lazily when scrolled into view,
 // with an occasion toggle above its own style/age chips and search.
+//
+// Variant B lives in doorway-b.tsx (/door2): the hero is the builder's
+// first question + a drifting wall of real cards. DoorRack is shared.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
@@ -27,15 +30,15 @@ import { cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // The landing's display style, verbatim (landing-keeper.tsx DISPLAY).
-const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
+export const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 
-const OCCASIONS = [
+export const OCCASIONS = [
   { slug: 'christmas', label: 'Christmas' },
   { slug: 'birthday', label: 'Birthdays' },
 ] as const;
 
 /** Mounts children the first time they scroll near the viewport. */
-function LazyMount({ children, minHeight = '60vh' }: { children: ReactNode; minHeight?: string }) {
+export function LazyMount({ children, minHeight = '60vh' }: { children: ReactNode; minHeight?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
@@ -49,23 +52,58 @@ function LazyMount({ children, minHeight = '60vh' }: { children: ReactNode; minH
   return <div ref={ref} style={on ? undefined : { minHeight }}>{on ? children : null}</div>;
 }
 
+/** The rack section — the same wall /cards renders, with an occasion
+ *  toggle above its style/age chips. Self-contained; shared by both
+ *  doorway variants. */
+export function DoorRack() {
+  const [occasion, setOccasion] = useState<string>('christmas');
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    for (const o of OCCASIONS) {
+      fetch(`/api/catalogue/${o.slug}`).then((r) => (r.ok ? r.json() : null)).then((j: RackPayload | null) => {
+        if (j) setCounts((c) => ({ ...c, [o.slug]: j.count }));
+      }).catch(() => {});
+    }
+  }, []);
+  return (
+    <section id="rack" className="relative mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+      <div className="max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">The Celebrait rack</p>
+        <h2 className="mt-2 font-display text-4xl font-bold leading-[1.05] text-keeper-ink sm:text-5xl">
+          Or straight off the <span className="text-keeper-gold">shelf</span>
+        </h2>
+        <p className="mt-3 text-lg leading-relaxed text-keeper-body">
+          Every card here was made for a real person's brief — not a warehouse.
+          Send one as it is, or make it theirs.
+        </p>
+      </div>
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Occasion</span>
+        {OCCASIONS.map((o) => (
+          <button key={o.slug} type="button" onClick={() => setOccasion(o.slug)}
+            className={`rounded-full border px-3.5 py-1.5 text-sm ${occasion === o.slug ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body hover:border-keeper-gold'}`}>
+            {o.label}{counts[o.slug] ? <span className="ml-1.5 text-[11px] text-keeper-meta">{counts[o.slug]}</span> : null}
+          </button>
+        ))}
+        <Link href={`/cards/${occasion}`} className="ml-auto inline-flex items-center gap-1 text-sm text-keeper-meta transition-colors hover:text-keeper-gold">
+          Open the {occasion === 'christmas' ? 'Christmas' : 'birthday'} rack <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+      <LazyMount>
+        <RackWall key={occasion} occasion={occasion} />
+      </LazyMount>
+    </section>
+  );
+}
+
 const doorCls = 'group flex flex-col rounded-2xl border border-keeper-hair bg-white/70 p-5 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm transition-colors hover:border-keeper-gold sm:p-6';
 const doorCta = 'inline-flex items-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors group-hover:bg-black';
 
 export default function DoorwayPage() {
   useSeo('/door');
-  const [occasion, setOccasion] = useState<string>('christmas');
-  const [counts, setCounts] = useState<Record<string, number>>({});
   const [three, setThree] = useState<Array<{ id: number; front_text: string; imageUrl: string }>>([]);
-
   useEffect(() => {
-    for (const o of OCCASIONS) {
-      fetch(`/api/catalogue/${o.slug}`).then((r) => (r.ok ? r.json() : null)).then((j: RackPayload | null) => {
-        if (!j) return;
-        setCounts((c) => ({ ...c, [o.slug]: j.count }));
-        if (o.slug === 'birthday') setThree(j.cards.slice(0, 3));
-      }).catch(() => {});
-    }
+    fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null)).then((j: RackPayload | null) => { if (j) setThree(j.cards.slice(0, 3)); }).catch(() => {});
   }, []);
 
   return (
@@ -118,34 +156,7 @@ export default function DoorwayPage() {
           </div>
         </section>
 
-        {/* ── The rack: the same wall /cards renders, lazily ── */}
-        <section id="rack" className="relative mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">The Celebrait rack</p>
-            <h2 className="mt-2 font-display text-4xl font-bold leading-[1.05] text-keeper-ink sm:text-5xl">
-              Or straight off the <span className="text-keeper-gold">shelf</span>
-            </h2>
-            <p className="mt-3 text-lg leading-relaxed text-keeper-body">
-              Every card here was made for a real person's brief — not a warehouse.
-              Send one as it is, or make it theirs.
-            </p>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Occasion</span>
-            {OCCASIONS.map((o) => (
-              <button key={o.slug} type="button" onClick={() => setOccasion(o.slug)}
-                className={`rounded-full border px-3.5 py-1.5 text-sm ${occasion === o.slug ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body hover:border-keeper-gold'}`}>
-                {o.label}{counts[o.slug] ? <span className="ml-1.5 text-[11px] text-keeper-meta">{counts[o.slug]}</span> : null}
-              </button>
-            ))}
-            <Link href={`/cards/${occasion}`} className="ml-auto inline-flex items-center gap-1 text-sm text-keeper-meta transition-colors hover:text-keeper-gold">
-              Open the {occasion === 'christmas' ? 'Christmas' : 'birthday'} rack <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <LazyMount>
-            <RackWall key={occasion} occasion={occasion} />
-          </LazyMount>
-        </section>
+        <DoorRack />
       </main>
       <MarketingFooter />
     </div>

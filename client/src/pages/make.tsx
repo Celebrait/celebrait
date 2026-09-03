@@ -151,8 +151,10 @@ export default function MakePage() {
   const [vibe, setVibe] = useState<Vibe>('mix');
   const [phase, setPhase] = useState<Phase>('brief');
   const [failMsg, setFailMsg] = useState('');
-  const [qIndex, setQIndex] = useState(0);
-  const [gender, setGender] = useState<'him' | 'her' | null>(null);
+  // Arriving with "who" already answered (the doorway's chips) lands on
+  // question two; the implied him/her comes with it.
+  const [qIndex, setQIndex] = useState(() => (brief.who.trim() ? 1 : 0));
+  const [gender, setGender] = useState<'him' | 'her' | null>(() => RECIPIENTS.find((r) => r.label === brief.who)?.implies ?? null);
   const [showMore, setShowMore] = useState(false);
   const [otherText, setOtherText] = useState('');
   const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
