@@ -122,10 +122,8 @@ export default function DoorwayBPage() {
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
             {starting ? (
-              <div className="mt-4 flex min-h-[300px] max-w-3xl flex-col items-start justify-center gap-3" aria-live="polite">
-                <Loader2 className="h-7 w-7 animate-spin text-keeper-gold" />
-                <p className="text-[17px] font-medium text-keeper-ink">Right then.</p>
-                <p className="text-[14px] text-keeper-meta">Seven quick questions, about a minute.</p>
+              <div className="mt-4 flex min-h-[300px] max-w-3xl items-center justify-center" role="status" aria-label="Loading the questions">
+                <Loader2 className="h-14 w-14 animate-spin text-keeper-gold" strokeWidth={1.5} />
               </div>
             ) : !started ? (
               <>
