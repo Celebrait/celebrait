@@ -25,21 +25,8 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
-import celebraitLogo from '@/assets/celebrait.webp';
-
-/** The studio's header shape for a public surface: logo, occasions, sign in. */
-function PublicHeader() {
-  return (
-    <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3">
-      <Link href="/door" className="flex items-center" aria-label="Celebrait home"><img src={celebraitLogo} alt="Celebrait" className="h-6 w-auto" /></Link>
-      <nav className="ml-auto flex items-center gap-5">
-        <Link href="/cards/christmas" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Christmas</Link>
-        <Link href="/cards/birthday" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Birthdays</Link>
-        <Link href="/studio" className="text-sm font-medium text-keeper-ink hover:text-brand-dark">Sign in</Link>
-      </nav>
-    </header>
-  );
-}
+import { KeeperHeader } from '@/components/landing/keeper-header';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 // ── plumbing ─────────────────────────────────────────────────────────
 async function makePost(path: string, body: unknown): Promise<any> {
@@ -63,50 +50,31 @@ interface Concept { angle: string; format?: string; front_text: string; inside_t
 interface CardCell { concept: Concept; imageUrl?: string; error?: string; retrying?: boolean }
 type Phase = 'brief' | 'generating' | 'results' | 'cameo' | 'signoff' | 'done' | 'failed' | 'capped';
 
-// ── the studio's classes, verbatim ───────────────────────────────────
-const panel = 'bg-white border border-keeper-hair rounded-2xl p-6 sm:p-10 min-h-[380px]';
-const h1 = 'text-xl sm:text-2xl font-display font-bold tracking-[-0.015em] text-keeper-ink';
-const label = 'text-sm font-medium text-keeper-ink';
-const optional = <span className="ml-1 text-xs text-keeper-meta font-normal">optional</span>;
-const helper = 'mt-1.5 text-[11px] text-keeper-meta';
-const input = 'text-base border-brand-light focus-visible:border-brand focus-visible:ring-brand/20';
-const chip = (on: boolean) => `rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors ${on ? 'bg-brand text-brand-foreground' : 'bg-stone-100 text-keeper-body hover:bg-stone-200'}`;
-const tile = (on: boolean) => `relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${on ? 'border-brand bg-brand-muted shadow-sm' : 'border-keeper-hair hover:border-brand hover:bg-brand-muted/40 bg-white'}`;
-const tileIcon = (on: boolean) => `flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${on ? 'bg-brand text-brand-foreground' : 'bg-keeper-gold-wash text-keeper-gold'}`;
-const commit = 'inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta-hover text-cta-foreground rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:pointer-events-none';
-const primary = 'inline-flex items-center justify-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm';
-const textLink = 'text-sm text-brand hover:text-brand-dark underline underline-offset-4';
-const cardTile = 'block bg-white rounded-2xl border overflow-hidden hover:shadow-lg transition-all text-left';
+// ── the landing's classes (Aidan 2026-09-03: "not sure we need to flip
+// into a studio style look from the homepage — can't we just stay where
+// we are?") — the same paper, hairlines, ink pills and violet links as
+// /door2 and /cards, so the flow never changes rooms. ──────────────────
+const panel = 'rounded-2xl border border-keeper-hair bg-white/70 p-6 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm sm:p-8 min-h-[380px]';
+const h1 = 'font-display text-2xl font-bold tracking-[-0.015em] text-keeper-ink sm:text-3xl';
+const optional = <span className="ml-2 align-middle text-xs font-normal text-keeper-meta">optional</span>;
+const helper = 'mt-2 text-[12.5px] text-keeper-meta';
+const input = 'h-12 rounded-full border-keeper-hair bg-white/90 px-4 text-[15px] focus-visible:border-keeper-gold focus-visible:ring-keeper-gold/20';
+const chip = (on: boolean) => `rounded-full border px-3.5 py-1.5 text-sm transition-colors ${on ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body hover:border-keeper-gold'}`;
+const tile = (on: boolean) => `relative flex items-center gap-3 text-left p-3 rounded-xl border transition-colors ${on ? 'border-keeper-gold bg-keeper-gold-wash' : 'border-keeper-hair bg-white/80 hover:border-keeper-gold'}`;
+const commit = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-40 disabled:pointer-events-none';
+const primary = commit;
+const textLink = 'text-sm text-keeper-meta underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold';
+const cardTile = 'group block rounded-2xl border bg-white/80 overflow-hidden shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] transition-all text-left';
 
-const STEPS = ["Who it's for", 'Three cards', 'The inside', 'Done'];
-function Rail({ at }: { at: number }) {
+/** The landing's chrome, exactly as /door2 and /cards wear it. `step`
+ *  is kept for the callers; the stepper rail was the studio's and is gone. */
+function MakeShell({ children }: { step?: number; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-1 sm:gap-2 w-full mb-6 sm:mb-8" role="tablist" aria-label="Steps">
-      {STEPS.map((s, i) => {
-        const cur = i === at, done = i < at;
-        return (
-          <div key={s} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-            <span className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs font-semibold shrink-0 transition-colors shadow-sm ${cur ? 'bg-brand text-brand-foreground ring-2 ring-brand-light' : done ? 'bg-cta text-cta-foreground' : 'bg-stone-100 text-keeper-meta shadow-none'}`}>
-              {done ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
-            </span>
-            <span className={`hidden md:inline text-xs sm:text-sm truncate transition-colors ${cur ? 'text-keeper-ink font-semibold' : done ? 'text-cta-hover' : 'text-keeper-meta'}`}>{s}</span>
-            {i < STEPS.length - 1 && <span className={`flex-1 h-px rounded-full transition-colors ${done ? 'bg-cta' : 'bg-keeper-hair'}`} />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MakeShell({ step, children }: { step: number; children: ReactNode }) {
-  return (
-    <div className="min-h-screen bg-keeper-paper">
-      <PublicHeader />
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
-        <div className="max-w-3xl mx-auto">
-          <Rail at={step} />
-          {children}
-        </div>
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className="relative mx-auto max-w-6xl px-4 pb-20 pt-32 sm:px-6">
+        <div className="mx-auto max-w-3xl">{children}</div>
       </main>
     </div>
   );
@@ -209,9 +177,12 @@ export default function MakePage() {
       });
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back — try again');
+      // All three fronts finish before anything is shown (Aidan
+      // 2026-09-03: words-first "isn't so clean") — the wait screen holds,
+      // then the set arrives together.
       setCells(concepts.map((c) => ({ concept: c })));
-      setPhase('results');
       await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      setPhase('results');
     } catch (e: any) {
       if (e?.status === 429 || e?.status === 503) { setFailMsg(e.message); setPhase('capped'); }
       else { setFailMsg(e?.message ?? 'That didn’t work'); setPhase('failed'); }
@@ -283,7 +254,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <BriefQuestions skin="studio" brief={brief} onChange={setBrief} onDone={() => void generate()} initialStep={brief.who.trim() ? 1 : 0} />
+          <BriefQuestions skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()} initialStep={brief.who.trim() ? 1 : 0} />
         </div>
       </MakeShell>
     );
@@ -314,7 +285,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={`${panel} flex flex-col items-center justify-center text-center`} aria-live="polite">
-          <p className="max-w-[420px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">about a minute</span> — three cards, written and drawn for {whoName || 'them'}. The words land first; the pictures follow.</p>
+          <p className="max-w-[420px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">about a minute</span> — three cards, written and drawn for {whoName || 'them'}, shown together when all three are ready.</p>
           <div className="relative w-32 sm:w-36 aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 mt-8">
             <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
@@ -334,7 +305,7 @@ export default function MakePage() {
       <MakeShell step={step}>
         <div className={panel}>
           <h1 className={`${h1} mb-1`}>Three cards for {whoName || 'them'}. Pick the one.</h1>
-          <p className="text-sm text-keeper-body">{allSettled ? 'Tap your favourite — next we design its inside, with your words in it.' : 'The words are ready; the fronts are landing…'}</p>
+          <p className="text-sm text-keeper-body">Tap your favourite — next we design its inside, with your words in it.</p>
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {(Object.keys(VIBE_LABEL) as Vibe[]).map((v) => {
               const off = v === 'rude' && isKid;
