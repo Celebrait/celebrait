@@ -14,10 +14,12 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
+import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
+import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
@@ -78,15 +80,14 @@ const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
 const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
 /** A deliberate mix of short and long — a word works, and so does a whole little story. */
 const PLACEHOLDERS = ['fishing', 'just passed her driving test', 'Man United', 'a Barbie-themed party', 'her allotment', 'Ibiza with the girls in June', 'Toy Story', '30 years of questionable golf'];
-// Birthdays only for now (Aidan 2026-09-02: "revert to birthdays only") —
-// the research maker's scope; other occasions come back with the engine's
-// profiles for them.
-type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
+/** The studio's occasion picker: four up front, the rest behind More, and Other as free text. */
+const PRIMARY_OCCASIONS: readonly string[] = ['birthday', 'christmas', 'anniversary', 'wedding'];
+type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
 
 interface Brief { occasion: string; who: string; thing: string; age: string; name: string; cant: string }
 function readBrief(): Brief {
   const q = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  return { occasion: 'birthday', who: q.get('who') ?? '', thing: q.get('thing') ?? '', age: q.get('age') ?? '', name: q.get('name') ?? '', cant: q.get('cant') ?? '' };
+  return { occasion: (q.get('occasion') ?? '').toLowerCase(), who: q.get('who') ?? '', thing: q.get('thing') ?? '', age: q.get('age') ?? '', name: q.get('name') ?? '', cant: q.get('cant') ?? '' };
 }
 
 interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string }
@@ -154,23 +155,32 @@ export default function MakePage() {
   // question two; the implied him/her comes with it.
   const [qIndex, setQIndex] = useState(() => (brief.who.trim() ? 1 : 0));
   const [gender, setGender] = useState<'him' | 'her' | null>(() => RECIPIENTS.find((r) => r.label === brief.who)?.implies ?? null);
+  const [showMore, setShowMore] = useState(false);
+  const [otherText, setOtherText] = useState('');
   const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
 
   const ageNum = useMemo(() => { const n = parseInt(brief.age, 10); return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null; }, [brief.age]);
   const isKid = ageNum !== null && ageNum < 18;
-  const occasionLabel = ageNum ? `${ageNum}th Birthday` : 'Birthday';
+  const isKnownOccasion = (OCCASION_OPTIONS as readonly string[]).includes(brief.occasion);
+  const occasionLabel = brief.occasion === 'birthday'
+    ? (ageNum ? `${ageNum}th Birthday` : 'Birthday')
+    : isKnownOccasion ? getOccasionLabel(brief.occasion) : (brief.occasion.trim() || 'Birthday');
 
   // The question order mirrors the research maker; occasion sits after
   // who; age only makes sense for a birthday; dislike only when there's
   // humour to feed.
   const questions = useMemo<QuestionKey[]>(() => {
-    const q: QuestionKey[] = ['who', 'age', 'vibe', 'interest'];
+    const q: QuestionKey[] = ['who', 'occasion'];
+    if (brief.occasion === 'birthday') q.push('age');
+    q.push('vibe', 'interest');
     if (DISLIKE_ON.includes(vibe)) q.push('dislike');
     q.push('name');
     return q;
   }, [brief.occasion, vibe]);
   const question = questions[Math.min(qIndex, questions.length - 1)];
-  const canNext = question === 'who' ? brief.who.trim().length > 0 : true;
+  const canNext = question === 'who' ? brief.who.trim().length > 0
+    : question === 'occasion' ? brief.occasion.trim().length > 0 && brief.occasion !== 'other'
+    : true;
   const next = () => { if (qIndex < questions.length - 1) setQIndex(qIndex + 1); else void generate(); };
   const back = () => { if (qIndex > 0) setQIndex(qIndex - 1); };
   const whoName = brief.name.trim() || brief.who.trim();
@@ -290,6 +300,15 @@ export default function MakePage() {
   if (phase === 'brief') {
     const isLast = qIndex === questions.length - 1;
     const optionalQ = question === 'age' || question === 'interest' || question === 'dislike' || question === 'name';
+    const isOtherPicked = brief.occasion === 'other' || (!!brief.occasion && !isKnownOccasion);
+    const moreOccasions = OCCASION_OPTIONS.filter((o) => !PRIMARY_OCCASIONS.includes(o) && o !== 'other');
+    const occasionTile = (o: string, labelText: string, Icon: typeof OCCASION_ICON[string] | undefined, on: boolean, onPick: () => void) => (
+      <button key={o} type="button" onClick={onPick} className={tile(on)}>
+        {Icon && <span className={tileIcon(on)}><Icon className="w-[18px] h-[18px]" strokeWidth={1.75} /></span>}
+        <span className="text-sm font-medium text-keeper-ink truncate">{labelText}</span>
+        {on && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}
+      </button>
+    );
     return (
       <MakeShell step={step}>
         <div className={`${panel} flex flex-col`}>
@@ -309,6 +328,29 @@ export default function MakePage() {
                     {(['him', 'her'] as const).map((g) => <button key={g} type="button" className={chip(gender === g)} onClick={() => setGender(gender === g ? null : g)}>{g}</button>)}
                     <button type="button" className={chip(gender === null)} onClick={() => setGender(null)}>not saying</button>
                   </div>
+                )}
+              </>
+            )}
+
+            {question === 'occasion' && (
+              <>
+                <h1 className={`${h1} mb-1`}>What's the celebration?</h1>
+                <p className="text-sm text-keeper-body mb-5">The occasion shapes everything — the jokes, the look, the words inside.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {PRIMARY_OCCASIONS.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => setBrief({ ...brief, occasion: o })))}
+                </div>
+                {!showMore && !isOtherPicked && !(brief.occasion && !PRIMARY_OCCASIONS.includes(brief.occasion)) && (
+                  <button type="button" onClick={() => setShowMore(true)} className={`${textLink} mt-3 inline-flex items-center gap-1`}>More occasions <ChevronDown className="w-4 h-4" /></button>
+                )}
+                {(showMore || isOtherPicked || (brief.occasion && !PRIMARY_OCCASIONS.includes(brief.occasion))) && (
+                  <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {moreOccasions.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => setBrief({ ...brief, occasion: o })))}
+                    {occasionTile('other', 'Something else', OCCASION_ICON.other, isOtherPicked, () => setBrief({ ...brief, occasion: otherText.trim() || 'other' }))}
+                  </div>
+                )}
+                {isOtherPicked && (
+                  <Input value={otherText} autoFocus onChange={(e) => { const v = e.target.value.slice(0, 40); setOtherText(v); setBrief({ ...brief, occasion: v.trim() || 'other' }); }}
+                    placeholder="Type the occasion… e.g. Retirement, New home" className={`${input} mt-3`} />
                 )}
               </>
             )}
