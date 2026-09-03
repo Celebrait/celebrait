@@ -46,6 +46,7 @@ export function ThumbImg({ src, onFinalError, ...rest }: ThumbImgProps) {
       src={ladder[Math.min(rung, ladder.length - 1)]}
       crossOrigin="anonymous"
       loading={rest.loading ?? 'lazy'}
+      decoding={rest.decoding ?? 'async'}
       onError={() => setRung((r) => {
         if (r < ladder.length - 1) return r + 1;
         onFinalError?.();

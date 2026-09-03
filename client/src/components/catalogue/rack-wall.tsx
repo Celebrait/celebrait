@@ -11,7 +11,7 @@
 // stays with the page; anything the page wants after the wall comes
 // in as children and renders once the wall has loaded.
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { Loader2, Sparkles } from 'lucide-react';
 import { cardPriceGBP } from '@shared/pricing';
@@ -51,6 +51,23 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
    *  front AND the brief it was made from, so "ibiza" finds the Es
    *  Vedrà card whose front never says Ibiza. */
   const [query, setQuery] = useState('');
+  /** Lazy wall (Aidan 2026-09-02: "can we get lazy load on /door"):
+   *  the tiles' images already fetch lazily (ThumbImg); this renders the
+   *  wall a page at a time and appends the next page when the sentinel
+   *  scrolls near — so 91 cards never mount, decode or lay out at once. */
+  const PAGE = 24;
+  const [limit, setLimit] = useState(PAGE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { setLimit(PAGE); }, [occasion, aisle, styleFilter, ageFilter, query]);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) setLimit((l) => l + PAGE); }, { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+    // Re-observe whenever the sentinel can have (re)mounted: after load,
+    // and after any limit reset from a filter change.
+  }, [state, limit]);
 
   useEffect(() => {
     setState('loading'); setStyleFilter(null); setAgeFilter(null); setQuery('');
@@ -77,6 +94,11 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
   }
 
   const chipCls = (on: boolean) => `rounded-full border px-3 py-1 text-sm ${on ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body'}`;
+  const filtered = data.cards
+    .filter((c) => (styleFilter === null || (c.tone ?? '').toLowerCase() === styleFilter)
+      && (ageFilter === null || c.age === ageFilter || (c.age != null && c.age_max != null && ageFilter >= c.age && ageFilter <= c.age_max))
+      && (ageFilter !== null || !query.trim() || /^\d{1,3}$/.test(query.trim())
+        || `${c.front_text} ${c.interest ?? ''} ${c.recipient ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())));
 
   return (
     <>
@@ -128,12 +150,7 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
 
       {/* THE WALL — cards that look like cards. 2-up on every phone. */}
       <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4">
-        {data.cards
-          .filter((c) => (styleFilter === null || (c.tone ?? '').toLowerCase() === styleFilter)
-            && (ageFilter === null || c.age === ageFilter || (c.age != null && c.age_max != null && ageFilter >= c.age && ageFilter <= c.age_max))
-            && (ageFilter !== null || !query.trim() || /^\d{1,3}$/.test(query.trim())
-              || `${c.front_text} ${c.interest ?? ''} ${c.recipient ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())))
-          .map((c) => (
+        {filtered.slice(0, limit).map((c) => (
             <Link key={c.id} href={`/card/${c.id}`} className="group block">
               <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
               <div className="mt-3 px-0.5">
@@ -146,6 +163,17 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
             </Link>
           ))}
       </div>
+
+      {/* The lazy sentinel — appends the next page as it scrolls near;
+          the button is the no-IntersectionObserver fallback. */}
+      {limit < filtered.length && (
+        <div ref={sentinelRef} className="mt-8 flex justify-center">
+          <button type="button" onClick={() => setLimit((l) => l + PAGE)}
+            className="rounded-full border border-keeper-hair bg-white/70 px-4 py-2 text-sm text-keeper-body transition-colors hover:border-keeper-gold hover:text-keeper-gold">
+            Show more
+          </button>
+        </div>
+      )}
 
       {/* Aisle rails — the lattice. */}
       {!aisle && (
