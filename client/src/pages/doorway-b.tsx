@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Camera, ArrowRight } from 'lucide-react';
+import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '@/components/brief-questions';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -28,9 +29,6 @@ import { cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-const RECIPIENTS = ['Mum', 'Dad', 'Nan', 'Grandad', 'Sister', 'Brother', 'Daughter', 'Son', 'Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else'];
-
-const chip = 'rounded-full border border-keeper-hair bg-white/80 px-4 py-2.5 text-[15px] font-medium text-keeper-ink shadow-[0_1px_2px_rgba(33,29,25,0.05)] transition-colors hover:border-keeper-gold hover:bg-keeper-gold-wash hover:text-keeper-gold-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold';
 
 /** The drifting wall — the rack's cards, interleaved across occasions,
  *  duplicated once so the loop is seamless. */
@@ -73,6 +71,14 @@ function CardDrift({ cards }: { cards: CatalogueCard[] }) {
 export default function DoorwayBPage() {
   useSeo('/door2');
   const [, navigate] = useLocation();
+  // The brief lives in the URL as it's answered (refresh/back/share all
+  // keep it); the hand-off to /make carries it with go=1.
+  const [brief, setBriefState] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
+  const setBrief = (b: Brief) => {
+    setBriefState(b);
+    const qs = briefToSearch(b);
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+  };
   const [cards, setCards] = useState<CatalogueCard[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -106,18 +112,17 @@ export default function DoorwayBPage() {
             {/* No forced break: text-balance keeps it two even lines on
                 desktop and three on a phone (the forced <br> made four). */}
             <h1 className={`mt-4 max-w-[24ch] text-[clamp(40px,7vw,74px)] leading-[1.04] text-balance ${DISPLAY}`}>
-              Tell us who it's for. We'll make their card.
+              Three cards, made for them. You pick the one.
             </h1>
 
+            {/* The whole brief happens here, one question at a time, in
+                place — the headline and the wall stay put. The page only
+                changes at "Write their three cards" (→ /make, go=1). */}
             <div className="mt-8 max-w-3xl">
-              <p className="text-[17px] font-medium text-keeper-ink">Start here — who's it for?</p>
-              <p className="mt-1 text-[14px] text-keeper-body">Tap one. We write and illustrate three original cards for them in about a minute. Pick your favourite, add your words, and we print and post it.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {RECIPIENTS.map((r) => (
-                  <button key={r} type="button" className={chip} onClick={() => navigate(`/make?who=${encodeURIComponent(r)}`)}>{r}</button>
-                ))}
-              </div>
-              <p className="mt-4 text-[14px] text-keeper-body">
+              <BriefQuestions skin="landing" compact brief={brief} onChange={setBrief}
+                initialStep={!brief.who ? 0 : !brief.occasion ? 1 : 2}
+                onDone={(b) => navigate(`/make?${briefToSearch(b)}&go=1`)} />
+              <p className="mt-5 text-[14px] text-keeper-body">
                 <span className="text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · nothing to pay until you print</span>
                 <span className="mx-2 text-keeper-hair">|</span>
                 <Link href="/studio" className="inline-flex items-center gap-1.5 font-medium text-keeper-ink transition-colors hover:text-keeper-gold">

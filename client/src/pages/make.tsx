@@ -14,12 +14,11 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
-import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
-import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe } from '@/components/brief-questions';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
@@ -52,43 +51,10 @@ async function makePost(path: string, body: unknown): Promise<any> {
 }
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-// ── The questions — the research maker's, one at a time ──────────────
-// (Aidan 2026-09-02: "who it's for, celebration — not limited to just
-// those 2, same as studio — then the same flow as the current research
-// maker one question at a time.")
-type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: 'Cheekier' };
-/** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
-const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
-  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
-  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
-  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'One of each', sub: 'three cards, three vibes — you choose after' },
-};
-const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
-const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
-const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
-  { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
-  { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
-  { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
-  { label: 'Daughter', implies: 'her' }, { label: 'Son', implies: 'him' },
-  { label: 'Granddaughter', implies: 'her' }, { label: 'Grandson', implies: 'him' },
-  { label: 'Niece', implies: 'her' }, { label: 'Nephew', implies: 'him' },
-  { label: 'Partner' }, { label: 'Best mate' }, { label: 'Friend' },
-  { label: 'Colleague' }, { label: 'Someone else' },
-];
-const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
-/** A deliberate mix of short and long — a word works, and so does a whole little story. */
-const PLACEHOLDERS = ['fishing', 'just passed her driving test', 'Man United', 'a Barbie-themed party', 'her allotment', 'Ibiza with the girls in June', 'Toy Story', '30 years of questionable golf'];
-/** The studio's occasion picker: four up front, the rest behind More, and Other as free text. */
-const PRIMARY_OCCASIONS: readonly string[] = ['birthday', 'christmas', 'anniversary', 'wedding'];
-type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
-
-interface Brief { occasion: string; who: string; thing: string; age: string; name: string; cant: string }
-function readBrief(): Brief {
-  const q = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  return { occasion: (q.get('occasion') ?? '').toLowerCase(), who: q.get('who') ?? '', thing: q.get('thing') ?? '', age: q.get('age') ?? '', name: q.get('name') ?? '', cant: q.get('cant') ?? '' };
-}
+// The questions live in components/brief-questions.tsx (shared with the
+// doorway hero, where they run one at a time under the headline). The
+// brief arrives here in the URL; `go=1` means it's finished — straight
+// into the wait.
 
 interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string }
 interface CardCell { concept: Concept; imageUrl?: string; error?: string; retrying?: boolean }
@@ -147,42 +113,17 @@ export default function MakePage() {
   useSeo('/make');
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
   const [, navigate] = useLocation();
-  const [brief, setBrief] = useState<Brief>(readBrief);
-  const [vibe, setVibe] = useState<Vibe>('mix');
-  const [phase, setPhase] = useState<Phase>('brief');
+  const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
+  // The doorway finishes the questions and hands over with go=1: no
+  // re-asking, straight into the wait.
+  const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
+  const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
   const [failMsg, setFailMsg] = useState('');
-  // Arriving with "who" already answered (the doorway's chips) lands on
-  // question two; the implied him/her comes with it.
-  const [qIndex, setQIndex] = useState(() => (brief.who.trim() ? 1 : 0));
-  const [gender, setGender] = useState<'him' | 'her' | null>(() => RECIPIENTS.find((r) => r.label === brief.who)?.implies ?? null);
-  const [showMore, setShowMore] = useState(false);
-  const [otherText, setOtherText] = useState('');
-  const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
+  useEffect(() => { if (autoGo.current) { autoGo.current = false; void generate(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ageNum = useMemo(() => { const n = parseInt(brief.age, 10); return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null; }, [brief.age]);
-  const isKid = ageNum !== null && ageNum < 18;
-  const isKnownOccasion = (OCCASION_OPTIONS as readonly string[]).includes(brief.occasion);
-  const occasionLabel = brief.occasion === 'birthday'
-    ? (ageNum ? `${ageNum}th Birthday` : 'Birthday')
-    : isKnownOccasion ? getOccasionLabel(brief.occasion) : (brief.occasion.trim() || 'Birthday');
-
-  // The question order mirrors the research maker; occasion sits after
-  // who; age only makes sense for a birthday; dislike only when there's
-  // humour to feed.
-  const questions = useMemo<QuestionKey[]>(() => {
-    const q: QuestionKey[] = ['who', 'occasion'];
-    if (brief.occasion === 'birthday') q.push('age');
-    q.push('vibe', 'interest');
-    if (DISLIKE_ON.includes(vibe)) q.push('dislike');
-    q.push('name');
-    return q;
-  }, [brief.occasion, vibe]);
-  const question = questions[Math.min(qIndex, questions.length - 1)];
-  const canNext = question === 'who' ? brief.who.trim().length > 0
-    : question === 'occasion' ? brief.occasion.trim().length > 0 && brief.occasion !== 'other'
-    : true;
-  const next = () => { if (qIndex < questions.length - 1) setQIndex(qIndex + 1); else void generate(); };
-  const back = () => { if (qIndex > 0) setQIndex(qIndex - 1); };
+  const ageNum = ageOf(brief);
+  const isKid = isKidBrief(brief);
+  const occasionLabel = occasionLabelFor(brief);
   const whoName = brief.name.trim() || brief.who.trim();
   const forWho = whoName ? `${whoName}'s` : 'the';
 
@@ -216,12 +157,12 @@ export default function MakePage() {
   }, [phase, lines.length]);
 
   // ── generation ──
-  const generate = async (tone: Vibe = vibe) => {
+  const generate = async (tone: Vibe = brief.vibe) => {
     setPhase('generating'); setCells([]); setPicked(null); setInsideUrl(null);
     setCameoUrl(null); setCameoKept(false); setCameoError(''); setFailMsg('');
     try {
       const j = await makePost('concepts', {
-        occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
+        occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
         pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, age: ageNum,
         interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, memory: true,
       });
@@ -296,133 +237,12 @@ export default function MakePage() {
   const chosenFront = picked !== null ? (cameoKept && cameoUrl ? cameoUrl : cells[picked]?.imageUrl) : undefined;
   const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
 
-  // ── step 1: the questions — one at a time, the research maker's order ──
+  // ── step 1: the questions — one at a time (shared with the doorway) ──
   if (phase === 'brief') {
-    const isLast = qIndex === questions.length - 1;
-    const optionalQ = question === 'age' || question === 'interest' || question === 'dislike' || question === 'name';
-    const isOtherPicked = brief.occasion === 'other' || (!!brief.occasion && !isKnownOccasion);
-    const moreOccasions = OCCASION_OPTIONS.filter((o) => !PRIMARY_OCCASIONS.includes(o) && o !== 'other');
-    const occasionTile = (o: string, labelText: string, Icon: typeof OCCASION_ICON[string] | undefined, on: boolean, onPick: () => void) => (
-      <button key={o} type="button" onClick={onPick} className={tile(on)}>
-        {Icon && <span className={tileIcon(on)}><Icon className="w-[18px] h-[18px]" strokeWidth={1.75} /></span>}
-        <span className="text-sm font-medium text-keeper-ink truncate">{labelText}</span>
-        {on && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}
-      </button>
-    );
     return (
       <MakeShell step={step}>
-        <div className={`${panel} flex flex-col`}>
-          <div className="flex-1">
-            {question === 'who' && (
-              <>
-                <h1 className={`${h1} mb-1`}>Right — who's the card for?</h1>
-                <p className="text-sm text-keeper-body mb-5">Three original cards, written and drawn for one person.</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {RECIPIENTS.map((r) => (
-                    <button key={r.label} type="button" className={chip(brief.who === r.label)} onClick={() => { setBrief({ ...brief, who: r.label }); setGender(r.implies ?? null); }}>{r.label}</button>
-                  ))}
-                </div>
-                {brief.who && AMBIGUOUS.has(brief.who) && (
-                  <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-keeper-body">
-                    for a…
-                    {(['him', 'her'] as const).map((g) => <button key={g} type="button" className={chip(gender === g)} onClick={() => setGender(gender === g ? null : g)}>{g}</button>)}
-                    <button type="button" className={chip(gender === null)} onClick={() => setGender(null)}>not saying</button>
-                  </div>
-                )}
-              </>
-            )}
-
-            {question === 'occasion' && (
-              <>
-                <h1 className={`${h1} mb-1`}>What's the celebration?</h1>
-                <p className="text-sm text-keeper-body mb-5">The occasion shapes everything — the jokes, the look, the words inside.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {PRIMARY_OCCASIONS.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => setBrief({ ...brief, occasion: o })))}
-                </div>
-                {!showMore && !isOtherPicked && !(brief.occasion && !PRIMARY_OCCASIONS.includes(brief.occasion)) && (
-                  <button type="button" onClick={() => setShowMore(true)} className={`${textLink} mt-3 inline-flex items-center gap-1`}>More occasions <ChevronDown className="w-4 h-4" /></button>
-                )}
-                {(showMore || isOtherPicked || (brief.occasion && !PRIMARY_OCCASIONS.includes(brief.occasion))) && (
-                  <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {moreOccasions.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => setBrief({ ...brief, occasion: o })))}
-                    {occasionTile('other', 'Something else', OCCASION_ICON.other, isOtherPicked, () => setBrief({ ...brief, occasion: otherText.trim() || 'other' }))}
-                  </div>
-                )}
-                {isOtherPicked && (
-                  <Input value={otherText} autoFocus onChange={(e) => { const v = e.target.value.slice(0, 40); setOtherText(v); setBrief({ ...brief, occasion: v.trim() || 'other' }); }}
-                    placeholder="Type the occasion… e.g. Retirement, New home" className={`${input} mt-3`} />
-                )}
-              </>
-            )}
-
-            {question === 'age' && (
-              <>
-                <h1 className={`${h1} mb-1`}>How old are they turning?{optional}</h1>
-                <p className="text-sm text-keeper-body">The age does two jobs: it tunes the whole card — the jokes, the references, the look — and if it's a big one (18, 21, 30, 40…) the number itself becomes the star. Skip it and everything stays completely age-free.</p>
-                <Input value={brief.age} onChange={(e) => setBrief({ ...brief, age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${input} mt-6 h-14 text-center text-2xl max-w-[220px]`} autoFocus />
-              </>
-            )}
-
-            {question === 'vibe' && (
-              <>
-                <h1 className={`${h1} mb-1`}>What's the vibe?</h1>
-                <p className="text-sm text-keeper-body mb-5">You'll see three cards either way — this sets what they lean towards.</p>
-                <div className="space-y-2.5">
-                  {VIBES.map((t) => {
-                    const off = t === 'rude' && isKid;
-                    return (
-                      <button key={t} type="button" disabled={off} onClick={() => setVibe(t)} className={`${tile(vibe === t)} w-full disabled:opacity-40`}>
-                        <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>
-                        {vibe === t && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {question === 'interest' && (
-              <>
-                <h1 className={`${h1} mb-1`}>What's one thing you want the card to mention?{optional}</h1>
-                <p className="text-sm text-keeper-body">A passion, a place, a plan, a party theme, a claim to fame, a running joke — whatever you'd bring up first about them. The more specific, the better the card.</p>
-                <Input value={brief.thing} onChange={(e) => setBrief({ ...brief, thing: e.target.value.slice(0, 80) })} placeholder={placeholder} className={`${input} mt-6`} autoFocus />
-                <p className={helper}>Or skip it — we'll make it a beautiful {occasionLabel.toLowerCase()} card, no homework.</p>
-              </>
-            )}
-
-            {question === 'dislike' && (
-              <>
-                <h1 className={`${h1} mb-1`}>Anything they can't stand?{optional}</h1>
-                <p className="text-sm text-keeper-body">This one's pure joke fuel. Tell us the thing — the rival team, mornings, oat milk, slow walkers — and one of your three cards will be built around it: making light of the thing they hate, never of them. Some of our funniest cards start here.</p>
-                <Input value={brief.cant} onChange={(e) => setBrief({ ...brief, cant: e.target.value.slice(0, 60) })} placeholder="The rival team / mornings / slow walkers" className={`${input} mt-6`} autoFocus />
-              </>
-            )}
-
-            {question === 'name' && (
-              <>
-                <h1 className={`${h1} mb-1`}>Want their name on the front?{optional}</h1>
-                <p className="text-sm text-keeper-body">We'll design it in properly — one of the cards will make it the artwork.</p>
-                <Input value={brief.name} onChange={(e) => setBrief({ ...brief, name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${input} mt-6`} autoFocus />
-                {brief.name.trim() && <p className="mt-2 text-xs font-medium text-accent-red-dark">It'll be printed exactly as you type it — worth a double-check.</p>}
-                <p className={`${helper} mt-4`}>Got a photo of them handy? After you pick your favourite, we can put them right in the card.</p>
-              </>
-            )}
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {qIndex > 0
-                ? <Button variant="ghost" className="text-keeper-body" onClick={back}><ChevronLeft className="w-4 h-4 mr-1" /> Back</Button>
-                : <span />}
-              {optionalQ && !isLast && <button type="button" onClick={next} className={textLink}>Skip this one</button>}
-            </div>
-            {isLast
-              ? <button type="button" disabled={!canNext} onClick={next} className={commit}><Sparkles className="w-4 h-4" strokeWidth={1.75} /> Write their three cards</button>
-              : <Button className="bg-go hover:bg-go-hover text-go-foreground disabled:opacity-50" disabled={!canNext} onClick={next}>Next <ChevronRight className="w-4 h-4 ml-1" /></Button>}
-          </div>
-          <div className="flex justify-center gap-1.5 pt-6">
-            {questions.map((q, i) => <span key={q} className={`h-1.5 rounded-full transition-all ${i === qIndex ? 'w-6 bg-brand' : 'w-1.5 bg-stone-200'}`} />)}
-          </div>
+        <div className={panel}>
+          <BriefQuestions skin="studio" brief={brief} onChange={setBrief} onDone={() => void generate()} initialStep={brief.who.trim() ? 1 : 0} />
         </div>
       </MakeShell>
     );
@@ -477,7 +297,7 @@ export default function MakePage() {
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {(Object.keys(VIBE_LABEL) as Vibe[]).map((v) => {
               const off = v === 'rude' && isKid;
-              return <button key={v} type="button" disabled={off || !allSettled} title={off ? 'Cheeky is off for under-18s' : 'Same details, three new cards'} onClick={() => { setVibe(v); void generate(v); }} className={`${chip(vibe === v)} disabled:opacity-40`}>{VIBE_LABEL[v]}</button>;
+              return <button key={v} type="button" disabled={off || !allSettled} title={off ? 'Cheeky is off for under-18s' : 'Same details, three new cards'} onClick={() => { setBrief({ ...brief, vibe: v }); void generate(v); }} className={`${chip(brief.vibe === v)} disabled:opacity-40`}>{VIBE_LABEL[v]}</button>;
             })}
             <span className="text-[11px] text-keeper-meta ml-1">switching re-deals the three</span>
           </div>
