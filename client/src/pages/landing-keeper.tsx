@@ -232,7 +232,7 @@ function AssetSlot({
  *  gradient twice is how they'd silently drift apart. Still under
  *  prefers-reduced-motion: the ink-to-violet gradient stays, the wave stops.
  */
-function ShimmerWord({
+export function ShimmerWord({
   children,
   reduced,
 }: {
