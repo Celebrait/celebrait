@@ -103,10 +103,10 @@ export default function DoorwayBPage() {
         <section className="pb-12 pt-10 md:pb-16 md:pt-20">
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
-            <h1 className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}>
-              Tell us who it's for.
-              <br />
-              We'll make their card.
+            {/* No forced break: text-balance keeps it two even lines on
+                desktop and three on a phone (the forced <br> made four). */}
+            <h1 className={`mt-4 max-w-[24ch] text-[clamp(40px,7vw,74px)] leading-[1.04] text-balance ${DISPLAY}`}>
+              Tell us who it's for. We'll make their card.
             </h1>
 
             <div className="mt-8 max-w-3xl">
