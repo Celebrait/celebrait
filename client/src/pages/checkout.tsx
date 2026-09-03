@@ -31,6 +31,7 @@ import CheckoutLayout from '@/layouts/checkout-layout';
 import {
   tierPriceGBP,
   cardPriceGBP,
+  firstOrderPriceGBP,
   SHIPPING_TIERS,
   getShippingTier,
   envelopeStickerGBP,
@@ -105,7 +106,7 @@ function totalsFor(
   tier: ShippingTierId,
   shipTo: 'sender' | 'recipient',
   addSticker: boolean,
-  /** Free-first-card credit applies — card £0, standard postage only. */
+  /** First-order credit applies — the card at half price (shared/pricing). */
   freeCard: boolean,
   /** Comp code entered ("this one's on us" — creator gifting). Display
    *  optimistically zeroes postage; the server validates the real code
@@ -120,7 +121,7 @@ function totalsFor(
   // Priced by the door that made this card, mirroring the server so the
   // shown total always equals the charge (UX_THREE_DOORS.md §8a).
   const printPrice = cardPriceGBP(cardSource);
-  const printAmount = freeCard ? 0 : printPrice;
+  const printAmount = freeCard ? firstOrderPriceGBP(cardSource as Parameters<typeof cardPriceGBP>[0]) : printPrice;
   const digitalAmount = 0;
   const shippingAmount = compCode ? 0 : getShippingTier(tier).price;
   const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
@@ -245,10 +246,10 @@ export default function CheckoutPage() {
     refetchOnMount: 'always',
     staleTime: 0,
   });
-  const freeCardApplied = freeCard?.eligible === true;
-  // The free card always travels Standard post (fixed, known exposure);
-  // the faster tiers stay a paid-order thing.
-  const effectiveTier: ShippingTierId = freeCardApplied ? 'standard' : shippingTier;
+  // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
+  // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
+  const freeCardApplied = freeCard?.eligible === true && card?.source === 'maker';
+  const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';
   // Print-led V1: every order is a printed card that INCLUDES a free
@@ -483,9 +484,9 @@ export default function CheckoutPage() {
                     <span className="mr-1.5 font-normal text-keeper-meta line-through">
                       {formatGBP(cardPriceGBP(card?.source))}
                     </span>
-                    Free{' '}
+                    {formatGBP(totals.total)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
-                      — your first card's on us, just the postage
+                      inc. postage — 50% off your first card
                     </span>
                   </p>
                 ) : (
@@ -663,29 +664,9 @@ export default function CheckoutPage() {
                       {PRODUCTION_NOTICE}
                     </p>
                   </div>
-                  {freeCardApplied ? (
-                    /* The free card ships Standard — no tier picker. */
-                    <div
-                      className="rounded-xl border border-keeper-hair p-4"
-                      data-testid="ship-tier-free-standard"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-keeper-ink">
-                          {getShippingTier('standard').name}
-                        </span>
-                        <span className="text-sm font-semibold text-keeper-ink">
-                          {formatGBP(getShippingTier('standard').price)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-keeper-body mt-0.5">
-                        {getShippingTier('standard').carrier}
-                      </p>
-                      <p className="text-xs text-keeper-meta mt-1 leading-relaxed">
-                        Ships {getShippingTier('standard').shippingEstimate} once
-                        printed. Your free card travels Standard post.
-                      </p>
-                    </div>
-                  ) : (
+                  {/* The half-price first card rides any tier (the
+                      Standard-only rule belonged to the retired free card). */}
+                  {(
                   <RadioGroup
                     value={shippingTier}
                     onValueChange={(v) => setShippingTier(v as ShippingTierId)}

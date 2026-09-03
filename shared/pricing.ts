@@ -299,3 +299,13 @@ export const USD_TO_GBP = 0.79;
 export function genCostUsdX100ToGbp(costCentsX100: number): number {
   return (costCentsX100 / 10_000) * USD_TO_GBP;
 }
+
+// ── The first-order offer (2026-09-02) ──────────────────────────────
+// Replaces the photo-only free first card: add three key dates and your
+// FIRST made-for-them card is half price. The reference price is the
+// everyday `cardPriceGBP` (never inflated for the strike-through — CAP
+// Code). Rounded DOWN to the penny so the customer never loses a fraction.
+export const FIRST_ORDER_DISCOUNT = 0.5;
+export function firstOrderPriceGBP(source: Parameters<typeof cardPriceGBP>[0]): number {
+  return Math.floor(cardPriceGBP(source) * (1 - FIRST_ORDER_DISCOUNT));
+}

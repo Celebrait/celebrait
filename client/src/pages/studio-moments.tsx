@@ -141,33 +141,33 @@ export default function StudioMomentsPage() {
             {unlocked ? (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  Unlocked — your first card’s on us
+                  Unlocked — 50% off your first card
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  <span className="line-through text-keeper-meta">£6.99</span>{' '}
-                  <span className="font-semibold text-go">Free</span> — just
-                  cover the postage. It’s waiting whenever a moment comes round.
+                  <span className="line-through text-keeper-meta">£5.99</span>{' '}
+                  <span className="font-semibold text-go">£2.99</span> — plus
+                  postage. It’s waiting whenever a moment comes round.
                 </p>
-                <Link href="/studio/new-card">
+                <Link href="/make">
                   <Button
                     size="sm"
                     className="mt-2 rounded-full bg-go hover:bg-go-hover text-go-foreground"
                     data-testid="btn-make-free-card"
                   >
-                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Make your free card
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Make your card
                   </Button>
                 </Link>
               </>
             ) : (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  Your first card’s on us
+                  50% off your first card
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   Add {3 - ringFilled} more key{' '}
                   {3 - ringFilled === 1 ? 'date' : 'dates'} — a birthday, an
                   anniversary, any day that matters — and your first card is
-                  free. We’ll watch every date you add, forever.
+                  half price. We’ll watch every date you add, forever.
                 </p>
               </>
             )}

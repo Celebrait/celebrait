@@ -92,14 +92,16 @@ export function KeeperHeader() {
                 >
                   Sign in
                 </button>
-                <button
-                  type="button"
-                  onClick={() => claimFreeCard()}
-                  className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
-                >
-                  <span className="sm:hidden">Make a card</span>
-                  <span className="hidden sm:inline">Make my first card</span>
-                </button>
+                {/* Launch (2026-09-02): the header verb goes straight to the
+                    three-card builder — the offer lives in the ticker. */}
+                <Link href="/make">
+                  <button
+                    type="button"
+                    className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                  >
+                    Make a card
+                  </button>
+                </Link>
               </>
             )}
           </div>

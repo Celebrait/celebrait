@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Camera, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '@/components/brief-questions';
 import { ShimmerWord } from '@/pages/landing-keeper';
@@ -163,13 +163,9 @@ export default function DoorwayBPage() {
             )}
 
             <div className="mt-8 max-w-3xl">
-              <p className="text-[14px] text-keeper-body">
-                <span className="text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · nothing to pay until you print</span>
-                <span className="mx-2 text-keeper-hair">|</span>
-                <Link href="/studio" className="inline-flex items-center gap-1.5 font-medium text-keeper-ink transition-colors hover:text-keeper-gold">
-                  <Camera className="h-4 w-4 text-keeper-gold" /> Or start with a photo <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </p>
+              {/* Launch is the three-card route only (2026-09-02); the
+                  directed photo studio comes later, so no photo door here. */}
+              <p className="text-[14px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · nothing to pay until you print</p>
             </div>
           </div>
 

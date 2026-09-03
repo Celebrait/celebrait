@@ -60,9 +60,9 @@ export function OccasionsPromoSection() {
             We watch them all year and nudge you in good time, so the card's
             made in slippers, not in a panic. And for telling us three?{' '}
             <strong className="text-keeper-ink">
-              Your first card's on us
+              50% off your first card
             </strong>{' '}
-            — <span className="line-through">£6.99</span> <b>£0</b>, just the
+            — <span className="line-through">£5.99</span> <b>£2.99</b>, plus
             postage.
           </p>
 
@@ -73,7 +73,7 @@ export function OccasionsPromoSection() {
               className="rounded-full bg-go px-7 py-3.5 text-base font-semibold text-go-foreground shadow-sm transition-colors hover:bg-go-hover"
               data-testid="occasions-promo-claim"
             >
-              Claim your free card
+              Claim 50% off
             </button>
             <p className="text-[12.5px] text-keeper-meta">
               One per account. Takes about a minute.
@@ -116,8 +116,8 @@ export function OccasionsPromoSection() {
                   </div>
                 </div>
                 <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
-                  <b className="text-keeper-ink">Your first card's on us.</b> 1
-                  more date — any day that matters — and it's free.
+                  <b className="text-keeper-ink">50% off your first card.</b> 1
+                  more date — any day that matters — and it's half price.
                 </p>
               </div>
               <span className="shrink-0 self-start rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground sm:self-auto">

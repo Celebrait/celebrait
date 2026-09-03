@@ -48,6 +48,7 @@ import {
   envelopeStickerGBP,
   DEFAULT_SHIPPING_TIER,
   type ShippingTierId,
+  firstOrderPriceGBP,
 } from '@shared/pricing';
 
 // Pricing in pence — sourced from shared/pricing.ts. Client checkout
@@ -289,24 +290,27 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // NOT consumed here — only when this order actually pays (see
         // consumeFreeCardCredit in markOrderPaidAndDispatch), so an
         // abandoned session never burns it. See server/studio/free-card.ts.
-        // Account-only by nature (one per account) and photo-only by
-        // decision (§8b) — a guest rack buyer is never eligible.
+        // Account-only by nature (one per account). Since 2026-09-02 the
+        // credit is 50% OFF THE FIRST MADE-FOR-THEM CARD (the 3-card
+        // route, source 'maker') — the photo-only free card is retired
+        // with the photo route's launch deferred. A guest rack buyer is
+        // never eligible. The column keeps its old name.
         const freeCardApplied = userId
-          ? (await getFreeCardStatus(userId)).eligible && card.source === 'photo'
+          ? (await getFreeCardStatus(userId)).eligible && card.source === 'maker'
           : false;
 
         // Every order: printed card + free digital link. Digital is £0.
         // Postage is a separate line, priced from the chosen delivery tier
         // (server is the source of truth — a crafted POST can't pick a
         // cheaper tier than it pays for).
-        const shippingTier: ShippingTierId = freeCardApplied
-          ? 'standard'
-          : (body.shippingTier ?? DEFAULT_SHIPPING_TIER);
+        // A half-price card (not a free one) can ride any tier — the CAP
+        // "true delivery cost" constraint only bit on the free offer.
+        const shippingTier: ShippingTierId = body.shippingTier ?? DEFAULT_SHIPPING_TIER;
         // ⚠️ PRICED BY DOOR, not by a flat tier (UX_THREE_DOORS.md §8a):
         // £4.99 off the shelf, £5.99 made for them, £6.99 from a photo.
         // The SERVER decides from the stored card.source — a crafted POST
         // can't buy a photo card at rack price.
-        const printAmount0 = freeCardApplied ? 0 : cardPriceGBP(card.source);
+        const printAmount0 = freeCardApplied ? firstOrderPriceGBP(card.source) : cardPriceGBP(card.source);
         const digitalAmount = 0;
         const shippingAmount0 = getShippingTier(shippingTier).price;
 
@@ -497,7 +501,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           customerEmail: body.customerEmail,
           customerName: body.customerName,
           description: freeCardApplied
-            ? `Celebrait card #${cardId} — first card free, postage only`
+            ? `Celebrait card #${cardId} — first card, 50% off`
             : `Celebrait card #${cardId}`,
           // Guests can't reach /checkout/success (RequireAuth) — their
           // journey lands on the public tokenised order page instead

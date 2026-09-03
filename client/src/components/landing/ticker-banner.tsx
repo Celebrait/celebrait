@@ -61,12 +61,12 @@ export function TickerBanner() {
       >
         <Gift className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span className="sm:hidden">
-          Your first card is on us — just pay postage. Claim it ›
+          Add 3 dates that matter — 50% off your first card. Claim it ›
         </span>
         <span className="hidden sm:inline">
-          Your first card is on us.{' '}
-          <span className="line-through opacity-70">£6.99</span> <b>£0</b>,
-          just the postage. Claim it ›
+          Tell us 3 dates that matter and your first card is{' '}
+          <span className="line-through opacity-70">£5.99</span> <b>£2.99</b>.
+          Claim it ›
         </span>
       </button>
     </div>

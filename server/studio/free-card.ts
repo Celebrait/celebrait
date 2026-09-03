@@ -2,10 +2,11 @@
 //
 // The free-first-card credit (Moments rewards, Kevin 2026-08-03).
 //
-// The deal: add 3 key dates → your first card is free (£8.99 struck to
-// £0), standard postage (£3.95) still payable. Genuinely free — the CAP
-// Code only allows charging the true delivery cost on a "free" offer,
-// so postage is never padded to claw the card back.
+// The deal (since 2026-09-02): add 3 key dates → your FIRST made-for-them
+// card is 50% off (£5.99 struck to £2.99), postage as normal. It began
+// life as the photo-only free card; the eligibility, consumption and the
+// users.free_card_* columns are unchanged — only what the credit is
+// worth, and which door it applies to, live in studio-checkout.ts.
 //
 // Design invariants:
 //   • Eligibility is DERIVED, never stored: ≥3 key dates AND the user's

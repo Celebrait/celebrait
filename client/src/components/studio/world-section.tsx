@@ -202,15 +202,15 @@ export function WorldSection({
         <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
           {unlocked ? (
             <>
-              <b className="text-keeper-ink">Your first card’s free</b> —{' '}
-              <span className="line-through">£6.99</span> £0, just the postage.
+              <b className="text-keeper-ink">Your first card’s half price</b> —{' '}
+              <span className="line-through">£5.99</span> £2.99, plus postage.
               It’s waiting whenever a moment comes round.
             </>
           ) : (
             <>
-              <b className="text-keeper-ink">Your first card’s on us.</b>{' '}
+              <b className="text-keeper-ink">50% off your first card.</b>{' '}
               {3 - keyDates} more {3 - keyDates === 1 ? 'date' : 'dates'} — any
-              day that matters — and it’s free.
+              day that matters — and it’s half price.
             </>
           )}
         </p>

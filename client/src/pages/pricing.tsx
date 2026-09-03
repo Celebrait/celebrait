@@ -274,7 +274,7 @@ export default function PricingPage() {
                 onClick={() => claimFreeCard()}
                 className="bg-go hover:bg-go-hover text-go-foreground h-12 px-8 text-base font-medium"
               >
-                Make my first card
+                Make a card
               </Button>
             )}
             <p className="text-xs text-ink-soft mt-4">

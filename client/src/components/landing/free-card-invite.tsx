@@ -188,7 +188,7 @@ export function FreeCardInvite() {
   const claimCopy =
     authStep === 'email'
       ? {
-          heading: 'Claim your free card.',
+          heading: 'Claim 50% off your first card.',
           sub: "Pop your email in — we'll send a 6-digit code. No passwords, ever.",
         }
       : authStep === 'code'
@@ -205,7 +205,7 @@ export function FreeCardInvite() {
           className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
-          aria-label="Your first card is on us"
+          aria-label="50% off your first card"
           data-testid="free-card-invite"
         >
           {/* Backdrop */}
@@ -239,8 +239,8 @@ export function FreeCardInvite() {
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
                       Then three dates that matter, and your first card is{' '}
-                      <span className="line-through">£6.99</span> <b>£0</b> —
-                      just the postage.
+                      <span className="line-through">£5.99</span> <b>£2.99</b> —
+                      half price.
                     </p>
                   )}
                   <div className="mt-5" data-testid="free-card-invite-authform">
@@ -277,7 +277,7 @@ export function FreeCardInvite() {
               ) : (
                 <>
                   <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
-                    {intent === 'asked' ? 'First card on us' : 'A gift to start'}
+                    {intent === 'asked' ? '50% off your first card' : 'A gift to start'}
                   </p>
                   <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
                     {intent === 'asked'
@@ -289,17 +289,17 @@ export function FreeCardInvite() {
                       You'll need an account to make a card either way — so
                       start here. Tell us <b>three dates that matter</b> — a
                       birthday, an anniversary, any day — and your first card
-                      is free.{' '}
-                      <span className="text-stone-400 line-through">£6.99</span>{' '}
-                      <b>£0</b>, just the postage.
+                      is half price.{' '}
+                      <span className="text-stone-400 line-through">£5.99</span>{' '}
+                      <b>£2.99</b>, plus postage.
                     </p>
                   ) : (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       The right moment probably hasn't come round yet. So start the
                       other way: tell us <b>three dates that matter</b> — a birthday,
-                      an anniversary, any day — and your first card is on us.{' '}
-                      <span className="text-stone-400 line-through">£6.99</span>{' '}
-                      <b>£0</b>, just the postage. It waits for the moment.
+                      an anniversary, any day — and your first card is half price.{' '}
+                      <span className="text-stone-400 line-through">£5.99</span>{' '}
+                      <b>£2.99</b>, plus postage. It waits for the moment.
                     </p>
                   )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
@@ -350,7 +350,7 @@ export function FreeCardInvite() {
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-muted">
             <Gift className="h-4 w-4 text-brand" strokeWidth={2} />
           </span>
-          First card on us
+          50% off your first card
         </button>
       )}
     </>

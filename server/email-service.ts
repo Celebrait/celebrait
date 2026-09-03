@@ -501,7 +501,7 @@ export async function sendMakeYourOwnLinkEmail(
   email: string,
   opts?: { recipientName?: string | null; occasionDate?: string | null },
 ): Promise<boolean> {
-  const startUrl = `${PUBLIC_ORIGIN}/studio/new-card`;
+  const startUrl = `${PUBLIC_ORIGIN}/make`;
   // Occasion-capture variant: acknowledge the nudge they set up. The
   // nudge email itself is a post-launch scheduled job — this line is
   // the promise, the stored occasion_date is the mechanism.
@@ -555,31 +555,31 @@ export async function sendWelcomeEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Lovely to have you. Celebrait makes cards where the person you're
-      sending to <strong>becomes the artwork</strong> — their photo, their
-      scene, printed properly and posted anywhere in the UK. Like the one
-      above.
+      Lovely to have you. Celebrait makes cards <strong>for one person</strong>
+      — tell us who it's for and one thing about them, and we write and
+      illustrate three to choose from, printed properly and posted anywhere
+      in the UK.
     </p>
     <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 18px 20px; margin: 0 0 18px;">
       <p style="margin: 0 0 6px; font-weight: 700; color: #211D19;">
-        &#127873;&nbsp; Your first card's on us
+        &#127873;&nbsp; 50% off your first card
       </p>
       <p style="margin: 0; font-size: 14px;">
         Tell us <strong>three dates that matter</strong> — birthdays,
         anniversaries, any day worth a card — and your first one is
-        <span style="text-decoration: line-through;">&pound;8.99</span>
-        <strong>&pound;0</strong>, just the postage. We'll watch every date
+        <span style="text-decoration: line-through;">&pound;5.99</span>
+        <strong>&pound;2.99</strong>, plus postage. We'll watch every date
         you add and nudge you in good time, so nobody's day slips past
         again.
       </p>
     </div>
     <p style="margin: 0 0 8px;">
       It takes about a minute to add a date, and there's no rush to buy a
-      thing — the free card waits for the right moment.
+      thing — the half-price card waits for the right moment.
     </p>
   `;
   const html = chassis({
-    preheader: "Your first card's on us — three dates that matter, and it's free.",
+    preheader: "50% off your first card — three dates that matter, and it's half price.",
     heading: "You're in. Let's make someone's day.",
     heroImages: [
       {
@@ -588,12 +588,12 @@ export async function sendWelcomeEmail(params: {
       },
     ],
     bodyHtml: body,
-    cta: { label: 'Claim your free card', href: studioUrl },
-    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/studio/new-card" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a> — it's free to make.</p>`,
+    cta: { label: 'Claim 50% off', href: studioUrl },
+    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a> — it's free to make.</p>`,
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards where the person you're sending to becomes the artwork — their photo, their scene, printed properly and posted anywhere in the UK.\n\nYOUR FIRST CARD'S ON US\nTell us three dates that matter — birthdays, anniversaries, any day worth a card — and your first card is \u00a38.99 -> \u00a30, just the postage. We'll watch every date you add and nudge you in good time.\n\nClaim your free card: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/studio/new-card\n\n— Aidan at Celebrait`;
-  return sendEmail({ to: email, subject: "Welcome — your first card's on us", html, text });
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person — tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted anywhere in the UK.\n\n50% OFF YOUR FIRST CARD\nTell us three dates that matter — birthdays, anniversaries, any day worth a card — and your first card is \u00a35.99 -> \u00a32.99, plus postage. We'll watch every date you add and nudge you in good time.\n\nClaim 50% off: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\n— Aidan at Celebrait`;
+  return sendEmail({ to: email, subject: 'Welcome — 50% off your first card', html, text });
 }
 
 // ── Dates-nudge flow (marketing — opted-in accounts only) ───────────
@@ -621,19 +621,19 @@ export async function sendDatesNudgeEmail(params: {
     <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
       <div style="margin-bottom:8px;">${dots}</div>
       <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
-      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;8.99</span> <strong>&pound;0</strong> — just the postage.</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;5.99</span> <strong>&pound;2.99</strong> — half price.</p>
     </div>`;
 
   let subject: string;
   let heading: string;
   let body: string;
   if (variant === 'd2') {
-    subject = remaining === 1 ? "One date from a free card" : "Your free card's still waiting";
-    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from a free card.`;
+    subject = remaining === 1 ? 'One date from 50% off' : 'Your 50% off is still waiting';
+    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from half price.`;
     body = `
       <p style="margin:0 0 16px;">${greeting}</p>
       <p style="margin:0 0 16px;">
-        Quick one — the free first card we mentioned is still yours to
+        Quick one — the 50% off your first card we mentioned is still yours to
         claim. Add ${remaining === 1 ? 'one more date' : `${remaining} more dates`}
         that matter — a birthday, an anniversary, any day worth a card —
         and it unlocks. About a minute's work.
@@ -656,12 +656,12 @@ export async function sendDatesNudgeEmail(params: {
       </p>
       ${ringBlock}
       <p style="margin:0 0 8px;">
-        No rush to buy a thing — the free card waits for the right moment.
+        No rush to buy a thing — the half-price card waits for the right moment.
       </p>`;
   }
 
   const html = chassis({
-    preheader: "Three dates that matter, and your first card's free.",
+    preheader: 'Three dates that matter, and your first card is half price.',
     heading,
     bodyHtml: body,
     cta: { label: 'Add a date', href: studioUrl },
@@ -669,8 +669,8 @@ export async function sendDatesNudgeEmail(params: {
   });
   const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
     variant === 'd2'
-      ? `Your free first card is still waiting — you're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a38.99 -> \u00a30, just the postage.`
-      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later — ${remaining} more and your first card's free.`
+      ? `Your 50% off is still waiting — you're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a35.99 -> \u00a32.99, plus postage.`
+      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later — ${remaining} more and your first card is half price.`
   }\n\nAdd a date: ${studioUrl}\n\n— Aidan at Celebrait`;
   return sendEmail({ to: email, subject, html, text, marketing: true });
 }
