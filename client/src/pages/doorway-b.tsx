@@ -149,7 +149,7 @@ export default function DoorwayBPage() {
                   </span>
                 </h1>
                 <p className="mt-5 max-w-[36rem] text-[17px] leading-relaxed text-keeper-body">
-                  Three original cards, written and illustrated for one person. You pick the one, add your words, and we print and post it.
+                  Create a personalised greetings card they'll probably keep, in under 2 minutes.
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <button type="button" onClick={() => setStarted(true)}
