@@ -362,7 +362,7 @@ const TRUST_CHIPS = [
   { icon: Truck, label: 'Straight to them — or to you to hand over' },
 ] as const;
 
-function TrustChips({ center = false }: { center?: boolean }) {
+export function TrustChips({ center = false }: { center?: boolean }) {
   return (
     <div className={`mt-5 flex flex-wrap gap-2 ${center ? 'justify-center' : ''}`}>
       {TRUST_CHIPS.map(({ icon: Icon, label }) => (

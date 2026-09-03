@@ -18,10 +18,24 @@ import { Loader2, ArrowLeft, Check, Cake, TreePine, Camera, Sparkles, Lock } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
-import { PublicHeader } from '@/pages/doorway';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
+import celebraitLogo from '@/assets/celebrait.webp';
+
+/** The studio's header shape for a public surface: logo, occasions, sign in. */
+function PublicHeader() {
+  return (
+    <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3">
+      <Link href="/door" className="flex items-center" aria-label="Celebrait home"><img src={celebraitLogo} alt="Celebrait" className="h-6 w-auto" /></Link>
+      <nav className="ml-auto flex items-center gap-5">
+        <Link href="/cards/christmas" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Christmas</Link>
+        <Link href="/cards/birthday" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Birthdays</Link>
+        <Link href="/studio" className="text-sm font-medium text-keeper-ink hover:text-brand-dark">Sign in</Link>
+      </nav>
+    </header>
+  );
+}
 
 // ── plumbing ─────────────────────────────────────────────────────────
 async function makePost(path: string, body: unknown): Promise<any> {

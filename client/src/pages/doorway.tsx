@@ -1,126 +1,151 @@
 // client/src/pages/doorway.tsx — THE DOORWAY (/door → becomes / when signed off)
 //
-// Aidan, 2026-09-02: "a ridiculously simple LP doorway that gives the
-// options, cos they are different." Two doors, one line, nothing else.
-// Copy is Set A. Design is the STUDIO's, verbatim — its header, its
-// panels, its type ladder, its buttons (see the studio recipe: page h1
-// = font-display semibold, panels = white/2xl/hairline, green only on
-// the commit moment, violet for links). Fraunces once, then silence.
+// Aidan, 2026-09-02: "needs to look exactly like my current LP with the
+// same header, same menu, same background, same bold Fraunces as the
+// headline. Lead with the full racks below, lazy load, able to toggle
+// occasions, tone, age, same layout as the current /cards page … so
+// the user moves seamlessly into my catalogue."
 //
-// Door one → /make (public builder, guest gate). Door two → /studio
-// (sign-in: the photo route runs the heavier models, members only).
+// So: the landing's exact chrome (KeeperHeader + ticker, Celebration-
+// Backdrop, keeper-serif, the DISPLAY headline at the hero's clamp),
+// two doors in the landing's card style (Set A copy), the trust chips,
+// then THE RACK ITSELF — components/catalogue/rack-wall.tsx, the same
+// component /cards renders — mounted lazily when scrolled into view,
+// with an occasion toggle above its own style/age chips and search.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
-import { ArrowRight } from 'lucide-react';
+import { Sparkles, Camera, ArrowRight } from 'lucide-react';
+import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { TrustChips } from '@/pages/landing-keeper';
+import { AjarTile } from '@/components/catalogue/ajar-tile';
+import { RackWall, type RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
-import { cardPriceGBP, SHIPPING_TIERS } from '@shared/pricing';
-import celebraitLogo from '@/assets/celebrait.webp';
+import { cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+// The landing's display style, verbatim (landing-keeper.tsx DISPLAY).
+const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 
-interface RackCard { id: number; front_text: string; imageUrl: string }
+const OCCASIONS = [
+  { slug: 'christmas', label: 'Christmas' },
+  { slug: 'birthday', label: 'Birthdays' },
+] as const;
 
-export function PublicHeader() {
-  return (
-    <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3">
-      <Link href="/door" className="flex items-center" aria-label="Celebrait home">
-        <img src={celebraitLogo} alt="Celebrait" className="h-6 w-auto" />
-      </Link>
-      <nav className="ml-auto flex items-center gap-5">
-        <Link href="/cards/christmas" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Christmas</Link>
-        <Link href="/cards/birthday" className="hidden sm:inline text-sm text-keeper-body hover:text-keeper-ink">Birthdays</Link>
-        <Link href="/studio" className="text-sm font-medium text-keeper-ink hover:text-brand-dark">Sign in</Link>
-      </nav>
-    </header>
-  );
+/** Mounts children the first time they scroll near the viewport. */
+function LazyMount({ children, minHeight = '60vh' }: { children: ReactNode; minHeight?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (on) return;
+    const el = ref.current; if (!el) return;
+    if (!('IntersectionObserver' in window)) { setOn(true); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { rootMargin: '480px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [on]);
+  return <div ref={ref} style={on ? undefined : { minHeight }}>{on ? children : null}</div>;
 }
 
-const door = 'group block bg-white rounded-2xl border border-keeper-hair p-5 sm:p-6 hover:border-brand hover:shadow-lg transition-all';
-const goPill = 'inline-flex items-center gap-2 bg-cta group-hover:bg-cta-hover text-cta-foreground rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm whitespace-nowrap';
+const doorCls = 'group flex flex-col rounded-2xl border border-keeper-hair bg-white/70 p-5 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm transition-colors hover:border-keeper-gold sm:p-6';
+const doorCta = 'inline-flex items-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors group-hover:bg-black';
 
 export default function DoorwayPage() {
   useSeo('/door');
-  const [bday, setBday] = useState<RackCard[]>([]);
-  const [xmas, setXmas] = useState<RackCard[]>([]);
+  const [occasion, setOccasion] = useState<string>('christmas');
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [three, setThree] = useState<Array<{ id: number; front_text: string; imageUrl: string }>>([]);
+
   useEffect(() => {
-    fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null)).then((j) => setBday(j?.cards ?? [])).catch(() => {});
-    fetch('/api/catalogue/christmas').then((r) => (r.ok ? r.json() : null)).then((j) => setXmas(j?.cards ?? [])).catch(() => {});
+    for (const o of OCCASIONS) {
+      fetch(`/api/catalogue/${o.slug}`).then((r) => (r.ok ? r.json() : null)).then((j: RackPayload | null) => {
+        if (!j) return;
+        setCounts((c) => ({ ...c, [o.slug]: j.count }));
+        if (o.slug === 'birthday') setThree(j.cards.slice(0, 3));
+      }).catch(() => {});
+    }
   }, []);
-  const three = bday.slice(0, 3);
-  const shelf = [...xmas.slice(0, 3), ...bday.slice(3, 6)];
-  const standard = SHIPPING_TIERS.find((t) => t.id === 'standard');
 
   return (
-    <div className="min-h-screen bg-keeper-paper flex flex-col">
-      <PublicHeader />
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-10 sm:py-16">
-        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.015em] text-keeper-ink text-balance">
-          Cards made for one person.
-        </h1>
-        <p className="mt-2 text-[15px] text-keeper-body">Tell us who. Or show us who.</p>
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className="pt-32">
+        {/* ── The hero: the landing's headline, then the two doors ── */}
+        <section className="px-6 pb-16 pt-10 md:pb-20 md:pt-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
+            <h1 className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}>
+              Cards made
+              <br />
+              for one person.
+            </h1>
+            <p className="mt-4 max-w-[30rem] text-[17px] font-medium text-keeper-ink">Tell us who. Or show us who.</p>
 
-        <div className="mt-8 sm:mt-10 grid gap-4 sm:gap-6 md:grid-cols-2">
-          {/* Door one — made for them */}
-          <Link href="/make" className={door}>
-            <div className="aspect-[16/9] rounded-xl bg-stone-100 overflow-hidden">
-              <div className="grid h-full grid-cols-3 items-center gap-2 p-3">
-                {(three.length ? three : [null, null, null]).map((c, i) =>
-                  c ? (
-                    <div key={c.id} className="aspect-square rounded-lg overflow-hidden bg-white shadow-sm">
-                      <img src={c.imageUrl} alt={c.front_text} crossOrigin="anonymous" className="w-full h-full object-cover" />
-                    </div>
-                  ) : <div key={i} className="aspect-square rounded-lg bg-stone-200/70 animate-pulse" />,
-                )}
-              </div>
-            </div>
-            <h2 className="mt-5 text-lg sm:text-xl font-semibold text-keeper-ink">A card made for them.</h2>
-            <p className="mt-1 text-sm text-keeper-body">Tell us who. Three originals in a minute, and they can be in it.</p>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-[12.5px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · about a minute</span>
-              <span className={goPill}>Start with who it's for <ArrowRight className="w-4 h-4" /></span>
-            </div>
-          </Link>
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              {/* Door one — a card made for them → the builder */}
+              <Link href="/make" className={doorCls}>
+                <div className="grid grid-cols-3 gap-3">
+                  {(three.length ? three : [null, null, null]).map((c, i) =>
+                    c ? <AjarTile key={c.id} imageUrl={c.imageUrl} alt={c.front_text} /> : <div key={i} className="aspect-square animate-pulse rounded-lg bg-keeper-hair/50" />,
+                  )}
+                </div>
+                <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A card made for them.</h2>
+                <p className="mt-1 text-sm leading-relaxed text-keeper-body">Tell us who. Three originals in a minute, and they can be in it.</p>
+                <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
+                  <span className="text-[12px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · about a minute</span>
+                  <span className={doorCta}><Sparkles className="h-4 w-4 text-cta" /> Start with who it's for</span>
+                </div>
+              </Link>
 
-          {/* Door two — a scene made around them */}
-          <Link href="/studio" className={door}>
-            <div className="aspect-[16/9] rounded-xl bg-stone-100 overflow-hidden">
-              <img src="/hero-real-card.webp" alt="A printed Celebrait card standing on a desk beside its envelope" className="w-full h-full object-cover" />
+              {/* Door two — a scene made around them → the studio */}
+              <Link href="/studio" className={doorCls}>
+                <div className="overflow-hidden rounded-xl bg-white shadow-[0_18px_40px_-24px_rgba(33,29,25,0.45)]">
+                  <img src="/hero-real-card.webp" alt="A printed Celebrait card standing on a desk beside its envelope" className="aspect-[16/9] w-full object-cover" />
+                </div>
+                <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A scene made around them.</h2>
+                <p className="mt-1 text-sm leading-relaxed text-keeper-body">From one photo. You describe the moment, we make it real.</p>
+                <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
+                  <span className="text-[12px] text-keeper-meta">{gbp(cardPriceGBP('photo'))} · first one's on us</span>
+                  <span className={doorCta}><Camera className="h-4 w-4 text-cta" /> Start with a photo</span>
+                </div>
+              </Link>
             </div>
-            <h2 className="mt-5 text-lg sm:text-xl font-semibold text-keeper-ink">A scene made around them.</h2>
-            <p className="mt-1 text-sm text-keeper-body">From one photo. You describe the moment, we make it real.</p>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-[12.5px] text-keeper-meta">{gbp(cardPriceGBP('photo'))} · first one's on us</span>
-              <span className={goPill}>Start with a photo <ArrowRight className="w-4 h-4" /></span>
-            </div>
-          </Link>
-        </div>
 
-        {/* The shelf — ready now */}
-        <section className="mt-10 sm:mt-14">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-keeper-ink">Or one that's ready now</h2>
-            <span className="text-[12.5px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · printed today if you order by 3pm</span>
-          </div>
-          <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {(shelf.length ? shelf : Array.from({ length: 6 }, () => null)).map((c, i) =>
-              c ? (
-                <Link key={c.id} href={`/card/${c.id}`} className="block aspect-square rounded-xl overflow-hidden bg-stone-100 border border-keeper-hair hover:border-brand transition-colors">
-                  <img src={c.imageUrl} alt={c.front_text} crossOrigin="anonymous" className="w-full h-full object-cover" />
-                </Link>
-              ) : <div key={i} className="aspect-square rounded-xl bg-stone-100 animate-pulse" />,
-            )}
-          </div>
-          <div className="mt-3 flex gap-5 text-sm">
-            <Link href="/cards/christmas" className="text-brand hover:text-brand-dark">Christmas cards →</Link>
-            <Link href="/cards/birthday" className="text-brand hover:text-brand-dark">Birthday cards →</Link>
+            <div className="mt-8"><TrustChips /></div>
           </div>
         </section>
 
-        <p className="mt-10 text-[12.5px] text-keeper-meta">
-          280gsm card · kraft envelope · printed to order in the UK · posted first class · {standard ? gbp(standard.price) : '£2.95'} postage per order
-        </p>
+        {/* ── The rack: the same wall /cards renders, lazily ── */}
+        <section id="rack" className="relative mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">The Celebrait rack</p>
+            <h2 className="mt-2 font-display text-4xl font-bold leading-[1.05] text-keeper-ink sm:text-5xl">
+              Or straight off the <span className="text-keeper-gold">shelf</span>
+            </h2>
+            <p className="mt-3 text-lg leading-relaxed text-keeper-body">
+              Every card here was made for a real person's brief — not a warehouse.
+              Send one as it is, or make it theirs.
+            </p>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Occasion</span>
+            {OCCASIONS.map((o) => (
+              <button key={o.slug} type="button" onClick={() => setOccasion(o.slug)}
+                className={`rounded-full border px-3.5 py-1.5 text-sm ${occasion === o.slug ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body hover:border-keeper-gold'}`}>
+                {o.label}{counts[o.slug] ? <span className="ml-1.5 text-[11px] text-keeper-meta">{counts[o.slug]}</span> : null}
+              </button>
+            ))}
+            <Link href={`/cards/${occasion}`} className="ml-auto inline-flex items-center gap-1 text-sm text-keeper-meta transition-colors hover:text-keeper-gold">
+              Open the {occasion === 'christmas' ? 'Christmas' : 'birthday'} rack <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <LazyMount>
+            <RackWall key={occasion} occasion={occasion} />
+          </LazyMount>
+        </section>
       </main>
       <MarketingFooter />
     </div>
