@@ -134,13 +134,14 @@ export default function DoorwayBPage() {
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
                 <h1 className={`mt-4 max-w-[22ch] text-[clamp(36px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
-                  You know them better than any card shop does.
+                  We know them better than your average card shop does.
                 </h1>
-                <p className="mt-5 max-w-[34rem] text-[18px] leading-relaxed text-keeper-body">
-                  Tell us one thing, and pick from three cards made{' '}
+                <p className="mt-5 max-w-[36rem] text-[18px] leading-relaxed text-keeper-body">
+                  In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.
+                  Thoughtful, funny, gloriously daft?{' '}
                   <span className="-mx-1 inline-block font-semibold [filter:drop-shadow(0_0_16px_rgba(92,87,212,0.45))]">
-                    <ShimmerWord reduced={!!reduced}>just for them</ShimmerWord>
-                  </span>.
+                    <ShimmerWord reduced={!!reduced}>Over to you.</ShimmerWord>
+                  </span>
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <button type="button" onClick={begin}
