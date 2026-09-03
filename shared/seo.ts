@@ -42,7 +42,7 @@ export const PAGE_SEO: PageSeo[] = [
   },
   {
     path: '/door2',
-    title: 'Cards Made For One Person | Celebrait',
+    title: 'Tell Us Who It’s For, We’ll Make Their Card | Celebrait',
     description:
       'Tell us who the card is for and we write and illustrate three originals in a minute — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
   },

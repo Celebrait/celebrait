@@ -21,7 +21,7 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
-import { DISPLAY, DoorRack } from '@/pages/doorway';
+import { DISPLAY } from '@/pages/doorway';
 import type { RackPayload, CatalogueCard } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
@@ -74,6 +74,11 @@ export default function DoorwayBPage() {
   useSeo('/door2');
   const [, navigate] = useLocation();
   const [cards, setCards] = useState<CatalogueCard[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    fetch('/api/catalogue/christmas').then((r) => (r.ok ? r.json() : null))
+      .then((x: RackPayload | null) => { if (x) setCounts((c) => ({ ...c, christmas: x.count })); }).catch(() => {});
+  }, []);
   // Birthdays only in the wall (Aidan 2026-09-02) — the evergreen rack.
   // A fresh shuffle of the WHOLE birthday rack on every visit, twenty
   // drawn ("randomise the carousel a bit more"), so no two arrivals see
@@ -81,6 +86,7 @@ export default function DoorwayBPage() {
   useEffect(() => {
     fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null))
       .then((b: RackPayload | null) => {
+        if (b) setCounts((c) => ({ ...c, birthday: b.count }));
         const pool = [...((b?.cards ?? []) as CatalogueCard[])];
         for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
         setCards(pool.slice(0, 20));
@@ -98,14 +104,14 @@ export default function DoorwayBPage() {
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
             <h1 className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}>
-              Cards made
+              Tell us who it's for.
               <br />
-              for one person.
+              We'll make their card.
             </h1>
 
             <div className="mt-8 max-w-3xl">
-              <p className="text-[17px] font-medium text-keeper-ink">Who's the card for?</p>
-              <p className="mt-1 text-[14px] text-keeper-body">Tap one — we'll write and illustrate three original cards for them, in about a minute.</p>
+              <p className="text-[17px] font-medium text-keeper-ink">Start here — who's it for?</p>
+              <p className="mt-1 text-[14px] text-keeper-body">Tap one. We write and illustrate three original cards for them in about a minute. Pick your favourite, add your words, and we print and post it.</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {RECIPIENTS.map((r) => (
                   <button key={r} type="button" className={chip} onClick={() => navigate(`/make?who=${encodeURIComponent(r)}`)}>{r}</button>
@@ -131,10 +137,25 @@ export default function DoorwayBPage() {
             </div>
           </div>
 
-          <div className="mx-auto mt-6 max-w-6xl px-6"><TrustChips /></div>
-        </section>
+          {/* The carousel IS the shelf (Aidan: the full wall beneath it
+              was "too much") — two links into the racks proper, which
+              carry the toggle, the filters and the search. */}
+          <div className="mx-auto mt-5 max-w-6xl px-6">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-keeper-body">
+              <span>Or take one off the shelf:</span>
+              <Link href="/cards/christmas" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                Christmas{counts.christmas ? <span className="ml-1 text-[12px] text-keeper-meta">{counts.christmas}</span> : null}
+              </Link>
+              <span className="text-keeper-hair">·</span>
+              <Link href="/cards/birthday" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                Birthdays{counts.birthday ? <span className="ml-1 text-[12px] text-keeper-meta">{counts.birthday}</span> : null}
+              </Link>
+              <span className="text-[13px] text-keeper-meta">· from {gbp(cardPriceGBP('rack'))}, printed today if you order by 3pm</span>
+            </p>
+          </div>
 
-        <DoorRack />
+          <div className="mx-auto mt-8 max-w-6xl px-6"><TrustChips /></div>
+        </section>
       </main>
       <MarketingFooter />
     </div>
