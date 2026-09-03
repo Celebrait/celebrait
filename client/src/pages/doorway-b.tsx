@@ -52,7 +52,10 @@ function CardDrift({ cards }: { cards: CatalogueCard[] }) {
         .door-drift-mask { -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); }
         @media (prefers-reduced-motion: reduce) { .door-drift { animation: none; width: auto; overflow-x: auto; } }
       `}</style>
-      <div className="door-drift flex gap-4 py-4">
+      {/* pb-10 + -mb-6: the tiles' layered shadows need ~40px below to
+          fade out; clipping them at the strip's edge drew a hard line
+          under the row (Aidan: "ditch that weird line along the bottom"). */}
+      <div className="door-drift -mb-6 flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
           <Link key={`${c.id}-${i}`} href={`/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
             <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
