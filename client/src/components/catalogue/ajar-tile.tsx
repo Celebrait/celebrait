@@ -16,9 +16,13 @@ import { ThumbImg } from '@/components/thumb-img';
 interface AjarTileProps {
   imageUrl: string;
   alt: string;
+  /** Load the image immediately rather than lazily — for tiles that are
+   *  on screen at first paint or inside a moving strip, where the
+   *  browser's lazy-load intersection lags the transform. */
+  eager?: boolean;
 }
 
-export function AjarTile({ imageUrl, alt }: AjarTileProps) {
+export function AjarTile({ imageUrl, alt, eager = false }: AjarTileProps) {
   return (
     <div className="relative aspect-square" style={{ perspective: '900px' }}>
       {/* The inside — cream page peeking from behind the cover's
@@ -36,6 +40,7 @@ export function AjarTile({ imageUrl, alt }: AjarTileProps) {
           src={imageUrl}
           alt={alt}
           className="h-full w-full object-cover"
+          loading={eager ? 'eager' : 'lazy'}
         />
         {/* Cover sheen — the fold catching the light. */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10" />
