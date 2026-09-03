@@ -44,7 +44,7 @@ function CardDrift({ cards }: { cards: CatalogueCard[] }) {
     );
   }
   return (
-    <div className="door-drift-mask overflow-hidden">
+    <div className="door-drift-mask -mb-6 overflow-hidden">
       <style>{`
         @keyframes door-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .door-drift { animation: door-drift ${Math.max(40, cards.length * 4)}s linear infinite; width: max-content; }
@@ -52,10 +52,12 @@ function CardDrift({ cards }: { cards: CatalogueCard[] }) {
         .door-drift-mask { -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); }
         @media (prefers-reduced-motion: reduce) { .door-drift { animation: none; width: auto; overflow-x: auto; } }
       `}</style>
-      {/* pb-10 + -mb-6: the tiles' layered shadows need ~40px below to
-          fade out; clipping them at the strip's edge drew a hard line
-          under the row (Aidan: "ditch that weird line along the bottom"). */}
-      <div className="door-drift -mb-6 flex gap-4 pb-10 pt-4">
+      {/* The tiles' layered shadows reach ~34px below the card; the
+          clipping container must keep all 40px of padding, so the
+          spacing pull-back (-mb-6) lives on the CONTAINER, not here —
+          on the child it just moved the clip edge back to 16px and
+          the hard line stayed (Aidan: "the line is still there"). */}
+      <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
           <Link key={`${c.id}-${i}`} href={`/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
             <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
