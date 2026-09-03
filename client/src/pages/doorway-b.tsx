@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Camera, ArrowRight, Sparkles } from 'lucide-react';
+import { Camera, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '@/components/brief-questions';
 import { ShimmerWord } from '@/pages/landing-keeper';
@@ -85,6 +85,11 @@ export default function DoorwayBPage() {
   // "Get started" swaps the hero copy for the questions, same spot. A
   // brief already in the URL means they're mid-way — open on the questions.
   const [started, setStarted] = useState<boolean>(() => brief.who.trim().length > 0);
+  // A short beat between the tap and the first question (Aidan: "a
+  // loading spinner in the question area once clicked get started") —
+  // the swap is instant, so this is acknowledgement, not waiting: 650ms.
+  const [starting, setStarting] = useState(false);
+  const begin = () => { setStarting(true); window.setTimeout(() => { setStarting(false); setStarted(true); }, 650); };
   const reduced = useReducedMotion();
   const [cards, setCards] = useState<CatalogueCard[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -116,10 +121,16 @@ export default function DoorwayBPage() {
         <section className="pb-12 pt-10 md:pb-16 md:pt-20">
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
-            {!started ? (
+            {starting ? (
+              <div className="mt-4 flex min-h-[300px] max-w-3xl flex-col items-start justify-center gap-3" aria-live="polite">
+                <Loader2 className="h-7 w-7 animate-spin text-keeper-gold" />
+                <p className="text-[17px] font-medium text-keeper-ink">Right then.</p>
+                <p className="text-[14px] text-keeper-meta">Seven quick questions, about a minute.</p>
+              </div>
+            ) : !started ? (
               <>
-                {/* The sole headline (Aidan 2026-09-02). "probably keep"
-                    carries the LP's violet shimmer and a soft glow. */}
+                {/* The headline (Aidan 2026-09-02): the human line in
+                    Fraunces, the mechanism beneath with the shimmer + glow. */}
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
                 <h1 className={`mt-4 max-w-[22ch] text-[clamp(36px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
@@ -132,7 +143,7 @@ export default function DoorwayBPage() {
                   </span>.
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-                  <button type="button" onClick={() => setStarted(true)}
+                  <button type="button" onClick={begin}
                     className="inline-flex items-center gap-2 rounded-full bg-keeper-ink px-7 py-3.5 text-[15px] font-semibold text-keeper-paper shadow-[0_10px_30px_-12px_rgba(33,29,25,0.5)] transition-colors hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
                     <Sparkles className="h-4 w-4 text-cta" /> Get started
                   </button>
