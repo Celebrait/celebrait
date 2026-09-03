@@ -120,12 +120,17 @@ export default function DoorwayBPage() {
               <>
                 {/* The sole headline (Aidan 2026-09-02). "probably keep"
                     carries the LP's violet shimmer and a soft glow. */}
-                <h1 className={`mt-4 max-w-[28ch] text-[clamp(30px,4.6vw,54px)] leading-[1.08] ${DISPLAY}`}>
-                  Create a personalised greetings card they'll{' '}
-                  <span className="-mx-1 inline-block [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.38))]">
-                    <ShimmerWord reduced={!!reduced}>probably keep</ShimmerWord>
-                  </span>, in under 2 minutes.
+                {/* The human bit is the headline; the mechanism is the line
+                    under it, with the glow on "just for them". */}
+                <h1 className={`mt-4 max-w-[22ch] text-[clamp(36px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                  You know them better than any card shop does.
                 </h1>
+                <p className="mt-5 max-w-[34rem] text-[18px] leading-relaxed text-keeper-body">
+                  Tell us one thing, and pick from three cards made{' '}
+                  <span className="-mx-1 inline-block font-semibold [filter:drop-shadow(0_0_16px_rgba(92,87,212,0.45))]">
+                    <ShimmerWord reduced={!!reduced}>just for them</ShimmerWord>
+                  </span>.
+                </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <button type="button" onClick={() => setStarted(true)}
                     className="inline-flex items-center gap-2 rounded-full bg-keeper-ink px-7 py-3.5 text-[15px] font-semibold text-keeper-paper shadow-[0_10px_30px_-12px_rgba(33,29,25,0.5)] transition-colors hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
