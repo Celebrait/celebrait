@@ -73,16 +73,16 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
       className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${tile}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${lead ? 'bg-brand text-white' : 'bg-brand-muted text-keeper-gold'}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:h-11 sm:w-11 ${lead ? 'bg-brand text-white' : 'bg-brand-muted text-keeper-gold'}`}>
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
         <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${chipCls}`}>{chip.label}</span>
       </div>
 
-      <h2 className={`mt-3 font-display font-bold leading-[1.08] text-keeper-ink sm:mt-4 ${lead ? 'text-[26px] sm:text-[30px]' : 'text-[22px] sm:text-[24px]'}`}>
+      <h2 className={`mt-3 font-display font-bold leading-[1.08] text-keeper-ink sm:mt-4 ${lead ? 'text-[23px] sm:text-[30px]' : 'text-[21px] sm:text-[24px]'}`}>
         <Link href={href} onClick={stop} className="outline-none focus-visible:underline">{title}</Link>
       </h2>
-      <p className="mt-1.5 text-[14.5px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
+      <p className="mt-1 text-[14px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
 
       {/* Time · effort · price as three small pills — scannable, no
           display type, the price carries the weight. */}
@@ -94,9 +94,9 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
 
       {/* The three decision points, green checks (the studio's readiness
           accent). flex-1 keeps buttons level across the pair. */}
-      <ul className="mt-4 flex-1 space-y-2">
+      <ul className="mt-3.5 flex-1 space-y-1.5 sm:space-y-2">
         {points.map((pt) => (
-          <li key={pt} className="flex items-start gap-2 text-[14px] leading-snug text-keeper-body">
+          <li key={pt} className="flex items-start gap-2 text-[13.5px] leading-snug text-keeper-body sm:text-[14px]">
             <span className="mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark"><Check className="h-2.5 w-2.5" strokeWidth={3} /></span>
             <span>{pt}</span>
           </li>
@@ -106,7 +106,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
       <Link
         href={href}
         onClick={stop}
-        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-go px-6 py-2.5 text-[15px] sm:mt-5 sm:py-3 font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold"
       >
         {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
@@ -140,20 +140,20 @@ export default function GatePage() {
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
-      <main className="pt-[116px] md:pt-32">
-        <section className="px-5 pb-14 pt-3 sm:px-6 md:pb-20 md:pt-14">
+      <main className="pt-[136px] md:pt-32">
+        <section className="px-5 pb-14 pt-4 sm:px-6 md:pb-20 md:pt-14">
           <div className="mx-auto max-w-4xl text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
-            <h1 className={`mx-auto mt-2.5 max-w-[18ch] text-[clamp(30px,5vw,56px)] leading-[1.06] text-balance ${DISPLAY}`}>
+            <h1 className={`mx-auto mt-2.5 max-w-[18ch] text-[clamp(27px,5vw,56px)] leading-[1.06] text-balance ${DISPLAY}`}>
               Before we create, what kind of card maker are you?
             </h1>
-            <p className="mx-auto mt-2.5 max-w-[40rem] text-[15px] leading-relaxed text-keeper-body md:mt-4 md:text-[17px]">
+            <p className="mx-auto mt-3 max-w-[40rem] text-[14.5px] leading-relaxed text-keeper-body md:mt-4 md:text-[17px]">
               Celebrait offers two unique ways to design a greetings card that's all about them.
               Pick one<span className="hidden sm:inline"> (you can always switch later once you know what we're about)</span>.
             </p>
           </div>
 
-          <div id="doors" className="mx-auto mt-6 grid max-w-4xl scroll-mt-32 gap-3 sm:gap-5 md:mt-10 md:grid-cols-[1.3fr_1fr] md:items-stretch">
+          <div id="doors" className="mx-auto mt-8 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-10 md:grid-cols-[1.3fr_1fr] md:items-stretch">
             <Door
               lead
               href="/photo"
@@ -165,9 +165,9 @@ export default function GatePage() {
               effort="more effort"
               price={photo}
               points={[
-                'You bring one clear photo of their face and a scene in mind. No sign-in to start.',
-                'You get one card with them drawn in, in the scene you described.',
-                'Drawn by our bigger image model, one card at a time, at full print quality.',
+                'One clear face photo. No sign-in to start.',
+                'One card, them drawn into your scene.',
+                'Bigger image model, full print quality.',
               ]}
               cta="Start with a photo"
               fine={[
@@ -186,9 +186,9 @@ export default function GatePage() {
               effort="low effort"
               price={maker}
               points={[
-                'You bring nothing but answers: who, the occasion, their age, one thing they love.',
-                'You get three different fronts to choose from, then the inside written to match.',
-                'Drawn by our quicker image model, three at once — why this one costs less.',
+                'Who, occasion, age, one thing they love.',
+                'Three fronts to pick from, inside to match.',
+                'Quicker model, three at once — costs less.',
               ]}
               cta="Tell us about them"
               fine={[
