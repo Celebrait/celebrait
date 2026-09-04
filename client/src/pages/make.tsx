@@ -175,7 +175,9 @@ export default function MakePage() {
     try {
       const j = await makePost('concepts', {
         occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
-        pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, age: ageNum,
+        // Free composition ALWAYS (Aidan 2026-09-03: "no 50/50 roll") —
+        // unset, the engine coin-flips dealt-vs-free formats per set.
+        pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, freeComposition: true, age: ageNum,
         interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, memory: true,
       });
       const concepts: Concept[] = j.concepts ?? [];

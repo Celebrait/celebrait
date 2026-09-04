@@ -313,7 +313,7 @@ export default function ResearchMakerPage() {
         occasion: ageNum !== null ? `${ageNum}th Birthday` : 'Birthday',
         who: who === 'Someone else' ? 'Anyone' : who,
         gender: gender ?? undefined,
-        tone: vibe, pipeline: 'celebrait', characters: 'objects', insideMode: 'auto',
+        tone: vibe, pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeComposition: true,
         freeStyle: true, age: ageNum,
         interest: interest.trim() || undefined,
         dislikes: dislike.trim() || undefined,
