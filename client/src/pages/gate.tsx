@@ -26,7 +26,7 @@
 
 import { type MouseEvent } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Camera, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
+import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -40,90 +40,88 @@ const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 interface DoorProps {
   href: string;
   icon: typeof Camera;
-  chip?: string;
+  chip: { label: string; tone: 'brand' | 'ready' };
   title: string;
   line: string;
   time: string;
   effort: string;
   price: string;
+  /** The three points that decide it — visible, never folded. */
+  points: string[];
   cta: string;
-  rows: Array<[string, string]>;
-  /** The lead door is the page's one dark band (keeper-ink); the other
-   *  sits quietly on paper. That's the hierarchy: one leads, one waits. */
+  /** The small print: what it can't do, and what draws it. Folded. */
+  fine: Array<[string, string]>;
+  /** The lead door wears the studio's "selected" tint — violet wash +
+   *  violet border. The other sits on white with a hairline. */
   lead?: boolean;
 }
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-function Door({ href, icon: Icon, chip, title, line, time, effort, price, cta, rows, lead = false }: DoorProps) {
+function Door({ href, icon: Icon, chip, title, line, time, effort, price, points, cta, fine, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
   const stop = (e: MouseEvent) => e.stopPropagation();
-  const t = lead
-    ? {
-        tile: 'border-keeper-ink bg-keeper-ink shadow-[0_24px_60px_-28px_rgba(33,29,25,0.6)] hover:border-brand',
-        well: 'bg-white/10 text-keeper-paper',
-        chip: 'bg-brand text-white',
-        title: 'text-[28px] text-keeper-paper sm:text-[34px]',
-        line: 'text-[15px] text-keeper-paper/80 sm:text-[16px]',
-        meta: 'text-keeper-paper/60', dot: 'text-keeper-paper/25', price: 'text-keeper-paper',
-        rule: 'border-white/15', summary: 'text-keeper-paper/70 hover:text-keeper-paper',
-        dt: 'text-keeper-paper/55', dd: 'text-keeper-paper/85',
-      }
-    : {
-        tile: 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand hover:shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)]',
-        well: 'bg-brand-muted text-keeper-gold',
-        chip: 'bg-keeper-gold-wash text-keeper-gold',
-        title: 'text-[22px] text-keeper-ink sm:text-[24px]',
-        line: 'text-[14.5px] text-keeper-body sm:text-[15px]',
-        meta: 'text-keeper-meta', dot: 'text-keeper-hair', price: 'text-keeper-ink',
-        rule: 'border-keeper-hair', summary: 'text-keeper-meta hover:text-keeper-ink',
-        dt: 'text-keeper-meta', dd: 'text-keeper-body',
-      };
+  const tile = lead
+    ? 'border-brand bg-brand-muted shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)] hover:border-brand-dark'
+    : 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand';
+  const pill = lead ? 'bg-white/80 border-brand-light' : 'bg-keeper-paper border-keeper-hair';
+  const chipCls = chip.tone === 'brand' ? 'bg-brand text-white' : 'bg-cta-light text-cta-dark';
   return (
     <div
       onClick={go}
-      className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${lead ? 'md:p-8' : ''} ${t.tile}`}
+      className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${tile}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${t.well}`}>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${lead ? 'bg-brand text-white' : 'bg-brand-muted text-keeper-gold'}`}>
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
-        {chip ? (
-          <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${t.chip}`}>{chip}</span>
-        ) : null}
+        <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${chipCls}`}>{chip.label}</span>
       </div>
 
-      <h2 className={`mt-3 font-display font-bold leading-[1.08] sm:mt-4 ${t.title}`}>
+      <h2 className={`mt-3 font-display font-bold leading-[1.08] text-keeper-ink sm:mt-4 ${lead ? 'text-[26px] sm:text-[30px]' : 'text-[22px] sm:text-[24px]'}`}>
         <Link href={href} onClick={stop} className="outline-none focus-visible:underline">{title}</Link>
       </h2>
-      {/* flex-1 so a wrapping tagline pushes nothing: both tiles' meta
-          lines, buttons and folds sit level across the pair. */}
-      <p className={`mt-1.5 flex-1 leading-snug ${t.line}`}>{line}</p>
+      <p className="mt-1.5 text-[14.5px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
 
-      <p className={`mt-3 text-[13px] ${t.meta}`}>
-        {time} <span className={`mx-1 ${t.dot}`}>·</span> {effort} <span className={`mx-1 ${t.dot}`}>·</span>{' '}
-        <span className={`font-semibold ${t.price}`}>{price}</span>
-      </p>
+      {/* Time · effort · price as three small pills — scannable, no
+          display type, the price carries the weight. */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium text-keeper-body ${pill}`}><Clock className="h-3 w-3 text-keeper-meta" /> {time}</span>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium text-keeper-body ${pill}`}><Wrench className="h-3 w-3 text-keeper-meta" /> {effort}</span>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold text-keeper-ink ${pill}`}>{price}</span>
+      </div>
+
+      {/* The three decision points, green checks (the studio's readiness
+          accent). flex-1 keeps buttons level across the pair. */}
+      <ul className="mt-4 flex-1 space-y-2">
+        {points.map((pt) => (
+          <li key={pt} className="flex items-start gap-2 text-[14px] leading-snug text-keeper-body">
+            <span className="mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark"><Check className="h-2.5 w-2.5" strokeWidth={3} /></span>
+            <span>{pt}</span>
+          </li>
+        ))}
+      </ul>
 
       <Link
         href={href}
         onClick={stop}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold"
+        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold"
       >
         {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
 
-      <details onClick={stop} className={`group/d mt-4 border-t pt-3 ${t.rule}`}>
-        <summary className={`flex cursor-pointer list-none items-center justify-between text-[13px] font-medium transition-colors [&::-webkit-details-marker]:hidden ${t.summary}`}>
-          What you need, what you get
+      {/* The small print, folded: a studio-style disclosure row. */}
+      <details onClick={stop} className="group/d mt-3">
+        <summary className={`flex cursor-pointer list-none items-center justify-between rounded-lg border px-3 py-2 text-[12.5px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink [&::-webkit-details-marker]:hidden ${pill}`}>
+          The small print
           <ChevronDown className="h-4 w-4 transition-transform group-open/d:rotate-180" />
         </summary>
-        <dl className="mt-3 space-y-2.5">
-          {rows.map(([k, v]) => (
-            <div key={k} className="grid grid-cols-[5.5rem_1fr] gap-x-3">
-              <dt className={`pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] ${t.dt}`}>{k}</dt>
-              <dd className={`text-[13.5px] leading-relaxed ${t.dd}`}>{v}</dd>
+        <dl className="mt-2 space-y-2 px-1">
+          {fine.map(([k, v]) => (
+            <div key={k} className="grid grid-cols-[4.5rem_1fr] gap-x-3">
+              <dt className="pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{k}</dt>
+              <dd className="text-[13px] leading-relaxed text-keeper-body">{v}</dd>
             </div>
           ))}
         </dl>
@@ -160,37 +158,43 @@ export default function GatePage() {
               lead
               href="/photo"
               icon={Camera}
-              chip="Pro choice"
+              chip={{ label: 'Pro choice', tone: 'brand' }}
               title="I've got a photo of them."
               line="They become the artwork, in a scene you direct."
               time="~10 min"
               effort="more effort"
               price={photo}
+              points={[
+                'You bring one clear photo of their face and a scene in mind.',
+                'You get one card with them drawn in, in the scene you described.',
+                'Drawn by our bigger image model, one card at a time, at full print quality.',
+              ]}
               cta="Start with a photo"
-              rows={[
-                ['Need', 'One clear photo of their face, a scene in mind, and a free account so your card is saved as you go.'],
-                ['Get', 'One card with them as the artwork, in the scene you described. You write the inside; we set the type.'],
-                ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them.'],
+              fine={[
+                ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
                 ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
-                ['Drawn by', 'Our bigger image model, one card at a time, at full print quality. Slower and dearer to run — that\'s the price difference.'],
+                ['Account', 'Free, and needed — your card is saved as you work on it.'],
               ]}
             />
             <Door
               href="/create"
               icon={Sparkles}
-              chip="Quickest"
+              chip={{ label: 'Quickest', tone: 'ready' }}
               title="I'll tell you about them."
               line="Seven quick questions, three original cards. You pick the one."
               time="~2 min"
               effort="low effort"
               price={maker}
+              points={[
+                'You bring nothing but answers: who, the occasion, their age, one thing they love.',
+                'You get three different fronts to choose from, then the inside written to match.',
+                'Drawn by our quicker image model, three at once — why this one costs less.',
+              ]}
               cta="Tell us about them"
-              rows={[
-                ['Need', 'Who it\'s for, the occasion, their age, one thing they love. No photo. No sign-in to see your three.'],
-                ['Get', 'Three different fronts to choose from, then the inside written and designed to match your pick.'],
+              fine={[
                 ['Can', 'Roll again with a new vibe. Change the details. Add their photo after you\'ve picked and we\'ll draw them in.'],
-                ['Can\'t', `Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces. (Ready-made cards off the rack from ${rack}.)`],
-                ['Drawn by', 'Our quicker image model, three at once. A lighter touch than the photo route, and why this one costs less.'],
+                ['Can\'t', 'Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces.'],
+                ['Account', `None needed to see your three. Ready-made cards off the rack from ${rack}.`],
               ]}
             />
           </div>
