@@ -36,6 +36,7 @@ export function KeeperHeader() {
   // The section anchors (proof, gallery, price) live on the PHOTO landing
   // page, which moved from / to /photo when the gate arrived (2026-09-03).
   const onPhotoLp = location === '/photo' || location === '/keeper';
+  const onGate = location === '/';
   const jump = (id: string) => {
     if (onPhotoLp) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -97,7 +98,17 @@ export function KeeperHeader() {
                 {/* The header verb follows the page: on the photo landing
                     page it starts the photo route (sign in → studio); anywhere
                     else it goes to the three-card builder. */}
-                {onPhotoLp ? (
+                {onGate ? (
+                  /* On the gate the header must not answer the page's own
+                     question — it just brings the two doors into view. */
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('doors')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                  >
+                    Make a card
+                  </button>
+                ) : onPhotoLp ? (
                   <button
                     type="button"
                     onClick={() => openAuth('/studio/new-card')}

@@ -37,9 +37,11 @@ const LEGAL: FooterLink[] = [
   { label: 'Privacy', href: '/privacy-policy' },
 ];
 
+type FooterCtaMode = 'default' | 'gate';
+
 // Auth-aware closing CTA — links straight to the maker when signed in,
 // otherwise pops the auth modal with the maker as the post-login target.
-function FooterCta() {
+function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
   // Signed out, starting a card leads with the free-card offer
@@ -54,6 +56,17 @@ function FooterCta() {
       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
     </>
   );
+  // On the gate (/) the two doors above are the answer — the band must
+  // not promise "free" under two priced doors, nor pick a route for them.
+  if (mode === 'gate') {
+    return (
+      <button type="button" className={cls}
+        onClick={() => document.getElementById('doors')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+        Pick your route
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </button>
+    );
+  }
   return authed ? (
     <Link href="/studio/new-card" className={cls}>
       {label}
@@ -96,7 +109,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
   );
 }
 
-export function MarketingFooter() {
+export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {}) {
   return (
     <footer className="relative isolate overflow-hidden bg-keeper-ink text-keeper-paper">
       {/* Warm marigold glow bleeding down from the top edge. */}
@@ -124,7 +137,7 @@ export function MarketingFooter() {
             Celebrait good times, come on&hellip;
           </h2>
           <div className="shrink-0">
-            <FooterCta />
+            <FooterCta mode={cta} />
           </div>
         </div>
 
