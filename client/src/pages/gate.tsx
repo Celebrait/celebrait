@@ -28,7 +28,7 @@
 
 import { type MouseEvent } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench } from 'lucide-react';
+import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, RefreshCw, PenLine, Zap, LockOpen, Users, ScanFace, Gem } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -51,8 +51,9 @@ interface DoorProps {
   /** The three points that decide it — visible, never folded. */
   points: string[];
   cta: string;
-  /** The small print: what it can't do, and what draws it. Folded. */
-  fine: Array<[string, string]>;
+  /** "Learn more": the fuller story, folded — one icon and one plain
+   *  sentence per row. */
+  fine: Array<[typeof Camera, string]>;
   /** The landing page behind this route — one quiet link for anyone
    *  who wants to look before they start. The door itself goes
    *  straight into the builder (Aidan 2026-09-04). */
@@ -121,18 +122,21 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
         {proof.label} →
       </Link>
 
-      {/* The small print, folded: a quiet text link, and a soft panel of
-          plain sentences when it opens — no caps labels, no box. */}
+      {/* "Learn more", folded: a quiet text link, and a soft panel of
+          plain sentences with an icon each when it opens. */}
       <details onClick={stop} className="group/d mt-3">
         <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[12.5px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink [&::-webkit-details-marker]:hidden">
-          The small print
+          Learn more
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/d:rotate-180" />
         </summary>
-        <div className={`mt-2 space-y-2 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed text-keeper-body ${lead ? 'bg-white/70' : 'bg-keeper-paper'}`}>
-          {fine.map(([k, v]) => (
-            <p key={k}><span className="font-semibold text-keeper-ink">{k}</span> {v}</p>
+        <ul className={`mt-2 space-y-2.5 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed text-keeper-body ${lead ? 'bg-white/70' : 'bg-keeper-paper'}`}>
+          {fine.map(([Ico, text]) => (
+            <li key={text} className="flex items-start gap-2.5">
+              <Ico className="mt-[3px] h-3.5 w-3.5 shrink-0 text-keeper-gold" strokeWidth={2} />
+              <span>{text}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       </details>
     </div>
   );
@@ -183,10 +187,10 @@ export default function GatePage() {
               cta="Tell us about them"
               proof={{ href: '/create', label: 'See how it works' }}
               fine={[
-                ['You can', 'roll again with a new vibe, change the details, or add their photo once you\'ve picked and we\'ll draw them in.'],
-                ['You can\'t', 'direct the scene yourself — your answers steer, we draw. No logos, brands or famous faces.'],
-                ['Drawn by', 'our quicker image model, three at once. That\'s why it costs less.'],
-                ['No account', `needed to see your three. Ready-made cards from ${rack} too.`],
+                [RefreshCw, 'Changed your mind? Roll again with a new vibe, tweak the details, or add their photo once you\'ve picked.'],
+                [PenLine, 'You steer, we draw. Your answers set the scene — we just can\'t do logos, brands or famous faces.'],
+                [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
+                [LockOpen, `No account needed to see your three. Fancy something ready-made? Cards from ${rack} too.`],
               ]}
             />
             <Door
@@ -207,10 +211,10 @@ export default function GatePage() {
               cta="Start with a photo"
               proof={{ href: '/photo#proof', label: 'See the proof first' }}
               fine={[
-                ['You can', 'describe any scene in your own words, put more than one person in, and start again if it isn\'t quite them. You write the inside; we set the type.'],
-                ['You can\'t', 'use a blurry photo (we check the likeness first and tell you straight), or ask for logos, brands or famous faces.'],
-                ['Drawn by', 'our bigger image model, one card at a time, at full print quality. Slower and dearer to run — that\'s the price difference.'],
-                ['No account', 'to start. You\'ll make one, free, when you press Generate.'],
+                [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
+                [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry. No logos, brands or famous faces.'],
+                [Gem, 'Drawn by our bigger image model, one card at a time, at full print quality. Slower, dearer to run, and worth it.'],
+                [LockOpen, 'No account to start. You\'ll make a free one when you press Generate.'],
               ]}
             />
           </div>
