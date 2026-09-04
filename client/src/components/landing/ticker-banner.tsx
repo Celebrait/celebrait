@@ -33,12 +33,14 @@ export const CLAIM_PARAM = 'claim';
 export function useClaimFreeCard() {
   const [location, setLocation] = useLocation();
   return () => {
-    if (location === '/') {
+    // The invite modal mounts on the PHOTO landing page — /photo since
+    // the gate took / (2026-09-03).
+    if (location === '/photo' || location === '/keeper') {
       window.dispatchEvent(
         new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
       );
     } else {
-      setLocation(`/?${CLAIM_PARAM}=1`);
+      setLocation(`/photo?${CLAIM_PARAM}=1`);
     }
   };
 }

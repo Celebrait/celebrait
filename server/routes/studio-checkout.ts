@@ -295,8 +295,12 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // route, source 'maker') — the photo-only free card is retired
         // with the photo route's launch deferred. A guest rack buyer is
         // never eligible. The column keeps its old name.
+        // Both made-for-them doors qualify (photo + maker) since the gate
+        // put the photo route back on the front door (2026-09-03) and the
+        // ticker promises "50% off your first card" on both landing pages.
+        // The rack never does.
         const freeCardApplied = userId
-          ? (await getFreeCardStatus(userId)).eligible && card.source === 'maker'
+          ? (await getFreeCardStatus(userId)).eligible && card.source !== 'rack'
           : false;
 
         // Every order: printed card + free digital link. Digital is £0.

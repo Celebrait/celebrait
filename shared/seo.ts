@@ -30,9 +30,21 @@ export type PageSeo = {
 export const PAGE_SEO: PageSeo[] = [
   {
     path: '/',
+    title: 'Personalised Greetings Cards, Made For One Person | Celebrait',
+    description:
+      'Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted anywhere in the UK from £4.99.',
+  },
+  {
+    path: '/photo',
     title: 'Personalised Greetings Cards — Put Them In The Picture | Celebrait',
     description:
       'Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from £4.99.',
+  },
+  {
+    path: '/create',
+    title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
+    description:
+      'Tell us who the card is for and we write and illustrate three originals in a minute. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/door',

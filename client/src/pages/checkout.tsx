@@ -248,7 +248,7 @@ export default function CheckoutPage() {
   });
   // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
   // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
-  const freeCardApplied = freeCard?.eligible === true && card?.source === 'maker';
+  const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack';
   const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';

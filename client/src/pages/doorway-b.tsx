@@ -116,9 +116,13 @@ export default function DoorwayBPage() {
             )}
 
             <div className="mt-8 max-w-3xl">
-              {/* Launch is the three-card route only (2026-09-02); the
-                  directed photo studio comes later, so no photo door here. */}
-              <p className="text-[14px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · nothing to pay until you print</p>
+              {/* The other door (the gate, 2026-09-03): the photo route is
+                  live at /photo and each page points at the other. */}
+              <p className="text-[14px] text-keeper-body">
+                <span className="text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · nothing to pay until you print</span>
+                <span className="mx-2 text-keeper-hair">|</span>
+                <Link href="/photo" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Got a photo of them? Put them in the picture →</Link>
+              </p>
             </div>
           </div>
 

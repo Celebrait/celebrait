@@ -980,6 +980,14 @@ function HeroSection() {
             <p className="mt-3 text-[12px] text-keeper-meta">
               Free to make. No payment details needed.
             </p>
+            {/* The other door (the gate, 2026-09-03): each landing page
+                points at the other. */}
+            <p className="mt-3 text-[13px] text-keeper-body">
+              No photo to hand?{' '}
+              <Link href="/create" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                Tell us one thing they love and pick from three cards →
+              </Link>
+            </p>
           </div>
           <TrustChips />
         </div>

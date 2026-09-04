@@ -121,6 +121,7 @@ const AdminEnginePage = lazy(() => import("@/pages/admin-engine"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const DoorwayPage = lazy(() => import("@/pages/doorway"));
 const DoorwayBPage = lazy(() => import("@/pages/doorway-b"));
+const GatePage = lazy(() => import("@/pages/gate"));
 const MakePage = lazy(() => import("@/pages/make"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
@@ -169,7 +170,12 @@ function Router() {
       <SeoSync />
       <Suspense fallback={<RouteFallback />}>
         <Switch>
-          <Route path="/" component={LandingKeeper} />
+          {/* THE GATE (2026-09-03): one question at the door — photo or
+              tell-us — then the two proven pages. The photo LP moved to
+              /photo; the three-card doorway answers at /create (and /door2). */}
+          <Route path="/" component={GatePage} />
+          <Route path="/photo" component={LandingKeeper} />
+          <Route path="/create" component={DoorwayBPage} />
           {/* Legacy /keeper alias → same page, so old links still resolve. */}
           <Route path="/keeper" component={LandingKeeper} />
           <Route path="/hero-poc" component={HeroScrollPocPage} />

@@ -33,12 +33,14 @@ export function KeeperHeader() {
   // On the homepage the section anchors exist, so smooth-scroll in place.
   // From any other page (e.g. Terms/Privacy) go home and let the browser
   // land on the section.
-  const onHome = location === '/' || location === '/keeper';
+  // The section anchors (proof, gallery, price) live on the PHOTO landing
+  // page, which moved from / to /photo when the gate arrived (2026-09-03).
+  const onPhotoLp = location === '/photo' || location === '/keeper';
   const jump = (id: string) => {
-    if (onHome) {
+    if (onPhotoLp) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     } else {
-      window.location.assign(`/#${id}`);
+      window.location.assign(`/photo#${id}`);
     }
   };
 
@@ -92,16 +94,27 @@ export function KeeperHeader() {
                 >
                   Sign in
                 </button>
-                {/* Launch (2026-09-02): the header verb goes straight to the
-                    three-card builder — the offer lives in the ticker. */}
-                <Link href="/make">
+                {/* The header verb follows the page: on the photo landing
+                    page it starts the photo route (sign in → studio); anywhere
+                    else it goes to the three-card builder. */}
+                {onPhotoLp ? (
                   <button
                     type="button"
+                    onClick={() => openAuth('/studio/new-card')}
                     className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
                   >
                     Make a card
                   </button>
-                </Link>
+                ) : (
+                  <Link href="/make">
+                    <button
+                      type="button"
+                      className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                    >
+                      Make a card
+                    </button>
+                  </Link>
+                )}
               </>
             )}
           </div>
