@@ -2132,7 +2132,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
     if (!(await requireAdmin(req, res))) return;
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'Bad id' });
-    const TAG = /^(for-[a-z-]+|funny|warm|rude|kids)$/;
+    // 'carousel' = hand-picked for the doorway's drifting wall (2026-09-03).
+    const TAG = /^(for-[a-z-]+|funny|warm|rude|kids|carousel)$/;
     const schema = z.object({
       published: z.boolean().optional(),
       editable: z.boolean().optional(),

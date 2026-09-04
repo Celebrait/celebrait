@@ -16,12 +16,14 @@ import { Link } from 'wouter';
 import { Loader2, Sparkles } from 'lucide-react';
 import { cardPriceGBP } from '@shared/pricing';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
+import { CarouselToggle } from '@/components/catalogue/carousel-toggle';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 export interface CatalogueCard {
   id: number; front_text: string; tone?: string | null; age?: number | null; age_max?: number | null;
   recipient?: string | null; editable?: boolean; interest?: string | null; imageUrl: string;
+  aisle_tags?: string[]; carousel?: boolean;
 }
 export interface AisleLink { slug: string; label: string; count: number }
 export interface RackPayload {
@@ -151,7 +153,9 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
       {/* THE WALL — cards that look like cards. 2-up on every phone. */}
       <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 xl:grid-cols-4">
         {filtered.slice(0, limit).map((c) => (
-            <Link key={c.id} href={`/card/${c.id}`} className="group block">
+            <Link key={c.id} href={`/card/${c.id}`} className="group relative block">
+              {/* Admin only: the carousel star, top-left of the tile. */}
+              <CarouselToggle templateId={c.id} tags={c.aisle_tags ?? []} />
               <AjarTile imageUrl={c.imageUrl} alt={c.front_text} />
               <div className="mt-3 px-0.5">
                 <p className="line-clamp-2 min-h-[2.4em] text-[13px] font-medium leading-snug text-keeper-body">“{c.front_text}”</p>

@@ -23,9 +23,9 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
-import { AjarTile } from '@/components/catalogue/ajar-tile';
+import { CardDrift } from '@/components/catalogue/card-drift';
 import { DISPLAY } from '@/pages/doorway';
-import type { RackPayload, CatalogueCard } from '@/components/catalogue/rack-wall';
+import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 
@@ -35,42 +35,6 @@ const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 /** The drifting wall — the rack's cards, interleaved across occasions,
  *  duplicated once so the loop is seamless. */
-function CardDrift({ cards }: { cards: CatalogueCard[] }) {
-  const row = useMemo(() => [...cards, ...cards], [cards]);
-  if (!cards.length) {
-    return (
-      <div className="flex gap-4 overflow-hidden">
-        {Array.from({ length: 8 }, (_, i) => <div key={i} className="aspect-square w-[150px] shrink-0 animate-pulse rounded-lg bg-keeper-hair/50 sm:w-[190px]" />)}
-      </div>
-    );
-  }
-  return (
-    <div className="door-drift-mask -mb-6 overflow-hidden">
-      <style>{`
-        @keyframes door-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .door-drift { animation: door-drift ${Math.max(40, cards.length * 4)}s linear infinite; width: max-content; }
-        .door-drift:hover, .door-drift:focus-within { animation-play-state: paused; }
-        .door-drift-mask { -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); }
-        @media (prefers-reduced-motion: reduce) { .door-drift { animation: none; width: auto; overflow-x: auto; } }
-      `}</style>
-      {/* The tiles' layered shadows reach ~34px below the card; the
-          clipping container must keep all 40px of padding, so the
-          spacing pull-back (-mb-6) lives on the CONTAINER, not here —
-          on the child it just moved the clip edge back to 16px and
-          the hard line stayed (Aidan: "the line is still there"). */}
-      <div className="door-drift flex gap-4 pb-10 pt-4">
-        {row.map((c, i) => (
-          <Link key={`${c.id}-${i}`} href={`/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
-            {/* The strip moves, so the browser's lazy-load check lags it:
-                the first ten load eagerly, the rest as they drift in. */}
-            <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function DoorwayBPage() {
   useSeo('/door2');
   const [, navigate] = useLocation();
@@ -91,25 +55,15 @@ export default function DoorwayBPage() {
   const [starting, setStarting] = useState(false);
   const begin = () => { setStarting(true); window.setTimeout(() => { setStarting(false); setStarted(true); }, 650); };
   const reduced = useReducedMotion();
-  const [cards, setCards] = useState<CatalogueCard[]>([]);
+  // The wall itself lives in components/catalogue/card-drift.tsx (the
+  // hand-picked carousel cards first, then a birthday shuffle). Only the
+  // rack counts are fetched here.
   const [counts, setCounts] = useState<Record<string, number>>({});
   useEffect(() => {
-    fetch('/api/catalogue/christmas').then((r) => (r.ok ? r.json() : null))
-      .then((x: RackPayload | null) => { if (x) setCounts((c) => ({ ...c, christmas: x.count })); }).catch(() => {});
-  }, []);
-  // Birthdays only in the wall (Aidan 2026-09-02) — the evergreen rack.
-  // A fresh shuffle of the WHOLE birthday rack on every visit, twenty
-  // drawn ("randomise the carousel a bit more"), so no two arrivals see
-  // the same wall and the newest cards don't always lead.
-  useEffect(() => {
-    fetch('/api/catalogue/birthday').then((r) => (r.ok ? r.json() : null))
-      .then((b: RackPayload | null) => {
-        if (b) setCounts((c) => ({ ...c, birthday: b.count }));
-        const pool = [...((b?.cards ?? []) as CatalogueCard[])];
-        for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-        setCards(pool.slice(0, 20));
-      })
-      .catch(() => {});
+    for (const o of ['christmas', 'birthday'] as const) {
+      fetch(`/api/catalogue/${o}`).then((r) => (r.ok ? r.json() : null))
+        .then((x: RackPayload | null) => { if (x) setCounts((c) => ({ ...c, [o]: x.count })); }).catch(() => {});
+    }
   }, []);
 
   return (
@@ -174,7 +128,7 @@ export default function DoorwayBPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">From the rack · every one made from a real brief</p>
             </div>
             <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
-              <CardDrift cards={cards} />
+              <CardDrift />
             </div>
           </div>
 

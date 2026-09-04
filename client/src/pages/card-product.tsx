@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useParams, useLocation } from 'wouter';
+import { CarouselToggle } from '@/components/catalogue/carousel-toggle';
 import { rackTokenKey } from '@/pages/buy';
 import { Loader2, Check, Truck, PenLine } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -34,6 +35,7 @@ interface ProductCard {
   id: number; occasion: string; front_text: string; inside_text?: string | null;
   tone?: string | null; age?: number | null; recipient?: string | null;
   interest?: string | null;
+  aisle_tags?: string[]; carousel?: boolean;
   editable?: boolean; imageUrl: string; insideImageUrl?: string | null;
 }
 
@@ -163,6 +165,8 @@ export default function CardProductPage() {
               {[card.tone, card.age && `${card.age}th`, card.recipient && card.recipient !== 'Anyone' && `for ${card.recipient}`].filter(Boolean).join(' · ') || 'birthday card'}
             </p>
             <h1 className="mt-2 font-display text-2xl font-bold leading-snug text-keeper-ink sm:text-3xl">“{card.front_text}”</h1>
+            {/* Admin only: put this card on the doorway carousel. */}
+            <div className="mt-2"><CarouselToggle templateId={card.id} tags={card.aisle_tags ?? []} variant="button" /></div>
             {card.interest && (
               <p className="mt-2 text-sm text-keeper-meta">Made for someone who loves <span className="font-medium text-keeper-body">{card.interest}</span> — yours to send as-is.</p>
             )}

@@ -65,6 +65,28 @@ function aisleFilter(slug: string) {
 export function registerCatalogueRoutes(app: Express): void {
   // GET /api/catalogue/card/:id — the product page payload. Public,
   // published cards only; admin fields stay server-side.
+  // ── GET /api/catalogue/featured — the hand-picked carousel ─────────
+  // Templates tagged 'carousel' (any occasion, published), newest pick
+  // first. Aidan 2026-09-03: "interest cards on the carousel… we'll
+  // select these as they're crucial". The wall shows these first and
+  // pads with the rack.
+  app.get('/api/catalogue/featured', async (_req: Request, res: Response) => {
+    try {
+      const rows = await db.select().from(cardTemplates)
+        .where(and(eq(cardTemplates.published, true), sql`${cardTemplates.aisle_tags} @> ARRAY['carousel']::text[]`)!)
+        .orderBy(desc(cardTemplates.id))
+        .limit(40);
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({
+        count: rows.length,
+        cards: rows.map((t) => ({ id: t.id, occasion: t.occasion, front_text: t.front_text, interest: t.interest, recipient: t.recipient, age: t.age, tone: t.tone, imageUrl: publicImageUrl(t.image_path) })),
+      });
+    } catch (err) {
+      console.error('[CATALOGUE] featured failed:', err);
+      res.status(500).json({ message: 'Could not load the carousel' });
+    }
+  });
+
   app.get('/api/catalogue/card/:id', async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
@@ -75,6 +97,10 @@ export function registerCatalogueRoutes(app: Express): void {
         id: t.id, occasion: t.occasion, front_text: t.front_text, inside_text: t.inside_text,
         tone: t.tone, age: t.age, recipient: t.recipient, editable: t.editable,
         interest: t.interest,
+        // The admin's carousel pick lives in aisle_tags ('carousel'); the
+        // tags ride along so the toggle can send the full list back.
+        aisle_tags: (t.aisle_tags as string[] | null) ?? [],
+        carousel: ((t.aisle_tags as string[] | null) ?? []).includes('carousel'),
         imageUrl: publicImageUrl(t.image_path),
         insideImageUrl: t.inside_image_path ? publicImageUrl(t.inside_image_path) : null,
       } });
