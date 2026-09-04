@@ -160,7 +160,7 @@ export default function GatePage() {
               Before we create, what kind of card buyer are you?
             </h1>
             <p className={`mx-auto max-w-[40rem] ${SUB}`}>
-              Celebrait offers two unique ways to design a greetings card that's all about them.
+              Celebrait offers two ways to design a greetings card that's unique to them.
               Pick one<span className="hidden sm:inline"> (you can always switch later once you know what we're about)</span>.
             </p>
           </div>
