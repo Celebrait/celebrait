@@ -26,7 +26,6 @@ import { Camera, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { TrustChips } from '@/pages/landing-keeper';
 import { CardDrift } from '@/components/catalogue/card-drift';
 import { DISPLAY } from '@/pages/doorway';
 import { useSeo } from '@/lib/use-seo';
@@ -184,7 +183,6 @@ export default function GatePage() {
             </div>
           </div>
 
-          <div className="mx-auto mt-8 max-w-5xl"><TrustChips /></div>
         </section>
       </main>
       <MarketingFooter />
