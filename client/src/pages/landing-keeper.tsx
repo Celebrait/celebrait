@@ -331,7 +331,9 @@ function CardPair({
 function PrimaryCta({ large = false }: { large?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const authed = !isLoading && isAuthenticated;
-  const cls = `inline-flex items-center justify-center rounded-full bg-keeper-ink font-semibold text-keeper-paper transition-colors hover:bg-black ${
+  // Violet go primary (2026-09-04): one primary treatment across the
+  // gate, /create and this page; the header's ink pill stays secondary.
+  const cls = `inline-flex items-center justify-center rounded-full bg-go font-semibold text-go-foreground shadow-[0_10px_30px_-12px_rgba(92,87,212,0.5)] transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold ${
     large ? 'px-9 py-4 text-base' : 'px-7 py-3 text-[15px]'
   }`;
   return authed ? (
