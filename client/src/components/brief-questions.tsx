@@ -89,12 +89,12 @@ export function occasionLabelFor(b: Brief): string {
 export const isBriefComplete = (b: Brief) => b.who.trim().length > 0 && b.occasion.trim().length > 0 && b.occasion !== 'other';
 
 export type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
-/** The research maker's order; occasion after who; age only for a
- *  birthday; dislike only when there's humour to feed. */
+/** The research maker's order; occasion after who; age on EVERY
+ *  occasion (Aidan 2026-09-03: it arms the kids register and switches
+ *  Cheeky off under 18, which matters at Christmas as much as a
+ *  birthday); dislike only when there's humour to feed. */
 export function questionsFor(b: Brief): QuestionKey[] {
-  const q: QuestionKey[] = ['who', 'occasion'];
-  if (b.occasion === 'birthday') q.push('age');
-  q.push('vibe', 'interest');
+  const q: QuestionKey[] = ['who', 'occasion', 'age', 'vibe', 'interest'];
   if (DISLIKE_ON.includes(b.vibe)) q.push('dislike');
   q.push('name');
   return q;
@@ -230,8 +230,17 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'age' && (
           <>
-            <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'} turning?{optionalTag}</p>
-            <p className={s.sub}>The age does two jobs: it tunes the whole card — the jokes, the references, the look — and if it's a big one (18, 21, 30, 40…) the number itself becomes the star. Skip it and everything stays completely age-free.</p>
+            {brief.occasion === 'birthday' ? (
+              <>
+                <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'} turning?{optionalTag}</p>
+                <p className={s.sub}>The age does two jobs: it tunes the whole card — the jokes, the references, the look — and if it's a big one (18, 21, 30, 40…) the number itself becomes the star. Skip it and everything stays completely age-free.</p>
+              </>
+            ) : (
+              <>
+                <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'}?{optionalTag}</p>
+                <p className={s.sub}>Roughly is fine. It tunes the whole card — the jokes, the references, the look — and under 18 keeps everything kid-safe. Skip it and everything stays completely age-free.</p>
+              </>
+            )}
             <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
