@@ -27,6 +27,7 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
+import { CardDrift } from '@/components/catalogue/card-drift';
 import { DISPLAY } from '@/pages/doorway';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
@@ -171,8 +172,19 @@ export default function GatePage() {
             <p className="mt-5 text-[13.5px] text-keeper-meta">
               Both printed on the same 280gsm card, posted anywhere in the UK. Nothing to pay until you print.
             </p>
-            <div className="mt-5"><TrustChips /></div>
           </div>
+
+          {/* ── The wall: real cards, drifting (same component as /create) ── */}
+          <div className="mt-10 md:mt-14">
+            <div className="mx-auto max-w-5xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">From the rack · every one made from a real brief</p>
+            </div>
+            <div className="-mx-6 mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-64rem)/2+1.5rem))]">
+              <CardDrift />
+            </div>
+          </div>
+
+          <div className="mx-auto mt-8 max-w-5xl"><TrustChips /></div>
         </section>
       </main>
       <MarketingFooter />
