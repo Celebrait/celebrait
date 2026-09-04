@@ -157,7 +157,7 @@ export default function GatePage() {
           <div className="mx-auto max-w-4xl text-center">
             <p className={EYEBROW}>Unbinnable Greetings Cards</p>
             <h1 className={`mx-auto mt-4 max-w-[18ch] text-[clamp(28px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
-              Before we create, what kind of card maker are you?
+              Before we create, what kind of card buyer are you?
             </h1>
             <p className={`mx-auto max-w-[40rem] ${SUB}`}>
               Celebrait offers two unique ways to design a greetings card that's all about them.
