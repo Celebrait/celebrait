@@ -19,7 +19,7 @@ import sharp from 'sharp';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
-import { analyzePhoto, assessPhotoLikeness, runPhotoVision } from '../photos/analyze';
+import { analyzePhoto, assessPhotoLikeness } from '../photos/analyze';
 import { requireGuestMaker } from './admin-card-lab';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
@@ -101,22 +101,20 @@ export function registerPhotoRoutes(app: Express): void {
       if (validCrop) pipeline = pipeline.extract({ left: validCrop.x, top: validCrop.y, width: validCrop.width, height: validCrop.height });
       const bytes = await pipeline.resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
       const judged = await sharp(bytes).metadata();
-      const [vision, likeness] = await Promise.all([
-        runPhotoVision({ imageBytes: bytes, mimeType: 'image/jpeg' }),
-        assessPhotoLikeness({ imageBytes: bytes, mimeType: 'image/jpeg', imageHeight: judged.height }),
-      ]);
-      for (const pass of [vision, likeness]) {
-        if (pass.noApiKey) continue;
+      // Likeness ONLY — the traffic light. The visual-summary pass
+      // (person count + description) feeds the parked inside-text
+      // helper and admin screens, nothing a guest sees; the full
+      // analysis runs on the real upload after sign-up. One call, not two.
+      const likeness = await assessPhotoLikeness({ imageBytes: bytes, mimeType: 'image/jpeg', imageHeight: judged.height });
+      if (!likeness.noApiKey) {
         void logGeneration({
           cardId: null, slot: LLM_SLOTS.PHOTO_ANALYSIS, templateId: null, templateVersion: null,
-          provider: 'gemini', model: pass.model, quality: null,
-          costCents: llmCostCents(pass.model, pass.promptTokens, pass.outputTokens),
-          durationMs: pass.durationMs, success: !!pass.result, errorCode: pass.result ? null : 'parse_failed',
+          provider: 'gemini', model: likeness.model, quality: null,
+          costCents: llmCostCents(likeness.model, likeness.promptTokens, likeness.outputTokens),
+          durationMs: likeness.durationMs, success: !!likeness.result, errorCode: likeness.result ? null : 'parse_failed',
         });
       }
       res.json({
-        personCount: vision.result?.personCount ?? null,
-        visualSummary: vision.result?.visualSummary ?? null,
         likeness: likeness.result ?? null,
         analyzedAt: new Date().toISOString(),
         width, height,

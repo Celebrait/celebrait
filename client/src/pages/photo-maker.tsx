@@ -33,7 +33,7 @@ import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-ste
 import { FrontStep, isFrontStepReady } from '@/components/studio/steps/front-step';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { useLocalCardMaker } from '@/hooks/use-local-card-maker';
-import { GuestPhotoContext, useGuestPhotos, getGuestPhotoBlobs, clearGuestPhotos, photoThumbSrc } from '@/lib/guest-photos';
+import { GuestPhotoContext, useGuestPhotos, getGuestPhotoBlobs, clearGuestPhotos, discardGuestSession, photoThumbSrc } from '@/lib/guest-photos';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
 import { cardPriceGBP } from '@shared/pricing';
 
@@ -151,6 +151,11 @@ export default function PhotoMakerPage() {
   const [transfer, setTransfer] = useState<string | null>(null);
   const [transferError, setTransferError] = useState<string | null>(null);
   const transferring = useRef(false);
+  // Retry-safe: a draft made on a failed attempt is reused, and photos
+  // that already went up aren't uploaded twice (no orphan drafts, no
+  // duplicate library rows).
+  const draftIdRef = useRef<number | null>(null);
+  const uploadedRef = useRef(new Map<number, number>());
   const runTransfer = async () => {
     if (transferring.current) return;
     transferring.current = true;
@@ -158,16 +163,21 @@ export default function PhotoMakerPage() {
     const st = m.stateRef.current;
     try {
       setTransfer('Setting up your studio…');
-      const created = await apiRequest('POST', '/api/studio/drafts', {
-        recipientName: st.recipient?.name?.trim() || undefined,
-        occasion: st.recipient?.occasion?.trim() || undefined,
-      });
-      const { id } = (await created.json()) as { id: number };
+      let id = draftIdRef.current;
+      if (id == null) {
+        const created = await apiRequest('POST', '/api/studio/drafts', {
+          recipientName: st.recipient?.name?.trim() || undefined,
+          occasion: st.recipient?.occasion?.trim() || undefined,
+        });
+        id = ((await created.json()) as { id: number }).id;
+        draftIdRef.current = id;
+      }
 
       setTransfer('Saving your photo…');
       const blobs = await getGuestPhotoBlobs();
-      const idMap = new Map<number, number>();
+      const idMap = uploadedRef.current;
       for (const gid of st.photos?.photoIds ?? []) {
+        if (idMap.has(gid)) continue;
         const b = blobs.get(gid);
         if (!b) continue;
         const r = await apiRequest('POST', '/api/photos/upload', b);
@@ -243,7 +253,8 @@ export default function PhotoMakerPage() {
       <Shell>
         <div className="mb-3 flex items-center justify-between gap-3 text-xs text-keeper-meta">
           <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> Free account needed to generate, not to start.</span>
-          <Link href="/photo" className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          {/* Leaving = nothing of theirs stays in this browser. */}
+          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <PublicStepper current={currentStep} furthest={furthest} onJump={setStep} />
