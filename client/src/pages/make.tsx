@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
 import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe } from '@/components/brief-questions';
 import { rackTokenKey } from '@/pages/buy';
+import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
@@ -105,6 +106,8 @@ export default function MakePage() {
   const { openAuth } = useAuthModal();
   const [saved, setSaved] = useState<{ cardId: number; cardToken: string } | null>(null);
   const [saving, setSaving] = useState<'' | 'buy' | 'keep'>('');
+  /** "Roll again" asks the vibe first, then re-deals. */
+  const [askVibe, setAskVibe] = useState(false);
   const [saveError, setSaveError] = useState('');
   const savedRef = useRef<{ cardId: number; cardToken: string } | null>(null);
   const saveCard = async (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string) => {
@@ -301,42 +304,63 @@ export default function MakePage() {
   // ── step 2b: three cards, pick the one ────────────────────────────
   if (phase === 'results') {
     const allSettled = cells.every((c) => c.imageUrl || c.error);
+    // Roll again asks the vibe first (Aidan 2026-09-03): the same tiles
+    // the questions use, then three new cards on those details.
+    if (askVibe) {
+      const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
+      const SUB: Record<Vibe, string> = { mix: 'three cards, three vibes — you choose after', funny: 'a good laugh, kindly meant', warm: 'heartfelt — the kind they keep', rude: 'proper swearing, tastefully starred out' };
+      return (
+        <MakeShell step={step}>
+          <div className={panel}>
+            <h1 className={`${h1} mb-1`}>Three new cards for {whoName || 'them'}. What's the vibe?</h1>
+            <p className="text-sm text-keeper-body mb-5">Same details — this just sets what they lean towards.</p>
+            <div className="space-y-2.5">
+              {VIBES.map((t) => {
+                const off = t === 'rude' && isKid;
+                return (
+                  <button key={t} type="button" disabled={off} onClick={() => setBrief({ ...brief, vibe: t })} className={`${tile(brief.vibe === t)} w-full disabled:opacity-40`}>
+                    <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_LABEL[t]}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : SUB[t]}</span></span>
+                    {brief.vibe === t && <span className="ml-auto w-5 h-5 rounded-full bg-keeper-gold text-white flex items-center justify-center shrink-0"><Check className="w-3 h-3" strokeWidth={3} /></span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" onClick={() => setAskVibe(false)} className={textLink}>Back to the three</button>
+              <button type="button" onClick={() => { setAskVibe(false); void generate(brief.vibe); }} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Write three new cards</button>
+            </div>
+          </div>
+        </MakeShell>
+      );
+    }
     return (
       <MakeShell step={step}>
         <div className={panel}>
           <h1 className={`${h1} mb-1`}>Three cards for {whoName || 'them'}. Pick the one.</h1>
           <p className="text-sm text-keeper-body">Tap your favourite — next we design its inside, with your words in it.</p>
-          <div className="mt-4 flex flex-wrap items-center gap-1.5">
-            {(Object.keys(VIBE_LABEL) as Vibe[]).map((v) => {
-              const off = v === 'rude' && isKid;
-              return <button key={v} type="button" disabled={off || !allSettled} title={off ? 'Cheeky is off for under-18s' : 'Same details, three new cards'} onClick={() => { setBrief({ ...brief, vibe: v }); void generate(v); }} className={`${chip(brief.vibe === v)} disabled:opacity-40`}>{VIBE_LABEL[v]}</button>;
-            })}
-            <span className="text-[11px] text-keeper-meta ml-1">switching re-deals the three</span>
-          </div>
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          {/* The cards as cards — the carousel's ajar tile, nothing under
+              them (the front is right there; captions only cut off). */}
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
             {cells.map((c, i) => (
               <button key={i} type="button" disabled={!c.imageUrl}
                 onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setCameoUrl(null); setCameoKept(false); setCameoError(''); setPhase('cameo'); }}
-                className={`${cardTile} group ${c.imageUrl ? 'border-keeper-hair hover:border-brand' : 'border-keeper-hair'}`}>
-                <div className="aspect-square bg-stone-100 relative overflow-hidden">
-                  {c.imageUrl
-                    ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="w-full h-full object-cover opacity-0 transition-opacity duration-700 group-hover:scale-[1.03] transition-transform" onLoad={(e) => e.currentTarget.classList.remove('opacity-0')} />
-                    : c.error
-                      ? <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-xs text-keeper-meta"><span>{c.error}</span><span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body shadow-sm hover:border-brand/60 hover:text-brand-dark">{c.retrying ? 'Having another go…' : 'Have another go'}</span></div>
-                      : <div className="flex h-full flex-col items-center justify-center gap-3 bg-keeper-paper/80 p-6 text-center animate-pulse"><p className="text-sm font-medium italic leading-snug text-keeper-body">“{c.concept.front_text}”</p><span className="flex items-center gap-1.5 text-[11px] font-medium text-keeper-meta"><Loader2 className="h-3 w-3 animate-spin text-brand/70" /> drawing this one</span></div>}
-                  {c.concept.tone && <span className="absolute left-2 top-2 rounded-full bg-white/90 border border-keeper-hair px-2 py-0.5 text-[11px] font-medium capitalize text-keeper-body">{c.concept.tone}</span>}
-                </div>
-                <div className="p-3 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-keeper-ink truncate">“{c.concept.front_text}”</p>
-                  {c.imageUrl && <span className="text-[12.5px] font-semibold text-brand whitespace-nowrap">Choose →</span>}
-                </div>
+                className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-keeper-gold disabled:cursor-default"
+                aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
+                {c.imageUrl
+                  ? <AjarTile imageUrl={c.imageUrl} alt={c.concept.front_text} eager />
+                  : <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
+                      <span>{c.error ?? 'Still drawing this one…'}</span>
+                      {c.error && <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{c.retrying ? 'Having another go…' : 'Have another go'}</span>}
+                    </div>}
               </button>
             ))}
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-keeper-meta">
-            <span>None of them quite right?</span>
-            <button type="button" onClick={() => setPhase('brief')} className={textLink}>Change the details</button>
-            <button type="button" disabled={!allSettled} onClick={() => void generate()} className={`${textLink} disabled:opacity-40`}>Same details, three new cards</button>
+          <div className="mt-10 flex flex-col items-start gap-3 border-t border-keeper-hair pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-keeper-meta">None of them quite right?</p>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" disabled={!allSettled} onClick={() => setAskVibe(true)} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Roll again</button>
+              <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 px-5 py-2.5 text-sm font-medium text-keeper-ink transition-colors hover:border-keeper-gold">Change the details</button>
+            </div>
           </div>
         </div>
       </MakeShell>
