@@ -200,9 +200,9 @@ export default function GatePage() {
               effort="worth it"
               price={photo}
               points={[
-                'Bring one clear photo of their face.',
-                'Describe the scene. We draw them into it.',
-                'One card, made properly, print quality.',
+                'Start with a photo of them (or a group)',
+                'Describe any scene imaginable (seriously)',
+                'Printed and posted (or digital if you prefer)',
               ]}
               cta="Start with a photo"
               proof={{ href: '/photo#proof', label: 'See the proof first' }}
