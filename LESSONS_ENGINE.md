@@ -218,3 +218,6 @@ card-shop speed. The distilled laws:
 - **The aisle-third rule cuts both ways** — four borderline cards were
   spared solely to keep aisles above threshold; note them for
   replacement when better stock lands (#96, #137, #196, #216).
+
+## 2026-09-03 — The cameo is an EDIT of the picked card, not a redraw
+The OpenAI variant runs reference-conditioned GENERATION via the Responses API (`useResponsesGenerate`), so "put them in" was composing a NEW card from the recipe with the photo attached: words moved, palette drifted, people sometimes dropped (the "Moana island 6" miss). Now: `render` accepts `baseImage` (the picked front) + `cameoPhoto` + `cameoMode:'edit'|'redraw'`; edit mode forces `/v1/images/edits` with image[] = [card, photo] and `cameoEditPrompt()` (canvas held exactly, the one change is the people painted in, placement fallback for no-activity cards). Lab chip beside the cameo photo flips edit/redraw for the A/B; maker + research send edit. Note: `input_fidelity` is gpt-image-1-only — gpt-image-2 rejects it. Smoke test on a stored front: composition/words held, figures drawn in-style ($0.006, 23s, low quality).

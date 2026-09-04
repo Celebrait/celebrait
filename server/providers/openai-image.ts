@@ -143,7 +143,7 @@ export class OpenAIImageProvider implements ImageProvider {
     const q = req.quality;
     let imageUrl: string | null = null;
 
-    if (req.referenceImageBase64 && this.useResponsesGenerate) {
+    if (req.referenceImageBase64 && this.useResponsesGenerate && !req.editMode) {
       // ── Reference-conditioned GENERATE via the Responses API ──
       // The photo is context for identity; the model composes a NEW image
       // rather than editing the source pixels. See generateViaResponses.
@@ -193,6 +193,9 @@ export class OpenAIImageProvider implements ImageProvider {
       formData.append('quality', q);
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
+      // input_fidelity is a gpt-image-1-only parameter; gpt-image-2
+      // rejects it outright ("does not support"), so only send it there.
+      if (req.inputFidelity && this.model === 'gpt-image-1') formData.append('input_fidelity', req.inputFidelity);
 
       const fetch = (await import('node-fetch')).default;
       const totalImageBytes = allImages.reduce((sum, img) => {

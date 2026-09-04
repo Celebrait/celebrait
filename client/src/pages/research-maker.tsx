@@ -201,6 +201,8 @@ export default function ResearchMakerPage() {
         front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
         typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true,
         cameoPhoto: photo,
+        // Edit the picked card rather than redraw it (2026-09-03).
+        baseImage: cells[picked].imageUrl, cameoMode: 'edit',
       });
       setCameoUrl(rj.imageUrl);
     } catch (e: any) {

@@ -234,6 +234,9 @@ export default function AdminOccasionStudioPage() {
   /** ×1 = one card of the set carries the likeness (the product shape);
    *  ×3 = every card does, type-led included — a lab-only A/B/C. */
   const [cameoAll, setCameoAll] = useState(false);
+  /** "Put them in" as an EDIT of the picked card (new, 2026-09-03) or a
+   *  REDRAW from its recipe (the old path) — the lab's A/B. */
+  const [cameoMode, setCameoMode] = useState<'edit' | 'redraw'>('edit');
   const onCameoFile = (f: File | null) => {
     if (!f) { setCameoPhoto(null); return; }
     const reader = new FileReader();
@@ -547,6 +550,9 @@ export default function AdminOccasionStudioPage() {
         palette: cell.concept.palette, typeface: cell.concept.typeface,
         format: cell.concept.format ?? 'hero', characters, freeStyle, charm,
         cameoPhoto,
+        // The picked card rides along: 'edit' holds it and paints them in;
+        // 'redraw' ignores it (the old behaviour) for the A/B.
+        baseImage: cell.imageUrl, cameoMode,
       });
       const rj = await rr.json();
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false, cameoUrl: rj.imageUrl, showCameo: true } : x)));
@@ -776,6 +782,11 @@ export default function AdminOccasionStudioPage() {
                   onClick={(e) => { e.preventDefault(); setCameoAll((v) => !v); }}
                   className="font-medium hover:underline">
                   {cameoAll ? 'cameo ×3' : 'cameo ×1'}
+                </button>
+                <button type="button" title="Put them in: EDIT the picked card (words/composition held) or REDRAW it from the recipe with the photo attached"
+                  onClick={(e) => { e.preventDefault(); setCameoMode((m) => (m === 'edit' ? 'redraw' : 'edit')); }}
+                  className="rounded-full bg-white/70 px-1.5 font-medium hover:underline">
+                  {cameoMode === 'edit' ? 'edit' : 'redraw'}
                 </button>
                 <button type="button" onClick={(e) => { e.preventDefault(); setCameoPhoto(null); setCameoAll(false); }} className="ml-0.5 text-stone-400 hover:text-stone-600">×</button>
               </>

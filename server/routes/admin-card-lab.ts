@@ -263,6 +263,25 @@ const MOTIF_WITH_ANIMALS =
 const CAMEO_TYPE_PLUS_THEM =
   `COMPOSITION — THE WORDS, AND THEM: this card keeps its typographic soul — big, confident stacked type does the talking, set exactly as a type-led card would set it — but the frame is SHARED with one large illustrated subject: the people from the reference photo at portrait scale, beneath or beside the stacked lines, the way a bold editorial poster pairs a headline with its star. Type first, them second, NOTHING else: flat ground in the card's own palette, no scene-building, no props, no clutter. The people are drawn in the same graphic voice as the type — flat, confident, edited.`;
 
+/** THE CAMEO AS AN EDIT (2026-09-03). Two images go to the model: the
+ *  finished front the person picked (image 1, the canvas) and their
+ *  photo (image 2). The card is held; the ONLY change is the people
+ *  painted in. Replaces "redraw from the recipe with a photo attached",
+ *  which composed a new card each time (words moved, palette drifted,
+ *  people dropped) — Aidan: "the photo just goes on a card that is
+ *  similar in concept really… words… look". Lab-tested first (rule). */
+export function cameoEditPrompt(frontText: string): string {
+  return [
+    `TWO IMAGES ARE ATTACHED. IMAGE 1 IS A FINISHED GREETING CARD FRONT. IT IS THE CANVAS AND IT IS FINISHED: keep it EXACTLY as it is — the same composition, the same objects in the same places at the same sizes, the same colours and ground, the same medium, texture and linework, and the same lettering: the same words, the same typeface, the same position and size. Change NOTHING that is already there. Do not restyle it, do not tidy it, do not re-crop it.`,
+    `IMAGE 2 IS A PHOTO OF THE PEOPLE THIS CARD IS FOR.`,
+    `THE ONE CHANGE: paint those people INTO image 1, as if the original artist had drawn them there from the start — in image 1's own medium, palette, line weight and level of simplification, never photographic, never a pasted cut-out, never a different style from the rest of the card. EVERYONE in the photo appears: count the people in the photo and paint exactly that many — never an invented extra, never one dropped.`,
+    `THE FACE IS SACRED: each person's face is a faithful illustrated likeness — face shape and features, hairstyle and colour, skin tone, glasses or facial hair — instantly recognisable to someone who loves them, at PORTRAIT SCALE: big enough to recognise across a room, facing the viewer, never a distant figure, never turned away, never a silhouette. Everything below the chin belongs to the card: dress them for its world, give them its posture and expression.`,
+    `PLACEMENT: put them where the card's world gives them somewhere to be. If the card shows an activity, they are DOING it — mid-cast, mid-pour, mid-kick, caught in the act. If the card has no activity (a number, a still life, a landscape, a pattern), they are IN the scene at portrait scale — standing on it, sitting in it, holding it, leaning on it — never floating over it, never a sticker on top. Find room by using the card's existing empty ground; do NOT move, shrink, cover or redraw the lettering to make room, and do NOT remove any object to make room.`,
+    `FRONT TEXT must remain EXACTLY: "${frontText}" — same words, same setting, untouched. No other text anywhere.`,
+    `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
+  ].join('\n');
+}
+
 const MOTIF_CAMEO =
   `THE PEOPLE FROM THE REFERENCE PHOTO ARE THE SUBJECT OF THIS CARD — EXACTLY those people, and only them: count the people in the photo and paint that many, never an invented extra (whatever the words imply), never one dropped. THE FACE IS THE LIKENESS and it is locked: features, hairstyle and colour, skin tone, glasses, facial hair — recognisable at a glance, drawn in the card's own medium, simplified to the level that medium works at, never photographic, never semi-photographic skin or wet glossy eyes. THE REST IS THE SCENE'S: clothing, pose, activity and expression all come from this card's world and mood — they are CAUGHT MID-ACTION doing this world's thing, composed close like a sports poster (the move coming toward the viewer, face large), never standing beside the activity or watching it from the rail. Around them: objects, food, drink, the kit of this world. This card IS the photo product; the usual no-people and never-the-recipient rules do not apply here.`;
 
@@ -2129,6 +2148,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
           text: freeStyleDna('objects') },
         { title: 'Art direction DNA — cameo (a reference photo flips the character rules)', kind: 'prompt',
           text: freeStyleDna('objects', true) },
+        { title: 'The cameo EDIT — the picked card + the photo → THIS card with them painted in (2026-09-03; the redraw above is now the lab A/B control)', kind: 'prompt',
+          text: cameoEditPrompt('<the front text>') },
         { title: 'Code floors (regex/deterministic, named violations, one repair round)', kind: 'rules',
           note: 'These run in v2Verify after every writer round. Standing violations ship VISIBLY in the yellow box, never silently.',
           text: [
@@ -3549,6 +3570,15 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
        *  recipient — this card paints them INTO its world as an
        *  illustrated character. One card per set, chosen client-side. */
       cameoPhoto: z.string().startsWith('data:image/').max(12_000_000).optional(),
+      /** THE CAMEO AS AN EDIT (2026-09-03): the finished front the person
+       *  picked. With both this and cameoPhoto, the render is an EDIT of
+       *  this exact card (composition, words, palette held) with the
+       *  people painted in — not a redraw from the recipe with a photo
+       *  attached, which is what kept moving the words and losing them. */
+      baseImage: z.string().startsWith('data:image/').max(12_000_000).optional(),
+      /** 'edit' (default when baseImage is present) or 'redraw' (the
+       *  old reference-conditioned generation) — the lab's A/B. */
+      cameoMode: z.enum(['edit', 'redraw']).optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -3567,7 +3597,8 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       console.warn('[CARD-LAB] art_direction named protected artefacts, overriding:', named);
     }
 
-    const prompt = [
+    const editCameo = !!(body.cameoPhoto && body.baseImage && (body.cameoMode ?? 'edit') === 'edit');
+    const redrawPrompt = [
       body.freeStyle ? freeStyleDna(body.characters, !!body.cameoPhoto) : quirkyDna(body.characters, !!body.cameoPhoto),
       '',
       body.cameoPhoto && (body.format === 'typeled' || body.format === 'statement')
@@ -3592,6 +3623,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       '',
       `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
     ].join('\n');
+    const prompt = editCameo ? cameoEditPrompt(body.front_text) : redrawPrompt;
 
     // OpenAI first. If its safety layer refuses (common once cheek is
     // on), fall back to Gemini — different provider, different
@@ -3601,7 +3633,12 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
       const provider = getProvider(providerId);
       const result = await provider.generate({
         prompt,
-        referenceImageBase64: body.cameoPhoto,
+        // Edit: the card is image 1 (the canvas), the photo is image 2.
+        // Redraw: the photo alone, as before.
+        referenceImageBase64: editCameo ? body.baseImage : body.cameoPhoto,
+        additionalReferenceImages: editCameo ? [body.cameoPhoto!] : undefined,
+        editMode: editCameo || undefined,
+        inputFidelity: editCameo ? 'high' : undefined,
         quality: body.quality,
         size: '1024x1024',
         slot: 'card_lab',

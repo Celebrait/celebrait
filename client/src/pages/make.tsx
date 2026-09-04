@@ -230,7 +230,9 @@ export default function MakePage() {
     if (picked === null) return;
     const c = cells[picked].concept; setCameoBusy(true); setCameoError('');
     try {
-      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo });
+      // The picked front goes with the photo: the cameo is an EDIT of
+      // this exact card, not a redraw from its recipe.
+      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, baseImage: cells[picked].imageUrl, cameoMode: 'edit' });
       setCameoUrl(rj.imageUrl);
     } catch (e: any) { setCameoError(e?.message ?? 'That didn’t work — try another photo, or carry on without.'); }
     finally { setCameoBusy(false); }
