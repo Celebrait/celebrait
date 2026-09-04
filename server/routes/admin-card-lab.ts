@@ -1337,6 +1337,60 @@ interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
  *  ration generalised: when one carries more than its share of this
  *  aisle's recent sets it sits out until its share falls. No seam
  *  ever dies; none becomes the wallpaper. */
+/** ── THE AISLE KEY (2026-09-03) ────────────────────────────────────
+ *  The memory window (repeats, motifs, palettes, the seam ledger) was
+ *  keyed on the LITERAL interest string — so "Manchester United", "Man
+ *  Utd", "Man United", "United fan" were five cold aisles, none ever
+ *  reaching the ledger's warm-up, and every set reached for the same
+ *  first-instinct seam (Aidan: "I keep seeing this group chat line-up
+ *  stuff coming for Man United"). One key per subject: lowercase,
+ *  filler words dropped (fan, supporter, fc, the, club…), punctuation
+ *  and spaces removed, then a small alias table folds the nicknames.
+ *  The SQL side applies the same strip via regexp_replace and matches
+ *  ANY alias in the group, so old rows join the aisle without a
+ *  migration. Aliases are NAMES ONLY — never colours, never lore. */
+const AISLE_STRIP_RE = /\b(fans?|supporters?|fc|f\.c\.|the|club|football|footy|season ticket holder|mad|obsessed|crazy|lover|loving)\b/g;
+const AISLE_STRIP_SQL = '\\m(fans?|supporters?|fc|f\\.c\\.|the|club|football|footy|mad|obsessed|crazy|lover|loving)\\M';
+const AISLE_ALIASES: string[][] = [
+  ['manchester united', 'man utd', 'man united', 'manchester utd', 'mufc', 'red devils', 'old trafford'],
+  ['manchester city', 'man city', 'mcfc', 'city', 'the etihad', 'etihad'],
+  ['liverpool', 'lfc', 'the reds', 'anfield', 'the kop'],
+  ['tottenham hotspur', 'tottenham', 'spurs', 'thfc'],
+  ['arsenal', 'afc', 'the gunners', 'gunners', 'the emirates'],
+  ['chelsea', 'cfc', 'stamford bridge'],
+  ['newcastle united', 'newcastle', 'nufc', 'the toon', 'toon', 'the magpies', 'magpies', 'st james park'],
+  ['west ham united', 'west ham', 'whufc', 'the hammers', 'hammers', 'the irons'],
+  ['everton', 'efc', 'the toffees', 'toffees', 'goodison'],
+  ['leeds united', 'leeds', 'lufc', 'elland road'],
+  ['aston villa', 'villa', 'avfc', 'villa park'],
+  ['celtic', 'celtic fc', 'the hoops', 'the bhoys', 'parkhead'],
+  ['rangers', 'glasgow rangers', 'the gers', 'gers', 'ibrox'],
+  ['leicester city', 'leicester', 'lcfc', 'the foxes'],
+  ['nottingham forest', 'forest', 'nffc'],
+  ['wolverhampton wanderers', 'wolves', 'wwfc'],
+  ['brighton and hove albion', 'brighton', 'bhafc', 'the seagulls'],
+  ['sheffield united', 'sheff utd', 'the blades'],
+  ['sheffield wednesday', 'sheff wed', 'the owls'],
+  ['sunderland', 'safc', 'the black cats'],
+  ['middlesbrough', 'boro', 'the boro'],
+  ['crystal palace', 'palace', 'cpfc', 'the eagles'],
+  ['fulham', 'ffc', 'craven cottage'],
+  ['southampton', 'saints', 'the saints'],
+  ['burnley', 'the clarets', 'clarets'],
+  ['ipswich town', 'ipswich', 'itfc', 'the tractor boys'],
+  ['norwich city', 'norwich', 'ncfc', 'the canaries'],
+  ['stoke city', 'stoke', 'the potters'],
+];
+const normaliseAisle = (s: string) => s.toLowerCase().replace(AISLE_STRIP_RE, ' ').replace(/[^a-z0-9]+/g, '');
+/** Every normalised key that means the same subject as `interest`. */
+export function aisleKeys(interest: string): string[] {
+  const key = normaliseAisle(interest);
+  const group = AISLE_ALIASES.find((g) => g.some((a) => normaliseAisle(a) === key));
+  const keys = new Set<string>([key, ...(group ?? []).map(normaliseAisle)]);
+  keys.delete('');
+  return Array.from(keys);
+}
+
 const SEAM_LEDGER: Array<{ name: string; desc: string; re: RegExp }> = [
   { name: 'the phone screen', desc: 'the group chat, tabs, notifications, screenshots, voice notes, battery, apps, the camera roll — life as it appears on a phone', re: /\b(phones?|screens?|chargers?|charging cables?|e-?tickets?|group[- ]?chats?|tabs open|notifications?|screenshots?|voice ?notes?|batter(?:y|ies)|apps?|app-style|scrolling|read receipts?|camera rolls?|selfies?|dms|typing bubbles?|shared locations?|screen time|wifi|social feeds?|online)\b/i },
   { name: 'the civic checklist', desc: 'votes, ID, forms, contracts, admin — what is newly permitted', re: /\b(votes?|voting|ballots?|polling|id checks?|signatures?|terms (?:and|&) conditions|forms?|contracts?|paperwork|admin)\b/i },
@@ -2377,7 +2431,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // the same age. IS NOT DISTINCT FROM keeps ageless cards as
           // their own aisle rather than matching everything.
           .where(interestText
-            ? sql`lower(interest) = ${interestText.toLowerCase()}`
+            // One aisle per SUBJECT, not per spelling (see aisleKeys): the
+            // stored interest is stripped the same way and matched against
+            // every alias in the subject's group.
+            ? sql`regexp_replace(regexp_replace(lower(interest), ${AISLE_STRIP_SQL}, ' ', 'g'), '[^a-z0-9]+', '', 'g') in (${sql.join(aisleKeys(interestText).map((k) => sql`${k}`), sql`, `)})`
             // Occasion-scoped: a Christmas 40 must not share its memory
             // window (motifs, palettes, seam ledger) with birthday 40s —
             // cross-occasion bleed made every occasion feel like
@@ -2431,7 +2488,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // first-instinct seam; the ration applies everywhere.
       {
         const texts = sameSubject.map((r) => `${r.front_text ?? ''} ${(r as any).art_direction ?? ''}`);
-        if (texts.length >= 9) {
+        // Warm-up lowered 9 → 6 (2026-09-03): at three cards a set, nine
+        // meant three whole sets could reach for the same seam before the
+        // ration ever spoke. Two sets is enough evidence.
+        if (texts.length >= 6) {
           restingSeams = SEAM_LEDGER
             .map((sm) => ({ name: sm.name, desc: sm.desc, share: texts.filter((t) => sm.re.test(t)).length / texts.length }))
             .filter((sm) => sm.share > 0.35)
