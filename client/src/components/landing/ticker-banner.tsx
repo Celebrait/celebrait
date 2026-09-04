@@ -61,13 +61,14 @@ export function TickerBanner() {
         className="flex items-center gap-2 whitespace-nowrap font-sans text-[11.5px] font-medium text-white underline-offset-2 hover:underline sm:text-[12.5px]"
         data-testid="ticker-free-card"
       >
-        <Gift className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        {/* Coral trial (Aidan 2026-09-04): the warm accent on the OFFER only. */}
+        <Gift className="h-3.5 w-3.5 shrink-0 text-accent-coral" aria-hidden="true" />
         <span className="sm:hidden">
-          Add 3 dates that matter — 50% off your first card. Claim it ›
+          Add 3 dates that matter — <b className="text-accent-coral">50% off</b> your first card. Claim it ›
         </span>
         <span className="hidden sm:inline">
           Tell us 3 dates that matter and your first card is{' '}
-          <span className="line-through opacity-70">£5.99</span> <b>£2.99</b>.
+          <span className="line-through opacity-70">£5.99</span> <b className="text-accent-coral">£2.99</b>.
           Claim it ›
         </span>
       </button>

@@ -42,7 +42,7 @@ const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 interface DoorProps {
   href: string;
   icon: typeof Camera;
-  chip: { label: string; tone: 'brand' | 'ready' };
+  chip: { label: string; tone: 'brand' | 'ready' | 'warm' };
   title: string;
   line: string;
   time: string;
@@ -72,7 +72,8 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
     ? 'border-brand bg-brand-muted shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)] hover:border-brand-dark'
     : 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand';
   const pill = lead ? 'bg-white/80 border-brand-light' : 'bg-keeper-paper border-keeper-hair';
-  const chipCls = chip.tone === 'brand' ? 'bg-brand text-white' : 'bg-cta-light text-cta-dark';
+  // 'warm' = the coral trial (Aidan 2026-09-04): one moment accent, never chrome.
+  const chipCls = chip.tone === 'brand' ? 'bg-brand text-white' : chip.tone === 'warm' ? 'bg-accent-coral-dark text-white' : 'bg-cta-light text-cta-dark';
   return (
     <div
       onClick={go}
@@ -192,7 +193,7 @@ export default function GatePage() {
               lead
               href={photoHref}
               icon={Camera}
-              chip={{ label: 'Pro choice', tone: 'brand' }}
+              chip={{ label: 'Pro choice', tone: 'warm' }}
               title="The director"
               line="I've got a photo of them, and I know exactly where I want to put them."
               time="10 minutes"
