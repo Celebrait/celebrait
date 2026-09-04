@@ -131,12 +131,11 @@ export default function DoorwayBPage() {
                     Fraunces, the mechanism beneath with the shimmer + glow. */}
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
-                <h1 className={`mt-4 max-w-[22ch] text-[clamp(36px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
-                  We know them{' '}
-                  <span className="-mx-1 inline-block [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
-                    <ShimmerWord reduced={!!reduced}>better</ShimmerWord>
-                  </span>{' '}
-                  than your average card shop does.
+                <h1 className={`mt-4 max-w-[26ch] text-[clamp(34px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                  Why settle for a card that's anything but{' '}
+                  <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
+                    <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
+                  </span>?
                 </h1>
                 <p className="mt-5 max-w-[36rem] text-[18px] leading-relaxed text-keeper-body">
                   In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.
