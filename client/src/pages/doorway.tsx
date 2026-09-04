@@ -31,6 +31,13 @@ import { cardPriceGBP } from '@shared/pricing';
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // The landing's display style, verbatim (landing-keeper.tsx DISPLAY).
 export const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
+/** The public pages' shared hero rhythm (2026-09-04 consistency pass —
+ *  the photo LP's hero is the reference): header clearance, top of the
+ *  first section, the eyebrow, and the sub-line under an h1. */
+export const HERO_MAIN = 'pt-32';
+export const HERO_TOP = 'pt-10 md:pt-20';
+export const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold';
+export const SUB = 'mt-4 text-[16px] leading-relaxed text-keeper-body md:mt-5 md:text-[18px]';
 
 export const OCCASIONS = [
   { slug: 'christmas', label: 'Christmas' },

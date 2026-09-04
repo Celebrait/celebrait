@@ -31,7 +31,8 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { CardDrift } from '@/components/catalogue/card-drift';
-import { DISPLAY } from '@/pages/doorway';
+import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
+import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 
@@ -51,6 +52,10 @@ interface DoorProps {
   cta: string;
   /** The small print: what it can't do, and what draws it. Folded. */
   fine: Array<[string, string]>;
+  /** The landing page behind this route — one quiet link for anyone
+   *  who wants to look before they start. The door itself goes
+   *  straight into the builder (Aidan 2026-09-04). */
+  proof: { href: string; label: string };
   /** The lead door wears the studio's "selected" tint — violet wash +
    *  violet border. The other sits on white with a hairline. */
   lead?: boolean;
@@ -58,7 +63,7 @@ interface DoorProps {
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-function Door({ href, icon: Icon, chip, title, line, time, effort, price, points, cta, fine, lead = false }: DoorProps) {
+function Door({ href, icon: Icon, chip, title, line, time, effort, price, points, cta, fine, proof, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
   const stop = (e: MouseEvent) => e.stopPropagation();
@@ -110,6 +115,9 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
       >
         {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
+      <Link href={proof.href} onClick={stop} className="mt-2.5 inline-block text-[12.5px] font-medium text-keeper-meta underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-ink hover:decoration-keeper-gold">
+        {proof.label} →
+      </Link>
 
       {/* The small print, folded: a studio-style disclosure row. */}
       <details onClick={stop} className="group/d mt-3">
@@ -132,6 +140,10 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
 
 export default function GatePage() {
   useSeo('/');
+  // The photo door goes straight into the maker: the public one when
+  // signed out, the studio's when signed in.
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const photoHref = !authLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
   const photo = gbp(cardPriceGBP('photo'));
   const maker = gbp(cardPriceGBP('maker'));
   const rack = gbp(cardPriceGBP('rack'));
@@ -140,14 +152,14 @@ export default function GatePage() {
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
-      <main className="pt-[136px] md:pt-32">
-        <section className="px-5 pb-14 pt-4 sm:px-6 md:pb-20 md:pt-14">
+      <main className={HERO_MAIN}>
+        <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-4xl text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
-            <h1 className={`mx-auto mt-2.5 max-w-[18ch] text-[clamp(27px,5vw,56px)] leading-[1.06] text-balance ${DISPLAY}`}>
+            <p className={EYEBROW}>Unbinnable Greetings Cards</p>
+            <h1 className={`mx-auto mt-4 max-w-[18ch] text-[clamp(28px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
               Before we create, what kind of card maker are you?
             </h1>
-            <p className="mx-auto mt-3 max-w-[40rem] text-[14.5px] leading-relaxed text-keeper-body md:mt-4 md:text-[17px]">
+            <p className={`mx-auto max-w-[40rem] ${SUB}`}>
               Celebrait offers two unique ways to design a greetings card that's all about them.
               Pick one<span className="hidden sm:inline"> (you can always switch later once you know what we're about)</span>.
             </p>
@@ -156,7 +168,7 @@ export default function GatePage() {
           <div id="doors" className="mx-auto mt-8 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-10 md:grid-cols-[1.3fr_1fr] md:items-stretch">
             <Door
               lead
-              href="/photo"
+              href={photoHref}
               icon={Camera}
               chip={{ label: 'Pro choice', tone: 'brand' }}
               title="I've got a photo of them."
@@ -170,6 +182,7 @@ export default function GatePage() {
                 'Bigger image model, full print quality.',
               ]}
               cta="Start with a photo"
+              proof={{ href: '/photo#proof', label: 'See the proof first' }}
               fine={[
                 ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
                 ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
@@ -177,7 +190,7 @@ export default function GatePage() {
               ]}
             />
             <Door
-              href="/create"
+              href="/make"
               icon={Sparkles}
               chip={{ label: 'Quickest', tone: 'ready' }}
               title="I'll tell you about them."
@@ -191,6 +204,7 @@ export default function GatePage() {
                 'Quicker model, three at once — costs less.',
               ]}
               cta="Tell us about them"
+              proof={{ href: '/create', label: 'See how it works' }}
               fine={[
                 ['Can', 'Roll again with a new vibe. Change the details. Add their photo after you\'ve picked and we\'ll draw them in.'],
                 ['Can\'t', 'Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces.'],
@@ -201,8 +215,8 @@ export default function GatePage() {
 
           {/* ── The wall: real cards, drifting (same component as /create) ── */}
           <div className="mt-12 md:mt-16">
-            <p className="mx-auto max-w-4xl text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-keeper-gold">
-              From the rack · every one made for a real person · 280gsm, posted UK-wide
+            <p className={`mx-auto max-w-4xl text-center ${EYEBROW}`}>
+              From the rack · 280gsm · posted UK-wide
             </p>
             <div className="-mx-5 mt-3 pl-5 sm:-mx-6 sm:pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
               <CardDrift />

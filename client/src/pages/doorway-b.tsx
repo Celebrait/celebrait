@@ -24,7 +24,7 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
 import { CardDrift } from '@/components/catalogue/card-drift';
-import { DISPLAY } from '@/pages/doorway';
+import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
@@ -70,11 +70,11 @@ export default function DoorwayBPage() {
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
-      <main className="pt-32">
+      <main className={HERO_MAIN}>
         {/* ── The hero IS step one of the builder ── */}
-        <section className="pb-12 pt-10 md:pb-16 md:pt-20">
+        <section className={`pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-6xl px-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
+            <p className={EYEBROW}>Unbinnable Greetings Cards</p>
             {starting ? (
               <div className="mt-4 flex min-h-[300px] max-w-3xl items-center justify-center" role="status" aria-label="Loading the questions">
                 <Loader2 className="h-14 w-14 animate-spin text-keeper-gold" strokeWidth={1.5} />
@@ -85,21 +85,21 @@ export default function DoorwayBPage() {
                     Fraunces, the mechanism beneath with the shimmer + glow. */}
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
-                <h1 className={`mt-4 max-w-[26ch] text-[clamp(34px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                <h1 className={`mt-4 max-w-[26ch] text-[clamp(30px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
                   Why settle for a card that's anything but{' '}
                   <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
                     <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
                   </span>?
                 </h1>
-                <p className="mt-5 max-w-[36rem] text-[18px] leading-relaxed text-keeper-body">
+                <p className={`max-w-[36rem] ${SUB}`}>
                   In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.
                   Thoughtful, funny, gloriously daft?{' '}
                   <span className="font-semibold text-keeper-ink">Over to you.</span>
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
                   <button type="button" onClick={begin}
-                    className="inline-flex items-center gap-2 rounded-full bg-keeper-ink px-7 py-3.5 text-[15px] font-semibold text-keeper-paper shadow-[0_10px_30px_-12px_rgba(33,29,25,0.5)] transition-colors hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
-                    <Sparkles className="h-4 w-4 text-cta" /> Get started
+                    className="inline-flex items-center gap-2 rounded-full bg-go px-7 py-3.5 text-[15px] font-semibold text-go-foreground shadow-[0_10px_30px_-12px_rgba(92,87,212,0.5)] transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
+                    <Sparkles className="h-4 w-4" /> Get started
                   </button>
                   <span className="text-[13px] text-keeper-meta">Seven quick questions · about a minute</span>
                 </div>
@@ -127,9 +127,9 @@ export default function DoorwayBPage() {
           </div>
 
           {/* ── The wall: real cards, drifting ── */}
-          <div className="mt-10 md:mt-14">
+          <div className="mt-12 md:mt-16">
             <div className="mx-auto max-w-6xl px-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">From the rack · every one made from a real brief</p>
+              <p className={EYEBROW}>From the rack · made for real people</p>
             </div>
             <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
               <CardDrift />
