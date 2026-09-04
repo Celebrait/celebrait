@@ -16,7 +16,9 @@
 // per tile, one quiet meta line for the facts, the detail folded. The
 // header and footer on this page point at the doors instead of
 // answering the question for them. Fraunces on the h1 and the two
-// titles only.
+// only — the two doors answer it in the sans as PERSONAS (Aidan
+// 2026-09-04: "different answers to the headline": The casual browser
+// first, The director second).
 //
 // Every fact is true of the live routes — the photo studio renders ONE
 // card per go on the bigger model at print quality (minutes); the
@@ -84,7 +86,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
         <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${chipCls}`}>{chip.label}</span>
       </div>
 
-      <h2 className={`mt-3 font-display font-bold leading-[1.08] text-keeper-ink sm:mt-4 ${lead ? 'text-[23px] sm:text-[30px]' : 'text-[21px] sm:text-[24px]'}`}>
+      <h2 className="mt-3 ![font-family:inherit] text-[22px] font-bold leading-[1.1] tracking-[-0.01em] text-keeper-ink sm:mt-4 sm:text-[26px]">
         <Link href={href} onClick={stop} className="outline-none focus-visible:underline">{title}</Link>
       </h2>
       <p className="mt-1 text-[14px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
@@ -165,36 +167,13 @@ export default function GatePage() {
             </p>
           </div>
 
-          <div id="doors" className="mx-auto mt-8 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-10 md:grid-cols-[1.3fr_1fr] md:items-stretch">
-            <Door
-              lead
-              href={photoHref}
-              icon={Camera}
-              chip={{ label: 'Pro choice', tone: 'brand' }}
-              title="I've got a photo of them."
-              line="They become the artwork, in a scene you direct."
-              time="~10 min"
-              effort="more effort"
-              price={photo}
-              points={[
-                'One clear face photo. No sign-in to start.',
-                'One card, them drawn into your scene.',
-                'Bigger image model, full print quality.',
-              ]}
-              cta="Start with a photo"
-              proof={{ href: '/photo#proof', label: 'See the proof first' }}
-              fine={[
-                ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
-                ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
-                ['Account', 'Free, and only needed when you press Generate — start without one.'],
-              ]}
-            />
+          <div id="doors" className="mx-auto mt-8 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-10 md:grid-cols-[1fr_1.3fr] md:items-stretch">
             <Door
               href="/make"
               icon={Sparkles}
               chip={{ label: 'Quickest', tone: 'ready' }}
-              title="I'll tell you about them."
-              line="Seven quick questions, three original cards. You pick the one."
+              title="The casual browser"
+              line="I'll tell you about them. Seven quick questions, three cards, I pick one."
               time="~2 min"
               effort="low effort"
               price={maker}
@@ -209,6 +188,29 @@ export default function GatePage() {
                 ['Can', 'Roll again with a new vibe. Change the details. Add their photo after you\'ve picked and we\'ll draw them in.'],
                 ['Can\'t', 'Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces.'],
                 ['Account', `None needed to see your three. Ready-made cards off the rack from ${rack}.`],
+              ]}
+            />
+            <Door
+              lead
+              href={photoHref}
+              icon={Camera}
+              chip={{ label: 'Pro choice', tone: 'brand' }}
+              title="The director"
+              line="I've got a photo of them. They become the artwork, in a scene I direct."
+              time="~10 min"
+              effort="more effort"
+              price={photo}
+              points={[
+                'One clear face photo. No sign-in to start.',
+                'One card, them drawn into your scene.',
+                'Bigger image model, full print quality.',
+              ]}
+              cta="Start with a photo"
+              proof={{ href: '/photo#proof', label: 'See the proof first' }}
+              fine={[
+                ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
+                ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
+                ['Account', 'Free, and only needed when you press Generate — start without one.'],
               ]}
             />
           </div>
