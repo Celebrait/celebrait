@@ -1029,7 +1029,7 @@ Each returned concept:
   ⚠️ NEVER ASK FOR A LOGO OR AN INVENTED ARTEFACT IN THIS BRIEF. We print and sell these cards. Do not write the name of any object, creature, vehicle, weapon, building or costume that exists only inside a film, book or game, and never a logo, wordmark, crest or badge for anything at all. Observed failures: "a Golden Snitch, Quaffle and Bludger", "the Marauder's Map", "a mug with a lightsaber handle", "small screens showing iconic scenes".
   ✅ BUT A BRAND'S WORLD IS OPEN — ask for it confidently. Its colour signature, the everyday objects around it, the interfaces and paperwork and packaging SHAPES it puts in front of people — everything except the mark itself. Draw the EXPERIENCE of using it: what it looks like mid-use, what it leaves lying about, what its regulars would recognise instantly. The logo is the one thing that is out.
   Ask instead for the ORDINARY objects that world is full of — things anyone could own and nobody owns the rights to. Find them by asking what is on the TABLE, in the BAG, on the FLOOR, in the WEATHER of that world rather than what is on its poster: the everyday clutter of living there, not its emblems. The PALETTE and the words carry the reference. If you cannot describe the picture without naming a protected thing, choose a different corner of that world.
-- palette: you are the art director. ${freeStyle
+- palette: you are the art director. ⚠️ IF THE SUBJECT OWNS A COLOUR — a club, a brand, a flag, a franchise, a uniform — that colour LEADS every card, with its true companion colours exactly as the world knows them, and no card in the set wears a hue the subject would never wear. Variety across the three then comes from the medium, the shape and the composition, NEVER from swapping the hue: a set that reads as the wrong club is not varied, it is wrong. ${freeStyle
   ? `⚠️ THE MEDIUM SETS THE INK RULES, NOT A FIXED COUNT. Name the GROUND first, then the colours the CHOSEN CRAFT would actually use — and say which one is the ACCENT, held back so it stays hot.
   A limited-ink print (riso, lino, screen) genuinely is three or four flat colours, so say so. But a cyanotype is one blue and its tones; a watercolour blends and cannot be counted in inks at all; embroidery is a dozen threads; an airbrushed poster is gradients; a botanical plate is fine gradation. Describe the palette in the terms THAT medium works in.
   ⚠️ THIS IS WHY THE RANGE COLLAPSED. Measured over thirty cards, four media took 83% of them — riso, lino, gouache and papercut — because a hard "ground plus exactly three flat inks" is a rule only those four can obey, and sixteen other media were being asked for and then made impossible. Free style means the craft leads; the palette follows the craft.`
@@ -1654,11 +1654,22 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   }
   {
     const leads = cards.map((c) => leadColourFamily(String(c.palette ?? '')));
+    // THE OWNED COLOUR MAY LEAD EVERY CARD (2026-09-03). This floor used
+    // to let an identity colour lead ONCE and thread otherwise — so a
+    // Manchester United set came back red, teal, royal blue: the floor
+    // itself pushed two cards off the club's colours (Aidan: "none of
+    // this lands Manchester United… the blues make very little sense").
+    // With a named subject, the family every palette carries is the
+    // subject's own and is exempt from the lead rule; variety on an
+    // identity brief comes from medium, shape and composition, never hue.
+    const owned = b.interest
+      ? (COLOUR_FAMILIES.find(([, re]) => cards.every((c) => re.test(String(c.palette ?? ''))))?.[0] ?? null)
+      : null;
     const seen = new Map<string, number>();
     leads.forEach((fam, i) => {
-      if (!fam) return;
+      if (!fam || fam === owned) return;
       const prev = seen.get(fam);
-      if (prev !== undefined) v.push(`shared-lead: cards ${prev + 1} and ${i + 1} both lead with the ${fam} family — no two cards share a leading hue; keep the world, change the lead (an owned identity colour may THREAD as accent, never lead twice)`);
+      if (prev !== undefined) v.push(`shared-lead: cards ${prev + 1} and ${i + 1} both lead with the ${fam} family — no two cards share a leading hue; keep the world, change the lead (only a subject's OWN colour — a club's, a brand's — may lead more than once)`);
       else seen.set(fam, i);
     });
     // The thread ban, code-level: one family in all three palettes is
@@ -2164,7 +2175,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             'kids-length / kids-adult-frame — ≤16-word fronts and no office vocabulary for recipients 12 and under',
             'occasion-missing — EVERY card lands the occasion on its FACE (front words or artwork; the inside is invisible on a rack)',
             'name-missing / number-twice / age-artwork — the name lands exactly once; the milestone number behaves',
-            'shared-lead / colour-thread — no two cards lead the same hue; no ink stitches all three',
+            'shared-lead / colour-thread — no two cards lead the same hue; no ink stitches all three — EXCEPT a named subject\'s own colour (a club, a brand), which may lead every card (2026-09-03: the United set went teal/blue because this floor allowed red once)',
             'shared-vocab / shared-motif — each card has its own words and drawn objects',
             'generic-artwork / generic-set — illustrated cards draw from THEIR world',
             'dislike-everywhere — the can\'t-stand carries at most two cards',
