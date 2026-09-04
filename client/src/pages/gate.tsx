@@ -2,28 +2,27 @@
 //
 // Aidan, 2026-09-03: "a super ridic simple doorway that asks the users
 // what kind of creator they are — and then points them at either the
-// current LP or the door one. Both can have links to the others. But
-// they need to be live as my photo route is just too too good."
+// current LP or the door one. Both can have links to the others."
 //
-// Aidan, 2026-09-04: "This is all about communicating effort too. I
-// don't actually think we need images on this page tbh — keep it super
-// simple and descriptive. What they need, what they receive, what they
-// can and can't do, the fact that the image models are different,
-// speed, effort. Nail it."
+// Aidan, 2026-09-04: no images; communicate EFFORT — what they need,
+// what they get, what they can and can't do, that the image models
+// differ, speed. Then: "so heavy with text — summarise, visual
+// hierarchy, pro-choice label, second option visible on mobile
+// (collapse the info)".
 //
-// So: no pictures. One question, two honest spec sheets, a button on
-// each. The landing's chrome so it is unmistakably the same site. Each
-// door is a real page that already works: /photo (the photo landing
-// page, moved from /) and /create (the three-card doorway). Every fact
-// below is true of the live routes — the photo studio renders ONE card
-// per go on the bigger model at print quality (minutes); the three-card
-// maker renders THREE at once on the quicker model (about a minute).
-// The maker's chosen front is NOT re-rendered at high, so we don't say
-// it is.
+// So each door is: route label + badge · title · one line · a strip of
+// three facts (time · effort · price) · the button · and the detail
+// folded behind "What you need, what you get". The door is a plain
+// panel (not one big link) so the fold can open without navigating.
+// Every fact is true of the live routes — the photo studio renders ONE
+// card per go on the bigger model at print quality (minutes); the
+// three-card maker renders THREE at once on the quicker model (about a
+// minute). The maker's chosen front is NOT re-rendered at high, so we
+// don't say it is.
 
 import type { ReactNode } from 'react';
 import { Link } from 'wouter';
-import { Camera, Sparkles, ArrowRight } from 'lucide-react';
+import { Camera, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -34,16 +33,50 @@ import { cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-const doorCls = 'group flex flex-col rounded-2xl border border-keeper-hair bg-white/70 p-6 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm transition-colors hover:border-keeper-gold sm:p-7';
-const doorCta = 'inline-flex items-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors group-hover:bg-black';
+const doorCls = 'relative flex flex-col rounded-2xl border border-keeper-hair bg-white/70 p-5 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm sm:p-6';
+const ctaCls = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3 text-[15px] font-semibold text-keeper-paper transition-colors hover:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold';
 
-/** One row of the spec sheet: a small label, then plain words. */
-function Row({ label, children }: { label: string; children: ReactNode }) {
+/** One of the three facts in the strip: a small label over a big value. */
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-x-4 gap-y-1 border-t border-keeper-hair py-3 first:border-t-0 first:pt-0 sm:grid-cols-[6.5rem_1fr]">
-      <dt className="text-[11px] sm:pt-[2px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{label}</dt>
-      <dd className="text-[14.5px] leading-relaxed text-keeper-body">{children}</dd>
+    <div className="min-w-0">
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{label}</div>
+      <div className="mt-0.5 font-display text-[18px] font-bold sm:text-[19px] leading-tight text-keeper-ink">{children}</div>
     </div>
+  );
+}
+
+/** Effort as four dots — reads at a glance, no adjectives needed. */
+function Effort({ level, word }: { level: 1 | 2 | 3 | 4; word: string }) {
+  return (
+    <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+      <span className="inline-flex gap-1 pt-1 sm:pt-0" aria-hidden>
+        {[1, 2, 3, 4].map((n) => (
+          <span key={n} className={`h-2 w-2 rounded-full ${n <= level ? 'bg-keeper-ink' : 'bg-keeper-hair'}`} />
+        ))}
+      </span>
+      <span>{word}</span>
+    </span>
+  );
+}
+
+/** The folded detail: four short lines under tiny labels. */
+function Detail({ rows }: { rows: Array<[string, string]> }) {
+  return (
+    <details className="group/d mt-4 border-t border-keeper-hair pt-3 sm:mt-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-[13.5px] font-medium text-keeper-ink [&::-webkit-details-marker]:hidden">
+        What you need, what you get
+        <ChevronDown className="h-4 w-4 text-keeper-meta transition-transform group-open/d:rotate-180" />
+      </summary>
+      <dl className="mt-3 space-y-2.5">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[5.5rem_1fr] gap-x-3">
+            <dt className="pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{k}</dt>
+            <dd className="text-[13.5px] leading-relaxed text-keeper-body">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }
 
@@ -57,108 +90,88 @@ export default function GatePage() {
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
-      <main className="pt-32">
-        <section className="px-6 pb-16 pt-10 md:pb-20 md:pt-20">
-          <div className="mx-auto max-w-6xl">
+      <main className="pt-[120px] md:pt-32">
+        <section className="px-6 pb-16 pt-4 md:pb-20 md:pt-16">
+          <div className="mx-auto max-w-5xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">Unbinnable Greetings Cards</p>
-            <h1 className={`mt-4 max-w-[20ch] text-[clamp(38px,6vw,66px)] leading-[1.04] text-balance ${DISPLAY}`}>
+            <h1 className={`mt-3 max-w-[20ch] text-[clamp(30px,5.4vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
               Before we create, what kind of card maker are you?
             </h1>
-            <p className="mt-5 max-w-[38rem] text-[17px] leading-relaxed text-keeper-body">
+            <p className="mt-2.5 max-w-[38rem] text-[15px] leading-relaxed text-keeper-body md:text-[17px]">
               Celebrait offers two unique ways to design a greetings card that's all about them.
               Pick one (you can always switch later once you know what we're about).
             </p>
 
-            <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <div className="mt-7 grid gap-4 md:mt-10 md:grid-cols-2 md:gap-5">
               {/* ── Door one — the photo route ── */}
-              <Link href="/photo" className={doorCls}>
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
-                  <Camera className="h-4 w-4 text-cta" /> The photo route
+              <div className={doorCls}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
+                    <Camera className="h-4 w-4 text-cta" /> Photo route
+                  </span>
+                  <span className="rounded-full bg-keeper-ink px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-keeper-paper">Pro choice</span>
                 </div>
-                <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-keeper-ink">I've got a photo of them.</h2>
-                <p className="mt-2 text-[15px] leading-relaxed text-keeper-body">
-                  They become the artwork. You direct the scene — Mum under the Northern Lights, your best mate abseiling off Big Ben.
+                <h2 className="mt-3 font-display text-[24px] font-bold leading-tight text-keeper-ink sm:text-[26px]">I've got a photo of them.</h2>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-keeper-body">
+                  They become the artwork, in a scene you direct.
                 </p>
 
-                <dl className="mt-6">
-                  <Row label="You need">
-                    One clear photo where we can see their face. A scene in mind (or borrow one of ours).
-                    A free account, so your card is saved while you work on it.
-                  </Row>
-                  <Row label="You get">
-                    One card, drawn from your photo, in the scene you described. The inside is yours to write; we set the type.
-                  </Row>
-                  <Row label="You can">
-                    Describe any scene in your own words. Pick the look. Put more than one person in it. Start again if it isn't quite them.
-                  </Row>
-                  <Row label="You can't">
-                    Use a blurry photo or a photo of a stranger (we check the likeness before we draw and tell you straight).
-                    Ask for logos, brands or famous faces.
-                  </Row>
-                  <Row label="Drawn by">
-                    Our bigger image model, one card at a time, at full print quality. It's slower and it costs more to run — that's the price difference.
-                  </Row>
-                  <Row label="Time">
-                    About five minutes of yours, then a few minutes of ours while it draws.
-                  </Row>
-                  <Row label="Effort">
-                    More. You crop the photo, describe the scene and check the likeness. Worth it — this is the one they keep.
-                  </Row>
-                </dl>
-
-                <div className="mt-6 flex flex-1 flex-wrap items-end justify-between gap-3">
-                  <span className="text-[13px] text-keeper-meta">{photo} · nothing to pay until you print</span>
-                  <span className={doorCta}>Start with a photo <ArrowRight className="h-3.5 w-3.5" /></span>
+                <div className="mt-4 grid grid-cols-3 gap-3 border-t border-keeper-hair pt-3.5 sm:mt-5 sm:pt-4">
+                  <Fact label="Time">~10 min</Fact>
+                  <Fact label="Effort"><Effort level={3} word="More" /></Fact>
+                  <Fact label="Price">{photo}</Fact>
                 </div>
-              </Link>
+
+                <div className="mt-4 sm:mt-5">
+                  <Link href="/photo" className={ctaCls}>Start with a photo <ArrowRight className="h-4 w-4" /></Link>
+                </div>
+
+                <Detail rows={[
+                  ['Need', 'One clear photo of their face, a scene in mind, and a free account so your card is saved as you go.'],
+                  ['Get', 'One card with them as the artwork, in the scene you described. You write the inside; we set the type.'],
+                  ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them.'],
+                  ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
+                  ['Drawn by', 'Our bigger image model, one card at a time, at full print quality. Slower and dearer to run — that\'s the price difference.'],
+                ]} />
+              </div>
 
               {/* ── Door two — tell us about them ── */}
-              <Link href="/create" className={doorCls}>
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
-                  <Sparkles className="h-4 w-4 text-cta" /> The three-card route
+              <div className={doorCls}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
+                    <Sparkles className="h-4 w-4 text-cta" /> Three-card route
+                  </span>
+                  <span className="rounded-full border border-keeper-hair bg-white px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-keeper-ink">Quickest</span>
                 </div>
-                <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-keeper-ink">I'll tell you about them.</h2>
-                <p className="mt-2 text-[15px] leading-relaxed text-keeper-body">
-                  Seven quick questions. Three original cards, written and drawn for them. You pick the one.
+                <h2 className="mt-3 font-display text-[24px] font-bold leading-tight text-keeper-ink sm:text-[26px]">I'll tell you about them.</h2>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-keeper-body">
+                  Seven quick questions, three original cards. You pick the one.
                 </p>
 
-                <dl className="mt-6">
-                  <Row label="You need">
-                    Nothing you don't already know: who it's for, the occasion, their age, one thing they love.
-                    No photo. No sign-in to see your three.
-                  </Row>
-                  <Row label="You get">
-                    Three different fronts to choose from, then the inside written and designed to match the one you pick.
-                  </Row>
-                  <Row label="You can">
-                    Roll again with a different vibe. Change the details. Add their photo after you've picked and we'll draw them in.
-                    Or take a ready-made card off the rack instead.
-                  </Row>
-                  <Row label="You can't">
-                    Direct the scene yourself — your answers steer, we draw. Ask for logos, brands or famous faces.
-                  </Row>
-                  <Row label="Drawn by">
-                    Our quicker image model, three cards at once. A lighter touch than the photo route, and it's why this one costs less.
-                  </Row>
-                  <Row label="Time">
-                    About a minute to answer, about a minute for the three to arrive.
-                  </Row>
-                  <Row label="Effort">
-                    Low. Answer, pick, sign the inside. Done before the kettle's boiled.
-                  </Row>
-                </dl>
-
-                <div className="mt-6 flex flex-1 flex-wrap items-end justify-between gap-3">
-                  <span className="text-[13px] text-keeper-meta">{maker} · off the rack from {rack}</span>
-                  <span className={doorCta}>Tell us about them <ArrowRight className="h-3.5 w-3.5" /></span>
+                <div className="mt-4 grid grid-cols-3 gap-3 border-t border-keeper-hair pt-3.5 sm:mt-5 sm:pt-4">
+                  <Fact label="Time">~2 min</Fact>
+                  <Fact label="Effort"><Effort level={1} word="Low" /></Fact>
+                  <Fact label="Price">{maker}</Fact>
                 </div>
-              </Link>
+
+                <div className="mt-4 sm:mt-5">
+                  <Link href="/create" className={ctaCls}>Tell us about them <ArrowRight className="h-4 w-4" /></Link>
+                </div>
+
+                <Detail rows={[
+                  ['Need', 'Who it\'s for, the occasion, their age, one thing they love. No photo. No sign-in to see your three.'],
+                  ['Get', 'Three different fronts to choose from, then the inside written and designed to match your pick.'],
+                  ['Can', 'Roll again with a new vibe. Change the details. Add their photo after you\'ve picked and we\'ll draw them in.'],
+                  ['Can\'t', `Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces. (Ready-made cards off the rack from ${rack}.)`],
+                  ['Drawn by', 'Our quicker image model, three at once. A lighter touch than the photo route, and why this one costs less.'],
+                ]} />
+              </div>
             </div>
 
-            <p className="mt-6 text-[14px] text-keeper-meta">
-              Both are printed on the same 280gsm card, posted in the same envelope, anywhere in the UK.
+            <p className="mt-5 text-[13.5px] text-keeper-meta">
+              Both printed on the same 280gsm card, posted anywhere in the UK. Nothing to pay until you print.
             </p>
-            <div className="mt-6"><TrustChips /></div>
+            <div className="mt-5"><TrustChips /></div>
           </div>
         </section>
       </main>
