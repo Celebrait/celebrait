@@ -153,12 +153,12 @@ export default function GatePage() {
       <KeeperHeader />
       <main className={HERO_MAIN}>
         <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
-          <div className="mx-auto max-w-4xl text-center md:text-left">
+          <div className="mx-auto max-w-4xl text-left">
             <p className={EYEBROW}>Unbinnable Greetings Cards</p>
-            <h1 className={`mx-auto mt-4 max-w-[18ch] md:mx-0 text-[clamp(28px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
+            <h1 className={`mt-4 max-w-[18ch] text-[clamp(28px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
               Before we create, what kind of card buyer are you?
             </h1>
-            <p className={`mx-auto max-w-[40rem] md:mx-0 ${SUB}`}>
+            <p className={`max-w-[40rem] ${SUB}`}>
               Celebrait offers two ways to design a greetings card that's unique to them.
               Pick one<span className="hidden sm:inline"> (you can always switch later once you know what we're about)</span>.
             </p>
