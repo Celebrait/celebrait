@@ -150,7 +150,6 @@ export default function GatePage() {
   const photoHref = !authLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
   const photo = gbp(cardPriceGBP('photo'));
   const maker = gbp(cardPriceGBP('maker'));
-  const rack = gbp(cardPriceGBP('rack'));
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -190,7 +189,7 @@ export default function GatePage() {
                 [RefreshCw, 'Changed your mind? Roll again with a new vibe, tweak the details, or add their photo once you\'ve picked.'],
                 [PenLine, 'You steer, we draw. Your answers set the scene — we just can\'t do logos, brands or famous faces.'],
                 [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
-                [LockOpen, `No account needed to see your three. Fancy something ready-made? Cards from ${rack} too.`],
+                [LockOpen, 'No account needed to see your three.'],
               ]}
             />
             <Door
@@ -212,9 +211,9 @@ export default function GatePage() {
               proof={{ href: '/photo#proof', label: 'See the proof first' }}
               fine={[
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
-                [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry. No logos, brands or famous faces.'],
+                [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],
                 [Gem, 'Drawn by our bigger image model, one card at a time, at full print quality. Slower, dearer to run, and worth it.'],
-                [LockOpen, 'No account to start. You\'ll make a free one when you press Generate.'],
+                [LockOpen, 'No account to start.'],
               ]}
             />
           </div>
