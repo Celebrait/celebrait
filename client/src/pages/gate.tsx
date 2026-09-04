@@ -48,38 +48,62 @@ interface DoorProps {
   price: string;
   cta: string;
   rows: Array<[string, string]>;
+  /** The lead door is the page's one dark band (keeper-ink); the other
+   *  sits quietly on paper. That's the hierarchy: one leads, one waits. */
+  lead?: boolean;
 }
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-function Door({ href, icon: Icon, chip, title, line, time, effort, price, cta, rows }: DoorProps) {
+function Door({ href, icon: Icon, chip, title, line, time, effort, price, cta, rows, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
   const stop = (e: MouseEvent) => e.stopPropagation();
+  const t = lead
+    ? {
+        tile: 'border-keeper-ink bg-keeper-ink shadow-[0_24px_60px_-28px_rgba(33,29,25,0.6)] hover:border-brand',
+        well: 'bg-white/10 text-keeper-paper',
+        chip: 'bg-brand text-white',
+        title: 'text-[28px] text-keeper-paper sm:text-[34px]',
+        line: 'text-[15px] text-keeper-paper/80 sm:text-[16px]',
+        meta: 'text-keeper-paper/60', dot: 'text-keeper-paper/25', price: 'text-keeper-paper',
+        rule: 'border-white/15', summary: 'text-keeper-paper/70 hover:text-keeper-paper',
+        dt: 'text-keeper-paper/55', dd: 'text-keeper-paper/85',
+      }
+    : {
+        tile: 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand hover:shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)]',
+        well: 'bg-brand-muted text-keeper-gold',
+        chip: 'bg-keeper-gold-wash text-keeper-gold',
+        title: 'text-[22px] text-keeper-ink sm:text-[24px]',
+        line: 'text-[14.5px] text-keeper-body sm:text-[15px]',
+        meta: 'text-keeper-meta', dot: 'text-keeper-hair', price: 'text-keeper-ink',
+        rule: 'border-keeper-hair', summary: 'text-keeper-meta hover:text-keeper-ink',
+        dt: 'text-keeper-meta', dd: 'text-keeper-body',
+      };
   return (
     <div
       onClick={go}
-      className="group flex cursor-pointer flex-col rounded-xl border-2 border-keeper-hair bg-white p-4 text-left shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] transition-all hover:-translate-y-0.5 hover:border-brand hover:shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)] sm:p-6"
+      className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${lead ? 'md:p-8' : ''} ${t.tile}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-muted text-keeper-gold">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${t.well}`}>
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
         {chip ? (
-          <span className="rounded-full bg-keeper-gold-wash px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-keeper-gold">{chip}</span>
+          <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${t.chip}`}>{chip}</span>
         ) : null}
       </div>
 
-      <h2 className="mt-3 font-display text-[23px] font-bold leading-tight text-keeper-ink sm:mt-4 sm:text-[26px]">
+      <h2 className={`mt-3 font-display font-bold leading-[1.08] sm:mt-4 ${t.title}`}>
         <Link href={href} onClick={stop} className="outline-none focus-visible:underline">{title}</Link>
       </h2>
       {/* flex-1 so a wrapping tagline pushes nothing: both tiles' meta
           lines, buttons and folds sit level across the pair. */}
-      <p className="mt-1 flex-1 text-[14.5px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
+      <p className={`mt-1.5 flex-1 leading-snug ${t.line}`}>{line}</p>
 
-      <p className="mt-2.5 text-[13px] text-keeper-meta">
-        {time} <span className="mx-1 text-keeper-hair">·</span> {effort} <span className="mx-1 text-keeper-hair">·</span>{' '}
-        <span className="font-semibold text-keeper-ink">{price}</span>
+      <p className={`mt-3 text-[13px] ${t.meta}`}>
+        {time} <span className={`mx-1 ${t.dot}`}>·</span> {effort} <span className={`mx-1 ${t.dot}`}>·</span>{' '}
+        <span className={`font-semibold ${t.price}`}>{price}</span>
       </p>
 
       <Link
@@ -90,16 +114,16 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, cta, r
         {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
 
-      <details onClick={stop} className="group/d mt-4 border-t border-keeper-hair pt-3">
-        <summary className="flex cursor-pointer list-none items-center justify-between text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink [&::-webkit-details-marker]:hidden">
+      <details onClick={stop} className={`group/d mt-4 border-t pt-3 ${t.rule}`}>
+        <summary className={`flex cursor-pointer list-none items-center justify-between text-[13px] font-medium transition-colors [&::-webkit-details-marker]:hidden ${t.summary}`}>
           What you need, what you get
           <ChevronDown className="h-4 w-4 transition-transform group-open/d:rotate-180" />
         </summary>
         <dl className="mt-3 space-y-2.5">
           {rows.map(([k, v]) => (
             <div key={k} className="grid grid-cols-[5.5rem_1fr] gap-x-3">
-              <dt className="pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{k}</dt>
-              <dd className="text-[13.5px] leading-relaxed text-keeper-body">{v}</dd>
+              <dt className={`pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] ${t.dt}`}>{k}</dt>
+              <dd className={`text-[13.5px] leading-relaxed ${t.dd}`}>{v}</dd>
             </div>
           ))}
         </dl>
@@ -131,8 +155,9 @@ export default function GatePage() {
             </p>
           </div>
 
-          <div id="doors" className="mx-auto mt-6 grid max-w-4xl scroll-mt-32 gap-3 sm:gap-5 md:mt-10 md:grid-cols-2">
+          <div id="doors" className="mx-auto mt-6 grid max-w-4xl scroll-mt-32 gap-3 sm:gap-5 md:mt-10 md:grid-cols-[1.3fr_1fr] md:items-stretch">
             <Door
+              lead
               href="/photo"
               icon={Camera}
               chip="Pro choice"
