@@ -32,7 +32,6 @@ import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench } from 
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { CardDrift } from '@/components/catalogue/card-drift';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
@@ -215,15 +214,6 @@ export default function GatePage() {
             />
           </div>
 
-          {/* ── The wall: real cards, drifting (same component as /create) ── */}
-          <div className="mt-12 md:mt-16">
-            <p className={`mx-auto max-w-4xl text-center ${EYEBROW}`}>
-              From the rack · 280gsm · posted UK-wide
-            </p>
-            <div className="-mx-5 mt-3 pl-5 sm:-mx-6 sm:pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
-              <CardDrift />
-            </div>
-          </div>
         </section>
       </main>
       <MarketingFooter cta="gate" />
