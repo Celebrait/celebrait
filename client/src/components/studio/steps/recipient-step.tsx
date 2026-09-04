@@ -36,6 +36,7 @@ import {
   Diamond,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { AddressBookEntry, CardDraftState } from '@shared/schema';
@@ -116,8 +117,12 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
   // a long stale time. We use this to gate whether the typeahead
   // dropdown EVER renders. Empty book = no typeahead noise. Cheap
   // because the result is shared across all callers via react-query.
+  const { isAuthenticated } = useAuth();
   const { data: allEntries } = useQuery<AddressBookEntry[]>({
     queryKey: ['/api/user/address-book'],
+    // Signed-out (the public photo maker): no book to read, and the
+    // route 401s — don't ask.
+    enabled: isAuthenticated,
     staleTime: 1000 * 60, // 1 minute — plenty for a step the user
                           // typically spends 10-30s on
   });

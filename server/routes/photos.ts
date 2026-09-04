@@ -19,7 +19,11 @@ import sharp from 'sharp';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
-import { analyzePhoto } from '../photos/analyze';
+import { analyzePhoto, assessPhotoLikeness, runPhotoVision } from '../photos/analyze';
+import { requireGuestMaker } from './admin-card-lab';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
 import { isR2Enabled, r2Put, r2Delete } from '../r2-storage';
 
 const PHOTOS_ROOT = path.join(process.cwd(), 'stored_images', 'photos');
@@ -70,6 +74,59 @@ function validateCropBounds(bounds: unknown, width: number, height: number): Cro
 }
 
 export function registerPhotoRoutes(app: Express): void {
+  // ── PUBLIC photo maker: assess a photo WITHOUT storing it ──────────
+  // (2026-09-04) Signed-out users crop a photo in the browser and get
+  // the same likeness verdict + visual summary the upload path writes
+  // onto a photo row — but nothing touches disk or R2. The bytes are
+  // judged on the crop (exactly what generation would see) and dropped.
+  // Guest-capped per IP; the real upload happens after sign-up.
+  app.post('/api/photos/assess', async (req: Request, res: Response) => {
+    if (!(await requireGuestMaker('assess')(req, res))) return;
+    try {
+      const { imageBase64, cropBounds } = req.body ?? {};
+      if (typeof imageBase64 !== 'string' || !imageBase64) {
+        return res.status(400).json({ message: 'imageBase64 is required' });
+      }
+      const decoded = decodeBase64Image(imageBase64);
+      if (!decoded) return res.status(400).json({ message: 'Invalid image data or too large (15 MB limit)' });
+      const meta = await sharp(decoded.buffer).metadata();
+      const width = meta.width ?? 0;
+      const height = meta.height ?? 0;
+      if (!width || !height) return res.status(400).json({ message: 'Could not determine image dimensions' });
+      const validCrop = cropBounds ? validateCropBounds(cropBounds, width, height) : null;
+      if (cropBounds && !validCrop) return res.status(400).json({ message: 'cropBounds is invalid or falls outside the image' });
+      // Judge the crop, as the upload path does; cap the long edge so a
+      // 15 MB original doesn't ride into the vision call.
+      let pipeline = sharp(decoded.buffer);
+      if (validCrop) pipeline = pipeline.extract({ left: validCrop.x, top: validCrop.y, width: validCrop.width, height: validCrop.height });
+      const bytes = await pipeline.resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+      const judged = await sharp(bytes).metadata();
+      const [vision, likeness] = await Promise.all([
+        runPhotoVision({ imageBytes: bytes, mimeType: 'image/jpeg' }),
+        assessPhotoLikeness({ imageBytes: bytes, mimeType: 'image/jpeg', imageHeight: judged.height }),
+      ]);
+      for (const pass of [vision, likeness]) {
+        if (pass.noApiKey) continue;
+        void logGeneration({
+          cardId: null, slot: LLM_SLOTS.PHOTO_ANALYSIS, templateId: null, templateVersion: null,
+          provider: 'gemini', model: pass.model, quality: null,
+          costCents: llmCostCents(pass.model, pass.promptTokens, pass.outputTokens),
+          durationMs: pass.durationMs, success: !!pass.result, errorCode: pass.result ? null : 'parse_failed',
+        });
+      }
+      res.json({
+        personCount: vision.result?.personCount ?? null,
+        visualSummary: vision.result?.visualSummary ?? null,
+        likeness: likeness.result ?? null,
+        analyzedAt: new Date().toISOString(),
+        width, height,
+      });
+    } catch (err) {
+      console.error('[photos.assess] failed:', err);
+      res.status(500).json({ message: 'Could not check that photo' });
+    }
+  });
+
   // ── POST /api/photos/upload ─────────────────────────────────────────────
   // Body: { imageBase64, filename?, label?, cropBounds? }
   // cropBounds is optional here so the API stays flexible — the Studio UI

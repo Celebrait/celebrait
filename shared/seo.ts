@@ -35,6 +35,12 @@ export const PAGE_SEO: PageSeo[] = [
       'Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted anywhere in the UK from £4.99.',
   },
   {
+    path: '/photo/make',
+    title: 'Make a card from a photo | Celebrait',
+    description:
+      'Upload one clear photo, set the scene, and we draw them into it. Free to start — sign up when you’re ready to generate.',
+  },
+  {
     path: '/photo',
     title: 'Personalised Greetings Cards — Put Them In The Picture | Celebrait',
     description:

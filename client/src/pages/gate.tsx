@@ -165,7 +165,7 @@ export default function GatePage() {
               effort="more effort"
               price={photo}
               points={[
-                'You bring one clear photo of their face and a scene in mind.',
+                'You bring one clear photo of their face and a scene in mind. No sign-in to start.',
                 'You get one card with them drawn in, in the scene you described.',
                 'Drawn by our bigger image model, one card at a time, at full print quality.',
               ]}
@@ -173,7 +173,7 @@ export default function GatePage() {
               fine={[
                 ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
                 ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
-                ['Account', 'Free, and needed — your card is saved as you work on it.'],
+                ['Account', 'Free, and only needed when you press Generate — start without one.'],
               ]}
             />
             <Door

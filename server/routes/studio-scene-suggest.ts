@@ -24,9 +24,18 @@ import { db } from '../db';
 import { cards, type CardDraftState } from '@shared/schema';
 import { openai } from '../utils/shared';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { requireGuestMaker } from './admin-card-lab';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
 import { LLM_SLOTS } from '@shared/schema';
+
+const guestRequestSchema = z.object({
+  recipientName: z.string().min(1).max(80),
+  occasion: z.string().min(1).max(60),
+  brief: z.string().max(400).optional(),
+  likeThis: z.string().max(600).optional(),
+  photoMode: z.enum(['one_person', 'group']).optional(),
+});
 
 const requestSchema = z.object({
   cardId: z.number().int().positive(),
@@ -241,6 +250,96 @@ export function buildUserPrompt(opts: {
   ].join('\n');
 }
 
+/** The scene helper proper: one LLM call, three scenes, cost-logged.
+ *  Shared by the studio route (draft-owned) and the public photo
+ *  maker's route (inline brief, guest-capped) — 2026-09-04. */
+export async function respondWithScenes(
+  res: Response,
+  args: { recipientName: string; occasion: string; brief?: string; likeThis?: string; photoMode?: 'one_person' | 'group' },
+): Promise<void> {
+  const { recipientName, occasion } = args;
+  if (!openai) { res.status(503).json({ error: 'OpenAI not configured' }); return; }
+  const llmStartedAt = Date.now();
+  const LLM_MODEL = 'gpt-4o-mini';
+  try {
+    const completion = await openai.chat.completions.create({
+      model: LLM_MODEL,
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        {
+          role: 'user',
+          content: buildUserPrompt({
+            recipientName,
+            occasion,
+            brief: args.brief ?? '',
+            likeThis: args.likeThis,
+            photoMode: args.photoMode,
+          }),
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.85, // higher = more variety across the three options
+      max_tokens: 600,
+    });
+
+    // Cost Ledger (audit 2026-07-29): the scene helper spends real
+    // money on every tap and logged nothing. No cardId — the draft
+    // may not even be saved yet — so it books against the
+    // scene_suggest slot (see CUSTOMER_LLM_SLOTS). Fire-and-forget.
+    void logGeneration({
+      cardId: null,
+      slot: LLM_SLOTS.SCENE_SUGGEST,
+      templateId: null,
+      templateVersion: null,
+      provider: 'openai',
+      model: LLM_MODEL,
+      quality: null,
+      costCents: llmCostCents(
+        LLM_MODEL,
+        completion.usage?.prompt_tokens ?? 0,
+        completion.usage?.completion_tokens ?? 0,
+      ),
+      durationMs: Date.now() - llmStartedAt,
+      success: true,
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) throw new Error('Empty completion');
+
+    // Parse + validate the structured response. Defensive — model
+    // sometimes returns extra fields or slightly off shapes.
+    const parsed = JSON.parse(raw) as { suggestions?: unknown };
+    const suggestions = Array.isArray(parsed.suggestions)
+      ? parsed.suggestions
+          .map((s, i) => {
+            if (typeof s === 'object' && s !== null) {
+              const obj = s as { id?: unknown; text?: unknown };
+              const text = typeof obj.text === 'string' ? obj.text.trim() : '';
+              if (!text) return null;
+              const id = typeof obj.id === 'string' ? obj.id : String.fromCharCode(97 + i);
+              return { id, text };
+            }
+            return null;
+          })
+          .filter((x): x is SceneSuggestion => !!x)
+          .slice(0, 3)
+      : [];
+
+    if (suggestions.length === 0) {
+      throw new Error('No usable suggestions in response');
+    }
+
+    const response: SuggestResponse = { suggestions };
+    res.json(response);
+  } catch (err: any) {
+    console.error('[STUDIO_SCENE_SUGGEST] error:', err);
+    res.status(500).json({
+      error: 'Could not generate suggestions — try again or use the brainstorm chat.',
+    });
+  }
+
+}
+
 export function registerStudioSceneSuggestRoutes(app: Express): void {
   app.post(
     '/api/studio/scene-suggestions',
@@ -287,84 +386,28 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
       // downstream image model sees the photo at generation time and
       // renders whoever is in it.
 
-      const llmStartedAt = Date.now();
-      const LLM_MODEL = 'gpt-4o-mini';
-      try {
-        const completion = await openai.chat.completions.create({
-          model: LLM_MODEL,
-          messages: [
-            { role: 'system', content: buildSystemPrompt() },
-            {
-              role: 'user',
-              content: buildUserPrompt({
-                recipientName,
-                occasion,
-                brief: body.brief ?? '',
-                likeThis: body.likeThis,
-                photoMode: state?.photos?.mode,
-              }),
-            },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.85, // higher = more variety across the three options
-          max_tokens: 600,
-        });
+      await respondWithScenes(res, {
+        recipientName, occasion,
+        brief: body.brief, likeThis: body.likeThis, photoMode: state?.photos?.mode,
+      });
+    },
+  );
 
-        // Cost Ledger (audit 2026-07-29): the scene helper spends real
-        // money on every tap and logged nothing. No cardId — the draft
-        // may not even be saved yet — so it books against the
-        // scene_suggest slot (see CUSTOMER_LLM_SLOTS). Fire-and-forget.
-        void logGeneration({
-          cardId: null,
-          slot: LLM_SLOTS.SCENE_SUGGEST,
-          templateId: null,
-          templateVersion: null,
-          provider: 'openai',
-          model: LLM_MODEL,
-          quality: null,
-          costCents: llmCostCents(
-            LLM_MODEL,
-            completion.usage?.prompt_tokens ?? 0,
-            completion.usage?.completion_tokens ?? 0,
-          ),
-          durationMs: Date.now() - llmStartedAt,
-          success: true,
-        });
-
-        const raw = completion.choices[0]?.message?.content?.trim();
-        if (!raw) throw new Error('Empty completion');
-
-        // Parse + validate the structured response. Defensive — model
-        // sometimes returns extra fields or slightly off shapes.
-        const parsed = JSON.parse(raw) as { suggestions?: unknown };
-        const suggestions = Array.isArray(parsed.suggestions)
-          ? parsed.suggestions
-              .map((s, i) => {
-                if (typeof s === 'object' && s !== null) {
-                  const obj = s as { id?: unknown; text?: unknown };
-                  const text = typeof obj.text === 'string' ? obj.text.trim() : '';
-                  if (!text) return null;
-                  const id = typeof obj.id === 'string' ? obj.id : String.fromCharCode(97 + i);
-                  return { id, text };
-                }
-                return null;
-              })
-              .filter((x): x is SceneSuggestion => !!x)
-              .slice(0, 3)
-          : [];
-
-        if (suggestions.length === 0) {
-          throw new Error('No usable suggestions in response');
-        }
-
-        const response: SuggestResponse = { suggestions };
-        res.json(response);
-      } catch (err: any) {
-        console.error('[STUDIO_SCENE_SUGGEST] error:', err);
-        res.status(500).json({
-          error: 'Could not generate suggestions — try again or use the brainstorm chat.',
-        });
-      }
+  // ── PUBLIC photo maker (2026-09-04) ─────────────────────────────────
+  // Signed-out users run the same helper before there is a draft to
+  // own: the brief comes inline, the guest gate caps the spend.
+  app.post(
+    '/api/photo/scene-suggestions',
+    async (req: Request, res: Response) => {
+      if (!(await requireGuestMaker('scene')(req, res))) return;
+      if (!openai) return res.status(503).json({ error: 'OpenAI not configured' });
+      const parsed = guestRequestSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Invalid request body' });
+      const b = parsed.data;
+      await respondWithScenes(res, {
+        recipientName: b.recipientName.trim(), occasion: b.occasion.trim(),
+        brief: b.brief, likeThis: b.likeThis, photoMode: b.photoMode,
+      });
     },
   );
 }

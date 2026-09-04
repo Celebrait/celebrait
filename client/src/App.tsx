@@ -85,6 +85,7 @@ const AddressBookFormPage = lazy(() =>
   import("@/pages/studio-address-book-form"),
 );
 const StudioRemindersPage = lazy(() => import("@/pages/studio-reminders"));
+const PhotoMakerPage = lazy(() => import('@/pages/photo-maker'));
 const NewCardPage = lazy(() =>
   import("@/pages/card-maker").then((m) => ({ default: m.NewCardPage })),
 );
@@ -322,6 +323,9 @@ function Router() {
           <Route path="/door" component={DoorwayPage} />
           <Route path="/door2" component={DoorwayBPage} />
           <Route path="/make" component={MakePage} />
+          {/* The PUBLIC photo maker (2026-09-04): recipient → photo →
+              scene → front text signed out; sign-up at Generate. */}
+          <Route path="/photo/make" component={PhotoMakerPage} />
           <Route path="/buy/:cardId" component={BuyPage} />
           <Route path="/order/:orderId" component={OrderStatusPage} />
           <Route path="/checkout/dev-confirm">

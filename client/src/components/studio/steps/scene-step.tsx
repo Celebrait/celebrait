@@ -68,6 +68,10 @@ interface SceneStepProps {
    *  /api/studio/scene-suggestions, which needs to validate ownership
    *  + read recipient/occasion/photo context server-side. */
   cardId?: number;
+  /** The public photo maker (2026-09-04): no draft yet, so the helper
+   *  takes the brief inline via the guest-capped route, and the
+   *  brainstorm chat (signed-in only) stays hidden. */
+  guest?: boolean;
 }
 
 interface SceneSuggestion {
@@ -140,7 +144,7 @@ function useTypewriter(phrases: string[], active: boolean): string {
   return text;
 }
 
-export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
+export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
   const presetSet = OCCASION_PRESETS[occasion] ?? OCCASION_PRESETS.other;
 
@@ -233,12 +237,20 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
      *  scene instead of retyping their brief. Steering by pointing is the
      *  conversational half of this panel. */
     mutationFn: async (likeThis?: string) => {
-      if (!cardId) throw new Error('Card not ready');
-      const r = await apiRequest('POST', '/api/studio/scene-suggestions', {
-        cardId,
-        brief: brief.trim() || undefined,
-        likeThis: likeThis || undefined,
-      });
+      if (!cardId && !guest) throw new Error('Card not ready');
+      const r = guest
+        ? await apiRequest('POST', '/api/photo/scene-suggestions', {
+            recipientName: state.recipient?.name?.trim() ?? '',
+            occasion: state.recipient?.occasion?.trim() ?? '',
+            photoMode: state.photos?.mode,
+            brief: brief.trim() || undefined,
+            likeThis: likeThis || undefined,
+          })
+        : await apiRequest('POST', '/api/studio/scene-suggestions', {
+            cardId,
+            brief: brief.trim() || undefined,
+            likeThis: likeThis || undefined,
+          });
       return (await r.json()) as { suggestions: SceneSuggestion[] };
     },
     onSuccess: (data) => {
@@ -295,7 +307,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
   /** Suggest button / Enter in the brief. Opens the picker; only spends
    *  a set when there's nothing to show yet. */
   const openIdeas = () => {
-    if (!cardId || busy) return;
+    if ((!cardId && !guest) || busy) return;
     const briefChanged = brief.trim() !== (lastBriefRef.current ?? '');
     if (suggestions.length === 0 || briefChanged) {
       suggestMutation.mutate(undefined);
@@ -488,7 +500,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             <Button
               type="button"
               onClick={openIdeas}
-              disabled={busy || !cardId}
+              disabled={busy || (!cardId && !guest)}
               className="shrink-0 h-10 px-4 bg-brand-dark hover:bg-brand text-brand-foreground font-semibold shadow-sm w-full sm:w-auto"
               data-testid="btn-scene-suggest-submit"
             >
@@ -549,6 +561,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             </span>
           </button>
         )}
+{!guest && (
         <button
           type="button"
           onClick={() => {
@@ -574,6 +587,7 @@ export function SceneStep({ state, onChange, cardId }: SceneStepProps) {
             </span>
           </span>
         </button>
+        )}
       </div>
 
       {/* ── Your scene ─────────────────────────────────────────────

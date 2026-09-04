@@ -339,18 +339,12 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
       Make a card — it's free
     </Link>
   ) : (
-    <button
-      type="button"
-      onClick={() =>
-        window.dispatchEvent(
-          new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
-        )
-      }
-      className={cls}
-      data-testid="keeper-cta"
-    >
-      Make a card — your first one's on us
-    </button>
+    /* Signed out → the PUBLIC photo maker (2026-09-04): start with the
+       photo now, sign up at Generate. The 3-dates offer still lives on
+       the ticker + the claim flow. */
+    <Link href="/photo/make" className={cls} data-testid="keeper-cta">
+      Make a card — free to start
+    </Link>
   );
 }
 

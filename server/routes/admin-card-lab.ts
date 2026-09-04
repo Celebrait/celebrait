@@ -141,9 +141,12 @@ async function persistResearchRender(req: Request, frontText: string | undefined
  *  In-memory counters, reset on deploy — acceptable for launch; the
  *  numbers live here so they can be tuned without a schema. */
 const guestCounts = new Map<string, { day: string; n: number }>();
-const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12 };
-const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40 };
-const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800 };
+// 'assess' + 'scene' (2026-09-04): the PUBLIC photo maker runs the
+// likeness check and the scene helper before sign-up. Both cost a
+// vision/LLM call each; a guest gets a handful, a user plenty.
+const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12, assess: 10, scene: 8 };
+const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40, assess: 40, scene: 30 };
+const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800, assess: 600, scene: 500 };
 const bump = (key: string, cap: number): boolean => {
   const day = new Date().toISOString().slice(0, 10);
   const c = guestCounts.get(key);

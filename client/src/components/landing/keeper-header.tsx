@@ -37,6 +37,9 @@ export function KeeperHeader() {
   // page, which moved from / to /photo when the gate arrived (2026-09-03).
   const onPhotoLp = location === '/photo' || location === '/keeper';
   const onGate = location === '/';
+  // On the public photo maker the visitor is already making a card —
+  // the header verb would only pull them out of it.
+  const onPhotoMaker = location === '/photo/make';
   const jump = (id: string) => {
     if (onPhotoLp) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -98,7 +101,7 @@ export function KeeperHeader() {
                 {/* The header verb follows the page: on the photo landing
                     page it starts the photo route (sign in → studio); anywhere
                     else it goes to the three-card builder. */}
-                {onGate ? (
+                {onPhotoMaker ? null : onGate ? (
                   /* On the gate the header must not answer the page's own
                      question — it just brings the two doors into view. */
                   <button
@@ -109,13 +112,17 @@ export function KeeperHeader() {
                     Make a card
                   </button>
                 ) : onPhotoLp ? (
-                  <button
-                    type="button"
-                    onClick={() => openAuth('/studio/new-card')}
-                    className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
-                  >
-                    Make a card
-                  </button>
+                  /* Signed out on the photo page → the PUBLIC photo maker
+                     (2026-09-04): start without an account, sign up at
+                     Generate. */
+                  <Link href="/photo/make">
+                    <button
+                      type="button"
+                      className="h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5"
+                    >
+                      Make a card
+                    </button>
+                  </Link>
                 ) : (
                   <Link href="/make">
                     <button

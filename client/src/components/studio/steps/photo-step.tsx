@@ -66,6 +66,7 @@ import {
 } from '@/lib/face-count';
 import type { CardDraftState, PhotoMode } from '@shared/schema';
 import type { CropBounds, Photo } from '@shared/models/photos';
+import { useIsGuestPhotos, useGuestPhotos, guestUpload, photoThumbSrc } from '@/lib/guest-photos';
 import { likenessNoteForSet, analysisBlocking } from '@/lib/photo-likeness';
 
 interface PhotoStepProps {
@@ -211,9 +212,15 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Signed-out (the public photo maker, 2026-09-04): rows come from the
+  // browser-side guest store instead of the user's library. Same shape,
+  // same gate, same likeness notes — see client/src/lib/guest-photos.ts.
+  const guest = useIsGuestPhotos();
+  const guestRows = useGuestPhotos();
   // Library state — only fetched once a photo picker would be shown.
-  const { data: photos } = useQuery<Photo[]>({
+  const { data: serverPhotos } = useQuery<Photo[]>({
     queryKey: ['/api/user/photos'],
+    enabled: !guest,
     // Poll briefly after an upload: the likeness assessment lands
     // server-side a few seconds behind the upload response, and the
     // point-of-upload nudge (Kevin 2026-07-31) is only useful if the
@@ -229,6 +236,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     refetchInterval: (query) =>
       (query.state.data ?? []).some((p) => p.analyzedAt == null) ? 2500 : false,
   });
+  const photos = guest ? guestRows : serverPhotos;
   const hasLibrary = (photos?.length ?? 0) > 0;
 
   // Mode + selected photos come from the draft state; legacy drafts that
@@ -739,25 +747,32 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       try {
         // Upload ONLY. Face detection used to share this Promise.all —
         // see scheduleFaceHint for why that cost 7-10s of frozen UI.
-        const photoRes = await apiRequest('POST', '/api/photos/upload', {
-          imageBase64: base64ToUpload,
-          filename: filenameToUpload,
-          cropBounds: bounds,
-        });
-        const photo = (await photoRes.json()) as Photo;
-        // Insert the new photo into the react-query cache synchronously
-        // so `selectedPhotos = selectedIds.map(id => photos.find(...))`
-        // can resolve the new id on the same render we remove the ghost
-        // and append to photoIds. Without this the tiles flash between
-        // N → N-1 → N while the background refetch runs (cache-race
-        // flicker). Invalidation below still runs — it'll noop when the
-        // refetch returns the same data.
-        queryClient.setQueryData<Photo[]>(['/api/user/photos'], (prev) => {
-          if (!prev) return [photo];
-          if (prev.some((p) => p.id === photo.id)) return prev;
-          return [...prev, photo];
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/user/photos'] });
+        let photo: Photo;
+        if (guest) {
+          // Guest: the bytes stay in this browser; the verdict comes
+          // from the stateless assess endpoint (see guest-photos.ts).
+          photo = await guestUpload({ imageBase64: base64ToUpload, filename: filenameToUpload, cropBounds: bounds });
+        } else {
+          const photoRes = await apiRequest('POST', '/api/photos/upload', {
+            imageBase64: base64ToUpload,
+            filename: filenameToUpload,
+            cropBounds: bounds,
+          });
+          photo = (await photoRes.json()) as Photo;
+          // Insert the new photo into the react-query cache synchronously
+          // so `selectedPhotos = selectedIds.map(id => photos.find(...))`
+          // can resolve the new id on the same render we remove the ghost
+          // and append to photoIds. Without this the tiles flash between
+          // N → N-1 → N while the background refetch runs (cache-race
+          // flicker). Invalidation below still runs — it'll noop when the
+          // refetch returns the same data.
+          queryClient.setQueryData<Photo[]>(['/api/user/photos'], (prev) => {
+            if (!prev) return [photo];
+            if (prev.some((p) => p.id === photo.id)) return prev;
+            return [...prev, photo];
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/user/photos'] });
+        }
 
         // If the user bailed (Start over / mode switch) while this was
         // in flight, skip the commit — the ghost was already removed
@@ -807,7 +822,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             window.clearTimeout(t);
             finish();
           };
-          img.src = `/images/${photo.thumbnailPath}`;
+          img.src = photoThumbSrc(photo);
         });
         setPending((p) => p.filter((pp) => pp.tempId !== tempId));
       } catch (err: any) {
@@ -1023,7 +1038,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             <PhotoTile
               key={`real-${p.id}`}
               kind="real"
-              src={`/images/${p.thumbnailPath}`}
+              src={photoThumbSrc(p)}
               alt={p.label ?? `Photo ${idx + 1}`}
               sizeClass={tileSizeClass}
               naturalAspect={isNaturalAspect}
