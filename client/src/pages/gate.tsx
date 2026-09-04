@@ -86,7 +86,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
         <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${chipCls}`}>{chip.label}</span>
       </div>
 
-      <h2 className="mt-3 ![font-family:inherit] text-[22px] font-bold leading-[1.1] tracking-[-0.01em] text-keeper-ink sm:mt-4 sm:text-[26px]">
+      <h2 className="mt-3 font-display text-[23px] font-bold leading-[1.1] tracking-[-0.01em] text-keeper-ink sm:mt-4 sm:text-[27px]">
         <Link href={href} onClick={stop} className="outline-none focus-visible:underline">{title}</Link>
       </h2>
       <p className="mt-1 text-[14px] leading-snug text-keeper-body sm:text-[15px]">{line}</p>
@@ -121,20 +121,18 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
         {proof.label} →
       </Link>
 
-      {/* The small print, folded: a studio-style disclosure row. */}
+      {/* The small print, folded: a quiet text link, and a soft panel of
+          plain sentences when it opens — no caps labels, no box. */}
       <details onClick={stop} className="group/d mt-3">
-        <summary className={`flex cursor-pointer list-none items-center justify-between rounded-lg border px-3 py-2 text-[12.5px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink [&::-webkit-details-marker]:hidden ${pill}`}>
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[12.5px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink [&::-webkit-details-marker]:hidden">
           The small print
-          <ChevronDown className="h-4 w-4 transition-transform group-open/d:rotate-180" />
+          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/d:rotate-180" />
         </summary>
-        <dl className="mt-2 space-y-2 px-1">
+        <div className={`mt-2 space-y-2 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed text-keeper-body ${lead ? 'bg-white/70' : 'bg-keeper-paper'}`}>
           {fine.map(([k, v]) => (
-            <div key={k} className="grid grid-cols-[4.5rem_1fr] gap-x-3">
-              <dt className="pt-[3px] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{k}</dt>
-              <dd className="text-[13px] leading-relaxed text-keeper-body">{v}</dd>
-            </div>
+            <p key={k}><span className="font-semibold text-keeper-ink">{k}</span> {v}</p>
           ))}
-        </dl>
+        </div>
       </details>
     </div>
   );
@@ -173,21 +171,22 @@ export default function GatePage() {
               icon={Sparkles}
               chip={{ label: 'Quickest', tone: 'ready' }}
               title="The casual browser"
-              line="I'll tell you about them. Seven quick questions, three cards, I pick one."
-              time="~2 min"
-              effort="low effort"
+              line="I know them well. I just don't want to spend an hour on it."
+              time="2 minutes"
+              effort="easy"
               price={maker}
               points={[
-                'Who, occasion, age, one thing they love.',
-                'Three fronts to pick from, inside to match.',
-                'Quicker model, three at once — costs less.',
+                'Tell us who they are and what they love.',
+                'We draw three cards. You pick the one.',
+                'Not quite right? Roll again, free.',
               ]}
               cta="Tell us about them"
               proof={{ href: '/create', label: 'See how it works' }}
               fine={[
-                ['Can', 'Roll again with a new vibe. Change the details. Add their photo after you\'ve picked and we\'ll draw them in.'],
-                ['Can\'t', 'Direct the scene yourself — your answers steer, we draw. Logos, brands or famous faces.'],
-                ['Account', `None needed to see your three. Ready-made cards off the rack from ${rack}.`],
+                ['You can', 'roll again with a new vibe, change the details, or add their photo once you\'ve picked and we\'ll draw them in.'],
+                ['You can\'t', 'direct the scene yourself — your answers steer, we draw. No logos, brands or famous faces.'],
+                ['Drawn by', 'our quicker image model, three at once. That\'s why it costs less.'],
+                ['No account', `needed to see your three. Ready-made cards from ${rack} too.`],
               ]}
             />
             <Door
@@ -196,21 +195,22 @@ export default function GatePage() {
               icon={Camera}
               chip={{ label: 'Pro choice', tone: 'brand' }}
               title="The director"
-              line="I've got a photo of them. They become the artwork, in a scene I direct."
-              time="~10 min"
-              effort="more effort"
+              line="I've got a photo of them, and I know exactly where I want to put them."
+              time="10 minutes"
+              effort="worth it"
               price={photo}
               points={[
-                'One clear face photo. No sign-in to start.',
-                'One card, them drawn into your scene.',
-                'Bigger image model, full print quality.',
+                'Bring one clear photo of their face.',
+                'Describe the scene. We draw them into it.',
+                'One card, made properly, print quality.',
               ]}
               cta="Start with a photo"
               proof={{ href: '/photo#proof', label: 'See the proof first' }}
               fine={[
-                ['Can', 'Any scene in your own words. More than one person. Start again if it isn\'t quite them. You write the inside; we set the type.'],
-                ['Can\'t', 'Blurry photos (we check the likeness first and tell you straight). Logos, brands or famous faces.'],
-                ['Account', 'Free, and only needed when you press Generate — start without one.'],
+                ['You can', 'describe any scene in your own words, put more than one person in, and start again if it isn\'t quite them. You write the inside; we set the type.'],
+                ['You can\'t', 'use a blurry photo (we check the likeness first and tell you straight), or ask for logos, brands or famous faces.'],
+                ['Drawn by', 'our bigger image model, one card at a time, at full print quality. Slower and dearer to run — that\'s the price difference.'],
+                ['No account', 'to start. You\'ll make one, free, when you press Generate.'],
               ]}
             />
           </div>
