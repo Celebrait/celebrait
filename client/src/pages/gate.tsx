@@ -176,9 +176,9 @@ export default function GatePage() {
               effort="easy"
               price={maker}
               points={[
-                'Tell us who they are and what they love.',
-                'We draw three cards. You pick the one.',
-                'Not quite right? Roll again, free.',
+                'Tell us who they are and what they love',
+                'We design three cards. You pick the one.',
+                'Printed and posted (or digital if you prefer)',
               ]}
               cta="Tell us about them"
               proof={{ href: '/create', label: 'See how it works' }}
