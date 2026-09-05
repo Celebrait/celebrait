@@ -26,7 +26,9 @@
 // minute). The maker's chosen front is NOT re-rendered at high, so we
 // don't say it is.
 
-import { type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import { ShimmerWord } from '@/pages/landing-keeper';
 import { Link, useLocation } from 'wouter';
 import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, RefreshCw, PenLine, Zap, LockOpen, Users, ScanFace, Gem } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -142,8 +144,23 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
   );
 }
 
+/** The things people say when they settle. Rotates in the headline. */
+const SETTLING = ['“that one will do”', '“I wonder if they’ll like it”', '“sighs”'];
+
 export default function GatePage() {
   useSeo('/');
+  const reduced = useReducedMotion();
+  const [quote, setQuote] = useState(0);
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    if (reduced) return;
+    const t = window.setInterval(() => {
+      if (document.hidden) return;
+      setVisible(false);
+      window.setTimeout(() => { setQuote((q) => (q + 1) % SETTLING.length); setVisible(true); }, 200);
+    }, 2400);
+    return () => window.clearInterval(t);
+  }, [reduced]);
   // The photo door goes straight into the maker: the public one when
   // signed out, the studio's when signed in.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -159,12 +176,25 @@ export default function GatePage() {
         <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-4xl text-left">
             <p className={EYEBROW}>Unbinnable Greetings Cards</p>
-            <h1 className={`mt-4 max-w-[18ch] text-[clamp(28px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
-              Before we create, what kind of card buyer are you?
+            {/* "Stop settling for" + a rotating quote in the shimmer
+                (Aidan 2026-09-04). Every phrase is stacked invisibly in
+                the same grid cell so the block keeps the tallest
+                phrase's height — the doors below never move. */}
+            <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
+              Stop settling for
+              <br />
+              <span className="relative inline-grid align-baseline">
+                {SETTLING.map((q) => (
+                  <span key={q} aria-hidden className="invisible col-start-1 row-start-1 inline-block px-1">{q}</span>
+                ))}
+                <span className="col-start-1 row-start-1 transition-opacity duration-200 [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]" style={{ opacity: visible ? 1 : 0 }}>
+                  <ShimmerWord reduced={!!reduced}>{SETTLING[quote]}</ShimmerWord>
+                </span>
+              </span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Celebrait offers two ways to design a greetings card that's unique to them.
-              Pick one<span className="hidden sm:inline"> (you can always switch later once you know what we're about)</span>.
+              Before we create one, what kind of card buyer are you?
             </p>
           </div>
 
