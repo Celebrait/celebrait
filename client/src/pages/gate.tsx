@@ -27,8 +27,6 @@
 // don't say it is.
 
 import { type MouseEvent } from 'react';
-import { useReducedMotion } from 'framer-motion';
-import { ShimmerWord } from '@/pages/landing-keeper';
 import { Link, useLocation } from 'wouter';
 import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, RefreshCw, PenLine, Zap, LockOpen, Users, ScanFace, Gem } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -146,7 +144,6 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
 
 export default function GatePage() {
   useSeo('/');
-  const reduced = useReducedMotion();
   // The photo door goes straight into the maker: the public one when
   // signed out, the studio's when signed in.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -170,11 +167,8 @@ export default function GatePage() {
               <span className="font-medium italic">“that one will do”</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
-              Celebrait offers two ways to design a greetings card that's unique to them.
-              Before we create one…
-              {/* The question on its own line, every size (the shimmer is an
-                  inline-block, so it would drop unevenly otherwise). */}
-              <span className="-ml-1 block font-semibold text-keeper-ink"><ShimmerWord reduced={!!reduced}>what kind of card buyer are you?</ShimmerWord></span>
+              <span className="font-semibold text-keeper-gold">Celebrait</span> offers two ways to design a greetings card that's unique to them.
+              Before we create one… what kind of card buyer are you?
             </p>
           </div>
 
