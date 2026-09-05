@@ -167,7 +167,7 @@ export default function GatePage() {
               <span className="font-medium italic">“that one will do”</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
-              <span className="font-semibold text-keeper-gold">Celebrait</span> offers two ways to design a greetings card that's unique to them.
+              Celebrait offers two ways to design a greetings card that's unique to them.
               Before we create one… what kind of card buyer are you?
             </p>
           </div>
