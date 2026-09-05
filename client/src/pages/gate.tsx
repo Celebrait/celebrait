@@ -145,7 +145,12 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
 }
 
 /** The things people say when they settle. Rotates in the headline. */
-const SETTLING = ['“that one will do”', '“I wonder if they’ll like it”', '“sighs”'];
+const SETTLING: Array<{ text: string; muted?: boolean }> = [
+  { text: '“that one will do”' },
+  { text: '“I wonder if they’ll like it”' },
+  // No quotes, and a faded ink instead of the shimmer — a sigh, not a line.
+  { text: 'sighs', muted: true },
+];
 
 export default function GatePage() {
   useSeo('/');
@@ -185,10 +190,12 @@ export default function GatePage() {
               <br />
               <span className="relative inline-grid align-baseline">
                 {SETTLING.map((q) => (
-                  <span key={q} aria-hidden className="invisible col-start-1 row-start-1 inline-block px-1">{q}</span>
+                  <span key={q.text} aria-hidden className="invisible col-start-1 row-start-1 inline-block px-1">{q.text}</span>
                 ))}
-                <span className="col-start-1 row-start-1 transition-opacity duration-200 [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]" style={{ opacity: visible ? 1 : 0 }}>
-                  <ShimmerWord reduced={!!reduced}>{SETTLING[quote]}</ShimmerWord>
+                <span className={`col-start-1 row-start-1 transition-opacity duration-200 ${SETTLING[quote].muted ? '' : '[filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]'}`} style={{ opacity: visible ? 1 : 0 }}>
+                  {SETTLING[quote].muted
+                    ? <span className="inline-block px-1 text-keeper-ink/45">{SETTLING[quote].text}</span>
+                    : <ShimmerWord reduced={!!reduced}>{SETTLING[quote].text}</ShimmerWord>}
                 </span>
               </span>
             </h1>
