@@ -26,7 +26,7 @@
 // minute). The maker's chosen front is NOT re-rendered at high, so we
 // don't say it is.
 
-import { useEffect, useState, type MouseEvent } from 'react';
+import { type MouseEvent } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { ShimmerWord } from '@/pages/landing-keeper';
 import { Link, useLocation } from 'wouter';
@@ -144,28 +144,9 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
   );
 }
 
-/** The things people say when they settle. Rotates in the headline. */
-const SETTLING: Array<{ text: string; muted?: boolean }> = [
-  { text: '“that one will do”' },
-  { text: '“I wonder if they’ll like it”' },
-  // No quotes, and a faded ink instead of the shimmer — a sigh, not a line.
-  { text: '“sighs”', muted: true },
-];
-
 export default function GatePage() {
   useSeo('/');
   const reduced = useReducedMotion();
-  const [quote, setQuote] = useState(0);
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    if (reduced) return;
-    const t = window.setInterval(() => {
-      if (document.hidden) return;
-      setVisible(false);
-      window.setTimeout(() => { setQuote((q) => (q + 1) % SETTLING.length); setVisible(true); }, 200);
-    }, 2400);
-    return () => window.clearInterval(t);
-  }, [reduced]);
   // The photo door goes straight into the maker: the public one when
   // signed out, the studio's when signed in.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -181,22 +162,12 @@ export default function GatePage() {
         <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-4xl text-left">
             <p className={EYEBROW}>Unbinnable Greetings Cards</p>
-            {/* "Stop settling for" + a rotating quote in the shimmer
-                (Aidan 2026-09-04). Every phrase is stacked invisibly in
-                the same grid cell so the block keeps the tallest
-                phrase's height — the doors below never move. */}
+            {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
+                rotation needed). Bold ink, then italic medium ink. */}
             <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
               Stop settling for
               <br />
-              <span className="relative inline-grid align-baseline font-medium italic">
-                {SETTLING.map((q) => (
-                  <span key={q.text} aria-hidden className="invisible col-start-1 row-start-1 inline-block px-1">{q.text}</span>
-                ))}
-                {/* Plain ink — the shimmer lives on the question below, not here. */}
-                <span className={`col-start-1 row-start-1 inline-block px-1 transition-opacity duration-200 ${SETTLING[quote].muted ? 'text-keeper-ink/45' : ''}`} style={{ opacity: visible ? 1 : 0 }}>
-                  {SETTLING[quote].text}
-                </span>
-              </span>
+              <span className="font-medium italic">“that one will do”</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Celebrait offers two ways to design a greetings card that's unique to them.
