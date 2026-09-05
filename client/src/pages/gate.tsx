@@ -149,7 +149,7 @@ const SETTLING: Array<{ text: string; muted?: boolean }> = [
   { text: '“that one will do”' },
   { text: '“I wonder if they’ll like it”' },
   // No quotes, and a faded ink instead of the shimmer — a sigh, not a line.
-  { text: 'sighs', muted: true },
+  { text: '“sighs”', muted: true },
 ];
 
 export default function GatePage() {
@@ -188,20 +188,22 @@ export default function GatePage() {
             <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
               Stop settling for
               <br />
-              <span className="relative inline-grid align-baseline">
+              <span className="relative inline-grid align-baseline font-medium italic">
                 {SETTLING.map((q) => (
                   <span key={q.text} aria-hidden className="invisible col-start-1 row-start-1 inline-block px-1">{q.text}</span>
                 ))}
-                <span className={`col-start-1 row-start-1 transition-opacity duration-200 ${SETTLING[quote].muted ? '' : '[filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]'}`} style={{ opacity: visible ? 1 : 0 }}>
-                  {SETTLING[quote].muted
-                    ? <span className="inline-block px-1 text-keeper-ink/45">{SETTLING[quote].text}</span>
-                    : <ShimmerWord reduced={!!reduced}>{SETTLING[quote].text}</ShimmerWord>}
+                {/* Plain ink — the shimmer lives on the question below, not here. */}
+                <span className={`col-start-1 row-start-1 inline-block px-1 transition-opacity duration-200 ${SETTLING[quote].muted ? 'text-keeper-ink/45' : ''}`} style={{ opacity: visible ? 1 : 0 }}>
+                  {SETTLING[quote].text}
                 </span>
               </span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Celebrait offers two ways to design a greetings card that's unique to them.
-              Before we create one, what kind of card buyer are you?
+              Before we create one…
+              {/* The question on its own line, every size (the shimmer is an
+                  inline-block, so it would drop unevenly otherwise). */}
+              <span className="-ml-1 block font-semibold text-keeper-ink"><ShimmerWord reduced={!!reduced}>what kind of card buyer are you?</ShimmerWord></span>
             </p>
           </div>
 
