@@ -30,9 +30,9 @@ const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
   funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
   warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
   rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'One of each', sub: 'three cards, three vibes — you choose after' },
+  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes — you choose after' },
 };
-const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
+const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
 export const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
@@ -176,8 +176,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const isLast = idx === questions.length - 1;
   const isKid = isKidBrief(brief);
   const set = (patch: Partial<Brief>) => onChange({ ...brief, ...patch });
-  const canNext = question === 'who' ? brief.who.trim().length > 0 : question === 'occasion' ? isBriefComplete(brief) : true;
-  const optionalQ = question === 'age' || question === 'interest' || question === 'dislike' || question === 'name';
+  const canNext = question === 'who' ? brief.who.trim().length > 0 : question === 'occasion' ? isBriefComplete(brief) : question === 'interest' ? brief.thing.trim().length > 0 : true;
+  const optionalQ = question === 'age' || question === 'dislike' || question === 'name';
   // The joke prompt: once, on the interest step's Next, only when the vibe
   // can carry a joke and they haven't given us a dislike already.
   const [jokeAsk, setJokeAsk] = useState(false);
@@ -201,7 +201,6 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
     </button>
   );
   const optionalTag = <span className="ml-2 align-middle text-xs font-normal text-keeper-meta">optional</span>;
-  const occasionWord = occasionLabelFor(brief).toLowerCase();
 
   return (
     <div className={compact ? 'min-h-[300px] flex flex-col' : 'flex flex-col'}>
@@ -209,8 +208,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'who' && (
           <>
             <p className={s.h1}>{skin === 'landing' ? "Start here — who's it for?" : "Right — who's the card for?"}</p>
-            <p className={`${s.sub} mb-4`}>{skin === 'landing' ? 'Tap one. We write and illustrate three original cards for them in about a minute. Pick your favourite, add your words, and we print and post it.' : 'Three original cards, written and drawn for one person.'}</p>
-            <div className="flex flex-wrap gap-2">
+            {skin === 'studio' && <p className={`${s.sub} mb-4`}>Three original cards, written and drawn for one person.</p>}
+            <div className="flex flex-wrap gap-2 mt-4">
               {RECIPIENTS.map((r) => (
                 <button key={r.label} type="button" className={s.chip(brief.who === r.label)} onClick={() => { const b = { ...brief, who: r.label, gender: r.implies ?? null }; onChange(b); if (!AMBIGUOUS.has(r.label)) setQIndex(idx + 1); }}>{r.label}</button>
               ))}
@@ -228,8 +227,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'occasion' && (
           <>
             <p className={s.h1}>What's the celebration{brief.who && brief.who !== 'Someone else' ? ` for ${brief.who}` : ''}?</p>
-            <p className={`${s.sub} mb-4`}>The occasion shapes everything — the jokes, the look, the words inside.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
               {PRIMARY_OCCASIONS.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => { set({ occasion: o }); setQIndex(idx + 1); }))}
             </div>
             {!showMoreRow && (
@@ -253,12 +251,12 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {brief.occasion === 'birthday' ? (
               <>
                 <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'} turning?{optionalTag}</p>
-                <p className={s.sub}>The age does two jobs: it tunes the whole card — the jokes, the references, the look — and if it's a big one (18, 21, 30, 40…) the number itself becomes the star. Skip it and everything stays completely age-free.</p>
+                <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
               </>
             ) : (
               <>
                 <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'}?{optionalTag}</p>
-                <p className={s.sub}>Roughly is fine. It tunes the whole card — the jokes, the references, the look — and under 18 keeps everything kid-safe. Skip it and everything stays completely age-free.</p>
+                <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>
               </>
             )}
             <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
@@ -272,8 +270,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             <div className="space-y-2.5">
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
+                // "One of each" is the escape hatch, not a fourth flavour:
+                // last, after a rule, dashed, no fill.
+                const mix = t === 'mix';
                 return (
-                  <button key={t} type="button" disabled={off} onClick={() => { set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(brief.vibe === t)} w-full disabled:opacity-40`}>
+                  <button key={t} type="button" disabled={off} onClick={() => { set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(brief.vibe === t)} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
                     <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>
                     {brief.vibe === t && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
@@ -285,17 +286,16 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'interest' && (
           <>
-            <p className={s.h1}>What's one thing you want the card to mention?{optionalTag}</p>
-            <p className={s.sub}>A passion, a place, a plan, a party theme, a claim to fame, a running joke — whatever you'd bring up first about them. The more specific, the better the card.</p>
-            <Input value={brief.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 80) })} placeholder={placeholder} className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
-            <p className={s.helper}>Or skip it — we'll make it a beautiful {occasionWord} card, no homework.</p>
+            <p className={s.h1}>What's their thing?</p>
+            <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>
+            <Input value={brief.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 80) })} placeholder={placeholder} className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter' && canNext) next(); }} />
           </>
         )}
 
         {question === 'name' && (
           <>
-            <p className={s.h1}>Want their name on the front?{optionalTag}</p>
-            <p className={s.sub}>We'll design it in properly — one of the cards will make it the artwork.</p>
+            <p className={s.h1}>Shall we put their name on the front?{optionalTag}</p>
+            <p className={s.sub}>Give us the name and we'll work it in — on one of the cards it becomes the artwork itself.</p>
             <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
             {brief.name.trim() && <p className={s.warn}>It'll be printed exactly as you type it — worth a double-check.</p>}
             <p className={`${s.helper} mt-4`}>Got a photo of them handy? After you pick your favourite, we can put them right in the card.</p>
