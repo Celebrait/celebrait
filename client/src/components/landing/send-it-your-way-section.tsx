@@ -18,8 +18,8 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { Truck, Sparkles, Zap, MailOpen, Globe } from 'lucide-react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
+import { Truck, Sparkles, Package, MailOpen, Globe } from 'lucide-react';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
 
 /** Auto-looping envelope-opening mock. Just CSS transforms — full
  *  Lottie/three.js for one section is overkill. The animation runs on
@@ -120,18 +120,18 @@ interface PrintFeature {
 const PRINT_FEATURES: PrintFeature[] = [
   {
     icon: Sparkles,
-    title: 'Premium 350gsm card',
-    body: 'Uncoated, archival-quality stock. Feels heavier than the supermarket norm.',
+    title: 'Premium 280gsm gloss card',
+    body: 'Gloss-coated art card, HP Indigo digital print — crisp, vivid colour.',
+  },
+  {
+    icon: Package,
+    title: 'Printed to order in up to 72 hrs',
+    body: 'Every card is made just for you before it ships — no shelf, no stock.',
   },
   {
     icon: Truck,
-    title: 'Standard delivery, 3–5 days',
-    body: 'Tracked, posted from London. Kraft envelope, no plastic wrap.',
-  },
-  {
-    icon: Zap,
-    title: 'Overnight option',
-    body: 'Order before 2pm — on the doorstep next day.',
+    title: 'Then posted, tracked',
+    body: 'Royal Mail 24 as standard, or Express & Overnight couriers to speed up the post.',
   },
   {
     icon: Globe,
@@ -149,13 +149,13 @@ export function SendItYourWaySection() {
             Send it your way
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold text-ink tracking-tight leading-[1.05]">
-            Digital, printed,
+            Printed, posted,
             <br />
-            or both.
+            and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A free private link they can open in any browser, an animated card
-            posted in 350gsm stock, or both. You choose.
+            A premium 280gsm gloss card, posted anywhere in the UK — and every
+            one comes with a free private link to share too.
           </p>
         </div>
 
@@ -169,7 +169,7 @@ export function SendItYourWaySection() {
           >
             <EnvelopeMock />
             <h3 className="text-2xl font-semibold text-ink tracking-tight mt-8 mb-3">
-              A private link, animated.
+              A link to share, too.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed">
               Recipients open the card in any browser — no app, no signup.
@@ -190,8 +190,8 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              From £7.99 — printed on premium uncoated stock, posted in a kraft
-              envelope.
+              From £4.99 plus postage — HP Indigo printed on 280gsm gloss card,
+              posted in a kraft envelope.
             </p>
 
             <div className="space-y-5">

@@ -53,11 +53,6 @@ export function FrontStep({ state, onChange }: FrontStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <p className="text-sm text-stone-600">
-        A short line that sits with the scene — sometimes folded in,
-        sometimes set above. Keep it brief; a few words read best.
-      </p>
-
       {isNone ? (
         <NoTextPanel onUndo={switchToWrite} />
       ) : (
@@ -85,10 +80,10 @@ function SkipFrontTextCard({ onPick }: { onPick: () => void }) {
         <FileText className="w-4 h-4" strokeWidth={1.75} />
       </span>
       <div>
-        <div className="text-sm font-medium text-ink">
+        <div className="text-sm font-medium text-keeper-ink">
           Skip the front text
         </div>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-keeper-meta mt-0.5">
           No headline — the scene speaks for itself.
         </p>
       </div>
@@ -108,10 +103,10 @@ function NoTextPanel({ onUndo }: { onUndo: () => void }) {
           <Check className="w-4 h-4" strokeWidth={3} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">
+          <p className="text-sm font-semibold text-keeper-ink">
             We'll leave the front text-free
           </p>
-          <p className="text-xs text-stone-600 mt-0.5">
+          <p className="text-xs text-keeper-body mt-0.5">
             The scene stands alone — no headline, no greeting overlaid
             on the image.
           </p>
@@ -184,16 +179,16 @@ function WriteField({
 
   return (
     <div
-      className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm"
+      className="bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm"
       data-testid="front-write-field"
     >
       <Label
         htmlFor="front-text"
-        className="flex items-center gap-1.5 text-sm text-ink mb-2"
+        className="flex items-center gap-1.5 text-sm text-keeper-ink mb-2"
       >
         <Type className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
         Front headline
-        <span className="ml-1 text-xs text-stone-400 font-normal">optional</span>
+        <span className="ml-1 text-xs text-keeper-meta font-normal">optional</span>
       </Label>
       <Input
         ref={inputRef}
@@ -206,7 +201,7 @@ function WriteField({
         data-testid="input-front-text"
       />
       <div className="flex items-center justify-between mt-1">
-        <p className="text-[11px] text-stone-400">
+        <p className="text-[11px] text-keeper-meta">
           {local.length > 0
             ? `${local.length} characters`
             : defaultText

@@ -28,19 +28,19 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: "What if I don't like the card we generate?",
-    a: 'Regenerate or tweak any part for free until you do — front, inside, scene, style. No card limits while you iterate.',
+    a: "Start again with the same details for a brand-new take — free, as many times as you need before you buy. Every draft is kept, so you can compare and send the one you love.",
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. Premium uncoated 350gsm card, posted in a kraft envelope. £8.99 all-in, including the digital version. Tracked delivery, with overnight available if you order before 2pm.",
+    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From £4.99 plus postage (£4.99 off the shelf, £5.99 made for them, £6.99 from your photo), with a free digital version included. Every card is printed to order — allow up to 72 hours for production — then it's posted tracked, with faster courier options at checkout.",
   },
   {
     q: 'How fast is delivery?',
-    a: 'Standard delivery is 3–5 working days, tracked. Overnight available for £15.99 if you order before 2pm.',
+    a: 'Every card is printed to order, so allow up to 72 hours for production before it ships. Then pick your delivery: Standard (Royal Mail 24, £2.95), Express (Evri Next Day, £8.95) or Overnight (DPD, £13.95). The faster options speed up the postage, not the printing — so we never promise next-day-from-order.',
   },
   {
     q: 'What paper do you print on?',
-    a: 'Premium uncoated 350gsm — heavier than the supermarket standard, with a soft tactile finish. Archival quality so it keeps its colour for years.',
+    a: '280gsm gloss-coated art card, printed on an HP Indigo press for crisp, vivid colour. Sustainably sourced, vegan-friendly, plastic-free and recyclable — right down to the packaging.',
   },
   {
     q: 'Where do you ship to?',
@@ -48,11 +48,11 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How do reminders work?',
-    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and we'll suggest pivoting to digital if you cut it close.",
+    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and because every card is printed to order (up to 72 hours) then posted, those reminders give you the runway to order in good time.",
   },
   {
-    q: 'Can I send the card digitally instead of print?',
-    a: "Yes — every Celebrait comes with a free private link. Recipients open it in any browser (no app, no signup). They watch the envelope animate open, see the card, and can replay it forever.",
+    q: 'Does my card come with a digital version?',
+    a: "Yes — every printed Celebrait includes a free private link to share too. Recipients open it in any browser (no app, no signup), watch the envelope animate open, and can replay it forever.",
   },
   {
     q: 'Is my photo private?',
@@ -62,7 +62,25 @@ const FAQS: FaqEntry[] = [
 
 export function FaqSection() {
   return (
-    <section id="faq" className="relative bg-surface-card py-24 md:py-32">
+    <section id="faq" className="snap-center relative py-24 md:py-32">
+      {/* FAQPage structured data — generated FROM the visible FAQS array
+          so it can never drift from what's on screen (Google requires
+          schema content to match visible content). Rendered client-side;
+          Google's crawler executes JS and reads injected JSON-LD. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((f) => ({
+              '@type': 'Question',
+              name: f.q,
+              acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+          }),
+        }}
+      />
       <div className="max-w-3xl mx-auto px-6 md:px-10">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[11px] uppercase tracking-[0.22em] text-accent-coral-dark font-semibold mb-4">

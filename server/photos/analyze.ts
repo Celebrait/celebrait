@@ -37,13 +37,28 @@
 //   helper handles "no summary" gracefully.
 
 import { GoogleGenAI } from '@google/genai';
+import sharp from 'sharp';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { photos } from '@shared/schema';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
 
 const ANALYSIS_MODEL = 'gemini-2.5-flash';
+
+/** Dimensions of an image buffer; null on decode failure (analysis then
+ *  proceeds without the resolution context — fail-soft like the rest). */
+async function sharpMeta(buf: Buffer): Promise<{ width?: number; height?: number } | null> {
+  try {
+    const m = await sharp(buf).metadata();
+    return { width: m.width, height: m.height };
+  } catch {
+    return null;
+  }
+}
 
 let _client: GoogleGenAI | null = null;
 
@@ -107,6 +122,291 @@ function parseAnalysisJson(raw: string): AnalysisResult | null {
 }
 
 /**
+ * Run the vision pass over raw image bytes. THE single place the model,
+ * prompt and parsing live.
+ *
+ * Extracted so the admin Photo Lab exercises the EXACT path production
+ * uses (2026-07-30). A lab that reimplements the call is worthless the
+ * moment the two drift — and drift is invisible, because both sides
+ * keep "working". Everything that decides the answer is in here;
+ * analyzePhoto adds only persistence and cost logging on top.
+ *
+ * Returns null `result` when the key is missing or the model's JSON
+ * won't parse. Never throws.
+ */
+// ── Likeness assessment ─────────────────────────────────────────────
+// A DIFFERENT question from the summary above, and the one that
+// actually predicts whether a card works: does this photo carry enough
+// clear, undistorted facial information for an image model to rebuild
+// this person in a new scene — wearing a NEW expression?
+//
+// That last clause is the subtle part (Kevin 2026-07-30). Cards are
+// mostly happy, so the model nearly always has to generate a smile the
+// source doesn't contain. It can only extrapolate that from an
+// undistorted baseline. A pout, a tongue out, a wide-open mouth or a
+// squint all deform the very features it would extrapolate FROM, so the
+// generated smile becomes invention rather than derivation — which is
+// exactly when a face stops looking like the person.
+//
+// Deliberately face-level, not image-level. Image dimensions and
+// whole-frame sharpness say almost nothing: a 4000px photo with a
+// 90px head is useless, and a razor-sharp background behind a motion-
+// blurred face scores well while being unusable.
+export interface FaceAssessment {
+  sizeInFrame: 'large' | 'medium' | 'small' | 'tiny';
+  angle: 'front-on' | 'three-quarter' | 'profile' | 'turned-away';
+  eyesVisible: 'both' | 'one' | 'none';
+  occlusions: string[];
+  expression: string;
+  /** True when the expression deforms the features an image model would
+   *  extrapolate a new expression FROM. Neutral and natural smiles are
+   *  low risk; pouting, tongue-out, gurning and squinting are not. */
+  expressionRisk: boolean;
+  lighting: 'even' | 'harsh shadow' | 'strong colour cast' | 'backlit' | 'too dark' | 'blown out';
+  focus: 'sharp' | 'slightly soft' | 'blurred';
+  /** Head height as a % of image height. Preferred over the coarse
+   *  sizeInFrame bucket for the resolution guard. */
+  headHeightPct?: number;
+}
+export interface LikenessAssessment {
+  faces: FaceAssessment[];
+  verdict: 'strong' | 'usable' | 'weak';
+  reason: string;
+  advice: string;
+  /** Roughly how many pixels tall the biggest face is in the ORIGINAL
+   *  file. Populated by the resolution guard below, not the model. */
+  biggestFacePx?: number;
+}
+
+// ── Face size, reported but NOT judged ──────────────────────────────
+// This used to force the verdict to "weak" below ~130px of face. Kevin
+// pushed back and he's right (2026-07-30): his club selfie is small,
+// low-res, harshly colour-cast AND pouting, and it still produced good
+// likeness on half its rolls. Face pixels are simply not the binding
+// constraint these models operate under — they lift an identity
+// embedding, not per-pixel detail.
+//
+// It was also redundant. Before the guard existed the model already
+// called a genuinely tiny face "weak, too small and blurred" unprompted,
+// so the only thing the guard added was false negatives on photos that
+// demonstrably work — and a false "weak" tells someone to re-shoot a
+// good photo, which costs them a card and costs us trust.
+//
+// The number is still worth showing: it's useful context when a photo
+// fails for other reasons. It just doesn't get a vote. What DOES drive
+// the verdict is what we have evidence for — angle, occlusion, focus,
+// lighting and expression.
+const FACE_FRACTION: Record<FaceAssessment['sizeInFrame'], number> = {
+  large: 0.35, medium: 0.20, small: 0.07, tiny: 0.03,
+};
+
+function attachFaceSize(a: LikenessAssessment, imageHeight: number | undefined): LikenessAssessment {
+  if (!imageHeight || !a.faces?.length) return a;
+  const px = Math.round(
+    Math.max(
+      ...a.faces.map((f) => {
+        const pct = typeof f.headHeightPct === 'number' && f.headHeightPct > 0
+          ? Math.min(100, f.headHeightPct) / 100
+          : (FACE_FRACTION[f.sizeInFrame] ?? 0.1);
+        return pct * imageHeight;
+      }),
+    ),
+  );
+  return { ...a, biggestFacePx: px };
+}
+
+const LIKENESS_PROMPT = `You are judging whether a photo carries enough facial information for an AI image model to recreate each person's LIKENESS in a completely new scene, wearing a NEW expression (usually happy or smiling).
+
+This is NOT about whether the photo is attractive, flattering or well composed. It is only about whether each FACE carries enough clear, undistorted information to rebuild that person recognisably.
+
+Judge the FACE, not the image. A large photo with a tiny head is poor. A sharp background behind a blurred face is poor.
+
+For EACH person whose face is at least partly visible, return an object:
+{
+  "sizeInFrame": "large" | "medium" | "small" | "tiny",
+      // how much of the image HEIGHT the head occupies:
+      // large >25%, medium 10-25%, small 4-10%, tiny <4%
+  "headHeightPct": number,
+      // The SAME measurement as a number, 1-100: roughly what percentage
+      // of the image's HEIGHT the head occupies, chin to top of hair.
+      // Estimate as precisely as you can — this is multiplied by the
+      // real pixel height to judge whether there is enough detail.
+  "angle": "front-on" | "three-quarter" | "profile" | "turned-away",
+  "eyesVisible": "both" | "one" | "none",
+  "occlusions": string[],
+      // ANYTHING hiding identity information, including HAIR. Examples:
+      // "sunglasses", "hair across face", "hand", "heavy shadow",
+      // "motion blur", "hat", "hood up", "headphones over hair",
+      // "hair fully covered", "hairline hidden", "face mask", "scarf".
+      // Hair and hairline matter as much as features: if they are
+      // covered the model has to INVENT hair, which is one of the most
+      // obvious likeness failures. Flag a hood, hat or wrap EVERY time
+      // it hides the hairline, even when the face itself is clear.
+      // [] only if genuinely nothing is obscured.
+  "expression": string,
+      // what the face is ACTUALLY doing, plainly: "neutral",
+      // "natural smile", "big smile", "pouting", "mouth open",
+      // "tongue out", "squinting", "mid-speech", "grimace"
+  "expressionRisk": boolean,
+      // TRUE if the expression DISTORTS the mouth/eyes enough that
+      // generating a DIFFERENT expression would be guesswork — pouting,
+      // tongue out, wide-open mouth, heavy squint, exaggerated faces.
+      // Neutral and natural smiles are FALSE.
+  "lighting": "even" | "harsh shadow" | "strong colour cast" | "backlit" | "too dark" | "blown out",
+  "focus": "sharp" | "slightly soft" | "blurred"
+}
+
+Then judge the photo overall:
+{
+  "verdict": "strong" | "usable" | "weak",
+      // strong  = faces large, front-on or three-quarter, unobstructed,
+      //           evenly lit, sharp, neutral or naturally smiling, and
+      //           hair/hairline visible
+      // usable  = recognisable but with one real limitation
+      // weak    = likeness is unlikely to survive; say so
+  "reason": string,   // ONE plain sentence naming the single biggest limitation
+  "advice": string    // ONE plain sentence on what would work better. "" if strong.
+}
+
+Rules: NEVER identify or name anyone. NEVER comment on attractiveness, body, or ethnicity. Judge only what limits facial reconstruction.
+
+Return ONE JSON object: { "faces": [...], "verdict": ..., "reason": ..., "advice": ... }
+Output JSON only. No markdown fences, no preamble.`;
+
+/** Run the likeness assessment. Same model and same defensive contract
+ *  as runPhotoVision; separate prompt because it answers a separate
+ *  question. Exported so the Photo Lab and (later) the studio's
+ *  pre-generation warning share ONE implementation and cannot drift. */
+export async function assessPhotoLikeness(args: {
+  imageBytes: Buffer;
+  mimeType: string;
+  /** Height of the ORIGINAL image in px. Enables the resolution guard —
+   *  without it, relative face size is taken at face value. */
+  imageHeight?: number;
+}): Promise<{
+  result: LikenessAssessment | null;
+  raw: string;
+  model: string;
+  durationMs: number;
+  promptTokens: number;
+  outputTokens: number;
+  noApiKey?: true;
+}> {
+  const startedAt = Date.now();
+  const client = getClient();
+  if (!client) {
+    return { result: null, raw: '', model: ANALYSIS_MODEL, durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true };
+  }
+  const response = await client.models.generateContent({
+    model: ANALYSIS_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: LIKENESS_PROMPT },
+          { inlineData: { mimeType: args.mimeType, data: args.imageBytes.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      // Same thinking trap as runPhotoVision — see the note there. This
+      // prompt is longer and more rule-heavy, so it would provoke MORE
+      // thinking, not less.
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 900,
+      temperature: 0.1,
+    },
+  });
+  const raw = response.text ?? '';
+  let result: LikenessAssessment | null = null;
+  try {
+    const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed && Array.isArray(parsed.faces) && typeof parsed.verdict === 'string') {
+      result = attachFaceSize(parsed as LikenessAssessment, args.imageHeight);
+    }
+  } catch {
+    /* leave null — caller shows the raw text */
+  }
+  return {
+    result,
+    raw,
+    model: ANALYSIS_MODEL,
+    durationMs: Date.now() - startedAt,
+    promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+  };
+}
+
+export async function runPhotoVision(args: {
+  imageBytes: Buffer;
+  mimeType: string;
+}): Promise<{
+  result: AnalysisResult | null;
+  raw: string;
+  model: string;
+  durationMs: number;
+  promptTokens: number;
+  outputTokens: number;
+  noApiKey?: true;
+}> {
+  const startedAt = Date.now();
+  const client = getClient();
+  if (!client) {
+    return {
+      result: null, raw: '', model: ANALYSIS_MODEL,
+      durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true,
+    };
+  }
+  const response = await client.models.generateContent({
+    model: ANALYSIS_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: ANALYSIS_PROMPT },
+          { inlineData: { mimeType: args.mimeType, data: args.imageBytes.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      // ── This block is why analysis silently failed 100% of the time
+      //    from launch until 2026-07-30. Do not "tidy" it. ────────────
+      //
+      // gemini-2.5-flash is a THINKING model, and thinking tokens are
+      // charged against maxOutputTokens. The prompt's four strict NEVER
+      // rules reliably provoke ~240-360 thinking tokens, which swallowed
+      // the entire 256 budget: the call came back finishReason
+      // MAX_TOKENS with 10 visible tokens — `{"personCount": 2,` — so
+      // the JSON never parsed. 99 photos, 80 attempts, 0 successes, and
+      // it never once surfaced because the failure path just stamps
+      // analyzedAt and moves on.
+      //
+      // thinkingBudget 0 is the right fix rather than simply raising the
+      // ceiling: this is flat extraction, not reasoning, so the thinking
+      // bought nothing — and paying for ~360 thinking tokens on every
+      // single upload is real money for no gain. Measured after the fix:
+      // 0 thinking, ~75 output, finishReason STOP.
+      thinkingConfig: { thinkingBudget: 0 },
+      // Headroom anyway, so a future model that ignores thinkingBudget
+      // degrades to "costs a bit more" rather than "silently broken".
+      maxOutputTokens: 512,
+      // Low temperature — we want consistent factual descriptions.
+      temperature: 0.2,
+    },
+  });
+  const raw = response.text ?? '';
+  return {
+    result: parseAnalysisJson(raw),
+    raw,
+    model: ANALYSIS_MODEL,
+    durationMs: Date.now() - startedAt,
+    promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+  };
+}
+
+/**
  * Analyse a photo and persist the summary onto its row. Resolves
  * regardless of success — failures are logged but never thrown, since
  * this runs as a fire-and-forget after the upload response has already
@@ -124,8 +424,44 @@ export async function analyzePhoto(args: {
   const { photoId, imageAbsPath, mimeType } = args;
 
   try {
-    const client = getClient();
-    if (!client) {
+    const imageBytes = await fs.readFile(imageAbsPath);
+    // Both passes in parallel — summary (for the inside-text helper) and
+    // likeness (for the review-step nudge). The image is the CROPPED
+    // derivative when one exists, which is exactly what generation sends
+    // the provider — so the likeness verdict judges what the model will
+    // actually see. Height read from the bytes because the caller only
+    // has the ORIGINAL's dimensions, not the crop's.
+    const cropMeta = await sharpMeta(imageBytes);
+    const [vision, likeness] = await Promise.all([
+      runPhotoVision({ imageBytes, mimeType }),
+      assessPhotoLikeness({ imageBytes, mimeType, imageHeight: cropMeta?.height }),
+    ]);
+
+    // Persist + cost-log the likeness pass independently of the summary
+    // pass: either can fail without taking the other down.
+    if (likeness.result) {
+      await db
+        .update(photos)
+        .set({ likeness: likeness.result })
+        .where(eq(photos.id, photoId));
+    }
+    if (!likeness.noApiKey) {
+      void logGeneration({
+        cardId: null,
+        slot: LLM_SLOTS.PHOTO_ANALYSIS,
+        templateId: null,
+        templateVersion: null,
+        provider: 'gemini',
+        model: likeness.model,
+        quality: null,
+        costCents: llmCostCents(likeness.model, likeness.promptTokens, likeness.outputTokens),
+        durationMs: likeness.durationMs,
+        success: !!likeness.result,
+        errorCode: likeness.result ? null : 'parse_failed',
+      });
+    }
+
+    if (vision.noApiKey) {
       // No GEMINI_API_KEY in this environment. Don't retry endlessly —
       // mark analyzedAt so the row is in a settled state, and bail.
       console.warn(
@@ -138,31 +474,25 @@ export async function analyzePhoto(args: {
       return;
     }
 
-    const imageBytes = await fs.readFile(imageAbsPath);
-    const inlineBase64 = imageBytes.toString('base64');
+    const rawText = vision.raw;
+    const parsed = vision.result;
 
-    const response = await client.models.generateContent({
-      model: ANALYSIS_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: ANALYSIS_PROMPT },
-            { inlineData: { mimeType, data: inlineBase64 } },
-          ],
-        },
-      ],
-      config: {
-        // Tight output — analysis is 25-60 words. 256 tokens is plenty
-        // and caps cost in case the model decides to monologue.
-        maxOutputTokens: 256,
-        // Low temperature — we want consistent factual descriptions.
-        temperature: 0.2,
-      },
+    // Cost Ledger (audit 2026-07-29): photo analysis fires on EVERY
+    // upload and was spending unrecorded money. No cardId exists yet at
+    // upload time; the slot itself is the roll-up. Fire-and-forget.
+    void logGeneration({
+      cardId: null,
+      slot: LLM_SLOTS.PHOTO_ANALYSIS,
+      templateId: null,
+      templateVersion: null,
+      provider: 'gemini',
+      model: vision.model,
+      quality: null,
+      costCents: llmCostCents(vision.model, vision.promptTokens, vision.outputTokens),
+      durationMs: vision.durationMs,
+      success: !!parsed,
+      errorCode: parsed ? null : 'parse_failed',
     });
-
-    const rawText = response.text ?? '';
-    const parsed = parseAnalysisJson(rawText);
 
     if (parsed) {
       await db

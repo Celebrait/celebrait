@@ -6,42 +6,35 @@
 // kind-aware copy whether the failure happened during initial gen or a
 // regen.
 //
-// Visual language (refresh 2026-05-09, second pass):
+// Visual language (Keeper pass, 2026-07-09):
 //
-//   First pass leaned amber-only as the warning tone. Kevin's reaction:
-//   "amber is not doing the warning enough — red is definitely needed
-//   but it needs a new red that suits the studio". Generic SaaS error
-//   red (#ef4444) clashes with cream + amber + brand-violet, so we
-//   defined a brand-native warm dusty red instead: `accent-red`
-//   (#b94a44) — brick / terracotta family. Sits next to amber rather
-//   than competing with it; reads as "warning" without going into
-//   destructive-action territory.
+//   History: amber-only → too soft → warm dusty-brick red (#b94a44).
+//   Under the Keeper skin Kevin rejected the brick as muddy on paper,
+//   and picked "Keeper + ember": the panel now sits on keeper-paper +
+//   hairline with a Fraunces title, and the ONE warm accent is the
+//   refined ember terracotta (the `accent-red` token, now #c15b43) on
+//   the top bar + icon disc + kind tag — so a failure still reads
+//   distinct from a normal panel without a siren. The retry CTA is
+//   GREEN (cta) — it fires a re-generation, a "commit" moment in the
+//   button system. Destructive-delete keeps the separate system red;
+//   this ember is warnings/failures only.
 //
 //   • One unified panel for ALL kinds. Kind differentiation comes from
 //     the icon glyph + title + a small "kind tag" pill under the title
 //     — not from per-kind surface tones.
-//   • Surface: warm cream (`surface-cream`) with a red hairline.
-//     A red accent bar sits at the top — flat colour with subtle inner
-//     gradient, reads as a confident stamp rather than a stripe of
-//     siren tape.
-//   • Icon: `accent-red-dark` glyph in a `accent-red-light` disc with
-//     a red inner ring. Kind-specific lucide icon (Shield / Clock /
-//     CloudOff / Settings / HelpCircle).
-//   • Title: kind-specific friendly statement, ink.
-//   • Kind tag: small uppercase pill in the red family ("Safety filter",
-//     "Service busy", etc.) — the lightweight differentiation surface
-//     that lets us keep one unified panel.
-//   • Description: 1–2 line plain-English body in ink-soft.
-//   • Action chips: cream pill that hovers to RED tint (matches the
-//     warning language). Sparkle motif retained in amber as a small
-//     "Studio house style" hold-over — gives the panel a tiny piece of
-//     brand sparkle without the amber competing with the red signal.
-//   • Primary CTA: brand violet "Try again" — same as regen's "Use
-//     this version". Deliberately NOT red; red CTA reads as "delete".
-//     Violet keeps the studio's primary-action language stable.
+//   • Surface: keeper-paper with an ember (accent-red) top bar +
+//     hairline — reads as a confident stamp, not siren tape.
+//   • Icon: `accent-red-dark` (ember) glyph in an `accent-red-light`
+//     disc. Kind-specific lucide icon (Shield / Clock / CloudOff /
+//     Settings / HelpCircle).
+//   • Title: kind-specific friendly statement, Fraunces on keeper-ink.
+//   • Kind tag: small uppercase ember pill ("Safety filter", …).
+//   • Description: 1–2 line plain-English body in keeper-stone.
+//   • Action chips: white pill that hovers to an ember tint.
+//   • Primary CTA: GREEN (cta) "Try again" — it fires a re-generation, a
+//     commit moment in the button system. (Was brand violet pre-Keeper.)
 //   • Disclosable footer: provider · code · attempts + raw model
-//     explanation. Quiet, in the red family for hairlines so the panel
-//     stays in one colour family throughout.
+//     explanation, quiet in the ember family.
 //
 // Copy ladder (description picks based on what we know):
 //   1. Pre-flight matched a known IP term → name it (future, when the
@@ -107,7 +100,7 @@ export interface GenerationErrorPanelProps {
   onRetry: () => void | Promise<void>;
   /** Navigate to a specific Studio step. Wired by the parent so the
    *  action chips can jump to scene / photo / style etc. */
-  onJumpToStep: (stepId: 'scene' | 'photo' | 'style') => void;
+  onJumpToStep: (stepId: 'scene' | 'photo') => void;
   /** Show the retry CTA as pending (parent's mutation in flight). */
   isRetrying?: boolean;
 }
@@ -127,7 +120,7 @@ interface KindConfig {
    *  the user can actually fix the failure by editing inputs (safety;
    *  unknown as a hedge). For rate/server/auth, editing inputs doesn't
    *  help — the failure is on the provider side or our infra. */
-  chips: Array<{ stepId: 'scene' | 'photo' | 'style'; label: string }>;
+  chips: Array<{ stepId: 'scene' | 'photo'; label: string }>;
   /** Optional secondary line below the retry CTA. Used by `auth` to
    *  surface a support contact since the user can't actually fix an
    *  auth issue themselves. */
@@ -149,7 +142,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [
       { stepId: 'scene', label: 'Edit scene' },
       { stepId: 'photo', label: 'Change photo' },
-      { stepId: 'style', label: 'Try a different style' },
+      // 'Try a different style' chip REMOVED 2026-05-17 — style picker
+      // parked for Premium. See next_celebrait_premium.md.
     ],
     isPanelKind: true,
   },
@@ -189,7 +183,9 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [],
     contactLine: {
       lead: 'Still happening?',
-      email: 'ip@celebrait.co.uk',
+      // Support mailbox, NOT ip@ — that's the IP/takedown address
+      // (audit 2026-07-27).
+      email: 'greetings@celebrait.co.uk',
     },
     isPanelKind: true,
   },
@@ -204,7 +200,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     chips: [
       { stepId: 'scene', label: 'Edit scene' },
       { stepId: 'photo', label: 'Change photo' },
-      { stepId: 'style', label: 'Try a different style' },
+      // 'Try a different style' chip REMOVED 2026-05-17 — style picker
+      // parked for Premium. See next_celebrait_premium.md.
     ],
     isPanelKind: true,
   },
@@ -234,7 +231,7 @@ export function GenerationErrorPanel({
 
   return (
     <div
-      className="max-w-md mx-auto rounded-2xl bg-surface-cream border border-accent-red/30 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(185,74,68,0.22)] overflow-hidden"
+      className="max-w-md mx-auto rounded-2xl bg-keeper-paper border border-accent-red/30 shadow-[0_1px_2px_rgba(33,29,25,0.05),0_10px_30px_-18px_rgba(193,91,67,0.28)] overflow-hidden"
       data-testid="generation-error-panel"
       data-failure-kind={kind ?? 'unknown'}
       role="alert"
@@ -256,7 +253,7 @@ export function GenerationErrorPanel({
             lets one unified design serve all five kinds. */}
         <div className="flex flex-col items-center text-center mb-4">
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-accent-red-light ring-1 ring-accent-red/40 ring-offset-2 ring-offset-surface-cream"
+            className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-accent-red-light ring-1 ring-accent-red/40 ring-offset-2 ring-offset-keeper-paper"
             aria-hidden
           >
             <Icon
@@ -265,7 +262,7 @@ export function GenerationErrorPanel({
             />
           </div>
 
-          <h2 className="text-xl font-semibold text-ink leading-tight tracking-tight">
+          <h2 className="text-xl font-display font-bold text-keeper-ink leading-tight tracking-[-0.015em]">
             {cfg.title}
           </h2>
 
@@ -288,7 +285,7 @@ export function GenerationErrorPanel({
             boilerplate ("Your request was rejected by the safety system…")
             that adds nothing for the user. Available in technical details
             for devs / debugging. */}
-        <p className="text-sm text-ink-soft leading-relaxed text-center max-w-sm mx-auto">
+        <p className="text-sm text-keeper-body leading-relaxed text-center max-w-sm mx-auto">
           {cfg.description(context)}
         </p>
 
@@ -305,7 +302,7 @@ export function GenerationErrorPanel({
                 key={chip.stepId}
                 type="button"
                 onClick={() => onJumpToStep(chip.stepId)}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-stone-200 hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-ink-soft hover:text-ink transition-all shadow-sm"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white border border-keeper-hair hover:border-accent-red/60 hover:bg-accent-red-light/60 text-sm text-keeper-meta hover:text-keeper-ink transition-all shadow-sm"
                 data-testid={`error-panel-chip-${chip.stepId}`}
               >
                 <span>{chip.label}</span>
@@ -322,13 +319,13 @@ export function GenerationErrorPanel({
             onClick={() => onRetry()}
             disabled={isRetrying}
             size="lg"
-            className="w-full bg-brand hover:bg-brand-dark text-brand-foreground shadow-md shadow-brand/20"
+            className="w-full bg-go hover:bg-go-hover text-go-foreground shadow-md shadow-cta/20"
             data-testid="error-panel-retry"
           >
             <RefreshCw
               className={`w-4 h-4 mr-2 ${isRetrying ? 'animate-spin' : ''}`}
             />
-            {isRetrying ? 'Resetting…' : 'Try again'}
+            {isRetrying ? 'Trying again…' : 'Try again'}
           </Button>
         </div>
 
@@ -336,7 +333,7 @@ export function GenerationErrorPanel({
             actually fix an auth issue themselves. Light, non-alarming
             mailto so they have a real escalation path. */}
         {cfg.contactLine && (
-          <p className="mt-3 text-[11px] text-ink-soft text-center">
+          <p className="mt-3 text-[11px] text-keeper-meta text-center">
             {cfg.contactLine.lead}{' '}
             <a
               href={`mailto:${cfg.contactLine.email}`}
@@ -355,7 +352,7 @@ export function GenerationErrorPanel({
           <button
             type="button"
             onClick={() => setTechOpen((v) => !v)}
-            className="flex items-center gap-1 text-[11px] text-ink-soft/70 hover:text-ink-soft transition-colors mx-auto"
+            className="flex items-center gap-1 text-[11px] text-keeper-meta/70 hover:text-keeper-meta transition-colors mx-auto"
             data-testid="error-panel-tech-toggle"
           >
             {techOpen ? (
@@ -366,7 +363,7 @@ export function GenerationErrorPanel({
             <span>{techOpen ? 'Hide' : 'Show'} technical details</span>
           </button>
           {techOpen && (
-            <dl className="mt-3 space-y-1 text-[11px] text-ink-soft/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
+            <dl className="mt-3 space-y-1 text-[11px] text-keeper-meta/80 font-mono bg-white/60 rounded-lg p-3 border border-accent-red/15">
               {kind && <Row label="kind" value={kind} />}
               {provider && <Row label="provider" value={provider} />}
               {code && <Row label="code" value={code} />}
@@ -375,10 +372,10 @@ export function GenerationErrorPanel({
               )}
               {modelExplanation && (
                 <div className="pt-2">
-                  <span className="block text-ink-soft/60">
+                  <span className="block text-keeper-meta/60">
                     model explanation:
                   </span>
-                  <span className="block whitespace-pre-wrap text-ink-soft mt-0.5">
+                  <span className="block whitespace-pre-wrap text-keeper-meta mt-0.5">
                     {modelExplanation}
                   </span>
                 </div>
@@ -394,8 +391,8 @@ export function GenerationErrorPanel({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <span className="text-ink-soft/50 w-20 flex-shrink-0">{label}:</span>
-      <span className="text-ink-soft break-all">{value}</span>
+      <span className="text-keeper-meta/50 w-20 flex-shrink-0">{label}:</span>
+      <span className="text-keeper-meta break-all">{value}</span>
     </div>
   );
 }

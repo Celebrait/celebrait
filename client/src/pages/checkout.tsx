@@ -1,35 +1,72 @@
 // client/src/pages/checkout.tsx
 //
-// Studio checkout. Product-first: pick Print / Digital / Both, then
-// fill in only the fields that product needs. The interactive front/
-// inside preview leads the page — it's what they're paying for.
+// Studio checkout. Print-led V1 (2026-07-01): one product — a printed
+// card that includes a free digital link — so there's no format choice,
+// just confirm details + pay. The interactive front/inside preview
+// leads the page — it's what they're paying for.
 //
-// Pricing (pence): print 599, digital 99, UK shipping 150. Both-tier
-// carries a 50p bundle discount as psychology — shown as a line item
-// so there's no hidden maths.
+// Prices come from `shared/pricing.ts` — the same numbers the public
+// /pricing page renders, so checkout can't drift below what we
+// advertised. UK shipping + bundle discount are in there too. See
+// next_checkout_shipping_robust.md (audit 2026-05-27) — earlier this
+// file hardcoded a lower price than /pricing showed (bait-and-switch
+// risk), and bundle discount was client-only (server underpriced 50p).
 //
 // Builds against the stubbed PaymentProvider today; swapping to
-// Peach / Stitch / Stripe-via-UK is a provider swap, not a rebuild.
+// Stripe is a provider swap, not a rebuild (see next_payment_gateway.md).
 
-import { useMemo, useState } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Package, Sparkles } from 'lucide-react';
+import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
+import {
+  tierPriceGBP,
+  cardPriceGBP,
+  firstOrderPriceGBP,
+  SHIPPING_TIERS,
+  getShippingTier,
+  envelopeStickerGBP,
+  ENVELOPE_STICKER_GBP,
+  DEFAULT_SHIPPING_TIER,
+  deliveryEstimateCopy,
+  PRODUCTION_NOTICE,
+  type ShippingTierId,
+} from '@shared/pricing';
 
 interface CardSummary {
   id: number;
   status: string | null;
+  /** Which door made this card — decides its price (§8a). */
+  source?: string;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
-  state?: { recipient?: { name?: string | null } };
+  state?: {
+    recipient?: { name?: string | null };
+    /** Inside mode — 'blank' means the user deliberately left the
+     *  inside empty to handwrite it themselves. Drives the blank-
+     *  inside fallback warning + the structural skip into a
+     *  print/sender summary at the top. */
+    inside?: { mode?: 'write' | 'blank' };
+    /** The Giving Moment's resolved choice. Written by the give page
+     *  (PATCH) when the user picks format + destination there. When
+     *  present, checkout pre-resolves and shows the "Your choice"
+     *  summary instead of the inline format/ship-to radios. See
+     *  next_delivery_destination_usp.md. */
+    delivery?: {
+      format?: 'digital' | 'print' | 'both';
+      destination?: 'recipient' | 'sender';
+      fromLine?: string;
+    };
+  };
 }
 
 interface CheckoutResponse {
@@ -44,26 +81,57 @@ interface CheckoutResponse {
 
 type ProductChoice = 'digital' | 'print' | 'both';
 
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
-const BUNDLE_DISCOUNT = 50;
+// Prices in pence — sourced from shared/pricing.ts so the public
+// /pricing page and checkout can't disagree. Print-led V1: the printed
+// card is the only product and includes a free digital link, so digital
+// is always £0 and there's no bundle discount. Postage is a separate line
+// priced from the chosen delivery tier (SHIPPING_TIERS).
+/** The FROM price, for skeleton/loading states only. The real charge is
+ *  cardPriceGBP(card.source) — see printPrice below. */
+const PRINT_PRICE = tierPriceGBP('printed');
+
+// Wax-seal sticker offer — OFF for soft launch. See the comment at the
+// offer's render site (search STICKER_OFFER_ENABLED) for the two
+// conditions required before flipping this back on.
+const STICKER_OFFER_ENABLED = false;
 
 function formatGBP(minor: number): string {
   return `£${(minor / 100).toFixed(2)}`;
 }
 
-function totalsFor(choice: ProductChoice) {
-  const printAmount = choice === 'digital' ? 0 : PRINT_PRICE;
-  const digitalAmount = choice === 'print' ? 0 : DIGITAL_PRICE;
-  const shippingAmount = choice === 'digital' ? 0 : UK_SHIPPING;
-  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
+// Printed card (+ free digital link) + postage for the chosen delivery tier
+// + the optional wax-seal sticker (direct sends only). The server re-derives
+// every pence from shared/pricing.ts, so this must stay in lockstep.
+function totalsFor(
+  tier: ShippingTierId,
+  shipTo: 'sender' | 'recipient',
+  addSticker: boolean,
+  /** First-order credit applies — the card at half price (shared/pricing). */
+  freeCard: boolean,
+  /** Comp code entered ("this one's on us" — creator gifting). Display
+   *  optimistically zeroes postage; the server validates the real code
+   *  at order create and refuses the request if it's bad, so a made-up
+   *  code can only ever change pixels, not what's charged. */
+  compCode?: boolean,
+  /** Which door made this card — decides its price (§8a). Undefined
+   *  while the card is still loading; falls back to the photo price,
+   *  which is the historic product and the safest over-estimate. */
+  cardSource?: string,
+) {
+  // Priced by the door that made this card, mirroring the server so the
+  // shown total always equals the charge (UX_THREE_DOORS.md §8a).
+  const printPrice = cardPriceGBP(cardSource);
+  const printAmount = freeCard ? firstOrderPriceGBP(cardSource as Parameters<typeof cardPriceGBP>[0]) : printPrice;
+  const digitalAmount = 0;
+  const shippingAmount = compCode ? 0 : getShippingTier(tier).price;
+  const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
   return {
     printAmount,
     digitalAmount,
     shippingAmount,
-    discount,
-    total: printAmount + digitalAmount + shippingAmount - discount,
+    stickerAmount,
+    discount: 0,
+    total: printAmount + shippingAmount + stickerAmount,
   };
 }
 
@@ -76,35 +144,122 @@ export default function CheckoutPage() {
   const { data: card, isLoading } = useQuery<CardSummary>({
     queryKey: [`/api/studio/drafts/${cardId}`],
     enabled: Number.isFinite(cardId),
+    // Always refetch on mount: the Giving Moment saves the delivery choice
+    // to the draft immediately before navigating here, so a stale cached
+    // card (without delivery) would drop us into the fallback radio and
+    // silently default to self-send. Read fresh so the choice resolves.
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const recipientName = card?.state?.recipient?.name?.trim() || '';
+  // The user deliberately left the inside blank (to handwrite it).
+  // Posting a blank card straight to the recipient is the one
+  // delivery combo that's almost never intended — see the warning
+  // rendered in the ship-to section below.
+  const insideIsBlank = card?.state?.inside?.mode === 'blank';
 
-  // Pre-select from ?product= URL param when coming from the Studio
-  // review step (sender picks the tier there, checkout just confirms).
-  // Falls back to 'both' — the recommended default.
-  const initialChoice: ProductChoice = (() => {
-    if (typeof window === 'undefined') return 'both';
-    const p = new URLSearchParams(window.location.search).get('product');
-    return p === 'digital' || p === 'print' || p === 'both' ? p : 'both';
-  })();
-  const [choice, setChoice] = useState<ProductChoice>(initialChoice);
+  // Resolved giving choice — populated when the user came through the
+  // Giving Moment (delivery.format + delivery.destination on the
+  // draft) OR when the card's inside is blank (structural: blank →
+  // print + sender, the only valid path). `isResolved` drives the
+  // calm "summary + pay" shape of the page; when null, the page
+  // falls back to the inline format + ship-to radios (deep-link /
+  // pre-Giving-Moment drafts). See next_delivery_destination_usp.md.
+  const delivery = card?.state?.delivery;
+  const resolvedFormat: ProductChoice | null =
+    (delivery?.format as ProductChoice | undefined) ??
+    (insideIsBlank ? 'print' : null);
+  const resolvedDestination: 'sender' | 'recipient' | null =
+    delivery?.destination ?? (insideIsBlank ? 'sender' : null);
+  const isResolved = !!resolvedFormat && !!resolvedDestination;
+
+  // One-shot init: when the card lands, sync the local ship-to state to
+  // the resolved Giving Moment choice. The destination is decided upstream
+  // (in the Giving Moment) and shown read-only here — not re-asked.
+  const initAppliedRef = useRef(false);
+  useEffect(() => {
+    if (initAppliedRef.current || !card) return;
+    if (resolvedDestination) setShipTo(resolvedDestination);
+    initAppliedRef.current = true;
+  }, [card, resolvedFormat, resolvedDestination]);
+
+  // Print-led V1: the printed card is the only product (it includes a
+  // free digital link). There is no format choice — `choice` is always
+  // 'print'. Kept as state typed as the union so the legacy summary +
+  // ship-to branches below still type-check unchanged.
+  const [choice] = useState<ProductChoice>('print');
   const [previewSide, setPreviewSide] = useState<'front' | 'inside'>('front');
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  // Prefill "your details" from the signed-in account. Checkout is only
+  // reachable when authenticated, so the account email is always known —
+  // asking for it again (blank field) both adds friction AND lets the two
+  // emails diverge: card-ready resolves from the ACCOUNT, but order-
+  // confirmed / shipped / delivered all use THIS field. If they differ, the
+  // customer's lifecycle splits across two inboxes (Kevin's E2E, 2026-07-17:
+  // signed in as one address, typed another here, receipts went to the
+  // typed one). Prefill once when the user loads and the field is still
+  // untouched — still editable if someone genuinely wants receipts elsewhere.
+  const { user } = useAuth();
+  const prefilledFromAccount = useRef(false);
+  useEffect(() => {
+    if (prefilledFromAccount.current || !user) return;
+    prefilledFromAccount.current = true;
+    setCustomerEmail((cur) => cur || user.email || '');
+    setCustomerName((cur) => cur || user.firstName || '');
+  }, [user]);
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
+  // Opt-in wax-seal envelope sticker (direct sends only).
+  const [addSticker, setAddSticker] = useState(false);
+  const [shippingTier, setShippingTier] = useState<ShippingTierId>(DEFAULT_SHIPPING_TIER);
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
   const [postcode, setPostcode] = useState('');
-  const [recipientEmail, setRecipientEmail] = useState('');
-  const [giftMessage, setGiftMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Comp code — creator gifting ("this one's on us"). Kept out of the way
+  // of normal buyers: a small "Got a code?" reveal, not a field everyone
+  // sees. ?code=X prefills it so a DM'd link can carry the code.
+  const [compCode, setCompCode] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('code') ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [showCompCode, setShowCompCode] = useState(() => compCode.length > 0);
+
+  // Free-first-card credit (Moments rewards): earned by adding 3 key
+  // dates, spent here. Display-only truth — the server re-derives
+  // eligibility at order create and forces the same pricing, so a stale
+  // cache can't change what's charged.
+  const { data: freeCard } = useQuery<{
+    keyDates: number;
+    redeemed: boolean;
+    eligible: boolean;
+  }>({
+    queryKey: ['/api/user/free-card'],
+    // Always fresh: a 5-min-stale "eligible" here would show £3.95 while
+    // the server (rightly) charges full price at create.
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+  // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
+  // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
+  const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack';
+  const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';
-  const includesDigital = choice !== 'print';
-  const totals = useMemo(() => totalsFor(choice), [choice]);
+  // Print-led V1: every order is a printed card that INCLUDES a free
+  // digital link — so digital is always part of the order. (The dead
+  // `choice` machinery would compute false here; the model says true.)
+  const includesDigital = true;
+  const totals = useMemo(
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source),
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode],
+  );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
   // blur. Full address autofill (getAddress.io / Loqate / Ideal
@@ -127,12 +282,12 @@ export default function CheckoutPage() {
     line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5;
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
-  const recipientEmailValid =
-    !(shipTo === 'recipient' && includesDigital) || /.+@.+\..+/.test(recipientEmail);
+  // Print orders must have a resolved delivery destination (chosen in the
+  // Giving Moment) before pay — no silent self-send default. A deep-link
+  // that skipped the choice is sent back to pick (see the section below).
   const canPay =
     contactComplete &&
-    recipientEmailValid &&
-    (!includesPrint || addressComplete) &&
+    (!includesPrint || (addressComplete && isResolved)) &&
     !submitting;
 
   const handlePay = async () => {
@@ -144,10 +299,12 @@ export default function CheckoutPage() {
         customerName,
         includesPrint,
         includesDigital,
-        recipientEmail: recipientEmail.trim() || undefined,
       };
+      if (compCode.trim()) payload.compCode = compCode.trim();
       if (includesPrint) {
         payload.shipTo = shipTo;
+        payload.envelopeSticker = addSticker && shipTo === 'recipient';
+        payload.shippingTier = effectiveTier;
         payload.shippingAddress = {
           line1: line1.trim(),
           line2: line2.trim() || undefined,
@@ -155,16 +312,47 @@ export default function CheckoutPage() {
           postcode: postcode.trim().toUpperCase(),
           country: 'GB',
         };
-        if (shipTo === 'recipient' && giftMessage.trim()) {
-          payload.giftMessage = giftMessage.trim();
-        }
       }
 
-      const res = await apiRequest('POST', `/api/studio/cards/${cardId}/checkout`, payload);
+      // Abort rather than hang: on a slow mobile connection a stalled
+      // request left the button on "Starting…" indefinitely — a frozen
+      // page as far as the customer is concerned (SA buyer, 2026-08-07).
+      const abort = new AbortController();
+      const timer = window.setTimeout(() => abort.abort(), 25_000);
+      let res: Response;
+      try {
+        res = await fetch(`/api/studio/cards/${cardId}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          credentials: 'include',
+          signal: abort.signal,
+        });
+      } finally {
+        window.clearTimeout(timer);
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = `${res.status}: ${text || res.statusText}`;
+        try {
+          msg = JSON.parse(text).message ?? msg;
+        } catch {
+          /* plain text */
+        }
+        throw new Error(msg);
+      }
       const body: CheckoutResponse = await res.json();
 
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
-        setLocation(body.payment.redirectUrl);
+        const url = body.payment.redirectUrl;
+        // Stripe returns an absolute URL (https://checkout.stripe.com/…)
+        // which needs a real navigation; the stub returns a relative
+        // in-app path which wouter handles. Branch on protocol.
+        if (/^https?:\/\//i.test(url)) {
+          window.location.href = url;
+        } else {
+          setLocation(url);
+        }
       } else {
         toast({
           title: 'Payment provider not configured',
@@ -175,7 +363,10 @@ export default function CheckoutPage() {
     } catch (err: any) {
       toast({
         title: "Couldn't start checkout",
-        description: err?.message ?? 'Something went wrong.',
+        description:
+          err?.name === 'AbortError'
+            ? 'That took too long — check your connection and try again. You have not been charged.'
+            : err?.message ?? 'Something went wrong.',
         variant: 'destructive',
       });
     } finally {
@@ -201,11 +392,14 @@ export default function CheckoutPage() {
       </CheckoutLayout>
     );
   }
-  if (!card?.frontImageUrl) {
+  // Must be fully generated — a front-first card at 'front-ready' has a
+  // front image but no inside yet; mirror the server gate (audit
+  // 2026-07-02) so a half-generated card can't be deep-linked to pay.
+  if (!card?.frontImageUrl || card.status !== 'completed') {
     return (
       <CheckoutLayout backHref={backHref}>
         <Centered>
-          <p className="text-sm text-stone-600 mb-4">This card isn't ready to order yet.</p>
+          <p className="text-sm text-keeper-body mb-4">This card isn't ready to order yet.</p>
           <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
             Back to editor
           </Button>
@@ -220,8 +414,8 @@ export default function CheckoutPage() {
   return (
     <CheckoutLayout backHref={backHref}>
       <header className="mb-6 sm:mb-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">Checkout</p>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+        <p className="text-xs uppercase tracking-[0.2em] text-keeper-meta mb-2">Checkout</p>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
           {recipientName ? `Send ${recipientName}'s card` : 'Send your card'}
         </h1>
       </header>
@@ -234,7 +428,7 @@ export default function CheckoutPage() {
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
               {/* Preview — capped on mobile so it doesn't dominate the
                   viewport; fills its 2-col grid cell on desktop. */}
-              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden max-w-[220px] mx-auto w-full sm:max-w-none">
+              <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden max-w-[220px] mx-auto w-full sm:max-w-none">
                 <div className="aspect-square bg-stone-50 relative">
                   <AnimatePresence mode="wait">
                     <motion.img
@@ -269,35 +463,40 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {/* Product choice — stacked so each option reads cleanly */}
-              <div className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-3">
-                <h2 className="text-sm font-semibold text-ink mb-1">
-                  How would you like to send it?
+              {/* Hero second cell — either the Giving Moment SUMMARY
+                  (the common path: choice came in from /give or it's
+                  a blank-inside card whose path is structural), or
+                  the inline product radios (fallback for deep-links
+                  to /checkout without a delivery choice on the
+                  draft). See isResolved above. */}
+              {/* Print-led V1: one product — a printed card that includes
+                  a free digital link. No format picker. */}
+              <div className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6">
+                <h2 className="text-sm font-semibold text-keeper-ink mb-1">
+                  Printed &amp; posted
                 </h2>
-                <RadioGroup
-                  value={choice}
-                  onValueChange={(v) => setChoice(v as ProductChoice)}
-                  className="space-y-2.5"
-                >
-                  <ProductOption
-                    value="digital"
-                    title="Digital"
-                    description="3D share link, sent instantly."
-                    price={totalsFor('digital').total}
-                  />
-                  <ProductOption
-                    value="print"
-                    title="Printed"
-                    description="Square card, posted in the UK."
-                    price={totalsFor('print').total}
-                  />
-                  <ProductOption
-                    value="both"
-                    title="Printed + digital"
-                    description="Instant share + the real thing in the post."
-                    price={totalsFor('both').total}
-                  />
-                </RadioGroup>
+                <p className="text-sm text-keeper-body leading-relaxed">
+                  A premium 280gsm gloss card, posted in the UK — with a free
+                  digital link to share too.
+                </p>
+                {freeCardApplied ? (
+                  <p className="text-lg font-semibold text-keeper-ink mt-3">
+                    <span className="mr-1.5 font-normal text-keeper-meta line-through">
+                      {formatGBP(cardPriceGBP(card?.source))}
+                    </span>
+                    {formatGBP(totals.total)}{' '}
+                    <span className="text-xs font-normal text-keeper-meta">
+                      inc. postage — 50% off your first card
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-lg font-semibold text-keeper-ink mt-3">
+                    {formatGBP(totals.total)}{' '}
+                    <span className="text-xs font-normal text-keeper-meta">
+                      inc. postage
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -323,49 +522,116 @@ export default function CheckoutPage() {
 
             {includesPrint && (
               <>
-                <Section title="Who gets the card in the post?">
-                  <RadioGroup
-                    value={shipTo}
-                    onValueChange={(v) => setShipTo(v as 'sender' | 'recipient')}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                  >
-                    <ShipToOption
-                      value="sender"
-                      title="Send it to me"
-                      description="I'll give it to them in person."
-                    />
-                    <ShipToOption
-                      value="recipient"
-                      title="Ship direct to them"
-                      description="Plain packaging. Optional gift message."
-                    />
-                  </RadioGroup>
-
-                  {shipTo === 'recipient' && (
-                    <div className="space-y-4 mt-4 pt-4 border-t border-stone-200">
-                      <Field label="Gift message (printed inside the envelope)">
-                        <Input
-                          value={giftMessage}
-                          onChange={(e) => setGiftMessage(e.target.value)}
-                          placeholder="From…"
-                          maxLength={120}
-                        />
-                      </Field>
-                      {includesDigital && (
-                        <Field label="Their email (for the digital share link)">
-                          <Input
-                            type="email"
-                            value={recipientEmail}
-                            onChange={(e) => setRecipientEmail(e.target.value)}
-                            placeholder="them@example.com"
-                          />
-                        </Field>
-                      )}
+                {/* Delivery destination is decided ONCE, upstream, in the
+                    Giving Moment — never re-asked here (a second mutable
+                    radio silently defaulted to self-send; Kevin 2026-07-20).
+                    When resolved: a read-only confirmation + "Change" link.
+                    When a deep-link skipped the choice: send them back to
+                    pick, rather than defaulting. Pay is gated on isResolved. */}
+                {isResolved ? (
+                  <Section title="How it's being sent">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-keeper-ink">
+                          {shipTo === 'recipient'
+                            ? `Straight to ${recipientName || 'them'}`
+                            : 'To you first'}
+                        </p>
+                        <p className="text-xs text-keeper-meta mt-0.5 leading-relaxed max-w-[42ch]">
+                          {shipTo === 'recipient'
+                            ? 'Addressed and posted straight to them, tracked — no extra charge.'
+                            : 'Posted to you, ready to hand over in person.'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLocation(`/studio/card/${cardId}/give`)}
+                        className="shrink-0 text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-dark"
+                        data-testid="checkout-change-delivery"
+                      >
+                        Change
+                      </button>
                     </div>
-                  )}
-                </Section>
+                  </Section>
+                ) : (
+                  <Section title="How would you like to send it?">
+                    <p className="text-sm text-keeper-body leading-relaxed">
+                      Choose whether we post it straight to them, or send it to
+                      you to hand over — it only takes a second.
+                    </p>
+                    <Button
+                      onClick={() => setLocation(`/studio/card/${cardId}/give`)}
+                      className="mt-3 bg-go hover:bg-go-hover text-go-foreground"
+                      data-testid="checkout-choose-delivery"
+                    >
+                      Choose how to send it
+                    </Button>
+                  </Section>
+                )}
+
+                {/* Optional wax-seal sticker — direct-to-recipient only (it
+                    goes on the envelope WE post). Opt-in add-on (Kevin
+                    2026-07-21).
+
+                    HIDDEN for soft launch (2026-07-27): the per-order
+                    branding attachment is UNVERIFIED — the stickers seen on
+                    July's live orders came from the Prodigi ACCOUNT-level
+                    default insert, not our API — and the checkout charges
+                    the £1.50 regardless of the PRODIGI_ENVELOPE_STICKER env
+                    gate, so offering it now risks charging for a sticker
+                    that never ships. Flip STICKER_OFFER_ENABLED back to
+                    true ONLY after: (a) Kevin removes the account-level
+                    default insert (Prodigi Settings → Branding), (b) one
+                    DIR test order with the env var on shows OUR per-order
+                    seal correctly placed. */}
+                {STICKER_OFFER_ENABLED && isResolved && shipTo === 'recipient' && (
+                  <Section title="Add a keepsake seal?">
+                    <button
+                      type="button"
+                      onClick={() => setAddSticker((v) => !v)}
+                      aria-pressed={addSticker}
+                      className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
+                        addSticker
+                          ? 'border-brand bg-brand/5'
+                          : 'border-keeper-hair hover:border-stone-400'
+                      }`}
+                      data-testid="checkout-add-sticker"
+                    >
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          addSticker
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-stone-300'
+                        }`}
+                      >
+                        {addSticker && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-keeper-ink">
+                          Wax-seal envelope sticker · +{formatGBP(ENVELOPE_STICKER_GBP)}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-keeper-meta leading-relaxed">
+                          A round “only open on your special day” seal on the
+                          outside of the envelope — a little moment before they
+                          even open it.
+                        </span>
+                      </span>
+                    </button>
+                  </Section>
+                )}
 
                 <Section title={shipTo === 'sender' ? 'Your address' : 'Their address'}>
+                  {/* Said out loud because an SA family member hit a dead
+                      Pay button with no clue why (2026-08-07): we print
+                      and post within the UK only, and a non-UK postcode
+                      fails the form silently otherwise. International
+                      buyers CAN pay — the card just has to land at a UK
+                      address, so route them to "straight to them". */}
+                  <p className="rounded-md bg-stone-50 px-3 py-2 text-[11.5px] leading-relaxed text-keeper-meta">
+                    We deliver to <b>UK addresses only</b> for now. Buying
+                    from abroad is fine — just have the card sent straight
+                    to them at their UK address.
+                  </p>
                   <Field label="Address line 1">
                     <Input value={line1} onChange={(e) => setLine1(e.target.value)} />
                   </Field>
@@ -386,64 +652,173 @@ export default function CheckoutPage() {
                     </Field>
                   </div>
                 </Section>
-              </>
-            )}
 
-            {choice === 'digital' && (
-              <Section title="Send it to them (optional)">
-                <Field label="Their email">
-                  <Input
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="them@example.com"
-                  />
-                </Field>
-                <p className="text-xs text-stone-500">
-                  Leave blank and we'll send the share link to you instead.
-                </p>
-              </Section>
+                {/* Delivery speed. Production time is the headline — every
+                    card is printed to order, so the tiers below buy a faster
+                    SHIPPING leg, NOT faster production. We never imply
+                    next-day-from-order. */}
+                <Section title="Delivery speed">
+                  <div className="rounded-lg border border-accent-red/30 bg-accent-red-light px-4 py-3">
+                    <p className="text-xs text-accent-red-dark leading-relaxed">
+                      <span className="font-semibold">Printed to order.</span>{' '}
+                      {PRODUCTION_NOTICE}
+                    </p>
+                  </div>
+                  {/* The half-price first card rides any tier (the
+                      Standard-only rule belonged to the retired free card). */}
+                  {(
+                  <RadioGroup
+                    value={shippingTier}
+                    onValueChange={(v) => setShippingTier(v as ShippingTierId)}
+                    className="grid grid-cols-1 gap-3"
+                  >
+                    {SHIPPING_TIERS.map((t) => (
+                      <label
+                        key={t.id}
+                        htmlFor={`ship-${t.id}`}
+                        className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+                          shippingTier === t.id
+                            ? 'border-brand bg-brand-muted/40'
+                            : 'border-keeper-hair hover:border-stone-300'
+                        }`}
+                        data-testid={`ship-tier-${t.id}`}
+                      >
+                        <RadioGroupItem id={`ship-${t.id}`} value={t.id} className="mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold text-keeper-ink">{t.name}</span>
+                            <span className="text-sm font-semibold text-keeper-ink">
+                              {formatGBP(t.price)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-keeper-body mt-0.5">{t.carrier}</p>
+                          <p className="text-xs text-keeper-meta mt-1 leading-relaxed">
+                            Ships {t.shippingEstimate} once printed.
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                  )}
+                </Section>
+
+                {/* No gift-message or recipient-email fields — the digital
+                    link goes to the CREATOR to forward if they wish (Kevin
+                    2026-07-20: avoids the recipient seeing the link before
+                    the card lands on the day). */}
+              </>
             )}
 
           </div>
 
           {/* RIGHT — sticky summary */}
           <aside className="md:sticky md:top-8 md:self-start">
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
-              {includesPrint && (
+            <div className="bg-white rounded-2xl border border-keeper-hair p-5 space-y-4">
+              <LineItem
+                icon={<Package className="w-4 h-4" />}
+                label="Printed card"
+                sub={
+                  freeCardApplied
+                    ? 'Your first card — on us'
+                    : 'Square, 280gsm gloss art card'
+                }
+                amount={totals.printAmount}
+                original={freeCardApplied ? cardPriceGBP(card?.source) : undefined}
+              />
+              {/* Always included free with the printed card. */}
+              <LineItem
+                icon={<Sparkles className="w-4 h-4 text-brand" />}
+                label="Digital link"
+                sub="Instant 3D share link — free"
+                amount={totals.digitalAmount}
+              />
+              <LineItem
+                label={`Postage · ${getShippingTier(effectiveTier).name}`}
+                amount={totals.shippingAmount}
+                muted
+              />
+              {totals.stickerAmount > 0 && (
                 <LineItem
-                  icon={<Package className="w-4 h-4" />}
-                  label="Printed card"
-                  sub="Square, Mohawk / premium stock"
-                  amount={totals.printAmount}
+                  label="Envelope sticker"
+                  sub="Wax-seal on the envelope"
+                  amount={totals.stickerAmount}
+                  muted
                 />
-              )}
-              {includesDigital && (
-                <LineItem
-                  icon={<Sparkles className="w-4 h-4 text-brand" />}
-                  label="Digital version"
-                  sub="Instant 3D share link"
-                  amount={totals.digitalAmount}
-                />
-              )}
-              {includesPrint && (
-                <LineItem label="UK shipping" amount={totals.shippingAmount} muted />
               )}
               {totals.discount > 0 && (
                 <LineItem label="Bundle discount" amount={-totals.discount} muted />
               )}
 
-              <div className="border-t border-stone-200 pt-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">Total</span>
-                <span className="text-xl font-semibold text-ink">
+              {/* Comp code — "this one's on us" (creator gifting). A quiet
+                  reveal so normal buyers never see an empty field inviting
+                  them to go hunt for vouchers. Prefilled + open when the
+                  link carried ?code=. Display zeroes postage optimistically;
+                  the server refuses a bad code at order create, so the
+                  worst a typo gets is an error message, never a charge
+                  they didn't expect. */}
+              {!showCompCode ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCompCode(true)}
+                  className="text-[11.5px] text-keeper-meta underline underline-offset-2 hover:text-keeper-ink text-left"
+                >
+                  Got a code?
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={compCode}
+                    onChange={(e) => setCompCode(e.target.value.toUpperCase())}
+                    placeholder="Your code"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="h-9 flex-1 rounded-md border border-keeper-hair bg-white px-2.5 text-sm uppercase tracking-wide text-keeper-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-keeper-meta focus:outline-none focus:ring-1 focus:ring-brand"
+                    data-testid="input-comp-code"
+                  />
+                  {compCode.trim() && (
+                    <span className="text-[11.5px] text-green-700 whitespace-nowrap">
+                      Postage on us
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="border-t border-keeper-hair pt-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-keeper-ink">Total</span>
+                <span className="text-xl font-semibold text-keeper-ink">
                   {formatGBP(totals.total)}
                 </span>
               </div>
 
+              {/* Honest delivery estimate — production + carrier. */}
+              {includesPrint && (
+                <p className="text-[11px] text-keeper-meta leading-relaxed">
+                  {deliveryEstimateCopy(effectiveTier)}
+                </p>
+              )}
+
+              {!canPay && !submitting && (
+                <p
+                  className="text-center text-[11.5px] text-amber-700"
+                  data-testid="checkout-blocked-reason"
+                >
+                  {!contactComplete
+                    ? 'Add your name and a valid email to continue.'
+                    : includesPrint && !isResolved
+                      ? 'Choose where the card should be delivered first.'
+                      : includesPrint && !addressComplete
+                        ? postcode.trim().length > 0 && postcode.trim().length < 5
+                          ? 'That postcode looks too short — we can only deliver to UK addresses.'
+                          : 'Complete the delivery address to continue.'
+                        : 'Almost there — check the details above.'}
+                </p>
+              )}
               <Button
                 onClick={handlePay}
                 disabled={!canPay}
-                className="w-full"
+                className="w-full bg-cta hover:bg-cta-hover text-cta-foreground"
                 size="lg"
                 data-testid="checkout-pay"
               >
@@ -451,13 +826,56 @@ export default function CheckoutPage() {
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting…
                   </>
+                ) : totals.total === 0 ? (
+                  // Fully comped (code + free card) — "Pay £0.00" reads
+                  // like a trick; say what actually happens.
+                  'Send it — nothing to pay'
                 ) : (
                   `Pay ${formatGBP(totals.total)}`
                 )}
               </Button>
-              <p className="text-[11px] text-stone-400 text-center">
-                Payment is in dev stub mode.
+              {/* Deferral reassurance (Carina 2026-08-07): she couldn't
+                  tell how NOT to buy now and come back later. The card was
+                  always safe — nothing SAID so at the moment of doubt. */}
+              <p className="text-center text-[11.5px] leading-relaxed text-keeper-meta">
+                Not ready to send it? No rush — it's saved in{' '}
+                <Link href="/studio/drafts" className="underline underline-offset-2 hover:text-keeper-ink">
+                  your Drafts
+                </Link>{' '}
+                and will wait.
               </p>
+              {/* Promo codes are entered on Stripe's hosted payment page
+                  (allow_promotion_codes), not here — signpost it so a
+                  code-holder doesn't hunt for the field on this screen. */}
+              <p className="flex items-center justify-center gap-1.5 text-[11px] text-keeper-meta">
+                <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                Got a discount code? Add it on the next page (secure payment).
+              </p>
+              {/* Pre-contract information (audit 2026-07-27): the ToS's
+                  CCR 2013 personalised-goods exemption existed but the
+                  buyer never saw it before paying — a consumer must see
+                  the terms + the no-cancellation rule pre-contract. */}
+              <p className="text-center text-[11px] text-keeper-meta">
+                By paying you agree to our{' '}
+                <a
+                  href="/terms-of-service"
+                  target="_blank"
+                  rel="noopener"
+                  className="underline underline-offset-2 hover:text-keeper-ink"
+                  data-testid="checkout-terms-link"
+                >
+                  Terms
+                </a>
+                {' '}— personalised cards can't be cancelled once printing
+                begins.
+              </p>
+              {/* Dev-only notice — never ships to the deployed site
+                  (audit 2026-07-02). Remove once a real gateway is live. */}
+              {import.meta.env.DEV && (
+                <p className="text-[11px] text-keeper-meta text-center">
+                  Payment is in dev stub mode.
+                </p>
+              )}
             </div>
           </aside>
       </div>
@@ -467,8 +885,8 @@ export default function CheckoutPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-2xl border border-stone-200 p-5 md:p-6 space-y-4">
-      <h2 className="text-sm font-semibold text-ink">{title}</h2>
+    <section className="bg-white rounded-2xl border border-keeper-hair p-5 md:p-6 space-y-4">
+      <h2 className="text-sm font-semibold text-keeper-ink">{title}</h2>
       {children}
     </section>
   );
@@ -477,7 +895,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-stone-600">{label}</Label>
+      <Label className="text-xs font-medium text-keeper-body">{label}</Label>
       {children}
     </div>
   );
@@ -497,62 +915,11 @@ function PreviewTab({
       type="button"
       onClick={onClick}
       className={`px-4 py-1 text-xs font-medium rounded-full transition-colors ${
-        active ? 'bg-white text-ink shadow-sm' : 'text-stone-500 hover:text-ink'
+        active ? 'bg-white text-keeper-ink shadow-sm' : 'text-keeper-meta hover:text-keeper-ink'
       }`}
     >
       {children}
     </button>
-  );
-}
-
-function ProductOption({
-  value,
-  title,
-  description,
-  price,
-}: {
-  value: string;
-  title: string;
-  description: string;
-  price: number;
-}) {
-  return (
-    <Label
-      htmlFor={`product-${value}`}
-      className="relative flex items-start gap-3 border border-stone-200 rounded-xl p-3.5 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
-    >
-      <RadioGroupItem value={value} id={`product-${value}`} className="mt-1 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm font-medium text-ink">{title}</p>
-          <p className="text-sm font-semibold text-ink">{formatGBP(price)}</p>
-        </div>
-        <p className="text-xs text-stone-500 mt-0.5">{description}</p>
-      </div>
-    </Label>
-  );
-}
-
-function ShipToOption({
-  value,
-  title,
-  description,
-}: {
-  value: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Label
-      htmlFor={`ship-${value}`}
-      className="flex items-start gap-3 border border-stone-200 rounded-lg p-3 cursor-pointer hover:border-stone-400 has-[:checked]:border-brand has-[:checked]:bg-brand/5 transition-colors"
-    >
-      <RadioGroupItem value={value} id={`ship-${value}`} className="mt-1" />
-      <div>
-        <p className="text-sm font-medium text-ink">{title}</p>
-        <p className="text-xs text-stone-500 mt-0.5">{description}</p>
-      </div>
-    </Label>
   );
 }
 
@@ -562,26 +929,34 @@ function LineItem({
   sub,
   amount,
   muted,
+  original,
 }: {
   icon?: React.ReactNode;
   label: string;
   sub?: string;
   amount: number;
   muted?: boolean;
+  /** Pre-discount price, shown struck through (the free-card photo price). */
+  original?: number;
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-2">
         {icon}
         <div>
-          <p className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
+          <p className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
             {label}
           </p>
-          {sub && <p className="text-xs text-stone-500 mt-0.5">{sub}</p>}
+          {sub && <p className="text-xs text-keeper-meta mt-0.5">{sub}</p>}
         </div>
       </div>
-      <span className={`text-sm ${muted ? 'text-stone-500' : 'font-medium text-ink'}`}>
-        {amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
+      <span className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
+        {original != null && (
+          <span className="mr-1.5 font-normal text-keeper-meta line-through">
+            {formatGBP(original)}
+          </span>
+        )}
+        {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
       </span>
     </div>
   );

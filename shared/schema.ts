@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, json, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,7 +8,12 @@ export * from "./models/photos";
 export * from "./models/card-draft";
 export * from "./models/studio-orders";
 export * from "./models/card-attempts";
+export * from "./models/research";
+export * from "./models/order-items";
+export * from "./models/card-templates";
 export * from "./models/address-book";
+export * from "./models/analytics";
+export * from "./models/comp-codes";
 
 import { users } from "./models/auth";
 
@@ -17,6 +22,13 @@ export const cards = pgTable("cards", {
   userId: varchar("user_id").references(() => users.id),
   parentCardId: integer("parent_card_id"),
   cardType: text("card_type").notNull().default('printed'),
+  /** WHICH DOOR MADE THIS CARD (UX_THREE_DOORS.md §4a): 'photo' (upload),
+   *  'maker' (generate 3) or 'rack' (bought off the shelf). Defaults to
+   *  'photo' so every pre-existing row is correctly labelled without a
+   *  data migration. Drives: which draft-state shape sits in
+   *  conversationData, where resume sends the user, which recovery
+   *  email copy fires, and the card's price (cardPriceGBP). */
+  source: text("source").notNull().default('photo'),
   printOption: text("print_option").default('front-and-inside'),
   sceneType: text("scene_type").notNull(),
   conversationData: jsonb("conversation_data"),
@@ -34,6 +46,15 @@ export const cards = pgTable("cards", {
    *  /api/card/:id/view?t=TOKEN endpoint without auth. Null = card
    *  has never been shared. */
   viewToken: text("view_token"),
+  /** Stable random secret woven into this card's image object keys
+   *  (card_<id>_<imageKey>_front.png). Makes the public-bucket keys
+   *  UNGUESSABLE so the sequential card id can't be used to enumerate
+   *  everyone's artwork (security audit 2026-07-02). Distinct from
+   *  viewToken: minted once at card creation and NEVER rotated (rotating
+   *  it would orphan the stored image URLs). Nullable for legacy rows —
+   *  the filename helper falls back to the old card_<id>_ naming when
+   *  absent. */
+  imageKey: text("image_key"),
   /** Pointer to the currently-displayed attempt for each side.
    *  See models/card-attempts.ts. The frontImageUrl/insideImageUrl
    *  columns above are kept in sync with the selected attempt's image
@@ -87,6 +108,41 @@ export const cards = pgTable("cards", {
   failureCode: text("failure_code"), // e.g. 'moderation_blocked'
   failureSuggestions: jsonb("failure_suggestions").$type<string[]>(), // static per kind
   failureAt: timestamp("failure_at"), // when the failure was persisted
+}, (t) => [
+  // Hot paths (audit 2026-07-27): the dashboard grid + the 30s
+  // notifications poll both filter on user_id (+ created_at ordering),
+  // and the drop-off cron + stale sweeper scan by status. The table had
+  // ZERO indexes — every one of those was a sequential scan.
+  index("cards_user_id_created_at_idx").on(t.userId, t.createdAt),
+  index("cards_status_idx").on(t.status),
+]);
+
+// Lightweight lead capture — recipients of a digital card who aren't
+// ready to make one on arrival ("email me a link for later", Kevin
+// 2026-07-08). No auth, no account: just an email + where it came
+// from. Nurture flows come later; today we send ONE immediate
+// "here's your link" email at capture time.
+export const marketingLeads = pgTable("marketing_leads", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  source: text("source").notNull(),
+  cardId: integer("card_id"),
+  /** Explicit tick for contact beyond the single link email —
+   *  GDPR-clean opt-in, default false. */
+  marketingOptIn: boolean("marketing_opt_in").default(false),
+  /** Occasion capture (Keeper LP, 2026-07-08): who the next occasion
+   *  is for + when. BOTH optional — the capture works as a plain
+   *  email-only lead when skipped. A date makes the lead nudgeable:
+   *  post-launch, a scheduled job emails a card idea ahead of it. */
+  recipientName: text("recipient_name"),
+  occasionDate: text("occasion_date"),
+  /** Optional celebration type on a reminder lead (Birthday / Anniversary /
+   *  …), captured 2026-07-22 so the post-launch nudge can lead with the
+   *  right occasion. Nullable — plain leads and dateless reminders leave it
+   *  null. ⚠️ needs: ALTER TABLE marketing_leads ADD COLUMN IF NOT EXISTS
+   *  occasion_type text; */
+  occasionType: text("occasion_type"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const orders = pgTable("orders", {
@@ -157,6 +213,10 @@ export type CardGridItem = {
   recipientName: string | null;
   occasion: string | null;
   frontImageUrl: string | null;
+  /** Take-family id (the family's original card id) when this card
+   *  was made via Start-again — null for standalone cards. Use
+   *  familyKey() in studio-card-buckets, not this field directly. */
+  rerollFamilyId: number | null;
   /** True if the card has at least one paid Studio order. Drives the
    *  Ready vs Sent bucket split in the dashboard — a completed card
    *  without a paid order is "ready to send"; one with is "sent". */

@@ -38,6 +38,10 @@ export const studioOrders = pgTable(
     // plain packaging + optional gift message. Null when digital-only.
     shipTo: text("ship_to"), // 'sender' | 'recipient' | null
     shippingAddress: jsonb("shipping_address"), // { line1, line2?, city, postcode, country }
+    // Delivery speed the customer picked at checkout. Drives shippingAmount
+    // AND the Prodigi shippingMethod at fulfilment. See SHIPPING_TIERS in
+    // shared/pricing.ts. 'standard' | 'express' | 'overnight'.
+    shippingTier: text("shipping_tier").notNull().default("standard"),
     giftMessage: text("gift_message"),
     // Legacy column: the welcome gate has no custom-message UI anymore,
     // but the column is kept so `drizzle-kit push` doesn't flag it for
@@ -49,7 +53,35 @@ export const studioOrders = pgTable(
     printAmount: integer("print_amount").notNull().default(0),
     digitalAmount: integer("digital_amount").notNull().default(0),
     shippingAmount: integer("shipping_amount").notNull().default(0),
+    // Optional wax-seal envelope sticker charge (£1.50 when chosen, else 0).
+    // Opt-in add-on on direct-to-recipient sends (Kevin 2026-07-21). Itemised
+    // so refunds/reporting see it apart from postage. See ENVELOPE_STICKER_GBP
+    // in shared/pricing.ts. NB: the DB column is still `delivery_surcharge_amount`
+    // (it began as the direct surcharge) — kept to avoid a migration; >0 means
+    // "sticker chosen", which the fulfilment path reads.
+    envelopeStickerAmount: integer("delivery_surcharge_amount")
+      .notNull()
+      .default(0),
     totalAmount: integer("total_amount").notNull(),
+    // The amount ACTUALLY charged, captured from the gateway on the paid
+    // flip (Stripe: session.amount_total). Differs from totalAmount when a
+    // promotion code discounts the order — e.g. friends-&-family £7.99-off
+    // makes a £12.94 order charge £4.95. NULL for pre-2026-07-22 orders and
+    // any not-yet-paid order; reporting falls back to totalAmount when null.
+    amountPaid: integer("amount_paid"),
+    // The free-first-card credit was applied at create (printAmount forced
+    // to 0, standard postage only). Explicit flag — don't infer from
+    // printAmount=0 — so the paid webhook knows to consume the user's
+    // credit and reporting can count redemptions. See server/studio/free-card.ts.
+    freeCardApplied: boolean("free_card_applied").notNull().default(false),
+    /** Comp code redeemed on this order, if any (see models/comp-codes.ts).
+     *  Present = this was GIFTED, not sold — a marketing cost dressed as an
+     *  order. Reporting must be able to exclude these, otherwise a creator
+     *  campaign reads as a sales spike and corrupts the only pricing
+     *  feedback loop we have. Null on every normal order.
+     *  ⚠️ needs: ALTER TABLE studio_orders ADD COLUMN IF NOT EXISTS
+     *  comp_code varchar(32); */
+    compCode: varchar("comp_code", { length: 32 }),
 
     // Payment — provider-agnostic. paymentProvider records which
     // gateway processed it (stub|peach|stripe|…); paymentReference is
@@ -80,6 +112,11 @@ export const studioOrders = pgTable(
     index("studio_orders_user_id_idx").on(table.userId),
     index("studio_orders_payment_status_idx").on(table.paymentStatus),
     index("studio_orders_fulfillment_status_idx").on(table.fulfillmentStatus),
+    // Webhook hot paths (audit 2026-07-27): Stripe events look orders up
+    // by payment_reference, Prodigi callbacks by provider_order_id —
+    // both were unindexed sequential scans.
+    index("studio_orders_payment_reference_idx").on(table.paymentReference),
+    index("studio_orders_provider_order_id_idx").on(table.providerOrderId),
   ]
 );
 
@@ -95,12 +132,15 @@ export const insertStudioOrderSchema = createInsertSchema(studioOrders).pick({
   includesDigital: true,
   shipTo: true,
   shippingAddress: true,
+  shippingTier: true,
   giftMessage: true,
   currency: true,
   printAmount: true,
   digitalAmount: true,
   shippingAmount: true,
+  envelopeStickerAmount: true,
   totalAmount: true,
+  freeCardApplied: true,
 });
 
 export type InsertStudioOrder = z.infer<typeof insertStudioOrderSchema>;
@@ -121,6 +161,8 @@ export type StudioOrderListItem = {
   paymentStatus: string;       // 'pending' | 'paid' | 'failed' | 'refunded'
   fulfillmentStatus: string;   // 'pending' | 'submitted' | 'printed' | 'shipped' | 'delivered' | 'failed'
   trackingUrl: string | null;
+  trackingNumber: string | null;
+  printProvider: string | null; // 'stub' | 'prodigi' | null (not yet submitted)
   shipTo: string | null;
   recipientName: string | null;
   occasion: string | null;
@@ -133,7 +175,17 @@ export const shippingAddressSchema = z.object({
   line1: z.string().min(1),
   line2: z.string().optional(),
   city: z.string().min(1),
-  postcode: z.string().min(1),
-  country: z.string().min(2).default("GB"),
+  // Real UK postcode shape (audit 2026-07-27): a typo used to surface
+  // only when Prodigi rejected the order — AFTER payment. Permissive on
+  // spacing/case; the regex covers all live UK formats (A9 9AA…AA9A 9AA).
+  postcode: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/, {
+      message: "Enter a valid UK postcode (e.g. SW1A 1AA)",
+    }),
+  // UK-only product — a crafted POST could previously ship anywhere at
+  // UK shipping prices.
+  country: z.literal("GB").default("GB"),
 });
 export type ShippingAddress = z.infer<typeof shippingAddressSchema>;

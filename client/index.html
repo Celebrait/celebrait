@@ -3,16 +3,148 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <!-- Caveat: signature/handwritten display font, used for accent
-         words in the lander headline (e.g. "Welcome to the start of
-         unforgettable" — both swapped words). Preconnect for fast
-         FCP; weight 700 only since we only use the bold cut. -->
+    <!-- The <title> is the blue link in Google results and the single
+         strongest on-page ranking signal. "Celebrait" alone said nothing
+         about what we sell — nobody searches for a brand they've never
+         heard of. This leads with what someone actually types
+         ("personalised greetings cards"), then the differentiator, then
+         the market. ~60 chars so Google doesn't truncate it. -->
+    <title>Personalised Greetings Cards — Put Them In The Picture | Celebrait</title>
+    <meta name="description" content="Custom AI-illustrated greetings cards with a front and inside that belong together. Designed by you, printed and posted for you." />
+    <link rel="canonical" href="https://www.celebrait.co.uk/" />
+
+    <!-- Open Graph / social sharing preview (WhatsApp, iMessage, Facebook,
+         LinkedIn). og-image.jpg is 1200x630 and kept under ~300KB so
+         WhatsApp actually renders it (it silently drops larger images).
+         Absolute https URLs are required — crawlers don't run our JS, so
+         these static tags in the SPA shell are what every platform reads.
+         Bump the ?v= query when the artwork changes to bust the aggressive
+         OG-image caches (Facebook/WhatsApp cache by URL for weeks). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Celebrait" />
+    <meta property="og:url" content="https://www.celebrait.co.uk/" />
+    <meta property="og:title" content="Celebrait — unbinnable greetings cards" />
+    <meta property="og:description" content="Custom AI-illustrated greetings cards with a front and inside that belong together. Designed by you, printed and posted for you." />
+    <meta property="og:image" content="https://www.celebrait.co.uk/og-image.jpg?v=1" />
+    <meta property="og:image:secure_url" content="https://www.celebrait.co.uk/og-image.jpg?v=1" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Celebrait — a real photo of a couple turned into a personalised illustrated anniversary greetings card." />
+    <meta property="og:locale" content="en_GB" />
+
+    <!-- Structured data: who we are + what we sell, stated plainly for
+         Google. Static (no JS needed to read it). Kept HONEST: no
+         aggregateRating (we have no published reviews yet — faking one
+         is a manual-action risk), price matches shared/pricing.ts. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.celebrait.co.uk/#org",
+          "name": "Celebrait",
+          "url": "https://www.celebrait.co.uk/",
+          "logo": "https://www.celebrait.co.uk/email-logo.png",
+          "sameAs": ["https://instagram.com/celebrait"],
+          "areaServed": "GB"
+        },
+        {
+          "@type": "Product",
+          "name": "Personalised photo greetings card",
+          "description": "A personalised greetings card where the person in your photo becomes the artwork, in any scene you describe. Printed on 280gsm card and posted anywhere in the UK, with a free digital version included.",
+          "image": "https://www.celebrait.co.uk/og-image.jpg",
+          "brand": { "@type": "Brand", "name": "Celebrait" },
+          "offers": {
+            "@type": "Offer",
+            "price": "8.99",
+            "priceCurrency": "GBP",
+            "availability": "https://schema.org/InStock",
+            "url": "https://www.celebrait.co.uk/",
+            "areaServed": "GB",
+            "shippingDetails": {
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": "3.95",
+                "currency": "GBP"
+              },
+              "shippingDestination": {
+                "@type": "DefinedRegion",
+                "addressCountry": "GB"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 3,
+                  "unitCode": "DAY"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 2,
+                  "unitCode": "DAY"
+                }
+              }
+            },
+            "hasMerchantReturnPolicy": {
+              "@type": "MerchantReturnPolicy",
+              "applicableCountry": "GB",
+              "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+            }
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Twitter/X large-image card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Celebrait — unbinnable greetings cards" />
+    <meta name="twitter:description" content="Custom AI-illustrated greetings cards with a front and inside that belong together. Designed by you, printed and posted for you." />
+    <meta name="twitter:image" content="https://www.celebrait.co.uk/og-image.jpg?v=1" />
+    <meta name="twitter:image:alt" content="Celebrait — a real photo of a couple turned into a personalised illustrated anniversary greetings card." />
+
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Caveat: signature/handwritten display font for accent words.
+         Fraunces: serif display font being TESTED for landing headlines
+         (variable optical-size + weight axes).
+         Figtree: humanist body sans on TRIAL in the /keeper proof section
+         (warmer Fraunces pairing than Inter). Self-host before launch if kept.
+         Preconnect for fast FCP. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"
       rel="stylesheet"
     />
+    <!-- Hero art (public/, stable URLs — see landing-keeper.tsx).
+         Preloading from the HTML head starts the download in PARALLEL
+         with the JS bundle; as bundled assets the fetch couldn't begin
+         until the app had loaded and run, which is why the hero showed
+         white card stock for a beat on prod.
+
+         PRIORITIES MUST TRACK THE HERO (fixed 2026-07-29). When the hero
+         was rebuilt around real photographs, these still pointed at the
+         3D card textures — so the browser spent its first, most
+         contended connections on two images that had moved BELOW the
+         fold, while the actual LCP element (hero-real-card.webp) wasn't
+         preloaded at all and queued behind them.
+
+         crossorigin is not decoration, it's cache-key matching: a
+         preload whose CORS mode differs from the eventual fetch is
+         ignored and the file downloads TWICE.
+           - hero-real-*  → plain <img>, no crossOrigin  → omit it.
+           - hero-card-*  → r3f anonymous textures       → keep it. -->
+    <link rel="preload" as="image" href="/hero-real-card.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/hero-real-source.webp" fetchpriority="low" />
+    <!-- Below the fold now: warm the cache, but never ahead of the LCP. -->
+    <link rel="preload" as="image" href="/hero-card-front.webp" fetchpriority="low" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>

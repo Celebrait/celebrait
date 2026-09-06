@@ -6,6 +6,8 @@ import { storage } from "../storage";
 // provider integration will handle its own dispatch via the
 // PrintProvider abstraction (server/studio/print-provider.ts).
 import { generateSeparatePDFs, generatePrintSpecs, packagePDFsForSupplier } from "../pdf-generator";
+import { publicImageUrl } from "../image-storage";
+import { isR2Enabled, r2Put } from "../r2-storage";
 
 // --- API Clients ---
 
@@ -95,17 +97,20 @@ export async function convertBase64ToPngFile(base64Data: string, cardId: number,
     const processingTime = Date.now() - startTime;
     console.log(`[PNG_CONVERSION] Sharp processing took ${processingTime}ms for ${imageType} image (${pngBuffer.length} bytes)`);
 
-    const fs = await import('fs');
-    const path = await import('path');
-
     const filename = `card_${cardId}_${imageType}.png`;
-    const filepath = path.join(process.cwd(), 'stored_images', filename);
 
-    await fs.promises.writeFile(filepath, pngBuffer);
+    if (isR2Enabled()) {
+      await r2Put(filename, pngBuffer, 'image/png');
+    } else {
+      const fs = await import('fs');
+      const path = await import('path');
+      const filepath = path.join(process.cwd(), 'stored_images', filename);
+      await fs.promises.writeFile(filepath, pngBuffer);
+    }
 
     console.log(`[PNG_CONVERSION] Successfully converted ${imageType} image for card ${cardId} to PNG file: ${filename} (${pngBuffer.length} bytes)`);
 
-    return `/images/${filename}`;
+    return publicImageUrl(filename);
 
   } catch (error: any) {
     console.error(`[PNG_CONVERSION] Error converting ${imageType} image for card ${cardId}:`, error);

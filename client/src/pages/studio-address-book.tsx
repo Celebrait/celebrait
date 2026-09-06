@@ -48,6 +48,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import {
+  isFixedDateOccasion,
+  nextFixedOccasionDate,
+} from '@shared/fixed-occasions';
 import type {
   AddressBookEntry,
   RecipientOccasionRow,
@@ -55,6 +59,12 @@ import type {
 
 interface EntryWithOccasions extends AddressBookEntry {
   occasions: RecipientOccasionRow[];
+  /** The most recent completed card sent to this recipient. Drives
+   *  the row thumbnail — when present, the row shows the card's front
+   *  art instead of the letter avatar. See
+   *  next_address_book_reminders_retention.md. Mirrors the server
+   *  `EntryWithOccasions` shape in routes/address-book.ts. */
+  lastCard: { frontImageUrl: string; sentAt: string } | null;
 }
 
 export default function StudioAddressBookPage() {
@@ -72,7 +82,7 @@ export default function StudioAddressBookPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
-      toast({ title: 'Gone — you can always add them back.' });
+      toast({ title: 'Gone — you can always add them back.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -94,11 +104,11 @@ export default function StudioAddressBookPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-6 sm:mb-8">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Address book
           </h1>
           {entries.length > 0 && (
-            <p className="text-sm text-stone-500 mt-1">
+            <p className="text-sm text-keeper-meta mt-1">
               {entries.length} {entries.length === 1 ? 'person' : 'people'}
               {occasionCount > 0 && (
                 <>
@@ -112,7 +122,7 @@ export default function StudioAddressBookPage() {
         {entries.length > 0 && (
           <Link
             href="/studio/people/address-book/new"
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors shrink-0"
+            className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition-colors shrink-0"
             data-testid="btn-add-person"
           >
             <Plus className="w-4 h-4" />
@@ -127,7 +137,7 @@ export default function StudioAddressBookPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="bg-white rounded-2xl border border-stone-200 p-5 animate-pulse"
+              className="bg-white rounded-2xl border border-keeper-hair p-5 animate-pulse"
             >
               <div className="h-5 w-32 bg-stone-200 rounded mb-3" />
               <div className="h-3 w-48 bg-stone-100 rounded" />
@@ -138,13 +148,13 @@ export default function StudioAddressBookPage() {
 
       {/* Error */}
       {error && !isLoading && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="bg-accent-red-light border border-accent-red/25 rounded-2xl p-5 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-accent-red-dark shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-900">
+            <p className="text-sm font-medium text-accent-red-dark">
               Couldn't load your address book
             </p>
-            <p className="text-xs text-red-700 mt-0.5">
+            <p className="text-xs text-accent-red-dark mt-0.5">
               {error instanceof Error ? error.message : 'Give it a moment and try again.'}
             </p>
           </div>
@@ -216,14 +226,14 @@ export default function StudioAddressBookPage() {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl px-6 py-12 sm:py-16 text-center">
+    <div className="bg-white border border-keeper-hair rounded-2xl px-6 py-12 sm:py-16 text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <Users className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         This is where the people you send cards to live.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Make a card and they'll land here automatically. Or add someone
         now — handy when a birthday's creeping up.
       </p>
@@ -231,7 +241,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         type="button"
         size="lg"
         onClick={onAdd}
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
         data-testid="btn-empty-add-person"
       >
         <UserPlus className="w-4 h-4 mr-2" />
@@ -249,6 +259,32 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // Edit + Remove actions.
 // ─────────────────────────────────────────────────────────────────────
 
+/** Format the lastCard.sentAt timestamp for the "Last sent" line.
+ *  - Same calendar day → "today"
+ *  - Yesterday → "yesterday"
+ *  - This calendar year → "14 Mar"
+ *  - Older → "14 Mar 2025"
+ *  Keeps the line short — it's the quietest signal on the row, not
+ *  a headline. en-GB locale to match the rest of the product. */
+function formatLastSentDate(iso: string): string {
+  const sent = new Date(iso);
+  if (Number.isNaN(sent.getTime())) return '';
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfSent = new Date(sent.getFullYear(), sent.getMonth(), sent.getDate());
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfSent.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (dayDiff === 0) return 'today';
+  if (dayDiff === 1) return 'yesterday';
+  const sameYear = sent.getFullYear() === now.getFullYear();
+  return sent.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
 function EntryRow({
   entry,
   onDelete,
@@ -264,7 +300,7 @@ function EntryRow({
 
   return (
     <div
-      className="bg-white rounded-2xl border border-stone-200 hover:border-brand transition-colors group"
+      className="bg-white rounded-2xl border border-keeper-hair hover:border-brand transition-colors group"
       data-testid={`address-book-row-${entry.id}`}
     >
       <div className="flex items-start gap-3 p-5">
@@ -273,17 +309,33 @@ function EntryRow({
           className="flex-1 min-w-0 flex items-start gap-3"
           data-testid={`address-book-edit-${entry.id}`}
         >
-          <div className="w-10 h-10 rounded-full bg-brand-muted/50 text-brand-dark flex items-center justify-center shrink-0">
-            <span className="text-sm font-semibold">
-              {entry.name.charAt(0).toUpperCase()}
-            </span>
+          {/* Avatar — last card sent if we have one (turns the row
+              into a memory anchor), otherwise the letter fallback.
+              Slightly larger than the letter version (12×12 ≈ 48px)
+              so the card art is readable; rounded-md not rounded-full
+              because it's a card, not a person photo. See
+              next_address_book_reminders_retention.md. */}
+          <div className="w-12 h-12 rounded-md overflow-hidden border border-keeper-hair shrink-0 bg-brand-muted/50 text-brand-dark flex items-center justify-center">
+            {entry.lastCard?.frontImageUrl ? (
+              <img
+                src={entry.lastCard.frontImageUrl}
+                crossOrigin="anonymous"
+                alt=""
+                aria-hidden
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-base font-semibold">
+                {entry.name.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0 pt-0.5">
-            <p className="text-base font-medium text-ink truncate">
+            <p className="text-base font-medium text-keeper-ink truncate">
               {entry.name}
             </p>
             {subtitle && (
-              <p className="text-xs text-stone-500 mt-0.5 truncate">
+              <p className="text-xs text-keeper-meta mt-0.5 truncate">
                 {subtitle}
               </p>
             )}
@@ -294,13 +346,23 @@ function EntryRow({
                 ))}
               </div>
             )}
+            {/* Last sent — the quietest signal on the row, historical
+                rather than actionable, so it sits below the chips.
+                Memory-shelf framing: this is a person you've sent
+                something to before. See
+                next_address_book_reminders_retention.md. */}
+            {entry.lastCard && (
+              <p className="text-xs text-keeper-meta mt-2.5">
+                Last sent {formatLastSentDate(entry.lastCard.sentAt)}
+              </p>
+            )}
           </div>
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="w-8 h-8 rounded-full text-stone-400 hover:text-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
+              className="w-8 h-8 rounded-full text-keeper-meta hover:text-keeper-ink hover:bg-stone-50 flex items-center justify-center shrink-0 transition-colors"
               aria-label={`Actions for ${entry.name}`}
               data-testid={`address-book-menu-${entry.id}`}
             >
@@ -340,23 +402,31 @@ function EntryRow({
 
 function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
   const Icon = getOccasionIcon(occasion.occasion) ?? Cake;
+  // Fixed-date occasions (Christmas etc.) store no date — resolve it from
+  // the calendar so they show a real date and never get the "add the date"
+  // nag (audit 2026-07-02).
   const dateLabel = occasion.date
     ? formatOccasionDate(occasion.date, occasion.yearSpecific)
-    : null;
+    : isFixedDateOccasion(occasion.occasion)
+      ? (nextFixedOccasionDate(occasion.occasion, new Date())?.toLocaleDateString(
+          'en-GB',
+          { day: 'numeric', month: 'short', timeZone: 'UTC' },
+        ) ?? null)
+      : null;
 
   return (
     <span
       className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${
         dateLabel
           ? 'bg-brand-muted/60 text-brand-dark'
-          : 'bg-amber-50 text-amber-800 border border-amber-200'
+          : 'bg-accent-red-light text-accent-red-dark border border-accent-red/30'
       }`}
       data-testid={`occasion-chip-${occasion.id}`}
     >
       <Icon className="w-3 h-3" strokeWidth={1.75} />
       <span className="capitalize">{occasion.occasion}</span>
-      {dateLabel && <span className="text-stone-500">· {dateLabel}</span>}
-      {!dateLabel && <span className="text-amber-700">· add the date</span>}
+      {dateLabel && <span className="text-keeper-meta">· {dateLabel}</span>}
+      {!dateLabel && <span className="text-accent-red-dark">· add the date</span>}
     </span>
   );
 }

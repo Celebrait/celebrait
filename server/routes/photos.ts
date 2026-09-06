@@ -19,7 +19,12 @@ import sharp from 'sharp';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
-import { analyzePhoto } from '../photos/analyze';
+import { analyzePhoto, assessPhotoLikeness } from '../photos/analyze';
+import { requireGuestMaker } from './admin-card-lab';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
+import { isR2Enabled, r2Put, r2Delete } from '../r2-storage';
 
 const PHOTOS_ROOT = path.join(process.cwd(), 'stored_images', 'photos');
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB of raw image data
@@ -69,6 +74,57 @@ function validateCropBounds(bounds: unknown, width: number, height: number): Cro
 }
 
 export function registerPhotoRoutes(app: Express): void {
+  // ── PUBLIC photo maker: assess a photo WITHOUT storing it ──────────
+  // (2026-09-04) Signed-out users crop a photo in the browser and get
+  // the same likeness verdict + visual summary the upload path writes
+  // onto a photo row — but nothing touches disk or R2. The bytes are
+  // judged on the crop (exactly what generation would see) and dropped.
+  // Guest-capped per IP; the real upload happens after sign-up.
+  app.post('/api/photos/assess', async (req: Request, res: Response) => {
+    if (!(await requireGuestMaker('assess')(req, res))) return;
+    try {
+      const { imageBase64, cropBounds } = req.body ?? {};
+      if (typeof imageBase64 !== 'string' || !imageBase64) {
+        return res.status(400).json({ message: 'imageBase64 is required' });
+      }
+      const decoded = decodeBase64Image(imageBase64);
+      if (!decoded) return res.status(400).json({ message: 'Invalid image data or too large (15 MB limit)' });
+      const meta = await sharp(decoded.buffer).metadata();
+      const width = meta.width ?? 0;
+      const height = meta.height ?? 0;
+      if (!width || !height) return res.status(400).json({ message: 'Could not determine image dimensions' });
+      const validCrop = cropBounds ? validateCropBounds(cropBounds, width, height) : null;
+      if (cropBounds && !validCrop) return res.status(400).json({ message: 'cropBounds is invalid or falls outside the image' });
+      // Judge the crop, as the upload path does; cap the long edge so a
+      // 15 MB original doesn't ride into the vision call.
+      let pipeline = sharp(decoded.buffer);
+      if (validCrop) pipeline = pipeline.extract({ left: validCrop.x, top: validCrop.y, width: validCrop.width, height: validCrop.height });
+      const bytes = await pipeline.resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+      const judged = await sharp(bytes).metadata();
+      // Likeness ONLY — the traffic light. The visual-summary pass
+      // (person count + description) feeds the parked inside-text
+      // helper and admin screens, nothing a guest sees; the full
+      // analysis runs on the real upload after sign-up. One call, not two.
+      const likeness = await assessPhotoLikeness({ imageBytes: bytes, mimeType: 'image/jpeg', imageHeight: judged.height });
+      if (!likeness.noApiKey) {
+        void logGeneration({
+          cardId: null, slot: LLM_SLOTS.PHOTO_ANALYSIS, templateId: null, templateVersion: null,
+          provider: 'gemini', model: likeness.model, quality: null,
+          costCents: llmCostCents(likeness.model, likeness.promptTokens, likeness.outputTokens),
+          durationMs: likeness.durationMs, success: !!likeness.result, errorCode: likeness.result ? null : 'parse_failed',
+        });
+      }
+      res.json({
+        likeness: likeness.result ?? null,
+        analyzedAt: new Date().toISOString(),
+        width, height,
+      });
+    } catch (err) {
+      console.error('[photos.assess] failed:', err);
+      res.status(500).json({ message: 'Could not check that photo' });
+    }
+  });
+
   // ── POST /api/photos/upload ─────────────────────────────────────────────
   // Body: { imageBase64, filename?, label?, cropBounds? }
   // cropBounds is optional here so the API stays flexible — the Studio UI
@@ -145,7 +201,21 @@ export function registerPhotoRoutes(app: Express): void {
       const thumbAbs = path.join(process.cwd(), 'stored_images', thumbRel);
 
       // Write the original bytes verbatim so we don't re-encode.
+      // The R2 mirror is COLLECTED here and awaited once at the end,
+      // in parallel with the crop + thumb mirrors — three sequential
+      // round-trips to Cloudflare were adding seconds to the response
+      // on a mobile connection (Kevin 2026-07-27).
+      const mirrors: Array<Promise<void>> = [];
       await fs.writeFile(originalAbs, decoded.buffer);
+      // Mirror to R2 under the SAME relative key (audit 2026-07-27,
+      // P0-1): Render's local disk is wiped on every deploy, and these
+      // files are what generation reads — without the mirror, every
+      // resumed draft/regen after a deploy failed with ENOENT. When R2
+      // is on, the mirror is durable-or-error: an upload that would
+      // silently break after the next deploy is worse than a retry.
+      if (isR2Enabled()) {
+        mirrors.push(r2Put(originalRel, decoded.buffer, resolvedMime));
+      }
 
       // If the client supplied a crop, materialise the cropped derivative
       // now — providers receive this version at generation time, and we
@@ -167,21 +237,39 @@ export function registerPhotoRoutes(app: Express): void {
           .jpeg({ quality: 92 })
           .toBuffer();
         await fs.writeFile(croppedAbs, croppedBuffer);
+        if (isR2Enabled()) {
+          mirrors.push(r2Put(croppedRel, croppedBuffer, 'image/jpeg'));
+        }
         thumbSourceBuffer = croppedBuffer;
       }
 
-      // Generate a small square thumbnail from the cropped derivative
-      // when available, otherwise from the original. position:'attention'
-      // does a rough saliency crop which is fine for uncropped originals
-      // but is unnecessary (and mildly incorrect) when we already have a
-      // hand-chosen crop — use 'centre' in that case.
-      await sharp(thumbSourceBuffer)
-        .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
+      // Generate the tile thumbnail from the cropped derivative when
+      // available, otherwise from the original.
+      //   • With a hand-chosen crop: PRESERVE the crop's own aspect ratio
+      //     (fit:'inside'). Group crops are free-aspect (usually landscape),
+      //     and squaring them here (the old fit:'cover') made a landscape
+      //     crop show as a square tile — WYSIWYG broken. one-person crops
+      //     are 1:1, so 'inside' still yields a square for them.
+      //   • Without a crop: rough saliency square (position:'attention') —
+      //     fine for an unframed original.
+      const thumbPipeline = sharp(thumbSourceBuffer);
+      if (validCrop) {
+        thumbPipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'inside' });
+      } else {
+        thumbPipeline.resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, {
           fit: 'cover',
-          position: validCrop ? 'centre' : 'attention',
-        })
-        .jpeg({ quality: 80 })
-        .toFile(thumbAbs);
+          position: 'attention',
+        });
+      }
+      const thumbBuffer = await thumbPipeline.jpeg({ quality: 80 }).toBuffer();
+      await fs.writeFile(thumbAbs, thumbBuffer);
+      if (isR2Enabled()) {
+        mirrors.push(r2Put(thumbRel, thumbBuffer, 'image/jpeg'));
+      }
+
+      // One parallel wait for all R2 mirrors (still durable-or-error:
+      // a rejection propagates to the catch and the upload 500s).
+      if (mirrors.length > 0) await Promise.all(mirrors);
 
       // Patch the row with real paths + crop metadata.
       const updated = await storage.updatePhoto(photoId, {
@@ -253,6 +341,12 @@ export function registerPhotoRoutes(app: Express): void {
       for (const rel of paths) {
         const abs = path.join(process.cwd(), 'stored_images', rel);
         await fs.unlink(abs).catch(() => {});
+        // Purge the R2 mirror too (uploads mirror there since the
+        // 2026-07-27 durability fix) — a deleted photo must not linger
+        // in the bucket. Best-effort, same as the disk unlink.
+        if (isR2Enabled()) {
+          await r2Delete(rel).catch(() => {});
+        }
       }
 
       await storage.deletePhoto(photoId);

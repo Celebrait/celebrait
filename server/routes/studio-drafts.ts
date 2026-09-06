@@ -15,14 +15,14 @@
 // Nobody should be able to PATCH someone else's draft.
 
 import type { Express, Request, Response } from 'express';
-import path from 'path';
-import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import {
   cards,
   cardAttempts,
+  orders,
+  users,
   EMPTY_CARD_DRAFT,
   studioOrders,
   type CardDraftState,
@@ -30,9 +30,11 @@ import {
   type CardAttemptListItem,
 } from '@shared/schema';
 import { sendSenderCardOpenedEmail } from '../email-service';
+import { publicImageUrl, resolveStoredImageUrl, deleteCardImages } from '../image-storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import {
   generateStudioCard,
+  finalizeCardArtifacts,
   createRegenAttemptRow,
   runRegenAttempt,
   regenerateStudioCardSide,
@@ -57,20 +59,35 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-// Strip the /images/ prefix to get the path relative to stored_images/.
-// Images are served via express.static('stored_images') at /images, so
-// what's in the DB may be either a bare relative path or already have
-// the /images/ prefix depending on when it was written.
-function imageDiskPath(storedPath: string | null | undefined): string | null {
-  if (!storedPath) return null;
-  const rel = storedPath.startsWith('/images/') ? storedPath.slice('/images/'.length) : storedPath;
-  return path.join(process.cwd(), 'stored_images', rel);
+/** True if the given user id belongs to an admin. Lets admins VIEW any
+ *  card from the CRM (read-only) — write actions stay owner-only. Mirrors
+ *  the is_admin gate used by /admin/* routes. */
+async function isAdminUser(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return rows[0]?.isAdmin === true;
 }
+
 
 // Server-side mirror of the client's readiness gates. The UI blocks Next
 // until each step is complete, but the server shouldn't trust that — a
 // crafted POST could skip straight to /generate with a half-filled state.
-function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: string } {
+// FRONT-FIRST rollout flag. When '1', /generate produces the front only
+// and the inside is a separate, post-approval step. Default OFF so the
+// backend can ship before the studio + chat surfaces understand the new
+// statuses (generating-front / front-ready / generating-inside). Flip to
+// '1' on Render once those client surfaces are live.
+const FRONT_FIRST_GEN = process.env.FRONT_FIRST_GEN === '1';
+
+// Front-first split: the FRONT can generate as soon as recipient/photo/
+// scene are set — the inside message is collected AFTER the front is
+// revealed, so it must NOT gate the front gen. Style validation removed
+// 2026-05-17 (parked for Premium; V1 locks to 'animated'). See
+// next_celebrait_premium.md.
+function isReadyToGenerateFront(state: CardDraftState): { ok: boolean; reason?: string } {
   if (!state.recipient?.name?.trim() || !state.recipient?.occasion?.trim()) {
     return { ok: false, reason: 'Recipient name + occasion required' };
   }
@@ -80,24 +97,31 @@ function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: 
   if (!state.scene?.description?.trim()) {
     return { ok: false, reason: 'Scene description required' };
   }
-  const styleMode = state.style?.mode;
-  if (styleMode !== 'animated' && styleMode !== 'realistic' && styleMode !== 'custom') {
-    return { ok: false, reason: 'Style selection required' };
-  }
-  if (styleMode === 'custom' && (state.style?.custom?.trim().length ?? 0) < 15) {
-    return { ok: false, reason: 'Custom style needs at least 15 characters' };
-  }
+  // The front headline always derives from name+occasion (deriveDefault
+  // FrontText), so no separate front-text gate is needed here.
+  return { ok: true };
+}
+
+// The inside half — gates the SECOND step (generate-inside), collected
+// after the front is approved.
+function isInsideDecisionReady(state: CardDraftState): { ok: boolean; reason?: string } {
   const insideMode = state.inside?.mode;
-  if (insideMode === 'blank') {
-    // Blank is always ready.
-  } else if (insideMode === 'write') {
+  if (insideMode === 'blank') return { ok: true }; // blank is always ready
+  if (insideMode === 'write') {
     if (!state.inside?.write?.message?.trim()) {
       return { ok: false, reason: 'Inside message required for Write mode' };
     }
-  } else {
-    return { ok: false, reason: 'Inside mode (write or blank) required' };
+    return { ok: true };
   }
-  return { ok: true };
+  return { ok: false, reason: 'Inside mode (write or blank) required' };
+}
+
+// Legacy combined gate (used by the 'full' single-job path) — both
+// halves must pass.
+function isDraftReadyToGenerate(state: CardDraftState): { ok: boolean; reason?: string } {
+  const front = isReadyToGenerateFront(state);
+  if (!front.ok) return front;
+  return isInsideDecisionReady(state);
 }
 
 export function registerStudioDraftRoutes(app: Express): void {
@@ -109,6 +133,27 @@ export function registerStudioDraftRoutes(app: Express): void {
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });
 
     try {
+      // Optional prefill from a reminder deep-link
+      // (/studio/new-card?recipient=…&occasion=…) so "Start Mum's card"
+      // lands on a draft that already knows who it's for. Previously the
+      // params were built by the dispatcher but silently ignored here
+      // (audit 2026-07-02).
+      const body = (req.body ?? {}) as { recipientName?: unknown; occasion?: unknown };
+      const seedName =
+        typeof body.recipientName === 'string' ? body.recipientName.trim().slice(0, 100) : '';
+      const seedOccasion =
+        typeof body.occasion === 'string' ? body.occasion.trim().slice(0, 100) : '';
+      const conversationData =
+        seedName || seedOccasion
+          ? {
+              ...EMPTY_CARD_DRAFT,
+              recipient: {
+                ...(seedName ? { name: seedName } : {}),
+                ...(seedOccasion ? { occasion: seedOccasion } : {}),
+              },
+            }
+          : EMPTY_CARD_DRAFT;
+
       // sceneType + price are NOT NULL in the schema. We give them
       // harmless defaults — the real values get filled in as the user
       // progresses through the maker steps.
@@ -121,7 +166,11 @@ export function registerStudioDraftRoutes(app: Express): void {
           status: 'draft',
           cardType: 'printed',
           printOption: 'front-and-inside',
-          conversationData: EMPTY_CARD_DRAFT,
+          conversationData,
+          // Stable, unguessable secret woven into this card's image object
+          // keys so they can't be enumerated from the sequential id
+          // (security audit 2026-07-02).
+          imageKey: generateShareToken(),
         })
         .returning({ id: cards.id });
 
@@ -131,6 +180,81 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.status(500).json({ message: 'Could not create draft: ' + (err?.message ?? String(err)) });
     }
   });
+
+  // ── POST /api/studio/drafts/:id/duplicate ─────────────────────────
+  // "Start again with these details" (Kevin 2026-07-07 — the regen
+  // replacement; tweak workbench parked for Premium). Clones the
+  // draft's INPUTS into a brand-new draft so the user can re-roll
+  // through the full crafted generation prompt without re-typing:
+  // recipient, photo refs, scene, front text, inside decision all
+  // carry over; generation outputs/status do NOT — the clone starts
+  // life as a plain 'draft' parked on the Review step. The source
+  // card is untouched (stays in drafts, versions intact).
+  app.post(
+    '/api/studio/drafts/:id/duplicate',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            userId: cards.userId,
+            conversationData: cards.conversationData,
+            sceneType: cards.sceneType,
+            cardType: cards.cardType,
+            printOption: cards.printOption,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Card not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+
+        const state = (row.conversationData ?? {}) as CardDraftState;
+        // Land the clone on Review — inputs pre-filled and editable via
+        // the stepper, one tap to generate. Index 5 = review
+        // (CARD_MAKER_STEPS; the inside step at 4 is skipped in the
+        // linear walk since the 2026-07-07 re-sequence).
+        // rerollOfCardId marks the clone as a "take two" so the Review
+        // step can signpost the fresh start + link back to the source.
+        const conversationData: CardDraftState = {
+          ...state,
+          step: 5,
+          rerollOfCardId: id,
+          // Family id survives chained clones: a take-three cloned
+          // from take-two still belongs to take-one's family.
+          rerollFamilyId: state.rerollFamilyId ?? id,
+        };
+
+        const [inserted] = await db
+          .insert(cards)
+          .values({
+            userId,
+            sceneType: row.sceneType ?? 'with-person',
+            price: 0,
+            status: 'draft',
+            cardType: row.cardType ?? 'printed',
+            printOption: row.printOption ?? 'front-and-inside',
+            conversationData,
+            imageKey: generateShareToken(),
+          })
+          .returning({ id: cards.id });
+
+        res.json({ id: inserted.id });
+      } catch (err: any) {
+        console.error('[STUDIO] draft duplicate error:', err);
+        res
+          .status(500)
+          .json({ message: 'Could not start again: ' + (err?.message ?? String(err)) });
+      }
+    },
+  );
 
   // ── GET /api/studio/drafts/:id ───────────────────────────────────
   // Fetch a single draft's state for resume. Only returns scalar
@@ -148,6 +272,8 @@ export function registerStudioDraftRoutes(app: Express): void {
           id: cards.id,
           userId: cards.userId,
           status: cards.status,
+          // Which door made it — checkout prices from this (§8a).
+          source: cards.source,
           conversationData: cards.conversationData,
           frontImageUrl: cards.frontImageUrl,
           insideImageUrl: cards.insideImageUrl,
@@ -172,7 +298,12 @@ export function registerStudioDraftRoutes(app: Express): void {
 
       const row = rows[0];
       if (!row) return res.status(404).json({ message: 'Draft not found' });
-      if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+      // Owner sees their own card; admins can view ANY card (read-only,
+      // for the CRM + grabbing marketing assets). Write routes below stay
+      // strictly owner-only.
+      if (row.userId !== userId && !(await isAdminUser(userId))) {
+        return res.status(403).json({ message: 'Not your draft' });
+      }
 
       // Default empty state if conversationData is null or shaped
       // differently (legacy rows from the old flow).
@@ -182,17 +313,14 @@ export function registerStudioDraftRoutes(app: Express): void {
           ? (stateRaw as CardDraftState)
           : EMPTY_CARD_DRAFT;
 
-      // Prefer the stored-file path (served under /images/) and fall
-      // back to the direct URL column for legacy rows where only one
-      // of the two is populated. Mirrors the logic in
+      // Prefer the stored-file path and fall back to the legacy URL
+      // column — BOTH resolved through publicImageUrl so legacy
+      // '/images/<name>' rows come back as direct R2 URLs (CORS-safe
+      // for the 3D texture loader; see resolveStoredImageUrl). Mirrors
       // storage.getUserCardsForGrid — keep them aligned so all
       // dashboard surfaces resolve the same.
-      const frontUrl = row.frontImagePath
-        ? `/images/${row.frontImagePath}`
-        : row.frontImageUrl;
-      const insideUrl = row.insideImagePath
-        ? `/images/${row.insideImagePath}`
-        : row.insideImageUrl;
+      const frontUrl = resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl);
+      const insideUrl = resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl);
 
       // Attempts (regen history) — slim projection. Failed attempts
       // are filtered out so the versions strip never shows broken
@@ -204,6 +332,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           side: cardAttempts.side,
           attemptNumber: cardAttempts.attemptNumber,
           status: cardAttempts.status,
+          errorCode: cardAttempts.errorCode,
           imageUrl: cardAttempts.imageUrl,
           imagePath: cardAttempts.imagePath,
           createdAt: cardAttempts.createdAt,
@@ -212,6 +341,25 @@ export function registerStudioDraftRoutes(app: Express): void {
         .where(eq(cardAttempts.cardId, id))
         .orderBy(cardAttempts.side, cardAttempts.attemptNumber);
 
+      // Per-side regen failure signal. Background regens are
+      // fire-and-forget, so the client's POST resolves before the gen
+      // runs — this projection is the ONLY way it learns a regen failed.
+      // For each side, if the MOST RECENT attempt failed (nothing
+      // succeeded after it), surface it so the client shows the error
+      // panel instead of silently dropping back to the old card. See
+      // next_regen_interaction_polish.md (G1).
+      const latestBySide = new Map<string, (typeof attemptRows)[number]>();
+      for (const a of attemptRows) {
+        const cur = latestBySide.get(a.side);
+        if (!cur || a.attemptNumber > cur.attemptNumber) latestBySide.set(a.side, a);
+      }
+      const regenFailures = Array.from(latestBySide.values())
+        .filter((a) => a.status === 'failed')
+        .map((a) => ({
+          side: a.side as CardSide,
+          kind: a.errorCode ?? 'server',
+        }));
+
       const attempts: (CardAttemptListItem & { status: string })[] = attemptRows
         .filter((a) => a.status !== 'failed')
         .map((a) => ({
@@ -219,20 +367,19 @@ export function registerStudioDraftRoutes(app: Express): void {
           side: a.side as CardSide,
           attemptNumber: a.attemptNumber,
           status: a.status,
-          imageUrl: a.imagePath
-            ? `/images/${a.imagePath}`
-            : (a.imageUrl ?? ''),
+          imageUrl: resolveStoredImageUrl(a.imagePath, a.imageUrl) ?? '',
           isSelected:
             (a.side === 'front' && a.id === row.selectedFrontAttemptId) ||
             (a.side === 'inside' && a.id === row.selectedInsideAttemptId),
           createdAt: a.createdAt,
         }));
 
-      // Failure block — only included when the card actually failed.
-      // Lets the client cleanly switch on `failure ? <Panel> : ...`
-      // without picking through individual nullable fields.
+      // Failure block — included when the card failed outright ('failed')
+      // OR the inside step failed while the front survived
+      // ('inside-failed'). Both populate the same card-level failure*
+      // columns, so the client renders one <GenerationErrorPanel> path.
       const failure =
-        row.status === 'failed'
+        row.status === 'failed' || row.status === 'inside-failed'
           ? {
               kind: row.failureKind,
               message: row.failureMessage,
@@ -252,6 +399,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         state,
         attempts,
         failure,
+        regenFailures,
       });
     } catch (err: any) {
       console.error('[STUDIO] draft fetch error:', err);
@@ -288,7 +436,13 @@ export function registerStudioDraftRoutes(app: Express): void {
 
         const row = rows[0];
         if (!row) return res.status(404).json({ message: 'Card not found' });
-        if (row.userId !== userId) {
+        // Owner, or admin. Minting is the one WRITE that admins get:
+        // it's idempotent (reuses any existing token), grants nothing
+        // the owner couldn't grant themselves, and it's the support
+        // path — "send her the link she couldn't get to" (Aidan hit
+        // this 403 from the CRM, 2026-08-07). Every other write on
+        // this router stays strictly owner-only.
+        if (row.userId !== userId && !(await isAdminUser(userId))) {
           return res.status(403).json({ message: 'Not your card' });
         }
 
@@ -303,7 +457,8 @@ export function registerStudioDraftRoutes(app: Express): void {
         res.json({
           token,
           // Convenience: client doesn't need to know the URL shape.
-          shareUrl: `/card/${id}/view?t=${encodeURIComponent(token)}`,
+          // Short form — the token alone is the credential.
+          shareUrl: `/c/${encodeURIComponent(token)}`,
         });
       } catch (err: any) {
         console.error('[STUDIO] share-token error:', err);
@@ -323,6 +478,48 @@ export function registerStudioDraftRoutes(app: Express): void {
   // conversationData (which contains the inside message + scene), or
   // any other fields that would leak sender/recipient personal info
   // beyond what's already on the card itself.
+  // Shared by BOTH public viewer routes — the short /api/c/:token and
+  // the legacy /api/card/:id/view?t=. One response shape, one
+  // first-opened dispatch, zero drift.
+  const publicViewColumns = {
+    id: cards.id,
+    userId: cards.userId,
+    status: cards.status,
+    conversationData: cards.conversationData,
+    frontImageUrl: cards.frontImageUrl,
+    insideImageUrl: cards.insideImageUrl,
+    frontImagePath: cards.frontImagePath,
+    insideImagePath: cards.insideImagePath,
+    viewToken: cards.viewToken,
+  };
+
+  // ── GET /api/c/:token ────────────────────────────────────────────
+  // Short share links: celebrait.co.uk/c/<token>. The token is 16
+  // random bytes — unguessable on its own — so the card id and query
+  // string were pure noise in a pasted link (Aidan 2026-08-07: "looks
+  // shit when copying and pasting"). Lookup is BY token.
+  app.get('/api/c/:token', async (req: Request, res: Response) => {
+    const token = req.params.token ?? '';
+    if (!token || token.length < 10) {
+      return res.status(404).json({ message: 'Card not found' });
+    }
+    try {
+      const rows = await db
+        .select(publicViewColumns)
+        .from(cards)
+        .where(eq(cards.viewToken, token))
+        .limit(1);
+      if (!rows[0]) {
+        console.warn(`[PUBLIC_VIEW_404] short token ${token.slice(0, 6)}… unknown`);
+        return res.status(404).json({ message: 'Card not found' });
+      }
+      respondPublicCard(req, res, rows[0]);
+    } catch (err: any) {
+      console.error('[STUDIO] public short view error:', err);
+      res.status(500).json({ message: 'Could not load card' });
+    }
+  });
+
   app.get('/api/card/:id/view', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const token = typeof req.query.t === 'string' ? req.query.t : '';
@@ -332,58 +529,83 @@ export function registerStudioDraftRoutes(app: Express): void {
 
     try {
       const rows = await db
-        .select({
-          id: cards.id,
-          status: cards.status,
-          conversationData: cards.conversationData,
-          frontImageUrl: cards.frontImageUrl,
-          insideImageUrl: cards.insideImageUrl,
-          viewToken: cards.viewToken,
-        })
+        .select(publicViewColumns)
         .from(cards)
         .where(eq(cards.id, id))
         .limit(1);
 
       const row = rows[0];
       // Treat token mismatch + missing card as the same response —
-      // don't reveal that the card exists.
+      // don't reveal that the card exists. But LOG which it was: Aidan
+      // hit the broken-link screen from the admin's Digital link
+      // (2026-08-07) and the 404 gave us nothing to diagnose with. The
+      // response stays identical either way; only stderr learns more.
       if (!row || row.viewToken !== token) {
+        console.warn(
+          `[PUBLIC_VIEW_404] card=${id} ` +
+            (!row
+              ? 'no such card'
+              : `token mismatch (got ${token.slice(0, 6)}…, ` +
+                `stored ${row.viewToken ? row.viewToken.slice(0, 6) + '…' : 'NULL'})`),
+        );
         return res.status(404).json({ message: 'Card not found' });
       }
 
-      // Pull just recipient name + occasion out of conversationData
-      // for the welcome screen. Don't return the rest of the state.
-      const stateRaw = (row.conversationData as any) ?? null;
-      const recipientName =
-        stateRaw?.recipient?.name && typeof stateRaw.recipient.name === 'string'
-          ? stateRaw.recipient.name.trim()
-          : null;
-      const occasion =
-        stateRaw?.recipient?.occasion && typeof stateRaw.recipient.occasion === 'string'
-          ? stateRaw.recipient.occasion.trim()
-          : null;
-
-      res.json({
-        id: row.id,
-        status: row.status,
-        frontImageUrl: row.frontImageUrl,
-        insideImageUrl: row.insideImageUrl,
-        recipientName,
-        occasion,
-      });
-
-      // Fire-and-forget: if this is the first valid token view for a
-      // paid digital order, mark first_opened_at and email the sender
-      // "they've opened it". Runs after response is sent so we don't
-      // block the recipient's viewer load on an email RTT.
-      fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
-        console.error('[STUDIO] first-opened dispatch failed:', err);
-      });
+      respondPublicCard(req, res, row);
     } catch (err: any) {
       console.error('[STUDIO] public view error:', err);
       res.status(500).json({ message: 'Could not load card' });
     }
   });
+
+  /** The single public-card response: viewer payload + the first-opened
+   *  email dispatch (skipped when the sender views their own link). */
+  function respondPublicCard(
+    req: Request,
+    res: Response,
+    row: {
+      id: number;
+      userId: string | null;
+      status: string | null;
+      conversationData: unknown;
+      frontImageUrl: string | null;
+      insideImageUrl: string | null;
+      frontImagePath: string | null;
+      insideImagePath: string | null;
+    },
+  ): void {
+    const id = row.id;
+    const stateRaw = (row.conversationData as any) ?? null;
+    const recipientName =
+      stateRaw?.recipient?.name && typeof stateRaw.recipient.name === 'string'
+        ? stateRaw.recipient.name.trim()
+        : null;
+    const occasion =
+      stateRaw?.recipient?.occasion && typeof stateRaw.recipient.occasion === 'string'
+        ? stateRaw.recipient.occasion.trim()
+        : null;
+
+    res.json({
+      id: row.id,
+      status: row.status,
+      frontImageUrl: resolveStoredImageUrl(row.frontImagePath, row.frontImageUrl),
+      insideImageUrl: resolveStoredImageUrl(row.insideImagePath, row.insideImageUrl),
+      recipientName,
+      occasion,
+    });
+
+    const viewerId = (req as any).session?.otpUserId;
+    if (typeof viewerId === 'string' && viewerId === row.userId) {
+      console.log(
+        `[STUDIO] card ${id}: sender viewed own share link — first-opened NOT fired`,
+      );
+    } else {
+      fireFirstOpenedEmailIfNeeded(id, recipientName).catch((err) => {
+        console.error('[STUDIO] first-opened dispatch failed:', err);
+      });
+    }
+  }
+
 
   // ── PATCH /api/studio/drafts/:id ─────────────────────────────────
   // Overwrite the draft's step state. The client sends the entire
@@ -465,9 +687,26 @@ export function registerStudioDraftRoutes(app: Express): void {
         return res.status(400).json({ message: 'Draft has no valid state' });
       }
 
-      // Readiness gates — mirror the client-side isXStepReady checks so
-      // the server doesn't trust a malicious client bypassing the UI.
-      const ready = isDraftReadyToGenerate(state);
+      // FRONT-FIRST flag. When on, /generate renders the FRONT only
+      // (→ 'front-ready'); the inside is generated later via
+      // /generate-inside after the user approves the front. Off = the
+      // legacy single-job 'full' path (front + inside → 'completed').
+      // Kept behind a flag so the backend can deploy before the client
+      // surfaces learn the new states — see the front-first plan.
+      // Per-request opt-in lets a single surface adopt front-first
+      // independently of the global flag: the chat studio passes body
+      // {mode:'front'} so it can go front-first NOW, while the stepper
+      // studio stays legacy until its reveal learns the new states.
+      const frontFirst = req.body?.mode === 'front' || FRONT_FIRST_GEN;
+      const genMode: 'front' | 'full' = frontFirst ? 'front' : 'full';
+      const startStatus = frontFirst ? 'generating-front' : 'generating';
+
+      // Readiness — mirror the client gates so a crafted POST can't skip
+      // ahead. Front-first only needs the front half (no inside message
+      // yet); the legacy path needs both halves.
+      const ready = frontFirst
+        ? isReadyToGenerateFront(state)
+        : isDraftReadyToGenerate(state);
       if (!ready.ok) {
         return res.status(400).json({ message: ready.reason });
       }
@@ -475,8 +714,9 @@ export function registerStudioDraftRoutes(app: Express): void {
       // Daily cap check. Limit is a rolling 24h window based on
       // generation_log rows (see server/rate-limits.ts). We check
       // BEFORE flipping status so a rate-limited request leaves the
-      // draft in 'draft' state — the user can try again tomorrow
-      // without needing a reset.
+      // draft in 'draft' state. NOTE: the later /generate-inside step
+      // deliberately SKIPS this cap — once you've made the front you've
+      // committed to the card, so we don't dead-end the inside.
       const rate = await checkDailyGenerationLimit(userId);
       if (!rate.allowed) {
         return res.status(429).json({
@@ -487,27 +727,202 @@ export function registerStudioDraftRoutes(app: Express): void {
         });
       }
 
-      // Flip to 'generating' BEFORE dispatching so a refresh during the
-      // gap between response and job start shows the right status.
+      // Flip status BEFORE dispatching so a refresh during the gap
+      // between response and job start shows the right status.
       await db
         .update(cards)
-        .set({ status: 'generating' })
+        .set({ status: startStatus })
         .where(and(eq(cards.id, id), eq(cards.userId, userId)));
 
       // Fire-and-forget. generateStudioCard does its own error handling
-      // (sets status='failed' and logs). Not awaited by the request.
+      // (sets the failure status + logs). Not awaited by the request.
       setImmediate(() => {
-        generateStudioCard(id).catch((err) => {
+        generateStudioCard(id, genMode).catch((err) => {
           console.error(`[STUDIO] generateStudioCard threw for card ${id}:`, err);
         });
       });
 
-      res.json({ id, status: 'generating' });
+      res.json({ id, status: startStatus });
     } catch (err: any) {
       console.error('[STUDIO] generate start error:', err);
       res.status(500).json({ message: 'Could not start generation' });
     }
   });
+
+  // ── POST /api/studio/drafts/:id/generate-inside ──────────────────
+  // Front-first step 2: generate the inside AFTER the user has approved
+  // the front. Valid from 'front-ready', 'inside-failed' (retry), or
+  // 'inside-ready' ("Change the inside" — re-roll the inside, keeping the
+  // approved front; each roll appends+promotes a card_attempts version so
+  // nothing is lost). The inside is built from the already-persisted
+  // front, so no photos/scene re-run — just the inside decision
+  // (write+message or blank). The FIRST inside SKIPS the daily cap
+  // (committing to a card you've started shouldn't dead-end at the
+  // inside); a RE-ROLL from 'inside-ready' is capped like any regen.
+  app.post(
+    '/api/studio/drafts/:id/generate-inside',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            id: cards.id,
+            userId: cards.userId,
+            status: cards.status,
+            conversationData: cards.conversationData,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Draft not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+
+        // The inside can be generated once the front is ready
+        // ('front-ready'), retried after an inside failure
+        // ('inside-failed'), OR re-rolled from the inside reveal
+        // ('inside-ready' — "Change the inside", keeping the approved
+        // front). Anything else is the wrong moment.
+        if (
+          row.status !== 'front-ready' &&
+          row.status !== 'inside-failed' &&
+          row.status !== 'inside-ready'
+        ) {
+          return res.status(409).json({
+            message: `Card is ${row.status}; the inside can only be made once the front is ready`,
+          });
+        }
+
+        const state = row.conversationData as CardDraftState | null;
+        if (!state || state.version !== 1) {
+          return res.status(400).json({ message: 'Draft has no valid state' });
+        }
+
+        const ready = isInsideDecisionReady(state);
+        if (!ready.ok) {
+          return res.status(400).json({ message: ready.reason });
+        }
+
+        // Re-rolling the inside (status already 'inside-ready') is a fresh
+        // cost every time, so it's gated like any other regen: a per-side
+        // hard cap, a concurrent-gen guard, and the daily limit. The FIRST
+        // inside (from 'front-ready'/'inside-failed') deliberately skips
+        // all of this — once you've made the front, committing to the card
+        // shouldn't dead-end at the inside (Kevin 2026-07-11).
+        if (row.status === 'inside-ready') {
+          const existing = await db
+            .select({ id: cardAttempts.id, status: cardAttempts.status })
+            .from(cardAttempts)
+            .where(and(eq(cardAttempts.cardId, id), eq(cardAttempts.side, 'inside')));
+          if (existing.length >= REGEN_HARD_CAP_PER_SIDE + 1) {
+            return res.status(429).json({
+              message: `You've reached the re-roll limit for the inside. Assemble your card, or start a fresh one.`,
+            });
+          }
+          if (existing.some((a) => a.status === 'generating')) {
+            return res.status(409).json({
+              message: 'An inside is already generating — hang on a moment.',
+            });
+          }
+          const rate = await checkDailyGenerationLimit(userId);
+          if (!rate.allowed) {
+            return res.status(429).json({
+              message: `You've reached today's generation limit (${rate.used}/${rate.limit}). Try again tomorrow.`,
+              limit: rate.limit,
+              used: rate.used,
+            });
+          }
+        }
+
+        await db
+          .update(cards)
+          .set({ status: 'generating-inside' })
+          .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+        setImmediate(() => {
+          generateStudioCard(id, 'inside').catch((err) => {
+            console.error(`[STUDIO] generateStudioCard(inside) threw for card ${id}:`, err);
+          });
+        });
+
+        res.json({ id, status: 'generating-inside' });
+      } catch (err: any) {
+        console.error('[STUDIO] generate-inside start error:', err);
+        res.status(500).json({ message: 'Could not start inside generation' });
+      }
+    },
+  );
+
+  // ── POST /api/studio/drafts/:id/finalize ─────────────────────────
+  // Front-first step 3: the user has previewed + signed off the inside.
+  // Flip 'inside-ready' → 'completed' and run the finalize artifacts
+  // (print-res + card-ready email + address-book). This is the moment the
+  // card is actually DONE (so emails etc. fire here, not before sign-off).
+  app.post(
+    '/api/studio/drafts/:id/finalize',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+
+      try {
+        const rows = await db
+          .select({
+            id: cards.id,
+            userId: cards.userId,
+            status: cards.status,
+            conversationData: cards.conversationData,
+          })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+
+        const row = rows[0];
+        if (!row) return res.status(404).json({ message: 'Draft not found' });
+        if (row.userId !== userId) return res.status(403).json({ message: 'Not your draft' });
+        // Idempotent: already-completed cards just succeed (a double-tap
+        // on sign-off shouldn't error).
+        if (row.status === 'completed') return res.json({ id, status: 'completed' });
+        if (row.status !== 'inside-ready') {
+          return res.status(409).json({
+            message: `Card is ${row.status}; finalize only from 'inside-ready'`,
+          });
+        }
+
+        const state = row.conversationData as CardDraftState | null;
+
+        await db
+          .update(cards)
+          .set({ status: 'completed' })
+          .where(and(eq(cards.id, id), eq(cards.userId, userId)));
+
+        // Fire-and-forget the artifacts — the card is already complete +
+        // viewable; print-res/email/address-book are non-blocking icing.
+        if (state && state.version === 1) {
+          setImmediate(() => {
+            finalizeCardArtifacts(id, state, row.userId).catch((err) => {
+              console.error(`[STUDIO] finalizeCardArtifacts threw for card ${id}:`, err);
+            });
+          });
+        }
+
+        res.json({ id, status: 'completed' });
+      } catch (err: any) {
+        console.error('[STUDIO] finalize error:', err);
+        res.status(500).json({ message: 'Could not finalize card' });
+      }
+    },
+  );
 
   // ── POST /api/studio/drafts/:id/retry ────────────────────────────
   // Reset a failed draft back to 'draft' status so the user can hit
@@ -596,10 +1011,20 @@ export function registerStudioDraftRoutes(app: Express): void {
         const row = rows[0];
         if (!row) return res.status(404).json({ message: 'Card not found' });
         if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
-        if (row.status !== 'completed') {
+        // Per-side allowed states. FRONT can be iterated in the front-
+        // first 'front-ready' state (front exists, inside not yet made)
+        // and after an 'inside-failed', as well as on a 'completed' card.
+        // INSIDE can only be regenerated once it exists, i.e. 'completed'
+        // (before that the inside is generated via /generate-inside, not
+        // regenerated).
+        const allowedRegenStates =
+          side === 'front'
+            ? ['front-ready', 'inside-ready', 'completed', 'inside-failed']
+            : ['inside-ready', 'completed'];
+        if (!allowedRegenStates.includes(row.status ?? '')) {
           return res
             .status(409)
-            .json({ message: `Card is ${row.status}; only completed cards can regen` });
+            .json({ message: `Card is ${row.status}; cannot regen ${side} now` });
         }
 
         // Hard cap: count existing attempts on this side and reject
@@ -761,8 +1186,18 @@ export function registerStudioDraftRoutes(app: Express): void {
             .json({ message: 'Attempt has no image to select' });
         }
 
+        // The card's stable image-key secret — needed so the canonical
+        // mirror + print-res files use the same unguessable filename the
+        // attempt was stored under (security audit 2026-07-02).
+        const [cardKeyRow] = await db
+          .select({ imageKey: cards.imageKey })
+          .from(cards)
+          .where(eq(cards.id, id))
+          .limit(1);
+        const imageKey = cardKeyRow?.imageKey ?? null;
+
         const url = attempt.imagePath
-          ? `/images/${attempt.imagePath}`
+          ? publicImageUrl(attempt.imagePath)
           : attempt.imageUrl!;
         const set =
           attempt.side === 'front'
@@ -784,14 +1219,14 @@ export function registerStudioDraftRoutes(app: Express): void {
         // fulfillment all read by canonical name, so without this
         // copy they'd keep using whichever attempt was last *generated*
         // rather than the one the user picked.
-        await promoteAttemptToCanonical(id, attempt.side as CardSide, attempt.id);
+        await promoteAttemptToCanonical(id, attempt.side as CardSide, attempt.id, imageKey);
 
         // For front swaps, regenerate the 3000×3000 print-res file so
         // it matches the newly-selected attempt. Non-fatal — checkout
         // can still proceed if this hiccups (the canonical display
         // copy is already correct).
         if (attempt.side === 'front') {
-          generatePrintResolutionFiles(id).catch((err) =>
+          generatePrintResolutionFiles(id, imageKey).catch((err) =>
             console.warn(`[STUDIO] print-res after select-attempt failed:`, err),
           );
         }
@@ -817,16 +1252,10 @@ export function registerStudioDraftRoutes(app: Express): void {
     if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
 
     try {
-      // Grab the card first so we know which files to clean up AND so
-      // we can enforce ownership before any deletion side effect.
+      // Grab the card first so we can enforce ownership before any
+      // deletion side effect.
       const rows = await db
-        .select({
-          id: cards.id,
-          userId: cards.userId,
-          frontImagePath: cards.frontImagePath,
-          insideImagePath: cards.insideImagePath,
-          printReadyPath: cards.printReadyPath,
-        })
+        .select({ id: cards.id, userId: cards.userId })
         .from(cards)
         .where(eq(cards.id, id))
         .limit(1);
@@ -835,16 +1264,53 @@ export function registerStudioDraftRoutes(app: Express): void {
       if (!row) return res.status(404).json({ message: 'Card not found' });
       if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
 
-      // Best-effort delete on disk — a missing file shouldn't block
-      // the DB delete. Same pattern as /api/photos/:id.
-      const diskPaths = [row.frontImagePath, row.insideImagePath, row.printReadyPath]
-        .map(imageDiskPath)
-        .filter((p): p is string => typeof p === 'string' && p.length > 0);
-      for (const p of diskPaths) {
-        await fs.unlink(p).catch(() => {});
+      // PAID-ORDER GUARD (audit 2026-07-27, P0-3): a card with a paid
+      // order is a financial record — payment reference, amount, address,
+      // Prodigi order id — that UK trading rules require us to retain
+      // (and the next Prodigi status webhook needs the row to land on).
+      // Deleting the card used to hard-delete those rows. Refuse instead.
+      // Must run BEFORE deleteCardImages so we don't purge a paid card's
+      // artwork and then refuse. GDPR erasure requests are handled
+      // operator-side (anonymise the card, keep the transaction record).
+      const paidOrders = await db
+        .select({ id: studioOrders.id })
+        .from(studioOrders)
+        .where(
+          and(
+            eq(studioOrders.cardId, id),
+            eq(studioOrders.paymentStatus, 'paid'),
+          ),
+        )
+        .limit(1);
+      if (paidOrders.length > 0) {
+        return res.status(409).json({
+          message:
+            "This card has a completed order, so it can't be deleted — we keep order records for your protection. If something's wrong with the order, get in touch and we'll sort it.",
+        });
       }
 
-      await db.delete(cards).where(eq(cards.id, id));
+      // Erase the actual image files FIRST — every file for this card,
+      // canonical + per-attempt, from R2 (or local disk in dev). This is
+      // the storage half of "right to erasure": a deleted card must not
+      // leave its artwork/photos sitting in the bucket. Best-effort — a
+      // storage hiccup must not block the DB delete.
+      const removed = await deleteCardImages(id);
+
+      // Then remove the card and everything that hangs off it, atomically.
+      // `orders` has a FK to cards (no cascade), so it must go before the
+      // card row or the delete would error; card_attempts + studio_orders
+      // carry user content (tweak text, recipient emails/addresses,
+      // messages) and must be erased too. generation_log is left intact —
+      // it holds only provider/model/cost/timing (no personal data) and is
+      // needed for cost analytics.
+      await db.transaction(async (tx) => {
+        await tx.delete(cardAttempts).where(eq(cardAttempts.cardId, id));
+        await tx.delete(studioOrders).where(eq(studioOrders.cardId, id));
+        await tx.delete(orders).where(eq(orders.cardId, id));
+        await tx.delete(cards).where(eq(cards.id, id));
+      });
+
+      console.log(`[STUDIO] Deleted card ${id} (user ${userId}), ${removed} image file(s) erased`);
       res.json({ success: true });
     } catch (err: any) {
       console.error('[STUDIO] card delete error:', err);
@@ -900,11 +1366,33 @@ async function fireFirstOpenedEmailIfNeeded(
     return;
   }
 
+  // Front + inside for the email heroes (remind the sender what they sent).
+  const cardImgRows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+  const cardImageUrl = resolveStoredImageUrl(
+    cardImgRows[0]?.frontImagePath ?? null,
+    cardImgRows[0]?.frontImageUrl ?? null,
+  );
+  const insideImageUrl = resolveStoredImageUrl(
+    cardImgRows[0]?.insideImagePath ?? null,
+    cardImgRows[0]?.insideImageUrl ?? null,
+  );
+
   const senderName = order.customerName?.split(' ')[0] || 'there';
   const sent = await sendSenderCardOpenedEmail({
     senderEmail: order.customerEmail,
     senderName,
     recipientName: recipientNameFromCard,
+    cardImageUrl,
+    insideImageUrl,
   });
   console.log(
     `[STUDIO] first-opened email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id}, card ${cardId})`,

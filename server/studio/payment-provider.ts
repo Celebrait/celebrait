@@ -1,8 +1,14 @@
-// Payment provider abstraction. Gateway pick (Peach / Stitch / Yoco /
-// Stripe-via-UK-entity) is deferred until the business structure call
-// is made. Checkout UI wires to `createPayment()` regardless, and the
-// stub provider lets us test the end-to-end flow with a "mark as paid"
-// dev button.
+// Payment provider abstraction. Gateway: **Stripe** (test mode wired
+// 2026-05-27, see next_payment_gateway.md). Checkout UI wires to
+// `createPayment()` regardless of provider; the stub provider keeps the
+// "mark as paid" dev button available by flipping
+// STUDIO_PAYMENT_PROVIDER=stub.
+//
+// Note: stripe-provider.ts imports only TYPES from this file (erased at
+// runtime), so the value-import of stripePaymentProvider below is not a
+// runtime circular dependency.
+
+import { stripePaymentProvider } from "./stripe-provider";
 
 export interface CreatePaymentRequest {
   studioOrderId: string;
@@ -30,6 +36,17 @@ export interface CreatePaymentResult {
 export interface PaymentStatus {
   paymentReference: string;
   status: "pending" | "paid" | "failed" | "refunded";
+  /** The amount actually charged in minor units (pence), post-discount —
+   *  from the gateway (Stripe: session.amount_total). Present on the paid
+   *  event; undefined otherwise. Stored so reporting reflects real revenue
+   *  when a promo code was applied. */
+  amountPaid?: number;
+  /** Our order id, echoed back from the gateway's metadata (Stripe: set
+   *  on the Checkout Session at create time). Fallback matcher for the
+   *  webhook when the paymentReference lookup misses — e.g. the
+   *  post-create DB update failed — so a paid event is never dropped
+   *  (audit 2026-07-27). */
+  studioOrderId?: string;
 }
 
 export interface PaymentProvider {
@@ -39,6 +56,11 @@ export interface PaymentProvider {
   // Webhook verification lives inside the provider so callers can't
   // skip the signature check.
   parseWebhook(headers: Record<string, string>, body: unknown): Promise<PaymentStatus>;
+  /** Void a still-payable payment (Stripe: expire the Checkout Session)
+   *  so a superseded order can never be paid from a stale tab. Optional
+   *  + best-effort — a provider without it just can't prevent the
+   *  double-pay window (audit 2026-07-27). */
+  cancelPayment?(paymentReference: string): Promise<void>;
 }
 
 // Stub — hands back a dev-only redirect URL that the checkout page
@@ -66,6 +88,10 @@ export function getPaymentProvider(): PaymentProvider {
   switch (name) {
     case "stub":
       return stubPaymentProvider;
+    case "stripe":
+      // The stripe provider constructs its SDK client lazily, so the
+      // import is inert until createPayment/getStatus is actually called.
+      return stripePaymentProvider;
     default:
       throw new Error(`Unknown STUDIO_PAYMENT_PROVIDER: ${name}`);
   }

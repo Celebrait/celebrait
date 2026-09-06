@@ -62,10 +62,18 @@ export async function checkDailyGenerationLimit(
       and(
         eq(cards.userId, userId),
         gt(generationLog.createdAt, windowStart),
+        // Failed provider calls don't count against the user — they got
+        // nothing for them (audit 2026-07-27).
+        eq(generationLog.success, true),
       ),
     );
 
-  const used = rows.length;
+  // DISTINCT CARDS, not rows (audit 2026-07-27): every log row has a
+  // unique createdAt, so distinct-on-(cardId, createdAt) was just a row
+  // count — front+inside = 2, each regen +1 — inflating `used` ~2-3× and
+  // capping testers at ~7 real cards while claiming "20". The rows keep
+  // createdAt for the reset estimate below; dedupe here.
+  const used = new Set(rows.map((r) => r.cardId)).size;
   const oldest = rows.reduce<Date | null>((earliest, r) => {
     if (!earliest) return r.createdAt;
     return r.createdAt < earliest ? r.createdAt : earliest;

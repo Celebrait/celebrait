@@ -23,8 +23,9 @@
 // Acceptable for SA (10am) + UK (9am). Real timezone awareness is
 // V1.5 (would need users.timezone).
 
-import { and, eq, ilike, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db';
+import { publicImageUrl } from '../image-storage';
 import {
   addressBookEntries,
   recipientOccasions,
@@ -34,7 +35,13 @@ import {
   users,
 } from '@shared/schema';
 import {
+  FIXED_DATE_OCCASIONS,
+  isFixedDateOccasion,
+  nextFixedOccasionDate,
+} from '@shared/fixed-occasions';
+import {
   sendReminderEmail,
+  sendDraftNudgeEmail,
   type ReminderTier,
 } from '../email-service';
 
@@ -51,8 +58,8 @@ interface DispatchOptions {
 interface DispatchResult {
   examined: number;
   fired: number;
-  skipped: Array<{ occasionId: number; tier: ReminderTier; reason: string }>;
-  errors: Array<{ occasionId: number; tier: ReminderTier; error: string }>;
+  skipped: Array<{ occasionId: number; tier: ReminderTier | 'draft_t10'; reason: string }>;
+  errors: Array<{ occasionId: number; tier: ReminderTier | 'draft_t10'; error: string }>;
 }
 
 /** Run a full dispatch pass. Idempotent — calling twice on the same
@@ -85,7 +92,14 @@ export async function runReminderDispatch(
       addressBookEntries,
       eq(recipientOccasions.addressBookEntryId, addressBookEntries.id),
     )
-    .where(sql`${recipientOccasions.date} IS NOT NULL`);
+    .where(
+      // A stored date OR a fixed-date occasion type (Christmas etc. store
+      // no date — the date is resolved from the calendar below).
+      or(
+        sql`${recipientOccasions.date} IS NOT NULL`,
+        inArray(recipientOccasions.occasion, Array.from(FIXED_DATE_OCCASIONS)),
+      ),
+    );
 
   result.examined = allOccasions.length;
 
@@ -102,8 +116,13 @@ export async function runReminderDispatch(
       continue;
     }
 
-    const occasionDate = parseDateUTC(occasion.date as string);
-    const nextOccurrence = computeNextOccurrence(occasionDate, occasion.yearSpecific, today);
+    // Fixed-date occasions resolve from the calendar (no stored date);
+    // everything else rolls its stored month/day forward.
+    const nextOccurrence = isFixedDateOccasion(occasion.occasion)
+      ? nextFixedOccasionDate(occasion.occasion, today)
+      : occasion.date
+        ? computeNextOccurrence(parseDateUTC(occasion.date as string), occasion.yearSpecific, today)
+        : null;
     if (!nextOccurrence) {
       // Year-specific date has passed — historical, won't recur.
       result.skipped.push({
@@ -115,6 +134,116 @@ export async function runReminderDispatch(
     }
 
     const daysUntil = daysBetween(today, nextOccurrence);
+
+    // ── Ready-but-unbought draft? The generic ladder is wrong for it
+    // in BOTH directions: made <30d ago, isCardAlreadyHandled silenced
+    // every reminder (black hole — Carina 2026-08-07); made earlier, the
+    // window lapsed and "time to make a card" told her to make one she'd
+    // already made. A completed unpaid card replaces the whole ladder
+    // with ONE targeted touch: post it in time (T-10..T-1, once). ──
+    const readyDraft = await findReadyUnpaidCard(
+      entry.userId,
+      entry.name,
+      occasion.occasion,
+    );
+    if (readyDraft) {
+      const year = nextOccurrence.getUTCFullYear();
+      if (daysUntil < 1 || daysUntil > 10) {
+        result.skipped.push({
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          reason: `ready draft waiting (card ${readyDraft.id}) — nudge window is T-10..T-1`,
+        });
+        continue;
+      }
+      const alreadyNudged = await db
+        .select({ id: reminderLog.id })
+        .from(reminderLog)
+        .where(
+          and(
+            eq(reminderLog.occasionId, occasion.id),
+            eq(reminderLog.tier, 'draft_t10'),
+            eq(reminderLog.year, year),
+          ),
+        )
+        .limit(1);
+      if (alreadyNudged.length > 0) {
+        result.skipped.push({
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          reason: 'draft nudge already fired this year',
+        });
+        continue;
+      }
+      if (opts.dryRun) {
+        console.log(
+          `[REMINDERS] DRY RUN would fire draft_t10 for occasion ${occasion.id} (${entry.name}'s ${occasion.occasion}, card ${readyDraft.id}) — daysUntil=${daysUntil}`,
+        );
+        result.fired += 1;
+        continue;
+      }
+      try {
+        const senderRows = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.id, entry.userId))
+          .limit(1);
+        const sender = senderRows[0];
+        if (!sender?.email) {
+          result.skipped.push({
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            reason: 'sender email missing',
+          });
+          continue;
+        }
+        const emailSent = await sendDraftNudgeEmail({
+          senderEmail: sender.email,
+          senderName: sender.firstName,
+          recipientName: entry.name,
+          occasion: occasion.occasion,
+          daysUntil,
+          giveUrl: `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk'}/studio/card/${readyDraft.id}/give`,
+          frontImageUrl: readyDraft.front,
+          insideImageUrl: readyDraft.inside,
+        });
+        await db.insert(reminderLog).values({
+          userId: entry.userId,
+          occasionId: occasion.id,
+          tier: 'draft_t10',
+          year,
+          emailSent,
+          failureReason: emailSent ? null : 'transport returned false',
+        }).onConflictDoNothing();
+        if (emailSent) {
+          result.fired += 1;
+          console.log(
+            `[REMINDERS] Fired draft_t10 for occasion ${occasion.id} (${entry.name}'s ${occasion.occasion}, card ${readyDraft.id}) → ${sender.email}`,
+          );
+        } else {
+          result.errors.push({
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            error: 'transport returned false',
+          });
+        }
+      } catch (err: any) {
+        const msg = err?.message ?? String(err);
+        result.errors.push({ occasionId: occasion.id, tier: 'draft_t10', error: msg });
+        try {
+          await db.insert(reminderLog).values({
+            userId: entry.userId,
+            occasionId: occasion.id,
+            tier: 'draft_t10',
+            year,
+            emailSent: false,
+            failureReason: msg.slice(0, 500),
+          }).onConflictDoNothing();
+        } catch { /* logged best-effort */ }
+      }
+      continue;
+    }
+
     const dueTier = tierForDaysUntil(daysUntil);
     if (!dueTier) continue; // not a reminder day for this occasion
 
@@ -191,6 +320,13 @@ export async function runReminderDispatch(
       }
 
       const startCardUrl = buildStartCardUrl(entry.name, occasion.occasion);
+      // Retention-paradox fix: surface the most recent card sent to this
+      // recipient inside the email itself. Without this, the reminder
+      // trains the user to remember the *date* (they then go wherever's
+      // cheapest); with it, the email anchors the act to Celebrait
+      // specifically — *"this is the card you sent last time"*. See
+      // next_address_book_reminders_retention.md.
+      const lastCard = await findLastSentCardImages(entry.userId, entry.name);
       const emailSent = await sendReminderEmail({
         senderEmail: sender.email,
         senderName: sender.firstName,
@@ -199,6 +335,8 @@ export async function runReminderDispatch(
         daysUntil,
         tier: dueTier,
         startCardUrl,
+        lastCardImageUrl: lastCard.front,
+        lastInsideImageUrl: lastCard.inside,
       });
 
       // Log regardless of send success — prevents retry loops.
@@ -209,7 +347,7 @@ export async function runReminderDispatch(
         year,
         emailSent,
         failureReason: emailSent ? null : 'transport returned false',
-      });
+      }).onConflictDoNothing();
 
       if (emailSent) {
         result.fired += 1;
@@ -240,7 +378,7 @@ export async function runReminderDispatch(
           year,
           emailSent: false,
           failureReason: msg.slice(0, 500),
-        });
+        }).onConflictDoNothing();
       } catch (logErr) {
         console.error('[REMINDERS] Failed to write failure log row:', logErr);
       }
@@ -318,6 +456,47 @@ function tierForDaysUntil(days: number): ReminderTier | null {
 /** Has this user already made + paid for a card to this recipient for
  *  this occasion in the recent window? Smart-skip signal — don't
  *  prompt someone to start a card they've already sent. */
+/** Most recent COMPLETED card for this person+occasion with no paid
+ *  order — any age, deliberately no 30-day window: drafts made months
+ *  early are the entire point (Carina). Null when nothing qualifies. */
+async function findReadyUnpaidCard(
+  userId: string,
+  recipientName: string,
+  occasion: string,
+): Promise<{ id: number; front: string | null; inside: string | null } | null> {
+  const rows = await db
+    .select({
+      id: cards.id,
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`(${cards.conversationData}->'recipient'->>'name') ILIKE ${recipientName}`,
+        sql`(${cards.conversationData}->'recipient'->>'occasion') = ${occasion}`,
+        sql`NOT EXISTS (
+          select 1 from ${studioOrders}
+          where ${studioOrders.cardId} = ${cards.id}
+            and ${studioOrders.paymentStatus} = 'paid'
+        )`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    front: row.frontImagePath ? publicImageUrl(row.frontImagePath) : row.frontImageUrl,
+    inside: row.insideImagePath ? publicImageUrl(row.insideImagePath) : row.insideImageUrl,
+  };
+}
+
 async function isCardAlreadyHandled(
   userId: string,
   recipientName: string,
@@ -368,11 +547,48 @@ async function isPrintOrderPlaced(
   return rows.length > 0;
 }
 
+/** Look up the front image of the most recent completed card a user
+ *  sent to a recipient (matched case-insensitively by name). Returns
+ *  null if nothing's been sent. Mirrors the helper of the same name in
+ *  routes/address-book.ts — duplicated rather than shared because the
+ *  query is 12 lines and shared/ doesn't have a server-only home for
+ *  query helpers yet. If a third caller appears, extract to server/lib/. */
+async function findLastSentCardImages(
+  userId: string,
+  recipientName: string,
+): Promise<{ front: string | null; inside: string | null }> {
+  const trimmed = recipientName.trim();
+  if (!trimmed) return { front: null, inside: null };
+  const rows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`lower(${cards.conversationData}->'recipient'->>'name') = lower(${trimmed})`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return { front: null, inside: null };
+  return {
+    front: row.frontImagePath ? publicImageUrl(row.frontImagePath) : row.frontImageUrl,
+    inside: row.insideImagePath ? publicImageUrl(row.insideImagePath) : row.insideImageUrl,
+  };
+}
+
 /** Build the deep-link URL for the reminder email's CTA. Pre-fills
  *  recipient name + occasion via query string so the new-card flow
  *  knows who this is for. */
 function buildStartCardUrl(recipientName: string, occasion: string): string {
-  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za';
+  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
   const params = new URLSearchParams({
     recipient: recipientName,
     occasion,

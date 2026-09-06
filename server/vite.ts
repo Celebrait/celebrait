@@ -4,6 +4,7 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
+import { injectSeoAsync } from "./seo-inject";
 
 const viteLogger = createLogger();
 
@@ -60,7 +61,13 @@ export async function setupVite(app: Express, server: Server) {
       // seconds to every reload. Removed 2026-05-13. Vite handles
       // HMR + ETag/304 invalidation correctly on its own.
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      // Same SEO/OG rewriting as prod (serveStatic below) — without this,
+      // dev serves base metadata on every path, so share-link previews
+      // and canonicals can't be verified locally with curl.
+      res
+        .status(200)
+        .set({ "Content-Type": "text/html" })
+        .end(await injectSeoAsync(page, url.split("?")[0]));
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -77,10 +84,44 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Cache policy exists for Cloudflare's benefit: prod sits behind CF,
+  // and express's default max-age=0 forbade ALL edge caching — the
+  // 1.4MB three-stack chunk was fetched from the Render origin on
+  // every single visit (8.7s measured from SA). Vite content-hashes
+  // everything under /assets, so those are immutable; other build
+  // outputs (favicons, public/ copies) get a day.
+  app.use(
+    express.static(distPath, {
+      // index.html must NOT be served by this mount with a long
+      // max-age — deploys would go stale at the edge. The catch-all
+      // below serves it with no-cache (etag revalidation only).
+      index: false,
+      setHeaders(res, filePath) {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=86400");
+        }
+      },
+    }),
+  );
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Fall through to index.html for app routes — with per-path SEO
+  // metadata injected (title/description/canonical/OG from
+  // shared/seo.ts). The template is read once at boot; the transform is
+  // a handful of anchored string replacements per request. See
+  // server/seo-inject.ts for why this exists (the SPA served the
+  // homepage's canonical on EVERY route, telling Google the whole site
+  // was one page).
+  const indexTemplate = fs.readFileSync(
+    path.resolve(distPath, "index.html"),
+    "utf-8",
+  );
+  app.use("*", async (req, res) => {
+    res.set("Cache-Control", "no-cache");
+    res
+      .status(200)
+      .set({ "Content-Type": "text/html" })
+      .end(await injectSeoAsync(indexTemplate, req.originalUrl.split("?")[0]));
   });
 }

@@ -17,6 +17,14 @@ export interface ImageGenerationRequest {
    *  (Gemini: up to 14) pass them all. Providers that don't (OpenAI)
    *  silently ignore these. */
   additionalReferenceImages?: string[];
+  /** EDIT the primary reference rather than compose a new image from it
+   *  (the cameo: "this card, with them painted in"). Forces OpenAI onto
+   *  /v1/images/edits even when the variant prefers reference-conditioned
+   *  generation. Providers without a distinct edit path ignore it. */
+  editMode?: boolean;
+  /** How faithfully an edit preserves the input images' detail (faces,
+   *  lettering). OpenAI edits only. */
+  inputFidelity?: 'low' | 'high';
   /** Quality tier. Providers that don't support tiers ignore this. */
   quality: 'low' | 'medium' | 'high';
   /** Target image dimensions. Default: '1024x1024'. */

@@ -101,7 +101,7 @@ export default function StudioRemindersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: 'Skipping this year — we\'ll be back next year.' });
+      toast({ title: 'Skipping this year — we\'ll be back next year.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -119,7 +119,7 @@ export default function StudioRemindersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: 'Reminders back on.' });
+      toast({ title: 'Reminders back on.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -138,11 +138,11 @@ export default function StudioRemindersPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">
           Reminders
         </h1>
         {!isLoading && reminderCount > 0 && (
-          <p className="text-sm text-stone-500 mt-1">
+          <p className="text-sm text-keeper-meta mt-1">
             {reminderCount} {reminderCount === 1 ? 'date' : 'dates'} we're watching for you
           </p>
         )}
@@ -154,7 +154,7 @@ export default function StudioRemindersPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="bg-white rounded-2xl border border-stone-200 p-5 animate-pulse"
+              className="bg-white rounded-2xl border border-keeper-hair p-5 animate-pulse"
             >
               <div className="h-5 w-40 bg-stone-200 rounded mb-3" />
               <div className="h-3 w-56 bg-stone-100 rounded" />
@@ -165,13 +165,13 @@ export default function StudioRemindersPage() {
 
       {/* Error */}
       {remindersError && !isLoading && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="bg-accent-red-light border border-accent-red/25 rounded-2xl p-5 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-accent-red-dark shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-900">
+            <p className="text-sm font-medium text-accent-red-dark">
               Couldn't load your reminders
             </p>
-            <p className="text-xs text-red-700 mt-0.5">
+            <p className="text-xs text-accent-red-dark mt-0.5">
               {remindersError instanceof Error
                 ? remindersError.message
                 : 'Give it a moment and try again.'}
@@ -193,7 +193,7 @@ export default function StudioRemindersPage() {
         <div className="space-y-8">
           {buckets.map((bucket) => (
             <div key={bucket.label}>
-              <h2 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-stone-400 mb-3">
+              <h2 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-keeper-meta mb-3">
                 {bucket.label}
               </h2>
               <div className="space-y-3">
@@ -220,20 +220,20 @@ export default function StudioRemindersPage() {
 
 function NoEntriesState() {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl px-6 py-12 sm:py-16 text-center">
+    <div className="bg-white border border-keeper-hair rounded-2xl px-6 py-12 sm:py-16 text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <Users className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add someone to your address book first.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Once Mum's there with a date saved, we'll quietly remind you in good time.
       </p>
       <Button
         asChild
         size="lg"
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
       >
         <Link href="/studio/people/address-book/new">
           <UserPlus className="w-4 h-4 mr-2" />
@@ -246,20 +246,20 @@ function NoEntriesState() {
 
 function NoDatesState() {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl px-6 py-12 sm:py-16 text-center">
+    <div className="bg-white border border-keeper-hair rounded-2xl px-6 py-12 sm:py-16 text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-muted/60 text-brand mb-5">
         <CalendarDays className="w-6 h-6" strokeWidth={1.75} />
       </div>
-      <h2 className="text-xl sm:text-2xl font-semibold text-ink mb-2">
+      <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
         Add a date to someone — we'll remember.
       </h2>
-      <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-md mx-auto mb-7">
+      <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Open someone in your address book and pop in their birthday or anniversary. We'll nudge you 3 weeks, 1 week, and 3 days before — quietly, without being pushy.
       </p>
       <Button
         asChild
         size="lg"
-        className="bg-brand hover:bg-brand-dark text-white"
+        className="bg-go hover:bg-go-hover text-white"
       >
         <Link href="/studio/people/address-book">
           <ChevronRight className="w-4 h-4 mr-2" />
@@ -291,8 +291,8 @@ function ReminderRow({
     <div
       className={`bg-white rounded-2xl border transition-colors ${
         reminder.suppressed
-          ? 'border-stone-200 opacity-60'
-          : 'border-stone-200 hover:border-brand'
+          ? 'border-keeper-hair opacity-60'
+          : 'border-keeper-hair hover:border-brand'
       }`}
       data-testid={`reminder-row-${reminder.occasionId}`}
     >
@@ -300,22 +300,22 @@ function ReminderRow({
         <div
           className={`flex items-center justify-center w-10 h-10 rounded-full shrink-0 ${
             reminder.suppressed
-              ? 'bg-stone-100 text-stone-400'
+              ? 'bg-stone-100 text-keeper-meta'
               : 'bg-brand-muted/50 text-brand-dark'
           }`}
         >
           <Icon className="w-4 h-4" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-medium text-ink">
+          <p className="text-base font-medium text-keeper-ink">
             {reminder.recipientName}
             {reminder.relationship && (
-              <span className="ml-1.5 text-xs text-stone-500 font-normal">
+              <span className="ml-1.5 text-xs text-keeper-meta font-normal">
                 · {reminder.relationship}
               </span>
             )}
           </p>
-          <p className="text-sm text-stone-600 mt-0.5">
+          <p className="text-sm text-keeper-body mt-0.5">
             <span className="capitalize">{humaniseOccasion(reminder.occasion)}</span>
             {' · '}
             <span>{occurrenceLabel}</span>
@@ -324,11 +324,13 @@ function ReminderRow({
               {distanceLabel}
             </span>
           </p>
-          {/* T-3 print warning surfaced inline so the user sees it
-              before the email lands. Only when not already suppressed. */}
+          {/* T-3 nudge surfaced inline so the user sees it before the
+              email lands. Print is made-to-order (up to 72h) so this close
+              it's tight — the honest fallback is the instant digital link.
+              Only when not already suppressed. */}
           {!reminder.suppressed && reminder.daysUntil <= 3 && reminder.daysUntil >= 0 && (
-            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 mt-2 inline-block">
-              Print won't make it in time. A digital card lands instantly.
+            <p className="text-[11px] text-accent-red-dark bg-accent-red-light border border-accent-red/30 rounded-md px-2 py-1 mt-2 inline-block">
+              Cutting it fine — pick the fastest delivery; the digital link lands instantly.
             </p>
           )}
         </div>
@@ -336,7 +338,7 @@ function ReminderRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="text-xs text-stone-500 hover:text-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
+              className="text-xs text-keeper-meta hover:text-keeper-ink hover:bg-stone-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
               aria-label={`Actions for ${reminder.recipientName}'s ${reminder.occasion}`}
               data-testid={`reminder-menu-${reminder.occasionId}`}
             >

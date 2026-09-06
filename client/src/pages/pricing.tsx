@@ -1,6 +1,7 @@
 // client/src/pages/pricing.tsx
 //
-// Pricing page — three-tier "Free for me. Paid for them." model,
+// Pricing page — print-led "Free for me. Paid for them." model
+// (Free + one printed card that includes a free digital link),
 // driven by the shared/pricing.ts config so the landing strip,
 // checkout, and any numbers quoted in emails can never drift.
 //
@@ -18,15 +19,19 @@
 //   4. lock numbers after Cost Ledger has ~2 weeks of regen data
 //
 // Overnight delivery is intentionally NOT a tier — it's an add-on
-// under the Printed card (UK-only). A bundle isn't shown either:
-// Printed already includes everything Digital does.
+// under the Printed card (UK-only). The digital share link is
+// included free with the printed card, not sold separately
+// (decided 2026-07-01, next_digital_card_strategy.md).
 
 import { Link } from 'wouter';
-import { Check, Heart, Mail, Truck, Zap } from 'lucide-react';
+import { Check, Heart, Truck, Zap } from 'lucide-react';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { MarketingHeader } from '@/components/landing/marketing-header';
+import { TickerBanner } from '@/components/landing/ticker-banner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import {
   PRICING_TIERS,
   OVERNIGHT_DELIVERY,
@@ -47,11 +52,6 @@ const TIER_VISUALS: Record<TierId, {
     iconBg: 'bg-accent-coral-light',
     iconColor: 'text-accent-coral-dark',
   },
-  digital: {
-    icon: Mail,
-    iconBg: 'bg-brand-muted',
-    iconColor: 'text-brand',
-  },
   printed: {
     icon: Truck,
     iconBg: 'bg-cta-light',
@@ -61,10 +61,16 @@ const TIER_VISUALS: Record<TierId, {
 
 interface PriceCardProps {
   tier: PricingTier;
-  ctaHref: string;
+  /** Authed visitors link straight to the studio; everyone else opens
+   *  the auth modal (kept in-page rather than bounced to /login). */
+  authed: boolean;
 }
 
-function PriceCard({ tier, ctaHref }: PriceCardProps) {
+function PriceCard({ tier, authed }: PriceCardProps) {
+  const { openAuth } = useAuthModal();
+  // Signed out, starting a card leads with the free-card offer
+  // rather than a bare sign-in prompt. Same gate either way.
+  const claimFreeCard = useClaimFreeCard();
   const visuals = TIER_VISUALS[tier.id];
   const Icon = visuals.icon;
   const priceLabel = formatPrice(tier.price, 'GBP');
@@ -112,7 +118,7 @@ function PriceCard({ tier, ctaHref }: PriceCardProps) {
           {priceLabel}
         </p>
         {tier.id !== 'free' && (
-          <p className="text-xs text-ink-soft mt-1">per card · one-off</p>
+          <p className="text-xs text-ink-soft mt-1">per card · plus postage</p>
         )}
       </div>
 
@@ -147,8 +153,21 @@ function PriceCard({ tier, ctaHref }: PriceCardProps) {
         </div>
       )}
 
-      <Link href={ctaHref}>
+      {authed ? (
+        <Link href="/studio">
+          <Button
+            className={`w-full h-11 text-sm font-medium ${
+              tier.highlight
+                ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
+                : 'bg-ink hover:bg-ink/90 text-white'
+            }`}
+          >
+            {tier.ctaLabel}
+          </Button>
+        </Link>
+      ) : (
         <Button
+          onClick={() => claimFreeCard()}
           className={`w-full h-11 text-sm font-medium ${
             tier.highlight
               ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
@@ -157,26 +176,25 @@ function PriceCard({ tier, ctaHref }: PriceCardProps) {
         >
           {tier.ctaLabel}
         </Button>
-      </Link>
+      )}
     </div>
   );
 }
 
 export default function PricingPage() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { openAuth } = useAuthModal();
+  const claimFreeCard = useClaimFreeCard();
   const showAuthedTreatment = !isLoading && isAuthenticated;
-
-  // CTA target — auth-aware. All three tiers funnel to the studio;
-  // payment selection happens at checkout, not here.
-  const ctaHref = showAuthedTreatment
-    ? '/studio'
-    : '/login?redirect=/studio/new-card';
 
   return (
     <div className="min-h-screen bg-surface-card">
-      <MarketingHeader />
+      <div className="fixed inset-x-0 top-0 z-[160]">
+        <TickerBanner />
+      </div>
+      <MarketingHeader topClass="top-10" />
 
-      <main className="pt-32 md:pt-36 pb-24 md:pb-32">
+      <main className="pt-40 md:pt-44 pb-24 md:pb-32">
         <div className="max-w-7xl mx-auto px-6 md:px-10">
           {/* Header */}
           <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
@@ -193,9 +211,9 @@ export default function PricingPage() {
           </div>
 
           {/* Price tiers */}
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
             {PRICING_TIERS.map((tier) => (
-              <PriceCard key={tier.id} tier={tier} ctaHref={ctaHref} />
+              <PriceCard key={tier.id} tier={tier} authed={showAuthedTreatment} />
             ))}
           </div>
 
@@ -218,14 +236,16 @@ export default function PricingPage() {
                 we'll let you know when yours is live.
               </li>
               <li>
-                <strong className="text-ink font-semibold">Paper:</strong>{' '}
-                Premium uncoated 350gsm. Heavier than the supermarket norm.
-                Archival quality so it keeps its colour for years.
+                <strong className="text-ink font-semibold">Paper &amp; print:</strong>{' '}
+                280gsm gloss-coated art card, printed on an HP Indigo press
+                for crisp, vivid colour. Sustainably sourced, vegan-friendly,
+                plastic-free and recyclable — packaging included.
               </li>
               <li>
                 <strong className="text-ink font-semibold">Delivery:</strong>{' '}
-                Standard tracked delivery in 3–5 working days. Order before
-                2pm for next-day with the overnight add-on.
+                Every card is printed to order — allow up to 72 hrs — then
+                posted. Standard is Royal Mail 24 (tracked); Express and
+                Overnight couriers speed up the postage, not the printing.
               </li>
               <li>
                 <strong className="text-ink font-semibold">Free regenerations:</strong>{' '}
@@ -235,8 +255,8 @@ export default function PricingPage() {
               <li>
                 <strong className="text-ink font-semibold">Keep what you make:</strong>{' '}
                 The free tier lets you download the front and inside as images.
-                If you want the gift moment — the 3D opening, the scheduled
-                arrival, the link that never expires — that's Digital.
+                Order the printed card and you also get the gift moment free —
+                the 3D opening view and a private share link that never expires.
               </li>
             </ul>
           </div>
@@ -250,11 +270,12 @@ export default function PricingPage() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/login?redirect=/studio/new-card">
-                <Button className="bg-cta hover:bg-cta-hover text-cta-foreground h-12 px-8 text-base font-medium">
-                  Make my first card
-                </Button>
-              </Link>
+              <Button
+                onClick={() => claimFreeCard()}
+                className="bg-go hover:bg-go-hover text-go-foreground h-12 px-8 text-base font-medium"
+              >
+                Make a card
+              </Button>
             )}
             <p className="text-xs text-ink-soft mt-4">
               Free to start. No card needed.

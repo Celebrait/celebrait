@@ -30,11 +30,175 @@
 // This is NOT the full CelebrationCard from celebrait-card-brief.md.
 // That's a Sprint 5+ rebuild (envelope, seal, state machine, audio).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import {
+  Component,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
+import celebraitLogo from '@/assets/celebrait.webp';
+
+// The server writes a display WebP next to every generated PNG (~5–9x
+// smaller — see image-storage.ts storeDisplayWebpSibling). Load THAT as the
+// WebGL texture so the card assembles near-instantly instead of pulling two
+// ~1.7MB PNGs. Only rewrites a `.png` URL; already-WebP urls (the landing
+// hero passes /hero-card-front.webp) pass through untouched. If the webp is
+// missing (legacy card, or the best-effort encode failed) the texture load
+// fails and the Viewer3DBoundary shows the flat PNG — so the PNG stays the
+// safety net (FlatCardFallback still uses the original url).
+// EXPORTED because preloaders MUST warm these exact URLs: drei's texture
+// cache is keyed by url string, so preloading the PNG does nothing for a
+// texture that loads the WEBP. That mismatch (introduced by the Jul-17
+// webp swap) made every reveal SUSPEND → the suspension escaped the Canvas
+// (r3f throws it into the parent tree) → the route-level Suspense blanked
+// the whole page ("white flash / blank until click", root-caused 2026-07-27).
+export function toWebpDisplay(url: string | null | undefined): string | null | undefined {
+  return typeof url === 'string' ? url.replace(/\.png(\?|$)/i, '.webp$1') : url;
+}
+
+// ── Local "airbag" around the 3D canvas ─────────────────────────────
+// A failed texture load (dead image URL, CORS break) or a WebGL crash
+// throws THROUGH the r3f <Canvas> into the parent React tree. Without
+// this boundary the throw sails up to the app-level ErrorBoundary and
+// the WHOLE page becomes "Something went wrong" (card 234, 2026-07-04
+// — a legacy /images path 404ing on Render's wiped disk). One bad
+// texture must never cost more than the 3D effect itself: catch it
+// here, show the flat card image, keep the page (Buy/back/regen) alive.
+class Viewer3DBoundary extends Component<
+  { fallback: (retry: () => void) => ReactNode; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn(
+      '[Card3DViewer] 3D render failed — falling back to flat image:',
+      error?.message ?? error,
+    );
+  }
+  retry = () => this.setState({ failed: false });
+  render() {
+    if (this.state.failed) return this.props.fallback(this.retry);
+    return this.props.children;
+  }
+}
+
+/** Flat-image stand-in when the 3D view can't render. Shows the front
+ *  image sized roughly like the 3D card; if even that image is dead
+ *  (the usual root cause), swaps to a soft cream placeholder so we
+ *  never show the browser's broken-image glyph.
+ *
+ *  `showCaption` — the "3D view couldn't load / Try again" line. Only
+ *  for interactive viewers: in miniature/ambient embeds (AjarCardRender
+ *  thumbnails, marketing heroes) the wrapper is pointer-events: none so
+ *  the button couldn't be clicked anyway, and the caption crammed into
+ *  an 80px thumb overlapped surrounding copy (Kevin 2026-07-04, Giving
+ *  Moment screenshot). There the fallback is just the flat image. */
+function FlatCardFallback({
+  src,
+  framingMargin,
+  onRetry,
+  showCaption,
+}: {
+  src: string;
+  framingMargin: number;
+  onRetry: () => void;
+  showCaption: boolean;
+}) {
+  const [imgDead, setImgDead] = useState(false);
+  const side = `${Math.min(90, 100 / framingMargin)}%`;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        pointerEvents: 'auto',
+      }}
+      data-testid="card-3d-fallback"
+    >
+      {imgDead ? (
+        <div
+          style={{
+            height: side,
+            aspectRatio: '1 / 1',
+            maxWidth: '80%',
+            borderRadius: 12,
+            background: '#fbf5ea',
+            border: '1px solid #e7e5e4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          {showCaption && (
+            <p style={{ fontSize: 13, color: '#78716c', textAlign: 'center', margin: 0 }}>
+              This card's image couldn't be loaded.
+            </p>
+          )}
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt="Card front"
+          // CORS-mode load so this shares one cache entry with the WebGL
+          // texture loader (which is always crossOrigin). A plain <img>
+          // load of the same URL caches a no-CORS response that then
+          // poisons the texture fetch → "blank until you click". See the
+          // matching crossOrigin on every card-image <img>.
+          crossOrigin="anonymous"
+          onError={() => setImgDead(true)}
+          style={{
+            height: side,
+            aspectRatio: '1 / 1',
+            maxWidth: '80%',
+            objectFit: 'cover',
+            borderRadius: 12,
+            boxShadow: '0 18px 40px -12px rgba(15,23,42,0.35)',
+          }}
+        />
+      )}
+      {showCaption && (
+      <p style={{ fontSize: 12, color: '#78716c', margin: 0 }}>
+        3D view couldn't load — showing the card flat.{' '}
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            color: '#6d28d9',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            font: 'inherit',
+            cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
+      </p>
+      )}
+    </div>
+  );
+}
 
 interface Card3DViewerProps {
   frontImageUrl: string;
@@ -51,12 +215,26 @@ interface Card3DViewerProps {
    *  ~50% of the canvas — matches the review-step reveal. Use ~1.1
    *  for "nearly fills the frame" (Studio Home empty state). */
   framingMargin?: number;
+  /** Keep the WebGL drawing buffer readable so a parent can copy the
+   *  rendered frame onto a 2D canvas (the admin Social Studio composes
+   *  post images from it). Off by default — it costs a little memory
+   *  and nothing customer-facing needs it. */
+  preserveBuffer?: boolean;
   /** Closest the user can zoom in via OrbitControls. Default 2.7.
    *  When `framingMargin` is tightened to bring the camera closer
    *  than 2.7 at mount, OrbitControls would snap it back out unless
    *  this is lowered accordingly. Pass ~1.5 alongside framingMargin
    *  ≈ 1.1 for a zoomed-in landing. */
   minDistance?: number;
+  /** Ceiling on how far OrbitControls lets the camera sit from the card.
+   *  Default 6, which at fov 40 caps the EFFECTIVE framingMargin at ~3.0
+   *  however large a margin you pass — the fit is computed, then clamped
+   *  straight back. That ceiling is right for interactive viewers (it stops
+   *  a user zooming out to a speck) but it silently cropped the OPEN card
+   *  on wide spreads, since opening swings the cover left out of frame.
+   *  Raise it on static/non-interactive surfaces that need to frame the
+   *  card open. */
+  maxDistance?: number;
   /** Slow auto-rotation around the card's vertical axis. Used by
    *  ambient/decorative renderings (e.g. Studio empty-state hero,
    *  marketing hero) where the card should feel alive without
@@ -94,13 +272,13 @@ interface Card3DViewerProps {
    *  card's horizontal extent. The hit zone CSS-transitions
    *  smoothly between the two states. */
   openHitZoneInsetPercent?: number;
-  /** Disable mouse-wheel / pinch zoom. Default true (zoom enabled).
-   *  Used by static-display surfaces (e.g. marketing hero where the
-   *  card should sit at its mount framing without user re-zoom). */
+  /** Mouse-wheel / pinch zoom. Default FALSE since 2026-07-07 —
+   *  Kevin removed the orbit gadget site-wide ("fancy gadget that
+   *  does not really do much other than cause us issues"). */
   enableZoom?: boolean;
-  /** Disable click-drag rotate. Default true (rotation enabled).
-   *  Pair with `enableZoom={false}` for a fully static display where
-   *  the only user gesture is the click-to-open hinge. */
+  /** Click-drag rotate. Default FALSE since 2026-07-07 (same call).
+   *  The click-to-open hinge is the whole interaction model; opt back
+   *  in explicitly if a surface ever truly needs orbit. */
   enableRotate?: boolean;
   /** Disable ALL pointer interaction with the card. Default true.
    *  When `false`, the hit zone becomes `pointer-events: none` so:
@@ -132,6 +310,33 @@ interface Card3DViewerProps {
    *  not parented to the card group), so the card visibly lifts off
    *  its shadow as it bobs. Default false. */
   hover?: boolean;
+  /** Resting yaw of the whole card, in radians, applied to the card's
+   *  root group. Default 0 (straight-on). A small NEGATIVE value angles
+   *  the card to the left so the opening side (the cover's free right
+   *  edge) turns toward the viewer — which makes a `closedAngle` ajar
+   *  actually read as "open a crack" instead of a flat skew, because you
+   *  can see INTO the gap. Pair with `closedAngle` for a resting "peek".
+   *  The camera/OrbitControls are unchanged, so drag-to-rotate still
+   *  orbits freely around this resting pose. */
+  restYaw?: number;
+  /** Render the card ALREADY open at mount, with NO opening animation —
+   *  the cover initialises at the fully-open angle and the spring starts
+   *  there, so it never swings. For static open-card displays (e.g. an
+   *  example render). Default false; only meaningful alongside `open`. */
+  instantOpen?: boolean;
+  /** Cap the canvas devicePixelRatio. Default 2 (crisp on retina). Drop
+   *  to ~1.5 on large decorative stages (e.g. the landing example card)
+   *  where the bleed canvas is huge and full retina costs frame rate
+   *  during the open/close spring. (A briefly-shipped 1.5/1.25 cap on the
+   *  reveal — part of a disproven GPU-memory theory for the blank-reveal
+   *  bug — visibly softened the card and was reverted 2026-07-27; the
+   *  real cause was Suspense escape, see the Canvas's inner <Suspense>.) */
+  dprMax?: number;
+  /** Fires ONCE, on the first frame the card actually renders — i.e.
+   *  after the three.js chunk, GL context AND textures are all live.
+   *  Callers keep a flat placeholder painted over the canvas until
+   *  this fires, then crossfade (no blank beat, no spinner). */
+  onFirstFrame?: () => void;
 }
 
 export function Card3DViewer({
@@ -142,17 +347,23 @@ export function Card3DViewer({
   open: openProp,
   onOpenChange,
   framingMargin = 2.0,
+  preserveBuffer = false,
   minDistance = 2.7,
+  maxDistance = 6,
   autoRotate = false,
   autoRotateSpeed = 0.6,
   hitZoneInsetPercent,
   openHitZoneInsetPercent,
-  enableZoom = true,
-  enableRotate = true,
+  enableZoom = false,
+  enableRotate = false,
   interactive = true,
   openProgress,
   closedAngle = 0,
   hover = false,
+  restYaw = 0,
+  instantOpen = false,
+  dprMax = 2,
+  onFirstFrame,
 }: Card3DViewerProps) {
   const insideUrl = insideImageUrl ?? frontImageUrl;
   const [openState, setOpenState] = useState(false);
@@ -254,8 +465,82 @@ export function Card3DViewer({
   const hitZoneInsetPct = open ? openInsetPct : closedInsetPct;
   const [hitEl, setHitEl] = useState<HTMLDivElement | null>(null);
 
+  // ── Card-hugging hit zone (px-accurate) ────────────────────────────
+  // The % model above sizes the hit square as a fraction of the wrapper
+  // WIDTH. That only matches the card when the wrapper's bounds equal the
+  // card's visible footprint. Inside a "bleed" wrapper (much larger than
+  // the card, so it can rotate/zoom without clipping) the % square balloons
+  // way past the card — you end up able to drag/rotate while hovering empty
+  // space around it (Kevin 2026-06-01: "the hit point is too large").
+  //
+  // Fix: when no explicit `hitZoneInsetPercent` is given, size the hit zone
+  // to the card's ACTUAL rendered footprint, in px. InitialCameraFit frames
+  // the card to span 1/framingMargin of the wrapper's SMALLER dimension, so
+  // the on-screen card is a square of side ≈ min(w, h) / framingMargin. We
+  // measure the wrapper and size the hit square to that (× 0.96 so it sits
+  // just inside the silhouette and never spills onto empty space). Surfaces
+  // that pass an explicit inset (recipient viewer = 0 full, landing heroes
+  // = 30) keep the % model and are unaffected.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [autoSquarePx, setAutoSquarePx] = useState<number | null>(null);
+  // Mount-gate for the WebGL Canvas: only render it once the wrapper has a
+  // real, non-zero size. r3f otherwise mounts unsized during the
+  // assemble→reveal transition and sits BLANK until a pointer event
+  // re-measures it (the recurring "reveal blank until you click" bug —
+  // the FirstPaintKick wasn't forceful enough on real devices). Measuring
+  // FIRST and mounting only then means the Canvas can never mount at 0×0.
+  // Latches true on the first non-zero measurement and stays.
+  const [measured, setMeasured] = useState(false);
+  // Graceful degradation for WebGL context loss. The GPU can drop the
+  // context under memory pressure (many tabs, big screen, low VRAM) — the
+  // browser fires `webglcontextlost` and the canvas goes blank. Rather than
+  // show nothing (the old "blank reveal until you click" symptom) OR remount
+  // into a fresh context (a past mistake — it just loses that one too and
+  // thrashes), we flip to the FLAT card image: the reveal always shows the
+  // card, worst case as a still picture instead of the 3D object. Reset per
+  // card so a new card always gets a fresh 3D attempt.
+  const [contextLost, setContextLost] = useState(false);
+  const reportContextLost = useCallback(() => setContextLost(true), []);
+  useEffect(() => {
+    setContextLost(false);
+  }, [frontImageUrl, insideImageUrl]);
+  const useAutoHug = typeof hitZoneInsetPercent !== 'number';
+  useLayoutEffect(() => {
+    if (!useAutoHug) {
+      setAutoSquarePx(null);
+      return;
+    }
+    const el = wrapperRef.current;
+    if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      setAutoSquarePx((Math.min(r.width, r.height) / framingMargin) * 0.96);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [useAutoHug, framingMargin]);
+
+  // Gate the Canvas mount on a real measurement (see `measured` above).
+  // Runs for every viewer; latches once the wrapper reports non-zero size.
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setMeasured(true);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div
+      ref={wrapperRef}
       className={className}
       style={{
         position: 'relative',
@@ -270,38 +555,111 @@ export function Card3DViewer({
         touchAction: 'pan-y',
       }}
     >
-      <Canvas
-        shadows
-        camera={{ position: [0, 0.15, 2.2], fov: 40 }}
-        dpr={[1, 2]}
-        gl={{
-          toneMapping: THREE.NoToneMapping,
-          outputColorSpace: THREE.SRGBColorSpace,
-          antialias: true,
-        }}
-        // Funnel r3f pointer events (raycasting → mesh onClick handlers,
-        // e.g. the card's tap-to-open hinge) through the hit zone so
-        // they only fire when the user is actually over the card area.
-        eventSource={hitEl ?? undefined}
-      >
-        <Scene
-          frontUrl={frontImageUrl}
-          insideUrl={insideUrl}
-          backCredit={backCredit}
-          open={open}
-          onOpenChange={setOpen}
+      {measured && contextLost ? (
+        // GPU dropped the WebGL context — degrade to the flat card image so
+        // the reveal is NEVER blank. "Try again" remounts a fresh context
+        // (user-initiated, so no auto-thrash).
+        <FlatCardFallback
+          src={frontImageUrl}
           framingMargin={framingMargin}
-          minDistance={minDistance}
-          orbitDomElement={hitEl ?? undefined}
-          autoRotate={autoRotate}
-          autoRotateSpeed={autoRotateSpeed}
-          enableZoom={enableZoom}
-          enableRotate={enableRotate}
-          openProgress={openProgress}
-          closedAngle={closedAngle}
-          hover={hover}
+          showCaption={interactive}
+          onRetry={() => setContextLost(false)}
         />
-      </Canvas>
+      ) : measured ? (
+      <Viewer3DBoundary
+        fallback={(retry) => (
+          <FlatCardFallback
+            src={frontImageUrl}
+            framingMargin={framingMargin}
+            // Miniature/ambient embeds (interactive={false}: AjarCardRender
+            // thumbnails, marketing heroes) get image-only — no caption, no
+            // Try again (their wrappers are pointer-events: none anyway).
+            showCaption={interactive}
+            onRetry={() => {
+              // r3f's useLoader caches FAILED loads too — without
+              // clearing, a retry re-throws instantly from cache.
+              try {
+                // Clear the WebP urls that useTexture actually loaded — not
+                // the original PNGs — or the retry re-throws from cache.
+                useLoader.clear(THREE.TextureLoader, [
+                  toWebpDisplay(frontImageUrl) as string,
+                  toWebpDisplay(insideUrl) as string,
+                ]);
+              } catch {
+                /* cache clear is best-effort */
+              }
+              retry();
+            }}
+          />
+        )}
+      >
+        <Canvas
+          shadows
+          // Explicit continuous rendering. The reveal behaves like "demand"
+          // (blank until a pointer event) even though this is the r3f
+          // default — force it so a frame always paints without a click.
+          frameloop="always"
+          camera={{ position: [0, 0.15, 2.2], fov: 40 }}
+          dpr={[1, dprMax]}
+          gl={{
+            toneMapping: THREE.NoToneMapping,
+            outputColorSpace: THREE.SRGBColorSpace,
+            antialias: true,
+            preserveDrawingBuffer: preserveBuffer,
+          }}
+          // Funnel r3f pointer events (raycasting → mesh onClick handlers,
+          // e.g. the card's tap-to-open hinge) through the hit zone so
+          // they only fire when the user is actually over the card area.
+          eventSource={hitEl ?? undefined}
+        >
+          {/* CRITICAL: this Suspense must stay INSIDE the Canvas. r3f
+              bridges suspensions OUT of the canvas — its DOM component
+              literally `throw`s the pending promise into the parent React
+              tree — and the only boundary above us is App.tsx's ROUTE-level
+              Suspense. Without this boundary, a suspending useTexture at
+              the reveal blanked the ENTIRE page (sidebar and all) to the
+              route fallback, tore down the GL root (console: "Context
+              Lost" — r3f's own disposal, not the GPU), and left the reveal
+              blank until a re-render remounted it ("blank until you
+              click", root-caused 2026-07-27). With it, a loading texture
+              just means an empty canvas for a beat. */}
+          <Suspense fallback={null}>
+            <Scene
+              frontUrl={frontImageUrl}
+              insideUrl={insideUrl}
+              backCredit={backCredit}
+              open={open}
+              onOpenChange={setOpen}
+              framingMargin={framingMargin}
+              minDistance={minDistance}
+              maxDistance={maxDistance}
+              orbitDomElement={hitEl ?? undefined}
+              autoRotate={autoRotate}
+              autoRotateSpeed={autoRotateSpeed}
+              enableZoom={enableZoom}
+              enableRotate={enableRotate}
+              openProgress={openProgress}
+              closedAngle={closedAngle}
+              hover={hover}
+              restYaw={restYaw}
+              instantOpen={instantOpen}
+              onFirstFrame={onFirstFrame}
+              interactive={interactive}
+            />
+          </Suspense>
+          <FirstPaintKick />
+          <ContextLossReporter onLost={reportContextLost} />
+        </Canvas>
+      </Viewer3DBoundary>
+      ) : (
+        // Brief holding spinner — only visible if the wrapper is still
+        // 0×0 (mid-transition). In the common case the layout-effect
+        // measurement latches `measured` before paint, so the Canvas
+        // mounts immediately and this never shows.
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-keeper-hair border-t-brand" />
+        </div>
+      )}
       {/* The hit zone — invisible, sits over roughly the card's visible
           area. All pointer/wheel/touch events for OrbitControls + r3f
           mesh raycasting come through this element. Outside it, events
@@ -342,7 +700,13 @@ export function Card3DViewer({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: `${(100 - 2 * hitZoneInsetPct).toFixed(2)}%`,
+          // Auto-hug mode: an exact px square matching the card's rendered
+          // footprint. Otherwise the legacy %-of-width square (explicit
+          // inset callers). aspectRatio keeps it square in both cases.
+          width:
+            autoSquarePx != null
+              ? `${autoSquarePx.toFixed(1)}px`
+              : `${(100 - 2 * hitZoneInsetPct).toFixed(2)}%`,
           aspectRatio: '1 / 1',
           // Smooth width transition between closed/open hit zones.
           // ~500ms tracks the cover spring rotation roughly so the
@@ -375,6 +739,7 @@ function Scene({
   onOpenChange,
   framingMargin,
   minDistance,
+  maxDistance,
   orbitDomElement,
   autoRotate,
   autoRotateSpeed,
@@ -383,6 +748,10 @@ function Scene({
   openProgress,
   closedAngle,
   hover,
+  restYaw,
+  instantOpen,
+  onFirstFrame,
+  interactive,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -391,6 +760,7 @@ function Scene({
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
   minDistance: number;
+  maxDistance: number;
   enableZoom: boolean;
   enableRotate: boolean;
   /** When set, OrbitControls listens for wheel/drag/touch events on
@@ -403,6 +773,14 @@ function Scene({
   openProgress?: MotionValue<number>;
   closedAngle: number;
   hover: boolean;
+  restYaw: number;
+  instantOpen: boolean;
+  onFirstFrame?: () => void;
+  /** false for static embeds (hero, thumbnails) — lets InitialCameraFit
+   *  re-fit on size settle instead of one-shot latching, so the card never
+   *  ends up mis-sized after the canvas finishes measuring. Interactive
+   *  viewers keep the one-shot fit (no re-fit jank mid-interaction). */
+  interactive: boolean;
 }) {
   return (
     <>
@@ -437,7 +815,7 @@ function Scene({
         shadow-camera-bottom={-3}
       />
 
-      <InitialCameraFit margin={framingMargin} />
+      <InitialCameraFit margin={framingMargin} refit={!interactive} />
 
       <Card
         frontUrl={frontUrl}
@@ -448,6 +826,9 @@ function Scene({
         openProgress={openProgress}
         closedAngle={closedAngle}
         hover={hover}
+        restYaw={restYaw}
+        instantOpen={instantOpen}
+        onFirstFrame={onFirstFrame}
       />
 
       {/* Ground shadow — two layers. The soft broad layer reads as
@@ -486,7 +867,7 @@ function Scene({
         // captured for camera zoom.
         domElement={orbitDomElement}
         minDistance={minDistance}
-        maxDistance={6}
+        maxDistance={maxDistance}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI - Math.PI / 3}
         // Auto-rotation for ambient/decorative renderings (e.g. empty-state
@@ -502,20 +883,38 @@ function Scene({
 
 // ── InitialCameraFit ─────────────────────────────────────────────────
 // Adapts the camera distance so the card renders at a comfortable
-// size with generous margin, on any viewport aspect. Runs once on
-// mount; subsequent zoom is under user control via OrbitControls.
+// size with generous margin, on any viewport aspect.
 //
-// Without this, a static camera z lands the card at ~90% of a
-// landscape viewport height and clips horizontally on portrait
-// phones (card width > viewport width at narrow aspects). The
-// margin factor controls how much empty space surrounds the card.
-function InitialCameraFit({ margin }: { margin: number }) {
+// Two modes:
+//   • refit=false (interactive viewers, default): fits ONCE, then leaves
+//     the camera to the user (OrbitControls zoom). Latching avoids
+//     fighting a user's zoom.
+//   • refit=true (static embeds — hero, thumbnails): re-fits whenever the
+//     canvas size changes. r3f reports an interim size for the first
+//     frame(s) after mount (its ResizeObserver fires late), so a one-shot
+//     fit can latch to a size that isn't final → the card visibly "snaps"
+//     to its true size a beat later (Kevin 2026-07-22, hero). Re-fitting on
+//     every settle keeps a static card correctly framed with no snap; it's
+//     safe because these embeds are inert (no user zoom to preserve).
+//
+// Without this, a static camera z lands the card at ~90% of a landscape
+// viewport height and clips horizontally on portrait phones.
+function InitialCameraFit({ margin, refit = false }: { margin: number; refit?: boolean }) {
   const { camera, size, invalidate } = useThree();
   const didInit = useRef(false);
   useEffect(() => {
-    if (didInit.current) return;
+    if (didInit.current && !refit) return;
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    didInit.current = true;
+    // Wait for a REAL canvas measurement before the one-shot fit. r3f
+    // reports size 0×0 for the first frame(s) after mount (before its
+    // ResizeObserver fires). Fitting against 0×0 makes `aspect` NaN →
+    // camera.position.z = NaN → the card renders off-screen/blank, and
+    // because `didInit` latches it NEVER recovered (only a window resize
+    // fixed it). This bit hard during the assembling→reveal handoff, when
+    // the Canvas mounts mid-transition and is momentarily unsized
+    // (Kevin 2026-07-21: "reveal is blank until you click"). Defer the
+    // latch until we have a non-zero size so the fit is computed correctly.
+    if (size.width === 0 || size.height === 0) return;
     const aspect = size.width / size.height;
     const halfFovRad = (camera.fov / 2) * (Math.PI / 180);
     // Landing framing — `margin` controls how much empty space surrounds
@@ -527,10 +926,76 @@ function InitialCameraFit({ margin }: { margin: number }) {
     const required = CARD_W * margin;
     const distByHeight = required / (2 * Math.tan(halfFovRad));
     const distByWidth = required / (2 * Math.tan(halfFovRad) * aspect);
-    camera.position.z = Math.max(distByHeight, distByWidth);
+    const z = Math.max(distByHeight, distByWidth);
+    // Only latch once a finite fit is actually applied — never lock in a
+    // NaN/∞ camera (belt-and-suspenders on top of the size guard above).
+    if (!Number.isFinite(z)) return;
+    didInit.current = true;
+    camera.position.z = z;
     camera.updateProjectionMatrix();
     invalidate();
-  }, [camera, size, invalidate, margin]);
+  }, [camera, size, invalidate, margin, refit]);
+  return null;
+}
+
+// Force the first real paint on the assemble→reveal handoff. r3f can mount
+// the Canvas while its container is momentarily 0×0 (during the page
+// transition); it then renders nothing and — because its ResizeObserver
+// doesn't reliably fire for that transition — sits BLANK until a pointer
+// event nudges a re-measure (Kevin: "reveal is blank until you click",
+// recurring 2026-07-21 → 07-24). The size===0 guard in InitialCameraFit
+// stopped the camera latching a permanent blank, but nothing *forced* the
+// re-measure. This does: for a short window after mount, if r3f mounted
+// unsized, read the real container size off the DOM, push it via setSize,
+// and invalidate — so the card paints on its own, no click needed.
+function FirstPaintKick() {
+  const { invalidate, setSize, gl, size } = useThree();
+  useEffect(() => {
+    if (size.width > 0 && size.height > 0) {
+      invalidate();
+      return;
+    }
+    const parent = gl.domElement.parentElement;
+    let raf = 0;
+    let frames = 0;
+    let valid = 0;
+    const tick = () => {
+      const w = Math.round(parent?.clientWidth ?? 0);
+      const h = Math.round(parent?.clientHeight ?? 0);
+      if (w > 0 && h > 0) {
+        setSize(w, h);
+        valid += 1;
+      }
+      invalidate();
+      frames += 1;
+      // Stop once we've pushed a good size a few times, or after ~1s.
+      if (valid < 3 && frames < 60) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // Run once on mount; r3f's invalidate/setSize/gl are stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+// Report a WebGL context loss up to the viewer so it can swap to the flat
+// card image (see `contextLost`). Report-only: it does NOT forceContextLoss
+// or remount — an earlier remount-on-loss attempt just spawned another
+// doomed context and thrashed the canvas to nothing. preventDefault tells
+// the browser we're handling it (suppresses the default permanent-loss
+// error); React then unmounts the Canvas and r3f disposes the context.
+function ContextLossReporter({ onLost }: { onLost: () => void }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handle = (e: Event) => {
+      e.preventDefault();
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handle, false);
+    return () => canvas.removeEventListener('webglcontextlost', handle, false);
+  }, [gl, onLost]);
   return null;
 }
 
@@ -598,6 +1063,9 @@ function Card({
   openProgress,
   closedAngle,
   hover,
+  restYaw,
+  instantOpen,
+  onFirstFrame,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -607,11 +1075,20 @@ function Card({
   openProgress?: MotionValue<number>;
   closedAngle: number;
   hover: boolean;
+  restYaw: number;
+  instantOpen: boolean;
+  onFirstFrame?: () => void;
 }) {
   const { gl } = useThree();
   const maxAnisotropy = useMemo(() => gl.capabilities.getMaxAnisotropy(), [gl]);
+  const firstFrameFired = useRef(false);
 
-  const [frontTex, insideTex] = useTexture([frontUrl, insideUrl]);
+  // Textures load the lightweight display WebP; the flat fallback (outer
+  // Viewer3DBoundary) keeps the original PNG url.
+  const [frontTex, insideTex] = useTexture([
+    toWebpDisplay(frontUrl) as string,
+    toWebpDisplay(insideUrl) as string,
+  ]);
   useEffect(() => {
     [frontTex, insideTex].forEach((t) => {
       if (t) {
@@ -625,7 +1102,12 @@ function Card({
   }, [frontTex, insideTex, maxAnisotropy]);
 
   const backTex = usePaperTexture({ credit: backCredit, anisotropy: maxAnisotropy });
-  const coverBackTex = usePaperTexture({ anisotropy: maxAnisotropy });
+  // Inside-left panel carries the brand mark, small at the bottom
+  // (Kevin 2026-07-05).
+  const coverBackTex = usePaperTexture({
+    anisotropy: maxAnisotropy,
+    logoUrl: celebraitLogo,
+  });
 
   // Rounded-corner card geometry, built once and reused across all
   // four card faces. ShapeGeometry + remapped UVs so textures map
@@ -648,8 +1130,21 @@ function Card({
 
   useFrame((state, delta) => {
     if (!rootRef.current || !coverRef.current) return;
+    // First real frame: this component only mounts once useTexture has
+    // resolved, so by here chunk + GL + textures are all live. Callers
+    // use this to crossfade away a flat placeholder.
+    if (!firstFrameFired.current) {
+      firstFrameFired.current = true;
+      onFirstFrame?.();
+    }
     const cover = coverRef.current;
     const root = rootRef.current;
+
+    // Resting yaw — angle the whole card so an ajar cover reads as a real
+    // opening (you see into the gap) rather than a flat skew. Constant
+    // pose; OrbitControls moves the camera, not this group, so drag-to-
+    // rotate still orbits freely around it.
+    root.rotation.y = restYaw;
 
     // Hover bob — sine oscillation in y, applied to the card's root
     // group. ContactShadows live at scene level (not parented to this
@@ -763,9 +1258,11 @@ function Card({
       <group
         ref={coverRef}
         position={[-CARD_W / 2, 0, 0]}
-        /* Start at the caller's `closedAngle` rest so the cover
-           doesn't briefly animate from 0 → closedAngle on mount. */
-        rotation={[0, closedAngle, 0]}
+        /* Start at the caller's `closedAngle` rest so the cover doesn't
+           briefly animate from 0 → closedAngle on mount. When `instantOpen`
+           is set, start fully open instead so the card renders open with no
+           swing (the spring targets OPEN_REST and is already there). */
+        rotation={[0, instantOpen ? OPEN_REST : closedAngle, 0]}
       >
         <mesh position={[CARD_W / 2, 0, 0]} geometry={cardGeom} castShadow receiveShadow>
           <meshStandardMaterial map={frontTex} roughness={0.9} side={THREE.DoubleSide} />
@@ -777,7 +1274,21 @@ function Card({
           castShadow
           receiveShadow
         >
-          <meshStandardMaterial map={coverBackTex} roughness={0.95} side={THREE.DoubleSide} />
+          {/* Emissive lift: this face is the inside-LEFT panel when
+              the card is open. Standard lighting leaves the white
+              paper reading grey next to the vivid inside art — the
+              emissive floor keeps it true blank-white, matching the
+              printed product (inside-left is unprinted stock). */}
+          {/* emissiveMap = same texture, so the lift follows the
+              paper: white stays white, the logo keeps its ink. */}
+          <meshStandardMaterial
+            map={coverBackTex}
+            roughness={0.95}
+            side={THREE.DoubleSide}
+            emissive="#ffffff"
+            emissiveMap={coverBackTex}
+            emissiveIntensity={0.4}
+          />
         </mesh>
       </group>
     </group>
@@ -797,12 +1308,16 @@ function Card({
 //      something to bite into so the paper doesn't feel "rendered"
 //   4. Thin perimeter edge stroke so the card has a silhouette on a
 //      pure-white background
-//   5. Optional wordmark (credit + celebrait.com) centred
+//   5. Optional wordmark (credit + celebrait.co.uk) centred
 function usePaperTexture(opts: {
   credit?: string;
   anisotropy: number;
+  /** Optional logo image drawn small at the bottom-centre of the
+   *  face (Kevin 2026-07-05: brand mark on the inside-left panel).
+   *  Drawn async when the image decodes; the texture re-uploads. */
+  logoUrl?: string;
 }): THREE.CanvasTexture {
-  const { credit, anisotropy } = opts;
+  const { credit, anisotropy, logoUrl } = opts;
   return useMemo(() => {
     const size = 1024;
     const canvas = document.createElement('canvas');
@@ -864,7 +1379,7 @@ function usePaperTexture(opts: {
 
       ctx.fillStyle = '#8a7f6f';
       ctx.font = "300 22px 'Inter', system-ui, sans-serif";
-      ctx.fillText('celebrait.com', size / 2, size / 2 + 34);
+      ctx.fillText('celebrait.co.uk', size / 2, size / 2 + 34);
     }
 
     const tex = new THREE.CanvasTexture(canvas);
@@ -872,8 +1387,24 @@ function usePaperTexture(opts: {
     tex.anisotropy = anisotropy;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.generateMipmaps = true;
+
+    // 6. Optional logo, bottom-centre — drawn once the image decodes,
+    //    then the canvas re-uploads to the GPU.
+    if (logoUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const w = size * 0.24;
+        const h = w * (img.naturalHeight / img.naturalWidth);
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(img, (size - w) / 2, size - h - size * 0.06, w, h);
+        ctx.globalAlpha = 1;
+        tex.needsUpdate = true;
+      };
+      img.src = logoUrl;
+    }
+
     return tex;
-  }, [credit, anisotropy]);
+  }, [credit, anisotropy, logoUrl]);
 }
 
 function clamp8(v: number): number {

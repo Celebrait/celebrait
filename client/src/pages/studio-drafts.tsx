@@ -15,8 +15,11 @@
 //     within the same step. The user's eye lands on the drafts
 //     they're closest to finishing — the implicit nudge to complete.
 //   • Visual nudge for the "almost there" cohort: a subtle
-//     "Ready to generate" badge for drafts on Review (step 6), and
-//     a "One step away" hint for drafts on Inside text (step 5).
+//     "Ready to generate" badge for drafts on Review (step 5), and
+//     a "One step away" hint for drafts on Inside text (step 4).
+//     (Step numbering shifted after the V1 style-step removal; the
+//     code derives both from VISIBLE_STEP_COUNT so it's already
+//     correct — these comments just reflect the new numbering.)
 //   • Earlier drafts get the same row, no badge — quietly
 //     de-emphasised by being lower in the list, not by chrome.
 
@@ -77,14 +80,14 @@ function PageHeader() {
   return (
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">Drafts</h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">In progress</h1>
+        <p className="text-sm text-keeper-body mt-1">
           Pick up where you left off — drafts save automatically.
         </p>
       </div>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
         data-testid="drafts-new-card"
       >
         <Wand2 className="w-4 h-4" />
@@ -131,18 +134,20 @@ function DraftListRow({ card }: { card: CardGridItem }) {
   const editHref = `/studio/card/${card.id}/edit`;
   const goEdit = () => setLocation(editHref);
 
-  // Step interpretation:
-  //   step 0..5 = Recipient → Inside text (in-progress)
-  //   step 6    = Review & Purchase (= ready to generate)
-  // Filled-dot count caps at VISIBLE_STEP_COUNT (6).
+  // Step interpretation (post V1 style-step removal):
+  //   step 0..4 = Recipient → Inside text (in-progress)
+  //   step 5    = Review & Purchase (= ready to generate)
+  // Filled-dot count caps at VISIBLE_STEP_COUNT (5).
   const isReadyToGenerate = step >= VISIBLE_STEP_COUNT;
   const isOneStepAway = step === VISIBLE_STEP_COUNT - 1;
   const filled = Math.min(step, VISIBLE_STEP_COUNT);
 
   const stepLabel = formatStepLabel(step);
   const dateLabel = formatRelativeTime(card.createdAt);
-  const metaLine =
-    stepLabel && dateLabel ? `${stepLabel} · ${dateLabel}` : stepLabel || dateLabel || '';
+  // Start-again clones announce themselves so two "Kayla's birthday
+  // card" rows don't read as a duplicate bug.
+  const takePrefix = card.rerollFamilyId != null ? 'Fresh take' : '';
+  const metaLine = [takePrefix, stepLabel, dateLabel].filter(Boolean).join(' · ');
 
   // Same delete pattern card-thumbnail.tsx uses — DELETE
   // /api/studio/cards/:id, invalidate the user-cards query, toast on
@@ -154,7 +159,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
-      toast({ title: 'Draft deleted' });
+      toast({ title: 'Draft deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -185,7 +190,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
       className={`group cursor-pointer rounded-2xl border transition-all hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
         isReadyToGenerate
           ? 'bg-brand-muted/40 border-brand/40 hover:border-brand'
-          : 'bg-white border-stone-200 hover:border-stone-300'
+          : 'bg-white border-keeper-hair hover:border-stone-300'
       }`}
       data-testid={`draft-list-row-${card.id}`}
     >
@@ -204,6 +209,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             {card.frontImageUrl ? (
               <img
                 src={card.frontImageUrl}
+                crossOrigin="anonymous"
                 alt={title}
                 className="w-full h-full object-cover rounded-xl"
               />
@@ -214,11 +220,11 @@ function DraftListRow({ card }: { card: CardGridItem }) {
 
           {/* Title + meta */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm sm:text-base font-semibold text-ink truncate">
+            <p className="text-sm sm:text-base font-semibold text-keeper-ink truncate">
               {title}
             </p>
             {metaLine && (
-              <p className="text-[11px] sm:text-xs text-stone-500 truncate mt-0.5">
+              <p className="text-[11px] sm:text-xs text-keeper-meta truncate mt-0.5">
                 {metaLine}
               </p>
             )}
@@ -234,7 +240,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
                 Ready to generate
               </span>
             ) : isOneStepAway ? (
-              <span className="text-[11px] text-stone-500 italic">
+              <span className="text-[11px] text-keeper-meta italic">
                 One step away
               </span>
             ) : null}
@@ -259,7 +265,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
               setConfirmOpen(true);
             }}
             disabled={deleteMutation.isPending}
-            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-stone-400 hover:text-red-600 hover:bg-stone-50 transition-colors disabled:opacity-50 flex-shrink-0"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-keeper-meta hover:text-red-600 hover:bg-stone-50 transition-colors disabled:opacity-50 flex-shrink-0"
             aria-label={`Delete ${title}`}
             data-testid={`btn-delete-draft-${card.id}`}
           >
@@ -282,7 +288,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
               Ready
             </span>
           ) : isOneStepAway ? (
-            <span className="text-[10px] text-stone-500 italic">
+            <span className="text-[10px] text-keeper-meta italic">
               One step away
             </span>
           ) : null}
@@ -318,9 +324,12 @@ function DraftListRow({ card }: { card: CardGridItem }) {
 // ── ProgressDots — six tiny dots, filled left-to-right ───────────────
 // Green ("go" tone) for filled, stone for unfilled. Highlighted rows
 // (ready-to-generate) use the saturated cta-hover; in-progress rows
-// use the slightly softer cta. The green reads as "progress toward
-// the finish line" — Kevin's call 2026-04-26 (was brand violet,
-// which clashed with the violet icon + violet card chrome).
+// use the slightly softer cta. Green reads as "progress toward the
+// finish line" — Kevin's call 2026-04-26, re-confirmed 2026-07-09
+// ("bring the green back for ready-to-gen, it was working") after a
+// brief violet experiment. Green is the readiness ACCENT here; the
+// button-colour system (purple everyday + green commit moments) is a
+// separate axis.
 function ProgressDots({
   filled,
   total,
@@ -383,7 +392,7 @@ function DraftListSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-stone-200 bg-white p-3 sm:p-4 flex items-center gap-3 sm:gap-4 animate-pulse"
+          className="rounded-2xl border border-keeper-hair bg-white p-3 sm:p-4 flex items-center gap-3 sm:gap-4 animate-pulse"
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-stone-100 flex-shrink-0" />
           <div className="flex-1 space-y-2">
@@ -408,13 +417,13 @@ function DraftsEmpty() {
       <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4">
         <FileEdit className="w-6 h-6" />
       </div>
-      <p className="text-base font-semibold text-ink mb-1">No drafts right now</p>
-      <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
+      <p className="text-base font-semibold text-keeper-ink mb-1">No drafts right now</p>
+      <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
         When you start a card and step away, it'll live here until you come back.
       </p>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="drafts-empty-start-card"
       >
         <Wand2 className="w-4 h-4" />
@@ -427,8 +436,8 @@ function DraftsEmpty() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
-      <p className="text-sm text-red-600 mb-2">Couldn't load your drafts.</p>
-      <p className="text-xs text-stone-500">{message}</p>
+      <p className="text-sm text-accent-red-dark mb-2">Couldn't load your drafts.</p>
+      <p className="text-xs text-keeper-meta">{message}</p>
     </div>
   );
 }

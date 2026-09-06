@@ -1,9 +1,66 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createCanvas, loadImage } from 'canvas';
+import { isR2Enabled, r2Put, r2Get, r2Copy, r2PublicUrl, r2DeleteByPrefix } from './r2-storage';
 
-const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
+export const IMAGES_DIR = path.join(process.cwd(), 'stored_images');
 const TEMP_DIR = path.join(process.cwd(), 'temp_images');
+
+/**
+ * Browser-facing URL for a stored image. Accepts a bare filename, a
+ * legacy `/images/<name>` path, or an already-absolute http(s)/data URL.
+ *   • R2 enabled  → the Cloudflare public bucket URL (CDN-cached)
+ *   • R2 disabled → the local `/images/<name>` path (served by Express)
+ * This is the single source of truth for image URLs — every site that
+ * used to hand-build `/images/${x}` should call this so the same code
+ * works in both modes.
+ */
+export function publicImageUrl(pathOrName: string): string {
+  if (!pathOrName) return pathOrName;
+  if (/^(https?:|data:)/i.test(pathOrName)) return pathOrName;
+  const name = pathOrName.startsWith('/images/')
+    ? pathOrName.slice('/images/'.length)
+    : pathOrName;
+  return isR2Enabled() ? r2PublicUrl(name) : `/images/${name}`;
+}
+
+/**
+ * Resolve a card image's browser URL from its (path, legacy-url) column
+ * pair — path preferred, BOTH mapped through publicImageUrl. The legacy
+ * fallback previously passed the raw stored URL straight through, so
+ * pre-R2 rows handed clients literal '/images/<name>' paths. On
+ * ephemeral-disk hosts the local file is gone; the /images route's R2
+ * fallback rescues plain <img> loads, but CORS-mode loads (three.js
+ * textures, crossOrigin='anonymous') reject cross-origin REDIRECTS —
+ * that's the card-234 "3D view couldn't load" bug (2026-07-04). Mapping
+ * the legacy URL through publicImageUrl hands the client the direct R2
+ * URL instead, which CORS-loads fine. Absolute http(s)/data URLs still
+ * pass through untouched.
+ */
+export function resolveStoredImageUrl(
+  path: string | null | undefined,
+  url: string | null | undefined,
+): string | null {
+  const src = path || url;
+  return src ? publicImageUrl(src) : null;
+}
+
+/**
+ * Base stem for a card's image object keys. With an imageKey (the stable
+ * per-card random secret on cards.imageKey) the stem is
+ * `card_<id>_<imageKey>` — so the public-bucket keys can't be enumerated
+ * from the sequential card id (security audit 2026-07-02). Legacy rows
+ * with no imageKey fall back to the old `card_<id>` stem so their already-
+ * stored URLs keep resolving.
+ *
+ * Callers append the side/format: `${cardImageBaseName(id, key)}_front.png`.
+ */
+export function cardImageBaseName(
+  cardId: number,
+  imageKey?: string | null,
+): string {
+  return imageKey ? `card_${cardId}_${imageKey}` : `card_${cardId}`;
+}
 
 // Ensure directories exist
 async function ensureDirectories() {
@@ -29,27 +86,116 @@ export interface StoredImage {
 /**
  * Convert base64 image data to PNG file and store it
  */
+/**
+ * Write a display-only WebP sibling next to a just-stored PNG.
+ *
+ * WHY: the model returns ~1.7MB PNGs. Print NEEDS the PNG (Prodigi asset,
+ * lossless) — this never touches it. But the on-screen 3D viewer was
+ * downloading both PNGs (~3.4MB) and uploading them as WebGL textures,
+ * which is the "slow load after generation" beat. A q80 WebP of the same
+ * image is ~5–9x smaller, so the viewer loads near-instantly.
+ *
+ * BEST-EFFORT BY DESIGN: wrapped so a WebP failure can NEVER break the PNG
+ * store or the generation flow — if it throws, we log and move on, and the
+ * viewer just falls back to the PNG. No upscale (source is already ~1024px)
+ * so this is a cheap encode, not the memory-heavy print-res resize that
+ * OOMs small instances.
+ *
+ * Naming convention: `<base>_front.png` → `<base>_front.webp`. The viewer
+ * derives the WebP URL by the same swap (card-3d-viewer.tsx).
+ */
+async function storeDisplayWebpSibling(
+  pngFilename: string,
+  imageBuffer: Buffer,
+): Promise<void> {
+  if (!pngFilename.endsWith('.png')) return;
+  const webpFilename = pngFilename.replace(/\.png$/, '.webp');
+  try {
+    const { default: sharp } = await import('sharp');
+    const webp = await sharp(imageBuffer).webp({ quality: 80 }).toBuffer();
+    if (isR2Enabled()) {
+      await r2Put(webpFilename, webp, 'image/webp');
+    } else {
+      await fs.writeFile(path.join(IMAGES_DIR, webpFilename), webp);
+    }
+    console.log(
+      `[STORAGE] display webp ${webpFilename} (${webp.length} bytes, ` +
+        `${Math.round((1 - webp.length / imageBuffer.length) * 100)}% smaller than png)`,
+    );
+  } catch (err) {
+    // Never fatal — the viewer falls back to the PNG.
+    console.warn(`[STORAGE] display webp skipped for ${pngFilename}:`, (err as Error)?.message ?? err);
+  }
+  // THE THUMB TIER (2026-08-28, "images loading slow" — measured 1.4MB
+  // PNGs behind 250px catalogue tiles). Same sibling pattern, grid-sized.
+  await storeThumbSibling(pngFilename, imageBuffer);
+}
+
+/** `<base>.png` → `<base>_t.webp` — the GRID tier (~512px, q78, tens of
+ *  KB). Catalogue tiles, studio thumbnails and admin grids load this;
+ *  product pages, 3D textures and print keep the full asset. Best-effort
+ *  like the display webp — a miss just means the client's onError falls
+ *  back to the PNG. */
+export function thumbFilename(pngFilename: string): string {
+  return pngFilename.replace(/\.png$/i, '_t.webp');
+}
+export async function storeThumbSibling(
+  pngFilename: string,
+  imageBuffer: Buffer,
+): Promise<boolean> {
+  if (!/\.png$/i.test(pngFilename)) return false;
+  try {
+    const { default: sharp } = await import('sharp');
+    const thumb = await sharp(imageBuffer)
+      .resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 78 })
+      .toBuffer();
+    const name = thumbFilename(pngFilename);
+    if (isR2Enabled()) {
+      await r2Put(name, thumb, 'image/webp');
+    } else {
+      await fs.writeFile(path.join(IMAGES_DIR, name), thumb);
+    }
+    console.log(`[STORAGE] thumb ${name} (${thumb.length} bytes)`);
+    return true;
+  } catch (err) {
+    console.warn(`[STORAGE] thumb skipped for ${pngFilename}:`, (err as Error)?.message ?? err);
+    return false;
+  }
+}
+
 export async function storeImageFromBase64(
-  base64Data: string, 
-  cardId: number, 
-  imageType: 'front' | 'inside'
+  base64Data: string,
+  cardId: number,
+  imageType: 'front' | 'inside',
+  imageKey?: string | null,
 ): Promise<StoredImage> {
   try {
     // Remove data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(cleanBase64, 'base64');
-    
-    // Generate filename with card ID and type
-    const filename = `card_${cardId}_${imageType}.png`;
+
+    // Generate filename with card ID + unguessable key + type
+    const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
+
+    if (isR2Enabled()) {
+      await r2Put(filename, imageBuffer, 'image/png');
+      console.log(`[STORAGE] Stored ${imageType} image for card ${cardId} → R2: ${filename} (${imageBuffer.length} bytes)`);
+      await storeDisplayWebpSibling(filename, imageBuffer);
+      return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
+    }
+
     const filepath = path.join(IMAGES_DIR, filename);
-    
+
     // Write PNG file to disk
     await fs.writeFile(filepath, imageBuffer);
-    
+
     const stats = await fs.stat(filepath);
-    
+
     console.log(`[STORAGE] Stored ${imageType} image for card ${cardId}: ${filename} (${stats.size} bytes)`);
-    
+
+    await storeDisplayWebpSibling(filename, imageBuffer);
+
     return {
       filename,
       filepath,
@@ -63,19 +209,59 @@ export async function storeImageFromBase64(
 }
 
 /**
+ * Read a stored_images-relative file (e.g. a reference photo at
+ * `photos/<userId>/original_<id>.jpg`): local disk first, R2 fallback.
+ *
+ * Why (audit 2026-07-27, P0-1): photo uploads are mirrored to R2 under
+ * the SAME relative key, but Render's local disk is wiped on every
+ * deploy — so any generation resuming a draft after a deploy used to
+ * ENOENT on fs.readFile and fail forever. On an R2 hit the bytes are
+ * re-cached locally (best-effort) so subsequent reads in this process
+ * are fast again. Returns null only when BOTH stores miss.
+ */
+export async function loadStoredFileBuffer(relPath: string): Promise<Buffer | null> {
+  const abs = path.join(process.cwd(), 'stored_images', relPath);
+  try {
+    return await fs.readFile(abs);
+  } catch {
+    /* local miss — fall through to R2 */
+  }
+  if (!isR2Enabled()) return null;
+  try {
+    const buf = await r2Get(relPath);
+    if (buf) {
+      console.log(`[STORAGE] local miss for ${relPath} — recovered from R2 (${buf.length} bytes)`);
+      // Re-cache locally so the rest of this generation (and process
+      // lifetime) reads from disk. Best-effort.
+      try {
+        await fs.mkdir(path.dirname(abs), { recursive: true });
+        await fs.writeFile(abs, buf);
+      } catch {
+        /* cache write is best-effort */
+      }
+    }
+    return buf;
+  } catch (err: any) {
+    console.warn(`[STORAGE] R2 fallback failed for ${relPath}:`, err?.message ?? err);
+    return null;
+  }
+}
+
+/**
  * Get stored image as buffer for serving
  */
-export async function getStoredImage(cardId: number, imageType: 'front' | 'inside'): Promise<Buffer | null> {
+export async function getStoredImage(cardId: number, imageType: 'front' | 'inside', imageKey?: string | null): Promise<Buffer | null> {
+  const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
   try {
-    const filename = `card_${cardId}_${imageType}.png`;
+    if (isR2Enabled()) {
+      return await r2Get(filename);
+    }
     const filepath = path.join(IMAGES_DIR, filename);
-    
     const imageBuffer = await fs.readFile(filepath);
     console.log(`[STORAGE] Retrieved ${imageType} image for card ${cardId}: ${imageBuffer.length} bytes`);
-    
     return imageBuffer;
   } catch (error) {
-    console.log(`[STORAGE] Image not found: card_${cardId}_${imageType}.png`);
+    console.log(`[STORAGE] Image not found: ${filename}`);
     return null;
   }
 }
@@ -339,12 +525,13 @@ export async function getStorageStats(): Promise<{
 /**
  * Get file URL for serving static images
  */
-export function getImageUrl(cardId: number, imageType: 'front' | 'inside' | 'print'): string {
-  const filename = imageType === 'print' 
-    ? `card_${cardId}_print_5x5.png`
-    : `card_${cardId}_${imageType}.png`;
-  
-  return `/images/${filename}`;
+export function getImageUrl(cardId: number, imageType: 'front' | 'inside' | 'print', imageKey?: string | null): string {
+  const base = cardImageBaseName(cardId, imageKey);
+  const filename = imageType === 'print'
+    ? `${base}_print_5x5.png`
+    : `${base}_${imageType}.png`;
+
+  return publicImageUrl(filename);
 }
 
 /**
@@ -372,9 +559,10 @@ export async function imageExists(cardId: number, imageType: 'front' | 'inside')
  * actual watermarking, just the misleading filename suffix.)
  */
 export async function storePngWithSharp(
-  base64Data: string, 
-  cardId: number, 
-  imageType: string
+  base64Data: string,
+  cardId: number,
+  imageType: string,
+  imageKey?: string | null,
 ): Promise<StoredImage> {
   try {
     const { default: sharp } = await import('sharp');
@@ -393,7 +581,14 @@ export async function storePngWithSharp(
       .toBuffer();
     
     // Generate filename
-    const filename = `card_${cardId}_${imageType}.png`;
+    const filename = `${cardImageBaseName(cardId, imageKey)}_${imageType}.png`;
+
+    if (isR2Enabled()) {
+      await r2Put(filename, pngBuffer, 'image/png');
+      console.log(`[PNG_STORAGE] Stored sharp-processed PNG for card ${cardId} → R2: ${filename} (${pngBuffer.length} bytes)`);
+      return { filename, filepath: filename, size: pngBuffer.length, format: 'png' };
+    }
+
     const filepath = path.join(IMAGES_DIR, filename);
 
     // Write PNG file to disk
@@ -428,10 +623,19 @@ export async function storeImageToCustomFilename(
 ): Promise<StoredImage> {
   const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
   const imageBuffer = Buffer.from(cleanBase64, 'base64');
+
+  if (isR2Enabled()) {
+    await r2Put(filename, imageBuffer, 'image/png');
+    console.log(`[STORAGE] Stored ${filename} → R2 (${imageBuffer.length} bytes)`);
+    await storeDisplayWebpSibling(filename, imageBuffer);
+    return { filename, filepath: filename, size: imageBuffer.length, format: 'png' };
+  }
+
   const filepath = path.join(IMAGES_DIR, filename);
   await fs.writeFile(filepath, imageBuffer);
   const stats = await fs.stat(filepath);
   console.log(`[STORAGE] Stored ${filename} (${stats.size} bytes)`);
+  await storeDisplayWebpSibling(filename, imageBuffer);
   return { filename, filepath, size: stats.size, format: 'png' };
 }
 
@@ -449,6 +653,11 @@ export async function copyStoredFile(
   destFilename: string,
 ): Promise<boolean> {
   try {
+    if (isR2Enabled()) {
+      const ok = await r2Copy(srcFilename, destFilename);
+      if (ok) console.log(`[STORAGE] Copied ${srcFilename} → ${destFilename} (R2)`);
+      return ok;
+    }
     const src = path.join(IMAGES_DIR, srcFilename);
     const dest = path.join(IMAGES_DIR, destFilename);
     await fs.copyFile(src, dest);
@@ -459,6 +668,49 @@ export async function copyStoredFile(
       `[STORAGE] Could not copy ${srcFilename} → ${destFilename}: ${err?.message ?? err}`,
     );
     return false;
+  }
+}
+
+/**
+ * Delete EVERY stored image belonging to a card — the canonical
+ * front/inside/print files AND all per-attempt regen files
+ * (`card_<id>_front_aN.png`, etc.) — from wherever they actually live
+ * (R2 when enabled, otherwise local disk + print/temp dirs).
+ *
+ * Keys/filenames are matched on the `card_<id>_` prefix; the trailing
+ * underscore keeps card 2 from also matching card 20/234.
+ *
+ * This is the storage half of "right to erasure": when a card is
+ * deleted, its images must not linger in the bucket. Best-effort — a
+ * missing file or storage hiccup must never block the DB delete — so it
+ * swallows errors and returns the count removed.
+ */
+export async function deleteCardImages(cardId: number): Promise<number> {
+  const prefix = `card_${cardId}_`;
+  try {
+    if (isR2Enabled()) {
+      return await r2DeleteByPrefix(prefix);
+    }
+    let removed = 0;
+    const dirs = [IMAGES_DIR, TEMP_DIR, path.join(process.cwd(), 'print_files')];
+    for (const dir of dirs) {
+      let files: string[];
+      try {
+        files = await fs.readdir(dir);
+      } catch {
+        continue; // dir may not exist in this environment
+      }
+      for (const file of files) {
+        if (file.startsWith(prefix)) {
+          await fs.unlink(path.join(dir, file)).catch(() => {});
+          removed++;
+        }
+      }
+    }
+    return removed;
+  } catch (err) {
+    console.error(`[STORAGE] deleteCardImages(${cardId}) failed:`, err);
+    return 0;
   }
 }
 

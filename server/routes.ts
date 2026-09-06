@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { storage } from "./storage";
+import { isR2Enabled, r2PublicUrl } from "./r2-storage";
 import { setupAuth, registerAuthRoutes, registerGoogleAuthRoutes } from "./replit_integrations/auth";
 import {
   getStorageStats,
@@ -16,6 +17,10 @@ import {
 // serving is the /images static handler below; PDF generation lives
 // in utils/shared.processSupplierOrder for when print fulfilment is
 // wired up post-launch.
+import { db } from "./db";
+import { and, eq, gte } from "drizzle-orm";
+import { marketingLeads } from "@shared/schema";
+import { sendMakeYourOwnLinkEmail } from "./email-service";
 import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
@@ -23,14 +28,32 @@ import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
 import { registerStudioSceneSuggestRoutes } from "./routes/studio-scene-suggest";
 import { registerStudioCheckoutRoutes } from "./routes/studio-checkout";
 import { registerStudioNotificationRoutes } from "./routes/studio-notifications";
-import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
+// Inside-text AI routes (rewriter + macro composer) — PARKED for
+// Celebrait Premium tier (decision 2026-05-17, see
+// next_celebrait_premium.md). File kept in repo for future revival.
+// import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
+import { registerAdminCustomersRoutes } from "./routes/admin-customers";
+import { registerAdminCompCodeRoutes } from "./routes/admin-comp-codes";
+import { registerAdminCardLabRoutes } from "./routes/admin-card-lab";
+import { registerCatalogueRoutes } from "./routes/catalogue";
+import { registerResearchRoutes } from "./routes/research";
+import { registerShopRoutes } from "./routes/shop";
+import { registerMakeRoutes } from "./routes/make";
+import { registerThumbRoutes } from "./routes/thumbs";
+import { registerAdminPhotoLabRoutes } from "./routes/admin-photo-lab";
+import { registerClientErrorRoutes } from "./routes/client-errors";
+import { registerContactRoutes } from "./routes/contact";
 import { registerAdminTestEmailRoutes } from "./routes/admin-test-emails";
 import { registerAddressBookRoutes } from "./routes/address-book";
 import { registerRemindersRoutes } from "./routes/reminders";
 import { registerDevTestFailureRoutes } from "./routes/dev-test-failures";
 import { scheduleReminderDispatch } from "./reminders/dispatcher";
 import { scheduleDropOffRecoveryDispatch, runDropOffRecoveryDispatch } from "./recovery/dispatcher";
+import { scheduleDatesNudgeDispatch, runDatesNudgeDispatch } from "./recovery/dates-nudge";
+import { scheduleStaleSweeps } from "./recovery/stale-sweeper";
+import { registerVisitLogging } from "./visit-log";
+import { registerAdminAnalyticsRoutes } from "./routes/admin-analytics";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -42,8 +65,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAuthRoutes(app);
   registerGoogleAuthRoutes(app);
 
+  // First-party page-view logging. Mounted AFTER the session middleware
+  // (2026-08-04) so it can tell whether the viewer is a signed-in admin
+  // and skip our own testing. Still cookieless, IP-less, bot-filtered
+  // and fire-and-forget; it sits ahead of every page route below.
+  registerVisitLogging(app);
+
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
+
+  // --- Public lead capture (digital card viewer: "email me the link
+  // for later") --------------------------------------------------------
+  // No auth: recipients aren't users. Stores the lead + sends ONE
+  // immediate link email. Minimal validation; dedupe = same email +
+  // source within 24h is a silent no-op (still returns ok so the UI
+  // can't be used to probe stored emails).
+  app.post("/api/leads", async (req, res) => {
+    try {
+      const email =
+        typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      const source =
+        typeof req.body?.source === "string" ? req.body.source.trim().slice(0, 60) : "";
+      const cardId = Number.isFinite(Number(req.body?.cardId))
+        ? Number(req.body.cardId)
+        : null;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) {
+        return res.status(400).json({ message: "Enter a valid email address." });
+      }
+      if (!source) return res.status(400).json({ message: "Missing source." });
+
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const existing = await db
+        .select({ id: marketingLeads.id })
+        .from(marketingLeads)
+        .where(
+          and(
+            eq(marketingLeads.email, email),
+            eq(marketingLeads.source, source),
+            gte(marketingLeads.createdAt, dayAgo),
+          ),
+        )
+        .limit(1);
+      const marketingOptIn = req.body?.marketingOptIn === true;
+      // Occasion capture (optional): first name + YYYY-MM-DD date.
+      const recipientName =
+        typeof req.body?.recipientName === "string"
+          ? req.body.recipientName.trim().slice(0, 80) || null
+          : null;
+      const rawDate =
+        typeof req.body?.occasionDate === "string" ? req.body.occasionDate.trim() : "";
+      const occasionDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+      const occasionType =
+        typeof req.body?.occasionType === "string"
+          ? req.body.occasionType.trim().slice(0, 60) || null
+          : null;
+
+      if (existing.length === 0) {
+        await db.insert(marketingLeads).values({
+          email,
+          source,
+          cardId,
+          marketingOptIn,
+          recipientName,
+          occasionDate,
+          occasionType,
+        });
+        // Fire-and-forget — the lead is stored either way.
+        void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
+          console.warn("[LEADS] link email failed:", err?.message ?? err),
+        );
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[LEADS] capture failed:", err);
+      res.status(500).json({ message: "Could not save that just now." });
+    }
+  });
 
   // --- Authenticated user routes ---
 
@@ -87,8 +184,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const { firstName, lastName, portraitPhotoId } = req.body ?? {};
+      const { firstName, lastName, portraitPhotoId, marketingOptIn } = req.body ?? {};
       const updates: Record<string, any> = { updatedAt: new Date() };
+
+      // marketingOptIn: explicit boolean consent from the signup checkbox.
+      // Only accept a real boolean — ignore anything else so a malformed
+      // body can't flip consent.
+      if (typeof marketingOptIn === 'boolean') {
+        updates.marketingOptIn = marketingOptIn;
+      }
 
       // firstName: trim + reject empty strings; null clears the field
       if (firstName !== undefined) {
@@ -166,10 +270,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
     next();
   }, (req, res) => {
-    const imagePath = path.join(process.cwd(), 'stored_images', req.path);
-    res.sendFile(imagePath, (err) => {
-      if (err) {
-        res.status(404).send('Image not found');
+    // `root` (not a pre-joined absolute path) is what makes sendFile
+    // reject `..` traversal — path.join collapses encoded dot-segments,
+    // which previously let /images/%2e%2e/.env read ANY server file
+    // (security audit 2026-07-02).
+    res.sendFile(req.path, { root: path.join(process.cwd(), 'stored_images') }, async (err) => {
+      if (err && !res.headersSent) {
+        // Local miss → R2 fallback. Legacy card rows store literal
+        // '/images/<name>' URLs (pre-R2 convention); on ephemeral-disk
+        // hosts (Render) the local copy vanishes on every deploy while
+        // the byte-identical object lives in the R2 bucket (2026-06
+        // backfill). Without this, those cards 404 → the 3D viewer's
+        // texture loader throws → the whole card page falls into the
+        // app error boundary ("Something went wrong", card 234,
+        // 2026-07-04).
+        //
+        // STREAM the object (don't 302): browsers REJECT cross-origin
+        // redirects for CORS-mode loads (crossOrigin='anonymous' — the
+        // 3D texture loader), so a redirect fixes <img> but not the 3D
+        // card (verified in-browser 2026-07-04: plain img OK, anonymous
+        // img FAILED through the redirect). Same-origin bytes work for
+        // every consumer. Strict key allowlist so this can't fetch
+        // arbitrary bucket keys with odd chars. Nested keys are allowed
+        // segment-by-segment (photo mirrors live at photos/<userId>/…,
+        // audit 2026-07-27 P0-1) — every segment must START alphanumeric,
+        // which makes '.'/'..' traversal segments impossible.
+        const name = req.path.replace(/^\/+/, '');
+        if (
+          isR2Enabled() &&
+          /^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/.test(name)
+        ) {
+          try {
+            const upstream = await fetch(r2PublicUrl(name));
+            if (upstream.ok) {
+              res.setHeader(
+                'Content-Type',
+                upstream.headers.get('content-type') ?? 'image/png',
+              );
+              const buf = Buffer.from(await upstream.arrayBuffer());
+              return res.end(buf);
+            }
+          } catch (r2Err: any) {
+            console.warn(
+              `[IMAGES] R2 fallback failed for ${name}:`,
+              r2Err?.message ?? r2Err,
+            );
+          }
+        }
+        if (!res.headersSent) {
+          // NEVER let a miss inherit the 1-year cache header set upstream —
+          // a transient 404 was being remembered by browsers for a year,
+          // leaving a permanently "broken" thumbnail on that device even
+          // after the image existed (audit 2026-08-03).
+          res.setHeader('Cache-Control', 'no-store');
+          res.status(404).send('Image not found');
+        }
       }
     });
   });
@@ -187,7 +342,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Admin routes ---
 
+  // Admin gate for the two storage routes below. Same DB-backed isAdmin
+  // check the other admin modules use — these two were the ONLY
+  // /api/admin/* routes with no auth at all, letting anyone on the
+  // internet trigger a destructive image cleanup (security audit
+  // 2026-07-02).
+  const requireStorageAdmin = async (req: any, res: any): Promise<boolean> => {
+    try {
+      const userId = req.session?.otpUserId;
+      if (!userId) {
+        res.status(401).json({ message: "Not authenticated" });
+        return false;
+      }
+      const { db } = await import('./db');
+      const { users } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const [row] = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, String(userId)))
+        .limit(1);
+      if (row?.isAdmin !== true) {
+        res.status(403).json({ message: "Admin access required" });
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("[ADMIN] storage admin check failed:", err);
+      res.status(500).json({ message: "Auth check failed" });
+      return false;
+    }
+  };
+
   app.get("/api/admin/storage/stats", async (req, res) => {
+    if (!(await requireStorageAdmin(req, res))) return;
     try {
       const stats = await getStorageStats();
       res.json({
@@ -201,6 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/storage/cleanup", async (req, res) => {
+    if (!(await requireStorageAdmin(req, res))) return;
     try {
       const config: CleanupConfig = {
         retentionDays: req.body.retentionDays || 90,
@@ -232,12 +421,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStudioSceneSuggestRoutes(app);
   registerStudioCheckoutRoutes(app);
   registerStudioNotificationRoutes(app);
-  registerStudioInsideTextRoutes(app);
+  // registerStudioInsideTextRoutes(app); // PARKED for Premium tier — see next_celebrait_premium.md
   registerAdminCostsRoutes(app);
+  registerAdminCustomersRoutes(app);
+  registerAdminCompCodeRoutes(app);
+  registerAdminCardLabRoutes(app);
+  registerCatalogueRoutes(app);
+  registerResearchRoutes(app);
+  registerShopRoutes(app);
+  registerMakeRoutes(app);
+  registerThumbRoutes(app);
+  registerAdminPhotoLabRoutes(app);
+  registerClientErrorRoutes(app);
+  registerContactRoutes(app);
   registerAdminTestEmailRoutes(app);
   registerAddressBookRoutes(app);
   registerRemindersRoutes(app);
   registerDevTestFailureRoutes(app);
+  registerAdminAnalyticsRoutes(app);
 
   // Schedule the daily reminder dispatch cron (8am UTC daily).
   // First run fires at the next 8am UTC; subsequent runs 24h later.
@@ -248,6 +449,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 1h offset from reminders avoids competing Brevo send-volume bursts.
   // See server/recovery/dispatcher.ts for the dispatch logic.
   scheduleDropOffRecoveryDispatch();
+
+  // Daily add-your-dates nudge flow (09:30 UTC; opted-in accounts only).
+  // See server/recovery/dates-nudge.ts.
+  scheduleDatesNudgeDispatch();
+
+  // Dev-only manual trigger for the nudge flow.
+  if (process.env.NODE_ENV !== 'production') {
+    app.post('/api/dev/run-dates-nudge', async (_req, res) => {
+      res.json(await runDatesNudgeDispatch());
+    });
+  }
+
+  // Crash-recovery sweeps (audit 2026-07-27): flip generations orphaned
+  // by a restart to failed (so the retry UI takes over), age-out stuck
+  // regen attempts, and re-drive paid orders whose print submission
+  // failed or never ran. First pass 8 min after boot, then every 10 min.
+  // See server/recovery/stale-sweeper.ts.
+  scheduleStaleSweeps();
 
   // Admin manual trigger for drop-off recovery — same shape as the
   // reminders admin endpoint (dryRun + asOfDate query params for

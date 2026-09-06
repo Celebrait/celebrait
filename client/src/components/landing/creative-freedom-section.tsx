@@ -22,8 +22,8 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Wand2 } from 'lucide-react';
 import { useState } from 'react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
-import fathersDayInside from '@/assets/fathers-day-inside-new.png';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
+import fathersDayInside from '@/assets/fathers-day-inside-new.jpg';
 
 // Placeholder style options — when Kevin curates real example cards
 // per art style, swap `previewSrc` per row.

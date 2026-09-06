@@ -17,22 +17,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Share2, Package, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Share2, RefreshCw, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
-import { Card3DViewer } from '@/components/card-3d-viewer';
+import { Card3DViewer, toWebpDisplay } from '@/components/card-3d-viewer';
+import { CardOuterSpread, CardInnerSpread } from '@/components/studio/card-print-template';
 import { useTexture } from '@react-three/drei';
 import { GestureHints } from '@/components/gesture-hints';
-import { RegenEditMode } from '@/components/studio/regen-controls';
+import { StartAgainButton } from '@/components/studio/steps/review-step';
+import { familyKey } from '@/lib/studio-card-buckets';
+import type { CardGridItem } from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardDraftState, CardSide } from '@shared/schema';
@@ -47,6 +44,8 @@ type CardViewData = {
   /** Regen attempts (per side) — same shape as the maker. Always
    *  present in responses from /api/studio/drafts/:id since 2026-04-25. */
   attempts?: CardAttemptDTO[];
+  /** Per-side background-regen failure (most-recent attempt failed). */
+  regenFailures?: { side: CardSide; kind: string }[];
 };
 
 type OrderSummary = {
@@ -100,12 +99,23 @@ export default function StudioCardViewPage() {
   }
 
   if (error || !data) {
-    return <NotFoundView />;
+    return <NotFoundView error={error} />;
   }
 
-  // Unfinished drafts go back into the maker. Everything else renders
-  // the viewer here.
-  if (data.status === 'draft' || data.status === 'generating' || data.status === 'failed') {
+  // Unfinished drafts go back into the maker. This includes the
+  // front-first in-progress states (front-ready / generating-front /
+  // generating-inside / inside-failed) — those are mid-flow cards that
+  // belong in the maker's reveal, not this completed-card viewer.
+  if (
+    data.status === 'draft' ||
+    data.status === 'generating' ||
+    data.status === 'generating-front' ||
+    data.status === 'front-ready' ||
+    data.status === 'generating-inside' ||
+    data.status === 'inside-ready' ||
+    data.status === 'inside-failed' ||
+    data.status === 'failed'
+  ) {
     return <Redirect to={`/studio/card/${cardId}/edit`} />;
   }
 
@@ -129,13 +139,15 @@ function LoadedView({
 }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [buyOpen, setBuyOpen] = useState(false);
   const [open3D, setOpen3D] = useState(false);
+  // Toggle the stage between the 3D card and the flat print-ready spreads
+  // (front outer + inside inner double-pages), reached via the top-right
+  // "Show print files" button (Kevin 2026-07-11).
+  const [showPrint, setShowPrint] = useState(false);
   // Edit mode flips the surface from "look at the card / buy" to a
   // focused regen workbench. Same pattern as RevealView in the
   // maker — both surfaces stay visually aligned. Only available to
   // unpaid cards (paid cards hide the entry pill below).
-  const [editMode, setEditMode] = useState(false);
 
   const paidOrder = orders.find(
     (o) => o.cardId === card.id && o.paymentStatus === 'paid',
@@ -153,15 +165,24 @@ function LoadedView({
   // in parallel with React mounting the viewer chunk. Without this
   // the card visibly pops in ~500ms-1s after the page renders.
   useEffect(() => {
-    const urls = [card.frontImageUrl, card.insideImageUrl].filter(
-      (u): u is string => !!u && u.length > 0,
-    );
+    // MUST warm the .webp display urls — the exact strings useTexture
+    // loads (drei's cache is url-keyed; preloading the .png warms nothing
+    // and the texture suspends → escapes the Canvas → route-level Suspense
+    // blanks the whole page. Root-caused 2026-07-27).
+    const urls = [card.frontImageUrl, card.insideImageUrl]
+      .map((u) => toWebpDisplay(u))
+      .filter((u): u is string => !!u && u.length > 0);
     if (urls.length === 0) return;
 
     const links = urls.map((url) => {
       const el = document.createElement('link');
       el.rel = 'preload';
       el.as = 'image';
+      // MUST match how Three.js loads the texture (crossOrigin='anonymous').
+      // Without this, a cross-origin (R2) image preloaded no-cors poisons the
+      // cache; Three's CORS request then fails ("no ACAO header") → WebGL
+      // context lost → the 3D card never renders.
+      el.crossOrigin = 'anonymous';
       el.href = url;
       document.head.appendChild(el);
       return el;
@@ -209,6 +230,44 @@ function LoadedView({
       await apiRequest('PATCH', `/api/studio/cards/${card.id}/select-attempt`, {
         attemptId: vars.attemptId,
       });
+    },
+    // Optimistically point the card's displayed image (and the isSelected
+    // flags) at the chosen attempt IMMEDIATELY. Without this, the new
+    // version's URL only lands on the next refetch (onSettled), so exiting
+    // to the 3D view rendered the OLD texture for a beat before swapping —
+    // the "not fresh clean when landing on the new version" flash. Updating
+    // the cache here means frontImageUrl/insideImageUrl (and the texture
+    // preload that depends on them) are already correct before we leave the
+    // regen surface, so the 3D mounts straight onto the new version.
+    onMutate: async (vars) => {
+      const key = [`/api/studio/drafts/${card.id}`];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<CardViewData>(key);
+      const attempt = prev?.attempts?.find((a) => a.id === vars.attemptId);
+      if (prev && attempt?.imageUrl) {
+        queryClient.setQueryData<CardViewData>(key, {
+          ...prev,
+          frontImageUrl:
+            attempt.side === 'front' ? attempt.imageUrl : prev.frontImageUrl,
+          insideImageUrl:
+            attempt.side === 'inside' ? attempt.imageUrl : prev.insideImageUrl,
+          attempts: (prev.attempts ?? []).map((a) =>
+            a.side === attempt.side
+              ? { ...a, isSelected: a.id === attempt.id }
+              : a,
+          ),
+        });
+      }
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Roll back so the UI doesn't lie about the committed version.
+      if (ctx?.prev) {
+        queryClient.setQueryData(
+          [`/api/studio/drafts/${card.id}`],
+          ctx.prev,
+        );
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({
@@ -271,9 +330,42 @@ function LoadedView({
   const pendingRegenSide: CardSide | null = regenMutation.isPending
     ? (regenMutation.variables?.side ?? null)
     : null;
-  const isRegenerating: CardSide | null = pendingRegenSide ?? polledRegenSide;
+
+  // THIRD signal — bridge the gap between the mutation resolving and the
+  // react-query refetch actually seeing the new 'generating' attempt. In
+  // that window pendingRegenSide AND polledRegenSide are both null, so
+  // isRegenerating dropped to null and the "Your new version is ready"
+  // panel flashed mid-regen (the long-hunted "landing too early" bug —
+  // it lived in THIS card-view path, not the maker's useCardMaker hook).
+  // firedRegen stays set from the click until a NEW completed attempt for
+  // that side lands (or it fails). See next_regen_interaction_polish.md.
+  const [firedRegen, setFiredRegen] = useState<{
+    side: CardSide;
+    baseline: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!firedRegen) return;
+    const completedNow = (card.attempts ?? []).filter(
+      (a) => a.side === firedRegen.side && a.status === 'completed',
+    ).length;
+    const failed = (card.regenFailures ?? []).some(
+      (f) => f.side === firedRegen.side,
+    );
+    if (completedNow > firedRegen.baseline || failed) setFiredRegen(null);
+  }, [card.attempts, card.regenFailures, firedRegen]);
+
+  const isRegenerating: CardSide | null =
+    pendingRegenSide ?? polledRegenSide ?? firedRegen?.side ?? null;
+
+  // Poll-detected failure → inline error panel (G1 parity with the maker
+  // path). null when no side's latest attempt failed.
+  const regenError = card.regenFailures?.[0] ?? null;
 
   const handleRegenerate = async (side: CardSide, tweak?: string) => {
+    const baseline = (card.attempts ?? []).filter(
+      (a) => a.side === side && a.status === 'completed',
+    ).length;
+    setFiredRegen({ side, baseline });
     await regenMutation.mutateAsync({ side, tweak });
   };
   const handleSelectAttempt = async (attemptId: number) => {
@@ -283,34 +375,16 @@ function LoadedView({
   const insideMode = card.state.inside?.mode ?? null;
   const hasInside = insideMode === 'write' || insideMode === 'blank';
 
-  // Edit mode takes the entire surface. BuyDialog stays mounted so
-  // a regen → exit → buy flow doesn't lose its state. Shown only
-  // for unpaid cards because the entry pill only renders below for
-  // unpaid (paid cards have nothing to regen for — gift's en route).
-  if (editMode && !hasPaid) {
-    return (
-      <>
-        <RegenEditMode
-          state={card.state}
-          frontUrl={card.frontImageUrl}
-          insideUrl={card.insideImageUrl}
-          attempts={card.attempts ?? []}
-          isRegenerating={isRegenerating}
-          hasInside={hasInside}
-          onRegenerate={handleRegenerate}
-          onSelectAttempt={handleSelectAttempt}
-          onUpdateInputs={handleUpdateInputs}
-          onExit={() => setEditMode(false)}
-        />
-        <BuyDialog
-          open={buyOpen}
-          onOpenChange={setBuyOpen}
-          cardId={card.id}
-          insideMode={card.state.inside?.mode ?? null}
-        />
-      </>
-    );
-  }
+  // (The RegenEditMode workbench branch that lived here was PARKED for
+  // Premium 2026-07-07 — the regen plumbing above stays dormant for its
+  // revival; the iterate affordance is now the StartAgainButton pill
+  // below the card.)
+  void isRegenerating;
+  void regenError;
+  void hasInside;
+  void handleRegenerate;
+  void handleSelectAttempt;
+  void handleUpdateInputs;
 
   return (
     <div className="max-w-3xl mx-auto" data-testid="card-view">
@@ -322,22 +396,26 @@ function LoadedView({
         <button
           type="button"
           onClick={() => setLocation(backHref)}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink transition-colors"
           data-testid="btn-card-view-back"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to studio
         </button>
-        {hasPaid ? (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-full px-3 py-1">
-            <Package className="w-3.5 h-3.5" />
-            Sent
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-cta rounded-full px-3 py-1">
-            Ready to send
-          </div>
-        )}
+        {/* Print-files toggle — swaps the stage between the 3D card and the
+            flat print-ready spreads. Took the old status chip's spot
+            (Kevin 2026-07-11); readiness is carried by the Send button /
+            paid actions below. */}
+        <button
+          type="button"
+          onClick={() => setShowPrint((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-go px-3 py-1 text-xs font-medium text-go-foreground transition-colors hover:bg-go-hover"
+          data-testid="btn-toggle-print-files"
+          aria-pressed={showPrint}
+        >
+          <Printer className="w-3.5 h-3.5" />
+          {showPrint ? 'Back to the card' : 'Show print files'}
+        </button>
       </div>
 
       {/* Card title intentionally NOT rendered here (was an h1 for
@@ -353,80 +431,210 @@ function LoadedView({
           without clipping. Lower z so the header sits above. */}
       <div className="mb-4" />
       <TitleSROnly title={title} />
+      {/* Fixed stage — same height as the 3D reveal so toggling to the
+          print view never shifts the CTAs below (Kevin 2026-07-11). Both
+          views fill this same-sized box. */}
       <div className="h-[55vh] sm:h-[62vh] w-full relative z-10">
-        <div
-          className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw]"
-          style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
-        >
-          <Card3DViewer
-            frontImageUrl={card.frontImageUrl!}
-            insideImageUrl={card.insideImageUrl}
-            open={open3D}
-            onOpenChange={setOpen3D}
-            className="w-full h-full"
-          />
-        </div>
+        {showPrint ? (
+          /* Print-ready view — the two double-page spreads stacked: front
+             (outer: rear · front) on top, inside (inner) below. Fills the
+             fixed stage; scrolls internally if the spreads run tall. */
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-5 overflow-y-auto px-1 py-2"
+            data-testid="card-view-print-files"
+          >
+            <figure className="w-full max-w-[360px] space-y-2">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
+                Front — outer spread
+              </figcaption>
+              <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
+            </figure>
+            <figure className="w-full max-w-[360px] space-y-2">
+              <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
+                Inside — inner spread
+              </figcaption>
+              <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
+            </figure>
+            <p className="text-center text-[11px] text-keeper-meta">
+              How your card prints — folded, front and inside.
+            </p>
+          </div>
+        ) : (
+          <div
+            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw]"
+            style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
+          >
+            <Card3DViewer
+              frontImageUrl={card.frontImageUrl!}
+              insideImageUrl={card.insideImageUrl}
+              open={open3D}
+              onOpenChange={setOpen3D}
+              /* Resting ajar — the site-wide pose (~22°, Kevin's
+                 2026-07-07 dial-in on the studio reveal). Orbit gadget
+                 removed site-wide the same day: tap to open/close is
+                 the whole interaction model. */
+              closedAngle={-0.38}
+              restYaw={-0.12}
+              enableRotate={false}
+              enableZoom={false}
+              className="w-full h-full"
+            />
+          </div>
+        )}
       </div>
 
       {/* Actions */}
       <div className="relative z-30 max-w-xl mx-auto px-4 pt-4 text-center flex flex-col items-center gap-5">
+        {/* Gesture hints ABOVE the CTAs (Kevin) — they're about the
+            3D card, so they sit between it and the actions. Fixed-
+            height slot so open/close never moves the page. */}
+        {/* Keep the fixed-height hint slot even in print view so the CTAs
+            below don't jump when toggling (Kevin 2026-07-11) — only the
+            hint content toggles, not the slot. */}
+        <div className="flex h-14 items-start justify-center">
+          {!showPrint && (
+            <GestureHints
+              open={open3D}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
+          )}
+        </div>
+
         {hasPaid ? (
           <PaidActions
             shareUrl={shareUrl}
             includesDigital={paidOrder?.includesDigital ?? false}
           />
         ) : (
-          <Button
-            onClick={() => setBuyOpen(true)}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-10 py-3.5 rounded-lg w-full sm:w-auto"
-            size="lg"
-            data-testid="btn-card-view-buy"
-          >
-            Buy this card
-          </Button>
+          /* Send + start-again share ONE row on sm+ (Kevin 2026-07-08:
+             the start-again card was buried below the fold). Stacked
+             on mobile, Send first. Both stay visible while the card is
+             open — the old fade-on-open only hid the escape hatch. */
+          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:items-center">
+            <Button
+              onClick={() =>
+                setLocation(
+                  // Blank inside skips the Giving Moment (no choice to
+                  // make → printed + posted to the sender, always);
+                  // every other card lands on the Giving Moment screen
+                  // for the format + destination choice. Same routing
+                  // as the post-reveal "Send this card" in the maker.
+                  insideMode === 'blank'
+                    ? `/checkout/${card.id}?product=print`
+                    : `/studio/card/${card.id}/give`,
+                )
+              }
+              className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
+              size="lg"
+              data-testid="btn-card-view-buy"
+            >
+              Send this card
+            </Button>
+            <StartAgainButton cardId={card.id} />
+          </div>
         )}
 
-        {/* Gesture hints first — keep them close to the Buy CTA above
-            (the hints are about the 3D card, so spatial proximity to
-            the card+CTA cluster reads better than burying them under
-            the regen panel). */}
-        <div className="mt-2">
-          <GestureHints open={open3D} />
-        </div>
-
-        {/* Regen entry — small pill that flips the whole surface into
-            edit mode. Only for unpaid cards: once paid, the gift's
-            on its way and further regens are pointless chrome.
-            Subordinate to Buy by design — quiet safety net, not a
-            parallel CTA. Fades out in lockstep with the gesture
-            hints when the card opens (Kevin 2026-04-26: chrome
-            shouldn't compete with the moment of opening the card). */}
+        {/* Takes rail — every finished take in this card's family, one
+            tap to view/buy a different one (Kevin 2026-07-08). Unpaid
+            cards only: once one take is bought, switching is noise. */}
         {!hasPaid && (
-          <motion.div
-            animate={{ opacity: open3D ? 0 : 1 }}
-            transition={{ duration: 0.5 }}
-            style={{ pointerEvents: open3D ? 'none' : 'auto' }}
-            className="mt-2"
-          >
-            <button
-              type="button"
-              onClick={() => setEditMode(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white/60 hover:bg-white hover:border-brand/40 px-4 py-2 text-sm italic text-stone-600 hover:text-brand-dark transition-all"
-              data-testid="btn-regen-open"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-stone-400" />
-              Not 100% happy? Make a change.
-            </button>
-          </motion.div>
+          <TakesRail
+            currentId={card.id}
+            famKey={card.state.rerollFamilyId ?? card.id}
+          />
+        )}
+
+        {/* Free digital preview — the growth loop (Aidan 2026-08-07,
+            "might as well let them share a digital link for free").
+            The generation cost is sunk; a shared card runs the arrival
+            flow (lead capture, make-your-own, recipient paid flip) at
+            zero marginal cost. DELIBERATELY here and nowhere near the
+            checkout/Giving Moment: next to a Pay button this becomes a
+            £0 exit ramp, on the card page it's distribution. Quiet by
+            design — subordinate to Send. */}
+        {!hasPaid && card.status === 'completed' && (
+          <FreeShareBlock cardId={card.id} />
         )}
       </div>
 
-      <BuyDialog
-        open={buyOpen}
-        onOpenChange={setBuyOpen}
-        cardId={card.id}
-        insideMode={card.state.inside?.mode ?? null}
-      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Takes rail — thumbnails of every finished take in this card's
+// family (Start-again clones + the original). Clicking navigates to
+// that take's own card view, where its Send CTA buys THAT take. Uses
+// the cached /api/user/cards list — no new endpoint.
+// ─────────────────────────────────────────────────────────────────────
+
+function TakesRail({ currentId, famKey }: { currentId: number; famKey: number }) {
+  const [, setLocation] = useLocation();
+  const { data: allCards } = useQuery<CardGridItem[]>({
+    queryKey: ['/api/user/cards'],
+  });
+  const takes = (allCards ?? [])
+    .filter(
+      (c) =>
+        familyKey(c) === famKey &&
+        // Any take with a front (incl. front-ready / inside-ready
+        // restarts) — matches the Review TakesStrip so the family
+        // take-count is identical on both surfaces. Non-completed
+        // clicks redirect to the editor (see the status guard above).
+        !!c.frontImageUrl,
+    )
+    .sort((a, b) => {
+      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return at - bt; // oldest first — reads as take 1, 2, 3…
+    });
+  if (takes.length < 2) return null;
+  return (
+    <div className="mt-6" data-testid="takes-rail">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-keeper-meta mb-2">
+        Your takes
+      </p>
+      <div className="flex flex-wrap items-start justify-center gap-2">
+        {takes.map((t, idx) => {
+          const isCurrent = t.id === currentId;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              disabled={isCurrent}
+              onClick={() => setLocation(`/studio/card/${t.id}`)}
+              className={`group flex flex-col items-center gap-1 ${
+                isCurrent ? 'cursor-default' : 'cursor-pointer'
+              }`}
+              data-testid={`take-thumb-${t.id}`}
+            >
+              <span
+                className={`block h-16 w-16 overflow-hidden rounded-lg border-2 transition-all ${
+                  isCurrent
+                    ? 'border-brand shadow-sm'
+                    : 'border-transparent opacity-70 group-hover:opacity-100 group-hover:border-stone-300'
+                }`}
+              >
+                <img
+                  src={t.frontImageUrl!}
+                  alt={`Take ${idx + 1}`}
+                  crossOrigin="anonymous"
+                  className="h-full w-full object-cover"
+                />
+              </span>
+              <span
+                className={`text-[10px] ${
+                  isCurrent ? 'font-semibold text-brand-dark' : 'text-keeper-meta'
+                }`}
+              >
+                Take {idx + 1}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -450,7 +658,7 @@ function PaidActions({
         href={shareUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="btn-card-view-share"
       >
         <Share2 className="w-4 h-4" />
@@ -459,138 +667,87 @@ function PaidActions({
     );
   }
   return (
-    <p className="text-sm text-stone-500">
+    <p className="text-sm text-keeper-meta">
       This card has been sent. Track delivery in Orders &amp; delivery.
     </p>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Buy dialog — same three-option pattern used by review-step. Copy/
-// paste for now; if we refactor review-step's BuyDialog into a shared
-// component later, this uses the shared one.
+// FreeShareBlock — share a digital preview WITHOUT buying. Mints (or
+// reuses) the card's view token via /api/studio/cards/:id/share-token —
+// an endpoint that existed unused; the only gate on free sharing was
+// this UI never calling it. Copy leans on "preview": the link is the
+// pitch for the printed thing, not a substitute for it.
 // ─────────────────────────────────────────────────────────────────────
 
-type ProductChoice = 'digital' | 'print' | 'both';
+function FreeShareBlock({ cardId }: { cardId: number }) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-const PRINT_PRICE = 599;
-const DIGITAL_PRICE = 99;
-const UK_SHIPPING = 150;
-const BUNDLE_DISCOUNT = 50;
+  const getLink = async () => {
+    if (url) return url;
+    const res = await apiRequest(
+      'POST',
+      `/api/studio/cards/${cardId}/share-token`,
+    );
+    const body = (await res.json()) as { shareUrl?: string };
+    if (!body.shareUrl) throw new Error('No link returned');
+    const abs = `${window.location.origin}${body.shareUrl}`;
+    setUrl(abs);
+    return abs;
+  };
 
-function totalsFor(choice: ProductChoice): number {
-  const print = choice === 'digital' ? 0 : PRINT_PRICE;
-  const digital = choice === 'print' ? 0 : DIGITAL_PRICE;
-  const shipping = choice === 'digital' ? 0 : UK_SHIPPING;
-  const discount = choice === 'both' ? BUNDLE_DISCOUNT : 0;
-  return print + digital + shipping - discount;
-}
-
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
-
-function BuyDialog({
-  open,
-  onOpenChange,
-  cardId,
-  insideMode,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  cardId: number;
-  insideMode: 'write' | 'blank' | null;
-}) {
-  const [, setLocation] = useLocation();
-  const isBlank = insideMode === 'blank';
-  const go = (choice: ProductChoice) => {
-    onOpenChange(false);
-    setLocation(`/checkout/${cardId}?product=${choice}`);
+  const share = async () => {
+    // Copy, don't open the native share sheet (Aidan 2026-08-07: "the
+    // button click should just copy the link"). The sheet added a modal
+    // decision on top of a one-decision action — and its stays-open
+    // state caused the double-tap error this replaced. Copy is instant,
+    // repeatable, and pastes anywhere.
+    if (busy) return;
+    setBusy(true);
+    try {
+      const link = await getLink();
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch (err: any) {
+      toast({
+        title: "Couldn't copy the link",
+        description: err?.message ?? 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-left">How would you like to send it?</DialogTitle>
-          <DialogDescription className="text-left">
-            {isBlank
-              ? "You chose a blank inside, so this one's for the post."
-              : 'Pick one — you can change your mind at checkout.'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-1 space-y-3">
-          {!isBlank && (
-            <BuyOption
-              title="Digital"
-              description="A share link that opens with the same 3D viewer — instant."
-              price={formatGBP(totalsFor('digital'))}
-              onClick={() => go('digital')}
-              testId="btn-card-view-buy-digital"
-            />
-          )}
-          <BuyOption
-            title="Printed"
-            description="Premium square card, posted in the UK."
-            price={formatGBP(totalsFor('print'))}
-            onClick={() => go('print')}
-            testId="btn-card-view-buy-print"
-          />
-          {!isBlank && (
-            <BuyOption
-              title="Printed + digital"
-              description="The real thing in the post plus the instant share link."
-              price={formatGBP(totalsFor('both'))}
-              badge="Best value"
-              onClick={() => go('both')}
-              testId="btn-card-view-buy-both"
-            />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="text-center">
+      <button
+        type="button"
+        onClick={share}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-meta underline-offset-2 hover:text-keeper-ink hover:underline disabled:opacity-50"
+        data-testid="btn-free-share"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        {copied ? 'Link copied — paste it anywhere' : 'Or copy a digital preview link — free'}
+      </button>
+      <p className="mt-1 text-[11px] text-keeper-meta">
+        They'll see the card on any screen. The real thing still wants a
+        letterbox.
+      </p>
+    </div>
   );
 }
 
-function BuyOption({
-  title,
-  description,
-  price,
-  badge,
-  onClick,
-  testId,
-}: {
-  title: string;
-  description: string;
-  price: string;
-  badge?: string;
-  onClick: () => void;
-  testId?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="relative w-full text-left bg-white border border-stone-200 rounded-xl p-4 hover:border-brand/60 hover:shadow-sm transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-      data-testid={testId}
-    >
-      {badge && (
-        <span className="absolute top-2 right-2 bg-brand text-white text-[10px] uppercase font-semibold tracking-wide rounded-full px-2 py-0.5">
-          {badge}
-        </span>
-      )}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-ink">{title}</p>
-          <p className="text-xs text-stone-600 mt-0.5">{description}</p>
-        </div>
-        <p className="text-sm font-semibold text-brand-dark whitespace-nowrap">
-          {price}
-        </p>
-      </div>
-    </button>
-  );
-}
+// (BuyDialog + BuyOption + pricing helpers removed 2026-05-20 — the
+//  send/buy flow now navigates to /studio/card/:id/give → /checkout
+//  instead of opening a modal. Same change as in review-step.tsx
+//  earlier. See next_delivery_destination_usp.md.)
 
 // ─────────────────────────────────────────────────────────────────────
 // TitleSROnly — sets document.title for the tab label and renders a
@@ -630,18 +787,26 @@ function LoadingView() {
   return (
     <div className="max-w-md mx-auto text-center py-16">
       <Loader2 className="w-6 h-6 text-brand animate-spin mx-auto mb-3" />
-      <p className="text-sm text-stone-500">Loading your card…</p>
+      <p className="text-sm text-keeper-meta">Loading your card…</p>
     </div>
   );
 }
 
-function NotFoundView() {
+function NotFoundView({ error }: { error?: unknown }) {
+  // Distinguish "belongs to another account" (403) from a genuine
+  // missing/deleted card (404), so a shared raw /studio/card/:id URL
+  // doesn't wrongly read as "deleted". Admins never hit the 403 —
+  // they can view any card (server-side bypass).
+  const msg = (error as { message?: string } | null)?.message ?? '';
+  const notYours = /not your/i.test(msg);
+  const title = notYours ? "This card is on another account" : 'Card not found';
+  const body = notYours
+    ? "It was made on a different account, so it can't be opened here. Ask whoever created it to hit Share and send you the link."
+    : 'It might have been deleted, or the link is out of date.';
   return (
     <div className="max-w-md mx-auto text-center py-16">
-      <p className="text-base font-semibold text-ink mb-2">Card not found</p>
-      <p className="text-sm text-stone-600 mb-6">
-        It might have been deleted, or the link is out of date.
-      </p>
+      <p className="text-base font-semibold text-keeper-ink mb-2">{title}</p>
+      <p className="text-sm text-keeper-body mb-6">{body}</p>
       <a
         href="/studio"
         className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand-dark underline underline-offset-4"
