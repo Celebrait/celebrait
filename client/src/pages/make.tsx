@@ -18,7 +18,8 @@ import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { StepChips, type StepChip } from '@/components/step-chips';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
@@ -69,6 +70,11 @@ const cardTile = 'group block rounded-2xl border bg-white/80 overflow-hidden sha
 
 /** The landing's chrome, exactly as /door2 and /cards wear it. `step`
  *  is kept for the callers; the stepper rail was the studio's and is gone. */
+/** Chip labels for the brief's questions. */
+const QUESTION_LABEL: Record<QuestionKey, string> = {
+  who: 'Who', occasion: 'Occasion', age: 'Age', vibe: 'Vibe', interest: 'Interest', dislike: 'Avoid', name: 'Name',
+};
+
 function MakeShell({ children }: { step?: number; children: ReactNode }) {
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -91,6 +97,11 @@ export default function MakePage() {
   const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
   const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
   const [failMsg, setFailMsg] = useState('');
+  // Progress for the chip row above the questions (see the brief phase).
+  const [briefStep, setBriefStep] = useState(0);
+  const [briefFurthest, setBriefFurthest] = useState(0);
+  const [briefQuestions, setBriefQuestions] = useState<QuestionKey[]>(['who', 'occasion', 'age', 'vibe', 'interest', 'name']);
+  const [briefJump, setBriefJump] = useState<number | null>(null);
   useEffect(() => { if (autoGo.current) { autoGo.current = false; void generate(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ageNum = ageOf(brief);
@@ -259,11 +270,30 @@ export default function MakePage() {
   const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
 
   // ── step 1: the questions — one at a time (shared with the doorway) ──
+  // The same chip row as /photo/make (Aidan 2026-09-06): one chip per
+  // question, done ones tappable, "Three cards" as the locked finale.
   if (phase === 'brief') {
+    const chips: StepChip[] = [
+      ...briefQuestions.map((q) => ({ id: q, label: QUESTION_LABEL[q] })),
+      { id: 'cards', label: 'Three cards', locked: true },
+    ];
     return (
       <MakeShell step={step}>
+        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-keeper-meta">
+          <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> No account needed to see your three.</span>
+          <Link href="/create" className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
+        </div>
+        <div className="mb-6 sm:mb-8">
+          <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
+        </div>
         <div className={panel}>
-          <BriefQuestions skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()} initialStep={brief.who.trim() ? 1 : 0} />
+          <BriefQuestions
+            skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
+            initialStep={brief.who.trim() ? 1 : 0}
+            hideDots
+            jumpTo={briefJump}
+            onStepChange={(i, qs) => { setBriefStep(i); setBriefQuestions(qs); setBriefFurthest((f) => Math.max(f, i)); }}
+          />
         </div>
       </MakeShell>
     );

@@ -19,6 +19,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { ChevronLeft, ChevronRight, Loader2, Sparkles, Lock } from 'lucide-react';
+import { StepChips } from '@/components/step-chips';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -45,7 +46,7 @@ const PUBLIC_STEPS = [
   { id: 'photo', label: 'Photo' },
   { id: 'scene', label: 'Scene' },
   { id: 'front', label: 'Front text' },
-  { id: 'generate', label: 'Generate' },
+  { id: 'generate', label: 'Generate', locked: true },
 ] as const;
 const GATE = PUBLIC_STEPS.length - 1;
 /** Set when "Sign up to generate" is pressed; the transfer fires once signed in. */
@@ -74,36 +75,6 @@ function Shell({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-3xl">{children}</div>
       </main>
     </div>
-  );
-}
-
-/** Five chips, the studio stepper's shape, no draft behind it. */
-function PublicStepper({ current, furthest, onJump }: { current: number; furthest: number; onJump: (i: number) => void }) {
-  return (
-    <ol className="flex flex-wrap items-center gap-2" aria-label="Steps">
-      {PUBLIC_STEPS.map((s, i) => {
-        const done = i < current;
-        const active = i === current;
-        const reachable = i <= furthest;
-        return (
-          <li key={s.id}>
-            <button
-              type="button"
-              disabled={!reachable}
-              onClick={() => reachable && onJump(i)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-                active ? 'border-brand bg-brand text-white'
-                : done ? 'border-brand-light bg-brand-muted text-keeper-ink hover:border-brand'
-                : 'border-keeper-hair bg-white text-keeper-meta'
-              } disabled:cursor-default`}
-            >
-              {s.id === 'generate' ? <Lock className="h-3 w-3" /> : <span className="text-[11px] opacity-70">{i + 1}</span>}
-              {s.label}
-            </button>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 
@@ -257,7 +228,7 @@ export default function PhotoMakerPage() {
           <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
-          <PublicStepper current={currentStep} furthest={furthest} onJump={setStep} />
+          <StepChips steps={[...PUBLIC_STEPS]} current={currentStep} furthest={furthest} onJump={setStep} />
         </div>
 
         <div className="min-h-[380px] rounded-2xl border border-keeper-hair bg-white p-6 sm:p-10">

@@ -9,7 +9,7 @@
 // itself round-trips through the URL (briefToSearch / readBriefFromSearch)
 // so refresh, back and the hand-off to /make all carry it.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
@@ -150,9 +150,16 @@ interface BriefQuestionsProps {
   doneLabel?: string;
   /** The landing hero keeps the lead short; the studio panel can breathe. */
   compact?: boolean;
+  /** Fires whenever the open question changes — lets a page draw its own
+   *  progress (the step chips on /make). */
+  onStepChange?: (index: number, questions: QuestionKey[]) => void;
+  /** A page-driven jump (tapping a done chip). Changes are honoured once each. */
+  jumpTo?: number | null;
+  /** Hide the built-in dots when the page draws progress itself. */
+  hideDots?: boolean;
 }
 
-export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Write their three cards', compact = false }: BriefQuestionsProps) {
+export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Write their three cards', compact = false, onStepChange, jumpTo = null, hideDots = false }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
   const [showMore, setShowMore] = useState(false);
@@ -161,6 +168,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
   const questions = useMemo(() => questionsFor(brief), [brief.occasion, brief.vibe]); // eslint-disable-line react-hooks/exhaustive-deps
   const idx = Math.min(qIndex, questions.length - 1);
+  useEffect(() => { onStepChange?.(idx, questions); }, [idx, questions]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (jumpTo != null) setQIndex(jumpTo); }, [jumpTo]);
   const question = questions[idx];
   const isLast = idx === questions.length - 1;
   const isKid = isKidBrief(brief);
@@ -303,7 +312,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             : <span />}
       </div>
       <div className="flex gap-1.5 pt-5">
-        {questions.map((q, i) => <span key={q} className={`h-1.5 rounded-full transition-all ${i === idx ? s.dotOn : s.dotOff}`} />)}
+        {!hideDots && questions.map((q, i) => <span key={q} className={`h-1.5 rounded-full transition-all ${i === idx ? s.dotOn : s.dotOff}`} />)}
       </div>
     </div>
   );
