@@ -12,6 +12,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
 import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
 
@@ -94,9 +95,10 @@ export type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'di
  *  Cheeky off under 18, which matters at Christmas as much as a
  *  birthday); dislike only when there's humour to feed. */
 export function questionsFor(b: Brief): QuestionKey[] {
-  const q: QuestionKey[] = ['who', 'occasion', 'age', 'vibe', 'interest'];
-  if (DISLIKE_ON.includes(b.vibe)) q.push('dislike');
-  q.push('name');
+  // 'dislike' is no longer a step of its own (Aidan 2026-09-06): when the
+  // vibe has humour in it, the interest question's Next offers it as a
+  // one-off prompt instead — see jokeAsk in BriefQuestions.
+  const q: QuestionKey[] = ['who', 'occasion', 'age', 'vibe', 'interest', 'name'];
   return q;
 }
 
@@ -176,7 +178,16 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const set = (patch: Partial<Brief>) => onChange({ ...brief, ...patch });
   const canNext = question === 'who' ? brief.who.trim().length > 0 : question === 'occasion' ? isBriefComplete(brief) : true;
   const optionalQ = question === 'age' || question === 'interest' || question === 'dislike' || question === 'name';
-  const next = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
+  // The joke prompt: once, on the interest step's Next, only when the vibe
+  // can carry a joke and they haven't given us a dislike already.
+  const [jokeAsk, setJokeAsk] = useState(false);
+  const [jokeAsked, setJokeAsked] = useState(false);
+  const advance = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
+  const next = () => {
+    if (question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
+    advance();
+  };
+  const closeJoke = () => { setJokeAsked(true); setJokeAsk(false); advance(); };
   const back = () => { if (idx > 0) setQIndex(idx - 1); };
 
   const isOtherPicked = brief.occasion === 'other' || (!!brief.occasion && !isKnownOccasion(brief.occasion));
@@ -281,14 +292,6 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           </>
         )}
 
-        {question === 'dislike' && (
-          <>
-            <p className={s.h1}>Anything they can't stand?{optionalTag}</p>
-            <p className={s.sub}>This one's pure joke fuel. Tell us the thing — the rival team, mornings, oat milk, slow walkers — and one of your three cards will be built around it: making light of the thing they hate, never of them. Some of our funniest cards start here.</p>
-            <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team / mornings / slow walkers" className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
-          </>
-        )}
-
         {question === 'name' && (
           <>
             <p className={s.h1}>Want their name on the front?{optionalTag}</p>
@@ -299,6 +302,22 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           </>
         )}
       </div>
+
+      <Dialog open={jokeAsk} onOpenChange={(o) => { if (!o) closeJoke(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl font-bold text-keeper-ink">Fancy a joke on one of them?</DialogTitle>
+            <DialogDescription className="text-[14px] leading-relaxed text-keeper-body">
+              Tell us something they can't stand — the rival team, mornings, oat milk, slow walkers — and we'll build one of the three around it. Making light of the thing they hate, never of them.
+            </DialogDescription>
+          </DialogHeader>
+          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team / mornings / slow walkers" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
+          <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
+            <button type="button" onClick={() => { set({ cant: '' }); closeJoke(); }} className={s.skip}>No thanks</button>
+            <button type="button" onClick={closeJoke} disabled={!brief.cant.trim()} className={s.next}>Add it <ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
