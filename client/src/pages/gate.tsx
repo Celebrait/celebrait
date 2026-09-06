@@ -69,10 +69,11 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
   const [, navigate] = useLocation();
   const go = () => navigate(href);
   const stop = (e: MouseEvent) => e.stopPropagation();
-  const tile = lead
-    ? 'border-brand bg-brand-muted shadow-[0_18px_50px_-28px_rgba(92,87,212,0.45)] hover:border-brand-dark'
-    : 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand';
-  const pill = lead ? 'bg-white/80 border-brand-light' : 'bg-keeper-paper border-keeper-hair';
+  // Both doors on white (Aidan 2026-09-06: the violet tint on the
+  // director read as "already selected"). The lead keeps the wider
+  // column and the Pro choice chip.
+  const tile = 'border-keeper-hair bg-white shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] hover:border-brand';
+  const pill = 'bg-keeper-paper border-keeper-hair';
   // 'warm' = the coral trial (Aidan 2026-09-04): one moment accent, never chrome.
   const chipCls = chip.tone === 'brand' ? 'bg-brand text-white' : chip.tone === 'warm' ? 'bg-accent-coral-dark text-white' : 'bg-cta-light text-cta-dark';
   return (
@@ -81,7 +82,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
       className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${tile}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:h-11 sm:w-11 ${lead ? 'bg-brand text-white' : 'bg-brand-muted text-keeper-gold'}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:h-11 sm:w-11 bg-brand-muted text-keeper-gold`}>
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
         <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] ${chipCls}`}>{chip.label}</span>
@@ -129,7 +130,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
           Learn more
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/d:rotate-180" />
         </summary>
-        <ul className={`mt-2 space-y-2.5 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed text-keeper-body ${lead ? 'bg-white/70' : 'bg-keeper-paper'}`}>
+        <ul className={`mt-2 space-y-2.5 rounded-lg px-3.5 py-3 text-[13px] leading-relaxed text-keeper-body bg-keeper-paper`}>
           {fine.map(([Ico, text]) => (
             <li key={text} className="flex items-start gap-2.5">
               <Ico className="mt-[3px] h-3.5 w-3.5 shrink-0 text-keeper-gold" strokeWidth={2} />
