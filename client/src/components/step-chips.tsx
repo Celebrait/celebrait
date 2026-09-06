@@ -31,6 +31,7 @@ export function StepChips({ steps, current, furthest, onJump }: {
               type="button"
               disabled={!reachable}
               aria-current={active ? 'step' : undefined}
+              aria-label={s.label}
               onClick={() => reachable && onJump(i)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
                 active ? 'border-brand bg-brand text-white'
@@ -39,7 +40,9 @@ export function StepChips({ steps, current, furthest, onJump }: {
               } disabled:cursor-default`}
             >
               {s.locked ? <Lock className="h-3 w-3" /> : <span className="text-[11px] opacity-70">{i + 1}</span>}
-              {s.label}
+              {/* On phones only the active chip and the finale carry a
+                  word; the rest are numbers so the row stays a row. */}
+              <span className={active || s.locked ? '' : 'hidden sm:inline'}>{s.label}</span>
             </button>
           </li>
         );
