@@ -2027,6 +2027,28 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const state = (card.conversationData ?? {}) as { recipient?: { name?: string; occasion?: string }; front?: { text?: string } };
       const occasion = (state.recipient?.occasion?.trim() || 'birthday').toLowerCase();
       const frontText = state.front?.text?.trim() || 'Made from a photo';
+      // The inside comes too when there is one, so the wall can open it.
+      let insideFilename: string | null = null;
+      const insideSrc = (card.insideImagePath ?? '').replace(/^\/images\//, '');
+      if (insideSrc) {
+        insideFilename = `template_${randomUUID()}_inside${path.extname(insideSrc) || '.png'}`;
+        const ok = isR2Enabled()
+          ? await r2Copy(insideSrc, insideFilename)
+          : await fs.copyFile(path.join(process.cwd(), 'stored_images', insideSrc), path.join(process.cwd(), 'stored_images', insideFilename)).then(() => true).catch(() => false);
+        if (!ok) insideFilename = null;
+      }
+      // The display .webp siblings (what the 3D viewer actually loads)
+      // come along too, best effort — without them the viewer falls back
+      // to the flat PNG, which works but opens slower.
+      for (const [from, to] of [[src, filename], [insideSrc, insideFilename]] as Array<[string, string | null]>) {
+        if (!from || !to || !/\.png$/i.test(from)) continue;
+        const fromWebp = from.replace(/\.png$/i, '.webp');
+        const toWebp = to.replace(/\.png$/i, '.webp');
+        try {
+          if (isR2Enabled()) await r2Copy(fromWebp, toWebp);
+          else await fs.copyFile(path.join(process.cwd(), 'stored_images', fromWebp), path.join(process.cwd(), 'stored_images', toWebp));
+        } catch { /* no sibling — the PNG fallback covers it */ }
+      }
       const [row] = await db.insert(cardTemplates).values({
         occasion,
         recipient: state.recipient?.name?.trim() || null,
@@ -2036,6 +2058,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         published: false,
         aisle_tags: ['carousel'],
         image_path: filename,
+        inside_image_path: insideFilename,
       }).returning();
       res.json({ id: row.id, imageUrl: publicImageUrl(filename) });
     } catch (err) {

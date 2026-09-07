@@ -26,6 +26,7 @@ export interface CatalogueCard {
   aisle_tags?: string[]; carousel?: boolean;
   /** false = carousel-only showcase (not in the rack) — links to the photo route, not a card page. */
   published?: boolean;
+  insideImageUrl?: string | null;
 }
 export interface AisleLink { slug: string; label: string; count: number }
 export interface RackPayload {

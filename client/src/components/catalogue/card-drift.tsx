@@ -9,10 +9,15 @@
 // cards that belong on every wall — then a fresh shuffle of the
 // birthday rack to fill up to `size`. Drop it on any page.
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import type { CatalogueCard } from '@/components/catalogue/rack-wall';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Loader2 } from 'lucide-react';
+
+// three.js only loads when a card is actually opened.
+const Card3DViewer = lazy(() => import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })));
 
 interface CardDriftProps {
   /** How many distinct cards the loop carries (duplicated once for the seamless wrap). */
@@ -22,6 +27,9 @@ interface CardDriftProps {
   padFrom?: string | null;
   /** Extra classes on the outer (masked) wrapper. */
   className?: string;
+  /** Tap opens the card in place (3D, ajar → tap to open) instead of
+   *  leaving the page (the gate, Aidan 2026-09-06). */
+  peek?: boolean;
 }
 
 const shuffle = <T,>(a: T[]): T[] => { const p = [...a]; for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
@@ -55,8 +63,9 @@ export function useDriftCards(size = 20, padFrom: string | null = 'birthday'): {
   return { cards, loaded };
 }
 
-export function CardDrift({ size = 20, padFrom = 'birthday', className = '' }: CardDriftProps) {
+export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false }: CardDriftProps) {
   const { cards, loaded } = useDriftCards(size, padFrom);
+  const [peeking, setPeeking] = useState<CatalogueCard | null>(null);
   const row = useMemo(() => [...cards, ...cards], [cards]);
   // Nothing picked yet → render nothing at all (the page hides the block).
   if (loaded && !cards.length) return null;
@@ -80,11 +89,48 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '' }: C
           container keeps all of it (the -mb-6 lives on the container). */}
       <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
+          peek ? (
+            <button key={`${c.id}-${i}`} type="button" onClick={() => setPeeking(c)} className="group block w-[150px] shrink-0 text-left sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined} aria-label={`Open “${c.front_text}”`}>
+              <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
+            </button>
+          ) : (
           <Link key={`${c.id}-${i}`} href={c.published === false ? '/photo' : `/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
             <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
           </Link>
+          )
         ))}
       </div>
+      {peek && <CardPeek card={peeking} onClose={() => setPeeking(null)} />}
     </div>
+  );
+}
+
+/** The lightbox: the card ajar, tap to open, one way onward. */
+function CardPeek({ card, onClose }: { card: CatalogueCard | null; onClose: () => void }) {
+  const showcase = card?.published === false;
+  return (
+    <Dialog open={!!card} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg overflow-hidden p-0">
+        {card && (
+          <div>
+            <DialogTitle className="sr-only">{card.front_text}</DialogTitle>
+            {/* Square, exactly as the card page frames the same viewer. */}
+            <div className="aspect-square w-full bg-keeper-paper">
+              <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand" /></div>}>
+                <Card3DViewer frontImageUrl={card.imageUrl} insideImageUrl={card.insideImageUrl ?? null} className="h-full w-full" framingMargin={1.3} />
+              </Suspense>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <p className="text-[12.5px] text-keeper-meta">{card.insideImageUrl ? 'Tap the card to look inside' : 'Tap the card to turn it'}</p>
+              {showcase ? (
+                <Link href="/photo/make" className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">Make one from a photo</Link>
+              ) : (
+                <Link href={`/card/${card.id}`} className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">See this card</Link>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

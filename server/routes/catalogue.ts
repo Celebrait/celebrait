@@ -82,7 +82,7 @@ export function registerCatalogueRoutes(app: Express): void {
       res.set('Cache-Control', 'public, max-age=60');
       res.json({
         count: rows.length,
-        cards: rows.map((t) => ({ id: t.id, occasion: t.occasion, front_text: t.front_text, interest: t.interest, recipient: t.recipient, age: t.age, tone: t.tone, imageUrl: publicImageUrl(t.image_path), published: t.published })),
+        cards: rows.map((t) => ({ id: t.id, occasion: t.occasion, front_text: t.front_text, interest: t.interest, recipient: t.recipient, age: t.age, tone: t.tone, imageUrl: publicImageUrl(t.image_path), insideImageUrl: t.inside_image_path ? publicImageUrl(t.inside_image_path) : null, published: t.published })),
       });
     } catch (err) {
       console.error('[CATALOGUE] featured failed:', err);
