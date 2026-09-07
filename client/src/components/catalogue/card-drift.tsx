@@ -17,36 +17,49 @@ import type { CatalogueCard } from '@/components/catalogue/rack-wall';
 interface CardDriftProps {
   /** How many distinct cards the loop carries (duplicated once for the seamless wrap). */
   size?: number;
-  /** Which rack pads the picks. */
-  padFrom?: string;
+  /** Which rack pads the picks; null = the admin's carousel picks ONLY
+   *  (the gate, 2026-09-06 — "hand selected cards from the admin"). */
+  padFrom?: string | null;
   /** Extra classes on the outer (masked) wrapper. */
   className?: string;
 }
 
 const shuffle = <T,>(a: T[]): T[] => { const p = [...a]; for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
 
-export function useDriftCards(size = 20, padFrom = 'birthday'): CatalogueCard[] {
+export function useDriftCards(size = 20, padFrom: string | null = 'birthday'): { cards: CatalogueCard[]; loaded: boolean } {
   const [cards, setCards] = useState<CatalogueCard[]>([]);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       fetch('/api/catalogue/featured').then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch(`/api/catalogue/${padFrom}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      padFrom ? fetch(`/api/catalogue/${padFrom}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) : Promise.resolve(null),
     ]).then(([f, b]) => {
       if (cancelled) return;
       const picks: CatalogueCard[] = (f?.cards ?? []) as CatalogueCard[];
-      const seen = new Set(picks.map((c) => c.id));
-      const pad = shuffle(((b?.cards ?? []) as CatalogueCard[]).filter((c) => !seen.has(c.id)));
-      setCards([...picks, ...pad].slice(0, Math.max(size, picks.length)));
+      if (!padFrom) {
+        // Picks only. A short hand-picked set is repeated so the loop
+        // is still wider than the viewport before it's mirrored.
+        let list = picks;
+        while (list.length && list.length < 12) list = [...list, ...picks];
+        setCards(list);
+      } else {
+        const seen = new Set(picks.map((c) => c.id));
+        const pad = shuffle(((b?.cards ?? []) as CatalogueCard[]).filter((c) => !seen.has(c.id)));
+        setCards([...picks, ...pad].slice(0, Math.max(size, picks.length)));
+      }
+      setLoaded(true);
     });
     return () => { cancelled = true; };
   }, [size, padFrom]);
-  return cards;
+  return { cards, loaded };
 }
 
 export function CardDrift({ size = 20, padFrom = 'birthday', className = '' }: CardDriftProps) {
-  const cards = useDriftCards(size, padFrom);
+  const { cards, loaded } = useDriftCards(size, padFrom);
   const row = useMemo(() => [...cards, ...cards], [cards]);
+  // Nothing picked yet → render nothing at all (the page hides the block).
+  if (loaded && !cards.length) return null;
   if (!cards.length) {
     return (
       <div className={`flex gap-4 overflow-hidden ${className}`}>

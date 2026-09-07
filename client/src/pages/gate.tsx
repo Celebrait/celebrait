@@ -33,6 +33,7 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
+import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
@@ -149,6 +150,9 @@ export default function GatePage() {
   // signed out, the studio's when signed in.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const photoHref = !authLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
+  // The wall under the doors: the admin's carousel picks ONLY (no rack
+  // padding). The block hides itself until there's at least one pick.
+  const picks = useDriftCards(20, null);
   const photo = gbp(cardPriceGBP('photo'));
   const maker = gbp(cardPriceGBP('maker'));
 
@@ -223,6 +227,14 @@ export default function GatePage() {
             />
           </div>
 
+          {picks.cards.length > 0 && (
+            <div className="mt-12 md:mt-16">
+              <p className={`mx-auto max-w-4xl ${EYEBROW}`}>From the rack · hand-picked</p>
+              <div className="-mx-6 mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
+                <CardDrift padFrom={null} />
+              </div>
+            </div>
+          )}
         </section>
       </main>
       <MarketingFooter cta="gate" />
