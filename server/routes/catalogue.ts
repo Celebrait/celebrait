@@ -72,14 +72,17 @@ export function registerCatalogueRoutes(app: Express): void {
   // pads with the rack.
   app.get('/api/catalogue/featured', async (_req: Request, res: Response) => {
     try {
+      // Tagged cards show whether or not they're published: an
+      // UNPUBLISHED tagged card is a carousel-only showcase (a photo
+      // card copied in from the studio) — on the wall, never in the rack.
       const rows = await db.select().from(cardTemplates)
-        .where(and(eq(cardTemplates.published, true), sql`${cardTemplates.aisle_tags} @> ARRAY['carousel']::text[]`)!)
+        .where(sql`${cardTemplates.aisle_tags} @> ARRAY['carousel']::text[]`)
         .orderBy(desc(cardTemplates.id))
         .limit(40);
       res.set('Cache-Control', 'public, max-age=60');
       res.json({
         count: rows.length,
-        cards: rows.map((t) => ({ id: t.id, occasion: t.occasion, front_text: t.front_text, interest: t.interest, recipient: t.recipient, age: t.age, tone: t.tone, imageUrl: publicImageUrl(t.image_path) })),
+        cards: rows.map((t) => ({ id: t.id, occasion: t.occasion, front_text: t.front_text, interest: t.interest, recipient: t.recipient, age: t.age, tone: t.tone, imageUrl: publicImageUrl(t.image_path), published: t.published })),
       });
     } catch (err) {
       console.error('[CATALOGUE] featured failed:', err);

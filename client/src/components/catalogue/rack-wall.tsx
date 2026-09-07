@@ -24,6 +24,8 @@ export interface CatalogueCard {
   id: number; front_text: string; tone?: string | null; age?: number | null; age_max?: number | null;
   recipient?: string | null; editable?: boolean; interest?: string | null; imageUrl: string;
   aisle_tags?: string[]; carousel?: boolean;
+  /** false = carousel-only showcase (not in the rack) — links to the photo route, not a card page. */
+  published?: boolean;
 }
 export interface AisleLink { slug: string; label: string; count: number }
 export interface RackPayload {

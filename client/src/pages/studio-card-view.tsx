@@ -17,7 +17,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Share2, RefreshCw, Printer } from 'lucide-react';
+import { ArrowLeft, Loader2, Share2, RefreshCw, Printer, Star } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Card3DViewer, toWebpDisplay } from '@/components/card-3d-viewer';
@@ -416,6 +417,7 @@ function LoadedView({
           <Printer className="w-3.5 h-3.5" />
           {showPrint ? 'Back to the card' : 'Show print files'}
         </button>
+        <AdminCarouselButton cardId={card.id} />
       </div>
 
       {/* Card title intentionally NOT rendered here (was an h1 for
@@ -815,5 +817,34 @@ function NotFoundView({ error }: { error?: unknown }) {
         Back to studio
       </a>
     </div>
+  );
+}
+
+/** Admin only: copy this card's front onto the homepage carousel as a
+ *  showcase (Aidan 2026-09-06 — photo-route examples on the wall). */
+function AdminCarouselButton({ cardId }: { cardId: number }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  if (!user || !(user as { isAdmin?: boolean }).isAdmin) return null;
+  const add = async () => {
+    if (busy || done) return;
+    setBusy(true);
+    try {
+      await apiRequest('POST', `/api/admin/card-templates/from-card/${cardId}`, {});
+      setDone(true);
+      toast({ title: 'On the homepage carousel', description: 'A copy of the front now drifts on the gate. Manage it in the occasion studio.' });
+    } catch (e: any) {
+      toast({ title: "Couldn't add it", description: e?.message ?? '', variant: 'destructive' });
+    } finally { setBusy(false); }
+  };
+  return (
+    <button type="button" onClick={() => void add()} disabled={busy || done}
+      className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-keeper-hair px-3 py-1 text-xs font-medium text-keeper-meta transition-colors hover:border-brand hover:text-keeper-ink disabled:opacity-60"
+      title="Admin: copy this front onto the homepage carousel">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className="w-3.5 h-3.5" fill={done ? 'currentColor' : 'none'} />}
+      {done ? 'On the carousel' : 'Add to carousel'}
+    </button>
   );
 }

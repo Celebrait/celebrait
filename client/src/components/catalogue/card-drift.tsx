@@ -80,7 +80,7 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '' }: C
           container keeps all of it (the -mb-6 lives on the container). */}
       <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
-          <Link key={`${c.id}-${i}`} href={`/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
+          <Link key={`${c.id}-${i}`} href={c.published === false ? '/photo' : `/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
             <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
           </Link>
         ))}

@@ -40,10 +40,10 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { cardGenerations, cardTemplates, users, researchRenders } from '@shared/schema';
+import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
 import { publicImageUrl } from '../image-storage';
-import { isR2Enabled, r2Put } from '../r2-storage';
+import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
 import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
@@ -1992,6 +1992,49 @@ export function registerAdminCardLabRoutes(app: Express): void {
   // so the template survives tab, deploy and disk wipes; the row keeps
   // the full recipe so a template can be re-rendered or sold with a
   // personalised inside later.
+  // ── A finished card → the homepage carousel (Aidan 2026-09-06: "how
+  // do we get photo upload examples on the carousel") ─────────────────
+  // Copies the card's FRONT into a carousel-only template: tagged
+  // 'carousel', published=false, so it drifts on the gate but is never
+  // shelved in the rack (nobody can buy someone else's face). The image
+  // is copied, not linked — deleting the card must not blank the wall.
+  app.post('/api/admin/card-templates/from-card/:cardId', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const cardId = Number(req.params.cardId);
+    if (!Number.isInteger(cardId)) return res.status(400).json({ message: 'Bad card id' });
+    try {
+      const [card] = await db.select().from(cards).where(eq(cards.id, cardId));
+      if (!card) return res.status(404).json({ message: 'No such card' });
+      const src = card.frontImagePath;
+      if (!src) return res.status(400).json({ message: 'This card has no stored front yet' });
+      const ext = path.extname(src) || '.png';
+      const filename = `template_${randomUUID()}${ext}`;
+      if (isR2Enabled()) {
+        const ok = await r2Copy(src, filename);
+        if (!ok) return res.status(500).json({ message: 'Could not copy the front image' });
+      } else {
+        await fs.copyFile(path.join(process.cwd(), 'stored_images', src), path.join(process.cwd(), 'stored_images', filename));
+      }
+      const state = (card.conversationData ?? {}) as { recipient?: { name?: string; occasion?: string }; front?: { text?: string } };
+      const occasion = (state.recipient?.occasion?.trim() || 'birthday').toLowerCase();
+      const frontText = state.front?.text?.trim() || 'Made from a photo';
+      const [row] = await db.insert(cardTemplates).values({
+        occasion,
+        recipient: state.recipient?.name?.trim() || null,
+        front_text: frontText,
+        angle: 'photo showcase',
+        editable: false,
+        published: false,
+        aisle_tags: ['carousel'],
+        image_path: filename,
+      }).returning();
+      res.json({ id: row.id, imageUrl: publicImageUrl(filename) });
+    } catch (err) {
+      console.error('[CARD-TEMPLATES] from-card failed:', err);
+      res.status(500).json({ message: 'Could not add this card to the carousel' });
+    }
+  });
+
   app.post('/api/admin/card-templates', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     const schema = z.object({
