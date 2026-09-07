@@ -2005,11 +2005,20 @@ export function registerAdminCardLabRoutes(app: Express): void {
     try {
       const [card] = await db.select().from(cards).where(eq(cards.id, cardId));
       if (!card) return res.status(404).json({ message: 'No such card' });
-      const src = card.frontImagePath;
-      if (!src) return res.status(400).json({ message: 'This card has no stored front yet' });
-      const ext = path.extname(src) || '.png';
+      // Paths are bare object keys, sometimes with the '/images/' prefix
+      // the browser route uses; legacy rows carry only a full URL.
+      const src = (card.frontImagePath ?? '').replace(/^\/images\//, '');
+      const legacyUrl = !src && card.frontImageUrl && /^https?:/i.test(card.frontImageUrl) ? card.frontImageUrl : null;
+      if (!src && !legacyUrl) return res.status(400).json({ message: 'This card has no stored front yet' });
+      const ext = (src && path.extname(src)) || '.png';
       const filename = `template_${randomUUID()}${ext}`;
-      if (isR2Enabled()) {
+      if (legacyUrl) {
+        const r = await fetch(legacyUrl);
+        if (!r.ok) return res.status(502).json({ message: 'Could not fetch the front image' });
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (isR2Enabled()) await r2Put(filename, buf, r.headers.get('content-type') ?? 'image/png');
+        else await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buf);
+      } else if (isR2Enabled()) {
         const ok = await r2Copy(src, filename);
         if (!ok) return res.status(500).json({ message: 'Could not copy the front image' });
       } else {
