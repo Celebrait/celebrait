@@ -104,7 +104,7 @@ export interface StoredImage {
  * Naming convention: `<base>_front.png` → `<base>_front.webp`. The viewer
  * derives the WebP URL by the same swap (card-3d-viewer.tsx).
  */
-async function storeDisplayWebpSibling(
+export async function storeDisplayWebpSibling(
   pngFilename: string,
   imageBuffer: Buffer,
 ): Promise<void> {

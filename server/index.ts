@@ -2,6 +2,7 @@
 // Make sure env vars from .env are loaded BEFORE anything else uses process.env
 import "dotenv/config";
 import { runStartupRetag } from "./startup-retag";
+import { runStartupWebpBackfill } from "./startup-webp";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
@@ -135,6 +136,7 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
   // One-off data passes ride boot: idempotent, guarded, loud.
   void runStartupRetag();
+  void runStartupWebpBackfill();
 
   // Set server timeout for long-running AI processing
   server.timeout = 600000; // 10 minute timeout

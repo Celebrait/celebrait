@@ -42,7 +42,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
-import { publicImageUrl } from '../image-storage';
+import { publicImageUrl, storeDisplayWebpSibling } from '../image-storage';
 import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
 import { getProvider } from '../providers/registry';
@@ -2106,6 +2106,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
       } else {
         await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
       }
+      // The display .webp the 3D viewer loads — without it every template
+      // card fell back to flat (found 2026-09-06 on the gate's wall).
+      await storeDisplayWebpSibling(filename, buffer);
       // Keeping a card marks its generation row — that flip is what makes
       // keep-rate meaningful. Matched on the exact line within the
       // occasion; best-effort, never blocks the save.
@@ -3390,6 +3393,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const filename = `template_inside_${randomUUID()}.png`;
       if (isR2Enabled()) await r2Put(filename, buffer, 'image/png');
       else await fs.writeFile(path.join(process.cwd(), 'stored_images', filename), buffer);
+      await storeDisplayWebpSibling(filename, buffer);
       await db.update(cardTemplates).set({ inside_image_path: filename }).where(eq(cardTemplates.id, templateId));
       return true;
     } catch (e) {
