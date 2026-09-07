@@ -1016,7 +1016,20 @@ export default function AdminOccasionStudioPage() {
                 <p className="mt-1 text-xs text-stone-400">{[shelfCard.tone, shelfCard.age && `${shelfCard.age}`, shelfCard.recipient].filter(Boolean).join(' · ')}</p>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            {/* THE CAROUSEL (Aidan 2026-09-06: "it should be in occasion
+                studio"): the gate's wall shows ONLY cards tagged here. */}
+            {(() => {
+              const onWall = (shelfCard.aisle_tags ?? []).includes('carousel');
+              return (
+                <button type="button"
+                  onClick={() => setShelfCard({ ...shelfCard, aisle_tags: onWall ? (shelfCard.aisle_tags ?? []).filter((t) => t !== 'carousel') : [...(shelfCard.aisle_tags ?? []), 'carousel'] })}
+                  className={`mt-4 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${onWall ? 'border-brand bg-brand text-white' : 'border-dashed border-stone-300 text-stone-600 hover:border-brand'}`}>
+                  <Star className="h-4 w-4" fill={onWall ? 'currentColor' : 'none'} />
+                  {onWall ? 'On the homepage carousel — tap to remove' : 'Add to the homepage carousel'}
+                </button>
+              );
+            })()}
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setShelfCard({ ...shelfCard, published: !(shelfCard.published ?? true) })}
                 className={`rounded-lg border px-3 py-2 text-sm font-medium ${ (shelfCard.published ?? true) ? 'border-brand bg-brand-muted/40 text-brand-dark' : 'border-amber-400 bg-amber-50 text-amber-700'}`}>
                 {(shelfCard.published ?? true) ? 'Live on site' : 'Hidden from site'}
@@ -1140,6 +1153,11 @@ export default function AdminOccasionStudioPage() {
                 )}
                 {(t.aisle_tags?.length ?? 0) > 0 && (
                   <span className="absolute bottom-1 left-1 rounded bg-brand/80 px-1 py-0.5 text-[9px] font-medium text-white">+{t.aisle_tags!.length}</span>
+                )}
+                {t.aisle_tags?.includes('carousel') && (
+                  <span className="absolute bottom-1 right-1 rounded-full bg-white/90 p-0.5 text-brand-dark shadow" title="On the homepage carousel">
+                    <Star className="h-3 w-3" fill="currentColor" />
+                  </span>
                 )}
               </button>
             ))}
