@@ -138,7 +138,7 @@ export default function DoorwayPage() {
                   )}
                 </div>
                 <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A card made for them.</h2>
-                <p className="mt-1 text-sm leading-relaxed text-keeper-body">Tell us who. Three originals in a minute, and they can be in it.</p>
+                <p className="mt-1 text-sm leading-relaxed text-keeper-body">Tell us who. Three originals in a minute. Pick one, then put them in it with a photo — optional, and worth it.</p>
                 <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
                   <span className="text-[12px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · about a minute</span>
                   <span className={doorCta}><Sparkles className="h-4 w-4 text-cta" /> Start with who it's for</span>

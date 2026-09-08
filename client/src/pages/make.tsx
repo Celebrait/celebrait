@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
 import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
+import { MakeNarration } from '@/components/make-narration';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
@@ -191,27 +192,27 @@ export default function MakePage() {
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [insideBusy, setInsideBusy] = useState(false);
 
-  // ── the wait: narration + asymptotic progress (the studio's pattern) ──
-  const lines = useMemo(() => [
-    brief.thing ? `Reading up on ${brief.thing}` : 'Reading the brief',
-    brief.who ? `Working out what ${brief.who} would actually pick up` : 'Working out what they would actually pick up',
-    'Choosing colours from their world', 'Writing three very different cards', 'Drawing the fronts',
-  ], [brief.thing, brief.who]);
-  const [stage, setStage] = useState(0);
-  const [progress, setProgress] = useState(0);
+  // ── the wait: narration in words, driven by what's really happening
+  // (components/make-narration.tsx). `waitConcepts` flips the act from
+  // writing to drawing; `landed` counts finished fronts; the clock lets
+  // the copy admit when it's running long. ──
+  const [waitConcepts, setWaitConcepts] = useState<Concept[] | null>(null);
+  const [landed, setLanded] = useState(0);
+  const [elapsedS, setElapsedS] = useState(0);
   const t0 = useRef(0);
   useEffect(() => {
     if (phase !== 'generating') return;
-    setStage(0); setProgress(0); t0.current = Date.now();
-    const s = setInterval(() => setStage((n) => Math.min(n + 1, lines.length - 1)), 9000);
-    const p = setInterval(() => { const t = (Date.now() - t0.current) / 1000; setProgress(0.92 * (1 - Math.exp(-t / 35))); }, 500);
-    return () => { clearInterval(s); clearInterval(p); };
-  }, [phase, lines.length]);
+    setElapsedS(0); t0.current = Date.now();
+    const p = setInterval(() => setElapsedS((Date.now() - t0.current) / 1000), 1000);
+    return () => clearInterval(p);
+  }, [phase]);
+  const narrationInput = useMemo(() => ({ brief, age: ageNum, occasionLabel }), [brief, ageNum, occasionLabel]);
 
   // ── generation ──
   const generate = async (tone: Vibe = brief.vibe) => {
     setPhase('generating'); setCells([]); setPicked(null); setInsideUrl(null);
     setCameoUrl(null); setCameoKept(false); setCameoError(''); setFailMsg('');
+    setWaitConcepts(null); setLanded(0);
     try {
       const j = await makePost('concepts', {
         occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
@@ -223,16 +224,18 @@ export default function MakePage() {
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back — try again');
       // All three fronts finish before anything is shown (Aidan
-      // 2026-09-03: words-first "isn't so clean") — the wait screen holds,
-      // then the set arrives together.
+      // 2026-09-03: words-first "isn't so clean"; reaffirmed 2026-09-08
+      // over cards-as-they-land: "just show the 3 finished cards, but
+      // better signals for the user in the form of words"). The wait
+      // screen holds and narrates — the concepts flip it into the
+      // drawing act, each finished front bumps the count.
       setCells(concepts.map((c) => ({ concept: c })));
-      // Show the three slots now and let each front land as it arrives
-      // (Aidan 2026-09-08: "better to show the cards as they land").
-      setPhase('results');
-      const landed = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      setWaitConcepts(concepts);
+      const done = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
       // One or two failures show as tiles with the reason and a retry;
       // all three failing is the failure screen, worded by the cause.
-      if (!landed.some(Boolean)) {
+      if (done.some(Boolean)) setPhase('results');
+      else {
         const codes = cellsRef.current.map((c) => c.code).filter(Boolean) as FailCode[];
         const code = codes.find((k) => k === 'safety') ?? codes.find((k) => k === 'rate') ?? codes[0] ?? 'unknown';
         const err = new Error(FAIL_COPY[code].tile) as Error & { code?: FailCode };
@@ -248,6 +251,7 @@ export default function MakePage() {
     try {
       const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined, code: undefined } : x)));
+      setLanded((n) => n + 1);
       return true;
     } catch (e: any) {
       const code: FailCode = e?.code ?? 'unknown';
@@ -338,6 +342,11 @@ export default function MakePage() {
     const chips: StepChip[] = [
       ...briefQuestions.map((q) => ({ id: q, label: QUESTION_LABEL[q] })),
       { id: 'cards', label: 'Three cards', locked: true },
+      // The photo comes AFTER the pick on this route, and we'd rather it
+      // did (Aidan 2026-09-08: "make them aware they can add the photo
+      // once they get the one they like… a key USP"). A locked chip
+      // keeps it in view through every question.
+      { id: 'photo', label: 'Photo · optional', locked: true },
     ];
     return (
       <MakeShell step={step}>
@@ -385,14 +394,13 @@ export default function MakePage() {
   if (phase === 'generating') {
     return (
       <MakeShell step={step}>
-        <div className={`${panel} flex flex-col items-center justify-center text-center`} aria-live="polite">
-          <p className="max-w-[420px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">about a minute</span> — first we write three cards for {whoName || 'them'}, then draw them. Each one lands as it's ready.</p>
-          <div className="relative w-32 sm:w-36 aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 mt-8">
+        <div className={`${panel} flex flex-col items-center justify-center text-center`}>
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">just over a minute</span>. We write three cards for {whoName || 'them'} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
+          <div className="relative mt-8 aspect-square w-28 overflow-hidden rounded-xl bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 sm:w-32">
             <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
-          <div className="w-full max-w-[320px] flex flex-col items-center gap-2.5 mt-8">
-            <div className="h-1 w-full rounded-full bg-stone-200/80 overflow-hidden"><div className="h-full rounded-full bg-brand transition-[width] duration-500 ease-out" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
-            <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" /><span className="text-[11px] font-medium tracking-wide text-keeper-meta whitespace-nowrap">{lines[stage]}</span></div>
+          <div className="mt-8 w-full">
+            <MakeNarration input={narrationInput} concepts={waitConcepts} landed={landed} elapsedS={elapsedS} />
           </div>
         </div>
       </MakeShell>
@@ -401,7 +409,6 @@ export default function MakePage() {
 
   // ── step 2b: three cards, pick the one ────────────────────────────
   if (phase === 'results') {
-    const allSettled = cells.every((c) => c.imageUrl || c.error);
     // Roll again asks the vibe first (Aidan 2026-09-03): the same tiles
     // the questions use, then three new cards on those details.
     if (askVibe) {
@@ -434,8 +441,8 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <h1 className={`${h1} mb-1`}>{allSettled ? `Three cards for ${whoName || 'them'}. Pick the one.` : `Drawing three cards for ${whoName || 'them'}…`}</h1>
-          <p className="text-sm text-keeper-body">{allSettled ? 'Tap your favourite — next we design its inside, with your words in it.' : 'They land one at a time — about a minute for the set.'}</p>
+          <h1 className={`${h1} mb-1`}>Three cards for {whoName || 'them'}. Pick the one.</h1>
+          <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName || 'them'} in it with a photo (optional), then we design the inside with your words.</p>
           {/* The cards as cards — the carousel's ajar tile, nothing under
               them (the front is right there; captions only cut off). */}
           <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
@@ -446,13 +453,13 @@ export default function MakePage() {
                 aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
                 {c.imageUrl
                   ? <AjarTile imageUrl={c.imageUrl} alt={c.concept.front_text} eager />
-                  : c.error
-                    ? <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
-                        <span>{c.error}</span>
-                        <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{c.retrying ? 'Having another go…' : FAIL_COPY[c.code ?? 'unknown'].retry}</span>
-                      </div>
-                    : <div className="relative aspect-square overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 ring-1 ring-brand/15" aria-label="Still drawing this one">
+                  : c.retrying
+                    ? <div className="relative aspect-square overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 ring-1 ring-brand/15" aria-label="Drawing this one again">
                         <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                      </div>
+                    : <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
+                        <span>{c.error}</span>
+                        <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{FAIL_COPY[c.code ?? 'unknown'].retry}</span>
                       </div>}
               </button>
             ))}
@@ -460,7 +467,7 @@ export default function MakePage() {
           <div className="mt-10 flex flex-col items-start gap-3 border-t border-keeper-hair pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-keeper-meta">None of them quite right?</p>
             <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={!allSettled} onClick={() => setAskVibe(true)} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Roll again</button>
+              <button type="button" onClick={() => setAskVibe(true)} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Roll again</button>
               <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 px-5 py-2.5 text-sm font-medium text-keeper-ink transition-colors hover:border-keeper-gold">Change the details</button>
             </div>
           </div>
@@ -477,7 +484,7 @@ export default function MakePage() {
         <MakeShell step={step}>
           <div className={panel}>
             <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
-            <p className="text-sm text-keeper-body">Both are yours — pick the one that's more them.</p>
+            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName || 'them'} in it. Both are yours — pick the one that's more them.</p>
             <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
               {([[false, 'The original', c.imageUrl!], [true, 'With them in it', cameoUrl]] as const).map(([keep, name, url]) => (
                 <button key={name} type="button" onClick={() => { setCameoKept(keep); setPhase('signoff'); }} className={`${cardTile} border-keeper-hair hover:border-brand`}>
@@ -499,13 +506,13 @@ export default function MakePage() {
             {cameoBusy ? (
               <div className="text-center sm:text-left py-6" aria-live="polite">
                 <Loader2 className="w-7 h-7 text-brand animate-spin mx-auto sm:mx-0" />
-                <p className="mt-3 text-base font-semibold text-keeper-ink">Putting them into {forWho} card…</p>
-                <p className="mt-1 text-sm text-keeper-meta">Everyone from your photo, drawn in the card's own style. About half a minute.</p>
+                <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
+                <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName || 'them'} — drawn from your photo, in the card's own hand. About half a minute.</p>
               </div>
             ) : (
               <div>
-                <h1 className={`${h1} mb-1`}>Want them actually in the picture?</h1>
-                <p className="text-sm text-keeper-body">Add a photo — a group one works too — and we'll put them into this exact card, drawn in its own style, right in the middle of things. You'll see both versions and choose.</p>
+                <h1 className={`${h1} mb-1`}>Want {whoName || 'them'} actually in it?</h1>
+                <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence — the idea, the words, the style — but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
                 {cameoError && <p className="mt-3 text-sm text-accent-red-dark">{cameoError}</p>}
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <label className={`${primary} cursor-pointer`}><Camera className="w-4 h-4" strokeWidth={1.75} /> Add a photo

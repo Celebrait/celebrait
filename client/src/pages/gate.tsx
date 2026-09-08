@@ -49,6 +49,11 @@ interface DoorProps {
   time: string;
   effort: string;
   price: string;
+  /** The photo's place on this route (Aidan 2026-09-08: "photo
+   *  optional" on the browser, mandatory on the director — putting them
+   *  in the card is the USP, and on the three-card route it comes AFTER
+   *  the pick). */
+  photo: 'optional' | 'needed';
   /** The three points that decide it — visible, never folded. */
   points: string[];
   cta: string;
@@ -66,7 +71,7 @@ interface DoorProps {
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-function Door({ href, icon: Icon, chip, title, line, time, effort, price, points, cta, fine, proof, lead = false }: DoorProps) {
+function Door({ href, icon: Icon, chip, title, line, time, effort, price, photo, points, cta, fine, proof, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
   const stop = (e: MouseEvent) => e.stopPropagation();
@@ -100,6 +105,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, points
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium text-keeper-body ${pill}`}><Clock className="h-3 w-3 text-keeper-meta" /> {time}</span>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium text-keeper-body ${pill}`}><Wrench className="h-3 w-3 text-keeper-meta" /> {effort}</span>
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold text-keeper-ink ${pill}`}>{price}</span>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium text-keeper-body ${pill}`}><Camera className="h-3 w-3 text-keeper-meta" /> {photo === 'needed' ? 'Photo needed' : 'Photo optional'}</span>
       </div>
 
       {/* The three decision points, green checks (the studio's readiness
@@ -187,6 +193,7 @@ export default function GatePage() {
               time="2 minutes"
               effort="easy"
               price={maker}
+              photo="optional"
               points={[
                 'Tell us who they are and what they love',
                 'We design three cards. You pick the one.',
@@ -195,7 +202,8 @@ export default function GatePage() {
               cta="Tell us about them"
               proof={{ href: '/create', label: 'See how it works' }}
               fine={[
-                [RefreshCw, 'Changed your mind? Roll again with a new vibe, tweak the details, or add their photo once you\'ve picked.'],
+                [Camera, 'Got a photo? Add it once you\'ve picked your favourite and we redesign that card with them in it. Same idea, same words — now they\'re in the picture.'],
+                [RefreshCw, 'Changed your mind? Roll again with a new vibe, or tweak the details.'],
                 [PenLine, 'You steer, we draw. Your answers set the scene — we just can\'t do logos, brands or famous faces.'],
                 [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
                 [LockOpen, 'No account needed to see your three.'],
@@ -211,6 +219,7 @@ export default function GatePage() {
               time="10 minutes"
               effort="worth it"
               price={photo}
+              photo="needed"
               points={[
                 'Start with a photo of them (or a group)',
                 'Describe any scene imaginable (seriously)',
