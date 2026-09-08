@@ -32,6 +32,11 @@ export interface ImageGenerationRequest {
   /** Which slot is being generated — providers can use different models
    *  per slot (e.g. Flash for front, Pro for inside). */
   slot?: string;
+  /** Hard ceiling for this one call, in ms. Default 6 min (a 'high'
+   *  render's worst case). The public makers pass ~90s for 'low' so a
+   *  stalled upstream can't hold a visitor's page for minutes
+   *  (2026-09-08: '/make hanging on Drawing the fronts for 3 minutes'). */
+  timeoutMs?: number;
 }
 
 export interface ImageGenerationResult {

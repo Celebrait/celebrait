@@ -3796,6 +3796,8 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
         quality: body.quality,
         size: '1024x1024',
         slot: 'card_lab',
+        // A low render lands in ~20–40s; give it 90s, never six minutes.
+        timeoutMs: body.quality === 'low' ? 90_000 : undefined,
       });
       void logGeneration({
         cardId: null,

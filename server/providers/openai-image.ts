@@ -217,7 +217,7 @@ export class OpenAIImageProvider implements ImageProvider {
         // nothing happening). Abort after 6 min so a true stall surfaces
         // as a failure → retry. gpt-image 'high' is ~5 min worst case, so
         // this only fires on a genuine hang, not a legitimately-slow gen.
-        signal: AbortSignal.timeout(6 * 60 * 1000),
+        signal: AbortSignal.timeout(req.timeoutMs ?? 6 * 60 * 1000),
       });
       console.log(
         `[PROVIDER:openai] ← ${response.status} ${response.statusText} (${Date.now() - startTime}ms)`,
@@ -265,7 +265,12 @@ export class OpenAIImageProvider implements ImageProvider {
           n: 1,
           size: openaiSize(req.size) as any,
           quality: q,
-        } as any);
+        } as any, {
+          // The SDK's own defaults are a 10-minute timeout and two silent
+          // retries — up to 30 minutes for one stalled call. Bound it.
+          timeout: req.timeoutMs ?? 6 * 60 * 1000,
+          maxRetries: req.timeoutMs ? 0 : 1,
+        });
       } catch (sdkErr: unknown) {
         throw classifyOpenAIError(sdkErr, this.id);
       }
@@ -371,7 +376,7 @@ export class OpenAIImageProvider implements ImageProvider {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(6 * 60 * 1000),
+      signal: AbortSignal.timeout(req.timeoutMs ?? 6 * 60 * 1000),
     });
     console.log(
       `[PROVIDER:openai] ← ${response.status} ${response.statusText} (${Date.now() - startTime}ms)`,

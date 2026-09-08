@@ -31,8 +31,19 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 // ── plumbing ─────────────────────────────────────────────────────────
+// Ceilings per call (2026-09-08: a stalled upstream render held the page
+// on "Drawing the fronts" for minutes). A timeout throws like any other
+// failure — a cell shows "didn't come out", the rest still land.
+const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 60_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000 };
 async function makePost(path: string, body: unknown): Promise<any> {
-  const r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const ceiling = MAKE_TIMEOUT_MS[path.split('/')[0]] ?? 60_000;
+  let r: Response;
+  try {
+    r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ceiling) });
+  } catch (e: any) {
+    const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    throw new Error(timedOut ? 'That took too long — give it another go' : 'Lost the connection — give it another go');
+  }
   if (!r.ok) {
     const j = await r.json().catch(() => null);
     const err = new Error(j?.message ?? 'That didn’t work — give it another go') as Error & { status?: number };
@@ -197,18 +208,22 @@ export default function MakePage() {
       // 2026-09-03: words-first "isn't so clean") — the wait screen holds,
       // then the set arrives together.
       setCells(concepts.map((c) => ({ concept: c })));
-      await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      const landed = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      // One or two failures show as "didn't come out" tiles with a retry;
+      // all three failing is a proper failure screen, not three blanks.
+      if (!landed.some(Boolean)) throw new Error('None of the three came out — give it another go');
       setPhase('results');
     } catch (e: any) {
       if (e?.status === 429 || e?.status === 503) { setFailMsg(e.message); setPhase('capped'); }
       else { setFailMsg(e?.message ?? 'That didn’t work'); setPhase('failed'); }
     }
   };
-  const renderCell = async (i: number, c: Concept) => {
+  const renderCell = async (i: number, c: Concept): Promise<boolean> => {
     try {
       const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined } : x)));
-    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'That one didn’t come out.' } : x))); }
+      return true;
+    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'That one didn’t come out.' } : x))); return false; }
   };
   const tryAgain = async (i: number) => {
     const cell = cells[i]; if (!cell || cell.retrying) return;
