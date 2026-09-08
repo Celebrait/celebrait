@@ -30,14 +30,17 @@ interface CardDriftProps {
   /** Tap opens the card in place (3D, ajar → tap to open) instead of
    *  leaving the page (the gate, Aidan 2026-09-06). */
   peek?: boolean;
+  /** Cards the page already holds — skips this component's own fetch. */
+  cards?: CatalogueCard[];
 }
 
 const shuffle = <T,>(a: T[]): T[] => { const p = [...a]; for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
 
-export function useDriftCards(size = 20, padFrom: string | null = 'birthday'): { cards: CatalogueCard[]; loaded: boolean } {
+export function useDriftCards(size = 20, padFrom: string | null = 'birthday', enabled = true): { cards: CatalogueCard[]; loaded: boolean } {
   const [cards, setCards] = useState<CatalogueCard[]>([]);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     Promise.all([
       fetch('/api/catalogue/featured').then((r) => (r.ok ? r.json() : null)).catch(() => null),
@@ -59,12 +62,14 @@ export function useDriftCards(size = 20, padFrom: string | null = 'birthday'): {
       setLoaded(true);
     });
     return () => { cancelled = true; };
-  }, [size, padFrom]);
+  }, [size, padFrom, enabled]);
   return { cards, loaded };
 }
 
-export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false }: CardDriftProps) {
-  const { cards, loaded } = useDriftCards(size, padFrom);
+export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false, cards: given }: CardDriftProps) {
+  const own = useDriftCards(size, given ? null : padFrom, !given);
+  const cards = given ?? own.cards;
+  const loaded = given ? true : own.loaded;
   const [peeking, setPeeking] = useState<CatalogueCard | null>(null);
   const row = useMemo(() => [...cards, ...cards], [cards]);
   // Nothing picked yet → render nothing at all (the page hides the block).

@@ -231,7 +231,7 @@ export default function GatePage() {
             <div className="mt-12 md:mt-16">
               <p className={`mx-auto max-w-4xl ${EYEBROW}`}>From the rack · hand-picked</p>
               <div className="-mx-6 mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
-                <CardDrift padFrom={null} peek />
+                <CardDrift padFrom={null} peek cards={picks.cards} />
               </div>
             </div>
           )}

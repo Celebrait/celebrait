@@ -64,7 +64,15 @@ export default defineConfig({
           if (
             id.includes('node_modules/react/') ||
             id.includes('node_modules/react-dom/') ||
-            id.includes('node_modules/scheduler/')
+            id.includes('node_modules/scheduler/') ||
+            // Tiny shared helpers that Rollup otherwise hoists into
+            // WHICHEVER chunk first needs them — and that was three-stack,
+            // so the entry statically imported the whole 3D chunk on every
+            // page just for Vite's preload helper and the uSES shim
+            // (audit 2026-09-08: 315KB on the gate that never draws a card).
+            id.includes('node_modules/use-sync-external-store/') ||
+            id.includes('node_modules/prop-types/') ||
+            id.includes('vite/preload-helper')
           ) {
             return 'react-core';
           }
