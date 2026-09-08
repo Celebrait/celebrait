@@ -12,6 +12,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useTypewriter } from '@/hooks/use-typewriter';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
 import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
@@ -46,7 +47,31 @@ export const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
 ];
 const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
 /** A deliberate mix of short and long — a word works, and so does a whole little story. */
-const PLACEHOLDERS = ['fishing', 'just passed her driving test', 'Man United', 'a Barbie-themed party', 'her allotment', 'Ibiza with the girls in June', 'Toy Story', '30 years of questionable golf'];
+/** Example answers for "What's their thing?", typed out one after
+ *  another (Aidan 2026-09-08: "typing animation, varying lengths, decided
+ *  by recipient"). Deliberately mixed in length — two words to a whole
+ *  clause — so the shape says "anything goes". Keyed by the recipient
+ *  chip; unknown / "Someone else" gets the general set. */
+const THING_EXAMPLES: Record<string, string[]> = {
+  Mum: ['her allotment', 'Strictly and a glass of prosecco', 'the garden centre, every single weekend', 'sea swimming, all year round'],
+  Dad: ['his golf handicap', 'Liverpool, since 1977', 'the shed, and everything in it', 'a barbecue in any weather'],
+  Nan: ['bingo Tuesdays', 'her roses', 'Corrie, never missed an episode', 'the best Sunday roast in the county'],
+  Grandad: ['the allotment', 'crosswords and a strong tea', 'his old Triumph, still running', 'telling the same joke since 1985'],
+  Sister: ['Ibiza with the girls in June', 'true crime podcasts', 'her new flat in Manchester', 'oat lattes and yoga'],
+  Brother: ['Man United', 'FIFA until 3am', 'his first marathon in April', 'the campervan'],
+  Daughter: ['just passed her driving test', 'Taylor Swift', 'her first year at uni', 'horses, always horses'],
+  Son: ['Minecraft', 'his first job at the garage', 'Arsenal, sadly', 'skateboarding'],
+  Granddaughter: ['a Barbie-themed party', 'unicorns', 'her first day at big school', 'gymnastics on Saturdays'],
+  Grandson: ['Toy Story', 'dinosaurs, all of them, by name', 'football boots for Christmas', 'Lego, everywhere'],
+  Niece: ['her ballet exam', 'Harry Potter', 'the new puppy', 'baking with Nan'],
+  Nephew: ['Pokémon cards', 'his new bike', 'Spider-Man', 'the school play'],
+  Partner: ['30 years of questionable golf', 'our trip to Lisbon', 'the dog we talk about more than each other', 'terrible puns'],
+  'Best mate': ['that stag do in Prague', 'the Sunday league', 'the air fryer obsession', 'twenty years of bad decisions'],
+  Friend: ['wild swimming', 'the book club', 'Ibiza with the girls in June', 'the pub quiz, every Thursday'],
+  Colleague: ['the office coffee machine', 'the spreadsheets', 'retiring after 25 years', 'the Friday quiz'],
+};
+const THING_EXAMPLES_DEFAULT = ['fishing', 'just passed her driving test', 'Man United', 'a Barbie-themed party', 'her allotment', 'Ibiza with the girls in June', 'Toy Story', '30 years of questionable golf'];
+const thingExamplesFor = (who: string): string[] => THING_EXAMPLES[who] ?? THING_EXAMPLES_DEFAULT;
 /** The studio's occasion picker: four up front, the rest behind More, and Other as free text. */
 const PRIMARY_OCCASIONS: readonly string[] = ['birthday', 'christmas', 'anniversary', 'wedding'];
 const VIBE_SET = new Set<string>(VIBES);
@@ -166,13 +191,16 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const [qIndex, setQIndex] = useState(initialStep);
   const [showMore, setShowMore] = useState(false);
   const [otherText, setOtherText] = useState(() => (brief.occasion && !isKnownOccasion(brief.occasion) ? brief.occasion : ''));
-  const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
 
   const questions = useMemo(() => questionsFor(brief), [brief.occasion, brief.vibe]); // eslint-disable-line react-hooks/exhaustive-deps
   const idx = Math.min(qIndex, questions.length - 1);
   useEffect(() => { onStepChange?.(idx, questions); }, [idx, questions]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (jumpTo != null) setQIndex(jumpTo); }, [jumpTo]);
   const question = questions[idx];
+  // The interest field's placeholder types itself out while it's empty —
+  // examples chosen for the recipient, restarting if they change who.
+  const thingExamples = useMemo(() => thingExamplesFor(brief.who), [brief.who]);
+  const placeholder = useTypewriter(thingExamples, question === 'interest' && !brief.thing);
   const isLast = idx === questions.length - 1;
   const isKid = isKidBrief(brief);
   const set = (patch: Partial<Brief>) => onChange({ ...brief, ...patch });

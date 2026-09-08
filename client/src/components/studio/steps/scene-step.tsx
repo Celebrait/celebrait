@@ -44,6 +44,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
+import { useTypewriter } from '@/hooks/use-typewriter';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -102,47 +103,6 @@ const BRIEF_EXAMPLES = [
   'baking, always flour on her jumper',
 ];
 
-/** The rotating-placeholder state machine, extracted so the brief can
- *  use it too (the scene textarea has its own copy inline, deliberately
- *  left alone). Types → pauses → deletes → next phrase, and only runs
- *  while `active` — never fights a user who's typing. */
-function useTypewriter(phrases: string[], active: boolean): string {
-  const [text, setText] = useState('');
-  const [idx, setIdx] = useState(0);
-  const [phase, setPhase] = useState<'typing' | 'pausing' | 'deleting'>('typing');
-
-  useEffect(() => {
-    if (!active) return;
-    const target = phrases[idx % phrases.length] ?? '';
-    if (phase === 'typing') {
-      if (text.length < target.length) {
-        const t = setTimeout(() => setText(target.slice(0, text.length + 1)), TYPE_CHAR_MS);
-        return () => clearTimeout(t);
-      }
-      const t = setTimeout(() => setPhase('pausing'), 0);
-      return () => clearTimeout(t);
-    }
-    if (phase === 'pausing') {
-      const t = setTimeout(() => setPhase('deleting'), PLACEHOLDER_PAUSE_MS);
-      return () => clearTimeout(t);
-    }
-    if (text.length > 0) {
-      const t = setTimeout(() => setText(text.slice(0, -1)), BACKSPACE_CHAR_MS);
-      return () => clearTimeout(t);
-    }
-    setIdx((i) => i + 1);
-    setPhase('typing');
-  }, [phase, text, idx, phrases, active]);
-
-  useEffect(() => {
-    if (!active) {
-      setText('');
-      setPhase('typing');
-    }
-  }, [active]);
-
-  return text;
-}
 
 export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepProps) {
   const occasion = state.recipient?.occasion ?? 'other';
