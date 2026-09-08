@@ -3,6 +3,7 @@
 import "dotenv/config";
 import { runStartupRetag } from "./startup-retag";
 import { runStartupWebpBackfill } from "./startup-webp";
+import { ensurePerfTable } from "./rum";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
@@ -137,6 +138,7 @@ app.use((req, res, next) => {
   // One-off data passes ride boot: idempotent, guarded, loud.
   void runStartupRetag();
   void runStartupWebpBackfill();
+  void ensurePerfTable();
 
   // Set server timeout for long-running AI processing
   server.timeout = 600000; // 10 minute timeout

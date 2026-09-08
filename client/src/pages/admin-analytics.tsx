@@ -34,12 +34,25 @@ type SourceRow = {
   paid: number;
   revenue: number;
 };
+type PerfRow = {
+  path: string; n: number;
+  ttfb_p75: number | null; lcp_p50: number | null; lcp_p75: number | null;
+  mobile_lcp_p75: number | null; mobile_n: number;
+};
 type AnalyticsResponse = {
   days: number;
   totals: { visits: number; signups: number; cards: number; paid: number; revenue: number };
   daily: DailyRow[];
   sources: SourceRow[];
+  perf?: PerfRow[];
 };
+
+/** Google's LCP bands: good ≤2.5s, needs work ≤4s, poor beyond. */
+function lcpTone(ms: number | null): string {
+  if (ms == null) return 'text-keeper-meta';
+  return ms <= 2500 ? 'text-cta-dark' : ms <= 4000 ? 'text-amber-600' : 'text-accent-red-dark';
+}
+const secs = (ms: number | null) => (ms == null ? '—' : `${(ms / 1000).toFixed(1)}s`);
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -138,6 +151,45 @@ export default function AdminAnalyticsPage() {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Real-user speed (server/rum.ts) */}
+      <div className="rounded-xl border border-keeper-hair bg-white">
+        <h2 className="border-b border-keeper-hair px-4 py-3 text-sm font-semibold text-keeper-ink">
+          Speed, as real visitors saw it — largest paint (p50 / p75), first byte (p75)
+        </h2>
+        {!data.perf || data.perf.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-keeper-meta">
+            No samples yet — every public page load sends one from now on.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-[11px] uppercase tracking-wide text-keeper-meta">
+                <tr>
+                  <th className="px-4 py-2">Route</th>
+                  <th className="px-4 py-2 text-right">Loads</th>
+                  <th className="px-4 py-2 text-right">LCP p50</th>
+                  <th className="px-4 py-2 text-right">LCP p75</th>
+                  <th className="px-4 py-2 text-right">Mobile LCP p75</th>
+                  <th className="px-4 py-2 text-right">TTFB p75</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.perf.map((r) => (
+                  <tr key={r.path} className="border-t border-keeper-hair">
+                    <td className="px-4 py-2 font-mono text-[12px] text-keeper-ink">{r.path}</td>
+                    <td className="px-4 py-2 text-right text-keeper-body">{r.n}</td>
+                    <td className={`px-4 py-2 text-right font-medium ${lcpTone(r.lcp_p50)}`}>{secs(r.lcp_p50)}</td>
+                    <td className={`px-4 py-2 text-right font-medium ${lcpTone(r.lcp_p75)}`}>{secs(r.lcp_p75)}</td>
+                    <td className={`px-4 py-2 text-right ${lcpTone(r.mobile_lcp_p75)}`}>{secs(r.mobile_lcp_p75)}{r.mobile_n ? <span className="ml-1 text-[11px] text-keeper-meta">({r.mobile_n})</span> : null}</td>
+                    <td className="px-4 py-2 text-right text-keeper-body">{r.ttfb_p75 == null ? '—' : `${r.ttfb_p75}ms`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Source funnel */}

@@ -54,6 +54,7 @@ import { scheduleDatesNudgeDispatch, runDatesNudgeDispatch } from "./recovery/da
 import { scheduleStaleSweeps } from "./recovery/stale-sweeper";
 import { registerVisitLogging } from "./visit-log";
 import { registerAdminAnalyticsRoutes } from "./routes/admin-analytics";
+import { registerRum } from "./rum";
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -439,6 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerRemindersRoutes(app);
   registerDevTestFailureRoutes(app);
   registerAdminAnalyticsRoutes(app);
+  registerRum(app);
 
   // Schedule the daily reminder dispatch cron (8am UTC daily).
   // First run fires at the next 8am UTC; subsequent runs 24h later.

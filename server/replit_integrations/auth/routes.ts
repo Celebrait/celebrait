@@ -62,12 +62,14 @@ export function registerAuthRoutes(app: Express): void {
   // been removed.
   app.get("/api/auth/user", async (req: any, res) => {
     try {
+      // Signed out is a normal answer, not an error: 200 + null. A 401
+      // here logged a red "Failed to load resource" in every guest's
+      // console on every page (audit 2026-09-08). The client already
+      // treats null as signed-out.
       const otpUserId = req.session?.otpUserId;
-      if (!otpUserId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      if (!otpUserId) return res.json(null);
       const user = await authStorage.getUser(otpUserId);
-      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      if (!user) return res.json(null);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);

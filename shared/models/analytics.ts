@@ -10,13 +10,7 @@
 // keeps first-touch UTM/referrer in localStorage and hands it to the
 // server at SIGNUP, where it's stored on users.attribution — that's the
 // join that turns "40 visits from instagram" into "…and 2 of them paid".
-import {
-  pgTable,
-  bigserial,
-  text,
-  timestamp,
-  index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, bigserial, text, timestamp, index, integer } from 'drizzle-orm/pg-core';
 
 export const siteVisits = pgTable(
   'site_visits',
@@ -55,3 +49,28 @@ export type Attribution = {
   /** ISO timestamp of the first touch. */
   firstTouchAt?: string;
 };
+
+/** Real-user timing (2026-09-08). One row per page load, sent by
+ *  client/src/lib/rum.ts via sendBeacon. Cookieless, no ids, path only
+ *  — same posture as site_visits. Milliseconds; null = not measured
+ *  (e.g. LCP on browsers without the API). Created at boot with
+ *  CREATE TABLE IF NOT EXISTS (server/rum.ts) so no manual push. */
+export const perfSamples = pgTable(
+  'perf_samples',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    path: text('path').notNull(),
+    ttfb: integer('ttfb'),
+    dcl: integer('dcl'),
+    load: integer('load'),
+    lcp: integer('lcp'),
+    /** Cumulative layout shift ×1000 (integer), null if unsupported. */
+    cls: integer('cls'),
+    device: text('device'),
+    /** navigator.connection.effectiveType when present ('4g', '3g'…). */
+    conn: text('conn'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [index('perf_samples_created_at_idx').on(t.createdAt)],
+);
+export type PerfSample = typeof perfSamples.$inferSelect;

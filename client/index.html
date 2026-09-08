@@ -117,12 +117,10 @@
          Figtree: humanist body sans on TRIAL in the /keeper proof section
          (warmer Fraunces pairing than Inter). Self-host before launch if kept.
          Preconnect for fast FCP. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400..700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts are self-hosted (index.css @font-face, 2026-09-08). Preload
+         the two upright latin faces the first paint needs. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/fraunces-latin-standard-normal.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/figtree-latin-wght-normal.woff2" crossorigin />
     <!-- Hero art (public/, stable URLs — see landing-keeper.tsx).
          Preloading from the HTML head starts the download in PARALLEL
          with the JS bundle; as bundled assets the fetch couldn't begin

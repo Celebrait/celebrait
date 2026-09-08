@@ -2,11 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { captureFirstTouch } from "@/lib/attribution";
+import { startRum } from "@/lib/rum";
 import { isStaleChunkError, recoverFromStaleChunk } from "@/lib/stale-chunk";
 
 // Remember where this visitor first came from (UTM/referrer) BEFORE the
 // router mounts and any redirect can strip the query string.
 captureFirstTouch();
+startRum();
 
 // STALE CHUNK RECOVERY (2026-08-04). The app code-splits into ~80
 // hash-named chunks. Every deploy replaces them, so a browser holding an

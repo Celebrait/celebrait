@@ -12,6 +12,7 @@
 // 'direct'. Visits and signups use the SAME rule on both tables so the
 // two columns line up.
 import type { Express, Request, Response } from 'express';
+import { perfRollup } from '../rum';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '@shared/schema';
@@ -150,7 +151,9 @@ export function registerAdminAnalyticsRoutes(app: Express): void {
         { visits: 0, signups: 0, cards: 0, paid: 0, revenue: 0 },
       );
 
-      res.json({ days, totals, daily: dailyRows, sources });
+      // Real-user timing per route (server/rum.ts) — same window.
+      const perf = await perfRollup(days).catch(() => []);
+      res.json({ days, totals, daily: dailyRows, sources, perf });
     } catch (err: any) {
       console.error('[ADMIN-ANALYTICS]', err);
       res.status(500).json({ message: err?.message ?? 'Analytics query failed' });
