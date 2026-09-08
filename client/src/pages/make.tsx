@@ -42,12 +42,15 @@ async function makePost(path: string, body: unknown): Promise<any> {
     r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ceiling) });
   } catch (e: any) {
     const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError';
-    throw new Error(timedOut ? 'That took too long — give it another go' : 'Lost the connection — give it another go');
+    const err = new Error(timedOut ? 'That took too long — give it another go' : 'Lost the connection — give it another go') as Error & { code?: FailCode };
+    err.code = timedOut ? 'timeout' : 'server';
+    throw err;
   }
   if (!r.ok) {
     const j = await r.json().catch(() => null);
-    const err = new Error(j?.message ?? 'That didn’t work — give it another go') as Error & { status?: number };
+    const err = new Error(j?.message ?? 'That didn’t work — give it another go') as Error & { status?: number; code?: FailCode };
     err.status = r.status;
+    err.code = (j?.code as FailCode | undefined) ?? (r.status === 429 ? 'rate' : r.status >= 500 ? 'server' : 'unknown');
     throw err;
   }
   return r.json();
@@ -60,7 +63,18 @@ const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // into the wait.
 
 interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string }
-interface CardCell { concept: Concept; imageUrl?: string; error?: string; retrying?: boolean }
+/** The photo route's failure kinds (generation-error-panel.tsx), plus our
+ *  own ceiling. Same words on both routes (Aidan 2026-09-08). */
+type FailCode = 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown';
+const FAIL_COPY: Record<FailCode, { title: string; tile: string; retry: string }> = {
+  safety:  { title: 'The safety filter caught this one', tile: 'The safety filter caught this one — usually a name or a brand in the brief.', retry: 'Try a safer take' },
+  rate:    { title: 'Slow down a sec', tile: 'We’ve hit a rate limit on the drawing engine. Give it 30 seconds.', retry: 'Try again' },
+  server:  { title: 'The drawing engine’s busy', tile: 'The image model is overloaded right now. Try again in a minute.', retry: 'Try again' },
+  auth:    { title: 'Something’s misconfigured', tile: 'We hit a problem with the image provider. The team’s been notified.', retry: 'Try again' },
+  timeout: { title: 'That one took too long', tile: 'That one took too long to draw.', retry: 'Have another go' },
+  unknown: { title: 'That one didn’t land', tile: 'That one didn’t come out.', retry: 'Have another go' },
+};
+interface CardCell { concept: Concept; imageUrl?: string; error?: string; code?: FailCode; retrying?: boolean }
 type Phase = 'brief' | 'generating' | 'results' | 'cameo' | 'signoff' | 'done' | 'failed' | 'capped';
 
 // ── the landing's classes (Aidan 2026-09-03: "not sure we need to flip
@@ -108,6 +122,9 @@ export default function MakePage() {
   const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
   const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
   const [failMsg, setFailMsg] = useState('');
+  const [failCode, setFailCode] = useState<FailCode>('unknown');
+  // Latest cells for code that runs after awaits (the all-failed check).
+  const cellsRef = useRef<CardCell[]>([]);
   // Progress for the chip row above the questions (see the brief phase).
   const [briefStep, setBriefStep] = useState(0);
   const [briefFurthest, setBriefFurthest] = useState(0);
@@ -162,6 +179,7 @@ export default function MakePage() {
   const forWho = whoName ? `${whoName}'s` : 'the';
 
   const [cells, setCells] = useState<CardCell[]>([]);
+  useEffect(() => { cellsRef.current = cells; }, [cells]);
   const [picked, setPicked] = useState<number | null>(null);
   const [cameoSrc, setCameoSrc] = useState<string | null>(null);
   const [cameoUrl, setCameoUrl] = useState<string | null>(null);
@@ -208,31 +226,60 @@ export default function MakePage() {
       // 2026-09-03: words-first "isn't so clean") — the wait screen holds,
       // then the set arrives together.
       setCells(concepts.map((c) => ({ concept: c })));
-      const landed = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
-      // One or two failures show as "didn't come out" tiles with a retry;
-      // all three failing is a proper failure screen, not three blanks.
-      if (!landed.some(Boolean)) throw new Error('None of the three came out — give it another go');
+      // Show the three slots now and let each front land as it arrives
+      // (Aidan 2026-09-08: "better to show the cards as they land").
       setPhase('results');
+      const landed = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      // One or two failures show as tiles with the reason and a retry;
+      // all three failing is the failure screen, worded by the cause.
+      if (!landed.some(Boolean)) {
+        const codes = cellsRef.current.map((c) => c.code).filter(Boolean) as FailCode[];
+        const code = codes.find((k) => k === 'safety') ?? codes.find((k) => k === 'rate') ?? codes[0] ?? 'unknown';
+        const err = new Error(FAIL_COPY[code].tile) as Error & { code?: FailCode };
+        err.code = code;
+        throw err;
+      }
     } catch (e: any) {
       if (e?.status === 429 || e?.status === 503) { setFailMsg(e.message); setPhase('capped'); }
-      else { setFailMsg(e?.message ?? 'That didn’t work'); setPhase('failed'); }
+      else { setFailCode((e?.code as FailCode) ?? 'unknown'); setFailMsg(e?.message ?? 'That didn’t work'); setPhase('failed'); }
     }
   };
-  const renderCell = async (i: number, c: Concept): Promise<boolean> => {
+  const renderCell = async (i: number, c: Concept, safer = false): Promise<boolean> => {
     try {
       const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
-      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined } : x)));
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined, code: undefined } : x)));
       return true;
-    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'That one didn’t come out.' } : x))); return false; }
+    } catch (e: any) {
+      const code: FailCode = e?.code ?? 'unknown';
+      // A safety refusal is deterministic — retrying the same brief just
+      // burns a call. Rewrite the art direction once and go again, before
+      // asking the user for anything.
+      if (code === 'safety' && !safer) {
+        try {
+          const fix = await makePost('ip-safe-art', { front_text: c.front_text, art_direction: c.art_direction, interest: brief.thing || undefined });
+          const concept = { ...c, art_direction: fix.art_direction };
+          setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
+          return await renderCell(i, concept, true);
+        } catch { /* fall through to the tile */ }
+      }
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: FAIL_COPY[code].tile, code } : x)));
+      return false;
+    }
   };
   const tryAgain = async (i: number) => {
     const cell = cells[i]; if (!cell || cell.retrying) return;
     setCells((prev) => prev.map((x, j) => (j === i ? { ...x, retrying: true, error: undefined } : x)));
     try {
-      const fix = await makePost('ip-safe-art', { front_text: cell.concept.front_text, art_direction: cell.concept.art_direction, interest: brief.thing || undefined });
-      const concept = { ...cell.concept, art_direction: fix.art_direction };
-      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
-      await renderCell(i, concept);
+      // Only a safety refusal needs a different brief; a busy engine or a
+      // timeout just needs the same card drawn again.
+      if (cell.code === 'safety') {
+        const fix = await makePost('ip-safe-art', { front_text: cell.concept.front_text, art_direction: cell.concept.art_direction, interest: brief.thing || undefined });
+        const concept = { ...cell.concept, art_direction: fix.art_direction };
+        setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
+        await renderCell(i, concept, true);
+      } else {
+        await renderCell(i, cell.concept, true);
+      }
     } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'Still no luck — pick another, or re-deal.' } : x))); }
     finally { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, retrying: false } : x))); }
   };
@@ -320,7 +367,7 @@ export default function MakePage() {
         <div className={panel}>
           <div className="text-center py-10 px-4">
             <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4"><Sparkles className="w-6 h-6" strokeWidth={1.75} /></div>
-            <h1 className="text-base font-semibold text-keeper-ink mb-1">{phase === 'capped' ? 'We’ve made a lot of cards today.' : 'That one didn’t come out.'}</h1>
+            <h1 className="text-base font-semibold text-keeper-ink mb-1">{phase === 'capped' ? 'We’ve made a lot of cards today.' : FAIL_COPY[failCode].title}</h1>
             <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">{failMsg}</p>
             <div className="flex flex-wrap justify-center gap-3">
               {phase === 'failed' && <button type="button" onClick={() => void generate()} className={primary}>Try again</button>}
@@ -339,7 +386,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={`${panel} flex flex-col items-center justify-center text-center`} aria-live="polite">
-          <p className="max-w-[420px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">about a minute</span> — three cards, written and drawn for {whoName || 'them'}, shown together when all three are ready.</p>
+          <p className="max-w-[420px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">about a minute</span> — first we write three cards for {whoName || 'them'}, then draw them. Each one lands as it's ready.</p>
           <div className="relative w-32 sm:w-36 aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 mt-8">
             <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
@@ -387,8 +434,8 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <h1 className={`${h1} mb-1`}>Three cards for {whoName || 'them'}. Pick the one.</h1>
-          <p className="text-sm text-keeper-body">Tap your favourite — next we design its inside, with your words in it.</p>
+          <h1 className={`${h1} mb-1`}>{allSettled ? `Three cards for ${whoName || 'them'}. Pick the one.` : `Drawing three cards for ${whoName || 'them'}…`}</h1>
+          <p className="text-sm text-keeper-body">{allSettled ? 'Tap your favourite — next we design its inside, with your words in it.' : 'They land one at a time — about a minute for the set.'}</p>
           {/* The cards as cards — the carousel's ajar tile, nothing under
               them (the front is right there; captions only cut off). */}
           <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
@@ -399,10 +446,14 @@ export default function MakePage() {
                 aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
                 {c.imageUrl
                   ? <AjarTile imageUrl={c.imageUrl} alt={c.concept.front_text} eager />
-                  : <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
-                      <span>{c.error ?? 'Still drawing this one…'}</span>
-                      {c.error && <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{c.retrying ? 'Having another go…' : 'Have another go'}</span>}
-                    </div>}
+                  : c.error
+                    ? <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
+                        <span>{c.error}</span>
+                        <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{c.retrying ? 'Having another go…' : FAIL_COPY[c.code ?? 'unknown'].retry}</span>
+                      </div>
+                    : <div className="relative aspect-square overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 ring-1 ring-brand/15" aria-label="Still drawing this one">
+                        <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                      </div>}
               </button>
             ))}
           </div>

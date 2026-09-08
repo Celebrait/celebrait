@@ -3700,6 +3700,17 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
     }
   };
 
+
+/** The photo route's failure vocabulary, for the guest render (2026-09-08):
+ *  ProviderError.kind when there is one, 'timeout' for our own ceiling. */
+function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown' {
+  const kind = err?.kind;
+  if (kind === 'safety' || kind === 'rate' || kind === 'server' || kind === 'auth') return kind;
+  const m = String(err?.message ?? err?.name ?? '').toLowerCase();
+  if (err?.name === 'TimeoutError' || err?.name === 'AbortError' || /timed? ?out|aborted/.test(m)) return 'timeout';
+  return 'unknown';
+}
+
   const renderHandler = async (req: Request, res: Response) => {
     const schema = z.object({
       // 300, not 120: the long read-aloud register (20-35 words) is a
@@ -3829,7 +3840,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
     } catch (err: any) {
       if (!looksBlocked(err)) {
         console.error('[CARD-LAB] render error:', err?.message ?? err);
-        return res.status(502).json({ message: err?.message ?? 'Render failed' });
+        return res.status(502).json({ message: err?.message ?? 'Render failed', code: renderFailureCode(err) });
       }
       console.warn('[CARD-LAB] openai refused, trying gemini:', err?.message);
       try {
@@ -3843,6 +3854,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
         res.status(502).json({
           message: 'Both providers refused this one — too spicy.',
           blocked: true,
+          code: 'safety',
         });
       }
     }
