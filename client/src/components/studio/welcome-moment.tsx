@@ -16,6 +16,7 @@
 // could leave the modal stuck on screen). Entrance is still animated.
 
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
@@ -44,9 +45,20 @@ export function WelcomeMoment() {
 
   const suppressed = HIDE_ON.some((rx) => rx.test(location));
   const enabled = isAuthenticated && !isLoading && !suppressed;
+  // Someone who arrives WITH a card (kept a three-card make, or brought a
+  // photo card in from the public maker) doesn't need "Make my first
+  // card" over the card they just made (2026-09-08). Shares the grid's
+  // cached query — no extra request.
+  const { data: cards } = useQuery<unknown[]>({ queryKey: ['/api/user/cards'], enabled });
+  const hasCards = Array.isArray(cards) && cards.length > 0;
 
   useEffect(() => {
-    if (!enabled || dismissedRef.current || !user?.id) return;
+    if (!enabled || dismissedRef.current || !user?.id || cards === undefined) return;
+    if (hasCards) {
+      dismissedRef.current = true;
+      try { localStorage.setItem(welcomeKeyFor(user.id), '1'); } catch { /* best-effort */ }
+      return;
+    }
     let seen = false;
     try {
       seen = localStorage.getItem(welcomeKeyFor(user.id)) === '1';
@@ -61,7 +73,7 @@ export function WelcomeMoment() {
       if (!dismissedRef.current) setOpen(true);
     }, SHOW_DELAY_MS);
     return () => window.clearTimeout(t);
-  }, [enabled, user?.id]);
+  }, [enabled, user?.id, cards, hasCards]);
 
   const dismiss = () => {
     dismissedRef.current = true;
