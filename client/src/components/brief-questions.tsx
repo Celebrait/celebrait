@@ -209,7 +209,7 @@ interface BriefQuestionsProps {
   hideDots?: boolean;
 }
 
-export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Write their three cards', compact = false, onStepChange, jumpTo = null, hideDots = false }: BriefQuestionsProps) {
+export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
   const [showMore, setShowMore] = useState(false);

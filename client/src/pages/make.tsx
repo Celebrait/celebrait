@@ -9,7 +9,7 @@
 //
 // Studio rules held: dashboard stepper, never one-question-per-screen;
 // name-weave from step 2; violet = selection/links/primary, green =
-// commit moments only (Write their three cards, Design the inside);
+// commit moments only (Design my three cards, Design the inside);
 // titles always ink; lucide at 1.75.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -434,7 +434,7 @@ export default function MakePage() {
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <button type="button" onClick={() => setAskVibe(false)} className={textLink}>Back to the three</button>
-              <button type="button" onClick={() => { setAskVibe(false); void generate(brief.vibe); }} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Write three new cards</button>
+              <button type="button" onClick={() => { setAskVibe(false); void generate(brief.vibe); }} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Design three new cards</button>
             </div>
           </div>
         </MakeShell>
