@@ -46,6 +46,29 @@ export const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Colleague' }, { label: 'Someone else' },
 ];
 const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
+/** The relations people use AS a name ("How old is Mum?"). Every other
+ *  chip is a role and needs "your" in front of it — "How old is
+ *  Partner?" read as a bug (Aidan 2026-09-09). */
+const NAME_LIKE = new Set(['Mum', 'Dad', 'Nan', 'Grandad']);
+/** The recipient as a phrase that fits inside a sentence: their first
+ *  name if we have it, else "Mum" / "your partner" / "them". */
+export function whoPhrase(b: Pick<Brief, 'who' | 'name'>): string {
+  const name = b.name.trim();
+  if (name) return name;
+  const who = b.who.trim();
+  if (!who || who === 'Someone else') return 'them';
+  return NAME_LIKE.has(who) ? who : `your ${who.toLowerCase()}`;
+}
+/** "Linda's" / "Mum's" / "your partner's" / "their". */
+export function whoPossessive(b: Pick<Brief, 'who' | 'name'>): string {
+  const p = whoPhrase(b);
+  return p === 'them' ? 'their' : `${p}${p.endsWith('s') ? '’' : '’s'}`;
+}
+/** True when the phrase is a name (or used as one), so a UI may style it
+ *  as a name rather than a plain role. */
+export function whoIsName(b: Pick<Brief, 'who' | 'name'>): boolean {
+  return !!b.name.trim() || NAME_LIKE.has(b.who.trim());
+}
 /** A deliberate mix of short and long — a word works, and so does a whole little story. */
 /** Example answers for "What's their thing?", typed out one after
  *  another (Aidan 2026-09-08: "typing animation, varying lengths, decided
@@ -254,7 +277,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'occasion' && (
           <>
-            <p className={s.h1}>What's the celebration{brief.who && brief.who !== 'Someone else' ? ` for ${brief.who}` : ''}?</p>
+            <p className={s.h1}>What's the celebration{whoPhrase(brief) !== 'them' ? ` for ${whoPhrase(brief)}` : ''}?</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
               {PRIMARY_OCCASIONS.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => { set({ occasion: o }); setQIndex(idx + 1); }))}
             </div>
@@ -278,12 +301,12 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           <>
             {brief.occasion === 'birthday' ? (
               <>
-                <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'} turning?{optionalTag}</p>
+                <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'} turning?{optionalTag}</p>
                 <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
               </>
             ) : (
               <>
-                <p className={s.h1}>How old {brief.who && brief.who !== 'Someone else' ? `is ${brief.who}` : 'are they'}?{optionalTag}</p>
+                <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'}?{optionalTag}</p>
                 <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>
               </>
             )}
@@ -314,7 +337,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'interest' && (
           <>
-            <p className={s.h1}>What's their thing?</p>
+            <p className={s.h1}>What's {whoPossessive(brief)} thing?</p>
             <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>
             <Input value={brief.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 80) })} placeholder={placeholder} className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter' && canNext) next(); }} />
           </>
@@ -322,11 +345,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'name' && (
           <>
-            <p className={s.h1}>Shall we put their name on the front?{optionalTag}</p>
+            <p className={s.h1}>Shall we put {whoPossessive({ who: brief.who, name: '' })} name on the front?{optionalTag}</p>
             <p className={s.sub}>Give us the name and we'll work it in — on one of the cards it becomes the artwork itself.</p>
             <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
             {brief.name.trim() && <p className={s.warn}>It'll be printed exactly as you type it — worth a double-check.</p>}
-            <p className={`${s.helper} mt-4`}>Got a photo of them handy? After you pick your favourite, we can put them right in the card.</p>
+            <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>
           </>
         )}
       </div>

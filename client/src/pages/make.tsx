@@ -18,7 +18,7 @@ import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { rackTokenKey } from '@/pages/buy';
@@ -136,7 +136,9 @@ export default function MakePage() {
   const ageNum = ageOf(brief);
   const isKid = isKidBrief(brief);
   const occasionLabel = occasionLabelFor(brief);
-  const whoName = brief.name.trim() || brief.who.trim();
+  // "Linda" / "Mum" / "your partner" / "them" — never a bare role used
+  // as a name ("Three cards for Partner", Aidan 2026-09-09).
+  const whoName = whoPhrase(brief);
 
   // ── Phase C: keep and buy ──────────────────────────────────────────
   // Nothing is written until the card is finished and wanted. Saving
@@ -177,7 +179,7 @@ export default function MakePage() {
       .catch(() => navigate('/studio'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated]);
-  const forWho = whoName ? `${whoName}'s` : 'the';
+  const forWho = whoPossessive(brief);
 
   const [cells, setCells] = useState<CardCell[]>([]);
   useEffect(() => { cellsRef.current = cells; }, [cells]);
@@ -395,7 +397,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={`${panel} flex flex-col items-center justify-center text-center`}>
-          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">just over a minute</span>. We write three cards for {whoName || 'them'} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">just over a minute</span>. We write three cards for {whoName} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
           <div className="relative mt-8 aspect-square w-28 overflow-hidden rounded-xl bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 sm:w-32">
             <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
@@ -417,7 +419,7 @@ export default function MakePage() {
       return (
         <MakeShell step={step}>
           <div className={panel}>
-            <h1 className={`${h1} mb-1`}>Three new cards for {whoName || 'them'}. What's the vibe?</h1>
+            <h1 className={`${h1} mb-1`}>Three new cards for {whoName}. What's the vibe?</h1>
             <p className="text-sm text-keeper-body mb-5">Same details — this just sets what they lean towards.</p>
             <div className="space-y-2.5">
               {VIBES.map((t) => {
@@ -441,8 +443,8 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <h1 className={`${h1} mb-1`}>Three cards for {whoName || 'them'}. Pick the one.</h1>
-          <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName || 'them'} in it with a photo (optional), then we design the inside with your words.</p>
+          <h1 className={`${h1} mb-1`}>Three cards for {whoName}. Pick the one.</h1>
+          <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName} in it with a photo (optional), then we design the inside with your words.</p>
           {/* The cards as cards — the carousel's ajar tile, nothing under
               them (the front is right there; captions only cut off). */}
           <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
@@ -484,7 +486,7 @@ export default function MakePage() {
         <MakeShell step={step}>
           <div className={panel}>
             <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
-            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName || 'them'} in it. Both are yours — pick the one that's more them.</p>
+            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours — pick the one that's more them.</p>
             <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
               {([[false, 'The original', c.imageUrl!], [true, 'With them in it', cameoUrl]] as const).map(([keep, name, url]) => (
                 <button key={name} type="button" onClick={() => { setCameoKept(keep); setPhase('signoff'); }} className={`${cardTile} border-keeper-hair hover:border-brand`}>
@@ -507,11 +509,11 @@ export default function MakePage() {
               <div className="text-center sm:text-left py-6" aria-live="polite">
                 <Loader2 className="w-7 h-7 text-brand animate-spin mx-auto sm:mx-0" />
                 <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
-                <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName || 'them'} — drawn from your photo, in the card's own hand. About half a minute.</p>
+                <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName} — drawn from your photo, in the card's own hand. About half a minute.</p>
               </div>
             ) : (
               <div>
-                <h1 className={`${h1} mb-1`}>Want {whoName || 'them'} actually in it?</h1>
+                <h1 className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
                 <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence — the idea, the words, the style — but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
                 {cameoError && <p className="mt-3 text-sm text-accent-red-dark">{cameoError}</p>}
                 <div className="mt-5 flex flex-wrap items-center gap-3">

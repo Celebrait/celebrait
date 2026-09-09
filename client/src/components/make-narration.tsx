@@ -18,7 +18,7 @@
 // before the page's own ceilings turn it into a failure.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Brief } from '@/components/brief-questions';
+import { whoPhrase, whoIsName, type Brief } from '@/components/brief-questions';
 
 export type BeatPart =
   | { kind: 'plain'; text: string }
@@ -52,11 +52,17 @@ export interface MakeNarrationInput {
 /** Act one — reading the brief back, thinking aloud. Every beat names a
  *  choice the visitor actually made; beats for choices they skipped are
  *  left out rather than faked. */
+/** The recipient as a beat part: a real name (or Mum/Dad) in violet,
+ *  a role ("your partner") in plain text, "them" when we know nothing. */
+function whoPart(brief: Brief): BeatPart {
+  const p = whoPhrase(brief);
+  return p === 'them' ? plain('them') : whoIsName(brief) ? name(p) : plain(p);
+}
+
 export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput): Beat[] {
   const who = brief.who.trim();
-  const theName = brief.name.trim() || who;
-  const hasName = theName.length > 0;
-  const nm = (): BeatPart => (hasName ? name(theName) : plain('them'));
+  const hasName = whoPhrase(brief) !== 'them';
+  const nm = (): BeatPart => whoPart(brief);
   const thing = brief.thing.trim();
   const cant = brief.cant.trim();
   const occ = occasionLabel.replace(/^\d+(st|nd|rd|th)\s+/i, '').toLowerCase();
@@ -117,7 +123,8 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
 
 /** Act two — the words are in, so quote them while they're drawn. */
 export function drawingBeats({ brief }: MakeNarrationInput, concepts: ConceptLine[]): Beat[] {
-  const theName = brief.name.trim() || brief.who.trim();
+  const hasName = whoPhrase(brief) !== 'them';
+  const nm = (): BeatPart => whoPart(brief);
   const thing = brief.thing.trim();
   const beats: Beat[] = [{ id: 'in', parts: [plain('The words are in. Now the pictures.')] }];
   concepts.forEach((c, i) => {
@@ -127,9 +134,9 @@ export function drawingBeats({ brief }: MakeNarrationInput, concepts: ConceptLin
   if (pal) beats.push({ id: 'pal', parts: [plain('Colours: '), em(pal.toLowerCase()), plain('.')] });
   else if (thing) beats.push({ id: 'pal', parts: [plain('Colours from the world of '), quote(trim(thing, 32)), plain('.')] });
   beats.push({ id: 'letters', parts: [plain('Getting the lettering to sit right — it’s half the joke.')] });
-  beats.push({ id: 'front', parts: theName ? [plain('Making sure '), name(theName), plain('’s front is one you’d actually pick up.')] : [plain('Making sure each front is one you’d actually pick up.')] });
+  beats.push({ id: 'front', parts: hasName ? [plain('Making sure '), nm(), plain(`${whoPhrase(brief).endsWith('s') ? '’' : '’s'} front is one you’d actually pick up.`)] : [plain('Making sure each front is one you’d actually pick up.')] });
   // The photo comes after the pick on this route — say so while they wait.
-  beats.push({ id: 'photo', parts: theName ? [plain('Once you’ve picked, a photo puts '), name(theName), plain(' right in it. Optional. Worth it.')] : [plain('Once you’ve picked, a photo puts them right in it. Optional. Worth it.')] });
+  beats.push({ id: 'photo', parts: [plain('Once you’ve picked, a photo puts '), nm(), plain(' right in it. Optional. Worth it.')] });
   return beats;
 }
 
