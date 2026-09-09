@@ -447,7 +447,7 @@ export default function MakePage() {
           <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName} in it with a photo (optional), then we design the inside with your words.</p>
           {/* The cards as cards — the carousel's ajar tile, nothing under
               them (the front is right there; captions only cut off). */}
-          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-6">
+          <div className="mt-8 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
             {cells.map((c, i) => (
               <button key={i} type="button" disabled={!c.imageUrl}
                 onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setCameoUrl(null); setCameoKept(false); setCameoError(''); setPhase('cameo'); }}
