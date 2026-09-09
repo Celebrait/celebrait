@@ -33,7 +33,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     category: "New",
     date: "3 July 2026",
     title: "Printed cards, made just for you",
-    body: "Every card is now printed to order on premium 280gsm gloss and posted in the UK — with a free digital link to share too. Allow up to 72 hours for production, then your chosen delivery on top.",
+    body: "Every card is now printed to order on premium 280gsm gloss and posted in the UK — with a free digital link to share too. Our cards are one-off prints — please allow at least a week from order to arrival.",
     href: "/pricing",
     linkLabel: "See pricing",
   },
@@ -43,7 +43,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     category: "Delivery",
     date: "9 September 2026",
     title: "One postage option, and honest dates",
-    body: "Right now our cards are printed to order by a partner printer, then posted Royal Mail 24 (£2.95). So we advise ordering at least a week before the day. At checkout, tell us the date and we'll say straight away whether it'll make it.",
+    body: "Our cards are one-off prints — please allow at least a week from order to arrival. They're printed to order by a partner printer, then posted Royal Mail 24 (£2.95). At checkout, tell us the date and we'll say straight away whether it'll make it.",
   },
   {
     id: "2026-06-01-reminders",

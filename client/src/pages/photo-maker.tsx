@@ -18,7 +18,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
-import { ChevronLeft, ChevronRight, Loader2, Sparkles, Lock, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Sparkles, Lock } from 'lucide-react';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { StepChips } from '@/components/step-chips';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -222,16 +223,14 @@ export default function PhotoMakerPage() {
   return (
     <GuestPhotoContext.Provider value>
       <Shell>
-        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-keeper-meta">
-          <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> Free account needed to generate, not to start.</span>
-            {/* Said up front (Aidan 2026-09-09): printed to order by a
-                partner printer, so a week's lead for the post. */}
-            <span className="inline-flex items-center gap-1.5 text-keeper-body"><Truck className="h-3 w-3" /> Printed to order by a partner printer — allow a week for the post.</span>
-          </span>
+        {/* Said up front (Aidan 2026-09-09): one-off prints, allow a
+            week — prominent, before the crafting starts. */}
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <LeadTimeNotice className="flex-1" />
           {/* Leaving = nothing of theirs stays in this browser. */}
-          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="mt-2 text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
+        <p className="mb-4 inline-flex items-center gap-1.5 text-xs text-keeper-meta"><Lock className="h-3 w-3" /> Free account needed to generate, not to start.</p>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={[...PUBLIC_STEPS]} current={currentStep} furthest={furthest} onJump={setStep} />
         </div>

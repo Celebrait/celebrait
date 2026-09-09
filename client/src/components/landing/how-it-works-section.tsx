@@ -32,7 +32,7 @@ const STEPS: Step[] = [
     icon: Send,
     eyebrow: 'Step 03',
     title: 'We print and post it',
-    body: 'A premium 280gsm gloss card, made to order (up to 72 hrs) then posted across the UK — with a private animated link to share included.',
+    body: 'A premium 280gsm gloss card, printed once, just for them, then posted across the UK — with a private animated link to share included. Allow at least a week from order to arrival.',
   },
 ];
 

@@ -17,6 +17,7 @@ import {
   formatDayMonth,
   parseISODate,
   ORDER_AHEAD_DAYS,
+  HONEST_LEAD_LINE,
 } from '@shared/pricing';
 
 const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -66,7 +67,7 @@ export function NeedByField({
 
       {!verdict ? (
         <p className="text-xs leading-relaxed text-keeper-meta">
-          Every card is printed to order by our partner printer, then posted Royal Mail 24. Ordered today it arrives{' '}
+          {HONEST_LEAD_LINE} Ordered today it arrives{' '}
           <span className="font-medium text-keeper-ink">{arrivalWindowCopy(today)}</span>.
           To be safe, order {ORDER_AHEAD_DAYS} days before you need it.
         </p>

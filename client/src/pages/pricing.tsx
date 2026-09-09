@@ -1,275 +1,183 @@
-// client/src/pages/pricing.tsx
+// client/src/pages/pricing.tsx — /pricing
 //
-// Pricing page — print-led "Free for me. Paid for them." model
-// (Free + one printed card that includes a free digital link),
-// driven by the shared/pricing.ts config so the landing strip,
-// checkout, and any numbers quoted in emails can never drift.
+// Rebuilt 2026-09-09 (Aidan: "rework the pricing page — types off, no
+// mention of 3 card route vs photo route, free route can go"). Three
+// facts, in the keeper skin the rest of the public site wears:
 //
-// UK-PRIMARY LAUNCH (decided 2026-05-12). GBP only — no currency
-// toggle, no ZAR copy, no SA shipping bullet. ZAR pricing still
-// exists as dormant data in shared/pricing.ts for when SA goes
-// live, but this page does not render it. When you reactivate SA,
-// restore the CurrencyToggle component and the ZAR-aware overnight
-// add-on branch from git history.
+//   1. The price ladder by door — £4.99 off the shelf, £5.99 made for
+//      them (the three-card route), £6.99 from your photo (the
+//      director). Numbers come from CARD_PRICES_GBP so this page can't
+//      drift from checkout (UX_THREE_DOORS.md §8a).
+//   2. Postage — one option, £2.95, and the lead-time notice said the
+//      way it's said everywhere: one-off prints, allow at least a week.
+//   3. What every card includes, and the fine print.
 //
-// Build order (per next_pricing_and_regen_economics.md):
-//   1. shared/pricing.ts config  ← shipped
-//   2. this page                  ← here
-//   3. landing strip teaser       ← shipped
-//   4. lock numbers after Cost Ledger has ~2 weeks of regen data
-//
-// Overnight delivery is intentionally NOT a tier — it's an add-on
-// under the Printed card (UK-only). The digital share link is
-// included free with the printed card, not sold separately
-// (decided 2026-07-01, next_digital_card_strategy.md).
+// Making is free and stays free; it just isn't sold as a tier any more.
 
 import { Link } from 'wouter';
-import { Check, Heart, Truck, Zap } from 'lucide-react';
+import { Camera, Check, LayoutGrid, Sparkles, type LucideIcon } from 'lucide-react';
+import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
-import { MarketingHeader } from '@/components/landing/marketing-header';
-import { TickerBanner } from '@/components/landing/ticker-banner';
-import { Button } from '@/components/ui/button';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { useAuth } from '@/hooks/use-auth';
-import { useAuthModal } from '@/components/auth/auth-modal';
-import { useClaimFreeCard } from '@/components/landing/ticker-banner';
-import {
-  PRICING_TIERS,
-  OVERNIGHT_DELIVERY,
-  formatPrice,
-  type PricingTier,
-  type TierId,
-} from '@shared/pricing';
+import { useSeo } from '@/lib/use-seo';
+import { CARD_PRICES_GBP, UK_SHIPPING_STANDARD_GBP, type CardSource } from '@shared/pricing';
 
-// Icon + colour theming lives at the page level — the shared config
-// stays UI-free so the server can import it for emails.
-const TIER_VISUALS: Record<TierId, {
-  icon: typeof Heart;
-  iconBg: string;
-  iconColor: string;
-}> = {
-  free: {
-    icon: Heart,
-    iconBg: 'bg-accent-coral-light',
-    iconColor: 'text-accent-coral-dark',
-  },
-  printed: {
-    icon: Truck,
-    iconBg: 'bg-cta-light',
-    iconColor: 'text-cta-hover',
-  },
-};
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-interface PriceCardProps {
-  tier: PricingTier;
-  /** Authed visitors link straight to the studio; everyone else opens
-   *  the auth modal (kept in-page rather than bounced to /login). */
-  authed: boolean;
+interface Door {
+  source: CardSource;
+  icon: LucideIcon;
+  title: string;
+  line: string;
+  points: string[];
+  href: string;
+  cta: string;
 }
 
-function PriceCard({ tier, authed }: PriceCardProps) {
-  const { openAuth } = useAuthModal();
-  // Signed out, starting a card leads with the free-card offer
-  // rather than a bare sign-in prompt. Same gate either way.
-  const claimFreeCard = useClaimFreeCard();
-  const visuals = TIER_VISUALS[tier.id];
-  const Icon = visuals.icon;
-  const priceLabel = formatPrice(tier.price, 'GBP');
+const DOORS: Door[] = [
+  {
+    source: 'rack',
+    icon: LayoutGrid,
+    title: 'Off the shelf',
+    line: 'A card from our rack, with your words inside.',
+    points: ['Ready-made front, designed by us', 'Your message set inside, or leave it blank', 'Printed once, just for you'],
+    href: '/cards/birthday',
+    cta: 'Browse the rack',
+  },
+  {
+    source: 'maker',
+    icon: Sparkles,
+    title: 'Made for them',
+    line: 'Tell us who they are and what they love. We design three cards. You pick the one.',
+    points: ['Three original fronts in about a minute', 'Written and drawn around their thing', 'Add their photo once you’ve picked (optional)'],
+    href: '/make',
+    cta: 'Tell us about them',
+  },
+  {
+    source: 'photo',
+    icon: Camera,
+    title: 'From your photo',
+    line: 'Start with a photo of them and put them in a whole new world.',
+    points: ['Any scene you can describe', 'Drawn at full print quality, one card at a time', 'A group photo works too'],
+    href: '/photo/make',
+    cta: 'Start with a photo',
+  },
+];
 
-  // Overnight is GBP-only by config (ZAR null). Pull it out once
-  // here so the JSX stays clean.
-  const overnightPenceGBP = OVERNIGHT_DELIVERY.price.GBP;
-  const overnightLabel = formatPrice(
-    { GBP: overnightPenceGBP, ZAR: 0 },
-    'GBP',
-  );
-
-  return (
-    <div
-      className={`relative bg-surface-card rounded-2xl p-6 md:p-8 border flex flex-col ${
-        tier.highlight
-          ? 'border-brand ring-2 ring-brand/20 shadow-xl'
-          : 'border-stone-200 shadow-sm'
-      }`}
-    >
-      {tier.highlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1 bg-brand text-brand-foreground text-[11px] uppercase tracking-[0.18em] font-semibold px-3 py-1 rounded-full">
-            Most popular
-          </span>
-        </div>
-      )}
-
-      <div className={`${visuals.iconBg} rounded-xl w-12 h-12 flex items-center justify-center mb-5`}>
-        <Icon className={`w-5 h-5 ${visuals.iconColor}`} strokeWidth={1.75} />
-      </div>
-
-      <div className="mb-2 flex items-baseline gap-2">
-        <h3 className="text-xl md:text-2xl font-semibold text-ink tracking-tight">
-          {tier.name}
-        </h3>
-        <span className="text-[11px] uppercase tracking-[0.18em] text-ink-soft font-medium">
-          {tier.tagline}
-        </span>
-      </div>
-      <p className="text-sm text-ink-soft leading-relaxed mb-6">{tier.blurb}</p>
-
-      <div className="mb-6 pb-6 border-b border-stone-100">
-        <p className="text-3xl md:text-4xl font-semibold text-ink tracking-tight">
-          {priceLabel}
-        </p>
-        {tier.id !== 'free' && (
-          <p className="text-xs text-ink-soft mt-1">per card · plus postage</p>
-        )}
-      </div>
-
-      <ul className="space-y-2.5 mb-8 flex-1">
-        {tier.features.map((f) => (
-          <li key={f} className="flex items-start gap-2.5 text-sm text-ink-soft">
-            <Check
-              className="w-4 h-4 text-cta-hover shrink-0 mt-0.5"
-              strokeWidth={2.5}
-            />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-
-      {/* Overnight add-on callout removed 2026-09-09 — one postage
-          option at launch; the promise is "order a week ahead". */}
-
-      {authed ? (
-        <Link href="/studio">
-          <Button
-            className={`w-full h-11 text-sm font-medium ${
-              tier.highlight
-                ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
-                : 'bg-ink hover:bg-ink/90 text-white'
-            }`}
-          >
-            {tier.ctaLabel}
-          </Button>
-        </Link>
-      ) : (
-        <Button
-          onClick={() => claimFreeCard()}
-          className={`w-full h-11 text-sm font-medium ${
-            tier.highlight
-              ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
-              : 'bg-ink hover:bg-ink/90 text-white'
-          }`}
-        >
-          {tier.ctaLabel}
-        </Button>
-      )}
-    </div>
-  );
-}
+const INCLUDED = [
+  '280gsm gloss-coated art card, HP Indigo print',
+  'Posted in a kraft envelope, tracked',
+  'Straight to them, or to you first to hand over',
+  'A free digital link — the card opens in 3D on any screen',
+  'Sustainably sourced, plastic-free and recyclable',
+  'Make and preview for free; pay only when you post one',
+];
 
 export default function PricingPage() {
+  useSeo('/pricing');
   const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
-  const claimFreeCard = useClaimFreeCard();
-  const showAuthedTreatment = !isLoading && isAuthenticated;
+  const photoHref = !isLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
 
   return (
-    <div className="min-h-screen bg-surface-card">
-      <div className="fixed inset-x-0 top-0 z-[160]">
-        <TickerBanner />
-      </div>
-      <MarketingHeader topClass="top-10" />
-
-      <main className="pt-40 md:pt-44 pb-24 md:pb-32">
-        <div className="max-w-7xl mx-auto px-6 md:px-10">
-          {/* Header */}
-          <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-accent-coral-dark font-semibold mb-4">
-              Pricing
-            </p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-ink tracking-tight leading-[1.05]">
-              Free for me. Paid for them.
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className={HERO_MAIN}>
+        <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
+          <div className="mx-auto max-w-4xl">
+            <p className={EYEBROW}>Pricing</p>
+            <h1 className={`mt-4 max-w-[20ch] text-[clamp(28px,5vw,54px)] leading-[1.06] ${DISPLAY}`}>
+              One printed card.
+              <br />
+              <span className="font-medium italic">Three ways to make it.</span>
             </h1>
-            <p className="text-lg text-ink-soft leading-relaxed mt-6">
-              Make as many cards as you like — that bit's on us. Pay only when
-              you're sending one to someone special.
+            <p className={`max-w-[40rem] ${SUB}`}>
+              Every card is printed once, just for them, and posted with a free digital link to share.
+              The price depends on how much we make from scratch.
             </p>
-          </div>
 
-          {/* Price tiers */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
-            {PRICING_TIERS.map((tier) => (
-              <PriceCard key={tier.id} tier={tier} authed={showAuthedTreatment} />
-            ))}
-          </div>
+            <div className="mt-8 md:mt-10">
+              <LeadTimeNotice link={false} />
+            </div>
 
-          {/* Placeholder-pricing disclosure — remove once Cost Ledger
-              has 2 weeks of data and numbers are locked. */}
-          <p className="text-center text-xs text-ink-soft mt-6">
-            Launch pricing. Numbers may settle slightly once we've seen how
-            real regenerations behave.
-          </p>
+            {/* The ladder */}
+            <div className="mt-6 grid gap-4 md:grid-cols-3 md:gap-5">
+              {DOORS.map((d) => {
+                const Icon = d.icon;
+                const href = d.source === 'photo' ? photoHref : d.href;
+                return (
+                  <div key={d.source} className="flex flex-col rounded-xl border-2 border-keeper-hair bg-white p-5 shadow-[0_12px_40px_-28px_rgba(33,29,25,0.35)] sm:p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-muted text-keeper-gold">
+                        <Icon className="h-5 w-5" strokeWidth={1.75} />
+                      </span>
+                      <span className="font-display text-[26px] font-bold leading-none tracking-[-0.01em] text-keeper-ink">{gbp(CARD_PRICES_GBP[d.source])}</span>
+                    </div>
+                    <h2 className="mt-4 font-display text-[22px] font-bold leading-[1.1] text-keeper-ink">{d.title}</h2>
+                    <p className="mt-1 text-[14px] leading-snug text-keeper-body">{d.line}</p>
+                    <ul className="mt-4 flex-1 space-y-2">
+                      {d.points.map((pt) => (
+                        <li key={pt} className="flex items-start gap-2 text-[13.5px] leading-snug text-keeper-body">
+                          <span className="mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark"><Check className="h-2.5 w-2.5" strokeWidth={3} /></span>
+                          <span>{pt}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-4 text-[12px] text-keeper-meta">+ {gbp(UK_SHIPPING_STANDARD_GBP)} postage, Royal Mail 24 tracked</p>
+                    <Link href={href} className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-go px-5 py-2.5 text-[14.5px] font-semibold text-go-foreground transition-colors hover:bg-go-hover">
+                      {d.cta}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* Notes */}
-          <div className="mt-16 md:mt-20 max-w-3xl mx-auto bg-surface rounded-2xl p-8 md:p-10 border border-stone-200">
-            <h2 className="text-xl md:text-2xl font-semibold text-ink tracking-tight mb-4">
-              The fine print, kept short.
-            </h2>
-            <ul className="space-y-3 text-sm text-ink-soft leading-relaxed">
-              <li>
-                <strong className="text-ink font-semibold">Where we ship:</strong>{' '}
-                United Kingdom today. More territories coming — sign in and
-                we'll let you know when yours is live.
-              </li>
-              <li>
-                <strong className="text-ink font-semibold">Paper &amp; print:</strong>{' '}
-                280gsm gloss-coated art card, printed on an HP Indigo press
-                for crisp, vivid colour. Sustainably sourced, vegan-friendly,
-                plastic-free and recyclable — packaging included.
-              </li>
-              <li>
-                <strong className="text-ink font-semibold">Delivery:</strong>{' '}
-                Every card is printed to order (up to three working days),
-                then posted Royal Mail 24, tracked, for £2.95. Order a week
-                before you need it — tell us the date at checkout and we'll
-                say whether it'll make it.
-              </li>
-              <li>
-                <strong className="text-ink font-semibold">Free regenerations:</strong>{' '}
-                Tweak any part of your card — front, inside, scene, style — as
-                many times as you like before sending or printing.
-              </li>
-              <li>
-                <strong className="text-ink font-semibold">Keep what you make:</strong>{' '}
-                The free tier lets you download the front and inside as images.
-                Order the printed card and you also get the gift moment free —
-                the 3D opening view and a private share link that never expires.
-              </li>
-            </ul>
-          </div>
+            {/* Every card */}
+            <div className="mt-12 grid gap-8 md:mt-16 md:grid-cols-[1fr_1fr]">
+              <div>
+                <p className={EYEBROW}>Every card includes</p>
+                <ul className="mt-4 space-y-2.5">
+                  {INCLUDED.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2.5 text-[15px] leading-snug text-keeper-body">
+                      <span className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark"><Check className="h-2.5 w-2.5" strokeWidth={3} /></span>
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className={EYEBROW}>Delivery, honestly</p>
+                <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-keeper-body">
+                  <p>
+                    Our cards are one-off prints. Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked, for {gbp(UK_SHIPPING_STANDARD_GBP)}. Please allow at least a week from order to arrival.
+                  </p>
+                  <p>
+                    At checkout, tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.
+                  </p>
+                  <p>
+                    UK addresses only for now. Buying from abroad is fine; have it sent straight to them.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          {/* CTA */}
-          <div className="mt-16 md:mt-20 text-center">
-            {showAuthedTreatment ? (
-              <Link href="/studio">
-                <Button className="bg-brand hover:bg-brand-dark text-brand-foreground h-12 px-8 text-base font-medium">
-                  Open my studio
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                onClick={() => claimFreeCard()}
-                className="bg-go hover:bg-go-hover text-go-foreground h-12 px-8 text-base font-medium"
-              >
-                Make a card
-              </Button>
-            )}
-            <p className="text-xs text-ink-soft mt-4">
-              Free to start. No card needed.
-            </p>
+            {/* Fine print */}
+            <div className="mt-12 rounded-2xl border border-keeper-hair bg-white/70 p-6 backdrop-blur-sm md:mt-16 md:p-8">
+              <p className={EYEBROW}>The fine print, kept short</p>
+              <ul className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-keeper-body">
+                <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account.</li>
+                <li><span className="font-semibold text-keeper-ink">Personalised cards can't be cancelled</span> once printing begins. We say so before you pay.</li>
+                <li><span className="font-semibold text-keeper-ink">Making is free.</span> Roll again, change the details, start over. You only pay when you post one.</li>
+                <li><span className="font-semibold text-keeper-ink">No logos, brands or famous faces</span> on the front. Your answers set the scene; we draw it.</li>
+              </ul>
+            </div>
           </div>
-        </div>
+        </section>
       </main>
-
-      <MarketingFooter />
+      <MarketingFooter cta="gate" />
     </div>
   );
 }

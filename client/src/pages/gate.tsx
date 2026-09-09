@@ -206,7 +206,7 @@ export default function GatePage() {
                 [RefreshCw, 'Changed your mind? Roll again with a new vibe, or tweak the details.'],
                 [PenLine, 'You steer, we draw. Your answers set the scene — we just can\'t do logos, brands or famous faces.'],
                 [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
-                [Clock, 'Printed to order, then posted Royal Mail 24 (£2.95). Order a week before the day.'],
+                [Clock, 'Our cards are one-off prints — please allow at least a week from order to arrival. Postage is £2.95, Royal Mail 24.'],
                 [LockOpen, 'No account needed to see your three.'],
               ]}
             />
@@ -232,7 +232,7 @@ export default function GatePage() {
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
                 [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],
                 [Gem, 'Drawn by our bigger image model, one card at a time, at full print quality. Slower, dearer to run, and worth it.'],
-                [Clock, 'Printed to order, then posted Royal Mail 24 (£2.95). Order a week before the day.'],
+                [Clock, 'Our cards are one-off prints — please allow at least a week from order to arrival. Postage is £2.95, Royal Mail 24.'],
                 [LockOpen, 'No account to start.'],
               ]}
             />

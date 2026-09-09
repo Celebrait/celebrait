@@ -32,11 +32,11 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From £4.99 plus postage (£4.99 off the shelf, £5.99 made for them, £6.99 from your photo), with a free digital version included. Every card is printed to order — allow up to 72 hours for production — then it's posted tracked, with faster courier options at checkout.",
+    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From £4.99 plus postage (£4.99 off the shelf, £5.99 made for them, £6.99 from your photo), with a free digital version included. Our cards are one-off prints — please allow at least a week from order to arrival.",
   },
   {
     q: 'How fast is delivery?',
-    a: 'Honest answer: right now our cards are printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. So we advise ordering at least a week before you need it. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
+    a: 'Our cards are one-off prints — please allow at least a week from order to arrival. Right now they\'re printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
   },
   {
     q: 'What paper do you print on?',

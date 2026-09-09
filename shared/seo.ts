@@ -73,7 +73,7 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/pricing',
     title: 'Pricing — Personalised Greetings Cards from £4.99 | Celebrait',
     description:
-      'No subscriptions: printed cards from £4.99 plus £2.95 postage — £4.99 off the shelf, £5.99 made for them, £6.99 from your photo. Free to design, free digital version included. Printed to order in the UK within 72 hours.',
+      'No subscriptions: printed cards from £4.99 plus £2.95 postage — £4.99 off the shelf, £5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.',
   },
   {
     path: '/contact',

@@ -55,21 +55,10 @@ export interface PricingTier {
   ctaLabel: string;
 }
 
+// The 'free' tier was dropped from this list 2026-09-09 (Aidan: "free
+// route can go, no need to advertise this"). Making is still free; it
+// just isn't sold as a product. TierId keeps 'free' for old references.
 export const PRICING_TIERS: PricingTier[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    tagline: 'For me',
-    blurb: 'Make the card. Keep it for yourself.',
-    price: { GBP: 0, ZAR: 0 },
-    features: [
-      'Unlimited generations',
-      'Download front + inside as images',
-      'Save to your gallery',
-      'No payment needed',
-    ],
-    ctaLabel: 'Start making',
-  },
   {
     id: 'printed',
     name: 'Printed & posted',
@@ -198,11 +187,12 @@ export function deliveryEstimateCopy(id: ShippingTierId): string {
 }
 
 /** One-liner for the site-wide production banner + any "how long" copy. */
-export const PRODUCTION_NOTICE = `Every card is printed to order by our partner printer, then posted Royal Mail 24. Order a week before you need it.`;
-/** The one-liner for the site-wide banner and the journey's touchpoints
- *  (Aidan 2026-09-09: "we should be honest — right now we rely on a
- *  third-party printer, so we advise giving at least a week"). */
-export const HONEST_LEAD_LINE = `Our cards are printed to order by a partner printer, then posted — allow a week.`;
+export const PRODUCTION_NOTICE = `Our cards are one-off prints. Please allow at least a week from order to arrival.`;
+/** THE lead-time line, site-wide — banner, maker touchpoints, giving
+ *  moment, pricing, FAQ (Aidan 2026-09-09, his words). Prominent, not
+ *  small print: every card is printed once, to order, by a partner
+ *  printer, then posted Royal Mail 24. */
+export const HONEST_LEAD_LINE = PRODUCTION_NOTICE;
 
 // ── The delivery window, as DATES ───────────────────────────────────
 // A customer buying a card for a day doesn't think in "72 hrs + 1–2

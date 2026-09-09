@@ -1615,12 +1615,12 @@ function ObjectSection() {
             <li>✓ Printed in the UK</li>
           </ul>
           <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-meta">
-            Every card is printed to order, just for them — up to three
-            working days in the print lab, then Royal Mail 24, tracked, for
-            £2.95. Order a week before the day and it's there in good time.
+            Our cards are one-off prints, made just for them — please allow at
+            least a week from order to arrival. Posted Royal Mail 24, tracked,
+            for £2.95.
           </p>
           <p className="mt-4 font-mono text-[12px] text-keeper-meta">
-            Today you make it → printed to order → posted Royal Mail 24 · order a week ahead
+            Today you make it → printed once, just for them → posted Royal Mail 24 · allow a week
           </p>
           {/* The "Straight to them / Or to you first" pair used to sit here
               as two 13px cards. It's now its own section (HandoverSection)
@@ -1663,7 +1663,7 @@ function PriceSection() {
             You just pay standard postage, £2.95. One per account;
             after that, cards are from £4.99 plus postage. Make and preview as
             many as you like for free — you only pay when you post one.
-            Printed to order, so order a week ahead.
+            Our cards are one-off prints — please allow at least a week from order to arrival.
           </p>
           <div className="mt-8">
             <PrimaryCta large />

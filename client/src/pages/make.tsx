@@ -14,19 +14,20 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock, Truck } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
 import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPriceGBP, HONEST_LEAD_LINE } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -352,15 +353,12 @@ export default function MakePage() {
     ];
     return (
       <MakeShell step={step}>
-        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-keeper-meta">
-          <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> No account needed to see your three.</span>
-            {/* Said before they spend twenty minutes crafting (Aidan
-                2026-09-09): printed to order by a partner printer, so a
-                week's lead. */}
-            <span className="inline-flex items-center gap-1.5 text-keeper-body"><Truck className="h-3 w-3" /> Printed to order by a partner printer — allow a week for the post.</span>
-          </span>
-          <Link href="/create" className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
+        {/* Said before they spend twenty minutes crafting (Aidan
+            2026-09-09): one-off prints, allow a week. The "no account"
+            line that sat here is gone (Aidan: "we can remove this"). */}
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <LeadTimeNotice className="flex-1" />
+          <Link href="/create" className="mt-2 text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
@@ -588,7 +586,7 @@ export default function MakePage() {
       <MakeShell step={step}>
         <div className={panel}>
           <h1 className={`${h1} mb-1`}>There it is — {forWho} card.</h1>
-          <p className="text-sm text-keeper-body">Printed to order on 280gsm, kraft envelope, posted Royal Mail 24 — order a week before the day.</p>
+          <p className="text-sm text-keeper-body">280gsm, kraft envelope, posted Royal Mail 24. {HONEST_LEAD_LINE}</p>
           <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>

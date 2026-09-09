@@ -226,8 +226,8 @@ export default function CardProductPage() {
             <p className="mt-3 text-center text-xs text-keeper-meta">No account needed to buy a card — only our card builder asks you to sign up.</p>
 
             <ul className="mt-7 space-y-2.5 text-sm text-keeper-body">
-              <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Printed on 300gsm card with a proper envelope</li>
-              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Made and posted within 72 hours, UK-wide</li>
+              <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Printed on 280gsm gloss card, kraft envelope</li>
+              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> One-off print, posted Royal Mail 24 UK-wide — allow at least a week</li>
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Send it to them directly, or to yourself to hand over</li>
             </ul>
           </div>

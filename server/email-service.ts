@@ -987,7 +987,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
       ? 'posted <strong>to you</strong> to hand over yourself, tracked'
       : `posted <strong>straight to ${escape(recipientName ?? 'them')}</strong>, tracked`;
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — made to order (<strong>up to 72 hours</strong>), then ${deliveryLine}. We'll email your tracking as soon as it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed — a one-off print, made to order (<strong>up to three working days</strong>), then ${deliveryLine}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.</li>`,
     );
   }
 
@@ -1039,7 +1039,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
     const dl = toYou
       ? 'posted to you to hand over yourself, tracked'
       : `posted straight to ${recipientName ?? 'them'}, tracked`;
-    textItems.push(`- Printed — made to order (up to 72 hours), then ${dl}. We'll email your tracking as soon as it ships.`);
+    textItems.push(`- Printed — a one-off print, made to order (up to three working days), then ${dl}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.`);
   }
   const text = `Hi ${senderName},
 

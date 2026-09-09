@@ -324,13 +324,13 @@ function ReminderRow({
               {distanceLabel}
             </span>
           </p>
-          {/* T-3 nudge surfaced inline so the user sees it before the
-              email lands. Print is made-to-order (up to 72h) so this close
-              it's tight — the honest fallback is the instant digital link.
-              Only when not already suppressed. */}
-          {!reminder.suppressed && reminder.daysUntil <= 3 && reminder.daysUntil >= 0 && (
+          {/* Inline nudge inside the last safe week (2026-09-09: one
+              postage option, order a week ahead). Under seven days the
+              post may miss it; the honest fallback is the instant
+              digital link. Only when not already suppressed. */}
+          {!reminder.suppressed && reminder.daysUntil <= 7 && reminder.daysUntil >= 0 && (
             <p className="text-[11px] text-accent-red-dark bg-accent-red-light border border-accent-red/30 rounded-md px-2 py-1 mt-2 inline-block">
-              Cutting it fine — pick the fastest delivery; the digital link lands instantly.
+              {reminder.daysUntil === 7 ? 'Last safe day to order — one-off prints need a week.' : 'Under a week — the post may miss it; the digital link lands instantly.'}
             </p>
           )}
         </div>

@@ -125,13 +125,13 @@ const PRINT_FEATURES: PrintFeature[] = [
   },
   {
     icon: Package,
-    title: 'Printed to order, just for them',
-    body: 'Every card is made after you order it — no shelf, no stock. Up to three working days in the print lab.',
+    title: 'One-off prints, made just for them',
+    body: 'Every card is printed once, after you order it — no shelf, no stock. Up to three working days in the print lab.',
   },
   {
     icon: Truck,
-    title: 'Then posted, tracked — order a week ahead',
-    body: 'Royal Mail 24 for £2.95, usually the next working day. Tell us the date at checkout and we\'ll say if it\'ll make it.',
+    title: 'Then posted — allow at least a week',
+    body: 'Royal Mail 24 for £2.95, usually the next working day. Please allow at least a week from order to arrival — tell us the date at checkout and we\'ll say if it\'ll make it.',
   },
   {
     icon: Globe,

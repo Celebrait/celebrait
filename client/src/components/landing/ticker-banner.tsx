@@ -96,10 +96,10 @@ export function TickerBanner() {
       >
         <Truck className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden="true" />
         <span className="sm:hidden">
-          Printed to order by a partner printer — <b>allow a week</b> for the post ›
+          One-off prints — please <b>allow at least a week</b> from order to arrival ›
         </span>
         <span className="hidden sm:inline">
-          Honest bit: right now our cards are printed by a partner printer, so <b>allow at least a week</b> for the post ›
+          Our cards are one-off prints. Please <b>allow at least a week</b> from order to arrival ›
         </span>
       </Link>
     </div>
