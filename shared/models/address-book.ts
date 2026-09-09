@@ -211,7 +211,8 @@ export const reminderLog = pgTable(
     occasionId: integer("occasion_id")
       .notNull()
       .references(() => recipientOccasions.id, { onDelete: "cascade" }),
-    /** 't_21' | 't_7' | 't_3' (V1). Future: 't_plus_1'. Free-text so
+    /** 't_21' | 't_10' | 't_7' since 2026-09-09 (older rows carry the
+     *  retired 't_3'). Future: 't_plus_1'. Free-text so
      *  new tiers don't require migration. */
     tier: text("tier").notNull(),
     /** Which year of the recurring occasion this fired for. Lets the

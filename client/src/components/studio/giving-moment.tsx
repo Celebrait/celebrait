@@ -35,7 +35,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cardPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
+import { cardPriceGBP, UK_SHIPPING_STANDARD_GBP, HONEST_LEAD_LINE } from '@shared/pricing';
 import type { CardDraftState } from '@shared/schema';
 
 // ── Pricing (pence) ──────────────────────────────────────────────────
@@ -178,6 +178,11 @@ export function GivingMoment({
           Your printed card{recipientName ? ` for ${recipientName}` : ''} —{' '}
           {formatGBP(CARD_BASE)} inc. postage, with a free digital link to
           share.
+        </p>
+        {/* The honest lead line, before the address form (Aidan
+            2026-09-09): printed by a partner printer, allow a week. */}
+        <p className="text-xs text-keeper-meta leading-relaxed">
+          {HONEST_LEAD_LINE} You can tell us the date at checkout and we'll say whether it'll make it.
         </p>
       </div>
 

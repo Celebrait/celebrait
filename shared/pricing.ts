@@ -198,7 +198,11 @@ export function deliveryEstimateCopy(id: ShippingTierId): string {
 }
 
 /** One-liner for the site-wide production banner + any "how long" copy. */
-export const PRODUCTION_NOTICE = `Every card is printed to order, then posted Royal Mail 24. Order a week before you need it.`;
+export const PRODUCTION_NOTICE = `Every card is printed to order by our partner printer, then posted Royal Mail 24. Order a week before you need it.`;
+/** The one-liner for the site-wide banner and the journey's touchpoints
+ *  (Aidan 2026-09-09: "we should be honest — right now we rely on a
+ *  third-party printer, so we advise giving at least a week"). */
+export const HONEST_LEAD_LINE = `Our cards are printed to order by a partner printer, then posted — allow a week.`;
 
 // ── The delivery window, as DATES ───────────────────────────────────
 // A customer buying a card for a day doesn't think in "72 hrs + 1–2

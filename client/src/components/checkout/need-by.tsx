@@ -66,7 +66,7 @@ export function NeedByField({
 
       {!verdict ? (
         <p className="text-xs leading-relaxed text-keeper-meta">
-          Every card is printed to order, then posted Royal Mail 24. Ordered today it arrives{' '}
+          Every card is printed to order by our partner printer, then posted Royal Mail 24. Ordered today it arrives{' '}
           <span className="font-medium text-keeper-ink">{arrivalWindowCopy(today)}</span>.
           To be safe, order {ORDER_AHEAD_DAYS} days before you need it.
         </p>
@@ -94,6 +94,14 @@ export function NeedByField({
             <span className="font-semibold">The post won't make it by then.</span> The earliest it can land is {formatDayMonth(verdict.earliest)}.
             You can still order it — and send {who} the free digital link on the day, so they open something from you either way.
           </span>
+        </p>
+      )}
+      {/* Too late this time → the reminders (Aidan 2026-09-09: "sign up,
+          put some key dates in and we'll remind you in good time"). */}
+      {verdict && verdict.tone !== 'ok' && (
+        <p className="text-xs leading-relaxed text-keeper-meta">
+          Next time, let us do the remembering: add {who === 'them' ? 'their' : `${who}'s`} dates in your studio and we email you three weeks, ten days and a week ahead.{' '}
+          <a href="/studio/people/reminders" className="font-medium text-brand-dark underline underline-offset-2 hover:text-brand">Set up reminders</a>
         </p>
       )}
     </div>

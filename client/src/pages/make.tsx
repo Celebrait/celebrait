@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
@@ -353,7 +353,13 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className="mb-3 flex items-center justify-between gap-3 text-xs text-keeper-meta">
-          <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> No account needed to see your three.</span>
+          <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="inline-flex items-center gap-1.5"><Lock className="h-3 w-3" /> No account needed to see your three.</span>
+            {/* Said before they spend twenty minutes crafting (Aidan
+                2026-09-09): printed to order by a partner printer, so a
+                week's lead. */}
+            <span className="inline-flex items-center gap-1.5 text-keeper-body"><Truck className="h-3 w-3" /> Printed to order by a partner printer — allow a week for the post.</span>
+          </span>
           <Link href="/create" className="underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">

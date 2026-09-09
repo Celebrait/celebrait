@@ -1480,7 +1480,12 @@ export async function sendDropOffLastCallEmail(params: {
 // the URL). If the user has the recipient saved with a portrait /
 // other context, that all loads in via the address-book typeahead.
 
-export type ReminderTier = 't_21' | 't_7' | 't_3';
+/** The ladder (Aidan 2026-09-09: one postage option, "order a week
+ *  ahead", so the reminders have to cater for it): three weeks out, ten
+ *  days out (the comfortable window), and a week out — the last safe day
+ *  to order. T-3 retired: three days out there's nothing honest left to
+ *  say about print. Old 't_3' rows stay in reminder_log. */
+export type ReminderTier = 't_21' | 't_10' | 't_7';
 
 /** The draft nudge — the card is MADE, it just hasn't been posted.
  *  Fires once (reminder_log tier 'draft_t10') when a completed, unpaid
@@ -1505,12 +1510,13 @@ export async function sendDraftNudgeEmail(params: {
   const who = escape(recipientName);
   const occ = escape(occasion === 'other' ? 'big day' : occasion.replace(/_/g, ' '));
 
+  // Honest about the post: printed to order by a partner printer, then
+  // Royal Mail 24 — a week is the safe lead. Under that we say so and
+  // point at the free digital link rather than promise a miracle.
   const timing =
-    daysUntil <= 2
-      ? 'is nearly here — post it today and it can still make it'
-      : daysUntil <= 4
-        ? `is ${daysUntil} days away — post it now and it'll arrive in time`
-        : `is ${daysUntil} days away — post it this week and it'll arrive in time`;
+    daysUntil <= 6
+      ? `is ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'} away — that's tight for the post (we advise a week), so order today and send the free digital link on the day as a backup`
+      : `is ${daysUntil} days away — order today and it'll arrive in time`;
 
   const frontAbs = absoluteEmailImage(params.frontImageUrl);
   const insideAbs = absoluteEmailImage(params.insideImageUrl);
@@ -1527,8 +1533,8 @@ export async function sendDraftNudgeEmail(params: {
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       ${who}'s ${occ} ${timing}. The card you made is ready and waiting in
-      your Drafts — every card is printed to order (up to 72 hours), then
-      posted.
+      your Drafts — every card is printed to order by our partner printer,
+      then posted Royal Mail 24.
     </p>
     <p style="margin: 0 0 8px;">
       One tap below and it's on its way.
@@ -1630,46 +1636,43 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong>.${hasMemory ? ` Plenty of time to make this year's.` : ` Plenty of time to make them something special.`}
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Start now and you've time to change the scene, the message — anything you like.
+        Start now and you've time to change the scene, the message — anything you like. Cards are printed to order by our partner printer, then posted, so we always advise ordering a week ahead.
       </p>
     `;
     ctaLabel = hasMemory
       ? `Make this year's card`
       : `Start ${recipientName}'s card`;
-  } else if (tier === 't_7') {
-    subject = `One week to ${recipientName}'s ${occasionLabel}`;
-    preheader = hasMemory
-      ? `Time to make this year's card.`
-      : `Time to start their card.`;
+  } else if (tier === 't_10') {
+    // The comfortable window: order this week and it's there with days
+    // to spare.
+    subject = `Ten days to ${recipientName}'s ${occasionLabel}`;
+    preheader = `Order this week and it's there in good time.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} Start now and there's time to print and post it before the day.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>ten days away</strong>.${hasMemory ? ` Time to make this year's.` : ''} It takes about five minutes to make — order this week and it'll be there with days to spare.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Every card is printed to order (up to three working days) then posted Royal Mail 24 — a week gives it room to arrive in good time.
+        Honest bit: our cards are printed to order by a partner printer, then posted Royal Mail 24. That's why we advise a week. Ten days is comfortable.
       </p>
     `;
     ctaLabel = hasMemory
       ? `Make this year's card`
       : `Start ${recipientName}'s card`;
   } else {
-    // t_3 — cutting it fine. Print is made-to-order (up to 72h) so this
-    // close it's tight; the honest safety net is the free digital link,
-    // which lands instantly. Print-led: there's no standalone digital card
-    // to "pivot" to — every card already includes the share link (see
-    // next_digital_card_strategy.md).
-    subject = `${recipientName}'s ${occasionLabel} is in ${daysUntil} days`;
-    preheader = `It's tight for print — but the digital link sends instantly.`;
+    // t_7 — the last safe day to order. Say it plainly, and say what the
+    // fallback is (the free digital link), without promising the post.
+    subject = `Last safe day to order ${recipientName}'s ${occasionLabel} card`;
+    preheader = `A week out is the line — order today and it arrives in time.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}</strong>. Cards are printed to order (up to 72 hours) then posted, so it's tight this close — choose the fastest delivery at checkout to give it the best chance.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong> — today is the last safe day to order.${hasMemory ? ` Time to make this year's.` : ''} Order now and it arrives in good time.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        It takes about 5 minutes to make, and every card comes with a free share link that arrives instantly — so you'll always have something to send on the day.
+        Our cards are printed to order by a partner printer, then posted Royal Mail 24, which is why a week is the line. Leave it later and the post may miss the day — though every card comes with a free digital link that lands instantly, so there's always something to send.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1687,10 +1690,10 @@ export async function sendReminderEmail(params: {
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
     (tier === 't_21'
-      ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something special.`
-      : tier === 't_7'
-        ? `${recipientName}'s ${occasionLabel} is a week away. Start now and there's time to print and post it before the day.`
-        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Cards are printed to order (up to three working days) then posted, so it's tight — order today, and the free digital link arrives instantlyeither way.`) +
+      ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something special. We advise ordering a week ahead.`
+      : tier === 't_10'
+        ? `${recipientName}'s ${occasionLabel} is ten days away. Order this week and it'll be there with days to spare.`
+        : `${recipientName}'s ${occasionLabel} is a week away — today is the last safe day to order. Our cards are printed to order by a partner printer, then posted Royal Mail 24. Every card comes with a free digital link that lands instantly.`) +
     `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });

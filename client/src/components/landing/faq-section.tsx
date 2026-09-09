@@ -36,7 +36,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How fast is delivery?',
-    a: 'Every card is printed to order — nothing sits on a shelf — which takes up to three working days. Then it goes Royal Mail 24, tracked (£2.95), usually the next working day. So order a week before you need it. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
+    a: 'Honest answer: right now our cards are printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. So we advise ordering at least a week before you need it. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
   },
   {
     q: 'What paper do you print on?',
@@ -48,7 +48,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How do reminders work?',
-    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you 21, 7 and 3 days ahead so you never miss a date — and because every card is printed to order (up to 72 hours) then posted, those reminders give you the runway to order in good time.",
+    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you three weeks, ten days and a week ahead — the last one is the last safe day to order, because every card is printed to order by our partner printer, then posted. Too late for this one? Add the date now and next year we'll remind you in good time.",
   },
   {
     q: 'Does my card come with a digital version?',

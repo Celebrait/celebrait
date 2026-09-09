@@ -5,10 +5,13 @@
 // today, fires the email if so + logs the firing. Idempotent via
 // the (occasionId, tier, year) dedup key on reminder_log.
 //
-// Tier ladder (Reminders V1):
+// Tier ladder (re-cut 2026-09-09 for one postage option + "order a
+// week ahead" — Aidan: "reminding 3 days in advance does not make
+// sense now"):
 //   T-21  → warm prompt 3 weeks before
-//   T-7   → 1 week before
-//   T-3   → digital pivot (only fires if no print order placed)
+//   T-10  → the comfortable window: order this week
+//   T-7   → the last safe day to order (skipped if a print order exists)
+//   (T-3 retired — nothing honest left to say about print that close.)
 //
 // Smart-skip rules (cron skips firing when these are true):
 //   • Card with matching recipient name + occasion already exists
@@ -258,9 +261,10 @@ export async function runReminderDispatch(
       continue;
     }
 
-    // T-3 specifically: skip if a print order is already placed.
-    // Don't tell someone who's getting a print to "send digital instead".
-    if (dueTier === 't_3' && (await isPrintOrderPlaced(entry.userId, entry.name, today))) {
+    // T-10 / T-7: skip if a print order is already placed. Don't tell
+    // someone whose card is already at the printer that today's the
+    // last safe day to order.
+    if ((dueTier === 't_10' || dueTier === 't_7') && (await isPrintOrderPlaced(entry.userId, entry.name, today))) {
       result.skipped.push({
         occasionId: occasion.id,
         tier: dueTier,
@@ -448,8 +452,8 @@ function daysBetween(from: Date, to: Date): number {
  *  precisely. */
 function tierForDaysUntil(days: number): ReminderTier | null {
   if (days === 21) return 't_21';
+  if (days === 10) return 't_10';
   if (days === 7) return 't_7';
-  if (days === 3) return 't_3';
   return null;
 }
 

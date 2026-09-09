@@ -195,8 +195,8 @@ const KNOWN_TEMPLATES = [
   'dropoff-tweak',
   'dropoff-last-call',
   'reminder-t21',
+  'reminder-t10',
   'reminder-t7',
-  'reminder-t3',
   'otp',
   'make-your-own',
   'welcome',
@@ -340,8 +340,8 @@ async function dispatchTemplate(
       });
     }
     case 'reminder-t21':
-    case 'reminder-t7':
-    case 'reminder-t3': {
+    case 'reminder-t10':
+    case 'reminder-t7': {
       // Occasion reminders. The tier is encoded in the template name so
       // no extra input is needed — daysUntil defaults from the tier (a
       // body.daysUntil override is honoured). lastCardImage = the "last
@@ -349,12 +349,12 @@ async function dispatchTemplate(
       // else a sample).
       const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
       const tierMap: Record<
-        'reminder-t21' | 'reminder-t7' | 'reminder-t3',
+        'reminder-t21' | 'reminder-t10' | 'reminder-t7',
         { tier: ReminderTier; daysUntil: number }
       > = {
         'reminder-t21': { tier: 't_21', daysUntil: 21 },
+        'reminder-t10': { tier: 't_10', daysUntil: 10 },
         'reminder-t7': { tier: 't_7', daysUntil: 7 },
-        'reminder-t3': { tier: 't_3', daysUntil: 3 },
       };
       const { tier, daysUntil } = tierMap[template];
       const startCardUrl =

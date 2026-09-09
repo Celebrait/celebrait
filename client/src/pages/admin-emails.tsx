@@ -24,7 +24,7 @@
 // "Send to inbox" still available via the right-pane CTA — fires the
 // existing POST /api/admin/test-email/:template path.
 //
-// Includes the occasion reminders (T-21 / T-7 / T-3, tier encoded in the
+// Includes the occasion reminders (T-21 / T-10 / T-7, tier encoded in the
 // template name → default day-counts) and the OTP login-code email
 // (dummy code) — added 2026-07-11.
 
@@ -52,8 +52,8 @@ type EmailTemplate =
   | 'dropoff-tweak'
   | 'dropoff-last-call'
   | 'reminder-t21'
+  | 'reminder-t10'
   | 'reminder-t7'
-  | 'reminder-t3'
   | 'otp'
   | 'make-your-own'
   | 'welcome';
@@ -105,8 +105,8 @@ const EMAIL_GROUPS: EmailGroup[] = [
     groupLabel: 'Occasion reminders',
     emails: [
       { template: 'reminder-t21', label: 'Reminder — 21 days', description: '"{Recipient}\'s {occasion} is in 21 days"', who: 'sender' },
-      { template: 'reminder-t7', label: 'Reminder — 7 days', description: '"…is in 7 days" — time to make it.', who: 'sender' },
-      { template: 'reminder-t3', label: 'Reminder — 3 days', description: '"…is in 3 days" — pick fast delivery.', who: 'sender' },
+      { template: 'reminder-t10', label: 'Reminder — 10 days', description: '"Ten days to…" — order this week and it\'s there in good time.', who: 'sender' },
+      { template: 'reminder-t7', label: 'Reminder — 7 days', description: '"Last safe day to order…" — a week out is the line.', who: 'sender' },
     ],
   },
   {
