@@ -555,9 +555,14 @@ export default function MakePage() {
                   {c.concept.inside_text && <button type="button" onClick={() => setInsideMode('ours')} className={tile(insideMode === 'ours')}><span className="text-sm font-medium text-keeper-ink">Use the message we wrote</span>{insideMode === 'ours' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>}
                   <button type="button" onClick={() => setInsideMode('own')} className={tile(insideMode === 'own')}><span className="text-sm font-medium text-keeper-ink">Write my own</span>{insideMode === 'own' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>
                 </div>
-                {insideMode === 'ours' && c.concept.inside_text && <div className="mt-3 rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-sm leading-snug text-keeper-body">“{c.concept.inside_text}”</div>}
+                {/* In the card's own order — open, message, sign (Aidan
+                    2026-09-09: "dear and from above the message we wrote,
+                    and make the message we wrote glow"). */}
                 <div className="mt-4 space-y-3">
-                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder="How you open — e.g. Dear Mum," className={input} />
+                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open — e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
+                  {insideMode === 'ours' && c.concept.inside_text && (
+                    <div className="rounded-xl border border-brand/40 bg-brand-muted px-4 py-3.5 text-[15px] leading-snug text-keeper-ink shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]">“{c.concept.inside_text}”</div>
+                  )}
                   {insideMode === 'own' && <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" autoFocus className="min-h-[120px] w-full rounded-xl border border-brand-light bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20" />}
                   <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — e.g. Love, Aidan x" className={input} />
                 </div>
