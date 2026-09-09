@@ -37,7 +37,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { PRODUCTION_HOURS } from '@shared/pricing';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
@@ -294,7 +293,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-muted border border-brand-light px-3.5 py-1.5 max-w-[560px]">
             <Printer className="w-3.5 h-3.5 flex-shrink-0 text-brand-dark" strokeWidth={2} />
             <span className="text-[11px] sm:text-xs text-brand-dark leading-snug">
-              Printed to order — up to {PRODUCTION_HOURS} hrs production, then your chosen delivery on top.
+              Printed to order, then posted Royal Mail 24 — order a week before you need it.
             </span>
           </span>
         </div>

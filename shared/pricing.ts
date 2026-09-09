@@ -175,6 +175,16 @@ export const SHIPPING_TIERS: ShippingTier[] = [
 
 export const DEFAULT_SHIPPING_TIER: ShippingTierId = 'standard';
 
+// ── ONE POSTAGE OPTION AT LAUNCH (Aidan 2026-09-09) ─────────────────
+// Express and Overnight bought a faster carrier leg on top of up to three
+// working days of production — pricey, and they couldn't deliver what a
+// "next day" label promises on any other shop. So the picker is gone:
+// every order ships Standard, and the promise is set the other way
+// round — ORDER A WEEK AHEAD. The other tiers stay in SHIPPING_TIERS so
+// historical orders (emails, admin, Prodigi resubmits) still resolve.
+export const OFFERED_SHIPPING_TIER_IDS: readonly ShippingTierId[] = ['standard'];
+export const OFFERED_SHIPPING_TIERS: ShippingTier[] = SHIPPING_TIERS.filter((t) => OFFERED_SHIPPING_TIER_IDS.includes(t.id));
+
 export function getShippingTier(id: ShippingTierId): ShippingTier {
   const t = SHIPPING_TIERS.find((x) => x.id === id);
   if (!t) throw new Error(`Unknown shipping tier: ${id}`);
@@ -184,17 +194,83 @@ export function getShippingTier(id: ShippingTierId): ShippingTier {
 /** The honest expectation-setting line for a tier: production + carrier. */
 export function deliveryEstimateCopy(id: ShippingTierId): string {
   const t = getShippingTier(id);
-  return `Made to order in up to ${PRODUCTION_HOURS} hrs, then ${t.carrier} (${t.shippingEstimate}).`;
+  return `Printed to order (up to ${PRODUCTION_WORKING_DAYS} working days), then ${t.carrier} (${t.shippingEstimate}).`;
 }
 
 /** One-liner for the site-wide production banner + any "how long" copy. */
-export const PRODUCTION_NOTICE = `Every card is printed to order — allow up to ${PRODUCTION_HOURS} hrs for production, then your chosen delivery on top.`;
+export const PRODUCTION_NOTICE = `Every card is printed to order, then posted Royal Mail 24. Order a week before you need it.`;
 
-/** Overnight delivery — kept for the /pricing page's add-on callout. The
- *  full picker (SHIPPING_TIERS) is the source of truth at checkout; this
- *  mirrors the overnight tier's price. £13.95 (covers Prodigi Overnight
- *  £12.90 inc-VAT + a bit). NOTE: "next-day" is the SHIPPING leg — production (up to
- *  72h) still applies first. */
+// ── The delivery window, as DATES ───────────────────────────────────
+// A customer buying a card for a day doesn't think in "72 hrs + 1–2
+// working days"; they think "will it be there by Saturday?". So every
+// checkout surface says a date. The window is production (Prodigi's
+// ceiling: 3 working days) + Royal Mail 24 (1–2 working days), counted
+// in working days from the order — weekends don't print or post.
+// "Order a week ahead" is the same promise said simply.
+
+/** Prodigi's stated ceiling, in working days (their "up to 72h"). */
+export const PRODUCTION_WORKING_DAYS = 3;
+/** Royal Mail 24: usually next working day, allow two. */
+export const STANDARD_POST_WORKING_DAYS = { min: 1, max: 2 } as const;
+/** The plain-English promise we make everywhere. */
+export const ORDER_AHEAD_DAYS = 7;
+
+const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+function addWorkingDays(from: Date, n: number): Date {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  let left = n;
+  while (left > 0) {
+    d.setDate(d.getDate() + 1);
+    if (!isWeekend(d)) left -= 1;
+  }
+  return d;
+}
+
+/** Earliest and latest arrival for an order placed at `from` (now). */
+export function deliveryWindow(from: Date = new Date()): { earliest: Date; latest: Date } {
+  // Working days are counted from the order day, so a Saturday order
+  // naturally starts printing on Monday (weekends never count).
+  return {
+    earliest: addWorkingDays(from, 1 + STANDARD_POST_WORKING_DAYS.min),
+    latest: addWorkingDays(from, PRODUCTION_WORKING_DAYS + STANDARD_POST_WORKING_DAYS.max),
+  };
+}
+
+/** "Tue 16 Sep" — short, British, no year (the window is days away). */
+export function formatDayMonth(d: Date): string {
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/** Parse a YYYY-MM-DD (the <input type=date> value) as a local date. */
+export function parseISODate(s: string | null | undefined): Date | null {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+export type ArrivalTone = 'ok' | 'tight' | 'late';
+export interface ArrivalVerdict {
+  tone: ArrivalTone;
+  /** Days between the latest arrival and the day they need it (negative = late). */
+  spareDays: number;
+  earliest: Date;
+  latest: Date;
+}
+
+/** Will a card ordered at `from` be there by `needBy`? Never blocks a
+ *  purchase — it tells the truth so the customer can decide (and knows
+ *  the free digital link lands instantly either way). */
+export function arrivalVerdict(needBy: Date, from: Date = new Date()): ArrivalVerdict {
+  const { earliest, latest } = deliveryWindow(from);
+  const day = 24 * 60 * 60 * 1000;
+  const spareDays = Math.round((needBy.getTime() - latest.getTime()) / day);
+  const tone: ArrivalTone = spareDays >= 0 ? 'ok' : needBy.getTime() >= earliest.getTime() ? 'tight' : 'late';
+  return { tone, spareDays, earliest, latest };
+}
+
+/** Overnight delivery — NOT OFFERED since 2026-09-09 (see
+ *  OFFERED_SHIPPING_TIER_IDS). Kept as data only; no surface renders it. */
 export const OVERNIGHT_DELIVERY = {
   price: { GBP: 1395, ZAR: null }, // ZAR null = not available
   description: 'UK only · next-day courier once printed',

@@ -40,6 +40,11 @@ export function KeeperHeader() {
   // On the public photo maker the visitor is already making a card —
   // the header verb would only pull them out of it.
   const onPhotoMaker = location === '/photo/make';
+  // At checkout and on the order page the only verb is Pay — no
+  // competing "Make a card" (audit 2026-09-09: a second CTA at the
+  // payment moment is a leak, Shopify strips its checkout chrome for
+  // the same reason).
+  const onCheckout = location.startsWith('/buy/') || location.startsWith('/order/');
   const jump = (id: string) => {
     if (onPhotoLp) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -101,7 +106,7 @@ export function KeeperHeader() {
                 {/* The header verb follows the page: on the photo landing
                     page it starts the photo route (sign in → studio); anywhere
                     else it goes to the three-card builder. */}
-                {onPhotoMaker ? null : onGate ? (
+                {onPhotoMaker || onCheckout ? null : onGate ? (
                   /* On the gate the header must not answer the page's own
                      question — it just brings the two doors into view. */
                   <button

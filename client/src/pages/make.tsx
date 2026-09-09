@@ -582,7 +582,7 @@ export default function MakePage() {
       <MakeShell step={step}>
         <div className={panel}>
           <h1 className={`${h1} mb-1`}>There it is — {forWho} card.</h1>
-          <p className="text-sm text-keeper-body">Printed to order on 280gsm, kraft envelope, posted first class.</p>
+          <p className="text-sm text-keeper-body">Printed to order on 280gsm, kraft envelope, posted Royal Mail 24 — order a week before the day.</p>
           <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>

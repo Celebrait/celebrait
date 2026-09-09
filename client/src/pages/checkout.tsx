@@ -23,22 +23,18 @@ import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { apiRequest } from '@/lib/queryClient';
 import CheckoutLayout from '@/layouts/checkout-layout';
+import { NeedByField, arrivalWindowCopy } from '@/components/checkout/need-by';
 import {
   tierPriceGBP,
   cardPriceGBP,
   firstOrderPriceGBP,
-  SHIPPING_TIERS,
   getShippingTier,
   envelopeStickerGBP,
   ENVELOPE_STICKER_GBP,
   DEFAULT_SHIPPING_TIER,
-  deliveryEstimateCopy,
-  PRODUCTION_NOTICE,
   type ShippingTierId,
 } from '@shared/pricing';
 
@@ -213,7 +209,15 @@ export default function CheckoutPage() {
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
   // Opt-in wax-seal envelope sticker (direct sends only).
   const [addSticker, setAddSticker] = useState(false);
-  const [shippingTier, setShippingTier] = useState<ShippingTierId>(DEFAULT_SHIPPING_TIER);
+  // One postage option at launch — no picker (see the Delivery section).
+  const shippingTier: ShippingTierId = DEFAULT_SHIPPING_TIER;
+  // "When's the big day?" — optional, stored on the order.
+  const [needBy, setNeedBy] = useState('');
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'Checkout — Celebrait';
+    return () => { document.title = prev; };
+  }, []);
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
@@ -258,7 +262,10 @@ export default function CheckoutPage() {
   const includesDigital = true;
   const totals = useMemo(
     () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source),
-    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode],
+    // card.source was missing here (audit 2026-09-09): the memo ran once
+    // with the card still loading and priced every maker card as a photo
+    // card (£6.99 shown, £5.99 charged).
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode, card?.source],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -305,6 +312,7 @@ export default function CheckoutPage() {
         payload.shipTo = shipTo;
         payload.envelopeSticker = addSticker && shipTo === 'recipient';
         payload.shippingTier = effectiveTier;
+        if (needBy) payload.needByDate = needBy;
         payload.shippingAddress = {
           line1: line1.trim(),
           line2: line2.trim() || undefined,
@@ -506,6 +514,7 @@ export default function CheckoutPage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="First + last"
+                  autoComplete="name"
                   data-testid="checkout-name"
                 />
               </Field>
@@ -515,6 +524,10 @@ export default function CheckoutPage() {
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                   placeholder="you@example.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   data-testid="checkout-email"
                 />
               </Field>
@@ -633,14 +646,14 @@ export default function CheckoutPage() {
                     to them at their UK address.
                   </p>
                   <Field label="Address line 1">
-                    <Input value={line1} onChange={(e) => setLine1(e.target.value)} />
+                    <Input value={line1} onChange={(e) => setLine1(e.target.value)} autoComplete="shipping address-line1" />
                   </Field>
                   <Field label="Address line 2 (optional)">
-                    <Input value={line2} onChange={(e) => setLine2(e.target.value)} />
+                    <Input value={line2} onChange={(e) => setLine2(e.target.value)} autoComplete="shipping address-line2" />
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Town / city">
-                      <Input value={city} onChange={(e) => setCity(e.target.value)} />
+                      <Input value={city} onChange={(e) => setCity(e.target.value)} autoComplete="shipping address-level2" />
                     </Field>
                     <Field label="Postcode">
                       <Input
@@ -648,58 +661,18 @@ export default function CheckoutPage() {
                         onChange={(e) => setPostcode(e.target.value.toUpperCase())}
                         onBlur={handlePostcodeLookup}
                         placeholder="SW1A 1AA"
+                        autoComplete="shipping postal-code"
+                        autoCapitalize="characters"
                       />
                     </Field>
                   </div>
                 </Section>
 
-                {/* Delivery speed. Production time is the headline — every
-                    card is printed to order, so the tiers below buy a faster
-                    SHIPPING leg, NOT faster production. We never imply
-                    next-day-from-order. */}
-                <Section title="Delivery speed">
-                  <div className="rounded-lg border border-accent-red/30 bg-accent-red-light px-4 py-3">
-                    <p className="text-xs text-accent-red-dark leading-relaxed">
-                      <span className="font-semibold">Printed to order.</span>{' '}
-                      {PRODUCTION_NOTICE}
-                    </p>
-                  </div>
-                  {/* The half-price first card rides any tier (the
-                      Standard-only rule belonged to the retired free card). */}
-                  {(
-                  <RadioGroup
-                    value={shippingTier}
-                    onValueChange={(v) => setShippingTier(v as ShippingTierId)}
-                    className="grid grid-cols-1 gap-3"
-                  >
-                    {SHIPPING_TIERS.map((t) => (
-                      <label
-                        key={t.id}
-                        htmlFor={`ship-${t.id}`}
-                        className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
-                          shippingTier === t.id
-                            ? 'border-brand bg-brand-muted/40'
-                            : 'border-keeper-hair hover:border-stone-300'
-                        }`}
-                        data-testid={`ship-tier-${t.id}`}
-                      >
-                        <RadioGroupItem id={`ship-${t.id}`} value={t.id} className="mt-1" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-semibold text-keeper-ink">{t.name}</span>
-                            <span className="text-sm font-semibold text-keeper-ink">
-                              {formatGBP(t.price)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-keeper-body mt-0.5">{t.carrier}</p>
-                          <p className="text-xs text-keeper-meta mt-1 leading-relaxed">
-                            Ships {t.shippingEstimate} once printed.
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                  )}
+                {/* ONE postage option (Aidan 2026-09-09): the speed picker
+                    is gone. The question that matters is the date — asked
+                    here, answered honestly, never blocking. */}
+                <Section title="When do you need it?">
+                  <NeedByField value={needBy} onChange={setNeedBy} recipientName={recipientName} compact />
                 </Section>
 
                 {/* No gift-message or recipient-email fields — the digital
@@ -733,7 +706,7 @@ export default function CheckoutPage() {
                 amount={totals.digitalAmount}
               />
               <LineItem
-                label={`Postage · ${getShippingTier(effectiveTier).name}`}
+                label={`Postage · ${getShippingTier(effectiveTier).carrier}`}
                 amount={totals.shippingAmount}
                 muted
               />
@@ -792,10 +765,11 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {/* Honest delivery estimate — production + carrier. */}
+              {/* Honest delivery estimate — as dates, not durations. */}
               {includesPrint && (
                 <p className="text-[11px] text-keeper-meta leading-relaxed">
-                  {deliveryEstimateCopy(effectiveTier)}
+                  Printed to order, then posted tracked. Ordered today: arrives{' '}
+                  <span className="font-medium text-keeper-ink">{arrivalWindowCopy()}</span>.
                 </p>
               )}
 

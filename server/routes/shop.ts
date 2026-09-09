@@ -172,6 +172,10 @@ export function registerShopRoutes(app: Express): void {
           insideImageUrl: card.insideImagePath ? publicImageUrl(card.insideImagePath) : null,
           price: cardPriceGBP(card.source),
           insideMode: (card.conversationData as RackCardState | null)?.insideMode ?? null,
+          // Who it's for — the buy page prefills the envelope name and
+          // weaves it into the delivery copy (both rack and maker states
+          // carry `recipient`).
+          recipientName: (card.conversationData as RackCardState | null)?.recipient?.name?.trim() || null,
         },
       });
     } catch (err) {
@@ -204,6 +208,7 @@ export function registerShopRoutes(app: Express): void {
           shippingAmount: studioOrders.shippingAmount,
           createdAt: studioOrders.createdAt,
           trackingUrl: studioOrders.trackingUrl,
+          needByDate: studioOrders.needByDate,
         })
         .from(studioOrders)
         .where(eq(studioOrders.id, id));

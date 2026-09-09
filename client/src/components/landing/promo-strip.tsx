@@ -18,8 +18,8 @@ export function PromoStrip() {
     <div className="fixed top-20 left-0 right-0 z-[140] bg-surface border-y border-stone-200/70">
       <div className="max-w-7xl mx-auto h-10 px-6 md:px-10 flex items-center justify-center">
         <p className="text-xs md:text-sm text-ink-soft text-center">
-          Printed to order — allow up to 72&nbsp;hrs, then posted. Cards from £4.99
-          + delivery.{' '}
+          Printed to order, then posted — order a week ahead. Cards from £4.99
+          + £2.95 postage.{' '}
           <Link
             href="/pricing"
             className="text-brand hover:text-brand-dark font-medium ml-1"

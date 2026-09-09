@@ -125,13 +125,13 @@ const PRINT_FEATURES: PrintFeature[] = [
   },
   {
     icon: Package,
-    title: 'Printed to order in up to 72 hrs',
-    body: 'Every card is made just for you before it ships — no shelf, no stock.',
+    title: 'Printed to order, just for them',
+    body: 'Every card is made after you order it — no shelf, no stock. Up to three working days in the print lab.',
   },
   {
     icon: Truck,
-    title: 'Then posted, tracked',
-    body: 'Royal Mail 24 as standard, or Express & Overnight couriers to speed up the post.',
+    title: 'Then posted, tracked — order a week ahead',
+    body: 'Royal Mail 24 for £2.95, usually the next working day. Tell us the date at checkout and we\'ll say if it\'ll make it.',
   },
   {
     icon: Globe,

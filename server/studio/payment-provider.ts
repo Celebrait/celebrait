@@ -19,7 +19,15 @@ export interface CreatePaymentRequest {
   // Where to send the browser after the gateway does its thing.
   returnUrl: string;
   cancelUrl: string;
+  /** The line the customer sees on the gateway page ("Linda's 60th
+   *  Birthday card"). Falls back to a generic label. */
   description?: string;
+  /** One line under the name on the gateway page — what they're getting
+   *  and when ("Printed to order, posted Royal Mail 24 · arrives …"). */
+  productDescription?: string;
+  /** Absolute https URL of the card's front — shown beside the line
+   *  item on Stripe's page so the customer sees what they're paying for. */
+  imageUrl?: string;
 }
 
 export interface CreatePaymentResult {

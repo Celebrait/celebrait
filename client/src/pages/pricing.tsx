@@ -134,24 +134,8 @@ function PriceCard({ tier, authed }: PriceCardProps) {
         ))}
       </ul>
 
-      {/* Overnight add-on note lives on the Printed card only */}
-      {tier.id === 'printed' && (
-        <div className="mb-6 -mt-2 rounded-xl bg-accent-amber-light/60 border border-accent-amber/30 px-4 py-3">
-          <div className="flex items-start gap-2.5">
-            <Zap
-              className="w-4 h-4 text-accent-amber-dark shrink-0 mt-0.5"
-              strokeWidth={2.25}
-            />
-            <div className="text-xs text-ink-soft leading-relaxed">
-              <span className="font-semibold text-ink">
-                Add overnight delivery · {overnightLabel}
-              </span>
-              <br />
-              {OVERNIGHT_DELIVERY.description}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Overnight add-on callout removed 2026-09-09 — one postage
+          option at launch; the promise is "order a week ahead". */}
 
       {authed ? (
         <Link href="/studio">
@@ -243,9 +227,10 @@ export default function PricingPage() {
               </li>
               <li>
                 <strong className="text-ink font-semibold">Delivery:</strong>{' '}
-                Every card is printed to order — allow up to 72 hrs — then
-                posted. Standard is Royal Mail 24 (tracked); Express and
-                Overnight couriers speed up the postage, not the printing.
+                Every card is printed to order (up to three working days),
+                then posted Royal Mail 24, tracked, for £2.95. Order a week
+                before you need it — tell us the date at checkout and we'll
+                say whether it'll make it.
               </li>
               <li>
                 <strong className="text-ink font-semibold">Free regenerations:</strong>{' '}

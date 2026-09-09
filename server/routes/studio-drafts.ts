@@ -393,6 +393,10 @@ export function registerStudioDraftRoutes(app: Express): void {
       res.json({
         id: row.id,
         status: row.status,
+        // Which door made it — checkout prices by this (§8a). It was
+        // selected but never sent, so the studio checkout showed every
+        // maker card at the photo price (audit 2026-09-09).
+        source: row.source,
         frontImageUrl: frontUrl,
         insideImageUrl: insideUrl,
         createdAt: row.createdAt,

@@ -43,6 +43,12 @@ export const studioOrders = pgTable(
     // shared/pricing.ts. 'standard' | 'express' | 'overnight'.
     shippingTier: text("shipping_tier").notNull().default("standard"),
     giftMessage: text("gift_message"),
+    /** The day the customer needs the card by (YYYY-MM-DD), asked at
+     *  checkout (Aidan 2026-09-09: one postage option, "order a week
+     *  ahead" — so we ask the date and say whether it'll make it).
+     *  Optional; null when they skipped it. Added at boot by
+     *  ensureLaunchColumns() — no manual migration needed. */
+    needByDate: text("need_by_date"),
     // Legacy column: the welcome gate has no custom-message UI anymore,
     // but the column is kept so `drizzle-kit push` doesn't flag it for
     // deletion. Can be dropped later if we're sure no legacy data cares.

@@ -36,7 +36,7 @@ const FAQS: FaqEntry[] = [
   },
   {
     q: 'How fast is delivery?',
-    a: 'Every card is printed to order, so allow up to 72 hours for production before it ships. Then pick your delivery: Standard (Royal Mail 24, £2.95), Express (Evri Next Day, £8.95) or Overnight (DPD, £13.95). The faster options speed up the postage, not the printing — so we never promise next-day-from-order.',
+    a: 'Every card is printed to order — nothing sits on a shelf — which takes up to three working days. Then it goes Royal Mail 24, tracked (£2.95), usually the next working day. So order a week before you need it. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
   },
   {
     q: 'What paper do you print on?',

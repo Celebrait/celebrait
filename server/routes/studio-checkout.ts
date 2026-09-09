@@ -47,6 +47,7 @@ import {
   getShippingTier,
   envelopeStickerGBP,
   DEFAULT_SHIPPING_TIER,
+  OFFERED_SHIPPING_TIER_IDS,
   type ShippingTierId,
   firstOrderPriceGBP,
 } from '@shared/pricing';
@@ -86,6 +87,9 @@ const checkoutSchema = z.object({
   envelopeSticker: z.boolean().optional(),
   shippingTier: z.enum(['standard', 'express', 'overnight']).optional(),
   shippingAddress: shippingAddressSchema.optional(),
+  /** "When do you need it by?" — YYYY-MM-DD, optional. Stored for the
+   *  order page + support; never changes what's charged. */
+  needByDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   recipientEmail: z.string().email().optional(),
   recipientPhone: z.string().optional(),
   giftMessage: z.string().max(500).optional(),
@@ -309,7 +313,14 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // cheaper tier than it pays for).
         // A half-price card (not a free one) can ride any tier — the CAP
         // "true delivery cost" constraint only bit on the free offer.
-        const shippingTier: ShippingTierId = body.shippingTier ?? DEFAULT_SHIPPING_TIER;
+        // ONE postage option at launch (Aidan 2026-09-09) — the server
+        // pins it regardless of what an old client or a crafted POST
+        // sends, so nobody can be charged £8.95 for a tier we no longer
+        // sell. Other tiers stay resolvable for historical orders.
+        const shippingTier: ShippingTierId = DEFAULT_SHIPPING_TIER;
+        if (body.shippingTier && !OFFERED_SHIPPING_TIER_IDS.includes(body.shippingTier)) {
+          console.warn(`[STUDIO-CHECKOUT] client asked for retired tier "${body.shippingTier}" — pinned to ${shippingTier}`);
+        }
         // ⚠️ PRICED BY DOOR, not by a flat tier (UX_THREE_DOORS.md §8a):
         // £4.99 off the shelf, £5.99 made for them, £6.99 from a photo.
         // The SERVER decides from the stored card.source — a crafted POST
@@ -435,6 +446,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             shippingTier,
             shippingAddress: body.shippingAddress,
             giftMessage: body.giftMessage,
+            needByDate: body.needByDate ?? null,
             currency: 'GBP',
             printAmount,
             digitalAmount,
@@ -498,15 +510,25 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         }
 
         const provider = getPaymentProvider();
+        // What the gateway page shows (audit 2026-09-09: it said
+        // "Celebrait card #325" with no picture). Name it the way the
+        // customer thinks of it, describe what arrives and when, and
+        // show the front when the image URL is public (R2 in prod).
+        const occasionLabel = state?.recipient?.occasion?.trim();
+        const whoFor = recipientName?.trim();
+        const productName = whoFor
+          ? `${whoFor}'s ${occasionLabel ? `${occasionLabel} ` : ''}card — printed & posted`
+          : 'Celebrait card — printed & posted';
+        const frontPublic = resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl);
         const payment = await provider.createPayment({
           studioOrderId: order.id,
           amount: totalAmount,
           currency: 'GBP',
           customerEmail: body.customerEmail,
           customerName: body.customerName,
-          description: freeCardApplied
-            ? `Celebrait card #${cardId} — first card, 50% off`
-            : `Celebrait card #${cardId}`,
+          description: freeCardApplied ? `${productName} · first card, 50% off` : productName,
+          productDescription: 'Printed to order on 280gsm card, posted Royal Mail 24 tracked. Free digital link included.',
+          imageUrl: frontPublic ?? undefined,
           // Guests can't reach /checkout/success (RequireAuth) — their
           // journey lands on the public tokenised order page instead
           // (UX_THREE_DOORS.md §6.1).

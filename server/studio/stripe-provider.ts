@@ -72,11 +72,21 @@ export const stripePaymentProvider: PaymentProvider = {
             unit_amount: req.amount,
             product_data: {
               name: req.description ?? "Celebrait card",
+              ...(req.productDescription ? { description: req.productDescription } : {}),
+              // Stripe only accepts absolute https URLs here.
+              ...(req.imageUrl && /^https:\/\//i.test(req.imageUrl) ? { images: [req.imageUrl] } : {}),
             },
           },
         },
       ],
       customer_email: req.customerEmail,
+      // UK shop, UK customers: English (UK) copy on the hosted page, and
+      // NO currency conversion offer. Checkout audit 2026-09-09: the
+      // account's home country is South Africa, so Stripe's Adaptive
+      // Pricing put "Choose currency · ZAR 201.51 / £8.94" and a South
+      // Africa country default in front of a UK buyer paying £8.94.
+      locale: "en-GB",
+      adaptive_pricing: { enabled: false },
       // Show the "Add promotion code" field on Stripe's hosted checkout so
       // discount codes work (friends & family testing: a fixed £7.99-off
       // coupon drops the £8.99 card to £1.00 while shipping + any sticker

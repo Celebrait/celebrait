@@ -1648,7 +1648,7 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>.${hasMemory ? ` Time to make this year's.` : ''} Start now and there's time to print and post it before the day.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Every card is printed to order (up to 72 hours) then posted — a week gives it room to arrive in good time.
+        Every card is printed to order (up to three working days) then posted Royal Mail 24 — a week gives it room to arrive in good time.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1690,7 +1690,7 @@ export async function sendReminderEmail(params: {
       ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something special.`
       : tier === 't_7'
         ? `${recipientName}'s ${occasionLabel} is a week away. Start now and there's time to print and post it before the day.`
-        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Cards are printed to order (up to 72 hours) then posted, so it's tight — choose the fastest delivery, and the free digital link arrives instantly either way.`) +
+        : `${recipientName}'s ${occasionLabel} is in ${daysUntil} days. Cards are printed to order (up to three working days) then posted, so it's tight — order today, and the free digital link arrives instantlyeither way.`) +
     `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });

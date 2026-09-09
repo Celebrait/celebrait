@@ -35,15 +35,14 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { tierPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
+import { cardPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
 import type { CardDraftState } from '@shared/schema';
 
 // ── Pricing (pence) ──────────────────────────────────────────────────
 // Print-led V1: one product — a printed card (+ free digital link) plus
-// standard postage. Sourced from shared/pricing.ts so this can't drift from
-// checkout. Both destinations cost the same; the optional wax-seal sticker
-// is a checkout add-on, not a destination surcharge (Kevin 2026-07-21).
-const CARD_BASE = tierPriceGBP('printed') + UK_SHIPPING_STANDARD_GBP;
+// standard postage. Priced by the door that made THIS card (§8a) so the
+// number here is the number at checkout — it used to show the rack's
+// "from" price for every card (audit 2026-09-09).
 
 type Destination = 'recipient' | 'sender';
 
@@ -62,6 +61,8 @@ interface GivingMomentProps {
   cardId: number;
   /** Recipient's name — woven into the copy. Empty string is fine. */
   recipientName: string;
+  /** Which door made the card — sets the price shown (mirrors checkout). */
+  cardSource?: string | null;
   /** Persist the delivery choice to the draft (patch + flush). Awaited
    *  before navigating to checkout so the choice can't be lost to a
    *  refresh. */
@@ -75,11 +76,13 @@ interface GivingMomentProps {
 export function GivingMoment({
   cardId,
   recipientName,
+  cardSource,
   saveDelivery,
 }: GivingMomentProps) {
   const [, setLocation] = useLocation();
 
   const them = recipientName || 'them';
+  const CARD_BASE = cardPriceGBP(cardSource) + UK_SHIPPING_STANDARD_GBP;
 
   // Print-led V1: one product (a printed card + free digital link), so
   // there's no format step — the only question is where it should go.
@@ -172,7 +175,7 @@ export function GivingMoment({
           How would you like to give it?
         </h2>
         <p className="text-sm text-keeper-meta leading-relaxed">
-          Your printed card{recipientName ? ` for ${recipientName}` : ''} — from{' '}
+          Your printed card{recipientName ? ` for ${recipientName}` : ''} —{' '}
           {formatGBP(CARD_BASE)} inc. postage, with a free digital link to
           share.
         </p>

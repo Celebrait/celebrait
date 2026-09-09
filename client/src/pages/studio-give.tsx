@@ -33,6 +33,8 @@ import type { CardDraftState } from '@shared/schema';
 interface DraftResponse {
   id: number;
   status: string | null;
+  /** Which door made it — prices the giving moment (§8a). */
+  source?: string | null;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
   /** The draft state (conversationData). The GET endpoint always
@@ -126,6 +128,7 @@ export default function StudioGivePage() {
       <GivingMoment
         cardId={cardId}
         recipientName={recipientName}
+        cardSource={card.source}
         saveDelivery={saveDelivery}
       />
 
