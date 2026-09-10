@@ -50,7 +50,7 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      'Tell us who the card is for and we write and illustrate three originals in a few minutes. Printed on 280gsm card and posted first class from £4.99.',
+      'Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/door',
@@ -62,7 +62,7 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/door2',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      'Tell us who the card is for and we write and illustrate three originals in a few minutes — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
+      'Tell us who the card is for and we write and illustrate three originals in 3–5 minutes — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/make',
