@@ -203,18 +203,6 @@ export default function MakePage() {
   const [landed, setLanded] = useState(0);
   const [elapsedS, setElapsedS] = useState(0);
   const t0 = useRef(0);
-  // ── the wait does real work now (Aidan 2026-09-10: "while you wait,
-  // how will we design the inside?"). The opening and the sign-off are
-  // the same whichever card they pick, so they're asked HERE instead of
-  // after the pick; only the message in the middle is card-dependent,
-  // because each concept carries its own inside_text.
-  //
-  // The one rule: never snatch the screen away mid-sentence. If they've
-  // touched a field when the fronts land we hold the reveal behind a
-  // button — the same objection that killed the mini-game idea (don't
-  // interrupt the person, don't bury the payoff).
-  const insideTouched = useRef(false);
-  const [cardsReady, setCardsReady] = useState(false);
   useEffect(() => {
     if (phase !== 'generating') return;
     setElapsedS(0); t0.current = Date.now();
@@ -227,7 +215,7 @@ export default function MakePage() {
   const generate = async (tone: Vibe = brief.vibe) => {
     setPhase('generating'); setCells([]); setPicked(null); setInsideUrl(null);
     setCameoUrl(null); setCameoKept(false); setCameoError(''); setFailMsg('');
-    setWaitConcepts(null); setLanded(0); setCardsReady(false);
+    setWaitConcepts(null); setLanded(0);
     try {
       const j = await makePost('concepts', {
         occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
@@ -249,10 +237,8 @@ export default function MakePage() {
       const done = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
       // One or two failures show as tiles with the reason and a retry;
       // all three failing is the failure screen, worded by the cause.
-      if (done.some(Boolean)) {
-        if (insideTouched.current) setCardsReady(true);
-        else setPhase('results');
-      } else {
+      if (done.some(Boolean)) setPhase('results');
+      else {
         const codes = cellsRef.current.map((c) => c.code).filter(Boolean) as FailCode[];
         const code = codes.find((k) => k === 'safety') ?? codes.find((k) => k === 'rate') ?? codes[0] ?? 'unknown';
         const err = new Error(FAIL_COPY[code].tile) as Error & { code?: FailCode };
@@ -422,22 +408,6 @@ export default function MakePage() {
           <div className="mt-8 w-full">
             <MakeNarration input={narrationInput} concepts={waitConcepts} landed={landed} elapsedS={elapsedS} />
           </div>
-
-          {/* The dead minute, spent on something useful. */}
-          <div className="mt-8 w-full max-w-[440px] border-t border-keeper-hair pt-6">
-            <p className="text-[15px] font-medium text-keeper-ink">While you wait — how will we design the inside?</p>
-            <p className={helper}>Just the opening and the sign-off. We'll ask about the message in the middle once you've picked your card.</p>
-            <div className="mt-4 space-y-2.5 text-left">
-              <Input value={dear} onChange={(e) => { insideTouched.current = true; setDear(e.target.value); }} placeholder={`How you open — e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} data-testid="wait-dear" />
-              <Input value={from} onChange={(e) => { insideTouched.current = true; setFrom(e.target.value); }} placeholder="How you sign — e.g. Love, Aidan x" className={input} data-testid="wait-from" />
-            </div>
-          </div>
-
-          {cardsReady && (
-            <button type="button" onClick={() => setPhase('results')} className={`${commit} mt-6`} data-testid="wait-cards-ready">
-              <Check className="h-4 w-4" strokeWidth={3} /> Your three cards are ready
-            </button>
-          )}
         </div>
       </MakeShell>
     );
@@ -584,9 +554,7 @@ export default function MakePage() {
             ) : (
               <div>
                 <h1 className={`${h1} mb-1`}>Now the inside of {forWho} card</h1>
-                <p className="text-sm text-keeper-body mb-5">{(dear.trim() || from.trim())
-                  ? 'Your opening and sign-off are already in — this is the message in the middle.'
-                  : 'Every card gets a designed inside to match its front.'}</p>
+                <p className="text-sm text-keeper-body mb-5">Every card gets a designed inside to match its front.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {c.concept.inside_text && <button type="button" onClick={() => setInsideMode('ours')} className={tile(insideMode === 'ours')}><span className="text-sm font-medium text-keeper-ink">Use the message we wrote</span>{insideMode === 'ours' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>}
                   <button type="button" onClick={() => setInsideMode('own')} className={tile(insideMode === 'own')}><span className="text-sm font-medium text-keeper-ink">Write my own</span>{insideMode === 'own' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>
