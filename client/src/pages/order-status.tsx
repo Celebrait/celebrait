@@ -14,7 +14,7 @@ import { useParams, Link } from 'wouter';
 import { Loader2, CheckCircle2, Truck, Printer, Clock } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { arrivalWindowCopy } from '@/components/checkout/need-by';
+import { expectedByCopy } from '@/components/checkout/need-by';
 import { formatDayMonth, parseISODate } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
@@ -115,8 +115,8 @@ export default function OrderStatusPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">Order confirmed</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-keeper-ink">It's on its way to the printer.</h1>
             <p className="mt-3 text-sm text-keeper-body">
-              A receipt has gone to {order.customerEmail ?? 'your email'}. Printed to order, then posted Royal Mail 24, tracked — expect it{' '}
-              <span className="font-medium text-keeper-ink">{arrivalWindowCopy(new Date(order.createdAt))}</span>
+              A receipt has gone to {order.customerEmail ?? 'your email'}. A one-off print, posted Royal Mail 24, tracked — expect it by{' '}
+              <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(order.createdAt))}</span>
               {order.needByDate && parseISODate(order.needByDate) ? ` (you need it by ${formatDayMonth(parseISODate(order.needByDate)!)})` : ''}.
             </p>
           </>

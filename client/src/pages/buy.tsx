@@ -27,7 +27,7 @@ import { useParams, Link } from 'wouter';
 import { Loader2, Lock, ShieldCheck, Truck } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { NeedByField, arrivalWindowCopy } from '@/components/checkout/need-by';
+import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
 import { getShippingTier, DEFAULT_SHIPPING_TIER, cardPriceGBP } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
@@ -209,7 +209,7 @@ export default function BuyPage() {
       <p className="mt-3 flex justify-between border-t border-keeper-hair pt-3 text-base font-semibold text-keeper-ink"><span>Total</span><span>{gbp(totals.total)}</span></p>
       <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-keeper-meta">
         <Truck className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-        <span>Printed to order, then posted tracked. Ordered today: arrives <span className="font-medium text-keeper-ink">{arrivalWindowCopy()}</span>.</span>
+        <span>One-off print, posted tracked. Ordered today, expect it by <span className="font-medium text-keeper-ink">{expectedByCopy()}</span>.</span>
       </p>
     </div>
   );

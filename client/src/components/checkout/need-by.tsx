@@ -1,19 +1,22 @@
-// client/src/components/checkout/need-by.tsx — "When do you need it by?"
+// client/src/components/checkout/need-by.tsx — "When's the big day?"
 //
 // One postage option at launch (Aidan 2026-09-09), so the checkout's job
 // is no longer "pick a speed" but "tell the truth about the date". Both
 // checkouts (/buy and /checkout) render this: an optional date, and the
 // moment it's set, a plain verdict — it'll be there with days to spare,
-// it's tight, or the post won't make it (and the free digital link
-// lands instantly either way). It never blocks the purchase.
+// it might make it but we can't promise, or the post won't make it (and
+// the free digital link lands instantly either way). It never blocks.
 //
-// The maths lives in shared/pricing.ts (deliveryWindow / arrivalVerdict)
-// so the order page, emails and admin say the same dates.
+// ONE date is ever quoted: "expect it by …", which is the promise
+// ("allow at least a week") made concrete. No ranges, no earliest — a
+// "Mon 14 – Thu 17" under "allow a week" contradicted itself (Aidan
+// 2026-09-10). The maths lives in shared/pricing.ts so the order page,
+// emails and admin say the same date.
 
 import { CalendarDays, Check, AlertTriangle, Sparkles } from 'lucide-react';
 import {
   arrivalVerdict,
-  deliveryWindow,
+  expectedBy,
   formatDayMonth,
   parseISODate,
   ORDER_AHEAD_DAYS,
@@ -22,10 +25,9 @@ import {
 
 const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-/** "Arrives Thu 11 – Tue 16 Sep" for an order placed now. */
-export function arrivalWindowCopy(from: Date = new Date()): string {
-  const { earliest, latest } = deliveryWindow(from);
-  return `${formatDayMonth(earliest)} – ${formatDayMonth(latest)}`;
+/** "Thu 17 Sept" — the date we promise for an order placed at `from`. */
+export function expectedByCopy(from: Date = new Date()): string {
+  return formatDayMonth(expectedBy(from));
 }
 
 export function NeedByField({
@@ -45,6 +47,7 @@ export function NeedByField({
   const needBy = parseISODate(value);
   const verdict = needBy ? arrivalVerdict(needBy, today) : null;
   const who = recipientName?.trim() || 'them';
+  const by = formatDayMonth(expectedBy(today));
 
   return (
     <div className={compact ? 'space-y-2.5' : 'space-y-3'}>
@@ -67,16 +70,14 @@ export function NeedByField({
 
       {!verdict ? (
         <p className="text-xs leading-relaxed text-keeper-meta">
-          {HONEST_LEAD_LINE} Ordered today it arrives{' '}
-          <span className="font-medium text-keeper-ink">{arrivalWindowCopy(today)}</span>.
-          To be safe, order {ORDER_AHEAD_DAYS} days before you need it.
+          {HONEST_LEAD_LINE} Ordered today, expect it by{' '}
+          <span className="font-medium text-keeper-ink">{by}</span>.
         </p>
       ) : verdict.tone === 'ok' ? (
         <p className="flex items-start gap-2 rounded-lg border border-cta/30 bg-cta-light px-3 py-2.5 text-xs leading-relaxed text-cta-dark" data-testid="need-by-verdict" data-tone="ok">
           <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
           <span>
-            <span className="font-semibold">It'll be there in time.</span> Ordered today it arrives by{' '}
-            {formatDayMonth(verdict.latest)}
+            <span className="font-semibold">It'll be there in time.</span> Ordered today, expect it by {by}
             {verdict.spareDays > 0 ? ` — ${verdict.spareDays} ${verdict.spareDays === 1 ? 'day' : 'days'} to spare` : ', the day itself'}.
           </span>
         </p>
@@ -84,15 +85,15 @@ export function NeedByField({
         <p className="flex items-start gap-2 rounded-lg border border-brand-light bg-brand-muted px-3 py-2.5 text-xs leading-relaxed text-keeper-ink" data-testid="need-by-verdict" data-tone="tight">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
           <span>
-            <span className="font-semibold">That's cutting it fine.</span> It usually lands {formatDayMonth(verdict.earliest)}, but printing can take up to three working days, so it could be {formatDayMonth(verdict.latest)}.
-            The free digital link arrives instantly if you need a backup on the day.
+            <span className="font-semibold">It might make it, but we can't promise it.</span> Our cards are one-off prints and we ask for at least {ORDER_AHEAD_DAYS} days — ordered today, expect it by {by}.
+            It often lands sooner, but please have the free digital link ready as a backup on the day.
           </span>
         </p>
       ) : (
         <p className="flex items-start gap-2 rounded-lg border border-accent-red/30 bg-accent-red-light px-3 py-2.5 text-xs leading-relaxed text-accent-red-dark" data-testid="need-by-verdict" data-tone="late">
           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
           <span>
-            <span className="font-semibold">The post won't make it by then.</span> The earliest it can land is {formatDayMonth(verdict.earliest)}.
+            <span className="font-semibold">The post won't make it by then.</span> Ordered today, expect it by {by}.
             You can still order it — and send {who} the free digital link on the day, so they open something from you either way.
           </span>
         </p>

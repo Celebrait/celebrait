@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import CheckoutLayout from '@/layouts/checkout-layout';
-import { NeedByField, arrivalWindowCopy } from '@/components/checkout/need-by';
+import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
 import {
   tierPriceGBP,
   cardPriceGBP,
@@ -768,8 +768,8 @@ export default function CheckoutPage() {
               {/* Honest delivery estimate — as dates, not durations. */}
               {includesPrint && (
                 <p className="text-[11px] text-keeper-meta leading-relaxed">
-                  Printed to order, then posted tracked. Ordered today: arrives{' '}
-                  <span className="font-medium text-keeper-ink">{arrivalWindowCopy()}</span>.
+                  One-off print, posted tracked. Ordered today, expect it by{' '}
+                  <span className="font-medium text-keeper-ink">{expectedByCopy()}</span>.
                 </p>
               )}
 

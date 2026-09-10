@@ -220,14 +220,26 @@ function addWorkingDays(from: Date, n: number): Date {
   return d;
 }
 
-/** Earliest and latest arrival for an order placed at `from` (now). */
+/** The arrival window for an order placed at `from` (now).
+ *
+ *  `latest` is THE date we quote — "expect it by" — and it honours the
+ *  promise on every page: never sooner than ORDER_AHEAD_DAYS calendar
+ *  days out (rolled past a weekend), and never sooner than the print +
+ *  post working days either. `earliest` is what the post can physically
+ *  do (used only to tell "might make it" from "won't") — it is never
+ *  shown, because a date range that reads "Mon 14 – Thu 17" under a line
+ *  saying "allow at least a week" is a contradiction (Aidan 2026-09-10). */
 export function deliveryWindow(from: Date = new Date()): { earliest: Date; latest: Date } {
-  // Working days are counted from the order day, so a Saturday order
-  // naturally starts printing on Monday (weekends never count).
-  return {
-    earliest: addWorkingDays(from, 1 + STANDARD_POST_WORKING_DAYS.min),
-    latest: addWorkingDays(from, PRODUCTION_WORKING_DAYS + STANDARD_POST_WORKING_DAYS.max),
-  };
+  const earliest = addWorkingDays(from, 1 + STANDARD_POST_WORKING_DAYS.min);
+  const promised = new Date(from.getFullYear(), from.getMonth(), from.getDate() + ORDER_AHEAD_DAYS);
+  while (isWeekend(promised)) promised.setDate(promised.getDate() + 1);
+  const byWork = addWorkingDays(from, PRODUCTION_WORKING_DAYS + STANDARD_POST_WORKING_DAYS.max);
+  return { earliest, latest: byWork > promised ? byWork : promised };
+}
+
+/** The one date we quote: "expect it by Thu 17 Sept". */
+export function expectedBy(from: Date = new Date()): Date {
+  return deliveryWindow(from).latest;
 }
 
 /** "Tue 16 Sep" — short, British, no year (the window is days away). */

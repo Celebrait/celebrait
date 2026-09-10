@@ -11,7 +11,7 @@ import { CheckCircle2, Copy, Loader2, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import CheckoutLayout from '@/layouts/checkout-layout';
-import { arrivalWindowCopy } from '@/components/checkout/need-by';
+import { expectedByCopy } from '@/components/checkout/need-by';
 
 interface OrderResponse {
   order: {
@@ -146,8 +146,8 @@ export default function CheckoutSuccessPage() {
               <div className="flex items-center gap-2 text-sm text-keeper-body">
                 <Package className="w-4 h-4 text-keeper-meta" />
                 <span>
-                  Printed to order, then posted tracked — expect it{' '}
-                  <span className="font-medium text-keeper-ink">{arrivalWindowCopy(new Date(data.order.createdAt ?? Date.now()))}</span>. Track it in{' '}
+                  A one-off print, posted tracked — expect it by{' '}
+                  <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(data.order.createdAt ?? Date.now()))}</span>. Track it in{' '}
                   <Link
                     href="/studio/orders"
                     className="text-brand underline underline-offset-2 hover:text-brand-dark"
