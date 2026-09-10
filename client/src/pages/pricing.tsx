@@ -60,7 +60,7 @@ const DOORS: Door[] = [
     source: 'photo',
     icon: Camera,
     title: 'From your photo',
-    line: 'Start with a photo of them and put them in a whole new world.',
+    line: 'Start with a photo of them and put them in any scene imaginable.',
     points: ['Any scene you can describe', 'Drawn at full print quality, one card at a time', 'A group photo works too'],
     href: '/photo/make',
     cta: 'Start with a photo',

@@ -216,7 +216,7 @@ export default function GatePage() {
               icon={Camera}
               chip={{ label: 'Pro choice', tone: 'warm' }}
               title="The director"
-              line="I've got a photo of them and want them in a whole new world."
+              line="I've got a photo of them and want to put them in any scene imaginable."
               time="10 minutes"
               effort="worth it"
               price={photo}

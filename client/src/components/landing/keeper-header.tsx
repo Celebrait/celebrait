@@ -41,7 +41,7 @@ interface MenuGroup { label: string; items: readonly MenuItem[]; matches: (path:
 /** The two ways to make a card — each has its own landing page. */
 const PERSONALISED: readonly MenuItem[] = [
   { label: 'Made for them', href: '/create', sub: 'Tell us who. We design three, you pick one.', icon: Sparkles },
-  { label: 'From your photo', href: '/photo', sub: 'Put them in a whole new world.', icon: Camera },
+  { label: 'From your photo', href: '/photo', sub: 'Put them in any scene imaginable.', icon: Camera },
 ];
 
 /** The rack, by occasion. One entry per occasion page that exists;
