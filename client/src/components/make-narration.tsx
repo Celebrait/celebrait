@@ -143,7 +143,7 @@ export function drawingBeats({ brief }: MakeNarrationInput, concepts: ConceptLin
 /** How many fronts are done, in words. */
 export function landedLine(landed: number, total = 3): string | null {
   if (landed <= 0) return null;
-  if (landed >= total) return 'All three done. Just tidying.';
+  if (landed >= total) return 'All three are ready.';
   if (landed === 1) return 'First one’s done. Two still drawing.';
   return 'Two done. Last one’s on its way.';
 }
