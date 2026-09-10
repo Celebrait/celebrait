@@ -20,7 +20,7 @@ interface FaqEntry {
 const FAQS: FaqEntry[] = [
   {
     q: 'How does Celebrait work?',
-    a: "You describe what you want — recipient, occasion, scene, the small details that make it personal. We illustrate and animate the card in seconds. Free to make, free to keep digital. Pay only if you want to print and post.",
+    a: "You describe what you want — recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes — about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
   },
   {
     q: 'Whose words go inside the card?',

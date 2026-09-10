@@ -963,7 +963,7 @@ function HeroSection() {
             <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
               The result? A close to perfect greetings card they'll{' '}
               <span className="font-medium text-keeper-ink">probably keep</span> from just
-              £4.99. From idea to production in just 5 minutes*
+              £4.99. From photo to print-ready in 7–10 minutes*
             </p>
             {/* The wink — the asterisk is the joke, so keep it quiet and
                 right under the claim it qualifies. */}
@@ -1774,7 +1774,7 @@ function OccasionCaptureSection() {
               <p className="mt-1 text-[12.5px] text-keeper-meta">
                 {sent === 'dated'
                   ? 'Your link is in your inbox meanwhile, whenever you fancy a look.'
-                  : 'Whenever the moment comes, it takes a few minutes.'}
+                  : 'Whenever the moment comes, it takes 7–10 minutes.'}
               </p>
             </div>
           ) : (

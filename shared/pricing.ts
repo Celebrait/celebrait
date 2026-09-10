@@ -349,6 +349,14 @@ export function cardPriceGBP(source: string | null | undefined): number {
   return CARD_PRICES_GBP[(source ?? 'photo') as CardSource] ?? CARD_PRICES_GBP.photo;
 }
 
+/** Time to make, start to finish, by door (Aidan 2026-09-10: "roughly
+ *  3–5 mins for casual, 7–10 mins director"). Said on every route. */
+export const MAKE_TIME: Record<CardSource, string> = {
+  rack: 'about a minute',
+  maker: '3–5 minutes',
+  photo: '7–10 minutes',
+};
+
 /** The cheapest door, for "from £X" copy. */
 export const CARD_PRICE_FROM_GBP = Math.min(...Object.values(CARD_PRICES_GBP));
 

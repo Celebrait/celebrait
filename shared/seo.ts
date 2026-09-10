@@ -50,19 +50,19 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      'Tell us who the card is for and we write and illustrate three originals in a minute. Printed on 280gsm card and posted first class from £4.99.',
+      'Tell us who the card is for and we write and illustrate three originals in a few minutes. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/door',
     title: 'Cards Made For One Person | Celebrait',
     description:
-      'A card made for them: tell us who and we write and illustrate three originals in a minute. Or a scene made around them, from one photo. Printed on 280gsm card and posted first class from £4.99.',
+      'A card made for them: tell us who and we write and illustrate three originals in a few minutes. Or a scene made around them, from one photo. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/door2',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      'Tell us who the card is for and we write and illustrate three originals in a minute — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
+      'Tell us who the card is for and we write and illustrate three originals in a few minutes — or start with a photo. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
     path: '/make',

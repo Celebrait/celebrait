@@ -26,7 +26,7 @@ const STEPS: Step[] = [
     icon: Sparkles,
     eyebrow: 'Step 02',
     title: 'We illustrate it',
-    body: 'A premium AI illustrator paints your card in seconds. Tweak any part for free until it\'s right.',
+    body: 'We write and illustrate your card in a few minutes — 3–5 made for them, 7–10 from a photo. Tweak any part for free until it\'s right.',
   },
   {
     icon: Send,

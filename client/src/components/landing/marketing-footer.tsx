@@ -152,7 +152,7 @@ export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {
             />
             <p className="max-w-[34ch] text-sm leading-relaxed text-keeper-paper/60">
               Custom greetings card with a front and inside that belong
-              together, print-ready in about five minutes*
+              together, print-ready in under ten minutes*
             </p>
             <p className="mt-1.5 max-w-[34ch] text-[11px] leading-snug text-keeper-paper/40">
               *Possible, but you might prefer to take longer

@@ -23,7 +23,7 @@ import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
-import { CARD_PRICES_GBP, UK_SHIPPING_STANDARD_GBP, type CardSource } from '@shared/pricing';
+import { CARD_PRICES_GBP, UK_SHIPPING_STANDARD_GBP, MAKE_TIME, type CardSource } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -52,7 +52,7 @@ const DOORS: Door[] = [
     icon: Sparkles,
     title: 'Made for them',
     line: 'Tell us who they are and what they love. We design three cards. You pick the one.',
-    points: ['Three original fronts in about a minute', 'Written and drawn around their thing', 'Add their photo once you’ve picked (optional)'],
+    points: ['Three original fronts to pick from', 'Written and drawn around their thing', 'Add their photo once you’ve picked (optional)'],
     href: '/make',
     cta: 'Tell us about them',
   },
@@ -126,7 +126,7 @@ export default function PricingPage() {
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-4 text-[12px] text-keeper-meta">+ {gbp(UK_SHIPPING_STANDARD_GBP)} postage, Royal Mail 24 tracked</p>
+                    <p className="mt-4 text-[12px] text-keeper-meta">Takes {MAKE_TIME[d.source]} · + {gbp(UK_SHIPPING_STANDARD_GBP)} postage, Royal Mail 24 tracked</p>
                     <Link href={href} className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-go px-5 py-2.5 text-[14.5px] font-semibold text-go-foreground transition-colors hover:bg-go-hover">
                       {d.cta}
                     </Link>

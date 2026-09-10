@@ -36,7 +36,7 @@ import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPriceGBP, MAKE_TIME } from '@shared/pricing';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -190,7 +190,7 @@ export default function GatePage() {
               chip={{ label: 'Quickest', tone: 'ready' }}
               title="The casual browser"
               line="I know them well. I just don't want to spend an hour on it."
-              time="2 minutes"
+              time={MAKE_TIME.maker}
               effort="easy"
               price={maker}
               photo="optional"
@@ -217,7 +217,7 @@ export default function GatePage() {
               chip={{ label: 'Pro choice', tone: 'warm' }}
               title="The director"
               line="I've got a photo of them and want to put them in any scene imaginable."
-              time="10 minutes"
+              time={MAKE_TIME.photo}
               effort="worth it"
               price={photo}
               photo="needed"

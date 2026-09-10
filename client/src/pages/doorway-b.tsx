@@ -101,7 +101,7 @@ export default function DoorwayBPage() {
                     className="inline-flex items-center gap-2 rounded-full bg-go px-7 py-3.5 text-[15px] font-semibold text-go-foreground shadow-[0_10px_30px_-12px_rgba(92,87,212,0.5)] transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold">
                     <Sparkles className="h-4 w-4" /> Get started
                   </button>
-                  <span className="text-[13px] text-keeper-meta">Seven quick questions · about a minute</span>
+                  <span className="text-[13px] text-keeper-meta">Six quick questions · 3–5 minutes start to finish</span>
                 </div>
               </>
             ) : (
