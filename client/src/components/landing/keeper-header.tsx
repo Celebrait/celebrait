@@ -10,23 +10,26 @@
 //   Stock cards ▾         → one entry per occasion on the rack (OCCASIONS)
 //   Pricing               → /pricing
 //
-// Desktop: Radix dropdowns (they animate in from the trigger). Phones: a
-// hamburger opens a sheet where the two groups expand in place (a CSS
-// grid-rows transition, so the list unfolds rather than jumps).
+// Branded, not a list of links (Aidan 2026-09-10: "a bit more colour,
+// a bit of branding, icon? tagline? come on dude"): every item has an
+// icon in the studio's violet well, an eyebrow names the group the way
+// the gate does, the price sits on the group, and the phone sheet opens
+// with the mark, the tagline and the offer. Palette stays locked —
+// violet chrome, green for readiness, coral ONLY on the offer.
 //
 // z-index: the header sits at z-[150] so it floats over page content;
 // anything that opens FROM it (dropdown, sheet) must sit higher, or it
-// renders behind the very bar it came from — which is what happened
-// (Aidan 2026-09-10: "dropping behind itself on desktop and mobile").
+// renders behind the very bar it came from (Aidan 2026-09-10).
 
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ChevronDown, Menu } from 'lucide-react';
+import { Cake, Camera, ChevronDown, Gift, Menu, Sparkles, Tag, TreePine, type LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import celebraitLogo from '@/assets/celebrait.webp';
-import { TickerBanner } from '@/components/landing/ticker-banner';
+import logoMark from '@/assets/logo-mark.webp';
+import { TickerBanner, useClaimFreeCard } from '@/components/landing/ticker-banner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,35 +37,79 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { CARD_PRICES_GBP, CARD_PRICE_FROM_GBP } from '@shared/pricing';
 
-interface MenuItem { label: string; href: string; sub?: string }
-interface MenuGroup { label: string; items: readonly MenuItem[]; matches: (path: string) => boolean }
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+
+interface MenuItem { label: string; href: string; sub: string; icon: LucideIcon; price?: string }
+interface MenuGroup {
+  label: string;
+  /** The eyebrow inside the open menu — the gate's language. */
+  eyebrow: string;
+  items: readonly MenuItem[];
+  /** The line under the items: what the group costs, in one breath. */
+  foot: { href: string; label: string };
+  matches: (path: string) => boolean;
+}
 
 /** The two ways to make a card — each has its own landing page. */
 const PERSONALISED: readonly MenuItem[] = [
-  { label: 'Made for them', href: '/create', sub: 'Tell us who. We design three.' },
-  { label: 'From your photo', href: '/photo', sub: 'Put them in the picture.' },
+  { label: 'Made for them', href: '/create', sub: 'Tell us who. We design three, you pick one.', icon: Sparkles, price: gbp(CARD_PRICES_GBP.maker) },
+  { label: 'From your photo', href: '/photo', sub: 'Put them in a whole new world.', icon: Camera, price: gbp(CARD_PRICES_GBP.photo) },
 ];
 
 /** The rack, by occasion. One entry per occasion page that exists;
  *  extend as the catalogue grows. */
 const STOCK: readonly MenuItem[] = [
-  { label: 'Birthday', href: '/cards/birthday' },
-  { label: 'Christmas', href: '/cards/christmas' },
+  { label: 'Birthday', href: '/cards/birthday', sub: 'For mums, dads, mates and the big numbers.', icon: Cake },
+  { label: 'Christmas', href: '/cards/christmas', sub: 'The ones that stay on the mantelpiece.', icon: TreePine },
 ];
 
 const GROUPS: readonly MenuGroup[] = [
-  { label: 'Personalised cards', items: PERSONALISED, matches: (p) => p === '/create' || p === '/photo' || p === '/keeper' },
-  { label: 'Stock cards', items: STOCK, matches: (p) => p.startsWith('/cards') || p.startsWith('/card/') },
+  {
+    label: 'Personalised cards',
+    eyebrow: 'Made from scratch, for one person',
+    items: PERSONALISED,
+    foot: { href: '/', label: 'Not sure which? Answer one question' },
+    matches: (p) => p === '/create' || p === '/photo' || p === '/keeper',
+  },
+  {
+    label: 'Stock cards',
+    eyebrow: `Off the shelf · from ${gbp(CARD_PRICE_FROM_GBP)}`,
+    items: STOCK,
+    foot: { href: '/cards/birthday', label: 'Browse the whole rack' },
+    matches: (p) => p.startsWith('/cards') || p.startsWith('/card/'),
+  },
 ];
 
 const navLink = 'inline-flex items-center gap-1 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink data-[state=open]:text-keeper-ink';
 const navActive = 'text-keeper-ink';
 const ctaCls = 'h-10 rounded-full bg-keeper-ink px-4 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black sm:px-5';
+const eyebrow = 'text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-gold';
+
+/** One row: the studio's icon well, the label, the line, the price. */
+function ItemRow({ item, compact = false }: { item: MenuItem; compact?: boolean }) {
+  const Icon = item.icon;
+  return (
+    <span className="flex items-center gap-3">
+      <span className={`flex shrink-0 items-center justify-center rounded-xl bg-brand-muted text-keeper-gold ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}>
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="text-[14px] font-semibold text-keeper-ink">{item.label}</span>
+          {item.price && <span className="shrink-0 text-[12px] font-semibold text-keeper-ink">{item.price}</span>}
+        </span>
+        <span className="block text-[12px] leading-snug text-keeper-meta">{item.sub}</span>
+      </span>
+    </span>
+  );
+}
 
 export function KeeperHeader() {
   const { isAuthenticated, isLoading } = useAuth();
   const { openAuth } = useAuthModal();
+  const claimFreeCard = useClaimFreeCard();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -105,15 +152,20 @@ export function KeeperHeader() {
                   </button>
                 </DropdownMenuTrigger>
                 {/* z-[200]: above the z-[150] header it opens from. */}
-                <DropdownMenuContent align="start" sideOffset={24} className="z-[200] min-w-[220px] rounded-xl border-keeper-hair bg-white p-1.5 shadow-[0_18px_50px_-20px_rgba(33,29,25,0.35)]">
-                  {g.items.map((it) => (
-                    <DropdownMenuItem key={it.href} asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-brand-muted">
-                      <Link href={it.href} className="block">
-                        <span className="block text-[13.5px] font-medium text-keeper-ink">{it.label}</span>
-                        {it.sub && <span className="block text-[12px] text-keeper-meta">{it.sub}</span>}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align="start" sideOffset={24} className="z-[200] w-[320px] overflow-hidden rounded-2xl border-keeper-hair bg-white p-0 shadow-[0_24px_60px_-24px_rgba(33,29,25,0.4)]">
+                  <div className="px-4 pb-1 pt-3.5">
+                    <p className={eyebrow}>{g.eyebrow}</p>
+                  </div>
+                  <div className="p-2">
+                    {g.items.map((it) => (
+                      <DropdownMenuItem key={it.href} asChild className="cursor-pointer rounded-xl px-2.5 py-2.5 focus:bg-brand-muted">
+                        <Link href={it.href} className="block"><ItemRow item={it} /></Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-none border-t border-keeper-hair bg-keeper-paper px-4 py-3 focus:bg-brand-muted">
+                    <Link href={g.foot.href} className="block text-[12.5px] font-medium text-keeper-gold">{g.foot.label} →</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ))}
@@ -144,19 +196,43 @@ export function KeeperHeader() {
                   <Menu className="h-5 w-5" strokeWidth={1.75} />
                 </button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] border-keeper-hair bg-keeper-paper p-0">
+              <SheetContent side="right" className="flex w-[320px] flex-col border-keeper-hair bg-keeper-paper p-0">
                 <SheetTitle className="sr-only">Menu</SheetTitle>
-                <nav className="flex flex-col px-5 pb-8 pt-14" aria-label="Main">
+                {/* The mark and the tagline — the gate's headline, so the
+                    menu reads as the same place. */}
+                <div className="border-b border-keeper-hair bg-white px-5 pb-5 pt-5">
+                  <img src={logoMark} alt="" className="h-9 w-9" />
+                  <p className={`mt-3 ${eyebrow}`}>Unbinnable greetings cards</p>
+                  <p className="mt-1 font-display text-[20px] font-bold leading-[1.1] tracking-[-0.01em] text-keeper-ink">
+                    Stop settling for<br /><span className="font-medium italic">“that one will do”</span>
+                  </p>
+                </div>
+                <nav className="flex flex-1 flex-col overflow-y-auto px-4 pb-4 pt-2" aria-label="Main">
                   {GROUPS.map((g) => (
                     <MobileGroup key={g.label} group={g} defaultOpen={g.matches(location)} onNavigate={() => setOpen(false)} />
                   ))}
-                  <div className="mt-2 border-t border-keeper-hair pt-4">
-                    <Link href="/pricing" onClick={() => setOpen(false)} className="block py-2 text-[16px] font-semibold text-keeper-ink">Pricing</Link>
+                  <div className="mt-1 flex flex-col">
+                    <Link href="/pricing" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-1 py-3 text-[16px] font-semibold text-keeper-ink">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-muted text-keeper-gold"><Tag className="h-[18px] w-[18px]" strokeWidth={1.75} /></span>
+                      Pricing
+                    </Link>
                     {!isLoading && !isAuthenticated && (
-                      <button type="button" onClick={() => { setOpen(false); openAuth('/studio'); }} className="block py-2 text-[16px] font-semibold text-keeper-ink">Sign in</button>
+                      <button type="button" onClick={() => { setOpen(false); openAuth('/studio'); }} className="px-1 py-2 text-left text-[14px] font-medium text-keeper-meta">Sign in</button>
                     )}
                   </div>
                 </nav>
+                {/* The offer, coral — the one warm accent, on the offer only. */}
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); claimFreeCard(); }}
+                  className="flex items-center gap-3 border-t border-keeper-hair px-5 py-4 text-left"
+                  style={{ background: 'linear-gradient(90deg, #211D19 0%, #5c57d4 100%)' }}
+                >
+                  <Gift className="h-4 w-4 shrink-0 text-accent-coral" />
+                  <span className="text-[12.5px] font-medium leading-snug text-white">
+                    Add 3 dates that matter — <b className="text-accent-coral">50% off</b> your first card ›
+                  </span>
+                </button>
               </SheetContent>
             </Sheet>
           </div>
@@ -172,21 +248,26 @@ function MobileGroup({ group, defaultOpen, onNavigate }: { group: MenuGroup; def
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-keeper-hair">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between py-3.5 text-left text-[16px] font-semibold text-keeper-ink">
-        {group.label}
-        <ChevronDown className={`h-4 w-4 text-keeper-meta transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between px-1 py-3.5 text-left">
+        <span>
+          <span className="block text-[16px] font-semibold text-keeper-ink">{group.label}</span>
+          <span className={`block ${eyebrow}`}>{group.eyebrow}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-keeper-meta transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className="overflow-hidden">
           <ul className="pb-3">
             {group.items.map((it) => (
               <li key={it.href}>
-                <Link href={it.href} onClick={onNavigate} className="block rounded-lg px-3 py-2.5 hover:bg-brand-muted">
-                  <span className="block text-[15px] font-medium text-keeper-ink">{it.label}</span>
-                  {it.sub && <span className="block text-[12.5px] text-keeper-meta">{it.sub}</span>}
+                <Link href={it.href} onClick={onNavigate} className="block rounded-xl px-1.5 py-2 hover:bg-brand-muted">
+                  <ItemRow item={it} compact />
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href={group.foot.href} onClick={onNavigate} className="mt-1 block px-1.5 py-1.5 text-[12.5px] font-medium text-keeper-gold">{group.foot.label} →</Link>
+            </li>
           </ul>
         </div>
       </div>
