@@ -353,17 +353,17 @@ export default function MakePage() {
     ];
     return (
       <MakeShell step={step}>
-        {/* Said before they spend twenty minutes crafting (Aidan
-            2026-09-09): one-off prints, allow a week. The "no account"
-            line that sat here is gone (Aidan: "we can remove this"). */}
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <LeadTimeNotice className="flex-1" />
-          <Link href="/create" className="mt-2 text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+        <div className="mb-3 flex justify-end">
+          <Link href="/create" className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
         </div>
         <div className={panel}>
+          {/* The lead-time notice lives INSIDE the question container
+              (Aidan 2026-09-10) — one-off prints, allow a week — read
+              with the question, before twenty minutes of crafting. */}
+          <LeadTimeNotice className="mb-5 sm:mb-6" />
           <BriefQuestions
             skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
             initialStep={brief.who.trim() ? 1 : 0}

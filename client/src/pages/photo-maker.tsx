@@ -14,11 +14,11 @@
 // Review step with the reveal already under way.
 //
 // Landing chrome (this is still the shop floor), studio panel inside.
-// Free account needed to generate, not to start — said on step one.
+// (The 'free account needed to generate' line was dropped 2026-09-10.)
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
-import { ChevronLeft, ChevronRight, Loader2, Sparkles, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { StepChips } from '@/components/step-chips';
 import { Button } from '@/components/ui/button';
@@ -223,19 +223,19 @@ export default function PhotoMakerPage() {
   return (
     <GuestPhotoContext.Provider value>
       <Shell>
-        {/* Said up front (Aidan 2026-09-09): one-off prints, allow a
-            week — prominent, before the crafting starts. */}
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <LeadTimeNotice className="flex-1" />
+        <div className="mb-3 flex justify-end">
           {/* Leaving = nothing of theirs stays in this browser. */}
-          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="mt-2 text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
-        <p className="mb-4 inline-flex items-center gap-1.5 text-xs text-keeper-meta"><Lock className="h-3 w-3" /> Free account needed to generate, not to start.</p>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={[...PUBLIC_STEPS]} current={currentStep} furthest={furthest} onJump={setStep} />
         </div>
 
         <div className="min-h-[380px] rounded-2xl border border-keeper-hair bg-white p-6 sm:p-10">
+          {/* The lead-time notice lives INSIDE the question container
+              (Aidan 2026-09-10) — one-off prints, allow a week — so it's
+              read with the question, not as page chrome. */}
+          <LeadTimeNotice className="mb-5 sm:mb-6" />
           <h1 className="mx-auto mb-5 max-w-2xl font-display text-xl font-bold tracking-[-0.015em] text-keeper-ink sm:mb-6 sm:text-2xl">
             {headline(currentStep, state)}
           </h1>
