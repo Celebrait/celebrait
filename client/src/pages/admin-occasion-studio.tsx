@@ -213,10 +213,12 @@ export default function AdminOccasionStudioPage() {
    *  free; classic = the original pipeline, kept for comparison. The
    *  style decision gets made by eye from this toggle's output. */
   const [pipeline, setPipeline] = useState<'celebrait' | 'open' | 'classic'>('celebrait');
-  /** Composition mode. 'auto' = the server flips a coin per set — the
-   *  experiment ended with both modes keeping their place (Aidan: "I
-   *  like both lol"). Explicit modes remain for deliberate testing. */
-  const [compMode, setCompMode] = useState<'auto' | 'free' | 'dealt'>('auto');
+  /** Composition is FREE, always (Aidan 2026-09-12: "can we only use
+   *  Free composition on the occasion builder please"). The auto coin
+   *  flip and the dealt-format mode are gone from this surface — the
+   *  public maker already hardcoded free on 2026-09-03 ("no 50/50
+   *  roll"), so the builder was the last place a dealt set could come
+   *  from. The server still accepts both; nothing here asks for dealt. */
   /** The charm register: naive hand-drawn / object-mascots /
    *  hand-lettering — daft over dry. Off = the poster voice. */
   const [charm, setCharm] = useState(false);
@@ -402,7 +404,7 @@ export default function AdminOccasionStudioPage() {
         who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
         recipientName: recipientName.trim() || undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
-        freeComposition: compMode === 'auto' ? undefined : compMode === 'free',
+        freeComposition: true,
         charm,
         dislikes: dislikes.trim() || undefined,
       });
@@ -729,14 +731,6 @@ export default function AdminOccasionStudioPage() {
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 charm ? 'border-pink-400 bg-pink-50 text-pink-700' : 'border-stone-200 bg-white text-stone-400 hover:border-pink-300'}`}>
               Charm
-            </button>
-            <button type="button"
-              onClick={() => setCompMode((v) => (v === 'auto' ? 'free' : v === 'free' ? 'dealt' : 'auto'))}
-              title="Auto flips a coin per set between dealt formats and free composition; click to pin one for testing"
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                compMode === 'auto' ? 'border-stone-200 bg-white text-stone-500 hover:border-amber-300'
-                                    : 'border-amber-400 bg-amber-50 text-amber-700'}`}>
-              {compMode === 'auto' ? 'Comp: auto' : compMode === 'free' ? 'Comp: free' : 'Comp: dealt'}
             </button>
           </div>
           {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.
