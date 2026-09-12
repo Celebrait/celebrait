@@ -25,7 +25,6 @@ import {
   whoPhrase, whoPossessive, type Brief, type QuestionKey,
 } from '@/components/brief-questions';
 import { MakeNarration } from '@/components/make-narration';
-import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { StepChips, type StepChip } from '@/components/step-chips';
 
 // ── The research key + soft cap ──────────────────────────────────────
@@ -801,10 +800,10 @@ export default function ResearchMakerPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col bg-[#FBF9F5] px-5 py-8">
       <img src={celebraitLogo} alt="Celebrait" className="mx-auto h-7 w-auto" />
+      {/* NO lead-time notice here (Aidan 2026-09-12): research is not a
+          live printable route — nothing gets ordered, so a delivery
+          promise would be a claim we aren't making. */}
       <div className="mt-6">
-        <LeadTimeNotice />
-      </div>
-      <div className="mt-4">
         <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
       </div>
       <div className="mt-6 rounded-2xl border border-keeper-hair bg-white/70 p-6 backdrop-blur-sm sm:p-8">
