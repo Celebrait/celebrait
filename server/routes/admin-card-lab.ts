@@ -48,6 +48,7 @@ import { openai } from '../utils/shared';
 import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
+import { assessCameoRender } from '../photos/analyze';
 
 /** The model behind the concept writer AND the judge. gpt-4o until
  *  2026-08-17, when Aidan called the flatness ("doesn't feel great") and
@@ -3868,6 +3869,42 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
   app.post('/api/research/render', guarded(requireResearch('render'), renderHandler));
   app.post('/api/admin/card-lab/render-inside', guarded(requireAdmin, render_insideHandler));
   app.post('/api/research/render-inside', guarded(requireResearch('render-inside'), render_insideHandler));
+  // ── The cameo QA pass (Aidan 2026-09-12: "can we get an image check
+  // on each one to ensure the image is not messed up?"). Judges the
+  // RENDERED card against the photo it came from — pasted-on cut-outs
+  // and broken anatomy, the two ways his cameos actually failed.
+  // Admin-only: it's a curation tool, and it costs a vision call.
+  app.post('/api/admin/card-lab/cameo-check', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const parsed = z.object({
+      cardImage: z.string().startsWith('data:image/').max(12_000_000),
+      cameoPhoto: z.string().startsWith('data:image/').max(12_000_000),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: 'Need cardImage + cameoPhoto as data URLs' });
+    /** "data:image/png;base64,AAAA" → bytes + mime. */
+    const decode = (dataUrl: string): { bytes: Buffer; mimeType: string } | null => {
+      // [\s\S] not the /s flag — the TS target predates dotAll.
+      const m = /^data:([^;,]+)(?:;[^,]*)?,([\s\S]*)$/.exec(dataUrl);
+      if (!m) return null;
+      try { return { mimeType: m[1], bytes: Buffer.from(m[2], 'base64') }; } catch { return null; }
+    };
+    const card = decode(parsed.data.cardImage);
+    const photo = decode(parsed.data.cameoPhoto);
+    if (!card || !photo) return res.status(400).json({ message: 'Could not read those images' });
+    try {
+      const { result, raw, model, durationMs } = await assessCameoRender({
+        cardBytes: card.bytes, cardMimeType: card.mimeType,
+        photoBytes: photo.bytes, photoMimeType: photo.mimeType,
+      });
+      // Fail OPEN: a QA check that blocks curation is worse than none.
+      // `result: null` means "no opinion", and the UI shows no badge.
+      res.json({ result, raw: result ? undefined : raw, model, durationMs });
+    } catch (err: any) {
+      console.error('[CAMEO-QA] check failed:', err?.message ?? err);
+      res.json({ result: null, model: null, durationMs: 0 });
+    }
+  });
+
   app.post('/api/admin/card-lab/ip-safe-art', guarded(requireAdmin, ip_safe_artHandler));
   app.post('/api/research/ip-safe-art', guarded(requireResearch('ip-safe-art'), ip_safe_artHandler));
   // The public builder (door one) — same handlers, guest gate, no key.

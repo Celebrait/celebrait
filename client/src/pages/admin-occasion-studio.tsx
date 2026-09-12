@@ -115,6 +115,11 @@ interface Cell {
    *  Held BESIDE imageUrl, never in it: keep/print always use the
    *  original, so a real face can never be saved as stock. */
   cameoUrl?: string; cameoBusy?: boolean; showCameo?: boolean;
+  /** The cameo QA pass (Aidan 2026-09-12) — did the render come out
+   *  mangled? 'checking' while the vision call is out; null verdict =
+   *  no opinion (no key, bad JSON) and nothing is shown. */
+  cameoQa?: { verdict: 'good' | 'check' | 'bad'; integration: string; anatomy: string; issue: string } | null;
+  cameoQaBusy?: boolean;
   /** True on the card the ×1 deal routed the photo through — its
    *  imageUrl IS the cameo render. */
   dealtCameo?: boolean;
@@ -557,12 +562,34 @@ export default function AdminOccasionStudioPage() {
         baseImage: cell.imageUrl, cameoMode,
       });
       const rj = await rr.json();
-      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false, cameoUrl: rj.imageUrl, showCameo: true } : x)));
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false, cameoUrl: rj.imageUrl, showCameo: true, cameoQaBusy: true, cameoQa: undefined } : x)));
       const n = parseFloat(String(rj.costUsd ?? '').replace('$', ''));
       if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+      // QA the render against the photo it came from. Never blocks and
+      // never throws into the caller — worst case there's no badge.
+      void checkCameo(i, rj.imageUrl);
     } catch (e: any) {
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoBusy: false } : x)));
       toast({ title: 'Couldn’t paint them in', description: e?.message ?? 'Try again', variant: 'destructive' });
+    }
+  };
+
+  /** The cameo QA pass — "can we get an image check on each one?"
+   *  (Aidan 2026-09-12). Vision-compares the finished card with the
+   *  source photo and flags the two ways his cameos actually failed:
+   *  a photographic cut-out pasted on, and a body facing the wrong way.
+   *  Advisory only: it badges the card, it never blocks or re-rolls. */
+  const checkCameo = async (i: number, cardImage?: string) => {
+    const img = cardImage ?? cells[i]?.cameoUrl;
+    if (!img || !cameoPhoto) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoQaBusy: true } : x)));
+    try {
+      const r = await apiRequest('POST', '/api/admin/card-lab/cameo-check', { cardImage: img, cameoPhoto });
+      const { result } = await r.json();
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoQaBusy: false, cameoQa: result ?? null } : x)));
+    } catch {
+      // Fail open — no verdict, no badge, no noise.
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, cameoQaBusy: false, cameoQa: null } : x)));
     }
   };
 
@@ -862,6 +889,29 @@ export default function AdminOccasionStudioPage() {
                       </button>
                     ))}
                   </div>
+                )}
+                {/* The QA verdict. Quiet when it's clean, loud when it
+                    isn't — a badge on every card would just be noise. */}
+                {c.cameoUrl && c.cameoQaBusy && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-stone-400"><Loader2 className="h-3 w-3 animate-spin" /> Checking the render…</p>
+                )}
+                {c.cameoUrl && !c.cameoQaBusy && c.cameoQa && (
+                  c.cameoQa.verdict === 'good' ? (
+                    <p className="text-[11px] font-medium text-emerald-600">✓ Looks properly drawn in</p>
+                  ) : (
+                    <div className={`rounded-md border px-2 py-1.5 ${c.cameoQa.verdict === 'bad' ? 'border-rose-300 bg-rose-50' : 'border-amber-300 bg-amber-50'}`}>
+                      <p className={`text-[11px] font-semibold ${c.cameoQa.verdict === 'bad' ? 'text-rose-700' : 'text-amber-700'}`}>
+                        {c.cameoQa.verdict === 'bad' ? 'This one came out wrong' : 'Worth a look'}
+                        {c.cameoQa.integration === 'pasted' ? ' · pasted on' : ''}
+                        {c.cameoQa.anatomy === 'broken' ? ' · anatomy' : ''}
+                      </p>
+                      {c.cameoQa.issue && <p className="mt-0.5 text-[10.5px] leading-snug text-stone-600">{c.cameoQa.issue}</p>}
+                      <button type="button" onClick={() => putThemIn(i)} disabled={c.cameoBusy}
+                        className="mt-1.5 rounded border border-stone-300 bg-white px-2 py-1 text-[10.5px] font-medium text-stone-600 transition-colors hover:border-brand hover:text-brand-dark disabled:opacity-60">
+                        {c.cameoBusy ? 'Painting them in…' : 'Paint them in again'}
+                      </button>
+                    </div>
+                  )
                 )}
                 <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
                 <p className="text-[11px] text-stone-400">{(c.concept as any).tone ? `${(c.concept as any).tone} · ` : ''}{c.concept.angle} · {c.concept.format}{c.served ? ` · ${c.served}` : ''}</p>

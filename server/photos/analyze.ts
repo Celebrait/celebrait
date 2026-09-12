@@ -552,3 +552,147 @@ export function resolveAnalysisSource(args: {
     mimeType: args.croppedStoragePath ? 'image/jpeg' : 'image/jpeg',
   };
 }
+
+// ── The cameo QA pass (Aidan 2026-09-12) ─────────────────────────────
+//
+// "I added this kid and it came out perfect on the left, centre it came
+// out with the body the wrong way around, third just looks plonked on
+// there poorly — can we get an image check on each one?"
+//
+// This judges the RENDERED CARD, not the input photo. Everything else in
+// this module asks "is this photo good enough to work from"; this asks
+// "did the render come out mangled". Two axes, because the two failures
+// Aidan hit are different animals:
+//
+//   integration — is the person DRAWN into the card's world, or pasted
+//                 on as a photographic cut-out? (his third card)
+//   anatomy     — do head, neck, shoulders and body agree? (his centre
+//                 card: "the body the wrong way around")
+//
+// ⚠️ THE TRAP, and the reason the prompt is written the way it is: these
+// cards are DELIBERATELY stylised. A good cameo does NOT look like the
+// photograph — it looks like an illustration of that person. A naive
+// "does this match the photo?" check flags the BEST output as the worst.
+// So the prompt states the intent up front and asks for the inverse
+// fault: a photographic cut-out sitting on an illustrated card.
+//
+// Fail-open, like the rest of the module: no key, bad JSON or a thrown
+// call all return null and the caller carries on unflagged. A QA check
+// that can block the work is worse than no QA check.
+
+export interface CameoAssessment {
+  /** 'drawn' = redrawn in the card's style (correct). 'pasted' = a
+   *  photographic cut-out stuck on an illustrated card (the fault). */
+  integration: 'drawn' | 'pasted' | 'unclear';
+  /** 'sound' | 'broken' — head/body orientation, limbs, joins. */
+  anatomy: 'sound' | 'broken' | 'unclear';
+  /** Overall call. 'check' = worth your eyes, not certainly wrong. */
+  verdict: 'good' | 'check' | 'bad';
+  /** One short sentence naming the fault, or '' when it's clean. */
+  issue: string;
+}
+
+const CAMEO_QA_PROMPT = `You are checking the QUALITY of a generated greeting-card illustration.
+
+You get TWO images:
+  IMAGE 1 — the source photograph of a real person.
+  IMAGE 2 — the finished greeting card, which should show that same person drawn into the card's artwork.
+
+INTENT, read this twice: the card is MEANT to be a stylised illustration. The person SHOULD look drawn, painted or graphic rather than photographic. A card where the person is rendered in the card's own art style is CORRECT and should score well. Do not penalise a card for not looking like a photograph — that is the goal, not a defect.
+
+Judge exactly two things.
+
+1. INTEGRATION — is the person part of the artwork, or stuck on top of it?
+   "drawn"  = rendered in the card's style; consistent line, shading, palette and edges with the rest of the card.
+   "pasted" = an unmistakable photographic cut-out on an illustrated or graphic background: photo-real skin and fabric against flat/drawn surroundings, hard or rectangular cut edges, a halo or fringe, leftover background from the original photo, or a head at a different resolution or grain from everything around it.
+
+2. ANATOMY — does the body hold together?
+   "sound"  = head, neck, shoulders and torso agree; limbs plausible; the figure faces one coherent direction.
+   "broken" = head and body face inconsistent or impossible directions, a head grafted at the wrong angle, a twisted or reversed torso, duplicated or missing limbs, a floating or detached head, or a neck/shoulder join that does not work.
+
+Then give an overall verdict:
+  "good"  = drawn AND sound.
+  "check" = something is a bit off and a human should look.
+  "bad"   = clearly pasted on, or clearly broken anatomy.
+
+Rules: NEVER identify or name anyone. NEVER comment on attractiveness, body type or ethnicity. Ignore spelling and wording of any text on the card — that is not your job. Judge only the two things above.
+
+Return ONE JSON object:
+{ "integration": "drawn" | "pasted" | "unclear",
+  "anatomy": "sound" | "broken" | "unclear",
+  "verdict": "good" | "check" | "bad",
+  "issue": string }
+
+"issue" is ONE short plain sentence naming the fault in everyday words ("The head looks pasted on, with the photo's own background still around it"), or "" when the card is clean.
+
+Output JSON only. No markdown fences, no preamble.`;
+
+/** QA a rendered cameo against the photo it came from. Same model and
+ *  same defensive contract as the assessors above. */
+export async function assessCameoRender(args: {
+  /** The finished card. */
+  cardBytes: Buffer;
+  cardMimeType: string;
+  /** The photo the person came from. */
+  photoBytes: Buffer;
+  photoMimeType: string;
+}): Promise<{
+  result: CameoAssessment | null;
+  raw: string;
+  model: string;
+  durationMs: number;
+  promptTokens: number;
+  outputTokens: number;
+  noApiKey?: true;
+}> {
+  const startedAt = Date.now();
+  const client = getClient();
+  if (!client) {
+    return { result: null, raw: '', model: ANALYSIS_MODEL, durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true };
+  }
+  const response = await client.models.generateContent({
+    model: ANALYSIS_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: CAMEO_QA_PROMPT },
+          { inlineData: { mimeType: args.photoMimeType, data: args.photoBytes.toString('base64') } },
+          { inlineData: { mimeType: args.cardMimeType, data: args.cardBytes.toString('base64') } },
+        ],
+      },
+    ],
+    config: {
+      // Thinking budget 0 — see the long note on runPhotoVision. This
+      // prompt is rule-heavy and would provoke plenty of thinking, and
+      // thinking tokens are charged against maxOutputTokens.
+      thinkingConfig: { thinkingBudget: 0 },
+      maxOutputTokens: 400,
+      temperature: 0.1,
+    },
+  });
+  const raw = response.text ?? '';
+  let result: CameoAssessment | null = null;
+  try {
+    const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    const p = JSON.parse(cleaned);
+    if (p && typeof p.verdict === 'string') {
+      result = {
+        integration: p.integration === 'drawn' || p.integration === 'pasted' ? p.integration : 'unclear',
+        anatomy: p.anatomy === 'sound' || p.anatomy === 'broken' ? p.anatomy : 'unclear',
+        verdict: p.verdict === 'good' || p.verdict === 'bad' ? p.verdict : 'check',
+        issue: String(p.issue ?? '').trim(),
+      };
+    }
+  } catch {
+    /* leave null — fail open, the caller shows nothing */
+  }
+  return {
+    result,
+    raw,
+    model: ANALYSIS_MODEL,
+    durationMs: Date.now() - startedAt,
+    promptTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+  };
+}
