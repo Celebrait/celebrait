@@ -145,9 +145,9 @@ const guestCounts = new Map<string, { day: string; n: number }>();
 // 'assess' + 'scene' (2026-09-04): the PUBLIC photo maker runs the
 // likeness check and the scene helper before sign-up. Both cost a
 // vision/LLM call each; a guest gets a handful, a user plenty.
-const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12, assess: 10, scene: 8 };
-const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40, assess: 40, scene: 30 };
-const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800, assess: 600, scene: 500 };
+const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'cameo-check': 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12, assess: 10, scene: 8 };
+const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'cameo-check': 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40, assess: 40, scene: 30 };
+const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'cameo-check': 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800, assess: 600, scene: 500 };
 const bump = (key: string, cap: number): boolean => {
   const day = new Date().toISOString().slice(0, 10);
   const c = guestCounts.get(key);
@@ -3873,9 +3873,12 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
   // on each one to ensure the image is not messed up?"). Judges the
   // RENDERED card against the photo it came from — pasted-on cut-outs
   // and broken anatomy, the two ways his cameos actually failed.
-  // Admin-only: it's a curation tool, and it costs a vision call.
-  app.post('/api/admin/card-lab/cameo-check', async (req: Request, res: Response) => {
-    if (!(await requireAdmin(req, res))) return;
+  //
+  // Two doors, same handler: the builder's (admin, curation) and the
+  // customer's (guest-gated). Aidan 2026-09-12: "does this tell the user
+  // we know it might be wrong so try again vibe? Seems safest" — better
+  // we flag a bad render than let someone post it.
+  const cameoCheckHandler = async (req: Request, res: Response) => {
     const parsed = z.object({
       cardImage: z.string().startsWith('data:image/').max(12_000_000),
       cameoPhoto: z.string().startsWith('data:image/').max(12_000_000),
@@ -3903,7 +3906,9 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
       console.error('[CAMEO-QA] check failed:', err?.message ?? err);
       res.json({ result: null, model: null, durationMs: 0 });
     }
-  });
+  };
+  app.post('/api/admin/card-lab/cameo-check', guarded(requireAdmin, cameoCheckHandler));
+  app.post('/api/make/cameo-check', guarded(requireGuestMaker('cameo-check'), cameoCheckHandler));
 
   app.post('/api/admin/card-lab/ip-safe-art', guarded(requireAdmin, ip_safe_artHandler));
   app.post('/api/research/ip-safe-art', guarded(requireResearch('ip-safe-art'), ip_safe_artHandler));

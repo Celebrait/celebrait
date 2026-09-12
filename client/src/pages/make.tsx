@@ -36,7 +36,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 // Ceilings per call (2026-09-08: a stalled upstream render held the page
 // on "Drawing the fronts" for minutes). A timeout throws like any other
 // failure — a cell shows "didn't come out", the rest still land.
-const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 60_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000 };
+const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 60_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000, 'cameo-check': 20_000 };
 async function makePost(path: string, body: unknown): Promise<any> {
   const ceiling = MAKE_TIMEOUT_MS[path.split('/')[0]] ?? 60_000;
   let r: Response;
@@ -186,7 +186,15 @@ export default function MakePage() {
   useEffect(() => { cellsRef.current = cells; }, [cells]);
   const [picked, setPicked] = useState<number | null>(null);
   const [cameoSrc, setCameoSrc] = useState<string | null>(null);
+  /** The CROPPED photo, kept so "try again" can re-run the same one and
+   *  the QA pass can compare against it. */
+  const [cameoPhoto, setCameoPhoto] = useState<string | null>(null);
   const [cameoUrl, setCameoUrl] = useState<string | null>(null);
+  /** The cameo QA verdict (Aidan 2026-09-12: "does this tell the user we
+   *  know it might be wrong so try again vibe? Seems safest"). Advisory —
+   *  it warns and offers another go; it never blocks the choice, because
+   *  the person looking at it is the better judge than we are. */
+  const [cameoQa, setCameoQa] = useState<{ verdict: 'good' | 'check' | 'bad'; issue: string } | null>(null);
   const [cameoBusy, setCameoBusy] = useState(false);
   const [cameoKept, setCameoKept] = useState(false);
   const [cameoError, setCameoError] = useState('');
@@ -310,7 +318,7 @@ export default function MakePage() {
   });
   const renderCameo = async (photo: string) => {
     if (picked === null) return;
-    const c = cells[picked].concept; setCameoBusy(true); setCameoError('');
+    const c = cells[picked].concept; setCameoBusy(true); setCameoError(''); setCameoQa(null); setCameoPhoto(photo);
     try {
       // REDRAW, not edit (Aidan 2026-09-03, on the Man United shirt: the
       // edit wedged him into the shirt half-photoreal; the redraw "took
@@ -318,6 +326,15 @@ export default function MakePage() {
       // colours"). The edit path stays available in the lab only.
       const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
       setCameoUrl(rj.imageUrl);
+      // QA it in the BACKGROUND — the card shows straight away and the
+      // verdict catches up. Gating the reveal on a vision call would add
+      // three seconds to a wait we've already apologised for.
+      void (async () => {
+        try {
+          const qa = await makePost('cameo-check', { cardImage: rj.imageUrl, cameoPhoto: photo });
+          setCameoQa(qa?.result ?? null);
+        } catch { setCameoQa(null); /* fail open — no verdict, no warning */ }
+      })();
     } catch (e: any) { setCameoError(e?.message ?? 'That didn’t work — try another photo, or carry on without.'); }
     finally { setCameoBusy(false); }
   };
@@ -491,6 +508,24 @@ export default function MakePage() {
           <div className={panel}>
             <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
             <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours — pick the one that's more them.</p>
+            {/* We checked our own work and we don't rate it. Say so
+                before they choose, not after it's printed. */}
+            {cameoQa && cameoQa.verdict !== 'good' && (
+              <div className="mt-5 rounded-xl border border-accent-red/30 bg-accent-red-light px-4 py-3">
+                <p className="text-sm font-semibold text-accent-red-dark">
+                  {cameoQa.verdict === 'bad' ? "We don't think that one came out right." : 'That one might not have come out right.'}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-keeper-body">
+                  {cameoQa.issue ? `${cameoQa.issue} ` : ''}Have another go with the same photo, or send the original — it's a good card either way.
+                </p>
+                <button type="button" disabled={cameoBusy || !cameoPhoto}
+                  onClick={() => { if (cameoPhoto) { setCameoUrl(null); void renderCameo(cameoPhoto); } }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3.5 py-1.5 text-[13px] font-medium text-keeper-ink transition-colors hover:border-brand disabled:opacity-50"
+                  data-testid="cameo-retry">
+                  <Sparkles className="h-3.5 w-3.5 text-cta" /> Try that photo again
+                </button>
+              </div>
+            )}
             <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
               {([[false, 'The original', c.imageUrl!], [true, 'With them in it', cameoUrl]] as const).map(([keep, name, url]) => (
                 <button key={name} type="button" onClick={() => { setCameoKept(keep); setPhase('signoff'); }} className={`${cardTile} border-keeper-hair hover:border-brand`}>
