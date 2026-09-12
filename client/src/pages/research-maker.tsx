@@ -16,6 +16,17 @@ import { Input } from '@/components/ui/input';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CropDialog } from '@/components/studio/crop-dialog';
 import type { CropBounds } from '@shared/models/photos';
+// THE SAME PIECES THE REAL FLOW USES (Aidan 2026-09-12: "make the
+// research tool the same as the front end flow"). Testers must walk
+// what customers walk, or the research measures the wrong product —
+// and sharing the components is the only way it stays true.
+import {
+  BriefQuestions, emptyBrief, occasionLabelFor, ageOf, isKidBrief,
+  whoPhrase, whoPossessive, type Brief, type QuestionKey,
+} from '@/components/brief-questions';
+import { MakeNarration } from '@/components/make-narration';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
+import { StepChips, type StepChip } from '@/components/step-chips';
 
 // ── The research key + soft cap ──────────────────────────────────────
 const key = () => new URLSearchParams(window.location.search).get('k') ?? '';
@@ -32,51 +43,12 @@ async function researchPost(path: string, body: unknown): Promise<any> {
   return r.json();
 }
 
-// ── Question config (mirrors the guided maker) ───────────────────────
-type QuestionKey = 'who' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
-type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-// Photo is FOREWARNED at the welcome and COLLECTED after the pick
-// (Aidan 2026-08-31: "only ask for the photo post the 3 reveal? It
-// worked really well before"). The in-set arm was tested and reverted:
-// the before/after flip on a card they already love is the stronger
-// moment, and a missed likeness after the pick costs one declinable
-// render instead of poisoning the set. Matches the banked LP design.
-const BASE_QUESTIONS: QuestionKey[] = ['who', 'age', 'vibe', 'interest', 'name'];
-
-const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
-  { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
-  { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
-  { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
-  { label: 'Daughter', implies: 'her' }, { label: 'Son', implies: 'him' },
-  { label: 'Granddaughter', implies: 'her' }, { label: 'Grandson', implies: 'him' },
-  { label: 'Niece', implies: 'her' }, { label: 'Nephew', implies: 'him' },
-  { label: 'Partner' }, { label: 'Best mate' }, { label: 'Friend' },
-  { label: 'Colleague' }, { label: 'Someone else' },
-];
-const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
-
-/** Customer-facing labels only — the engine still receives
- *  funny/warm/rude/mix underneath (Aidan, 2026-08-24: "rude sounds
- *  too much like xxx"; Cheeky is the UK card-rack word for it). */
-const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
-  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
-  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
-  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'One of each', sub: 'three cards, three vibes — you choose after' },
-};
-const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
-/** A deliberate mix of short and long — teaching that a word works
- *  and so does a whole little story. */
-const PLACEHOLDERS = [
-  'fishing',
-  'just passed her driving test',
-  'Man United',
-  'a Barbie-themed party',
-  'her allotment',
-  'Ibiza with the girls in June',
-  'Toy Story',
-  '30 years of questionable golf',
-];
+// ── Question config lives in components/brief-questions.tsx now ─────
+// (Aidan 2026-09-12: "make the research tool the same as the front end
+// flow"). The recipients list, the vibe labels, the dislike rule, the
+// typewriter examples and every headline were duplicated here and had
+// quietly drifted a fortnight behind the real maker. Deleted rather
+// than re-synced — one copy or it drifts again.
 
 // ── The survey ───────────────────────────────────────────────────────
 interface SurveyQ {
@@ -109,6 +81,11 @@ interface Concept {
 }
 interface CardCell { concept: Concept; imageUrl?: string; error?: string; retrying?: boolean }
 
+/** Chip labels for the brief's questions — same as /make. */
+const QUESTION_LABEL: Record<QuestionKey, string> = {
+  who: 'Who', occasion: 'Occasion', age: 'Age', vibe: 'Vibe', interest: 'Interest', dislike: 'Avoid', name: 'Name',
+};
+
 type Phase = 'welcome' | 'questions' | 'generating' | 'pick' | 'cameo' | 'signoff' | 'inside' | 'done' | 'survey' | 'thanks' | 'capped';
 
 export default function ResearchMakerPage() {
@@ -120,16 +97,14 @@ export default function ResearchMakerPage() {
       .then((r) => setLinkOk(r.ok))
       .catch(() => setLinkOk(true)); // network blip: let them through, the real calls re-check
   }, []);
-  const [qIndex, setQIndex] = useState(0);
-
-  // Answers
-  const [who, setWho] = useState<string | null>(null);
-  const [gender, setGender] = useState<'him' | 'her' | null>(null);
-  const [age, setAge] = useState('');
-  const [vibe, setVibe] = useState<Vibe | null>(null);
-  const [interest, setInterest] = useState('');
-  const [dislike, setDislike] = useState('');
-  const [name, setName] = useState('');
+  // The brief is the SHARED shape, answered by the SHARED component —
+  // so every copy change on /make lands here for free.
+  const [brief, setBrief] = useState<Brief>(emptyBrief);
+  const [briefStep, setBriefStep] = useState(0);
+  const [briefFurthest, setBriefFurthest] = useState(0);
+  const [briefQuestions, setBriefQuestions] = useState<QuestionKey[]>(['who', 'occasion', 'age', 'vibe', 'interest', 'name']);
+  const [briefJump, setBriefJump] = useState<number | null>(null);
+  const restartBrief = () => { setBriefStep(0); setBriefFurthest(0); setBriefJump(0); setPhase('questions'); };
 
   // The set
   const [cells, setCells] = useState<CardCell[]>([]);
@@ -229,75 +204,25 @@ export default function ResearchMakerPage() {
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const ageNum = useMemo(() => {
-    const n = parseInt(age, 10);
-    return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null;
-  }, [age]);
-
-  const tones = useMemo(
-    () => (ageNum !== null && ageNum < 18 ? (['funny', 'warm'] as Vibe[]) : (['funny', 'warm', 'rude', 'mix'] as Vibe[])),
-    [ageNum],
-  );
-
-  /** Typewriter placeholder: types each example out, holds, deletes,
-   *  moves on — the animation itself says "this box takes anything". */
-  const [placeholder, setPlaceholder] = useState('');
-  useEffect(() => {
-    let idx = 0, pos = 0, deleting = false, hold = 0;
-    const t = setInterval(() => {
-      const word = PLACEHOLDERS[idx];
-      if (!deleting) {
-        if (pos < word.length) pos++;
-        else if (++hold > 22) { deleting = true; hold = 0; }
-      } else {
-        pos = Math.max(0, pos - 2);
-        if (pos === 0) { deleting = false; idx = (idx + 1) % PLACEHOLDERS.length; }
-      }
-      setPlaceholder(word.slice(0, pos));
-    }, 65);
-    return () => clearInterval(t);
-  }, []);
-
-  /** The dislike gets its OWN screen when the vibe can use it (Aidan:
-   *  buried as a + link it was missed, and it needs its why explained
-   *  to be considered properly). Inserted after the mention question. */
-  const questions = useMemo<QuestionKey[]>(
-    () => (vibe && DISLIKE_ON.includes(vibe)
-      ? ['who', 'age', 'vibe', 'interest', 'dislike', 'name']
-      : BASE_QUESTIONS),
-    [vibe],
-  );
-  const question = questions[qIndex];
-  const canNext =
-    question === 'who' ? who !== null :
-    question === 'vibe' ? vibe !== null : true;
-
-  const next = () => {
-    if (qIndex < questions.length - 1) setQIndex(qIndex + 1);
-    else void generate();
-  };
-  const back = () => { if (qIndex > 0) setQIndex(qIndex - 1); };
+  const ageNum = ageOf(brief);
+  const occasionLabel = occasionLabelFor(brief);
+  const whoName = whoPhrase(brief);
+  const forWho = whoPossessive(brief);
 
   // ── Generation ─────────────────────────────────────────────────────
-  const [narration, setNarration] = useState('');
-  const narrationLines = useMemo(() => [
-    interest.trim() ? `Reading up on ${interest.trim()}…` : 'Thinking about what makes a birthday land…',
-    who && who !== 'Someone else' ? `Working out what your ${who.toLowerCase()} would actually pick up…` : 'Working out what they would actually pick up…',
-    'Choosing colours from their world…',
-    'Writing three very different cards…',
-    'Drawing the fronts…',
-  ], [interest, who]);
-  const narrationRef = useRef(0);
+  // The wait is the real one: components/make-narration, reading the
+  // brief back and then quoting the lines being drawn.
+  const [waitConcepts, setWaitConcepts] = useState<Concept[] | null>(null);
+  const [landed, setLanded] = useState(0);
+  const [elapsedS, setElapsedS] = useState(0);
+  const t0 = useRef(0);
   useEffect(() => {
     if (phase !== 'generating') return;
-    narrationRef.current = 0;
-    setNarration(narrationLines[0]);
-    const t = setInterval(() => {
-      narrationRef.current = Math.min(narrationRef.current + 1, narrationLines.length - 1);
-      setNarration(narrationLines[narrationRef.current]);
-    }, 7000);
-    return () => clearInterval(t);
-  }, [phase, narrationLines]);
+    setElapsedS(0); t0.current = Date.now();
+    const p = setInterval(() => setElapsedS((Date.now() - t0.current) / 1000), 1000);
+    return () => clearInterval(p);
+  }, [phase]);
+  const narrationInput = useMemo(() => ({ brief, age: ageNum, occasionLabel }), [brief, ageNum, occasionLabel]);
 
   const generate = async (isRegen = false) => {
     if (setsUsed() >= 2) { setPhase('capped'); return; }
@@ -305,19 +230,21 @@ export default function ResearchMakerPage() {
     if (isRegen) setRegenUsed(true);
     setPhase('generating');
     setCells([]); setPicked(null); setInsideUrl(null);
+    setWaitConcepts(null); setLanded(0);
     // The PHOTO is part of the brief now, so it survives regens — only
     // the after-pick derivations reset.
     setCameoUrl(null); setCameoKept(null); setCameoError(''); setCameoInSet(null);
     try {
       const j = await researchPost('concepts', {
-        occasion: ageNum !== null ? `${ageNum}th Birthday` : 'Birthday',
-        who: who === 'Someone else' ? 'Anyone' : who,
-        gender: gender ?? undefined,
-        tone: vibe, pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeComposition: true,
+        occasion: occasionLabel,
+        who: brief.who.trim() === 'Someone else' || !brief.who.trim() ? 'Anyone' : brief.who.trim(),
+        gender: brief.gender ?? undefined,
+        tone: isKidBrief(brief) && brief.vibe === 'rude' ? 'funny' : brief.vibe,
+        pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeComposition: true,
         freeStyle: true, age: ageNum,
-        interest: interest.trim() || undefined,
-        dislikes: dislike.trim() || undefined,
-        recipientName: name.trim() || undefined,
+        interest: brief.thing.trim() || undefined,
+        dislikes: brief.cant.trim() || undefined,
+        recipientName: brief.name.trim() || undefined,
         memory: false,
       });
       const concepts: Concept[] = j.concepts ?? [];
@@ -329,11 +256,13 @@ export default function ResearchMakerPage() {
         : -1;
       setCameoInSet(cameoAt >= 0 ? cameoAt : null);
       setCells(concepts.map((c) => ({ concept: c })));
-      setPhase('pick');
+      setWaitConcepts(concepts);
+      // All three finish before anything shows — the real flow's rule
+      // (Aidan reverted cards-as-they-land on /make 2026-09-08).
       await Promise.all(concepts.map((c, i) => renderCell(i, c, i === cameoAt)));
+      setPhase('pick');
     } catch (e: any) {
-      setPhase('questions');
-      setQIndex(questions.length - 1);
+      restartBrief();
       alert(e?.message ?? 'That didn’t work — give it another go');
     }
   };
@@ -358,7 +287,7 @@ export default function ResearchMakerPage() {
     try {
       const fix = await researchPost('ip-safe-art', {
         front_text: cell.concept.front_text, art_direction: cell.concept.art_direction,
-        interest: interest.trim() || undefined,
+        interest: brief.thing.trim() || undefined,
       });
       const concept = { ...cell.concept, art_direction: fix.art_direction };
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
@@ -401,8 +330,11 @@ export default function ResearchMakerPage() {
       await researchPost('response', {
         tester_name: nameForRow.trim() || undefined,
         brief: {
-          who, gender, age: ageNum, vibe,
-          interest: interest.trim() || null, dislike: dislike.trim() || null, name: name.trim() || null,
+          who: brief.who || null, gender: brief.gender, age: ageNum, vibe: brief.vibe,
+          // New since the shared brief landed (2026-09-12) — the research
+          // walk asks the occasion now, exactly as the real flow does.
+          occasion: occasionLabel,
+          interest: brief.thing.trim() || null, dislike: brief.cant.trim() || null, name: brief.name.trim() || null,
         },
         cards: [
           ...cells.map((c, i) => ({
@@ -440,10 +372,6 @@ export default function ResearchMakerPage() {
   };
 
   // ── Shared UI bits ─────────────────────────────────────────────────
-  const chip = (active: boolean) =>
-    `rounded-full border px-4 py-2.5 text-sm font-medium transition-colors ${
-      active ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 bg-white text-stone-700 hover:border-brand/50'}`;
-
   const Dots = ({ count, at }: { count: number; at: number }) => (
     <div className="flex justify-center gap-1.5 pt-6">
       {Array.from({ length: count }, (_, i) => (
@@ -511,12 +439,18 @@ export default function ResearchMakerPage() {
 
   if (phase === 'generating') {
     return (
-      <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10 text-center">
+      <div className="flex min-h-screen flex-col items-center bg-[#FBF9F5] px-6 pt-10">
         <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-16">
-          <Loader2 className="h-8 w-8 animate-spin text-brand" />
-          <p className="text-lg font-medium text-stone-700">{narration}</p>
-          <p className="text-sm text-stone-400">Three cards, about a minute. Worth it.</p>
+        <div className="flex w-full max-w-lg flex-1 flex-col items-center justify-center pb-16 text-center">
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">
+            This usually takes <span className="font-medium text-keeper-ink">just over a minute</span>. We write three cards for {whoName} first, then draw all three, then show you the set.
+          </p>
+          <div className="relative mt-8 aspect-square w-28 overflow-hidden rounded-xl bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 sm:w-32">
+            <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
+          <div className="mt-8 w-full">
+            <MakeNarration input={narrationInput} concepts={waitConcepts} landed={landed} elapsedS={elapsedS} />
+          </div>
         </div>
       </div>
     );
@@ -527,9 +461,8 @@ export default function ResearchMakerPage() {
     return (
       <div className="mx-auto min-h-screen max-w-4xl bg-[#FBF9F5] px-4 py-10">
         <img src={celebraitLogo} alt="Celebrait" className="mx-auto mb-8 h-7 w-auto" />
-        <h1 className="text-center text-2xl font-semibold text-stone-800">Three cards. Pick the one.</h1>
-        <p className="mt-2 text-center text-sm text-stone-500">Tap your favourite — next we’ll design its inside, with your words in it.</p>
-        {!allSettled && <p className="mt-1.5 text-center text-sm text-stone-400">Still drawing…</p>}
+        <h1 className="text-center text-2xl font-semibold text-stone-800">Three cards for {whoName}. Pick the one.</h1>
+        <p className="mt-2 text-center text-sm text-stone-500">Tap your favourite. Next you can put {whoName} in it with a photo (optional), then we design the inside with your words.</p>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {cells.map((c, i) => (
             <button key={i} type="button" disabled={!c.imageUrl}
@@ -574,7 +507,7 @@ export default function ResearchMakerPage() {
         <div className="mt-6 text-center text-sm text-stone-400">
           <p>None of them quite right?</p>
           <p className="mt-2 flex items-center justify-center gap-4">
-            <button type="button" onClick={() => { setPhase('questions'); setQIndex(0); }}
+            <button type="button" onClick={restartBrief}
               className="font-medium text-brand underline-offset-2 hover:underline">
               Change the details
             </button>
@@ -847,7 +780,7 @@ export default function ResearchMakerPage() {
         {setsUsed() < 2 && (
           <Button variant="outline" className="mt-8 h-11"
             onClick={() => {
-              setPhase('questions'); setQIndex(0); setCells([]); setPicked(null); setInsideUrl(null);
+              restartBrief(); setCells([]); setPicked(null); setInsideUrl(null);
               setAnswers({}); setSIndex(0); setSubmitted(false); setRegenUsed(false); resetCameo(); setCameoInSet(null);
             }}>
             Make one more
@@ -857,130 +790,30 @@ export default function ResearchMakerPage() {
     );
   }
 
-  // ── The five maker questions ───────────────────────────────────────
+  // ── The brief — the SAME component /make and the doorway use, so
+  // every copy change lands here for free and the tester walks the
+  // customer's flow exactly (Aidan 2026-09-12).
+  const chips: StepChip[] = [
+    ...briefQuestions.map((q) => ({ id: q, label: QUESTION_LABEL[q] })),
+    { id: 'cards', label: 'Three cards', locked: true },
+    { id: 'photo', label: 'Photo · optional', locked: true },
+  ];
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-[#FBF9F5] px-5 py-8">
-      <div className="flex items-center justify-between">
-        {qIndex > 0
-          ? <button type="button" onClick={back} className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600"><ArrowLeft className="h-4 w-4" /> Back</button>
-          : <span />}
-        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col bg-[#FBF9F5] px-5 py-8">
+      <img src={celebraitLogo} alt="Celebrait" className="mx-auto h-7 w-auto" />
+      <div className="mt-6">
+        <LeadTimeNotice />
       </div>
-
-      <div className="flex flex-1 flex-col justify-center py-8">
-        {question === 'who' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">Right — who’s the card for?</h1>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {RECIPIENTS.map((r) => (
-                <button key={r.label} type="button" className={chip(who === r.label)}
-                  onClick={() => { setWho(r.label); setGender(r.implies ?? null); }}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            {who && AMBIGUOUS.has(who) && (
-              <div className="mt-5 flex items-center gap-2 text-sm text-stone-500">
-                for a…
-                {(['him', 'her'] as const).map((g) => (
-                  <button key={g} type="button" className={chip(gender === g)} onClick={() => setGender(gender === g ? null : g)}>{g}</button>
-                ))}
-                <button type="button" className={chip(gender === null)} onClick={() => setGender(null)}>not saying</button>
-              </div>
-            )}
-          </>
-        )}
-
-        {question === 'age' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">
-              How old are they turning?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
-            </h1>
-            <p className="mt-2 text-sm text-stone-500">
-              The age does two jobs: it tunes the whole card — the jokes, the references, the look —
-              and if it’s a big one (18, 21, 30, 40…) the number itself becomes the star.
-              Skip it and everything stays completely age-free.
-            </p>
-            <Input value={age} onChange={(e) => setAge(e.target.value.replace(/\D/g, '').slice(0, 3))}
-              inputMode="numeric" placeholder="Their age" className="mt-6 h-14 text-center text-2xl" />
-          </>
-        )}
-
-        {question === 'vibe' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">What’s the vibe?</h1>
-            <div className="mt-6 space-y-2.5">
-              {tones.map((t) => (
-                <button key={t} type="button" onClick={() => setVibe(t)}
-                  className={`w-full rounded-xl border p-4 text-left transition-colors ${
-                    vibe === t ? 'border-brand bg-brand-muted/40' : 'border-stone-200 bg-white hover:border-brand/50'}`}>
-                  <span className="font-medium text-stone-800">{VIBE_META[t].label}</span>
-                  <span className="block text-xs text-stone-500">{VIBE_META[t].sub}</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {question === 'interest' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">
-              What’s one thing you want the card to mention?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
-            </h1>
-            <p className="mt-2 text-sm text-stone-500">
-              A passion, a place, a plan, a party theme, a claim to fame, a running joke —
-              whatever you’d bring up first about them. The more specific, the better the card.
-            </p>
-            <Input value={interest} onChange={(e) => setInterest(e.target.value)} placeholder={placeholder} className="mt-6 h-12" />
-            <p className="mt-3 text-xs text-stone-400">Or skip it — we’ll make it a beautiful birthday card, no homework.</p>
-          </>
-        )}
-
-        {question === 'dislike' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">
-              Anything they can’t stand?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
-            </h1>
-            <p className="mt-2 text-sm text-stone-500">
-              This one’s pure joke fuel. Tell us the thing — the rival team, mornings, oat milk,
-              slow walkers — and one of your three cards will be built around it: making light of
-              the thing they hate, never of them. Some of our funniest cards start here.
-            </p>
-            <Input value={dislike} onChange={(e) => setDislike(e.target.value)} placeholder="The rival team / mornings / slow walkers" className="mt-6 h-12" />
-          </>
-        )}
-
-        {question === 'name' && (
-          <>
-            <h1 className="text-2xl font-semibold text-stone-800">
-              Want their name on the front?
-              <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
-            </h1>
-            <p className="mt-2 text-sm text-stone-500">We’ll design it in properly — one of the cards will make it the artwork.</p>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Their first name (optional)" className="mt-6 h-12" />
-            {name.trim() && <p className="mt-2 text-xs font-medium text-amber-700">It’ll be printed exactly as you type it — worth a double-check.</p>}
-          </>
-        )}
+      <div className="mt-4">
+        <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
       </div>
-
-      <div className="pb-4">
-        <Button className="h-12 w-full text-base" disabled={!canNext} onClick={next}>
-          {qIndex === questions.length - 1 ? 'Make their card' : 'Next'}
-        </Button>
-        {(question === 'dislike' || question === 'name') && (
-          <Button variant="outline" className="mt-3 h-12 w-full text-base" onClick={next}>
-            Skip this one
-          </Button>
-        )}
-        {(question === 'age' || question === 'interest') && (
-          <button type="button" onClick={next} className="mt-3 w-full text-center text-sm text-stone-400 hover:text-stone-600">
-            Skip this one
-          </button>
-        )}
-        <Dots count={questions.length} at={qIndex} />
+      <div className="mt-6 rounded-2xl border border-keeper-hair bg-white/70 p-6 backdrop-blur-sm sm:p-8">
+        <BriefQuestions
+          skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
+          hideDots
+          jumpTo={briefJump}
+          onStepChange={(i, qs) => { setBriefStep(i); setBriefQuestions(qs); setBriefFurthest((f) => Math.max(f, i)); }}
+        />
       </div>
     </div>
   );

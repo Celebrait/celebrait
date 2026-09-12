@@ -39,6 +39,10 @@ function trim(raw: string, max = 56): string {
   const sp = cut.lastIndexOf(' ');
   return (sp > max - 16 ? cut.slice(0, sp) : cut).trim() + '…';
 }
+/** "a birthday" but "an anniversary" — caught live on the research
+ *  walk-through, 2026-09-12 ("Right. A anniversary card for Sam."). */
+const article = (word: string) => (/^[aeiou]/i.test(word.trim()) ? 'an' : 'a');
+
 export interface ConceptLine { front_text: string; palette?: string }
 
 export interface MakeNarrationInput {
@@ -73,8 +77,8 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
   beats.push({
     id: 'open',
     parts: occ && hasName
-      ? [plain('Right. A '), em(occ), plain(' card for '), nm(), plain('.')]
-      : occ ? [plain('Right. A '), em(occ), plain(' card. Let’s do this properly.')]
+      ? [plain(`Right. ${article(occ) === 'an' ? 'An' : 'A'} `), em(occ), plain(' card for '), nm(), plain('.')]
+      : occ ? [plain(`Right. ${article(occ) === 'an' ? 'An' : 'A'} `), em(occ), plain(' card. Let’s do this properly.')]
         : hasName ? [plain('Right. A card for '), nm(), plain('.')] : [plain('Right. Reading the brief.')],
   });
 
