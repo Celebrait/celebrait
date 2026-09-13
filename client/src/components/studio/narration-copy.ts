@@ -146,7 +146,7 @@ export function buildPersonalBeats(state: CardDraftState): NarrationBeat[] {
     id: 'frontText',
     label: 'Front text',
     parts: frontText
-      ? [plain('Painting '), quote(trimQuote(frontText, 40)), plain(' into the scene.')]
+      ? [plain('Setting '), quote(trimQuote(frontText, 40)), plain(' into the scene.')]
       : hasName
         ? [plain('Shaping the words for '), name(theName), plain("'s front.")]
         : [plain('Shaping the words for the front.')],

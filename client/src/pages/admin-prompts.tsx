@@ -129,7 +129,7 @@ const FRONT_VARIANT_LABELS: Record<FrontVariant, string> = {
 const FRONT_VARIANT_BLURBS: Record<FrontVariant, string> = {
   one_person: 'Single subject, optionally multi-angle reference photos.',
   multi_individual: 'Several people, one reference photo per person, all rendered together.',
-  group: 'One reference photo that already contains multiple people.',
+  group: 'One or more photos of the SAME people, each showing everyone.',
 };
 
 const SLOT_LABELS: Record<SlotId, string> = {
@@ -199,7 +199,7 @@ export default function AdminPromptsPage() {
                 className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   activeTab === tab
                     ? isProduction
-                      ? 'border-green-600 text-green-700'
+                      ? 'border-cta text-cta-dark'
                       : 'border-violet-600 text-violet-700'
                     : 'border-transparent text-stone-500 hover:text-stone-700'
                 } ${isProduction ? 'ml-auto' : ''}`}
@@ -359,7 +359,7 @@ function SlotPanel({
                       v{v.version}
                     </span>
                     {v.id === data.activeTemplateId && (
-                      <Badge className="bg-green-100 text-green-700 text-[10px] h-5">
+                      <Badge className="bg-cta-light text-cta-dark text-[10px] h-5">
                         ACTIVE
                       </Badge>
                     )}
@@ -528,7 +528,7 @@ function VersionEditor({
             <span>
               {selected.name} <span className="text-stone-400">· v{selected.version}</span>
             </span>
-            {isActive && <Badge className="bg-green-100 text-green-700">ACTIVE</Badge>}
+            {isActive && <Badge className="bg-cta-light text-cta-dark">ACTIVE</Badge>}
             {isDraft && (
               <Badge className="bg-amber-100 text-amber-800">DRAFT (unsaved)</Badge>
             )}
@@ -1203,7 +1203,7 @@ function TestPanel({
                     <Button
                       onClick={() => runMutation.mutate()}
                       disabled={isDisabled}
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-cta hover:bg-cta-hover"
                       data-testid="btn-run-test"
                     >
                       {runMutation.isPending
@@ -1240,6 +1240,7 @@ function TestPanel({
               <div className="space-y-2">
                 <img
                   src={lastResult.imageUrl}
+                  crossOrigin="anonymous"
                   alt="Test run result"
                   className="w-full rounded border border-stone-200"
                   data-testid="test-result-image"
@@ -1346,7 +1347,13 @@ function FrontInputsForm({
   //   group: 1 (single photo that already contains everyone)
   // Gemini supports up to 14 refs natively; 5 is the practical
   // quality cliff. OpenAI handles multi-image via image[] array.
-  const maxPhotos = isGroup ? 1 : 5;
+  // Group used to be hard-capped at 1 ("the photo already contains
+  // everyone"). Raised to 3 so group v7 — which teaches the prompt that
+  // multiple photos are the SAME people from different angles — can
+  // actually be tested here before the studio is allowed to send more
+  // than one. 3, not 5: every extra reference costs input tokens on
+  // every generation, and past 3 angles the likeness gain flattens.
+  const maxPhotos = isGroup ? 3 : 5;
 
   // Clear excess photos when switching modes
   const setPhotoMode = (mode: PhotoMode) => {
@@ -1567,7 +1574,7 @@ function FrontInputsForm({
           <input
             type="file"
             accept="image/*"
-            multiple={isOnePerson || isMultiIndividual}
+            multiple
             onChange={(e) => onPhotosAdd(e.target.files)}
             className="text-xs mt-1 block w-full"
             data-testid="input-photo"
@@ -1579,7 +1586,7 @@ function FrontInputsForm({
             ? 'Add front-facing, 3/4 angle, and smiling shots for best likeness.'
             : isMultiIndividual
             ? 'Upload one clean portrait per person. The model anchors each identity from its own photo and composites them into the scene.'
-            : 'Upload one photo with all people visible. The model preserves each face from a single image.'}
+            : 'Upload photos with all people visible. Extra angles of the SAME group sharpen likeness — check the cast count is right, not doubled.'}
         </p>
       </div>
     </>
@@ -1727,6 +1734,7 @@ function InsideInputsForm({
                     >
                       <img
                         src={run.imageUrl}
+                        crossOrigin="anonymous"
                         alt={run.label}
                         className="w-full h-full object-cover"
                       />
@@ -1951,7 +1959,7 @@ function EditPanel({
           onClick={() => refineMutation.mutate()}
           disabled={refineMutation.isPending || !instruction.trim()}
           size="sm"
-          className="bg-green-600 hover:bg-green-700 text-xs h-8"
+          className="bg-cta hover:bg-cta-hover text-xs h-8"
         >
           {refineMutation.isPending ? 'Editing...' : 'Apply'}
         </Button>
@@ -2069,6 +2077,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
             >
               <img
                 src={run.imageUrl}
+                crossOrigin="anonymous"
                 alt={run.label}
                 className="w-full h-32 object-cover rounded-t"
               />
@@ -2087,6 +2096,7 @@ function RecentRunsStrip({ runs }: { runs: RunRecord[] }) {
           <div className="mt-4 pt-4 border-t border-stone-200 grid grid-cols-2 gap-4">
             <img
               src={expanded.imageUrl}
+              crossOrigin="anonymous"
               alt={expanded.label}
               className="w-full rounded border border-stone-200"
             />
@@ -2137,12 +2147,12 @@ function DiffView({ left, right }: { left: string; right: string }) {
           </div>
         ))}
       </div>
-      <div className="p-2 bg-green-50/30">
-        <div className="text-xs font-semibold text-green-700 mb-1">Selected</div>
+      <div className="p-2 bg-cta-light/30">
+        <div className="text-xs font-semibold text-cta-dark mb-1">Selected</div>
         {rhs.map((line, i) => (
           <div
             key={i}
-            className={`whitespace-pre-wrap ${line.added ? 'bg-green-100' : ''}`}
+            className={`whitespace-pre-wrap ${line.added ? 'bg-cta-light' : ''}`}
           >
             {line.text || '\u00A0'}
           </div>
@@ -2277,8 +2287,8 @@ function ProductionView() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-green-50/40 border-green-200">
-        <CardContent className="py-3 text-xs text-green-900">
+      <Card className="bg-cta-light/40 border-cta-light">
+        <CardContent className="py-3 text-xs text-cta-dark">
           <strong>This is what customers get.</strong> Changes here take
           effect on the next generation (propagation up to ~60s). The Lab
           tabs above are for iteration — they don't affect production until
@@ -2756,7 +2766,7 @@ function ProductionSlotRow({ slot, variant, config, providers }: ProductionSlotR
             size="sm"
             onClick={() => saveMutation.mutate()}
             disabled={!dirty || templateId == null || saveMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-cta hover:bg-cta-hover text-white"
             data-testid={`btn-production-save-${slot}`}
           >
             {saveMutation.isPending ? 'Saving…' : dirty ? 'Save to production' : 'Saved'}

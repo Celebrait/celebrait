@@ -159,6 +159,18 @@ function buildTextEditScaffold(side: RefineSide, tweak: string): string {
       `Modify this greeting card image as follows: ${tweak}.\n\n` +
       `Apply this change ONLY to the text/lettering/wording on the card. ` +
       `Do not touch any other element of the image.\n\n` +
+      // 2026-07-07 (Kevin's "Congrats G → Congrats Steve" repro): the
+      // model APPENDED the new wording under the old instead of
+      // replacing it. His manual fix was adding "and nothing else" —
+      // this block bakes that hard push in for everyone.
+      `TEXT REPLACEMENT IS TOTAL. If the instruction changes or replaces ` +
+      `the wording, the OLD wording must be COMPLETELY REMOVED — erased ` +
+      `as if it was never there — and ONLY the new wording rendered in ` +
+      `its place, in the same lettering style and position as the ` +
+      `original. NEVER show both old and new. NEVER keep any word, ` +
+      `letter or fragment of the previous text anywhere in the image. ` +
+      `Before finishing, read the card back: if ANY of the previous ` +
+      `wording is still visible, the edit has FAILED — remove it.\n\n` +
       `LOCKED — DO NOT MODIFY UNDER ANY CIRCUMSTANCES:\n` +
       `• Character — same person, same face, same hair, same expression, ` +
       `same pose, same outfit. PIXEL-IDENTICAL.\n` +
@@ -178,6 +190,12 @@ function buildTextEditScaffold(side: RefineSide, tweak: string): string {
     `Modify this greeting card INSIDE as follows: ${tweak}.\n\n` +
     `Apply this change ONLY to the text/wording inside the card. Do not ` +
     `touch any other element.\n\n` +
+    `TEXT REPLACEMENT IS TOTAL. If the instruction changes or replaces ` +
+    `any wording, the OLD wording must be COMPLETELY REMOVED and ONLY ` +
+    `the new wording rendered in its place. NEVER show both old and ` +
+    `new. Before finishing, read the spread back: if ANY of the ` +
+    `previous wording is still visible, the edit has FAILED — remove ` +
+    `it.\n\n` +
     `LOCKED — DO NOT MODIFY UNDER ANY CIRCUMSTANCES:\n` +
     `• Layout structure — same overall arrangement of decorative ` +
     `elements, same margins, same alignment.\n` +

@@ -36,6 +36,7 @@ import {
   Diamond,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { AddressBookEntry, CardDraftState } from '@shared/schema';
@@ -116,8 +117,12 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
   // a long stale time. We use this to gate whether the typeahead
   // dropdown EVER renders. Empty book = no typeahead noise. Cheap
   // because the result is shared across all callers via react-query.
+  const { isAuthenticated } = useAuth();
   const { data: allEntries } = useQuery<AddressBookEntry[]>({
     queryKey: ['/api/user/address-book'],
+    // Signed-out (the public photo maker): no book to read, and the
+    // route 401s — don't ask.
+    enabled: isAuthenticated,
     staleTime: 1000 * 60, // 1 minute — plenty for a step the user
                           // typically spends 10-30s on
   });
@@ -213,6 +218,12 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     }
   };
 
+  // Note: a soft "how are you giving it?" question briefly lived here
+  // (2026-05-18) but was removed the next day — it asked a printed-card
+  // question before format was chosen. The delivery decision now lives
+  // in its own designed surface (The Giving Moment, post-reveal). See
+  // next_delivery_destination_usp.md.
+
   const moreOccasions = OCCASION_OPTIONS.filter(
     (o) => !PRIMARY_OCCASIONS.includes(o) && o !== 'other',
   );
@@ -224,13 +235,13 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Leading sub-copy — rhythm parity with the other steps (Scene,
           Style, Front, Review all open with a one-line framing note). */}
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-keeper-body">
         A name and a reason — that's all we need to start.
       </p>
 
       {/* Name */}
       <div className="space-y-2" ref={wrapperRef}>
-        <Label htmlFor="recipient-name" className="text-sm text-ink">
+        <Label htmlFor="recipient-name" className="text-sm text-keeper-ink">
           Name
         </Label>
         <div className="relative">
@@ -291,7 +302,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
             <ul
               id="recipient-name-suggestions"
               role="listbox"
-              className="absolute z-30 left-0 right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg overflow-hidden"
+              className="absolute z-30 left-0 right-0 mt-1 bg-white border border-keeper-hair rounded-xl shadow-lg overflow-hidden"
               data-testid="recipient-typeahead"
             >
               {visibleSuggestions.map((entry, idx) => {
@@ -321,11 +332,11 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
                       {entry.name.charAt(0).toUpperCase()}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">
+                      <p className="text-sm font-medium text-keeper-ink truncate">
                         {entry.name}
                       </p>
                       {entry.relationship && (
-                        <p className="text-[11px] text-stone-500 truncate">
+                        <p className="text-[11px] text-keeper-meta truncate">
                           {entry.relationship}
                         </p>
                       )}
@@ -333,7 +344,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
                   </li>
                 );
               })}
-              <li className="border-t border-stone-100 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-stone-400">
+              <li className="border-t border-stone-100 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-keeper-meta">
                 From your address book
               </li>
             </ul>
@@ -343,7 +354,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
 
       {/* Occasion */}
       <div className="space-y-2">
-        <Label className="text-sm text-ink">What's the celebration?</Label>
+        <Label className="text-sm text-keeper-ink">What's the celebration?</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {PRIMARY_OCCASIONS.map((o) => (
             <OccasionButton
@@ -413,6 +424,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
           </div>
         )}
       </div>
+
     </div>
   );
 }
@@ -441,7 +453,7 @@ function OccasionButton({
       className={`relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${
         selected
           ? 'border-brand bg-brand-muted shadow-sm'
-          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
+          : 'border-keeper-hair hover:border-brand hover:bg-brand-muted/40 bg-white'
       } ${wide ? 'w-full' : ''}`}
       data-testid={`btn-occasion-${occasion}`}
     >
@@ -450,13 +462,13 @@ function OccasionButton({
           className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${
             selected
               ? 'bg-brand text-brand-foreground'
-              : 'bg-accent-coral-light text-accent-coral-dark'
+              : 'bg-keeper-gold-wash text-keeper-gold'
           }`}
         >
           <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
         </span>
       )}
-      <span className="text-sm font-medium text-ink truncate">
+      <span className="text-sm font-medium text-keeper-ink truncate">
         {label}
       </span>
       {selected && (

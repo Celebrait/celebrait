@@ -14,6 +14,15 @@ interface StepperProps {
   onStepClick: (step: number) => void;
 }
 
+// The Inside step left the linear walk 2026-07-07 (the message is now
+// written AFTER the front reveal — see the front-first re-sequence in
+// review-step.tsx). Its chip is hidden and the displayed numbers are
+// renumbered, but TRUE step indexes are preserved for clicks/highlights
+// so nothing else re-indexes (re-indexing has caused two prod bugs).
+const VISIBLE_STEPS = CARD_MAKER_STEPS.map((s, index) => ({ ...s, index })).filter(
+  (s) => s.id !== 'inside',
+);
+
 export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps) {
   return (
     <div
@@ -21,15 +30,15 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
       role="tablist"
       aria-label="Card maker steps"
     >
-      {CARD_MAKER_STEPS.map((s, i) => {
-        const isCurrent = i === currentStep;
-        const isDone = i < furthestStep;
-        const canJump = i <= furthestStep;
+      {VISIBLE_STEPS.map((s, pos) => {
+        const isCurrent = s.index === currentStep;
+        const isDone = s.index < furthestStep;
+        const canJump = s.index <= furthestStep;
         return (
           <div key={s.id} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
             <button
               type="button"
-              onClick={() => canJump && onStepClick(i)}
+              onClick={() => canJump && onStepClick(s.index)}
               disabled={!canJump}
               aria-current={isCurrent ? 'step' : undefined}
               className={`group flex items-center gap-2 min-w-0 text-left ${
@@ -43,28 +52,28 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
                     ? 'bg-brand text-brand-foreground ring-2 ring-brand-light'
                     : isDone
                       ? 'bg-cta text-cta-foreground'
-                      : 'bg-stone-100 text-stone-400 shadow-none'
+                      : 'bg-stone-100 text-keeper-meta shadow-none'
                 }`}
               >
-                {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
+                {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : pos + 1}
               </span>
               <span
                 className={`hidden md:inline text-xs sm:text-sm truncate transition-colors ${
                   isCurrent
-                    ? 'text-ink font-semibold'
+                    ? 'text-keeper-ink font-semibold'
                     : isDone
                       ? 'text-cta-hover'
-                      : 'text-stone-400'
+                      : 'text-keeper-meta'
                 }`}
               >
                 {s.label}
               </span>
             </button>
             {/* Connector line — not after the last step */}
-            {i < CARD_MAKER_STEPS.length - 1 && (
+            {pos < VISIBLE_STEPS.length - 1 && (
               <span
                 className={`flex-1 h-px rounded-full transition-colors ${
-                  isDone ? 'bg-cta' : 'bg-stone-200'
+                  isDone ? 'bg-cta' : 'bg-keeper-hair'
                 }`}
               />
             )}

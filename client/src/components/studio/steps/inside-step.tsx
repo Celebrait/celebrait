@@ -1,20 +1,30 @@
 // client/src/components/studio/steps/inside-step.tsx
 //
-// Step 5: what goes inside the card.
+// Step: what goes inside the card. V1 = pure write-it-yourself.
 //
-// UX is form-first: the write-your-own fields are the default view of
-// the step, because ~everyone types a message. "Leave blank" is an
-// escape hatch surfaced beneath the form, not a co-equal toggle at
-// the top. There is no "let AI write your message" path — the
-// emotional core of a greeting card is the personal message, and
-// we'd rather the card be blank for a handwritten note than have
-// the AI fake one.
+// History: between 2026-05-15 and 2026-05-17 this step grew an
+// AI inside-text rewriter (per-field "make it funny / heartfelt /
+// ..." chips) and a macro composer drawer that generated the whole
+// inside from a brief. Both shipped, both worked, both were pulled
+// from the V1 surface on 2026-05-17 to land under the upcoming
+// Celebrait Premium subscription tier — see
+// `next_celebrait_premium.md`. The implementation is preserved in
+// git (composer drawer + endpoint files still in the repo, route
+// registration unmounted) so reviving for Premium is a small
+// surgery, not a rebuild.
 //
-// Data model keeps two explicit modes ('write' | 'blank'). On this
-// step mode defaults to 'write' lazily — i.e. typing into the form
-// commits mode='write' to the draft. Clicking the Leave blank card
-// switches to mode='blank' and hides the form. The typed message is
-// preserved across the detour so the user doesn't lose work.
+// What ships in V1:
+//   • Three input boxes — Greeting (optional), Message, Sign-off
+//     (optional). All persist into state.inside.write.{salutation,
+//     message, signoff}.
+//   • "Leave blank instead" escape hatch — for buyers who'll
+//     handwrite the message after the card arrives. Mode = 'blank'.
+//
+// What's intentionally absent in V1:
+//   • Per-field vibe chips (rewriter)
+//   • Pre-question "self vs helped" path picker
+//   • Macro composer drawer
+//   • Any AI affordances at all on this step.
 //
 // Inputs are plain sans — NOT a handwriting font. The AI renders the
 // inside message as typography that matches the card's visual style;
@@ -27,19 +37,19 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { FileText, PenLine, Check, User, AlignLeft, Sparkles } from 'lucide-react';
+import { FileText, PenLine, Check, User, AlignLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { InsideTextHelperDrawer } from '@/components/studio/inside-text-helper-drawer';
+import { ExampleCardDialog } from '@/components/studio/step-example';
 import type { CardDraftState } from '@shared/schema';
 
 const MESSAGE_AUTOSAVE_MS = 1000;
 
 interface InsideStepProps {
-  /** Card ID — needed by the "Help me write this" drawer to fetch
-   *  context-grounded suggestions from /api/studio/inside-text/suggest. */
+  /** Card ID — kept for API consistency with other steps that need it
+   *  for autosave / generation calls. V1 inside step doesn't itself
+   *  use it (no AI affordances), but the wizard passes it uniformly. */
   cardId: number;
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
@@ -50,13 +60,18 @@ interface InsideStepProps {
   flushSave: () => Promise<void>;
 }
 
-export function InsideStep({ cardId, state, onChange, scheduleSave, flushSave }: InsideStepProps) {
+export function InsideStep({ cardId: _cardId, state, onChange, scheduleSave, flushSave }: InsideStepProps) {
+  // Three display states, driven by inside.mode:
+  //   undefined → the fork picker (write your message / leave it blank).
+  //               This is the deliberate opening choice — blank is no
+  //               longer a footnote escape hatch, it's a first-class
+  //               path the Giving Moment celebrates (handwrite it
+  //               yourself). See next_delivery_destination_usp.md.
+  //   'write'   → the three-input form.
+  //   'blank'   → the blank-confirmation panel.
+  // Once a fork is picked, each panel carries its own switch-back
+  // affordance so the user can change their mind without hunting.
   const mode = state.inside?.mode;
-  // Write is the implicit default (~everyone types a message). Undefined
-  // mode is treated as Write for display so the happy path is one click
-  // shorter — tiles are visible for the decision, but the write form is
-  // already there. Blank is an explicit opt-in.
-  const isBlank = mode === 'blank';
 
   const switchToBlank = () => {
     onChange({
@@ -78,24 +93,176 @@ export function InsideStep({ cardId, state, onChange, scheduleSave, flushSave }:
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <p className="text-sm text-stone-600">
-        We'll set it in a style that matches the card.
-      </p>
-
-      {isBlank ? (
+      {mode === 'blank' ? (
         <BlankPanel onUndo={switchToWrite} />
-      ) : (
+      ) : mode === 'write' ? (
         <>
+          {/* "Leave blank instead" sits ABOVE the inputs (Kevin 2026-07-24)
+              — below the fields it was easy to miss if the user wanted to
+              switch back to handwriting. */}
+          <LeaveBlankCard onPick={switchToBlank} />
           <WriteFields
-            cardId={cardId}
             state={state}
             onChange={onChange}
             scheduleSave={scheduleSave}
             flushSave={flushSave}
           />
-          <LeaveBlankCard onPick={switchToBlank} />
         </>
+      ) : (
+        <InsideForkPicker onWrite={switchToWrite} onBlank={switchToBlank} />
       )}
+    </div>
+  );
+}
+
+// ── Fork picker (the opening state of the step) ──────────────────────
+// Two co-equal choices. Deliberately NOT defaulting into the form —
+// "leave it blank to handwrite yourself" is a real, dignified path now
+// that the Giving Moment treats it as a USP, so the user makes a clear
+// choice rather than discovering blank as a footnote under the form.
+function InsideForkPicker({
+  onWrite,
+  onBlank,
+}: {
+  onWrite: () => void;
+  onBlank: () => void;
+}) {
+  // 3D example dialogs — one per fork card ("see an example" links).
+  const [exampleOpen, setExampleOpen] = useState(false);
+  const [blankExampleOpen, setBlankExampleOpen] = useState(false);
+  return (
+    <div className="space-y-3" data-testid="inside-fork-picker">
+      {/* No framing line — the wrapper above ("Now, the inside") sets
+          context and the two cards carry the choice (Kevin 2026-07-24
+          dropped the intro copy here; it still leads the landing's
+          HandoverSection). */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ForkCard
+          icon={PenLine}
+          title="We print your message"
+          body="Type it now and we set your words into the design, matched to the front."
+          hint="Best if it's posting straight to them — arrives ready to read."
+          onClick={onWrite}
+          testid="inside-fork-write"
+          highlighted
+          exampleSlot={
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExampleOpen(true);
+              }}
+              className="mt-1 self-start text-xs font-medium text-brand underline underline-offset-2 hover:text-brand-dark"
+              data-testid="inside-fork-write-example"
+            >
+              See an example →
+            </button>
+          }
+        />
+        <ForkCard
+          icon={FileText}
+          title="You handwrite it later"
+          body="We print a decorative border and leave the centre clear for your own hand."
+          hint="Best if the card's coming to you first."
+          onClick={onBlank}
+          testid="inside-fork-blank"
+          exampleSlot={
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setBlankExampleOpen(true);
+              }}
+              className="mt-1 self-start text-xs font-medium text-brand underline underline-offset-2 hover:text-brand-dark"
+              data-testid="inside-fork-blank-example"
+            >
+              See an example →
+            </button>
+          }
+        />
+      </div>
+      <ExampleCardDialog
+        open={exampleOpen}
+        onOpenChange={setExampleOpen}
+        eyebrow="Printed Message Example"
+        modalTitle="Inside message example"
+        modalDescription="Your greeting, message and sign-off are set in type chosen to match the front, so the whole card feels like one piece."
+        show="inside"
+      />
+      {/* Blank/handwrite example. TODO(asset): swap to a dedicated
+          blank-inside render (decorative border, clear centre) once one
+          exists — for now it reuses the inside example and the copy makes
+          clear the handwrite version keeps the middle open. */}
+      <ExampleCardDialog
+        open={blankExampleOpen}
+        onOpenChange={setBlankExampleOpen}
+        eyebrow="Handwrite Example"
+        modalTitle="Blank inside example"
+        modalDescription="We design a decorative border to match your front and leave the centre clear — you fill it in your own hand when the card arrives. (The styling echoes the house look shown here.)"
+        show="inside"
+      />
+    </div>
+  );
+}
+
+function ForkCard({
+  icon: Icon,
+  title,
+  body,
+  hint,
+  onClick,
+  testid,
+  highlighted = false,
+  exampleSlot,
+}: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  /** "Best for…" delivery-mode nudge (Kevin 2026-07-07): printed
+   *  message pairs with posting direct; blank pairs with
+   *  receive-write-hand-over. */
+  hint?: string;
+  onClick: () => void;
+  testid: string;
+  highlighted?: boolean;
+  /** Optional extra control (e.g. a "see an example" link). Rendered
+   *  INSIDE the card, so the card itself is a div-with-role rather
+   *  than a <button> — nested buttons are invalid HTML. */
+  exampleSlot?: ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`cursor-pointer text-left p-4 rounded-2xl border transition-all flex flex-col gap-1.5 ${
+        highlighted
+          ? 'border-brand bg-brand-muted/40 hover:bg-brand-muted/60 hover:shadow-sm'
+          : 'border-keeper-hair bg-white hover:border-brand/40 hover:bg-stone-50 hover:shadow-sm'
+      }`}
+      data-testid={testid}
+    >
+      <span
+        className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
+          highlighted ? 'bg-brand text-white' : 'bg-brand-muted text-brand-dark'
+        }`}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
+      </span>
+      <div className="text-sm font-semibold text-keeper-ink">{title}</div>
+      <p className="text-xs text-keeper-body leading-relaxed">{body}</p>
+      {hint && (
+        <p className="text-[11px] leading-relaxed text-keeper-meta border-t border-keeper-hair/70 pt-2 mt-0.5">
+          {hint}
+        </p>
+      )}
+      {exampleSlot}
     </div>
   );
 }
@@ -116,10 +283,10 @@ function LeaveBlankCard({ onPick }: { onPick: () => void }) {
         <FileText className="w-4 h-4" strokeWidth={1.75} />
       </span>
       <div>
-        <div className="text-sm font-medium text-ink">
+        <div className="text-sm font-medium text-keeper-ink">
           Leave blank instead
         </div>
-        <p className="text-xs text-stone-500 mt-0.5">
+        <p className="text-xs text-keeper-meta mt-0.5">
           We'll design a decorative border only — you handwrite the
           message after it arrives.
         </p>
@@ -140,15 +307,15 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
           <Check className="w-4 h-4" strokeWidth={3} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">
+          <p className="text-sm font-semibold text-keeper-ink">
             We'll leave the inside blank
           </p>
-          <p className="text-xs text-stone-600 mt-0.5">
+          <p className="text-xs text-keeper-body mt-0.5">
             We'll design a decorative border that matches your card's
             style. The centre stays clean for you to handwrite your
             message after it arrives.
           </p>
-          <p className="text-[11px] text-stone-500 mt-2 italic">
+          <p className="text-[11px] text-keeper-meta mt-2 italic">
             Best for printed cards — there's no message for a digital
             recipient to read.
           </p>
@@ -168,14 +335,14 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
 }
 
 // ── Write-mode fields (default view) ─────────────────────────────────
+// Pure form: three input boxes, no AI affordances. Greeting + sign-off
+// are optional; only the Message field gates step readiness.
 function WriteFields({
-  cardId,
   state,
   onChange,
   scheduleSave,
   flushSave,
 }: {
-  cardId: number;
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
   scheduleSave: (delayMs: number) => void;
@@ -198,10 +365,6 @@ function WriteFields({
   const [salutation, setSalutation] = useState(write.salutation ?? '');
   const [message, setMessage] = useState(write.message ?? '');
   const [signoff, setSignoff] = useState(write.signoff ?? '');
-
-  // "Help me write this" drawer — context-grounded message suggestions.
-  // Opens via the small CTA under the Message field.
-  const [helperOpen, setHelperOpen] = useState(false);
 
   // Keep the latest values in a ref so the debounced save can read them
   // without re-subscribing to state. (stateRef-style fresh-closure trick.)
@@ -282,25 +445,6 @@ function WriteFields({
           className="bg-white leading-relaxed resize-none border-brand-light focus-visible:border-brand focus-visible:ring-brand/20"
           data-testid="input-inside-message"
         />
-        {/* "Help me write this" — opens a drawer with three LLM
-            suggestions grounded in the card's full context (recipient,
-            occasion, scene, photo summaries, style). Sized as a quiet
-            secondary action — the message field is the hero, this is
-            the safety net for writer's block. */}
-        <div className="mt-2.5 flex items-center justify-between text-xs">
-          <button
-            type="button"
-            onClick={() => setHelperOpen(true)}
-            className="inline-flex items-center gap-1.5 text-brand hover:text-brand-dark transition-colors font-medium"
-            data-testid="btn-inside-helper-open"
-          >
-            <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
-            Help me write this
-          </button>
-          <span className="text-stone-400">
-            We'll use your scene + occasion to ground the suggestions.
-          </span>
-        </div>
       </FieldCard>
 
       <FieldCard icon={PenLine} label="Sign-off" htmlFor="inside-signoff" optional>
@@ -318,25 +462,6 @@ function WriteFields({
           data-testid="input-inside-signoff"
         />
       </FieldCard>
-
-      {/* Help-me-write drawer. Stays mounted at the WriteFields level so
-          its internal state (loaded suggestions, draft buffer, tone
-          narrowing) persists across opens within one editing session.
-          Picking a suggestion routes through the same onMessageChange
-          path as a keystroke — autosaves the same way. */}
-      <InsideTextHelperDrawer
-        open={helperOpen}
-        onOpenChange={setHelperOpen}
-        cardId={cardId}
-        currentText={message}
-        onAccept={(text) => {
-          onMessageChange(text);
-          // Also flush immediately — the user just made an explicit
-          // commit by picking the suggestion; no need to wait the
-          // debounce timer out.
-          void flushSave();
-        }}
-      />
     </div>
   );
 }
@@ -359,15 +484,15 @@ function FieldCard({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 shadow-sm">
+    <div className="bg-white border border-keeper-hair rounded-xl p-4 sm:p-5 shadow-sm">
       <Label
         htmlFor={htmlFor}
-        className="flex items-center gap-1.5 text-sm text-ink mb-2"
+        className="flex items-center gap-1.5 text-sm text-keeper-ink mb-2"
       >
         <Icon className="w-4 h-4 text-brand" strokeWidth={1.75} aria-hidden="true" />
         {label}
         {optional && (
-          <span className="ml-1 text-xs text-stone-400 font-normal">optional</span>
+          <span className="ml-1 text-xs text-keeper-meta font-normal">optional</span>
         )}
       </Label>
       {children}

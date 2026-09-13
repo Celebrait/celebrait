@@ -12,9 +12,10 @@
 // component owns the auth state machine and emits step changes so
 // the parent can mirror them.
 //
-// Piece B (next) wires the "Continue with Google" button to the real
-// /api/auth/google route — currently the button is rendered and
-// clickable, but the server route is a 404 until OAuth lands.
+// Google sign-in is fully wired (2026-08-10): the button posts to the
+// real /api/auth/google route, and whether it renders at all is decided
+// by the server via /api/auth/google/available — so it appears when the
+// OAuth env vars are set and stays hidden when they aren't.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export type AuthStep = 'email' | 'code' | 'welcome';
@@ -35,9 +37,16 @@ interface AuthFormProps {
   /** Fires whenever the form transitions between email/code/welcome.
    *  Lets the parent surface swap its headline + subline copy in sync. */
   onStepChange?: (step: AuthStep) => void;
-  /** Show the "Continue with Google" button + divider. Default true.
-   *  Pass false to hide if the surface only wants OTP. */
+  /** Show the "Continue with Google" button + divider.
+   *  Omit (the default) to follow the server: the button renders only
+   *  when /api/auth/google/available says OAuth is configured, so it
+   *  can never be a dead button and never needs a deploy to appear.
+   *  Pass an explicit boolean only to force it on/off for a surface. */
   showGoogle?: boolean;
+  /** Primary-button accent. 'cta' (green) is the default brand action
+   *  colour used in the auth modal; /login passes 'brand' so the sign-in
+   *  button reads violet to match the homepage. */
+  accent?: 'cta' | 'brand';
 }
 
 /** Step-aware heading copy. Exported so parent surfaces (e.g. /login)
@@ -46,7 +55,7 @@ interface AuthFormProps {
 export function authHeadingCopy(step: AuthStep, email?: string) {
   if (step === 'email') {
     return {
-      heading: 'Pick up where you left off.',
+      heading: "Make a card they'll keep.",
       subline: "We'll email you a 6-digit code. No passwords, ever.",
     };
   }
@@ -65,18 +74,66 @@ export function authHeadingCopy(step: AuthStep, email?: string) {
 export function AuthForm({
   defaultRedirect = '/studio',
   onStepChange,
-  showGoogle = true,
+  // Google sign-in visibility now follows the SERVER (2026-08-10). It
+  // was hardcoded false on 2026-07-24 because OAuth wasn't configured on
+  // prod and the button 503s'd for testers — but that left the button
+  // needing a code change the day the env vars landed. Undefined here
+  // means "ask the server"; pass a boolean to override.
+  showGoogle,
+  accent = 'cta',
 }: AuthFormProps) {
   const [, setLocation] = useLocation();
+  // Primary-button accent classes. Purple (go) by default — matches the
+  // brand violet on the LP's capture card and the studio's everyday
+  // purple (Kevin 2026-07-11; was ink → green → purple). /login can still
+  // opt into the lighter brand violet via accent='brand'.
+  const accentBtn =
+    accent === 'brand'
+      ? 'bg-brand hover:bg-brand-dark text-brand-foreground'
+      : 'bg-go hover:bg-go-hover text-go-foreground';
   const { user, isAuthenticated, isLoading, sendOtp, isSendingOtp, verifyOtp, isVerifyingOtp } = useAuth();
+
+  // Does the server actually have Google OAuth configured? Asked once
+  // and cached — an explicit showGoogle prop skips the question. While
+  // it's in flight the button stays hidden, so a slow answer shows OTP
+  // only rather than flashing a button that might not work.
+  // NOTE: hook stays up here with the others — this component has an
+  // early return further down and hooks below it have broken /login
+  // before.
+  const { data: googleCfg } = useQuery<{ available: boolean }>({
+    queryKey: ['/api/auth/google/available'],
+    staleTime: 5 * 60 * 1000,
+    enabled: showGoogle === undefined,
+  });
+  const googleEnabled = showGoogle ?? googleCfg?.available === true;
 
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [step, setStepState] = useState<AuthStep>('email');
   const [devBypassActive, setDevBypassActive] = useState(false);
+  // True once a send/verify request has been in-flight a few seconds —
+  // usually a cold free-tier server waking up. Drives a "hang on" hint so
+  // a slow first request doesn't read as broken (and get abandoned).
+  const [slowHint, setSlowHint] = useState(false);
+  // Resend-code countdown (audit 2026-07-27): mirrors the server's 30s
+  // per-email cooldown so the button unlocks exactly when a resend can
+  // actually succeed — without it, a spam-foldered code was a dead end
+  // (going back + resubmitting inside 30s just 429'd).
+  const [resendIn, setResendIn] = useState(0);
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, [resendIn > 0]);
 
-  // Welcome step state — name only.
+  // Welcome step state — name + marketing consent (unticked by default,
+  // GDPR/PECR).
   const [firstName, setFirstName] = useState('');
+  // Forced choice, no default (Aidan 2026-08-04): an unticked box is
+  // skippable; a required Yes/No makes everyone actually decide. Still
+  // valid consent — nothing pre-selected, both answers equal, either
+  // proceeds. null = not yet answered (Continue stays disabled).
+  const [marketingOptIn, setMarketingOptIn] = useState<boolean | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Wrapped setStep so onStepChange always fires in sync with the
@@ -117,9 +174,9 @@ export function AuthForm({
   }, [isLoading, isAuthenticated, user, redirect, setLocation]);
 
   const handleGoogleSignIn = () => {
-    // Piece B will implement /api/auth/google. Until then the click
-    // takes the user to a 404 — fine for a dev preview, prevents the
-    // button from looking decorative.
+    // /api/auth/google is live (google-oauth.ts): it 302s to Google's
+    // consent screen and the callback bounces back with ?error=<code>
+    // on failure, which /login renders via GOOGLE_ERROR_COPY.
     const params = new URLSearchParams(window.location.search);
     const r = params.get('redirect');
     const next = r && r.startsWith('/') && !r.startsWith('//') ? r : redirect;
@@ -132,10 +189,12 @@ export function AuthForm({
       toast({ title: 'Enter a valid email', variant: 'destructive' });
       return;
     }
+    const slowTimer = window.setTimeout(() => setSlowHint(true), 4000);
     try {
       const result = (await sendOtp(trimmed)) as any;
       setDevBypassActive(!!result?.devBypass);
       setStep('code');
+      setResendIn(30);
       toast({
         title: 'Code sent',
         description: result?.devBypass
@@ -148,6 +207,9 @@ export function AuthForm({
         description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      window.clearTimeout(slowTimer);
+      setSlowHint(false);
     }
   };
 
@@ -157,6 +219,7 @@ export function AuthForm({
       toast({ title: 'Enter the 6-digit code', variant: 'destructive' });
       return;
     }
+    const slowTimer = window.setTimeout(() => setSlowHint(true), 4000);
     try {
       const result = (await verifyOtp({
         email: email.trim().toLowerCase(),
@@ -174,6 +237,9 @@ export function AuthForm({
         description: err?.message ?? 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      window.clearTimeout(slowTimer);
+      setSlowHint(false);
     }
   };
 
@@ -188,6 +254,7 @@ export function AuthForm({
     try {
       const profileRes = await apiRequest('PATCH', '/api/user/profile', {
         firstName: trimmedName,
+        marketingOptIn: marketingOptIn === true,
       });
       if (!profileRes.ok) {
         const err = await profileRes.json().catch(() => ({}));
@@ -213,18 +280,25 @@ export function AuthForm({
     <div className="space-y-4">
       {step === 'email' && (
         <>
-          {showGoogle && (
+          {googleEnabled && (
             <>
+              {/* Deliberately heavy for an "outline" button (2026-08-10).
+                  It was a hairline box next to a saturated purple CTA and
+                  read as a footnote — but one tap beats waiting on an
+                  emailed code, and while Brevo is delivering late this is
+                  the more reliable way in. Solid border + shadow + a
+                  full-size G mark so it reads as a real choice. Stays
+                  white-on-light per Google's brand guidance. */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
-                className="w-full h-11 border-stone-200 hover:bg-stone-50 text-ink font-medium"
+                className="w-full h-11 border-2 border-keeper-stone/30 bg-white shadow-sm hover:bg-keeper-paper hover:border-keeper-stone/50 hover:shadow text-keeper-ink font-semibold transition-all"
                 data-testid="btn-google-signin"
               >
                 {/* Google "G" mark — kept inline so we don't ship an
                     SVG asset for one button. */}
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden>
+                <svg className="w-5 h-5 mr-2.5" viewBox="0 0 24 24" aria-hidden>
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -276,12 +350,22 @@ export function AuthForm({
           </div>
           <Button
             onClick={handleSendCode}
+            // Don't let the tap steal focus from the email input — on
+            // mobile that first tap can just dismiss the keyboard instead
+            // of firing the button. Keeping focus lets the click land first
+            // time. (onClick still fires; input stays focused.)
+            onMouseDown={(e) => e.preventDefault()}
             disabled={isSendingOtp}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-send-code"
           >
             {isSendingOtp ? 'Sending code…' : 'Send me a code'}
           </Button>
+          {slowHint && isSendingOtp && (
+            <p className="text-[11px] text-keeper-meta text-center">
+              Waking things up — this can take a few seconds…
+            </p>
+          )}
         </>
       )}
 
@@ -314,12 +398,40 @@ export function AuthForm({
           </div>
           <Button
             onClick={handleVerifyCode}
+            onMouseDown={(e) => e.preventDefault()}
             disabled={isVerifyingOtp}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-verify-code"
           >
             {isVerifyingOtp ? 'Verifying…' : 'Sign in'}
           </Button>
+          {slowHint && isVerifyingOtp && (
+            <p className="text-[11px] text-keeper-meta text-center">
+              Hang on — this can take a few seconds…
+            </p>
+          )}
+          {/* Outlook junks our code (SCL:5, CAT:SPM) even though SPF, DKIM
+              and DMARC all pass — a new domain on a shared ESP IP. Nothing
+              to configure our way out of, so say it plainly at the moment
+              someone is already hunting for the email, rather than let them
+              conclude it never sent. */}
+          <p className="text-center text-[11px] leading-snug text-keeper-meta">
+            Can't see it? Check your junk or spam folder — it sometimes
+            lands there.
+          </p>
+          <button
+            onClick={() => !isSendingOtp && resendIn === 0 && handleSendCode()}
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={isSendingOtp || resendIn > 0}
+            className="w-full text-xs text-brand hover:text-brand-dark disabled:text-keeper-meta disabled:cursor-default"
+            data-testid="btn-resend-code"
+          >
+            {resendIn > 0
+              ? `Resend code in ${resendIn}s`
+              : isSendingOtp
+                ? 'Sending…'
+                : "Didn't get it? Resend code"}
+          </button>
           <button
             onClick={() => {
               setStep('email');
@@ -354,10 +466,54 @@ export function AuthForm({
             />
           </div>
 
+          {/* Marketing consent — a REQUIRED Yes/No pair, nothing
+              pre-selected (Aidan 2026-08-04: a skippable tickbox never
+              gets an answer). Valid consent: affirmative act, equal
+              buttons, "No" costs nothing, either answer proceeds. Gates
+              PROMOTIONAL email only — reminders/orders are service. */}
+          <div>
+            <p className="text-xs font-medium text-keeper-body">
+              Can we email you the occasional offer and Celebrait news?
+            </p>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMarketingOptIn(true)}
+                aria-pressed={marketingOptIn === true}
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                  marketingOptIn === true
+                    ? 'border-brand bg-brand text-brand-foreground'
+                    : 'border-keeper-hair bg-white text-keeper-body hover:border-stone-400'
+                }`}
+                data-testid="btn-marketing-yes"
+              >
+                Yes please
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarketingOptIn(false)}
+                aria-pressed={marketingOptIn === false}
+                className={`rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                  marketingOptIn === false
+                    ? 'border-keeper-ink bg-keeper-ink text-white'
+                    : 'border-keeper-hair bg-white text-keeper-body hover:border-stone-400'
+                }`}
+                data-testid="btn-marketing-no"
+              >
+                No thanks
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-keeper-meta/80">
+              Either way, we'll email you about your orders and the dates you
+              ask us to watch — that's the service. Unsubscribe from anything,
+              anytime.
+            </p>
+          </div>
+
           <Button
             onClick={handleWelcomeSubmit}
-            disabled={isSavingProfile || !firstName.trim()}
-            className="w-full h-11 bg-cta hover:bg-cta-hover text-cta-foreground font-medium"
+            disabled={isSavingProfile || !firstName.trim() || marketingOptIn === null}
+            className={`w-full h-11 ${accentBtn} font-medium`}
             data-testid="btn-welcome-continue"
           >
             {isSavingProfile ? (

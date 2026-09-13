@@ -28,10 +28,30 @@
 // and competing with the action elsewhere on the page. A spinner is
 // the honest "this is happening, hold on" signal.
 
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ImageOff, Loader2 } from 'lucide-react';
 
 export type ThumbTarget = 'front' | 'inside' | 'both';
+
+// G10 — staged wait copy shown under the spinner during a regen, advancing
+// every ~13s. Honest stages (no fake progress %); makes a 45-90s wait read
+// as "working" rather than "stuck on a spinner".
+//
+// The TERMINAL stage is deliberately NOT a falsely-optimistic "Almost
+// there…" — a slow gen (60-90s+) would freeze on that line for the whole
+// tail and read as hanging (founder feedback 2026-06-01). Instead the last
+// step is an honest "taking a little longer" reassurance, so a long wait
+// still reads as alive + working rather than stuck. The real fix (set
+// expectations up front + leave-and-return) is queued in
+// next_wait_state_async_and_notifications.md.
+const WAIT_MESSAGES = [
+  'Reading your tweak…',
+  'Re-drawing the scene…',
+  'Bringing it to life…',
+  'Adding the final details…',
+  'Still working — hang tight…',
+];
 
 interface CardThumbProps {
   frontUrl: string | null;
@@ -115,48 +135,107 @@ function ThumbChassis({
   label: string;
   isGenerating: boolean;
 }) {
+  // The url whose pixels are actually painted on screen. Drives the
+  // decode-gate so the spinner only lifts to REAL pixels, never a stale
+  // frame ("lands too early then pops"). onLoad fires for cached images
+  // too, so preloaded version switches resolve in ~a frame.
+  const [paintedUrl, setPaintedUrl] = useState<string | null>(url);
+
+  // Hold the working overlay across a regen COMPLETION until the new
+  // image has decoded. Plain version switches (not preceded by
+  // generating) don't set this — the src swap is instant for preloaded
+  // images, so we don't veil them.
+  const [holdForDecode, setHoldForDecode] = useState(false);
+  const prevGeneratingRef = useRef(isGenerating);
+  useEffect(() => {
+    if (prevGeneratingRef.current && !isGenerating) {
+      // regen just ended — if the (new) image hasn't painted yet, keep
+      // the overlay up until it does.
+      setHoldForDecode(url != null && url !== paintedUrl);
+    }
+    prevGeneratingRef.current = isGenerating;
+  }, [isGenerating, url, paintedUrl]);
+  useEffect(() => {
+    if (paintedUrl === url) setHoldForDecode(false);
+  }, [paintedUrl, url]);
+
+  const showOverlay = isGenerating || holdForDecode;
+
+  // G10 — progressive wait feedback. A lone static spinner for 45-90s
+  // reads as "stuck"; a line that advances through honest stages reads as
+  // "working". Steps are time-based (no fake %), capped at the last one.
+  const [waitStep, setWaitStep] = useState(0);
+  useEffect(() => {
+    if (!isGenerating) {
+      setWaitStep(0);
+      return;
+    }
+    const id = setInterval(
+      () => setWaitStep((s) => Math.min(s + 1, WAIT_MESSAGES.length - 1)),
+      13000,
+    );
+    return () => clearInterval(id);
+  }, [isGenerating]);
+
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden shadow-sm">
       <div className="aspect-square bg-stone-50 relative">
-        <AnimatePresence mode="wait">
-          {isGenerating ? (
+        {/* The image stays MOUNTED across regens + version switches.
+            Two wins vs the old AnimatePresence-mode="wait" swap:
+            (1) no remount → preloaded version-rail switches are instant,
+            no cross-fade lag; (2) changing src keeps the previous frame
+            painted until the new one decodes → no flash to white. */}
+        {url ? (
+          <img
+            src={url}
+            alt={label}
+            crossOrigin="anonymous"
+            onLoad={() => setPaintedUrl(url)}
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+        ) : !isGenerating ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-keeper-meta">
+            <ImageOff className="w-5 h-5" />
+            <p className="text-[10px] uppercase tracking-[0.2em]">
+              No image yet
+            </p>
+          </div>
+        ) : null}
+
+        {/* Regen spinner is an OVERLAY on top of the prior image — the
+            user keeps seeing THEIR card, just "working". It stays up
+            until the NEW image has decoded (holdForDecode), so it lifts
+            to real pixels in one clean reveal — never to the old frame. */}
+        <AnimatePresence>
+          {showOverlay && (
             <motion.div
-              key="spinner"
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white"
+              key="regen-overlay"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/75 backdrop-blur-[1px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.25 }}
               data-testid="thumb-spinner"
             >
               <Loader2 className="w-6 h-6 text-brand animate-spin" />
-              <p className="text-[10px] uppercase tracking-[0.2em] font-medium text-stone-400">
-                Regenerating
-              </p>
-            </motion.div>
-          ) : url ? (
-            <motion.img
-              key={url}
-              src={url}
-              alt={label}
-              className="absolute inset-0 w-full h-full object-contain"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            />
-          ) : (
-            <motion.div
-              key="empty"
-              className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-stone-400"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <ImageOff className="w-5 h-5" />
-              <p className="text-[10px] uppercase tracking-[0.2em]">
-                No image yet
-              </p>
+              {/* G10 — rotating wait copy. Crossfade between honest stages so a
+                  45-90s wait reads as "working", not "stuck". During the brief
+                  decode-hold (holdForDecode, not isGenerating) waitStep is 0,
+                  so it settles on the first line — fine for a sub-second beat. */}
+              <div className="min-h-[0.75rem] px-3 flex items-center justify-center text-center">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={waitStep}
+                    className="text-[10px] uppercase tracking-[0.18em] font-medium text-keeper-meta leading-tight"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {WAIT_MESSAGES[waitStep]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -167,7 +246,7 @@ function ThumbChassis({
           parent so it can switch between two thumbs without
           duplicating chrome). Border-top divider matches checkout. */}
       <div className="px-4 py-2 border-t border-stone-100 flex items-center justify-center">
-        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-stone-500">
+        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-keeper-meta">
           {label}
         </p>
       </div>

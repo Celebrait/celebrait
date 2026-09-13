@@ -11,31 +11,76 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface GestureHintsProps {
-  /** Hide the hints once the card opens — presumed engaged. */
+  /** Hide the hints once the card opens — presumed engaged. Ignored
+   *  when `alwaysVisible` is true. */
   open: boolean;
-  /** Delay (ms) before the hints fade in on mount. Defaults 900ms. */
+  /** Delay (ms) before the hints fade in on mount. Defaults 900ms.
+   *  Ignored when `alwaysVisible` is true. */
   mountDelayMs?: number;
   /** Hide the "Scroll to zoom" hint. Use on surfaces where the
    *  Card3DViewer has `enableZoom={false}` (e.g. the marketing
    *  hero) so the hint copy isn't a lie. Default false. */
   hideZoomHint?: boolean;
+  /** Hide the "Drag to rotate" hint — for open/close-only surfaces
+   *  (`enableRotate={false}`) so we don't promise rotation. Default false. */
+  hideRotateHint?: boolean;
+  /** Render the hints STATICALLY — no mount fade-in, no fade-out
+   *  when the card opens, always at full opacity. Used in modal
+   *  contexts where the hints belong as fixed guidance (and where a
+   *  fading row would change the modal's height mid-interaction).
+   *  Default false. */
+  alwaysVisible?: boolean;
+  /** When set, the hints DON'T hide on open — the tap hint's label
+   *  switches to this instead (e.g. "Tap to close"). For toggle
+   *  surfaces like the Keeper hero where the same tap closes the
+   *  card again. */
+  openLabel?: string;
 }
 
 export function GestureHints({
   open,
   mountDelayMs = 900,
   hideZoomHint = false,
+  hideRotateHint = false,
+  alwaysVisible = false,
+  openLabel,
 }: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (alwaysVisible) return; // no fade-in timing in static mode
     const t = setTimeout(() => setVisible(true), mountDelayMs);
     return () => clearTimeout(t);
-  }, [mountDelayMs]);
+  }, [mountDelayMs, alwaysVisible]);
+
+  const HintsRow = (
+    <div className="flex items-center gap-6 sm:gap-10">
+      <Hint label={open && openLabel ? openLabel : 'Tap to open'}>
+        <TapGlyph />
+      </Hint>
+      {!hideRotateHint && (
+        <Hint label="Drag to rotate">
+          <DragGlyph />
+        </Hint>
+      )}
+      {!hideZoomHint && (
+        <Hint label="Scroll to zoom" hideOnMobile>
+          <ZoomGlyph />
+        </Hint>
+      )}
+    </div>
+  );
+
+  // Static mode — render immediately, always visible, no motion.
+  // Modal callers use this so the modal's height doesn't change as
+  // hints fade in or out.
+  if (alwaysVisible) {
+    return <div className="flex justify-center">{HintsRow}</div>;
+  }
 
   return (
     <AnimatePresence>
-      {visible && !open && (
+      {visible && (!open || openLabel) && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -43,19 +88,7 @@ export function GestureHints({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="flex justify-center"
         >
-          <div className="flex items-center gap-6 sm:gap-10">
-            <Hint label="Tap to open">
-              <TapGlyph />
-            </Hint>
-            <Hint label="Drag to rotate">
-              <DragGlyph />
-            </Hint>
-            {!hideZoomHint && (
-              <Hint label="Scroll to zoom" hideOnMobile>
-                <ZoomGlyph />
-              </Hint>
-            )}
-          </div>
+          {HintsRow}
         </motion.div>
       )}
     </AnimatePresence>
@@ -78,8 +111,22 @@ function Hint({
       <div className="w-9 h-9 flex items-center justify-center text-cta">
         {children}
       </div>
+      {/* Label crossfades when it changes (e.g. Tap to open → Tap to
+          close as the card opens) — fades out the old, fades in the new
+          rather than swapping instantly (Kevin 2026-07-09). */}
       <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500">
-        {label}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={label}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="block"
+          >
+            {label}
+          </motion.span>
+        </AnimatePresence>
       </span>
     </div>
   );

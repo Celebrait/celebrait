@@ -36,14 +36,17 @@ import { Button } from '@/components/ui/button';
 import {
   Pencil,
   Image as ImageIcon,
-  Sparkles,
   RefreshCw,
   ChevronRight,
 } from 'lucide-react';
-import type { CardDraftState, StyleMode } from '@shared/schema';
-import { SceneEditor, PhotoEditor, StyleEditor } from './input-editors';
+import type { CardDraftState } from '@shared/schema';
+import { SceneEditor, PhotoEditor } from './input-editors';
 
-export type FixAndRetryEditor = 'scene' | 'photo' | 'style';
+// 'style' was a third editor — REMOVED 2026-05-17 when the style
+// picker was parked for Celebrait Premium. The StyleEditor component
+// still exists in input-editors.tsx for Premium revival. See
+// next_celebrait_premium.md.
+export type FixAndRetryEditor = 'scene' | 'photo';
 
 export interface FixAndRetryDialogProps {
   open: boolean;
@@ -64,7 +67,6 @@ export interface FixAndRetryDialogProps {
 const EDITOR_META: Record<FixAndRetryEditor, { label: string; icon: typeof Pencil }> = {
   scene: { label: 'Scene', icon: Pencil },
   photo: { label: 'Photo', icon: ImageIcon },
-  style: { label: 'Style', icon: Sparkles },
 };
 
 export function FixAndRetryDialog({
@@ -85,12 +87,7 @@ export function FixAndRetryDialog({
   const [pendingPhotoId, setPendingPhotoId] = useState<number | null>(
     state.photos?.photoIds?.[0] ?? null,
   );
-  const [pendingStyleMode, setPendingStyleMode] = useState<StyleMode>(
-    state.style?.mode ?? 'animated',
-  );
-  const [pendingStyleCustom, setPendingStyleCustom] = useState<string>(
-    state.style?.custom ?? '',
-  );
+  // Style pending-state REMOVED 2026-05-17 — see EDITOR_META comment.
 
   // Reset pending state every time the dialog opens with fresh draft
   // data. Avoids stale edits leaking between separate failure events.
@@ -99,8 +96,6 @@ export function FixAndRetryDialog({
       setActiveEditor(initialEditor);
       setPendingScene(state.scene?.description ?? '');
       setPendingPhotoId(state.photos?.photoIds?.[0] ?? null);
-      setPendingStyleMode(state.style?.mode ?? 'animated');
-      setPendingStyleCustom(state.style?.custom ?? '');
     }
   }, [open, initialEditor, state]);
 
@@ -134,17 +129,8 @@ export function FixAndRetryDialog({
         };
       }
 
-      const styleChanged =
-        pendingStyleMode !== (state.style?.mode ?? 'animated') ||
-        (pendingStyleMode === 'custom' &&
-          pendingStyleCustom.trim() !== (state.style?.custom ?? '').trim());
-      if (styleChanged) {
-        patch.style = {
-          ...state.style,
-          mode: pendingStyleMode,
-          custom: pendingStyleMode === 'custom' ? pendingStyleCustom : undefined,
-        };
-      }
+      // Style change block REMOVED 2026-05-17 — style picker parked
+      // for Premium. See next_celebrait_premium.md.
 
       await onSaveAndRetry(patch);
     } finally {
@@ -159,16 +145,16 @@ export function FixAndRetryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-surface-cream">
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-keeper-paper">
         {/* Header — neutral chrome. Once the user is in the dialog
             they're editing, not being warned. The red lives back on
             the failure panel; here it's a regular Studio surface with
             just a small "EDITING" eyebrow as the through-line. */}
-        <div className="px-6 pt-6 pb-4 border-b border-stone-200/80">
-          <DialogTitle className="text-lg font-semibold text-ink">
+        <div className="px-6 pt-6 pb-4 border-b border-keeper-hair/80">
+          <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
             Fix and try again
           </DialogTitle>
-          <DialogDescription className="text-sm text-ink-soft mt-1">
+          <DialogDescription className="text-sm text-keeper-meta mt-1">
             Edit what you think went wrong. Anything else look off? Switch to
             it before retrying.
           </DialogDescription>
@@ -180,7 +166,7 @@ export function FixAndRetryDialog({
             <span className="text-[10px] uppercase tracking-[0.18em] text-accent-red-dark font-semibold">
               Editing
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-keeper-ink">
               {(() => {
                 const Icon = EDITOR_META[activeEditor].icon;
                 return <Icon className="w-3.5 h-3.5 text-accent-red-dark" />;
@@ -198,23 +184,17 @@ export function FixAndRetryDialog({
               onSelect={setPendingPhotoId}
             />
           )}
-          {activeEditor === 'style' && (
-            <StyleEditor
-              mode={pendingStyleMode}
-              customText={pendingStyleCustom}
-              onModeChange={setPendingStyleMode}
-              onCustomChange={setPendingStyleCustom}
-            />
-          )}
+          {/* StyleEditor render block REMOVED 2026-05-17 — style picker
+              parked for Premium. See next_celebrait_premium.md. */}
         </div>
 
         {/* Also using strip */}
         <div className="px-6 pb-5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-ink-soft font-semibold mb-2">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-keeper-meta font-semibold mb-2">
             Also using — could one of these be it?
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {(['scene', 'photo', 'style'] as FixAndRetryEditor[])
+            {(['scene', 'photo'] as FixAndRetryEditor[])
               .filter((e) => e !== activeEditor)
               .map((editor) => (
                 <AlsoUsingTile
@@ -223,8 +203,6 @@ export function FixAndRetryDialog({
                   state={state}
                   pendingScene={pendingScene}
                   pendingPhotoId={pendingPhotoId}
-                  pendingStyleMode={pendingStyleMode}
-                  pendingStyleCustom={pendingStyleCustom}
                   onSwitch={() => setActiveEditor(editor)}
                 />
               ))}
@@ -235,19 +213,19 @@ export function FixAndRetryDialog({
             any other action surface in the app. Disabled state uses
             `inFlight` (local + parent) so the spinner appears the
             moment the user clicks, not after the round-trip. */}
-        <div className="px-6 py-4 border-t border-stone-200/80 bg-white/40 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-keeper-hair/80 bg-white/40 flex items-center justify-between gap-3">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={inFlight}
-            className="text-ink-soft hover:text-ink"
+            className="text-keeper-meta hover:text-keeper-ink"
           >
             Back
           </Button>
           <Button
             onClick={() => void handleRetry()}
             disabled={inFlight}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground"
+            className="bg-go hover:bg-go-hover text-go-foreground"
             data-testid="fix-and-retry-cta"
           >
             <RefreshCw
@@ -269,16 +247,12 @@ function AlsoUsingTile({
   state,
   pendingScene,
   pendingPhotoId,
-  pendingStyleMode,
-  pendingStyleCustom,
   onSwitch,
 }: {
   editor: FixAndRetryEditor;
   state: CardDraftState;
   pendingScene: string;
   pendingPhotoId: number | null;
-  pendingStyleMode: StyleMode;
-  pendingStyleCustom: string;
   onSwitch: () => void;
 }) {
   // Use pending values when displayed (so users see their in-progress
@@ -294,32 +268,25 @@ function AlsoUsingTile({
         : state.photos?.photoIds?.[0]
           ? `Photo #${state.photos.photoIds[0]}`
           : '(no photo selected)';
-  } else if (editor === 'style') {
-    if (pendingStyleMode === 'custom') {
-      summary = pendingStyleCustom || state.style?.custom || 'Custom (empty)';
-      summary = summary.length > 60 ? summary.slice(0, 60) + '…' : summary;
-    } else {
-      summary =
-        pendingStyleMode.charAt(0).toUpperCase() + pendingStyleMode.slice(1);
-    }
   }
+  // Style branch REMOVED 2026-05-17 — see EDITOR_META comment.
 
   const Icon = EDITOR_META[editor].icon;
   return (
     <button
       type="button"
       onClick={onSwitch}
-      className="text-left px-3 py-2.5 rounded-lg bg-white border border-stone-200 hover:border-brand/40 hover:bg-brand/5 transition-all group"
+      className="text-left px-3 py-2.5 rounded-lg bg-white border border-keeper-hair hover:border-brand/40 hover:bg-brand/5 transition-all group"
       data-testid={`fix-retry-switch-${editor}`}
     >
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon className="w-3 h-3 text-ink-soft" />
-        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-soft font-semibold">
+        <Icon className="w-3 h-3 text-keeper-meta" />
+        <span className="text-[10px] uppercase tracking-[0.14em] text-keeper-meta font-semibold">
           {EDITOR_META[editor].label}
         </span>
-        <ChevronRight className="w-3 h-3 text-stone-300 group-hover:text-brand ml-auto transition-colors" />
+        <ChevronRight className="w-3 h-3 text-keeper-meta group-hover:text-brand ml-auto transition-colors" />
       </div>
-      <p className="text-xs text-ink leading-snug truncate">{summary}</p>
+      <p className="text-xs text-keeper-ink leading-snug truncate">{summary}</p>
     </button>
   );
 }

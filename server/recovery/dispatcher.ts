@@ -127,13 +127,17 @@ export async function runDropOffRecoveryDispatch(
     `[DROPOFF] Dispatch starting${opts.dryRun ? ' (DRY RUN)' : ''}. asOf=${now.toISOString()}`,
   );
 
-  // Run each tier independently. They share no state — a card eligible
-  // for the tweak tier can't trip the lastcall tier in the same pass
-  // because the tweak stamp gets set first. (And even if a card somehow
-  // missed an earlier tier, the next tier's gate is independent — it
-  // fires on its own time cutoff, not "AND prior tier was sent.")
+  // ONE tier per card per pass (audit 2026-07-27). The old comment here
+  // claimed tiers couldn't stack "because the tweak stamp gets set
+  // first" — wrong: each tier gates only on its OWN stamp, so a
+  // completed unpaid card older than 10 days with null stamps (backlog
+  // predating the feature, cron down a few days, DB restore) received
+  // dropoff + tweak + last-call IN THE SAME MINUTE. The shared set caps
+  // it: a card emailed by an earlier tier this pass is skipped by later
+  // tiers; the next daily pass advances it one stage at a time.
+  const emailedThisPass = new Set<number>();
   for (const tier of TIERS) {
-    const tierResult = await runTier(tier, now, opts);
+    const tierResult = await runTier(tier, now, opts, emailedThisPass);
     result.examined += tierResult.examined;
     result.fired += tierResult.fired;
     result.skipped.push(...tierResult.skipped);
@@ -154,6 +158,9 @@ async function runTier(
   tier: TierConfig,
   now: Date,
   opts: DispatchOptions,
+  /** Cards already emailed by an earlier tier in THIS pass — skipped so
+   *  a backlog card gets one stage per day, not all three at once. */
+  emailedThisPass?: Set<number>,
 ): Promise<DispatchResult> {
   const cutoff = new Date(now.getTime() - tier.cutoffHours * 60 * 60 * 1000);
   const result: DispatchResult = {
@@ -164,16 +171,25 @@ async function runTier(
   };
 
   // Pull eligible cards: completed, older than this tier's cutoff,
-  // never sent THIS tier's email, owned by a real user.
+  // never sent THIS tier's email, owned by a real user WHO OPTED IN.
+  //
+  // The marketingOptIn join is a PECR requirement, not a nicety
+  // (audit 2026-07-27): drop-off nudges are unsolicited direct
+  // marketing, and the sign-up checkbox ("Email me card reminders and
+  // the occasional offer") writes users.marketing_opt_in — which no
+  // send path read until now. Anyone who left it unticked must never
+  // enter this pipeline. Occasion reminders are different (user
+  // explicitly created them) and stay un-gated.
   const eligible = await db
     .select({ card: cards })
     .from(cards)
+    .innerJoin(users, eq(cards.userId, users.id))
     .where(
       and(
         eq(cards.status, 'completed'),
         sql`${cards.createdAt} < ${cutoff}`,
         isNull(tier.stampColumn),
-        sql`${cards.userId} IS NOT NULL`,
+        eq(users.marketingOptIn, true),
       ),
     );
 
@@ -186,6 +202,10 @@ async function runTier(
     const card = row.card;
     if (!card.userId) {
       result.skipped.push({ cardId: card.id, reason: 'no userId' });
+      continue;
+    }
+    if (emailedThisPass?.has(card.id)) {
+      result.skipped.push({ cardId: card.id, reason: 'earlier tier fired this pass' });
       continue;
     }
 
@@ -232,6 +252,7 @@ async function runTier(
         `[DROPOFF:${tier.name}] DRY RUN would email ${user.email} for card ${card.id} (${recipientName ?? 'unnamed'})`,
       );
       result.fired += 1;
+      emailedThisPass?.add(card.id); // dry run mirrors the real one-tier cap
       continue;
     }
 
@@ -253,6 +274,7 @@ async function runTier(
         .update(cards)
         .set(tier.stampPatch())
         .where(eq(cards.id, card.id));
+      emailedThisPass?.add(card.id);
 
       if (sent) {
         result.fired += 1;

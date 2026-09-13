@@ -1,23 +1,52 @@
-// Print provider abstraction. The supplier choice (Gelato leading
-// candidate, Prodigi as fallback) is deliberately deferred — we build
-// checkout + order flow against this interface and slot in the real
-// provider once physical samples land.
+// Print provider abstraction. **Supplier locked: Prodigi** (decision
+// 2026-04-29, confirmed 2026-05-27). API key in Kevin's possession.
+// Sandbox-first via `api.sandbox.prodigi.com/v4.0` — test orders are
+// free, so the integration can be wired and exercised end-to-end
+// before any real money or real prints. Real implementation lives in
+// `prodigi-provider.ts` (TBD); pick it via `STUDIO_PRINT_PROVIDER=prodigi`.
 //
-// Implementations live alongside this file (e.g. `gelato-provider.ts`).
-// Pick the active one via the `STUDIO_PRINT_PROVIDER` env var, resolved
-// through `getPrintProvider()`.
+// See next_prodigi_and_print_modes.md for SKU map (5.5×5.5 squares,
+// Direct vs Self-Send modes maps onto Giving Moment destinations) and
+// the open paper-stock decision (Mohawk vs Gloss). Samples ordered
+// 2026-05-27 — paper choice lands when they arrive.
 
 import type { ShippingAddress } from "@shared/schema";
+import { prodigiPrintProvider } from "./prodigi-provider";
 
-export interface PrintOrderRequest {
-  studioOrderId: string;
+/** One card in a print order. An order may hold several — the basket
+ *  (UX_THREE_DOORS.md §8d) posts them in ONE shipment, which is why
+ *  shipping is charged once and Prodigi receives one item per card. */
+export interface PrintOrderCard {
   cardId: number;
   frontImageUrl: string;
   insideImageUrl: string | null;
+  /** Card's stable per-card secret — names the composed print-strip
+   *  object so it can't be enumerated from the sequential card id.
+   *  Legacy cards fall back to the bare id. */
+  imageKey?: string | null;
+}
+
+export interface PrintOrderRequest {
+  studioOrderId: string;
+  /** Every card in this order, in basket order. Always at least one. */
+  cards: PrintOrderCard[];
+  // Delivery destination. Drives the Prodigi SKU: 'recipient' → Direct
+  // Delivery (-DIR, Kraft envelope, we post it); 'sender' → Self Send
+  // (-BLA, cellophane sleeve + spare envelopes, the creator posts it).
   shipTo: "sender" | "recipient";
+  // Customer opted into the wax-seal envelope sticker (direct sends only).
+  // Only then does the provider attach the branding sticker.
+  envelopeSticker?: boolean;
   shippingAddress: ShippingAddress;
   recipientName: string;
   giftMessage?: string;
+  // Prodigi shippingMethod for the chosen delivery speed
+  // (Standard|Express|Overnight). Defaults to Standard when absent.
+  shippingMethod?: string;
+  // Sender's first name (captured at signup) for the back-of-card signed
+  // credit. Absent → the compositor falls back to a "Made with Celebrait"
+  // wordmark.
+  senderFirstName?: string | null;
 }
 
 export interface PrintOrderResult {
@@ -67,6 +96,11 @@ export function getPrintProvider(): PrintProvider {
   switch (name) {
     case "stub":
       return stubPrintProvider;
+    case "prodigi":
+      // The Prodigi module's config() (API key + SKU check) only runs when
+      // submitOrder/getStatus is actually called, so importing it here in
+      // stub mode is harmless.
+      return prodigiPrintProvider;
     default:
       throw new Error(`Unknown STUDIO_PRINT_PROVIDER: ${name}`);
   }

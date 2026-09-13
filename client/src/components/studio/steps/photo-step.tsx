@@ -8,19 +8,26 @@
 //   • "A group photo"   → group — exactly 1 photo containing everyone.
 //
 // Multi-individual (N photos of N different people) is NOT exposed here;
-// it stays prompt-lab-only until quality is reliable. A tertiary link
-// below the toggle surfaces that case with "coming soon" copy.
+// it stays prompt-lab-only until quality is reliable.
 //
-// Client-side face-count heuristics (tinyFaceDetector, ~190KB) catch the
-// most common mistake modes:
-//   1. "Just them" but the photo has ≥2 faces → suggest switching to group.
-//   2. "Just them" + user adds photo 3+ → hint "same person, different angles".
-//   3. "A group photo" but the photo has ≤1 face → suggest switching to solo.
-// All three are soft banners — never blocking, never mode-switching on
-// the user's behalf.
+// The user's mode choice is authoritative — they can see their own photo.
+// Client-side face detection (SSD MobileNet, see lib/face-count) is used
+// only as a safety net for the ONE mistake that quietly ruins a card:
+// "Just them" chosen, but the photo clearly has several people, so
+// everyone but one would be dropped. That single case pops a soft confirm
+// modal (FaceModeConfirm). Detection never blocks, never switches mode on
+// the user's behalf, and no longer second-guesses a "group" choice (it
+// under-counted real groups → false alarms; removed 2026-07-22).
 //
-// Every upload is cropped to 1:1 via CropDialog (tight head crop survives
-// the 1024× downscale better). Library picker stays single-select for
+// "Never blocks" is literal, and load-bearing: inference is heavy
+// synchronous main-thread work, so it runs OFF the crop-accept path
+// (scheduleFaceHint) and not at all in group mode, where its answer is
+// discarded anyway. Putting it back in line froze phones for ~10s.
+//
+// Every upload passes through CropDialog. Free aspect in both modes
+// since 2026-08-01 (the 1:1 single-person lock rested on a face-pixels
+// belief the likeness evidence overturned); auto-face still suggests a
+// face-centred box in one_person mode. Library picker stays single-select for
 // now; multi-select from library is a follow-up.
 
 import { useEffect, useRef, useState } from 'react';
@@ -34,8 +41,19 @@ import {
   User,
   Users,
   Check,
+  Lightbulb,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Link } from 'wouter';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -48,14 +66,45 @@ import {
 } from '@/lib/face-count';
 import type { CardDraftState, PhotoMode } from '@shared/schema';
 import type { CropBounds, Photo } from '@shared/models/photos';
+import { useIsGuestPhotos, useGuestPhotos, guestUpload, photoThumbSrc } from '@/lib/guest-photos';
+import { likenessNoteForSet, analysisBlocking } from '@/lib/photo-likeness';
 
 interface PhotoStepProps {
   state: CardDraftState;
   onChange: (patch: Partial<CardDraftState>) => void;
+  /** True when the step is open as an EDIT OVERLAY from Review
+   *  (2026-07-08). The selected state reframes for change-intent:
+   *  "your current photo" labelling + a prominent replace button,
+   *  instead of the first-pass celebration copy with buried links. */
+  editIntent?: boolean;
 }
 
 const CLIENT_MAX_BYTES = 15 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+// One-time photo-consent gate. The user confirms (once, then remembered)
+// that they have permission to use the photos they upload and agree to the
+// Terms + Privacy. Remembered in localStorage so it's asked once, not per
+// card. Versioned so we can re-prompt if the consent terms materially change.
+//
+// ⚠️ TODO(solicitor): this is a LIGHTWEIGHT scaffold. Before launch, confirm
+// with counsel: (1) the exact consent wording, (2) whether explicit consent
+// must be recorded SERVER-SIDE with a timestamp + terms-version (localStorage
+// is a per-device UX convenience, not a durable legal record), (3) whether
+// signup-ToS acceptance already covers this. See
+// next_photo_consent_and_tips.md + next_studio_safety_ux_and_ip.md.
+const PHOTO_CONSENT_KEY = 'celebrait:photo-consent:v1';
+
+function readPhotoConsent(): boolean {
+  try {
+    return (
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem(PHOTO_CONSENT_KEY) === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Max photos per mode. one_person = 5 gives enough identity signal without
 // cost blowing up; group = 1 by definition (the photo already contains
@@ -80,24 +129,58 @@ interface PendingUpload {
   /** The cropped preview at ~128px. `null` while the canvas op is in
    *  flight (should be ~50ms max) — tile pulses empty in that window. */
   previewDataUrl: string | null;
+  /** This upload REPLACES the current selection (single-photo change /
+   *  group swap). Drives the render: the outgoing tile is hidden the
+   *  moment this ghost exists, so the switch reads as one motion
+   *  instead of old-hangs-then-jumps (Kevin 2026-08-01). */
+  willReplace?: boolean;
+}
+
+/** Async canvas→JPEG. canvas.toDataURL is a SYNCHRONOUS encode on the
+ *  main thread — on a 1600px photo it's the visible freeze between
+ *  picking a file and the crop dialog opening (Kevin 2026-08-01:
+ *  "staggery"). toBlob does the identical work without blocking paint. */
+function canvasToJpegDataUrl(canvas: HTMLCanvasElement, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error('encode failed'));
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error('read failed'));
+        r.readAsDataURL(blob);
+      },
+      'image/jpeg',
+      quality,
+    );
+  });
 }
 
 /**
  * Takes an uncropped data URL + pixel-space bounds and returns a small
  * cropped JPEG data URL — used for ghost tile previews while the upload
  * resolves. Runs entirely client-side; no round-trip.
+ *
+ * The preview PRESERVES the crop's own aspect ratio (longest side = `size`).
+ * A fixed square canvas squashed free-aspect group crops into a square
+ * ghost, so a landscape crop briefly flashed square before the real
+ * (now also aspect-correct) thumbnail landed — WYSIWYG broken. A 1:1
+ * one-person crop still yields a square, as before.
  */
 async function generateCroppedPreview(
   srcDataUrl: string,
   bounds: { x: number; y: number; width: number; height: number },
-  size = 128,
+  size = 256,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      const aspect = bounds.width / bounds.height;
+      const w = aspect >= 1 ? size : Math.round(size * aspect);
+      const h = aspect >= 1 ? Math.round(size / aspect) : size;
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('canvas 2d context unavailable'));
@@ -112,10 +195,10 @@ async function generateCroppedPreview(
           bounds.height,
           0,
           0,
-          size,
-          size,
+          w,
+          h,
         );
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        canvasToJpegDataUrl(canvas, 0.85).then(resolve, reject);
       } catch (err) {
         reject(err);
       }
@@ -125,34 +208,77 @@ async function generateCroppedPreview(
   });
 }
 
-export function PhotoStep({ state, onChange }: PhotoStepProps) {
+export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Kick off the face-detection model load as soon as this step mounts.
-  // The user spends a few seconds on mode copy + clicking upload before
-  // they'd actually need detection — loading it in parallel with their
-  // reading turns a cold-start wait into an instant snap-to-face. Noop
-  // on re-mount; internal cache dedupes.
-  useEffect(() => {
-    prewarmFaceDetection();
-  }, []);
-
+  // Signed-out (the public photo maker, 2026-09-04): rows come from the
+  // browser-side guest store instead of the user's library. Same shape,
+  // same gate, same likeness notes — see client/src/lib/guest-photos.ts.
+  const guest = useIsGuestPhotos();
+  const guestRows = useGuestPhotos();
   // Library state — only fetched once a photo picker would be shown.
-  const { data: photos } = useQuery<Photo[]>({
+  const { data: serverPhotos } = useQuery<Photo[]>({
     queryKey: ['/api/user/photos'],
+    enabled: !guest,
+    // Poll briefly after an upload: the likeness assessment lands
+    // server-side a few seconds behind the upload response, and the
+    // point-of-upload nudge (Kevin 2026-07-31) is only useful if the
+    // verdict arrives while the user is still standing on this step.
+    // analyzedAt set = analysis settled (either way) → stop polling.
+    //
+    // Decided from the QUERY DATA ALONE, deliberately. TanStack calls
+    // this synchronously inside useQuery's setup, i.e. BEFORE anything
+    // declared below this line exists — a first cut that read
+    // selectedIdsRef here threw "Cannot access before initialization"
+    // and error-boundaried the whole photo step. Any photo still
+    // unanalysed means a recent upload; that's a fine proxy for "ours".
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((p) => p.analyzedAt == null) ? 2500 : false,
   });
+  const photos = guest ? guestRows : serverPhotos;
   const hasLibrary = (photos?.length ?? 0) > 0;
 
   // Mode + selected photos come from the draft state; legacy drafts that
   // predate the toggle default to one_person.
   const mode: PhotoMode = state.photos?.mode ?? 'one_person';
+
+  // One-time photo-consent gate (see PHOTO_CONSENT_KEY). Initialised from
+  // localStorage so a returning user who already confirmed isn't re-asked.
+  const [photoConsentGiven, setPhotoConsentGiven] = useState<boolean>(
+    readPhotoConsent,
+  );
+  const givePhotoConsent = () => {
+    setPhotoConsentGiven(true);
+    try {
+      window.localStorage.setItem(PHOTO_CONSENT_KEY, 'true');
+    } catch {
+      /* private mode / storage disabled — consent still holds for this session */
+    }
+  };
   const selectedIds = state.photos?.photoIds ?? [];
   const selectedPhotos: Photo[] = selectedIds
     .map((id) => photos?.find((p) => p.id === id))
     .filter((p): p is Photo => !!p);
   const recipientName = state.recipient?.name?.trim() || '';
   const atMax = selectedIds.length >= MAX_PHOTOS[mode];
+
+  // Kick off the face-detection model load once the user is in a mode
+  // that will actually USE it. They spend a few seconds on mode copy +
+  // clicking upload before detection is needed, so loading it alongside
+  // their reading turns a cold start into an instant snap-to-face. Noop
+  // on re-mount; internal cache dedupes.
+  //
+  // Gated on one_person (2026-07-29) because that's the ONLY mode that
+  // consumes it: auto-crop is `autoFace={mode === 'one_person'}` and the
+  // face-count nudge only runs in that direction (see scheduleFaceHint).
+  // Ungated, group mode pulled 1.3MB of JS plus 5.4MB of SSD MobileNet
+  // weights for a result nothing reads — on a phone that's the user's
+  // bandwidth competing with their own photo upload.
+  useEffect(() => {
+    if (mode !== 'one_person') return;
+    prewarmFaceDetection();
+  }, [mode]);
 
   // UI state for the pending upload.
   const [stagedSrc, setStagedSrc] = useState<string | null>(null);
@@ -196,18 +322,21 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   const [queuedFiles, setQueuedFiles] = useState<
     Array<{ base64: string; filename: string }>
   >([]);
-  // The face-count mismatch warning is now a PROPERTY of the draft
-  // (state.photos.pendingModeReview) rather than local component state,
-  // so (a) autosave carries it across reloads and (b) the step-ready
-  // check in card-maker.tsx can gate the Next button on it. Derived
-  // here into the component-local `faceWarning` shape for rendering.
+  // The face-count nudge is a PROPERTY of the draft
+  // (state.photos.pendingModeReview) rather than local component state, so
+  // autosave carries it across reloads. It's advisory only — it never
+  // gates Next (see isPhotoStepReady). Derived here into the
+  // component-local `faceWarning` shape for rendering.
+  //
+  // Only 'too-many' is surfaced (chose single, looks like several people —
+  // a real footgun worth a gentle heads-up). Any stored 'too-few' from an
+  // older draft is ignored: group-shot under-counting made it a false
+  // alarm, so it's no longer produced or shown.
   const pendingModeReview = state.photos?.pendingModeReview ?? null;
-  const faceWarning: FaceWarning | null = pendingModeReview
-    ? {
-        kind: pendingModeReview,
-        suggestedMode: pendingModeReview === 'too-many' ? 'group' : 'one_person',
-      }
-    : null;
+  const faceWarning: FaceWarning | null =
+    pendingModeReview === 'too-many'
+      ? { kind: 'too-many', suggestedMode: 'group' }
+      : null;
   const setFaceWarning = (next: FaceWarning | null): void => {
     // Build the photos patch from REFS, not the closure's state.photos,
     // so we don't clobber photoIds committed by an in-flight upload
@@ -221,6 +350,58 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         ...(next ? { pendingModeReview: next.kind } : {}),
       },
     });
+  };
+
+  // Face-count nudge, deliberately OFF the crop-accept critical path.
+  //
+  // SSD MobileNet inference is heavy SYNCHRONOUS main-thread work — on a
+  // mid-range phone it's seconds, not milliseconds. It used to sit in a
+  // Promise.all beside the upload inside confirmCrop's `.then`, which is
+  // a MICROTASK: it started before the browser could paint the crop
+  // dialog closing, so tapping "Use this crop" locked the UI for 7-10s
+  // (reported on iPhone, 2026-07-29). Awaiting it also gated the upload
+  // commit on a signal the upload doesn't need.
+  //
+  // The nudge is advisory — it never gates Next (see isPhotoStepReady) —
+  // so it has no business blocking anything. Yield to paint first, then
+  // run it. Arriving a beat late is invisible; the dialog is already
+  // closed and the user is looking at their photo landing in the grid.
+  //
+  // ONE direction only (2026-07-22): the user's mode choice is
+  // authoritative — they can see their own photo. We only surface the
+  // case with a real footgun: they chose single but there look to be
+  // several people, so everyone but one would be dropped from the card.
+  // We deliberately DON'T warn on group→"only one face": detection
+  // under-counts group shots constantly (angled/small/side faces), so
+  // that path was a pure false alarm — and group mode on a truly single
+  // photo renders fine anyway.
+  const scheduleFaceHint = (src: string, modeAtCrop: PhotoMode): void => {
+    // Nothing to compute in group mode — see "ONE direction only" above.
+    if (modeAtCrop !== 'one_person') return;
+    const run = () => {
+      void detectFaces(src)
+        .then((detection) => {
+          if (!detection || detection.count < 2) return;
+          // The user may have flipped to group (or cleared everything)
+          // while this ran — modeRef is the live value, so a stale
+          // verdict can't re-open a nudge they've already answered.
+          if (modeRef.current !== 'one_person') return;
+          if (selectedIdsRef.current.length === 0) return;
+          setFaceWarning({ kind: 'too-many', suggestedMode: 'group' });
+        })
+        .catch(() => {
+          // Detection is best-effort; no nudge is the safe failure.
+        });
+    };
+    // requestIdleCallback keeps it out of the frames that matter; the
+    // timeout stops it being starved indefinitely. Safari (iOS) still
+    // lacks it, hence the setTimeout fallback — a macrotask either way,
+    // which is the part that actually lets the paint through.
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 3000 });
+    } else {
+      window.setTimeout(run, 400);
+    }
   };
 
   // Ghost tiles for uploads in flight. Rendered alongside real photos in
@@ -249,11 +430,21 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     };
   }, []);
 
-  // Prefetch face detection for every file waiting in the queue. By the
-  // time each one reaches CropDialog's onImageLoad, the cached result
-  // serves the auto-crop instantly — no per-photo snap delay for
-  // photos 2/3/4/5 in a multi-upload. Only one_person mode uses
-  // auto-crop so we skip the work in group mode.
+  // Prefetch face detection for the files WAITING BEHIND the one being
+  // cropped. By the time each reaches CropDialog's onImageLoad, the
+  // cached result serves the auto-crop instantly — no per-photo snap
+  // delay for photos 2/3/4/5. Only one_person mode uses auto-crop so we
+  // skip the work in group mode.
+  //
+  // The QUEUE only, deliberately. Warming the STAGED photo here looks
+  // like an obvious win and is actively harmful (tried and reverted
+  // 2026-07-30): CropDialog already runs detectFaces on that exact
+  // dataUrl in its own onImageLoad, so it's redundant — and it starts
+  // heavy synchronous inference at the very moment the dialog is trying
+  // to decode and paint that image, delaying the <img> onLoad the user
+  // is staring at a spinner waiting for. The queue works precisely
+  // because those files have idle time to exploit; the staged one has
+  // none.
   useEffect(() => {
     if (mode !== 'one_person') return;
     for (const item of queuedFiles) {
@@ -261,8 +452,38 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     }
   }, [mode, queuedFiles]);
 
+  // Replace-intent flag (edit overlay): the NEXT committed photo
+  // replaces the current selection instead of appending. Group mode
+  // already replaces by design; this extends the same semantics to a
+  // single one_person photo when the user explicitly asked to change
+  // it. Cleared on commit, and re-cleared by the add-tile so a
+  // cancelled OS picker can't leave a stale replace armed.
+  const replaceNextRef = useRef(false);
+  const triggerReplacePicker = () => {
+    replaceNextRef.current = true;
+    // Deliberately NOT triggerFilePicker(): its atMax guard blocks a
+    // full set — which is precisely when replacing is wanted (a group
+    // card's single photo IS at max; that made the button a no-op).
+    fileInputRef.current?.click();
+  };
+
+  // Briefing gate before the OS picker (Kevin 2026-07-30). The two things
+  // that most often ruin a card are decided BEFORE the file dialog opens,
+  // and nothing was telling anyone:
+  //   · extra people in shot get rendered onto the front
+  //   · one photo is a weaker likeness than two or three angles
+  // Once the picker is open it's too late to say either. Deliberately on
+  // the ADD path only — triggerReplacePicker skips it, since someone
+  // swapping a photo has already read this.
+  const [briefingOpen, setBriefingOpen] = useState(false);
+
   const triggerFilePicker = () => {
     if (atMax) return;
+    setBriefingOpen(true);
+  };
+
+  const proceedToPicker = () => {
+    setBriefingOpen(false);
     fileInputRef.current?.click();
   };
 
@@ -299,6 +520,71 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
       reader.readAsDataURL(file);
     });
 
+  /**
+   * Downscale a camera photo BEFORE it becomes a base64 data URL.
+   *
+   * Why (Kevin 2026-07-27, "crop on mobile paused ~10s"): a modern
+   * phone photo is 3–5 MB / 12 MP, and base64 inflates it another ~33%
+   * — so confirm-crop was posting ~7 MB up a mobile uplink (10–20s),
+   * and the crop-preview canvas was decoding 12 MP on the main thread
+   * (UI freeze). None of that resolution ever survives: the server
+   * downsizes to 1024px for the provider anyway.
+   *
+   * MAX_EDGE 1600 keeps plenty of headroom for a tight crop of a face
+   * within the frame while cutting a 5 MB photo to a few hundred KB.
+   * Uses createImageBitmap (off-main-thread decode, and it honours EXIF
+   * orientation) with a plain <img> fallback for older browsers; any
+   * failure falls back to the original bytes so an upload never breaks
+   * because of an optimisation.
+   */
+  const readFileDownscaled = async (file: File): Promise<string> => {
+    const MAX_EDGE = 1600;
+    const QUALITY = 0.9;
+    try {
+      let bitmap: ImageBitmap | HTMLImageElement;
+      let sw: number;
+      let sh: number;
+      if (typeof createImageBitmap === 'function') {
+        bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
+        sw = (bitmap as ImageBitmap).width;
+        sh = (bitmap as ImageBitmap).height;
+      } else {
+        const dataUrl = await readFileAsDataUrl(file);
+        const img = new Image();
+        await new Promise<void>((res, rej) => {
+          img.onload = () => res();
+          img.onerror = () => rej(new Error('decode failed'));
+          img.src = dataUrl;
+        });
+        bitmap = img;
+        sw = img.naturalWidth;
+        sh = img.naturalHeight;
+      }
+
+      // Already small enough (and a format the server reads happily) —
+      // don't re-encode, it would only lose quality.
+      if (Math.max(sw, sh) <= MAX_EDGE && file.size <= 1_500_000) {
+        if ('close' in bitmap) (bitmap as ImageBitmap).close();
+        return await readFileAsDataUrl(file);
+      }
+
+      const scale = Math.min(1, MAX_EDGE / Math.max(sw, sh));
+      const w = Math.round(sw * scale);
+      const h = Math.round(sh * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no 2d context');
+      ctx.drawImage(bitmap as CanvasImageSource, 0, 0, w, h);
+      if ('close' in bitmap) (bitmap as ImageBitmap).close();
+      return await canvasToJpegDataUrl(canvas, QUALITY);
+    } catch {
+      // Optimisation is best-effort — never block an upload on it.
+      return readFileAsDataUrl(file);
+    }
+  };
+
   const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
@@ -330,7 +616,16 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
 
     // Respect the remaining-slot budget for the current mode. Extras
     // get toasted, not silently dropped.
-    const remaining = MAX_PHOTOS[mode] - selectedIds.length;
+    //
+    // REPLACE intent (edit overlay "upload a different photo"): the
+    // incoming photo takes the current one's place, so a full set is
+    // fine — otherwise a group photo (max 1, already at 1) reports
+    // "already at the limit" and the swap is impossible (Kevin
+    // 2026-07-09). Guarantee at least one slot when replacing.
+    const replacing = replaceNextRef.current;
+    const remaining = replacing
+      ? Math.max(1, MAX_PHOTOS[mode] - selectedIds.length)
+      : MAX_PHOTOS[mode] - selectedIds.length;
     if (remaining <= 0) {
       toast({
         title: 'Already at the limit',
@@ -355,7 +650,10 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     try {
       items = await Promise.all(
         toProcess.map(async (f) => ({
-          base64: await readFileAsDataUrl(f),
+          // Downscaled (see readFileDownscaled) — this is the payload the
+          // crop dialog, the preview canvas AND the upload all reuse, so
+          // the saving compounds across the whole path.
+          base64: await readFileDownscaled(f),
           filename: f.name,
         })),
       );
@@ -417,7 +715,10 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // Register a ghost tile immediately — the user sees their crop
     // "land" in the grid before the CropDialog even closes on the last
     // photo. Preview fills in ~50ms later via the canvas op below.
-    setPending((p) => [...p, { tempId, previewDataUrl: null }]);
+    setPending((p) => [
+      ...p,
+      { tempId, previewDataUrl: null, willReplace: replaceNextRef.current || modeAtCrop === 'group' },
+    ]);
     setInFlightUploads((n) => n + 1);
 
     // Advance the CropDialog to the next file (or close it) IMMEDIATELY
@@ -444,31 +745,34 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // appends stay in the order the user cropped the photos.
     uploadQueueRef.current = uploadQueueRef.current.then(async () => {
       try {
-        const [photoRes, detection] = await Promise.all([
-          apiRequest('POST', '/api/photos/upload', {
+        // Upload ONLY. Face detection used to share this Promise.all —
+        // see scheduleFaceHint for why that cost 7-10s of frozen UI.
+        let photo: Photo;
+        if (guest) {
+          // Guest: the bytes stay in this browser; the verdict comes
+          // from the stateless assess endpoint (see guest-photos.ts).
+          photo = await guestUpload({ imageBase64: base64ToUpload, filename: filenameToUpload, cropBounds: bounds });
+        } else {
+          const photoRes = await apiRequest('POST', '/api/photos/upload', {
             imageBase64: base64ToUpload,
             filename: filenameToUpload,
             cropBounds: bounds,
-          }),
-          // Detection on the UNCROPPED image picks up background
-          // bystanders too — the right signal for "did you mean group?".
-          // Hits the cache when prefetchFaces already ran on this URL.
-          detectFaces(srcForDetection),
-        ]);
-        const photo = (await photoRes.json()) as Photo;
-        // Insert the new photo into the react-query cache synchronously
-        // so `selectedPhotos = selectedIds.map(id => photos.find(...))`
-        // can resolve the new id on the same render we remove the ghost
-        // and append to photoIds. Without this the tiles flash between
-        // N → N-1 → N while the background refetch runs (cache-race
-        // flicker). Invalidation below still runs — it'll noop when the
-        // refetch returns the same data.
-        queryClient.setQueryData<Photo[]>(['/api/user/photos'], (prev) => {
-          if (!prev) return [photo];
-          if (prev.some((p) => p.id === photo.id)) return prev;
-          return [...prev, photo];
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/user/photos'] });
+          });
+          photo = (await photoRes.json()) as Photo;
+          // Insert the new photo into the react-query cache synchronously
+          // so `selectedPhotos = selectedIds.map(id => photos.find(...))`
+          // can resolve the new id on the same render we remove the ghost
+          // and append to photoIds. Without this the tiles flash between
+          // N → N-1 → N while the background refetch runs (cache-race
+          // flicker). Invalidation below still runs — it'll noop when the
+          // refetch returns the same data.
+          queryClient.setQueryData<Photo[]>(['/api/user/photos'], (prev) => {
+            if (!prev) return [photo];
+            if (prev.some((p) => p.id === photo.id)) return prev;
+            return [...prev, photo];
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/user/photos'] });
+        }
 
         // If the user bailed (Start over / mode switch) while this was
         // in flight, skip the commit — the ghost was already removed
@@ -481,26 +785,19 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         // Read the LATEST committed ids via ref (state captured at the
         // outer closure would be stale after parallel uploads commit).
         const currentIds = selectedIdsRef.current;
+        const replacing = replaceNextRef.current;
+        replaceNextRef.current = false;
         const nextIds =
-          modeAtCrop === 'group'
+          modeAtCrop === 'group' || replacing
             ? [photo.id]
             : [...currentIds, photo.id].slice(0, MAX_PHOTOS.one_person);
         selectedIdsRef.current = nextIds;
 
-        // Decide the mismatch signal from THIS upload's detection.
-        // If this photo is fine but a previous photo set a mismatch,
-        // preserve that prior mismatch — the offending photo may still
-        // be in photoIds and the user hasn't resolved it yet.
-        let nextPMR: 'too-many' | 'too-few' | undefined =
-          pendingModeReviewRef.current;
-        if (detection) {
-          if (modeAtCrop === 'one_person' && detection.count >= 2) {
-            nextPMR = 'too-many';
-          } else if (modeAtCrop === 'group' && detection.count <= 1) {
-            nextPMR = 'too-few';
-          }
-        }
-        pendingModeReviewRef.current = nextPMR;
+        // Carry any prior mismatch through — the offending photo may
+        // still be in photoIds and the user hasn't resolved it yet. THIS
+        // photo's own verdict arrives later, off the critical path, via
+        // scheduleFaceHint.
+        const nextPMR = pendingModeReviewRef.current;
 
         // Single onChange covers both photoIds append and pendingModeReview —
         // separate calls racing through stale closures was the bug.
@@ -512,7 +809,21 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           },
         });
 
-        // Drop the ghost tile — the real one renders from selectedPhotos.
+        // Drop the ghost only once the real thumbnail is already in the
+        // browser cache — swapping to an unfetched /images/ URL painted
+        // a blank tile for a beat (the end-of-upload "clunk"). Preload,
+        // then swap: both frames are ready and the switch is invisible.
+        // Capped wait so a slow/failed thumb can't strand the ghost.
+        await new Promise<void>((done) => {
+          const img = new Image();
+          const finish = () => done();
+          const t = window.setTimeout(finish, 1500);
+          img.onload = img.onerror = () => {
+            window.clearTimeout(t);
+            finish();
+          };
+          img.src = photoThumbSrc(photo);
+        });
         setPending((p) => p.filter((pp) => pp.tempId !== tempId));
       } catch (err: any) {
         console.error('[PHOTO_STEP] upload failed:', err);
@@ -529,11 +840,21 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         setInFlightUploads((n) => Math.max(0, n - 1));
       }
     });
+
+    // Last, and off the critical path by design. Detection runs on the
+    // UNCROPPED image so background bystanders still count — that's the
+    // honest signal for "did you mean group?". Hits the warm cache when
+    // prefetchFaces already ran on this URL.
+    scheduleFaceHint(srcForDetection, modeAtCrop);
   };
 
   const pickFromLibrary = (photoId: number) => {
+    const replacing = replaceNextRef.current;
+    replaceNextRef.current = false;
     const nextIds =
-      mode === 'group' ? [photoId] : [...selectedIds, photoId].slice(0, MAX_PHOTOS.one_person);
+      mode === 'group' || replacing
+        ? [photoId]
+        : [...selectedIds, photoId].slice(0, MAX_PHOTOS.one_person);
     onChange({ photos: { mode, photoIds: nextIds } });
     setLibraryOpen(false);
   };
@@ -625,11 +946,28 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
   // Ghost tiles for in-flight uploads render alongside real photos so
   // the user sees their cropped frame land immediately.
   const totalCount = selectedPhotos.length + pending.length;
+
+  // The library query resolves async. With photo ids on the draft but
+  // the library not yet loaded, totalCount is briefly 0 — which used
+  // to render the EMPTY upload state for a beat before snapping to the
+  // selected grid (visible when arriving via the Review edit overlay).
+  // Hold a quiet spinner instead.
+  if (selectedIds.length > 0 && !photos) {
+    return (
+      <div className="flex items-center justify-center py-24" data-testid="photo-step-loading">
+        <Loader2 className="w-6 h-6 animate-spin text-brand" />
+      </div>
+    );
+  }
+
   if (totalCount > 0) {
     // Count label — retired "angles" in favour of subject-agnostic copy
     // that works for people, pets, babies, dogs-with-teddies alike.
-    const countLabel =
-      mode === 'group'
+    const countLabel = editIntent
+      ? totalCount === 1
+        ? 'Your current photo'
+        : 'Your current photos'
+      : mode === 'group'
         ? "Everyone's here."
         : totalCount === 1
           ? recipientName
@@ -654,8 +992,14 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // Max-width containers: one row of 3 tiles (112px + 8px gap) ≈ 352px;
     // allow ~400 so the add-tile can sit inline when slotCount ≤ 3, and
     // wraps nicely (centred) to a second row once we exceed 3.
-    const maxWidthClass =
-      slotCount === 1
+    // Group crops are free-aspect (usually landscape); one-person crops are
+    // locked 1:1. So group photos render at their NATURAL shape (WYSIWYG —
+    // the preview IS the crop, no square letterboxing), and get a wider
+    // container than a square tile would need.
+    const isNaturalAspect = mode !== 'one_person';
+    const maxWidthClass = isNaturalAspect
+      ? 'max-w-sm'
+      : slotCount === 1
         ? 'max-w-[240px]'
         : slotCount === 2
           ? 'max-w-[320px]'
@@ -667,13 +1011,14 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
     // of someone they can't easily get more of). Soft nudge only.
     // After 1 photo: explain the benefit. After 2: still room for one
     // more. After 3: confirm they've hit the sweet spot.
-    const hintCopy =
-      mode !== 'one_person'
+    const hintCopy = editIntent
+      ? 'This is what the card is made from.'
+      : mode !== 'one_person'
         ? null
         : totalCount === 0
           ? null // empty state has its own copy elsewhere
           : totalCount === 1
-            ? "Two or three angles help the AI catch what makes them them. One photo's fine — but more = better likeness."
+            ? null // the stronger nudge panel (below) takes over at 1 photo
             : remainingSlots > 0
               ? `One more angle if you've got it — that's the sweet spot.`
               : `That's the sweet spot — three angles is plenty.`;
@@ -686,13 +1031,17 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         <div
           className={`flex flex-wrap justify-center gap-2 ${maxWidthClass}`}
         >
-          {selectedPhotos.map((p, idx) => (
+          {/* A replacement in flight HIDES the outgoing photo(s): the
+              ghost (which shows the new crop within ~50ms) takes their
+              place immediately, so the change reads as one motion. */}
+          {!pending.some((pp) => pp.willReplace) && selectedPhotos.map((p, idx) => (
             <PhotoTile
               key={`real-${p.id}`}
               kind="real"
-              src={`/images/${p.thumbnailPath}`}
+              src={photoThumbSrc(p)}
               alt={p.label ?? `Photo ${idx + 1}`}
               sizeClass={tileSizeClass}
+              naturalAspect={isNaturalAspect}
               onRemove={mode === 'one_person' && totalCount > 1 ? () => removePhotoAt(idx) : undefined}
               testId={`photo-tile-real-${idx}`}
             />
@@ -704,13 +1053,17 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
               src={pp.previewDataUrl}
               alt="Saving photo"
               sizeClass={tileSizeClass}
+              naturalAspect={isNaturalAspect}
               testId={`photo-tile-ghost-${pp.tempId}`}
             />
           ))}
           {canAdd && (
             <button
               type="button"
-              onClick={triggerFilePicker}
+              onClick={() => {
+                replaceNextRef.current = false;
+                triggerFilePicker();
+              }}
               className={`${tileSizeClass} rounded-xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-brand hover:bg-brand-muted/40 transition-colors ${
                 mode === 'one_person' && totalCount >= 1
                   ? 'border-brand/40 bg-brand-muted/20'
@@ -723,7 +1076,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
               }
               data-testid="btn-add-another-photo"
             >
-              <Plus className="w-5 h-5 text-stone-400" strokeWidth={2} />
+              <Plus className="w-5 h-5 text-keeper-meta" strokeWidth={2} />
               {/* When there's already a photo down, label the empty
                   tile so the affordance is louder than just a Plus.
                   In one_person mode only — multi_individual and
@@ -741,14 +1094,14 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
             rise) each time a photo lands. Quiet confirmation beat. */}
         <p
           key={`count-${totalCount}`}
-          className="text-lg font-semibold text-ink mt-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+          className="text-lg font-semibold text-keeper-ink mt-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
         >
           {countLabel}
         </p>
 
         {inFlightUploads > 0 && (
           <p
-            className="text-[11px] text-stone-500 mt-1 animate-pulse"
+            className="text-[11px] text-keeper-meta mt-1 animate-pulse"
             data-testid="photo-saving-hint"
           >
             Saving {inFlightUploads}…
@@ -756,9 +1109,194 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         )}
 
         {hintCopy && inFlightUploads === 0 && (
-          <p className="text-[11px] text-stone-500 mt-1 text-center max-w-[280px]">
+          <p className="text-[11px] text-keeper-meta mt-1 text-center max-w-[280px]">
             {hintCopy}
           </p>
+        )}
+
+        {/* ── Photo-guidance slot: ONE box, three states ─────────────
+            (Kevin 2026-07-31: the weak-photo warning must REPLACE the
+            generic angle encouragement, not stack under it — two boxes
+            compete and both get skimmed.)
+              1. analysing  — any selected photo's assessment still in
+                              flight; the poll above refreshes this.
+              2. weak       — every photo assessed weak: a prominent,
+                              plainly-worded warning with the fix as a
+                              button. Still NON-blocking; Next stays live.
+              3. encourage  — the original add-an-angle nudge, unchanged
+                              conditions (one_person, first photo, not
+                              edit-intent). */}
+        {(() => {
+          const analysisPending =
+            selectedPhotos.some((p) => p.analyzedAt == null) && inFlightUploads === 0;
+          if (analysisPending) {
+            return (
+              <div
+                className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-4 text-center animate-in fade-in-0 duration-300"
+                data-testid="photo-analysing-hint"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                  <p className="text-[13px] font-semibold text-keeper-ink">
+                    Analysing your photo…
+                  </p>
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
+                  A few seconds — we’re checking it’ll give a strong likeness.
+                  Next unlocks when it’s done.
+                </p>
+              </div>
+            );
+          }
+
+          const note = likenessNoteForSet(selectedPhotos, mode);
+          if (note && note.tone === 'good') {
+            return (
+              <div
+                className="mt-5 w-full max-w-[340px] rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                data-testid="photo-quality-good"
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />
+                  <p className="text-[13px] font-bold text-keeper-ink">{note.headline}</p>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-keeper-body">{note.detail}</p>
+              </div>
+            );
+          }
+          if (note) {
+            const single = totalCount === 1;
+            const blocked = note.tone === 'block' && !state.photos?.qualityOverride;
+            return (
+              <div
+                className={`mt-5 w-full max-w-[340px] rounded-2xl border-2 px-4 py-4 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300 ${
+                  note.tone === 'block'
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-amber-400 bg-amber-50'
+                }`}
+                data-testid="photo-quality-note-upload"
+              >
+                <p className="text-[14px] font-bold text-keeper-ink">{note.headline}</p>
+                <p className="mt-1 text-[12px] leading-snug text-keeper-body">{note.detail}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (single) {
+                      triggerReplacePicker();
+                    } else {
+                      replaceNextRef.current = false;
+                      triggerFilePicker();
+                    }
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
+                  data-testid="btn-photo-note-fix"
+                >
+                  {single ? (
+                    <>
+                      <Upload className="h-4 w-4" strokeWidth={2.5} /> Use a different photo
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" strokeWidth={2.5} /> Add a clearer angle
+                    </>
+                  )}
+                </button>
+                {blocked && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      // Through the refs, matching setFaceWarning — a
+                      // closure-captured state.photos here can clobber
+                      // ids committed by an in-flight upload.
+                      onChange({
+                        photos: {
+                          mode: modeRef.current,
+                          photoIds: selectedIdsRef.current,
+                          qualityOverride: true,
+                        },
+                      })
+                    }
+                    className="mt-2 block w-full text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body"
+                    data-testid="btn-quality-override"
+                  >
+                    I understand — use this photo anyway
+                  </button>
+                )}
+              </div>
+            );
+          }
+
+          if (
+            mode === 'one_person' &&
+            !editIntent &&
+            totalCount === 1 &&
+            inFlightUploads === 0
+          ) {
+            return (
+              <div
+                className="mt-5 w-full max-w-[320px] rounded-2xl border border-brand/25 bg-brand-muted/25 px-4 py-3.5 text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+                data-testid="add-angle-nudge"
+              >
+                <p className="text-[13px] font-semibold text-keeper-ink">
+                  One more angle = noticeably better likeness
+                </p>
+                <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
+                  Two or three angles help us catch what makes them{' '}
+                  <em>them</em>. One photo works too.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    replaceNextRef.current = false;
+                    triggerFilePicker();
+                  }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors"
+                  data-testid="btn-add-angle-nudge"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} /> Add another angle
+                </button>
+                <p className="mt-2 text-[10.5px] text-keeper-meta">
+                  Happy with one? Tap{' '}
+                  <span className="font-semibold text-keeper-body">Next</span>{' '}
+                  below.
+                </p>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* EDIT INTENT (from Review): the user came here to CHANGE the
+            photo — give them a real button, not a buried text link.
+            Single photo (either mode) → the next pick REPLACES it
+            (group commits already replace; replaceNextRef extends that
+            to a single one_person photo). Multi-photo one_person keeps
+            the grid as the management surface (X to remove, add-tile
+            to add) so we don't guess which photo they meant. */}
+        {editIntent && totalCount === 1 && (
+          <div className="mt-5 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+            <Button
+              onClick={triggerReplacePicker}
+              className="bg-go hover:bg-go-hover text-brand-foreground"
+              data-testid="btn-replace-photo"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload a different photo
+            </Button>
+            {hasLibrary && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  replaceNextRef.current = true;
+                  setLibraryOpen(true);
+                }}
+                className="border-stone-300"
+                data-testid="btn-replace-from-library"
+              >
+                Choose from your library
+              </Button>
+            )}
+          </div>
         )}
 
         <div className="flex flex-col items-center gap-1.5 mt-4">
@@ -771,7 +1309,7 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
               onClick={handleModeSwitchRequest}
               className={`text-xs underline underline-offset-2 ${
                 pendingModeSwitch
-                  ? 'text-accent-coral-dark font-semibold'
+                  ? 'text-keeper-gold-deep font-semibold'
                   : 'text-brand hover:text-brand-dark'
               }`}
               data-testid="btn-mode-switch-from-selected"
@@ -788,8 +1326,8 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
             onClick={handleClearRequest}
             className={`text-xs underline underline-offset-2 ${
               pendingClear
-                ? 'text-accent-coral-dark font-semibold'
-                : 'text-stone-500 hover:text-stone-700'
+                ? 'text-keeper-gold-deep font-semibold'
+                : 'text-keeper-meta hover:text-keeper-body'
             }`}
             data-testid="btn-change-photo"
           >
@@ -801,23 +1339,15 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           </button>
         </div>
 
-        {faceWarning && (
-          <FaceWarningBanner
-            warning={faceWarning}
-            currentModeLabel={
-              mode === 'one_person'
-                ? recipientName
-                  ? `Just ${recipientName}`
-                  : 'single'
-                : 'group'
-            }
-            onSwitch={() => {
-              setMode(faceWarning.suggestedMode);
-              setFaceWarning(null);
-            }}
-            onKeep={() => setFaceWarning(null)}
-          />
-        )}
+        <FaceModeConfirm
+          open={faceWarning != null}
+          recipientName={recipientName}
+          onUseGroup={() => {
+            if (faceWarning) setMode(faceWarning.suggestedMode);
+            setFaceWarning(null);
+          }}
+          onKeepSingle={() => setFaceWarning(null)}
+        />
 
         {/* Hidden inputs so the "+ Add another" tile can trigger picker.
             `multiple` is one_person-only — group mode is a single photo. */}
@@ -835,12 +1365,25 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           onCancel={cancelStaged}
           onConfirm={confirmCrop}
           autoFace={mode === 'one_person'}
-          // Group photos: drop the square lock. They're almost always
-          // wider than tall, and forcing 1:1 either cuts people off
-          // at the edges or shrinks everyone to fit. Single-person
-          // crops stay 1:1 — tight face crops survive the provider's
-          // downscale better.
-          aspect={mode === 'one_person' ? 1 : undefined}
+          // Free aspect for BOTH modes (Kevin 2026-08-01). The 1:1 lock
+          // on single-person was built on "tight face crops survive the
+          // downscale better" — a belief the likeness work just
+          // dismantled (face pixels aren't the binding constraint; the
+          // club-selfie evidence). The auto-face snap still opens on a
+          // square-ish face box as a smart DEFAULT; the user can now
+          // drag it to any shape, and the post-crop likeness verdict
+          // catches genuinely bad framing either way.
+          aspect={undefined}
+        />
+        {/* Library drawer must mount HERE too — the edit overlay's
+            "Choose from your library" sets libraryOpen from the
+            selected state; previously the drawer only existed in the
+            empty state, so the button did nothing. */}
+        <PhotoLibraryDrawer
+          open={libraryOpen}
+          onOpenChange={setLibraryOpen}
+          onPick={pickFromLibrary}
+          currentPhotoId={selectedIds[0]}
         />
       </div>
     );
@@ -860,15 +1403,15 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <p className="text-xs text-stone-500 mb-4">
+      <p className="text-xs text-keeper-meta mb-4">
         {recipientName
-          ? `We'll build ${recipientName}'s scene around this.`
-          : "We'll build the scene around this."}
+          ? `We'll use this to put ${recipientName} in the card — a clear photo of their face works best.`
+          : "We'll use this to put them in the card — a clear photo of their face works best."}
       </p>
 
       {/* Mode decision — card tiles, not a pill. The pair is the first
           real decision on the page, so it gets the weight. */}
-      <p className="text-sm font-medium text-ink mb-2">Who's on the card?</p>
+      <p className="text-sm font-medium text-keeper-ink mb-2">Who's on the card?</p>
       <div
         className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6"
         role="tablist"
@@ -892,24 +1435,70 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         />
       </div>
 
+      {/* Tips — inline + mode-aware, not gated behind a modal. Helps the
+          user upload a photo that yields a good likeness. */}
+      <PhotoTips mode={mode} />
+
+      {/* One-time consent gate. Shown until the user confirms (then
+          remembered, see PHOTO_CONSENT_KEY) and gates the upload + library
+          so a photo of a real person isn't uploaded without the
+          affirmation. TODO(solicitor): exact wording + server-side record. */}
+      {!photoConsentGiven && (
+        <div
+          className="mb-4 flex items-start gap-2.5 rounded-xl border border-accent-red/25 bg-accent-red-light/60 px-4 py-3"
+          data-testid="photo-consent"
+        >
+          <Checkbox
+            checked={photoConsentGiven}
+            onCheckedChange={(v) => {
+              if (v === true) givePhotoConsent();
+            }}
+            className="mt-0.5"
+            aria-label="I have permission to use these photos and agree to the Terms and Privacy Policy"
+            data-testid="photo-consent-checkbox"
+          />
+          <span className="text-[12.5px] text-keeper-body leading-snug">
+            I have permission to use these photos, and I agree to the{' '}
+            <Link
+              href="/terms-of-service"
+              className="text-brand hover:text-brand-dark underline underline-offset-2"
+            >
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/privacy-policy"
+              className="text-brand hover:text-brand-dark underline underline-offset-2"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </div>
+      )}
+
       {/* Primary upload CTA — single card, no peer. Library is a
-          subdued inline link below, not a competing tile. */}
+          subdued inline link below, not a competing tile. Disabled until
+          the one-time consent is given. */}
       <button
         type="button"
         onClick={triggerFilePicker}
-        className="w-full relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-brand bg-brand-muted hover:bg-brand-muted/70 transition-colors text-center"
+        disabled={!photoConsentGiven}
+        className="w-full relative flex flex-col items-center justify-center gap-2 p-8 rounded-2xl border-2 border-brand bg-brand-muted hover:bg-brand-muted/70 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-muted"
         data-testid="btn-upload-photo"
       >
         <div className="w-12 h-12 rounded-full bg-white border-2 border-brand flex items-center justify-center shadow-sm">
           <Upload className="w-5 h-5 text-brand" strokeWidth={2.25} />
         </div>
-        <p className="text-base font-semibold text-ink">
-          {mode === 'one_person' ? 'Upload photos' : 'Upload the group photo'}
+        <p className="text-base font-semibold text-keeper-ink">
+          {mode === 'one_person' ? 'Upload photos' : 'Upload your group photos'}
         </p>
-        <p className="text-xs text-stone-600 max-w-[240px]">
+        <p className="text-xs text-keeper-body max-w-[240px]">
           {mode === 'one_person'
-            ? `One or several — up to ${MAX_PHOTOS.one_person}.`
-            : 'Everyone already together.'}
+            ? `Two or three angles of the same person work best — up to ${MAX_PHOTOS.one_person}.`
+            : MAX_PHOTOS.group > 1
+              ? `Everyone already together. Two or three angles work best — up to ${MAX_PHOTOS.group}.`
+              : 'Everyone already together.'}
         </p>
       </button>
 
@@ -918,7 +1507,8 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
           <button
             type="button"
             onClick={() => setLibraryOpen(true)}
-            className="text-xs text-stone-600 hover:text-ink underline underline-offset-2"
+            disabled={!photoConsentGiven}
+            className="text-xs text-keeper-body hover:text-keeper-ink underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-keeper-body"
             data-testid="btn-pick-from-library"
           >
             <ImageIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
@@ -927,11 +1517,16 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         </div>
       )}
 
-      {/* Tertiary — moved well down, quieter, no false-affordance
-          violet. Serves the rare multi-individual case without
-          competing for the primary CTA's attention. */}
-      <p className="text-[11px] text-stone-400 mt-10 text-center">
-        Multiple people in separate photos? Coming soon.
+      {/* Standing permission/privacy notice — always visible, even after
+          the one-time checkbox is gone. TODO(solicitor): final wording. */}
+      <p className="text-[11px] text-keeper-meta mt-4 text-center leading-snug">
+        We use your photos only to create this card.{' '}
+        <Link
+          href="/privacy-policy"
+          className="underline underline-offset-2 hover:text-keeper-body"
+        >
+          How we handle photos
+        </Link>
       </p>
 
       <input
@@ -949,10 +1544,69 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
         onCancel={cancelStaged}
         onConfirm={confirmCrop}
         autoFace={mode === 'one_person'}
-        // Group photos: free aspect (see the other CropDialog mount
-        // above for the rationale).
-        aspect={mode === 'one_person' ? 1 : undefined}
+        // Free aspect for both modes — see the edit-overlay mount above.
+        aspect={undefined}
       />
+
+      {/* Briefing before the OS picker. Two rules, both decided before the
+          file dialog opens and both invisible until now. Kept to two —
+          a longer list gets skimmed and neither lands. */}
+      <Dialog open={briefingOpen} onOpenChange={setBriefingOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Two things before you pick</DialogTitle>
+          <DialogDescription className="sr-only">
+            How to choose photos that make a good card.
+          </DialogDescription>
+
+          <div className="space-y-4 pt-1">
+            <div className="flex gap-3">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-muted text-[12px] font-bold text-brand">
+                1
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-keeper-ink">
+                  Only the people you want on the card
+                </p>
+                <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
+                  Anyone visible in your photo can end up on the front. If someone else is
+                  in shot, crop them out — you&rsquo;ll get the chance on the next screen.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-muted text-[12px] font-bold text-brand">
+                2
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-keeper-ink">
+                  More angles, better likeness
+                </p>
+                <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
+                  {mode === 'one_person'
+                    ? `Pick two or three of the same person — a straight-on shot and a
+                       different angle beats one photo every time. Up to ${MAX_PHOTOS.one_person}.`
+                    : `Pick two or three of the same people if you have them — different
+                       angles or lighting give us far more to work with.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setBriefingOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={proceedToPicker}
+              className="bg-go hover:bg-go-hover text-brand-foreground"
+              data-testid="btn-briefing-continue"
+            >
+              Choose photos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PhotoLibraryDrawer
         open={libraryOpen}
@@ -965,59 +1619,69 @@ export function PhotoStep({ state, onChange }: PhotoStepProps) {
 }
 
 /**
- * BLOCKING banner shown when the face-count heuristic disagrees with
- * the user's selected mode. User must commit to one of the two choices
- * — Switch or Keep — before they can advance to the next step (the
- * parent's `isPhotoStepReady` checks `state.photos.pendingModeReview`
- * and gates Next on it being cleared). No passive "Dismiss" escape;
- * both actions are deliberate.
+ * Mode-confirm modal — pops only when the user chose single but the photo
+ * looks like it has several people. This is the ONE case with a real
+ * footgun (everyone but one face would be dropped from the card), so it's
+ * worth interrupting for — hence a modal, not an inline hint (Kevin
+ * 2026-07-22).
+ *
+ * It is NOT a blocker and NOT an error: it only ever fires in this single
+ * direction (never the group→"only one face" path, which under-counted
+ * real groups and read as a bug), it's framed as a plain choice, and
+ * dismissing it — outside-click, Esc, or "Keep as single" — simply keeps
+ * the user's original choice and lets them carry on. `isPhotoStepReady`
+ * never gates on it, so there's no way to get stranded.
  */
-function FaceWarningBanner({
-  warning,
-  currentModeLabel,
-  onSwitch,
-  onKeep,
+function FaceModeConfirm({
+  open,
+  recipientName,
+  onUseGroup,
+  onKeepSingle,
 }: {
-  warning: FaceWarning;
-  /** Personalised label of the current mode, e.g. "Just Aidan" or
-   *  "Group photo featuring Aidan" — used on the Keep button so the
-   *  user sees what they're committing to. */
-  currentModeLabel: string;
-  onSwitch: () => void;
-  onKeep: () => void;
+  open: boolean;
+  recipientName: string;
+  onUseGroup: () => void;
+  onKeepSingle: () => void;
 }) {
-  const message =
-    warning.kind === 'too-many'
-      ? 'Looks like more than one person in this shot. Switch to Group photo mode to render everyone, or keep it as-is and only the main face will render.'
-      : 'Only one face in this shot, so Group mode has nothing to work with. Switch to single-person mode for a better render, or keep it as-is.';
-  const switchLabel =
-    warning.suggestedMode === 'group' ? 'Switch to group' : 'Switch to single';
+  const who = recipientName ? `just ${recipientName}` : 'a single person';
   return (
-    <div
-      className="mt-4 w-full max-w-[360px] rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-3 text-[12px] text-amber-900"
-      data-testid="face-warning-banner"
+    <Dialog
+      open={open}
+      // Any dismiss (outside-click / Esc / close) keeps the user's own
+      // choice — single — since that's what they picked. No hard block.
+      onOpenChange={(o) => {
+        if (!o) onKeepSingle();
+      }}
     >
-      <p className="leading-snug font-semibold mb-1">Choose how to render this</p>
-      <p className="leading-snug">{message}</p>
-      <div className="flex gap-2 mt-3">
-        <button
-          type="button"
-          onClick={onSwitch}
-          className="flex-1 text-[11px] font-semibold text-brand-foreground bg-brand hover:bg-brand-dark rounded-md py-1.5 px-2"
-          data-testid="btn-face-warning-switch"
-        >
-          {switchLabel}
-        </button>
-        <button
-          type="button"
-          onClick={onKeep}
-          className="flex-1 text-[11px] font-semibold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-md py-1.5 px-2"
-          data-testid="btn-face-warning-keep"
-        >
-          Keep as {currentModeLabel}
-        </button>
-      </div>
-    </div>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">
+          More than one person in this photo?
+        </DialogTitle>
+        <p className="pt-1 text-sm text-keeper-body leading-relaxed">
+          You chose{' '}
+          <strong className="text-keeper-ink">{who}</strong>, but this photo
+          looks like it has more than one person in it. Should everyone be on
+          the card, or just <strong className="text-keeper-ink">{recipientName || 'the one person'}</strong>?
+        </p>
+        <div className="flex flex-col gap-2 pt-4">
+          <Button
+            onClick={onUseGroup}
+            className="bg-go hover:bg-go-hover text-go-foreground"
+            data-testid="btn-face-confirm-group"
+          >
+            Put everyone on the card
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onKeepSingle}
+            className="border-stone-300"
+            data-testid="btn-face-confirm-single"
+          >
+            Keep as {who}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1052,6 +1716,7 @@ function PhotoTile({
   sizeClass,
   onRemove,
   testId,
+  naturalAspect = false,
 }: {
   kind: 'real' | 'ghost';
   src: string | null;
@@ -1059,27 +1724,43 @@ function PhotoTile({
   sizeClass: string;
   onRemove?: () => void;
   testId: string;
+  /** WYSIWYG: size the tile to the crop's OWN aspect ratio (no square
+   *  letterboxing) so the preview IS the crop that's sent. Used for
+   *  free-aspect group crops; one-person crops are 1:1 so they use the
+   *  fixed square (`sizeClass`) instead. Kevin 2026-07-09. */
+  naturalAspect?: boolean;
 }) {
   const isGhost = kind === 'ghost';
   return (
     <div
-      className={`relative ${sizeClass} rounded-xl overflow-hidden shadow-sm bg-stone-100`}
+      className={`relative rounded-xl overflow-hidden shadow-sm bg-stone-100 ${
+        naturalAspect ? 'inline-block max-w-full' : sizeClass
+      }`}
       data-testid={testId}
     >
       {src ? (
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${
-            isGhost ? 'opacity-50' : 'opacity-100'
-          } animate-in fade-in-0`}
+          // naturalAspect: the tile hugs the image, so the preview is the
+          // exact crop with no re-cropping and no letterbox. Otherwise the
+          // fixed square fills with object-cover (crop is already 1:1).
+          className={`block transition-opacity duration-300 animate-in fade-in-0 ${
+            naturalAspect
+              ? 'max-h-[340px] w-auto max-w-full'
+              : 'w-full h-full object-cover'
+          } ${isGhost ? 'opacity-50' : 'opacity-100'}`}
           draggable={false}
         />
       ) : (
         // Pulsing surface while the preview crop generates. The
         // animate-pulse on an off-white tile reads as "working on it"
         // rather than "broken / empty".
-        <div className="w-full h-full bg-stone-200 animate-pulse" />
+        <div
+          className={`bg-stone-200 animate-pulse ${
+            naturalAspect ? 'h-56 w-56' : 'w-full h-full'
+          }`}
+        />
       )}
       {isGhost && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1092,11 +1773,11 @@ function PhotoTile({
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur border border-stone-200 shadow-sm flex items-center justify-center hover:bg-white transition-colors"
+          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur border border-keeper-hair shadow-sm flex items-center justify-center hover:bg-white transition-colors"
           aria-label="Remove photo"
           data-testid={`${testId}-remove`}
         >
-          <X className="w-3.5 h-3.5 text-stone-700" strokeWidth={2.5} />
+          <X className="w-3.5 h-3.5 text-keeper-body" strokeWidth={2.5} />
         </button>
       )}
     </div>
@@ -1108,6 +1789,52 @@ function PhotoTile({
  * so users re-use muscle memory from step 1. Icon tile + label +
  * one-line explainer inline, tick badge when selected.
  */
+// ── PhotoTips — inline, mode-aware "what makes a good photo" guidance.
+// Always visible on the empty state (not a dismissable modal) so it's
+// read where it's acted on. Copy differs slightly for group vs single.
+function PhotoTips({ mode }: { mode: PhotoMode }) {
+  const tips =
+    mode === 'group'
+      ? [
+          'One photo with everyone in it',
+          'Faces clearly visible and facing the camera',
+          'Even lighting — avoid heavy shadows or backlight',
+        ]
+      : [
+          'A clear, front-on photo of their face',
+          'Even lighting — avoid heavy shadows or backlight',
+          'A few different angles help the likeness',
+        ];
+  return (
+    <div
+      className="mb-4 rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3"
+      data-testid="photo-tips"
+    >
+      <div className="flex items-center gap-1.5 mb-2">
+        <Lightbulb className="w-3.5 h-3.5 text-brand" strokeWidth={2} aria-hidden />
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-keeper-ink">
+          Tips for a great result
+        </p>
+      </div>
+      <ul className="space-y-1">
+        {tips.map((t) => (
+          <li
+            key={t}
+            className="flex items-start gap-2 text-[12.5px] text-keeper-body leading-snug"
+          >
+            <Check
+              className="w-3.5 h-3.5 text-cta-hover shrink-0 mt-0.5"
+              strokeWidth={2.5}
+              aria-hidden
+            />
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ModeTile({
   Icon,
   label,
@@ -1132,7 +1859,7 @@ function ModeTile({
       className={`relative flex items-center gap-3 text-left p-3 rounded-xl border-2 transition-all ${
         selected
           ? 'border-brand bg-brand-muted shadow-sm'
-          : 'border-stone-200 hover:border-brand hover:bg-brand-muted/40 bg-white'
+          : 'border-keeper-hair hover:border-brand hover:bg-brand-muted/40 bg-white'
       }`}
       data-testid={testId}
     >
@@ -1140,16 +1867,16 @@ function ModeTile({
         className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${
           selected
             ? 'bg-brand text-brand-foreground'
-            : 'bg-accent-coral-light text-accent-coral-dark'
+            : 'bg-keeper-gold-wash text-keeper-gold-deep'
         }`}
       >
         <Icon className="w-4.5 h-4.5" strokeWidth={1.75} />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-medium text-ink truncate">
+        <span className="block text-sm font-medium text-keeper-ink truncate">
           {label}
         </span>
-        <span className="block text-[11px] text-stone-500 truncate">
+        <span className="block text-[11px] text-keeper-meta truncate">
           {explainer}
         </span>
       </span>
@@ -1171,8 +1898,38 @@ function ModeTile({
  *     before we let them move on — otherwise they silently render a
  *     mismatched card).
  */
-export function isPhotoStepReady(state: CardDraftState): boolean {
-  const hasPhotos = (state.photos?.photoIds?.length ?? 0) > 0;
-  const mismatchPending = state.photos?.pendingModeReview != null;
-  return hasPhotos && !mismatchPending;
+export function isPhotoStepReady(
+  state: CardDraftState,
+  photoRows?: Array<{
+    id: number;
+    analyzedAt: unknown;
+    createdAt: unknown;
+    likeness?: Photo['likeness'];
+  }>,
+): boolean {
+  // A photo is required. The face-count nudge stays advisory (2026-07-22:
+  // blocking on unreliable detection stranded users on false alarms).
+  const ids = state.photos?.photoIds ?? [];
+  if (ids.length === 0) return false;
+  // With photo rows available, hold Next while a selected photo's
+  // likeness analysis is still in flight — fails open after 30s so a
+  // stuck analysis can never strand anyone (see analysisBlocking).
+  // The VERDICT itself never gates; only the brief wait for it.
+  if (photoRows) {
+    const selected = ids
+      .map((id) => photoRows.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => !!p);
+    if (analysisBlocking(selected)) return false;
+    // A BLOCKING verdict (heavy blur) holds Next until the photo is
+    // swapped or the user explicitly overrides. Advisory tones don't
+    // gate — only 'block'.
+    if (!state.photos?.qualityOverride) {
+      const note = likenessNoteForSet(
+        selected as Array<Pick<Photo, 'likeness'>>,
+        state.photos?.mode ?? 'one_person',
+      );
+      if (note?.tone === 'block') return false;
+    }
+  }
+  return true;
 }

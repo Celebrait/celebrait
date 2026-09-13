@@ -51,18 +51,18 @@ export default function CheckoutDevConfirmPage() {
   return (
     <CheckoutLayout backHref="/studio" backLabel="Cancel">
       <div className="max-w-md mx-auto pt-6 sm:pt-12">
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 space-y-5">
+        <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 space-y-5">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
               Dev stub — no real payment
             </p>
-            <h1 className="text-xl sm:text-2xl font-semibold text-ink">Confirm payment</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-keeper-ink">Confirm payment</h1>
             <p className="text-sm text-stone-600 mt-1">
               Swap this page for the real gateway once a provider is chosen.
             </p>
           </div>
 
-          <div className="text-xs font-mono bg-stone-50 border border-stone-200 rounded-lg p-3 break-all">
+          <div className="text-xs font-mono bg-stone-50 border border-keeper-hair rounded-lg p-3 break-all">
             {ref || '(no reference)'}
           </div>
 
@@ -76,7 +76,7 @@ export default function CheckoutDevConfirmPage() {
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-brand hover:bg-brand-dark text-brand-foreground"
+              className="flex-1 bg-go hover:bg-go-hover text-brand-foreground"
               onClick={() => handleConfirm('pay')}
               disabled={loading || !orderId}
             >

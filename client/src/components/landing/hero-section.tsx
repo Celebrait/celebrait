@@ -41,8 +41,8 @@ import { GestureHints } from '@/components/gesture-hints';
 // stored_images/ so the lander stays in lockstep with what the real
 // product produces. To swap to a different card, copy that card's
 // PNGs over these filenames.
-import heroCardFront from '@/assets/hero-card-front.png';
-import heroCardInside from '@/assets/hero-card-inside.png';
+import heroCardFront from '@/assets/hero-card-front.jpg';
+import heroCardInside from '@/assets/hero-card-inside.jpg';
 import heroPhotoGroup from '@/assets/hero-photo-group.jpg';
 import heroPhotoIndividuals from '@/assets/hero-photo-individuals.jpg';
 
@@ -522,41 +522,33 @@ export function HeroSection() {
                     onOpenChange={setOpen}
                     framingMargin={2.4}
                     minDistance={2.2}
-                    /* Rotate ON (drag), zoom OFF — card stays at the
-                       mount framing while still inviting playful
-                       rotation. Tap-to-open hinge is wired to the
-                       `open` state above (controlled). */
+                    /* Rotate + zoom OFF (orbit gadget removed
+                       site-wide, Kevin 2026-07-07). Tap-to-open hinge
+                       is wired to the `open` state above (controlled). */
                     enableZoom={false}
-                    enableRotate={true}
-                    /* Square-on at rest (Kevin call 2026-05-05):
-                       earlier `closedAngle` values left the card
-                       looking ajar / lopsided. The hints below the
-                       card already do the "tap to open / drag to
-                       rotate" work — the visual hint isn't needed.
-                       Square-on lets the front art read cleanly. */
-                    closedAngle={0}
-                    /* Two-state hit zone (Kevin call 2026-05-05).
-                       Earlier the hit zone was statically wide (18%
-                       inset) and clicks well outside the card
-                       silhouette were opening it.
-                       Note: pointer handlers also moved to the root
-                       <group> in Card3DViewer (was on the invisible
-                       box mesh) so any click on the VISIBLE cover /
-                       inside / back fires the open. Without that
-                       fix, only clicks outside the cover's bounds
-                       (where the box mesh extended past the cover)
-                       fired — Kevin's "only far-right opens" bug.
-                       Now:
-                       - Closed: 30% inset (~40% of bleed width) —
-                         matches the visible card silhouette so the
-                         cursor-grab hand only shows OVER the card.
-                       - Open: 10% inset (~80% of bleed width) —
-                         covers the cover's swung-out position AND
-                         the inside spread.
-                       Width transitions via CSS so the bounds
-                       animate alongside the cover's spring open. */
-                    hitZoneInsetPercent={30}
-                    openHitZoneInsetPercent={10}
+                    enableRotate={false}
+                    /* Resting ajar (Kevin 2026-06-01): a gentle peek so
+                       the card reads as a real openable object, not a flat
+                       image. Earlier attempts looked lopsided because the
+                       angle was too big on a dead-on camera (the cover
+                       hinges on one side, so a big swing skews). -0.3 rad
+                       (~17°, ~14% of the full open) is a modest peek.
+                       Matches the brainstorm reveal + studio card view. */
+                    closedAngle={-0.3}
+                    /* Slight left angle on the resting card so the ajar
+                       reads as 3D depth, not a flat skew. Tunable; matches
+                       the other surfaces. */
+                    restYaw={-0.1}
+                    /* Hit zone hugs the card (2026-06-01). Previously the
+                       hit zone was sized as a % of the bleed-wrapper WIDTH
+                       (closed 30% → ~40% of bleed width), which — because
+                       the bleed is huge — still extended well past the card
+                       silhouette: you could grab/rotate on empty space
+                       around it (Kevin). Dropping the explicit insets lets
+                       Card3DViewer auto-size the hit zone to the card's
+                       actual rendered footprint in px (same fix as the
+                       studio card view). Card-hug applies in both states;
+                       the centred inside spread is still covered when open. */
                     className="w-full h-full"
                   />
                 </Suspense>
@@ -574,7 +566,7 @@ export function HeroSection() {
                 the button stack's mt is reduced by the same amount
                 (mt-8/12 → mt-2/6) so the CTA doesn't shift. */}
             <div className="relative mt-12 md:mt-14 z-[70] min-h-[64px]">
-              <GestureHints open={open} hideZoomHint />
+              <GestureHints open={open} hideZoomHint hideRotateHint openLabel="Tap to close" />
             </div>
 
             {/* CTA + watch button — centred stack, no desktop flanks. */}
