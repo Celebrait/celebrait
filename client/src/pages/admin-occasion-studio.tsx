@@ -227,6 +227,9 @@ export default function AdminOccasionStudioPage() {
   /** The charm register: naive hand-drawn / object-mascots /
    *  hand-lettering — daft over dry. Off = the poster voice. */
   const [charm, setCharm] = useState(false);
+  /** The lay-buyer floor (2026-09-13) — on by default; the switch exists
+   *  only to run the same brief both ways for the test plan. */
+  const [layBuyer, setLayBuyer] = useState(true);
   const [cells, setCells] = useState<Cell[]>([]);
   /** Floors still broken after the repair round. The engine ships them
    *  VISIBLY by design — but the studio was swallowing the report, so a
@@ -411,6 +414,7 @@ export default function AdminOccasionStudioPage() {
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         freeComposition: true,
         charm,
+        layBuyerFloor: layBuyer,
         dislikes: dislikes.trim() || undefined,
       });
       const { concepts = [], compMode: served, violations = [], ledger } = (await r.json()) as { concepts: Concept[]; compMode?: string; violations?: string[]; ledger?: { resting?: string[]; paleGroundResting?: boolean; seamBudget?: boolean } };
@@ -758,6 +762,13 @@ export default function AdminOccasionStudioPage() {
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 charm ? 'border-pink-400 bg-pink-50 text-pink-700' : 'border-stone-200 bg-white text-stone-400 hover:border-pink-300'}`}>
               Charm
+            </button>
+            <button type="button"
+              onClick={() => setLayBuyer((v) => !v)}
+              title="The lay-buyer floor: the referee reads each line as someone who knows the recipient but has never done the hobby. Off = the pre-2026-09-13 referee, for A/B on the same brief."
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                layBuyer ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 bg-white text-stone-400 hover:border-brand/50'}`}>
+              {layBuyer ? 'Buyer floor: on' : 'Buyer floor: off'}
             </button>
           </div>
           {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.

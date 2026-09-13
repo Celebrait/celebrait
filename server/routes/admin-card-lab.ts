@@ -769,6 +769,10 @@ const conceptsSchema = z.object({
   /** The charm register toggle — naive hand-drawn / object-mascots /
    *  hand-lettering, daft over dry. Studio chip; off = poster voice. */
   charm: z.boolean().default(false),
+  /** The lay-buyer floor in the sense referee (2026-09-13). ON by
+   *  default on every door; the occasion builder exposes an off switch
+   *  purely so the same brief can be run both ways for the test plan. */
+  layBuyerFloor: z.boolean().optional(),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
@@ -1484,23 +1488,25 @@ export function stockPunCheck(fronts: string[], recentFronts: string[]): string[
   return v;
 }
 
-export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null): string {
-  return `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack. Then judge these floors:
+export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null, layBuyer = true): string {
+  return `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack${layBuyer ? ' — a stranger who knows the recipient but has never done their hobby' : ''}. Then judge these floors:
 - PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE). ⚠️ PUNS MUST PARSE TOO — the GARDEN-PATH PUN fails here: wordplay that substitutes into an idiom but leaves the literal sentence ungrammatical, forcing the reader to re-group the words ("You can spot a fake tortilla aisle away" — the dropped article makes it read as a fake tortilla-aisle; "an aisle away" parses AND keeps the joke; a real buyer's verdict was "makes zero sense"). Read every pun as plain English first: if the surface sentence is broken until you find the substitution, it FAILS.
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
 - REAL CLAIM: the line restates as one plain sentence about the recipient or their thing; register-shaped noise with no claim fails.
+${layBuyer ? `- LAY BUYER (2026-09-13): the person BUYING knows the recipient, not the hobby. A term only insiders of the subject use fails (observed: "shore-check" on a wild-swimming card — real, correct, and the buyer had no idea what it meant) — UNLESS the artwork note shows what the term means, so someone who has never done the hobby gets it from the picture in one second. Two ways to pass and no third: say the same thing in words a non-insider has, or let the picture carry it. ⚠️ DROPPING THE DETAIL IS NOT A FIX — the specific ritual is the best material on the card and must survive; only the vocabulary changes. Everyday words the general public uses are never jargon. Phrase this violation as: the term in quotes, then "say it plainly or show it in the artwork — keep the detail".
+` : ''}
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at. A standalone two-word swear sentence tagged onto a clean claim ("F***ing obviously.") fails even when the claim survives — the swear is decoration, not register.
 ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
 ` : ''}${interest?.trim() ? `- THE SUBJECT ANCHOR: the brief's subject is "${interest.trim()}". If that names a SPECIFIC show, film, book, team or place, EVERY front must name it or unmistakably anchor it — answering a named subject with its generic CATEGORY (telly-in-general for a named sitcom, football-in-general for a named club) fails the set's whole reason for existing; flag every card that could be about the category rather than the subject. Judge anchored cards at a knowing buyer's half-second: the reference must be the subject's most famous tier and land instantly for someone who knows it — depth of fandom never excuses a second read.
 ` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
 }
 
-export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null): Promise<string[]> {
+export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null, layBuyer = true): Promise<string[]> {
   try {
     const r = await client.chat.completions.create({
       ...conceptParams(700, 0.2),
       messages: [
-        { role: 'system', content: senseSystemPrompt(recipientAge, interest) },
+        { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer) },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
@@ -2846,7 +2852,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             occasionKey: occKey });
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
-          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText));
+          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true));
           violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
