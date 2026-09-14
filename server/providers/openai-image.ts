@@ -44,6 +44,31 @@ export interface OpenAIVariantConfig {
    *  — a hedge since this API surface is newer than the model's knowledge and
    *  the right orchestrator id may need a nudge without a redeploy. */
   responsesModel?: string;
+  /** Price each call from the `usage` block the Images API returns
+   *  (text-in $5 / image-in $8 / image-out $30 per 1M tokens — the rate
+   *  card gpt-image-2 and 2.5 share) instead of the per-quality table.
+   *  gpt-image-2.5's token consumption per tier is unpublished ("the
+   *  GPT Image 2 calculator does not estimate GPT Image 2.5 token
+   *  consumption"), so a fixed table would make the Cost Ledger lie.
+   *  The table stays as the fallback when no usage comes back. */
+  costFromUsage?: boolean;
+}
+
+/** OpenAI image-token rate card, US cents per token (2026-09). Shared by
+ *  gpt-image-2 and both gpt-image-2.5 models. */
+const OPENAI_IMAGE_TOKEN_CENTS = { textIn: 500 / 1e6, imageIn: 800 / 1e6, imageOut: 3000 / 1e6 };
+
+/** Cost in cents from an Images API `usage` block, or null when the
+ *  response carried none. */
+function costFromUsageCents(usage: any): number | null {
+  if (!usage || typeof usage !== 'object') return null;
+  const out = Number(usage.output_tokens ?? 0);
+  const textIn = Number(usage.input_tokens_details?.text_tokens ?? 0);
+  const imageIn = Number(usage.input_tokens_details?.image_tokens ?? 0);
+  if (!out && !textIn && !imageIn) return null;
+  return out * OPENAI_IMAGE_TOKEN_CENTS.imageOut
+    + textIn * OPENAI_IMAGE_TOKEN_CENTS.textIn
+    + imageIn * OPENAI_IMAGE_TOKEN_CENTS.imageIn;
 }
 
 export const OPENAI_VARIANTS = {
@@ -101,6 +126,34 @@ export const OPENAI_VARIANTS = {
     useResponsesGenerate: true,
     responsesModel: 'gpt-5.6',
   },
+  /** gpt-image-2.5 (ChatGPT Images 2.5, released 2026-09-08) — two API
+   *  models on the same endpoints and the same token rates as gpt-image-2.
+   *  FLARE is OpenAI's new default: gpt-image-2 quality at up to half
+   *  the latency. SUNBURST is the premium one: slower, "editing
+   *  precision", and the claim that matters to us — subjects from a
+   *  reference photo carry through more reliably (the cameo's exact
+   *  failure). Both accept low/medium/high (plus xhigh/max, not exposed
+   *  yet). Rolling aliases; dated snapshots are `-2026-09-08`.
+   *
+   *  Lab-only until proven (Prompt Lab first). Prices shown are gpt-
+   *  image-2's, marked "~": same rate card, consumption per tier
+   *  unpublished, so the ledger prices each call from `usage`. */
+  v2_5_flare: {
+    id: 'openai-2.5-flare',
+    displayName: 'OpenAI gpt-image-2.5 Flare',
+    model: 'gpt-image-2.5-flare',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: { low: '~$0.006', medium: '~$0.053', high: '~$0.211' },
+    costFromUsage: true,
+  },
+  v2_5_sunburst: {
+    id: 'openai-2.5-sunburst',
+    displayName: 'OpenAI gpt-image-2.5 Sunburst',
+    model: 'gpt-image-2.5-sunburst',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: { low: '~$0.006', medium: '~$0.053', high: '~$0.211' },
+    costFromUsage: true,
+  },
 } satisfies Record<string, OpenAIVariantConfig>;
 
 export class OpenAIImageProvider implements ImageProvider {
@@ -111,6 +164,7 @@ export class OpenAIImageProvider implements ImageProvider {
   private readonly qualityDisplay: Record<'low' | 'medium' | 'high', string>;
   private readonly useResponsesGenerate: boolean;
   private readonly responsesModel: string;
+  private readonly costFromUsage: boolean;
 
   constructor(variant: OpenAIVariantConfig = OPENAI_VARIANTS.v1_5) {
     this.id = variant.id;
@@ -120,6 +174,7 @@ export class OpenAIImageProvider implements ImageProvider {
     this.qualityDisplay = variant.qualityDisplay;
     this.useResponsesGenerate = variant.useResponsesGenerate ?? false;
     this.responsesModel = variant.responsesModel ?? 'gpt-5.6';
+    this.costFromUsage = variant.costFromUsage ?? false;
   }
 
   isAvailable(): boolean {
@@ -142,6 +197,8 @@ export class OpenAIImageProvider implements ImageProvider {
     const startTime = Date.now();
     const q = req.quality;
     let imageUrl: string | null = null;
+    // The Images API's `usage` block, when the path we took returns one.
+    let usage: any = null;
 
     if (req.referenceImageBase64 && this.useResponsesGenerate && !req.editMode) {
       // ── Reference-conditioned GENERATE via the Responses API ──
@@ -245,6 +302,7 @@ export class OpenAIImageProvider implements ImageProvider {
         });
       }
       imageUrl = `data:image/png;base64,${b64}`;
+      usage = json?.usage ?? null;
     } else {
       // ── Text-only via SDK ──
       if (!openai) {
@@ -285,6 +343,7 @@ export class OpenAIImageProvider implements ImageProvider {
       } else if (data?.url) {
         imageUrl = data.url;
       }
+      usage = gen?.usage ?? null;
       if (!imageUrl) {
         throw new ProviderError({
           kind: 'server',
@@ -297,7 +356,14 @@ export class OpenAIImageProvider implements ImageProvider {
     }
 
     const durationMs = Date.now() - startTime;
-    const costCents = this.costByQuality[q] ?? this.costByQuality.low;
+    const tableCents = this.costByQuality[q] ?? this.costByQuality.low;
+    const usageCents = this.costFromUsage ? costFromUsageCents(usage) : null;
+    if (this.costFromUsage) {
+      console.log(
+        `[PROVIDER:openai] ${this.model} quality=${q} usage=${usage ? JSON.stringify(usage) : 'none'} → ${usageCents !== null ? `${usageCents.toFixed(2)}¢` : `table ${tableCents}¢`}`,
+      );
+    }
+    const costCents = usageCents ?? tableCents;
     return {
       imageUrl,
       durationMs,

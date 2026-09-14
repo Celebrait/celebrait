@@ -50,6 +50,22 @@ import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
 import { assessCameoRender } from '../photos/analyze';
 
+/** The model every door draws with in production. The three-card route
+ *  does NOT read `prompt_active` (that table drives the photo director's
+ *  slots via the Prompt Lab); its prompt is built in this file and its
+ *  model is this constant. Changing production = changing this line,
+ *  after the lab has proven the replacement. */
+const PRODUCTION_IMAGE_PROVIDER = 'openai-2';
+/** Models the occasion builder may pick for an A/B (2026-09-14). */
+const LAB_IMAGE_PROVIDERS = z.enum(['openai-2', 'openai-2.5-flare', 'openai-2.5-sunburst']);
+/** A requested model counts only through the admin door; the public
+ *  maker and the research link always get production. */
+function labImageProvider(req: Request, requested?: string): string {
+  const admin = (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/');
+  return admin && requested ? requested : PRODUCTION_IMAGE_PROVIDER;
+}
+
+
 /** The model behind the concept writer AND the judge. gpt-4o until
  *  2026-08-17, when Aidan called the flatness ("doesn't feel great") and
  *  the account turned out to reach gpt-5.5 — four generations newer.
@@ -3449,6 +3465,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
       freeStyle: z.boolean().default(false),
       direction: z.string().max(300).optional(),
       quality: z.enum(['low', 'medium', 'high']).default('low'),
+      /** Admin door only — see renderHandler. */
+      provider: LAB_IMAGE_PROVIDERS.optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -3459,7 +3477,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     try {
-      const result = await generateInsideImage(body);
+      const result = await generateInsideImage({ ...body, provider: labImageProvider(req, body.provider) });
       void persistResearchRender(req, undefined, result.imageUrl, 'inside');
       res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
     } catch (err: any) {
@@ -3751,6 +3769,11 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
       /** 'edit' (default when baseImage is present) or 'redraw' (the
        *  old reference-conditioned generation) — the lab's A/B. */
       cameoMode: z.enum(['edit', 'redraw']).optional(),
+      /** Which OpenAI image model draws it (2026-09-14, gpt-image-2.5).
+       *  Honoured on the ADMIN door only — the public maker and the
+       *  research link stay pinned to the proven model until the lab
+       *  says otherwise (Prompt Lab first). */
+      provider: LAB_IMAGE_PROVIDERS.optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -3838,11 +3861,16 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
     };
 
     try {
-      const result = await attempt('openai-2');
+      const providerId = labImageProvider(req, body.provider);
+      const result = await attempt(providerId);
       void persistResearchRender(req, body.front_text, result.imageUrl, 'front');
       res.json({
         imageUrl: result.imageUrl, costUsd: result.costUsd,
-        durationMs: result.durationMs, drawnBy: 'openai',
+        durationMs: result.durationMs,
+        // Anything but the production model is named on the card, so an
+        // A/B grid says which model drew what.
+        drawnBy: providerId === PRODUCTION_IMAGE_PROVIDER ? 'openai' : result.model,
+        model: result.model,
       });
     } catch (err: any) {
       if (!looksBlocked(err)) {
@@ -3936,7 +3964,9 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
  *  nothing but module-level helpers. */
 export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; message?: string; dear?: string; from?: string;
   palette?: string | null; typeface?: string | null; art_direction?: string | null; direction?: string | null;
-  characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high' }) {
+  characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high';
+  /** Lab A/B only; production callers leave it unset. */
+  provider?: string }) {
   const dear = o.dear?.trim();
   const from = o.from?.trim();
   const message = o.message?.trim();
@@ -3962,7 +3992,7 @@ export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; m
     '',
     `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
   ].filter(Boolean).join('\n');
-  const result = await getProvider('openai-2').generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
+  const result = await getProvider(o.provider ?? PRODUCTION_IMAGE_PROVIDER).generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
   void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
     provider: result.provider, model: result.model, quality: o.quality ?? 'low',
     costCents: result.costCents, durationMs: result.durationMs, success: true });

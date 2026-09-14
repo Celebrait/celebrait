@@ -49,6 +49,14 @@ import { useToast } from '@/hooks/use-toast';
  *  own (top-three bestsellers, and Scribbler's whole brand), so it is a
  *  register here. */
 type Tone = 'funny' | 'warm' | 'rude' | 'mix';
+/** The OpenAI image models the render endpoints accept from the admin
+ *  door (server: LAB_IMAGE_PROVIDERS). First is production. */
+const RENDER_PROVIDERS = [
+  { id: 'openai-2', label: 'gpt-image-2' },
+  { id: 'openai-2.5-flare', label: '2.5 Flare' },
+  { id: 'openai-2.5-sunburst', label: '2.5 Sunburst' },
+] as const;
+type RenderProvider = (typeof RENDER_PROVIDERS)[number]['id'];
 /** 'mix' = One of each — the guided maker's fourth chip, benched here
  *  first (lab-first rule): one funny, one warm, one rude in a set. */
 const TONES: Tone[] = ['funny', 'warm', 'rude', 'mix'];
@@ -230,6 +238,10 @@ export default function AdminOccasionStudioPage() {
   /** The lay-buyer floor (2026-09-13) — on by default; the switch exists
    *  only to run the same brief both ways for the test plan. */
   const [layBuyer, setLayBuyer] = useState(true);
+  /** Which OpenAI image model draws this set (2026-09-14, gpt-image-2.5
+   *  landed 2026-09-08). Lab-only lever: the public maker stays on
+   *  gpt-image-2 until a set here says the newer one earns it. */
+  const [renderProvider, setRenderProvider] = useState<RenderProvider>('openai-2');
   const [cells, setCells] = useState<Cell[]>([]);
   /** Floors still broken after the repair round. The engine ships them
    *  VISIBLY by design — but the studio was swallowing the report, so a
@@ -443,6 +455,7 @@ export default function AdminOccasionStudioPage() {
           const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
             front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
             typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle, charm,
+            provider: renderProvider,
             ...(cameoPhoto && (cameoAll || i === cameoAt) ? { cameoPhoto } : {}),
           });
           const rj = await rr.json();
@@ -485,6 +498,7 @@ export default function AdminOccasionStudioPage() {
           palette: cell.concept.palette, typeface: cell.concept.typeface,
           art_direction: cell.concept.art_direction, characters,
           freeStyle, direction: cell.concept.direction, quality: 'high',
+          provider: renderProvider,
         });
         inside = (await ir.json()).imageUrl as string;
         setCells((prev) => prev.map((x, j) => (j === i ? { ...x, insideUrl: inside } : x)));
@@ -536,6 +550,7 @@ export default function AdminOccasionStudioPage() {
       const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
         front_text: concept.front_text, art_direction, palette: concept.palette,
         typeface: concept.typeface, format: concept.format ?? 'hero', characters, freeStyle,
+        provider: renderProvider,
       });
       const rj = await rr.json();
       setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl } : x)));
@@ -560,6 +575,7 @@ export default function AdminOccasionStudioPage() {
         front_text: cell.concept.front_text, art_direction: cell.concept.art_direction,
         palette: cell.concept.palette, typeface: cell.concept.typeface,
         format: cell.concept.format ?? 'hero', characters, freeStyle, charm,
+        provider: renderProvider,
         cameoPhoto,
         // The picked card rides along: 'edit' holds it and paints them in;
         // 'redraw' ignores it (the old behaviour) for the A/B.
@@ -769,6 +785,13 @@ export default function AdminOccasionStudioPage() {
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 layBuyer ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 bg-white text-stone-400 hover:border-brand/50'}`}>
               {layBuyer ? 'Buyer floor: on' : 'Buyer floor: off'}
+            </button>
+            <button type="button"
+              onClick={() => setRenderProvider((v) => RENDER_PROVIDERS[(RENDER_PROVIDERS.findIndex((p) => p.id === v) + 1) % RENDER_PROVIDERS.length].id)}
+              title="Which OpenAI image model draws the fronts and insides. gpt-image-2 is production. 2.5 Flare = same quality, about half the wait. 2.5 Sunburst = the premium one, slower, better at keeping the person from the photo intact."
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                renderProvider === 'openai-2' ? 'border-stone-200 bg-white text-stone-500 hover:border-brand/50' : 'border-brand bg-brand-muted/50 text-brand-dark'}`}>
+              Draw with: {RENDER_PROVIDERS.find((p) => p.id === renderProvider)?.label}
             </button>
           </div>
           {/* ⚠️ The Rude CHECKBOX is gone — it is the third tone chip now.
