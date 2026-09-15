@@ -23,6 +23,7 @@ import type { CropBounds } from '@shared/models/photos';
 import {
   BriefQuestions, emptyBrief, occasionLabelFor, ageOf, isKidBrief,
   whoPhrase, whoPossessive, type Brief, type QuestionKey,
+  frontWordOf,
 } from '@/components/brief-questions';
 import { MakeNarration } from '@/components/make-narration';
 import { StepChips, type StepChip } from '@/components/step-chips';
@@ -244,6 +245,7 @@ export default function ResearchMakerPage() {
         interest: brief.thing.trim() || undefined,
         dislikes: brief.cant.trim() || undefined,
         recipientName: brief.name.trim() || undefined,
+        frontWord: frontWordOf(brief),
         memory: false,
       });
       const concepts: Concept[] = j.concepts ?? [];

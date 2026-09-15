@@ -199,6 +199,9 @@ export default function AdminOccasionStudioPage() {
   /** Designed in, not a placeholder — one card may lead with the real
    *  name in the card's own lettering ("EVIE IS ONE"). */
   const [recipientName, setRecipientName] = useState('');
+  /** What leads the one name-led front: the who-word, the name, or nothing
+   *  (Aidan 2026-09-15). Mirrors the customer's "What goes on the front?" chips. */
+  const [frontWord, setFrontWord] = useState<'who' | 'name' | 'none'>('none');
   const [dislikes, setDislikes] = useState('');
   /** The character ladder. The studio hardcoded 'objects' since it was
    *  built, silently locking out every subject whose world genuinely
@@ -423,6 +426,7 @@ export default function AdminOccasionStudioPage() {
       const r = await apiRequest('POST', '/api/admin/card-lab/concepts', {
         who, occasion, interest: interest.trim() || undefined, tone, cheeky, insideMode: 'auto', characters, pipeline,
         recipientName: recipientName.trim() || undefined,
+        frontWord: frontWord === 'who' ? who : frontWord === 'name' ? (recipientName.trim() || undefined) : undefined,
         gender: effectiveGender, age, detail: detail.trim() || undefined, freeStyle,
         freeComposition: true,
         charm,
@@ -738,6 +742,16 @@ export default function AdminOccasionStudioPage() {
                   Their name <span className="font-normal text-stone-400">— optional; one card will design it in</span>
                 </Label>
                 <Input id="rname" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className="mt-1.5" placeholder="Evie" />
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-stone-500">On the front:</span>
+                  {([['who', who || 'who-word'], ['name', 'Their name'], ['none', 'Nothing']] as const).map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => setFrontWord(v)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        frontWord === v ? 'border-brand bg-brand-muted/50 text-brand-dark' : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
               <Label htmlFor="dislikes" className="text-xs font-semibold text-stone-700">
                 {/* The label states the contract, because the field only

@@ -19,19 +19,30 @@ import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-pr
 
 // ── the brief ────────────────────────────────────────────────────────
 export type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
+/** What leads the front of the one name-led card (Aidan 2026-09-15:
+ *  a Dad card with DAVE across it "kinda weird… they might want Dad
+ *  there instead"). 'role' = the relationship word (Dad), 'name' = the
+ *  first name, 'none' = no name or relationship word on any front. */
+export type FrontWord = 'role' | 'name' | 'none';
 export interface Brief {
   who: string; gender: 'him' | 'her' | null; occasion: string; age: string;
-  vibe: Vibe; thing: string; cant: string; name: string;
+  vibe: Vibe; thing: string; cant: string; name: string; front: FrontWord;
 }
-export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '' });
+export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '', front: 'none' });
+/** The literal word the engine may set on the front, or nothing. */
+export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'>): string | undefined {
+  if (b.front === 'role') return NAME_LIKE.has(b.who.trim()) ? b.who.trim() : undefined;
+  if (b.front === 'name') return b.name.trim() || undefined;
+  return undefined;
+}
 
 export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: 'Cheekier' };
 /** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
-const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
-  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
-  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
-  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes — you choose after' },
+const VIBE_META: Record<Vibe, { label: string }> = {
+  funny: { label: 'Light humour' },
+  warm: { label: 'Warm' },
+  rude: { label: 'Cheeky' },
+  mix: { label: 'Can’t decide? One of each' },
 };
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
@@ -104,17 +115,23 @@ export function readBriefFromSearch(search: string): Brief {
   const who = q.get('who') ?? '';
   const g = q.get('gender');
   const v = q.get('vibe') ?? '';
+  const f = q.get('front');
+  const name = (q.get('name') ?? '').slice(0, 40);
   return {
     who,
     gender: g === 'him' || g === 'her' ? g : (RECIPIENTS.find((r) => r.label === who)?.implies ?? null),
     occasion: (q.get('occasion') ?? '').toLowerCase().slice(0, 40),
     age: (q.get('age') ?? '').replace(/\D/g, '').slice(0, 3),
     vibe: VIBE_SET.has(v) ? (v as Vibe) : 'mix',
-    thing: (q.get('thing') ?? '').slice(0, 80),
+    thing: (q.get('thing') ?? '').slice(0, 120),
     cant: (q.get('cant') ?? '').slice(0, 60),
-    name: (q.get('name') ?? '').slice(0, 40),
+    name,
+    front: f === 'role' || f === 'name' || f === 'none' ? f : defaultFront(who, name),
   };
 }
+/** Mum/Dad/Nan/Grandad lead with the word itself; anyone else leads
+ *  with the name if we have one, else nothing. */
+export const defaultFront = (who: string, name: string): FrontWord => (NAME_LIKE.has(who.trim()) ? 'role' : name.trim() ? 'name' : 'none');
 export function briefToSearch(b: Brief): string {
   const q = new URLSearchParams();
   if (b.who) q.set('who', b.who);
@@ -125,6 +142,7 @@ export function briefToSearch(b: Brief): string {
   if (b.thing) q.set('thing', b.thing);
   if (b.cant) q.set('cant', b.cant);
   if (b.name) q.set('name', b.name);
+  if (b.front !== defaultFront(b.who, b.name)) q.set('front', b.front);
   return q.toString();
 }
 export const ageOf = (b: Brief): number | null => { const n = parseInt(b.age, 10); return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null; };
@@ -161,6 +179,7 @@ const SKIN = {
     tileIcon: (on: boolean) => `flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${on ? 'bg-keeper-gold text-white' : 'bg-keeper-gold-wash text-keeper-gold'}`,
     tick: 'ml-auto w-5 h-5 rounded-full bg-keeper-gold text-white flex items-center justify-center shrink-0',
     input: 'h-12 rounded-full border-keeper-hair bg-white/90 px-4 text-[15px] focus-visible:border-keeper-gold focus-visible:ring-keeper-gold/20',
+    textarea: 'block w-full min-h-[112px] resize-none rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] leading-relaxed text-keeper-ink placeholder:text-keeper-meta focus-visible:outline-none focus-visible:border-keeper-gold focus-visible:ring-2 focus-visible:ring-keeper-gold/20',
     helper: 'mt-2 text-[12.5px] text-keeper-meta',
     next: 'inline-flex items-center gap-1.5 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-40 disabled:pointer-events-none',
     done: 'inline-flex items-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-40 disabled:pointer-events-none',
@@ -178,6 +197,7 @@ const SKIN = {
     tileIcon: (on: boolean) => `flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-colors ${on ? 'bg-brand text-brand-foreground' : 'bg-keeper-gold-wash text-keeper-gold'}`,
     tick: 'ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm',
     input: 'text-base border-brand-light focus-visible:border-brand focus-visible:ring-brand/20',
+    textarea: 'block w-full min-h-[112px] resize-none rounded-xl border border-brand-light bg-white px-3.5 py-3 text-base leading-relaxed text-keeper-ink placeholder:text-keeper-meta focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20',
     helper: 'mt-1.5 text-[11px] text-keeper-meta',
     next: 'inline-flex items-center gap-1.5 rounded-full bg-go px-5 py-2.5 text-sm font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-50 disabled:pointer-events-none',
     done: 'inline-flex items-center justify-center gap-2 bg-cta hover:bg-cta-hover text-cta-foreground rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50 disabled:pointer-events-none',
@@ -259,10 +279,9 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'who' && (
           <>
             <p className={s.h1}>{skin === 'landing' ? "Start here — who's it for?" : "Right — who's the card for?"}</p>
-            {skin === 'studio' && <p className={`${s.sub} mb-4`}>Three original cards, written and drawn for one person.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {RECIPIENTS.map((r) => (
-                <button key={r.label} type="button" className={s.chip(brief.who === r.label)} onClick={() => { const b = { ...brief, who: r.label, gender: r.implies ?? null }; onChange(b); if (!AMBIGUOUS.has(r.label)) setQIndex(idx + 1); }}>{r.label}</button>
+                <button key={r.label} type="button" className={s.chip(brief.who === r.label)} onClick={() => { const b = { ...brief, who: r.label, gender: r.implies ?? null, front: defaultFront(r.label, brief.name) }; onChange(b); if (!AMBIGUOUS.has(r.label)) setQIndex(idx + 1); }}>{r.label}</button>
               ))}
             </div>
             {brief.who && AMBIGUOUS.has(brief.who) && (
@@ -299,17 +318,9 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'age' && (
           <>
-            {brief.occasion === 'birthday' ? (
-              <>
-                <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'} turning?{optionalTag}</p>
-                <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
-              </>
-            ) : (
-              <>
-                <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'}?{optionalTag}</p>
-                <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>
-              </>
-            )}
+            {/* No sub-copy on any question (Aidan 2026-09-15: "drop all
+                sub-copy… keep clean"). The heading carries it. */}
+            <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'}{brief.occasion === 'birthday' ? ' turning' : ''}?{optionalTag}</p>
             <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
@@ -317,8 +328,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'vibe' && (
           <>
             <p className={s.h1}>What's the vibe?</p>
-            <p className={`${s.sub} mb-4`}>You'll see three cards either way — this sets what they lean towards.</p>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 mt-4">
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
                 // "One of each" is the escape hatch, not a fourth flavour:
@@ -326,7 +336,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 const mix = t === 'mix';
                 return (
                   <button key={t} type="button" disabled={off} onClick={() => { set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(brief.vibe === t)} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
-                    <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>
+                    <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' — not under 18' : ''}</span>
                     {brief.vibe === t && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
                 );
@@ -338,18 +348,32 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'interest' && (
           <>
             <p className={s.h1}>What's {whoPossessive(brief)} thing?</p>
-            <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>
-            <Input value={brief.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 80) })} placeholder={placeholder} className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter' && canNext) next(); }} />
+            {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
+                sitewide — the text is too long to fit"). Enter still moves on. */}
+            <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={placeholder} rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
           </>
         )}
 
         {question === 'name' && (
           <>
-            <p className={s.h1}>Shall we put {whoPossessive({ who: brief.who, name: '' })} name on the front?{optionalTag}</p>
-            <p className={s.sub}>Give us the name and we'll work it in — on one of the cards it becomes the artwork itself.</p>
-            <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-5`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
-            {brief.name.trim() && <p className={s.warn}>It'll be printed exactly as you type it — worth a double-check.</p>}
-            <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>
+            {/* The buyer chooses the front word (Aidan 2026-09-15): the
+                relationship word for Mum/Dad/Nan/Grandad, the first name,
+                or nothing. One card leads with it; the engine gets the
+                literal word via frontWordOf(). */}
+            <p className={s.h1}>What goes on the front?{optionalTag}</p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {NAME_LIKE.has(brief.who.trim()) && (
+                <button type="button" className={s.chip(brief.front === 'role')} onClick={() => set({ front: 'role' })}>{brief.who.trim()}</button>
+              )}
+              <button type="button" className={s.chip(brief.front === 'name')} onClick={() => set({ front: 'name' })}>Their name</button>
+              <button type="button" className={s.chip(brief.front === 'none')} onClick={() => set({ front: 'none' })}>Nothing</button>
+            </div>
+            {brief.front === 'name' && (
+              <>
+                <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
+                {brief.name.trim() && <p className={s.warn}>Printed exactly as typed — worth a double-check.</p>}
+              </>
+            )}
           </>
         )}
       </div>
@@ -359,10 +383,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-bold text-keeper-ink">Fancy a joke on one of them?</DialogTitle>
             <DialogDescription className="text-[14px] leading-relaxed text-keeper-body">
-              Tell us something they can't stand — the rival team, mornings, oat milk, slow walkers — and we'll build one of the three around it. Making light of the thing they hate, never of them.
+              Tell us one thing they can't stand.
             </DialogDescription>
           </DialogHeader>
-          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team / mornings / slow walkers" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
+          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team, mornings, slow walkers…" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
           <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
             <button type="button" onClick={() => { set({ cant: '' }); closeJoke(); }} className={s.skip}>No thanks</button>
             <button type="button" onClick={closeJoke} disabled={!brief.cant.trim()} className={s.next}>Add it <ChevronRight className="w-4 h-4" /></button>

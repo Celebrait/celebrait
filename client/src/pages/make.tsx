@@ -18,7 +18,7 @@ import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
@@ -230,7 +230,7 @@ export default function MakePage() {
         // Free composition ALWAYS (Aidan 2026-09-03: "no 50/50 roll") —
         // unset, the engine coin-flips dealt-vs-free formats per set.
         pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, freeComposition: true, age: ageNum,
-        interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, memory: true,
+        interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: true,
       });
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back — try again');

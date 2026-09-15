@@ -793,6 +793,11 @@ const conceptsSchema = z.object({
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
   recipientName: z.string().max(40).optional(),
+  /** THE FRONT WORD (Aidan 2026-09-15): the buyer's choice of what
+   *  leads the one name-led front — "Dad", "Dave", or nothing. Replaces
+   *  the old always-the-first-name rule (a Dad card with DAVE across it
+   *  read wrong). recipientName still travels for the inside. */
+  frontWord: z.string().max(40).optional(),
   /** Let the model choose the medium instead of using the house style. */
   freeStyle: z.boolean().default(false),
   /** Structured recipient (Aidan 2026-08-17): free text made the three
@@ -959,7 +964,7 @@ MINE THE OCCASION AND THE PERSON TOO — free specificity most cards waste.
     AGE → VOICE, only when stated. 21 wants energy, 50 wants knowing self-deprecation, no age stated means NO age jokes.
     GENDER → LOOK, only when stated. Never infer it from a hobby — a woman who fishes gets the same fishing world, not a pink rod.
     DIRECTION → SPEAKER: read any "from" detail and let the card sound like that person.
-    A NAME is a gift: for family and partners the front carries the relationship word ("Nan", "Dad") and the name lands INSIDE; for a mate the first name can sit on the front.
+    NAMES: only the FRONT WORD in the brief (if any) may appear on a front — no other name and no relationship word ("Mum", "mate", "to my…") on any front. The first name, when given, belongs INSIDE.
   ⚠️ WHO IS BUYING: usually a woman buying for someone she loves — she is who the set must charm at a glance, so the default is WARM AND ALIVE. Moody, dark, workwear styling is a deliberate choice for when the person calls for it, never the resting state. If all three would photograph like a menswear catalogue, pull one toward warmth.
 
 ⚠️ FIRST, WORK OUT WHAT THEY MEANT. The interest is a few words in a box and often ambiguous; READ THE WHOLE BRIEF, because the other fields disambiguate it and are the best evidence you will get. Failed: "The Royal Family on TV" for a 70-year-old dad with "Neighbours on TV" in the can't-stand box — two British TV programmes side by side, and the set came back about the monarchy.
@@ -1346,7 +1351,11 @@ const v2SaysOccasion = (t: string) =>
 
 interface V2Brief {
   who: string; gender: 'him' | 'her' | 'unspecified'; age: number | null;
-  interest: string; dislikes?: string; tone: string; cheeky: boolean; name?: string;
+  interest: string; dislikes?: string; tone: string; cheeky: boolean;
+  /** THE FRONT WORD — what exactly one front leads with ("Dad", "Dave"). */
+  name?: string;
+  /** A first name given for the INSIDE only — no front may carry it. */
+  insideName?: string;
   generic?: boolean;
 }
 interface V2Hints { interest: RegExp | null; dislike: RegExp | null }
@@ -1888,8 +1897,17 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     // promise (observed: "Rob", three cards, none his, 2026-08-28).
     // Front or artwork counts: the name AS the artwork is the genre.
     if (!cards.some((c, i) => exact.test(fronts[i]) || exact.test(arts[i]))) {
-      v.push(`name-missing: the brief gave the name "${b.name}" and promised one card designs it in — exactly ONE card must carry it, strongest as the front's own artwork`);
+      v.push(`name-missing: the brief gave the front word "${b.name}" and promised one card designs it in — exactly ONE card must carry it, strongest as the front's own artwork`);
     }
+  }
+  if (b.insideName) {
+    // The buyer chose "Dad" (or nothing) for the front: the first name
+    // is for the inside and must not leak onto any front, near-misses
+    // included (Aidan 2026-09-15).
+    const escaped = b.insideName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const stem = b.insideName.slice(0, Math.max(3, b.insideName.length - 2)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const leak = new RegExp(`\\b(${escaped}|${stem}\\w*)\\b`, 'i');
+    if (fronts.some((f) => leak.test(f))) v.push(`name-on-front: "${b.insideName}" belongs INSIDE only — the front word is ${b.name ? `"${b.name}"` : 'nothing'}; no front may carry the first name`);
   }
   if (b.gender !== 'unspecified') {
     const wrong = b.gender === 'her' ? V2_MALE : V2_FEMALE;
@@ -2415,7 +2433,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ? `Recipient: NOT NAMED, BUT KNOWN — a ${body.gender === 'her' ? 'her' : 'him'} of this age. ⚠️ NO relationship word anywhere on the front (no Mum, sister, mate, "to my ___") — a daughter, a mate and a colleague should all be able to buy it. But the NEUTRALITY STOPS AT THE RELATIONSHIP: the taste, palette, objects and whole aesthetic may lean fully ${body.gender === 'her' ? 'hers' : 'his'} — that is why the gender was given. Observed failure: an Anyone+her 16th came back as chargers, keys and AirPods — capable-kit neutral, nothing a 16-year-old girl would screenshot. Relationship-neutral, taste-committed.`
           : `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`)
         : `Recipient: ${body.who}`,
-      body.recipientName?.trim() ? `Recipient's first name: "${body.recipientName.trim()}" — ⚠️ EXACTLY ONE card may LEAD with the name, designed in: the name set large in the card's own lettering, or the name AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled name on a printed card is the worst error we can make. The name proves nothing else about them: no gender, age or era inferred from it. The other two cards may use it inside but not on the front.` : '',
+      body.frontWord?.trim()
+        ? `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ EXACTLY ONE card LEADS with it, designed in: set large in the card's own lettering, or AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred). The other two fronts do not carry it.`
+        : `FRONT WORD: none — no name and no relationship word on any of the three fronts.`,
+      body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? `Recipient's first name (INSIDE only, never on a front): "${body.recipientName.trim()}"` : '',
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
       // real failure. "Never the joke" stops gendered stereotyping — a
       // woman who fishes gets the same fishing world, not a pink rod —
@@ -2638,7 +2659,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
     if (body.pipeline !== 'classic' && !serious) {
       const v2b: V2Brief = { who: body.who, gender: body.gender, age: body.age ?? statedAgeValue,
         interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky,
-        name: body.recipientName?.trim() || undefined, generic: fullyGeneric };
+        name: body.frontWord?.trim() || undefined,
+        insideName: body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? body.recipientName.trim() : undefined,
+        generic: fullyGeneric };
       try {
         // 1. ARCHETYPE + referee vocabulary in one call.
         const archRes = await openai.chat.completions.create({
