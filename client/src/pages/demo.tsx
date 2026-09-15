@@ -22,8 +22,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Camera, Sparkles } from 'lucide-react';
-import { BriefQuestions, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
+import { Check, Camera, Sparkles, Play } from 'lucide-react';
+import { BriefQuestions, RECIPIENTS, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
@@ -36,8 +36,8 @@ export interface DemoPreset {
   who: string; occasion: string; age: string; vibe: 'Light humour' | 'Warm' | 'Cheeky';
   thing: string; cant: string; front: 'role' | 'name' | 'none'; name: string;
   dear: string; from: string;
-  /** The typed hook line, when hook=typed. */
-  hook: string;
+  /** The typed hook line, when the run opens with one. */
+  hookLine: string;
   /** A photo of them for the cameo step (public path). Without one the
    *  demo taps "No photo". */
   photo?: string;
@@ -48,24 +48,26 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     who: 'Mum', occasion: 'Birthday', age: '70', vibe: 'Warm',
     thing: 'Her garden — the roses, the robin, the shed radio', cant: 'Slugs', front: 'role', name: 'Linda',
     dear: 'Dear Mum,', from: 'All our love, Aidan & Sam x',
-    hook: 'Watch us make a card for Mum. 70. Lives in her garden.',
+    hookLine: 'Watch us make a card for Mum. 70. Lives in her garden.',
     photo: '/proof-source-photo.webp',
   },
   'dad-60-canal': {
     who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light humour',
     thing: 'Fishing on the canal every Sunday, rain or shine', cant: 'Getting up before 6am', front: 'role', name: 'Dave',
     dear: 'Dear Dad,', from: 'Love, Aidan x',
-    hook: 'Watch us make a card for Dad. 60. Canal fishing every Sunday.',
+    hookLine: 'Watch us make a card for Dad. 60. Canal fishing every Sunday.',
   },
   'mate-30-fiveaside': {
     who: 'Best mate', occasion: 'Birthday', age: '30', vibe: 'Cheeky',
     thing: 'Five-a-side on Thursdays, still thinks he can play', cant: 'Losing', front: 'name', name: 'Tom',
     dear: 'Tom,', from: 'The lads',
-    hook: 'Watch us make a card for a mate who turns 30 and still thinks he can play.',
+    hookLine: 'Watch us make a card for a mate who turns 30 and still thinks he can play.',
   },
 };
 
 type Speed = 'normal' | 'fast';
+/** What one run needs: a preset's worth of brief, plus how to play it. */
+export interface DemoConfig extends DemoPreset { speed: Speed; hook: boolean; /** Seconds before the run starts — time to hit record. */ countdown: number }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
   // ring lands — the beat where a viewer reads what's there (Aidan
@@ -192,7 +194,7 @@ const toDataUrl = async (url: string) => {
   return new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error('read')); fr.readAsDataURL(blob); });
 };
 
-type Phase = 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
+type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -205,14 +207,11 @@ const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-k
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
 const TILE = 'flex w-full flex-col items-start gap-1 rounded-2xl border border-keeper-hair bg-white/85 px-5 py-4 text-left';
 
-export default function DemoPage() {
-  const q = useMemo(() => new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''), []);
-  const preset = DEMO_PRESETS[q.get('preset') ?? ''] ?? DEMO_PRESETS['mum-70-garden'];
-  const hook = q.get('hook') === 'typed';
-  const beats = BEATS[q.get('speed') === 'fast' ? 'fast' : 'normal'];
-
-  const [phase, setPhase] = useState<Phase>('brief');
-  const phaseRef = useRef<Phase>('brief'); phaseRef.current = phase;
+function DemoRun({ cfg }: { cfg: DemoConfig }) {
+  const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
+  const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'brief');
+  const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
+  const [count, setCount] = useState(cfg.countdown);
   const [brief, setBrief] = useState<Brief>(emptyBrief());
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [fronts, setFronts] = useState<string[]>([]);
@@ -272,12 +271,14 @@ export default function DemoPage() {
     if (hook) {
       const hookEl = await find('.demo-hook', null, 5000);
       const target = hookEl.querySelector('p')!; const caret = '<span class="caret"></span>';
-      for (let i = 1; i <= p.hook.length; i++) { target.innerHTML = p.hook.slice(0, i) + caret; await sleep(38 + (p.hook[i - 1] === '.' ? 260 : 0)); }
+      for (let i = 1; i <= p.hookLine.length; i++) { target.innerHTML = p.hookLine.slice(0, i) + caret; await sleep(38 + (p.hookLine[i - 1] === '.' ? 260 : 0)); }
       await sleep(1400); hookEl.classList.add('out'); await sleep(650); mark('hook: done');
     }
     await sleep(600);
     const B = (re: RegExp) => find('button', re);
     await tap(await B(new RegExp(`^${p.who}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
+    // Partner / mate / friend don't auto-advance (the brief offers a him/her row) — tap Next.
+    if (!(await find('button', new RegExp(`^${p.occasion}`), 1200).catch(() => null))) await tap(await B(/^Next/), b.settle * 0.5, b.hold * 0.6);
     await tap(await B(new RegExp(`^${p.occasion}`)), b.settle, b.hold); mark(`occasion: ${p.occasion}`);
     await type(await find('input', /Their age/) as HTMLInputElement, p.age, b.settle, b.type * 1.8);
     await tap(await B(/^Next/), b.settle, b.hold * 0.75); mark(`age: ${p.age}`);
@@ -339,15 +340,16 @@ export default function DemoPage() {
   };
 
   useEffect(() => {
-    const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m);
     const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s);
-    return () => { m.remove(); s.remove(); };
+    return () => { s.remove(); };
   }, []);
   useEffect(() => {
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
-    const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, 900);
-    return () => window.clearTimeout(t);
+    let n = cfg.countdown;
+    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
+    const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + 900);
+    return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
@@ -359,6 +361,14 @@ export default function DemoPage() {
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
 
       <AnimatePresence mode="wait">
+      {/* 0 · time to hit record */}
+      {phase === 'countdown' && (
+        <motion.section key="countdown" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <p className="font-display text-[88px] font-bold leading-none text-keeper-ink">{count}</p>
+          <p className="text-[14px] text-keeper-meta">Start your screen recording</p>
+        </motion.section>
+      )}
+
       {/* 1 · the brief */}
       {phase === 'brief' && (
         <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16">
@@ -484,4 +494,94 @@ export default function DemoPage() {
       </AnimatePresence>
     </div>
   );
+}
+
+
+// ── the builder: make a demo ──────────────────────────────────────────
+
+const NAME_LIKE = ['Mum', 'Dad', 'Nan', 'Grandad'];
+const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-[14px] font-medium transition-colors ${on ? 'border-brand bg-brand-muted text-brand-dark' : 'border-keeper-hair bg-white/80 text-keeper-ink hover:border-brand/60'}`;
+const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand';
+const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
+
+function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
+  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3 });
+  const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
+  const canRole = NAME_LIKE.includes(cfg.who);
+  const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
+  const ready = cfg.who && cfg.occasion && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim());
+  return (
+    <div className="keeper-serif min-h-screen" style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)' }}>
+      <div className="mx-auto max-w-xl px-5 pb-24 pt-8">
+        <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
+        <h1 className={`${H1} mt-6`}>Make a demo.</h1>
+        <p className="mt-1 text-[14px] text-keeper-body">Set the brief, press Run, start your screen recording during the countdown. The page does the rest.</p>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {Object.entries(DEMO_PRESETS).map(([k, p]) => (
+            <button key={k} type="button" className={chip(false)} onClick={() => set({ ...p })}>{p.who}, {p.age}</button>
+          ))}
+        </div>
+
+        <div className="mt-7 space-y-6">
+          <div><span className={label}>Who</span>
+            <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>
+          </div>
+          <div><span className={label}>Occasion</span>
+            <div className="flex flex-wrap gap-2">{['Birthday', 'Christmas', 'Anniversary', 'Wedding'].map((o) => <button key={o} type="button" className={chip(cfg.occasion === o)} onClick={() => set({ occasion: o })}>{o}</button>)}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><span className={label}>Age</span><input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={field} placeholder="60" /></div>
+            <div><span className={label}>Vibe</span>
+              <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
+            </div>
+          </div>
+          <div><span className={label}>Their thing</span><textarea value={cfg.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 120) })} rows={2} className="w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" /></div>
+          <div><span className={label}>Can’t stand (humour only)</span><input value={cfg.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} className={field} placeholder="Getting up before 6am" /></div>
+          <div><span className={label}>On the front</span>
+            <div className="flex flex-wrap gap-2">
+              {canRole && <button type="button" className={chip(cfg.front === 'role')} onClick={() => set({ front: 'role' })}>{cfg.who}</button>}
+              <button type="button" className={chip(cfg.front === 'name')} onClick={() => set({ front: 'name' })}>Their name</button>
+              <button type="button" className={chip(cfg.front === 'none')} onClick={() => set({ front: 'none' })}>Nothing</button>
+            </div>
+            {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
+            <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
+          </div>
+          <div><span className={label}>Photo of them</span>
+            <div className="flex items-center gap-3">
+              <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
+              {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+              {cfg.photo && <button type="button" className={QUIET} onClick={() => set({ photo: undefined })}>No photo step</button>}
+            </div>
+          </div>
+          <div><span className={label}>Opening line</span>
+            <div className="flex flex-wrap gap-2"><button type="button" className={chip(cfg.hook)} onClick={() => set({ hook: true })}>Typed hook</button><button type="button" className={chip(!cfg.hook)} onClick={() => set({ hook: false })}>Straight in</button></div>
+            {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 120) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>
+            <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
+          </div>
+        </div>
+
+        <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} mt-9 w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> Run the demo</button>
+        <p className="mt-3 text-center text-[12px] text-keeper-meta">Each run spends one set of generations.</p>
+      </div>
+    </div>
+  );
+}
+
+export default function DemoPage() {
+  const q = useMemo(() => new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''), []);
+  // A preset in the link runs straight away (the recorder's path); otherwise the builder.
+  const fromLink = useMemo<DemoConfig | null>(() => {
+    const p = DEMO_PRESETS[q.get('preset') ?? ''];
+    return p ? { ...p, speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0 } : null;
+  }, [q]);
+  const [cfg, setCfg] = useState<DemoConfig | null>(fromLink);
+  useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
+  return cfg ? <DemoRun cfg={cfg} /> : <DemoSetup onRun={setCfg} />;
 }
