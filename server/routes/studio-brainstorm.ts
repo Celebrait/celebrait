@@ -11,6 +11,11 @@
 
 import type { Express, Request, Response } from 'express';
 import { openai } from '../utils/shared';
+import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
+import { rateLimitHit } from '../simple-rate-limit';
 
 type Role = 'user' | 'assistant';
 interface HistoryMessage {
@@ -151,9 +156,18 @@ Set finalScene to null unless phase is "summary". Keep finalScene CLEAN — no q
 }
 
 export function registerStudioBrainstormRoutes(app: Express): void {
-  app.post('/api/studio/brainstorm', async (req: Request, res: Response) => {
+  // isAuthenticated added 2026-07-02 (security audit): this was the ONLY
+  // LLM endpoint with no auth — an open, unmetered gpt-4o proxy on our
+  // OpenAI bill. Per-user ceiling on top: brainstorming is chatty, but
+  // no human sends 60 turns an hour.
+  app.post('/api/studio/brainstorm', isAuthenticated, async (req: Request, res: Response) => {
     if (!openai) {
       return res.status(503).json({ error: 'OpenAI is not configured' });
+    }
+
+    const userId = (req as any).session?.otpUserId ?? 'unknown';
+    if (rateLimitHit(`brainstorm:user:${userId}`, 60, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Too many requests — take a breather and try again shortly.' });
     }
 
     try {
@@ -203,18 +217,51 @@ export function registerStudioBrainstormRoutes(app: Express): void {
       }
       const contextMessage = contextBits.join('\n');
 
+      // History hardening: whitelist roles (a client-supplied
+      // role:'system' turn would override our prompt), cap turn count
+      // and per-turn size so a crafted payload can't balloon the token
+      // bill (the request body limit is generous for photo uploads).
+      const safeHistory = history
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-40)
+        .map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 2000) }));
+
       const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
         { role: 'system', content: systemPrompt },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
+        ...safeHistory,
         { role: 'user', content: contextMessage },
       ];
 
+      const llmStartedAt = Date.now();
+      const LLM_MODEL = 'gpt-4o';
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: LLM_MODEL,
         messages,
         max_tokens: 500,
         temperature: 0.8,
         response_format: { type: 'json_object' },
+      });
+
+      // Cost Ledger (audit 2026-07-29): brainstorm is a CHAT — it bills
+      // per turn, on gpt-4o (~17x gpt-4o-mini), and history is resent
+      // every turn so input tokens grow with the conversation. It was
+      // the most expensive unlogged surface. Booked against the
+      // brainstorm slot; no cardId (this runs before/around a draft).
+      void logGeneration({
+        cardId: null,
+        slot: LLM_SLOTS.BRAINSTORM,
+        templateId: null,
+        templateVersion: null,
+        provider: 'openai',
+        model: LLM_MODEL,
+        quality: null,
+        costCents: llmCostCents(
+          LLM_MODEL,
+          completion.usage?.prompt_tokens ?? 0,
+          completion.usage?.completion_tokens ?? 0,
+        ),
+        durationMs: Date.now() - llmStartedAt,
+        success: true,
       });
 
       const raw = completion.choices[0]?.message?.content ?? '';

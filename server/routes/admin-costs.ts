@@ -20,7 +20,7 @@
 import type { Express, Request, Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users, CUSTOMER_LLM_SLOTS } from '@shared/schema';
 
 type Window = 'today' | '7d' | '30d';
 
@@ -38,6 +38,31 @@ function windowFilter(window: Window) {
   const days = window === '7d' ? 7 : 30;
   return sql`created_at >= now() - (${sql.raw(String(days))} || ' days')::interval`;
 }
+
+// ── Two filters, and the difference matters (audit 2026-07-29) ──────
+//
+// Every query here used to say `card_id is not null`, to keep Prompt Lab
+// R&D runs out of the customer numbers. Correct intent, but it also hid
+// every LLM surface that spends money BEFORE a card exists — photo
+// analysis on each upload, the scene helper, the brainstorm chat. Those
+// were invisible: real spend, zero rows in the ledger's eyes.
+//
+//   customerSpend — all customer-driven spend: card work PLUS the
+//                   card-less LLM slots. Use for totals, trends and
+//                   breakdowns ("what am I actually spending?").
+//   cardOnly      — genuinely per-card economics: avg cost per card,
+//                   regen rate, per-template and per-card outliers.
+//                   Mixing card-less rows in here would corrupt the
+//                   denominators.
+//
+// Anything card-less and NOT in CUSTOMER_LLM_SLOTS stays excluded — that
+// remains the Prompt Lab.
+const llmSlotList = sql.join(
+  CUSTOMER_LLM_SLOTS.map((s) => sql`${s}`),
+  sql`, `,
+);
+const customerSpend = sql`(card_id is not null or slot in (${llmSlotList}))`;
+const cardOnly = sql`card_id is not null`;
 
 async function isAdmin(req: Request): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
@@ -75,7 +100,7 @@ export function registerAdminCostsRoutes(app: Express): void {
           coalesce(sum(case when created_at >= now() - interval '7 days' then cost_cents_x100 else 0 end), 0) as week,
           coalesce(sum(case when created_at >= now() - interval '30 days' then cost_cents_x100 else 0 end), 0) as month
         from generation_log
-        where card_id is not null
+        where ${customerSpend}
       `);
       const spendTotals = spendTotalsRaw.rows[0] as { today: number; week: number; month: number };
 
@@ -91,7 +116,7 @@ export function registerAdminCostsRoutes(app: Express): void {
           count(*) filter (where success = true) as success_rows,
           count(distinct card_id) as distinct_cards
         from generation_log
-        where card_id is not null and ${filter}
+        where ${customerSpend} and ${filter}
       `);
       const overview = overviewRaw.rows[0] as {
         total_cents_x100: number;
@@ -146,7 +171,7 @@ export function registerAdminCostsRoutes(app: Express): void {
           count(*) as rows,
           coalesce(sum(cost_cents_x100), 0) as cents_x100
         from generation_log
-        where card_id is not null and ${filter}
+        where ${customerSpend} and ${filter}
         group by provider
         order by cents_x100 desc
       `);
@@ -158,7 +183,7 @@ export function registerAdminCostsRoutes(app: Express): void {
           count(*) as rows,
           coalesce(sum(cost_cents_x100), 0) as cents_x100
         from generation_log
-        where card_id is not null and ${filter}
+        where ${customerSpend} and ${filter}
         group by slot
         order by cents_x100 desc
       `);
@@ -188,7 +213,7 @@ export function registerAdminCostsRoutes(app: Express): void {
           count(*) as rows,
           count(distinct card_id) as cards
         from generation_log
-        where card_id is not null and ${filter}
+        where ${customerSpend} and ${filter}
         group by day
         order by day asc
       `);
@@ -208,8 +233,40 @@ export function registerAdminCostsRoutes(app: Express): void {
         limit 20
       `);
 
+      // ── LLM (card-less) spend, broken out explicitly ────────────
+      // Folding this into the totals alone would answer "how much?"
+      // but not "on what?" — and these surfaces are the ones that can
+      // run away quietly (brainstorm bills per chat turn on gpt-4o and
+      // resends history each time; photo analysis fires on EVERY
+      // upload, including photos that never become a card).
+      const llmSpendRaw = await db.execute(sql`
+        select
+          slot,
+          count(*) as rows,
+          coalesce(sum(cost_cents_x100), 0) as cents_x100
+        from generation_log
+        where card_id is null and slot in (${llmSlotList}) and ${filter}
+        group by slot
+        order by cents_x100 desc
+      `);
+      const llmTotal = (llmSpendRaw.rows as any[]).reduce(
+        (sum, r) => sum + Number(r.cents_x100),
+        0,
+      );
+
       res.json({
         window,
+        // Card-less LLM spend (photo analysis, scene helper, brainstorm).
+        // Included in overview.totalCentsX100 and spendTotals; itemised
+        // here so it can't hide inside the headline number.
+        llmSpend: {
+          totalCentsX100: llmTotal,
+          bySlot: (llmSpendRaw.rows as any[]).map((r) => ({
+            slot: r.slot as string,
+            rows: Number(r.rows),
+            centsX100: Number(r.cents_x100),
+          })),
+        },
         // All three totals so the at-a-glance cards don't need separate calls.
         spendTotals: {
           todayCentsX100: Number(spendTotals.today),

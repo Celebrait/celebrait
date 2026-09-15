@@ -69,7 +69,7 @@ export function TestimonialCarouselSection() {
   return (
     <section
       id="testimonials"
-      className="relative bg-surface-card py-24 md:py-32 overflow-hidden"
+      className="snap-center relative py-24 md:py-32 overflow-hidden"
       data-testid="testimonial-carousel"
     >
       <div className="max-w-6xl mx-auto px-6 md:px-10">

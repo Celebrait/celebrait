@@ -24,6 +24,18 @@ import { db } from '../db';
 import { cards, type CardDraftState } from '@shared/schema';
 import { openai } from '../utils/shared';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { requireGuestMaker } from './admin-card-lab';
+import { logGeneration } from '../prompts/generation-log';
+import { llmCostCents } from '../prompts/llm-cost';
+import { LLM_SLOTS } from '@shared/schema';
+
+const guestRequestSchema = z.object({
+  recipientName: z.string().min(1).max(80),
+  occasion: z.string().min(1).max(60),
+  brief: z.string().max(400).optional(),
+  likeThis: z.string().max(600).optional(),
+  photoMode: z.enum(['one_person', 'group']).optional(),
+});
 
 const requestSchema = z.object({
   cardId: z.number().int().positive(),
@@ -31,6 +43,9 @@ const requestSchema = z.object({
    *  When non-empty, suggestions expand/vary on it. When empty, the
    *  LLM goes off recipient + occasion alone. */
   brief: z.string().max(500).optional(),
+  /** "More like this" — the scene the user pointed at. Steers the next
+   *  three toward its world and beat instead of re-rolling blind. */
+  likeThis: z.string().max(1000).optional(),
 });
 
 interface SceneSuggestion {
@@ -47,7 +62,7 @@ function getUserId(req: Request): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-function buildSystemPrompt(): string {
+export function buildSystemPrompt(): string {
   return `You generate scene descriptions for the front of a personalised greeting card. Each scene is later turned into an illustration by an image model — so it must be vivid, specific, and paintable.
 
 CORE PRINCIPLE — DESCRIBE THE WORLD AND THE MOMENT, NOT THE PEOPLE:
@@ -59,6 +74,14 @@ This means:
 - Do NOT invent who's there ("with his fiancée", "surrounded by family"). The photo decides.
 - DO describe the location, the time of day, the lighting, the atmosphere, props and architecture and weather.
 - DO use scene-level verbs when motion is needed ("a toast raised high", "confetti falling", "footsteps in the snow") — agentless. The image model fills in who's lifting the glass.
+
+THE FOCAL ACTION IS VACANT — THIS IS THE WHOLE PRODUCT:
+Each scene has exactly ONE focal action, and NOBODY is doing it. It is a vacancy the photo people will fill. Never populate a scene with other humans as participants — no "friends", "a team", "a crowd gathers round", "bodies moving", "faces around", "hands reaching" belonging to anyone but the implied protagonist. If other people appear at all they are DISTANT SCENERY inherent to the world (a stadium roaring far below, a blurred silhouette line at the back of the club) — never sharing the focal action, never near the camera. And do not stand a placeholder in the vacancy either — no "a figure", "a caped figure", "a silhouette stands": keep the action itself agentless. "Cape snapping mid-flight above the skyline" — not "a caped figure mid-flight".
+  WRONG: "capes billowing, laughter among friends mid-leap in the sky"      ← invented friends now star in the card
+  RIGHT: "Mid-flight above the skyline, cape snapping in the wind, sunlight breaking through the clouds, the city gleaming far below"
+  WRONG: "a team gathers around a desk, coffee cups raised in a toast"      ← the recipient is a bystander at their own moment
+  RIGHT: "Mid-toast at the centre desk of a bustling newsroom, papers still settling, the evening edition rolling off the press behind"
+
 
 ACTION VERBS ARE NOT OPTIONAL — EVERY SCENE MUST HAVE ONE (Celebrait product USP):
 
@@ -91,9 +114,17 @@ OUTPUT REQUIREMENTS:
 
 CONTENT REQUIREMENTS:
 - Each scene must be visually concrete: a place, a moment, a piece of action, a quality of light. Never abstract emotional language.
-- Vary in mood across the three: e.g. one warm/intimate, one playful/active, one understated/serene. Three different tones.
+- Vary the three — but HOW you vary depends on the brief:
+    • Brief names a SPECIFIC world (a sport, team, band, film, franchise, place, subculture, event — e.g. "WWE", "Formula 1", "Glastonbury", "Star Wars"): all three stay fully INSIDE that world. Vary by CINEMATIC FRAMING and BEAT — the entrance, the peak action, the aftermath — NOT by mood. Never make one a calm, generic version to "balance" the set.
+    • Brief is loose, everyday, or empty: then vary by mood/tone (one warm/intimate, one playful/active, one understated/serene).
 - Build on what the user told you in the BRIEF. If they said "beach at sunset", suggestions ARE beach-at-sunset variations — don't drift to mountains. If the brief is empty, infer plausibly from the occasion alone.
+- ALL THREE must carry the brief's signature elements. NONE may retreat to a generic version of the occasion ("a party", "an arena", "a celebration"). If a stranger read one suggestion, they should be able to name the sport / band / place / world from the scene alone.
+- NAME THE WORLD, DON'T GESTURE AT IT. Every scene must contain at least TWO unmistakable, NAMED signatures of the brief's world — proper nouns where the world has them, exact iconography where it doesn't. "A famous skyline" or "an iconic city" is a failure.
+    Brief: "New York" → the Brooklyn Bridge's stone arches, the Empire State needling into cloud, yellow cabs streaming down Fifth Avenue, steam curling from a manhole, the Staten Island Ferry crossing a pink dusk — NOT "gleaming skyscrapers".
+    Brief: "Superman" → the red cape, the blue suit with the S-shield, the Daily Planet globe, Metropolis — commit to the exact iconography, don't dilute to "a caped hero over a city".
+- IN the world, never a party ABOUT the world. Themed decorations are a retreat: a Superman-themed cake, banners portraying the hero, a Formula-1-themed table — all WRONG. The card puts the recipient INSIDE the world itself: mid-flight with the cape snapping over Metropolis, not admiring a themed buffet. (The occasion may flavour the moment — a candle, a toast — but the WORLD is the venue, not the theme.)
 - Avoid clichés: "celebration of love", "another year older", "magical moment", "cherished memory". Specific beats sentimental.
+- BANNED FILLER — these paint nothing and are forbidden: "the air thick with excitement", "energy palpable", "vibrant energy radiating", "festive atmosphere", "joyous atmosphere", "the atmosphere electric", "excitement buzzing". Spend those words on a concrete visual instead (a prop, a light source, a texture, weather).
 
 FAITHFULNESS TO THE BRIEF — read this carefully:
 The user is telling you their fantasy / dream scene. Stay inside it. Three variants of the same scenario, not three retreats to safer ground.
@@ -107,6 +138,17 @@ Examples of WRONG retreats vs RIGHT framings (notice: NO people named, NO counti
   WRONG: "sits on the couch holding a trophy"                      ← retreated to nostalgia
   WRONG: "Dad lifting the Premier League trophy at Old Trafford"   ← names the recipient
   RIGHT: "Old Trafford post-match, the Premier League trophy raised high under stadium floodlights, red and white confetti falling, the Stretford End on its feet, captain's armband and gleaming silver"
+
+  Brief: "Skydiving New York"  (an ACTIVITY + a PLACE — then ALL THREE scenes are that activity in that place; vary the beat, never the subject)
+  WRONG SET: one skydive + a rooftop bonfire + a café toast   ← two of three abandoned the brief
+  RIGHT (a): "Mid-freefall high above Manhattan, arms spread wide, the grid of streets and Central Park sprawling below, wind tearing past, the Hudson glinting at the horizon"
+  RIGHT (b): "Canopy just burst open above the skyline, drifting past glass towers catching the afternoon sun, the city rising to meet the descent"
+  RIGHT (c): "Boots touching down on the drop-zone grass, parachute billowing behind, helmets tipped back mid-cheer, the New York skyline stacked against the sky"
+
+  Brief: "Thomas the Tank Engine"  (a NAMED CHARACTER is a world too — its unmistakable visual signatures go in ALL THREE scenes)
+  WRONG: "a train whistle echoes in the distance"                ← the character has been laundered out
+  WRONG: "the joyful hum of a familiar theme song"               ← same failure, in audio
+  RIGHT: "Aboard a cheerful blue steam engine with a smiling face on its round boiler, chuffing along a sunny branch line, carriages rattling behind, a signal box waving the journey through"
   RIGHT: "the centre circle moments after the whistle, trophy hoisted above shoulders, a sea of red flares behind, evening sun cutting through the smoke"
   RIGHT: "the tunnel back to the dressing room, trophy clutched close, the roar of 75,000 still echoing outside, a quiet half-smile in the corridor light"
 
@@ -121,6 +163,19 @@ Examples of WRONG retreats vs RIGHT framings (notice: NO people named, NO counti
   RIGHT: "the Everest summit at sunrise, ice-axe planted in the snow, prayer flags whipping in the wind, the curve of the earth visible behind the ridgeline"
 
 The variation across the three suggestions should be CINEMATIC FRAMING and EMOTIONAL BEAT (the trophy lift / the crowd reaction / the quiet moment after) — not ducking the premise.
+
+TERSE OR NAMED BRIEFS — UNPACK THEM, DON'T GENERALISE:
+A one-word, acronym, or proper-noun brief (a brand, sport, team, band, film, franchise, place) is shorthand for a whole visual world. First UNPACK it into its concrete, unmistakable signatures, then build all three scenes from those signatures. A named world rendered as "a generic big event" is a FAILURE — it loses the exact thing the user asked for.
+
+  Brief: "WWE"
+  Its signatures: a wrestling ring with ropes and turnbuckles, a championship belt, a superstar mid-move (off the top rope, entrance through pyro, belt raised overhead), a roaring arena under harsh spotlights, the titantron glowing behind.
+  WRONG: "a buzzing arena, spotlights cutting the smoke, a championship belt raised, confetti bursting, the energy electric"  ← no ring, no wrestling — this is any concert or awards show
+  RIGHT (a): "Storming down the entrance ramp through a wall of pyro, championship belt held high, the titantron blazing, an arena of thousands on its feet"
+  RIGHT (b): "Mid-leap off the top rope inside the ring, ropes still shaking, spotlights raking the canvas, the crowd erupting below"
+  RIGHT (c): "The moment after the three-count, belt raised in the centre of the ring, confetti falling through the floodlights, the roar cresting"
+
+  Brief: "Formula 1"  → a podium spraying champagne / a car mid-corner with sparks off the floor / a pit-stop blur of tyres and crew — NOT "a fast car on a road".
+  Brief: "Taylor Swift"  → a stadium stage under a canopy of wristband lights, a runway catwalk mid-song — NOT "a music event".
 
 OCCASION-SPECIFIC GUIDANCE:
 - BIRTHDAY: lean toward joy, playfulness, candles, balloons, cake, light through warm rooms. Avoid age-mocking ("over the hill" etc).
@@ -138,29 +193,151 @@ NEVER:
 - Enumerate or count people in the scene`;
 }
 
-function buildUserPrompt(opts: {
+export function buildUserPrompt(opts: {
   recipientName: string;
   occasion: string;
   brief: string;
+  /** A scene the user liked — produce neighbours of it, not clones. */
+  likeThis?: string;
+  /** Photo-step mode. Steers the SCALE of the moment (communal vs
+   *  solitary), never person-counting — see the group line below. */
+  photoMode?: 'one_person' | 'group';
 }): string {
-  const { recipientName, occasion, brief } = opts;
+  const { recipientName, occasion, brief, photoMode, likeThis } = opts;
   const briefLine = brief.trim()
     ? `Brief from the user: "${brief.trim()}"`
     : 'Brief from the user: (empty — pick three plausible directions for the occasion)';
   // Recipient name is provided as CONTEXT only — it informs the kind of
   // scene that makes sense for this card. It must NOT appear inside the
   // generated scene paragraph; the system prompt enforces that.
-  // photoMode / photoCount were previously passed here but are now
-  // dropped — the principle that scenes describe the WORLD not the
-  // PEOPLE makes person-counting redundant. The downstream image model
-  // sees the photo and renders whoever is in it.
+  //
+  // photoMode history: passed pre-2026-05-14, removed when scenes became
+  // world-not-people (person-COUNTING was the poison), reinstated
+  // 2026-08-13 as a moment-SCALING hint only. A group photo over a
+  // solitary-scaled scene ("a quiet chair by a window") isn't a
+  // contradiction the way "two friends" over five faces was — it's just
+  // a tonal mismatch. Steering communal vs solitary keeps the
+  // no-enumeration principle fully intact.
+  // ⚠️ Third iteration of this line — its history is a lesson in
+  // prompt leakage. v1 gave example imagery ("a bonfire circle") and
+  // the model pasted bonfires into every group card. v2 said "scale
+  // every moment so several people are clearly sharing it" and the
+  // model obeyed by INVENTING people — "friends mid-leap", "a team
+  // gathers", "bodies moving in unison" — leaving no vacant slot for
+  // the actual photo people (Aidan's Superman/Ibiza/Thomas screenshots,
+  // 2026-08-14). v3 scaled the stage but gave example nouns ("a long
+  // footplate") and a footplate duly appeared on a Superman rooftop.
+  // v4: zero nouns of its own — the line may only gesture at the
+  // brief's existing world.
+  const groupLine =
+    photoMode === 'group'
+      ? 'This card\'s photo shows a GROUP. Make the stage of the focal action wide enough for several to share, expressed only through the size of the space and props that already belong to the brief\'s world. Give no examples of your own, add no people, and never import objects the world would not contain.'
+      : '';
+  // Pointing beats retyping: the user has told us which direction was
+  // right, so the next three are neighbours of it — same world, same
+  // energy, genuinely different moments. Clones would waste the ask.
+  const likeLine = likeThis?.trim()
+    ? `THE USER LIKED THIS ONE — steer toward it: "${likeThis.trim()}". Keep its world, its setting family and its energy. Now give three DIFFERENT moments within that same direction — a different beat, a different vantage, a different time of day. Do NOT paraphrase it back; each must be a scene they haven't seen yet.`
+    : '';
   return [
     `Recipient context (for occasion fit only — not for the scene text): ${recipientName}`,
     `Occasion: ${occasion}`,
     briefLine,
+    ...(likeLine ? [likeLine] : []),
+    ...(groupLine ? [groupLine] : []),
     '',
     'Return three scene suggestions per the system instructions. Remember: describe the WORLD AND THE MOMENT (every scene needs an action verb), not the PEOPLE.',
   ].join('\n');
+}
+
+/** The scene helper proper: one LLM call, three scenes, cost-logged.
+ *  Shared by the studio route (draft-owned) and the public photo
+ *  maker's route (inline brief, guest-capped) — 2026-09-04. */
+export async function respondWithScenes(
+  res: Response,
+  args: { recipientName: string; occasion: string; brief?: string; likeThis?: string; photoMode?: 'one_person' | 'group' },
+): Promise<void> {
+  const { recipientName, occasion } = args;
+  if (!openai) { res.status(503).json({ error: 'OpenAI not configured' }); return; }
+  const llmStartedAt = Date.now();
+  const LLM_MODEL = 'gpt-4o-mini';
+  try {
+    const completion = await openai.chat.completions.create({
+      model: LLM_MODEL,
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        {
+          role: 'user',
+          content: buildUserPrompt({
+            recipientName,
+            occasion,
+            brief: args.brief ?? '',
+            likeThis: args.likeThis,
+            photoMode: args.photoMode,
+          }),
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.85, // higher = more variety across the three options
+      max_tokens: 600,
+    });
+
+    // Cost Ledger (audit 2026-07-29): the scene helper spends real
+    // money on every tap and logged nothing. No cardId — the draft
+    // may not even be saved yet — so it books against the
+    // scene_suggest slot (see CUSTOMER_LLM_SLOTS). Fire-and-forget.
+    void logGeneration({
+      cardId: null,
+      slot: LLM_SLOTS.SCENE_SUGGEST,
+      templateId: null,
+      templateVersion: null,
+      provider: 'openai',
+      model: LLM_MODEL,
+      quality: null,
+      costCents: llmCostCents(
+        LLM_MODEL,
+        completion.usage?.prompt_tokens ?? 0,
+        completion.usage?.completion_tokens ?? 0,
+      ),
+      durationMs: Date.now() - llmStartedAt,
+      success: true,
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim();
+    if (!raw) throw new Error('Empty completion');
+
+    // Parse + validate the structured response. Defensive — model
+    // sometimes returns extra fields or slightly off shapes.
+    const parsed = JSON.parse(raw) as { suggestions?: unknown };
+    const suggestions = Array.isArray(parsed.suggestions)
+      ? parsed.suggestions
+          .map((s, i) => {
+            if (typeof s === 'object' && s !== null) {
+              const obj = s as { id?: unknown; text?: unknown };
+              const text = typeof obj.text === 'string' ? obj.text.trim() : '';
+              if (!text) return null;
+              const id = typeof obj.id === 'string' ? obj.id : String.fromCharCode(97 + i);
+              return { id, text };
+            }
+            return null;
+          })
+          .filter((x): x is SceneSuggestion => !!x)
+          .slice(0, 3)
+      : [];
+
+    if (suggestions.length === 0) {
+      throw new Error('No usable suggestions in response');
+    }
+
+    const response: SuggestResponse = { suggestions };
+    res.json(response);
+  } catch (err: any) {
+    console.error('[STUDIO_SCENE_SUGGEST] error:', err);
+    res.status(500).json({
+      error: 'Could not generate suggestions — try again or use the brainstorm chat.',
+    });
+  }
+
 }
 
 export function registerStudioSceneSuggestRoutes(app: Express): void {
@@ -209,59 +386,28 @@ export function registerStudioSceneSuggestRoutes(app: Express): void {
       // downstream image model sees the photo at generation time and
       // renders whoever is in it.
 
-      try {
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: buildSystemPrompt() },
-            {
-              role: 'user',
-              content: buildUserPrompt({
-                recipientName,
-                occasion,
-                brief: body.brief ?? '',
-              }),
-            },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.85, // higher = more variety across the three options
-          max_tokens: 600,
-        });
+      await respondWithScenes(res, {
+        recipientName, occasion,
+        brief: body.brief, likeThis: body.likeThis, photoMode: state?.photos?.mode,
+      });
+    },
+  );
 
-        const raw = completion.choices[0]?.message?.content?.trim();
-        if (!raw) throw new Error('Empty completion');
-
-        // Parse + validate the structured response. Defensive — model
-        // sometimes returns extra fields or slightly off shapes.
-        const parsed = JSON.parse(raw) as { suggestions?: unknown };
-        const suggestions = Array.isArray(parsed.suggestions)
-          ? parsed.suggestions
-              .map((s, i) => {
-                if (typeof s === 'object' && s !== null) {
-                  const obj = s as { id?: unknown; text?: unknown };
-                  const text = typeof obj.text === 'string' ? obj.text.trim() : '';
-                  if (!text) return null;
-                  const id = typeof obj.id === 'string' ? obj.id : String.fromCharCode(97 + i);
-                  return { id, text };
-                }
-                return null;
-              })
-              .filter((x): x is SceneSuggestion => !!x)
-              .slice(0, 3)
-          : [];
-
-        if (suggestions.length === 0) {
-          throw new Error('No usable suggestions in response');
-        }
-
-        const response: SuggestResponse = { suggestions };
-        res.json(response);
-      } catch (err: any) {
-        console.error('[STUDIO_SCENE_SUGGEST] error:', err);
-        res.status(500).json({
-          error: 'Could not generate suggestions — try again or use the brainstorm chat.',
-        });
-      }
+  // ── PUBLIC photo maker (2026-09-04) ─────────────────────────────────
+  // Signed-out users run the same helper before there is a draft to
+  // own: the brief comes inline, the guest gate caps the spend.
+  app.post(
+    '/api/photo/scene-suggestions',
+    async (req: Request, res: Response) => {
+      if (!(await requireGuestMaker('scene')(req, res))) return;
+      if (!openai) return res.status(503).json({ error: 'OpenAI not configured' });
+      const parsed = guestRequestSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: 'Invalid request body' });
+      const b = parsed.data;
+      await respondWithScenes(res, {
+        recipientName: b.recipientName.trim(), occasion: b.occasion.trim(),
+        brief: b.brief, likeThis: b.likeThis, photoMode: b.photoMode,
+      });
     },
   );
 }

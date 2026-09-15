@@ -1,3 +1,51 @@
+/* ── Self-hosted fonts (2026-09-08) ──────────────────────────────────
+   Fraunces (variable: opsz 9–144, wght 100–900, + italic) and Figtree
+   (variable wght). Same files Google served, now on our origin: no
+   third-party render-blocking CSS, no fonts.gstatic round trip. The
+   family names stay 'Fraunces' / 'Figtree' so tailwind, index.css and
+   the social studio's canvas text all keep working unchanged.
+   Files: client/public/fonts (from @fontsource-variable, latin +
+   latin-ext for the upright faces; italic latin only). */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-standard-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-ext-standard-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fraunces-latin-standard-italic.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,6 +71,16 @@
   --destructive-foreground: 0 0% 100%;
   --ring: 263 70% 58%;               /* matches primary */
   --radius: 0.5rem;
+
+  /* Everyday action-button treatment ("go" token) — LOCKED to purple
+     2026-07-09 (Kevin: ink too editorial for the studio; green reserved
+     strictly for the super-important commit moments — New card / Generate
+     / Make the inside / Send / Pay — which are pinned green via `cta`
+     regardless of this token). The A/B switcher was removed once purple
+     won, so everyday buttons can never render green. */
+  --go: #5c57d4;        /* brand violet (keeper-gold) */
+  --go-hover: #4a45c0;  /* deeper violet */
+  --go-fg: #ffffff;
 
   /* Celebrait legacy custom colors (kept for existing components) */
   --ethereal-purple: 263 70% 58%;
@@ -102,7 +160,12 @@
   body {
     @apply font-sans antialiased min-h-screen;
     background-color: hsl(var(--background));
-    font-family: 'Inter', sans-serif;
+    /* Figtree — humanist body sans, warmer pairing with Fraunces than the
+       old 'Inter' (which was declared here but never actually loaded, so
+       users fell back to system sans). Kevin approved site-wide 2026-07-15.
+       Loaded in index.html; self-host as woff2 before launch. Inter kept as
+       a fallback. See next_typography_system_pass. */
+    font-family: 'Figtree', 'Inter', system-ui, sans-serif;
   }
 }
 
@@ -216,4 +279,57 @@
   .animation-delay-300 { animation-delay: 0.3s; }
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-500 { animation-delay: 0.5s; }
+}
+/* THE KEEPER (/keeper) — every headline in Fraunces Bold, including
+   those inside shared sections (FAQ, phone demo, video) mounted on the
+   page. Scoped so the old landing on / is untouched. */
+.keeper-serif h1,
+.keeper-serif h2,
+.keeper-serif h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+}
+
+/* ── Free-card ring "alive" states (v2, Aidan 2026-08-03) ────────────
+   A short comet arc orbits the incomplete ring; the next stone to earn
+   emits a radar ping. Crisp at 48px (the blurred-glow v1 read muddy).
+   Both stop under prefers-reduced-motion. */
+@keyframes ring-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-ring-orbit {
+  animation: ring-orbit 6.5s linear infinite;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+@keyframes stone-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-stone-ping {
+  animation: stone-ping 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-ring-orbit, .animate-stone-ping { animation: none; }
+}
+
+/* ── "The year ahead" rotating line + scroll (world-section) ────────
+   Four lines crossfade on a shared 24s cycle (6s each, staggered via
+   inline animation-delay). Under reduced-motion the first line sits
+   static and the rest hide. */
+.ya-facts span { opacity: 0; animation: ya-factcycle 24s infinite; }
+@keyframes ya-factcycle {
+  0% { opacity: 0; transform: translateY(4px); }
+  3%, 22% { opacity: 1; transform: translateY(0); }
+  25%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+.ya-scroll { scrollbar-width: none; }
+.ya-scroll::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ya-facts span { animation: none; }
+  .ya-facts span:first-child { opacity: 1; position: static; }
+  .ya-facts span:not(:first-child) { display: none; }
 }

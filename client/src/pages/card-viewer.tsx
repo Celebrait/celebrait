@@ -29,7 +29,8 @@ import {
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import logoSrc from '../assets/Logo2.png';
+import { useClaimFreeCard } from '@/components/landing/ticker-banner';
+import logoSrc from '../assets/logo-mark.webp';
 import type { CardDraftState } from '@shared/schema';
 
 // Card3DViewer lazy-loaded to keep the recipient viewer's first paint
@@ -69,56 +70,56 @@ interface CardData {
 }
 
 export default function CardViewerPage() {
-  const [, params] = useRoute<{ id: string }>('/card/:id/view');
+  // Two public URL shapes resolve here: short /c/:token (no id at all)
+  // and the legacy /card/:id/view?t=. Plus the authed no-token preview.
+  // Each shape needs its own useRoute — the page ignored its Route
+  // props and matched '/card/:id/view' by hand, so the /c/ route
+  // rendered the page with NO params at all (caught live 2026-08-07:
+  // short links showed "Invalid card id").
+  const [, legacyParams] = useRoute<{ id: string }>('/card/:id/view');
+  const [, shortParams] = useRoute<{ token: string }>('/c/:token');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  const cardId = params ? parseInt(params.id, 10) : NaN;
+  // MUST live up here with the other hooks: this page has early returns
+  // (invalid id / loading / error) and a hook below them crashes with
+  // "Rendered more hooks than during the previous render" the moment the
+  // data lands — third time this pattern has bitten the codebase.
+  const claimFreeCard = useClaimFreeCard();
+  const shortToken = shortParams?.token ?? null;
+  const cardIdParam = legacyParams ? parseInt(legacyParams.id, 10) : NaN;
 
-  const token = new URLSearchParams(window.location.search).get('t');
-  const endpoint = token
-    ? `/api/card/${cardId}/view?t=${encodeURIComponent(token)}`
-    : `/api/studio/drafts/${cardId}`;
+  const queryToken = new URLSearchParams(window.location.search).get('t');
+  const endpoint = shortToken
+    ? `/api/c/${encodeURIComponent(shortToken)}`
+    : queryToken
+      ? `/api/card/${cardIdParam}/view?t=${encodeURIComponent(queryToken)}`
+      : `/api/studio/drafts/${cardIdParam}`;
+  const token = shortToken ?? queryToken;
 
   const { data, isLoading, error } = useQuery<CardData>({
     queryKey: [endpoint],
-    enabled: Number.isFinite(cardId),
+    enabled: !!shortToken || Number.isFinite(cardIdParam),
   });
+  // The short route doesn't know the id until the payload lands.
+  const cardId = Number.isFinite(cardIdParam) ? cardIdParam : (data?.id ?? NaN);
 
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  // Once the user has interacted with the card at all, we stop
-  // showing the gesture hints — they've found the controls. Persists
-  // for the session only (no localStorage); fresh visit = hints back.
-  const [hasInteracted, setHasInteracted] = useState(false);
   // Welcome gate — acts as the arrival moment. Shown until the user
   // clicks "Open", at which point it slides away like a pair of doors
   // opening to reveal the viewer behind.
   const [gateOpen, setGateOpen] = useState(false);
+  // (The fade-UI-while-interacting + hide-hints-after-first-touch
+  // machinery from the drag-rotate era was removed 2026-07-08 —
+  // tap-to-open is the only gesture now, and hiding CTAs on scroll
+  // read as a bug.)
 
-  // Fade the UI (buttons + make-your-own + hints) while the user
-  // is actively interacting with the card. Triggered on pointer
-  // down / wheel; 1.2s after the last interaction the UI fades back
-  // in. Lets the card rotate/zoom over the button area without
-  // clipping against the UI. Header is intentionally NOT faded —
-  // card passes behind it (translucent bg gives depth cue).
-  const [isInteracting, setIsInteracting] = useState(false);
-  const interactTimerRef = useRef<number | null>(null);
-  const startInteract = () => {
-    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
-    setIsInteracting(true);
-    setHasInteracted(true);
-  };
-  const endInteract = () => {
-    if (interactTimerRef.current) window.clearTimeout(interactTimerRef.current);
-    interactTimerRef.current = window.setTimeout(() => setIsInteracting(false), 1200);
-  };
-  const bumpInteract = () => {
-    startInteract();
-    endInteract();
-  };
-
-  if (!Number.isFinite(cardId)) {
+  // Short-token routes have NO id until the payload arrives — the
+  // invalid-id guard must only fire when there's no token either, and
+  // only after loading has settled, or /c/<token> flashes "Invalid
+  // card id" while the fetch is in flight.
+  if (!shortToken && !Number.isFinite(cardId)) {
     return <Shell><Centered>Invalid card id.</Centered></Shell>;
   }
   if (isLoading) {
@@ -129,10 +130,29 @@ export default function CardViewerPage() {
     );
   }
   if (error || !data) {
+    // Token present = an anonymous RECIPIENT with a broken/expired link —
+    // "Back to Studio" just walked them into a login wall (audit
+    // 2026-07-27). Give them the honest fix + a warm way in instead.
+    if (token) {
+      return (
+        <Shell>
+          <Centered>
+            <p className="text-sm font-medium text-keeper-ink mb-1">
+              This card link isn't working
+            </p>
+            <p className="text-sm text-keeper-body mb-4 max-w-xs text-center">
+              It may not have copied across in full — ask whoever sent it to
+              share the link again.
+            </p>
+            <Button onClick={() => setLocation('/')}>Make your own card</Button>
+          </Centered>
+        </Shell>
+      );
+    }
     return (
       <Shell>
         <Centered>
-          <p className="text-sm text-stone-600 mb-4">Couldn't load this card.</p>
+          <p className="text-sm text-keeper-body mb-4">Couldn't load this card.</p>
           <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
         </Centered>
       </Shell>
@@ -142,8 +162,8 @@ export default function CardViewerPage() {
     return (
       <Shell>
         <Centered>
-          <p className="text-sm text-stone-600 mb-2">This card hasn't been generated yet.</p>
-          <p className="text-xs text-stone-500 mb-4">Status: {data.status ?? 'draft'}.</p>
+          <p className="text-sm text-keeper-body mb-2">This card hasn't been generated yet.</p>
+          <p className="text-xs text-keeper-meta mb-4">Status: {data.status ?? 'draft'}.</p>
           <Button onClick={() => setLocation(`/studio/card/${cardId}/edit`)}>
             Back to editor
           </Button>
@@ -201,7 +221,13 @@ export default function CardViewerPage() {
     shareText,
   )}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
 
-  const createHref = isAuthenticated ? '/studio/new-card' : '/login?next=/studio/new-card';
+  // Signed out, "make your own" leads with the free-card claim (the
+  // 3-dates signup) instead of a bare login wall — same treatment as
+  // every LP CTA (Aidan 2026-08-07). This is the influencer mechanic's
+  // landing behaviour too: "your followers get one free" arrives HERE,
+  // so this click is where that promise has to come true.
+  // (claimFreeCard hook is declared at the top — see note there.)
+  const createHref = isAuthenticated ? '/studio/new-card' : null;
 
   return (
     <Shell>
@@ -218,29 +244,27 @@ export default function CardViewerPage() {
             sit as an absolute overlay inside the stage so their
             exit animation doesn't reflow the layout below (fixes
             the snap-up glitch Kevin flagged). */}
-        <div className="h-[56vh] sm:h-[62vh] w-full relative">
+        <div className="mx-auto h-[55vh] sm:h-[62vh] w-full max-w-3xl relative">
           {/* Canvas bleed: ±25vh vertical + ±22vw horizontal. Large
               enough that the card never hits the canvas edge when
               rotating/tilting/zooming, even at max zoom. Paired with
               margin 2.0 in InitialCameraFit + minDistance 2.7.
 
-              Canvas sits at z-25 — ABOVE the header (z-20). When the
-              card rotates up it renders on top of the header for
-              real depth (not just peeking through the translucent
-              bg). UI is bumped to z-30 so buttons + make-your-own
-              still receive pointer events at rest.
+              Canvas sits BELOW the header (z-10 vs z-20) — it used
+              to render above it for rotate-era depth, which now just
+              meant the card overlapped the menu when scrolling
+              (Kevin 2026-07-08).
 
               CSS drop-shadow adds a soft depth shadow beneath the
               card's silhouette. The 3D scene's own ContactShadows
               still handle grounded-on-surface during rotation. */}
+          {/* Bleed matches studio-card-view exactly (2026-07-08:
+              "card size should be the same as the studio") — same
+              stage height, same max-w-3xl, same insets = identical
+              rendered card size. */}
           <div
-            className="absolute top-[-25vh] bottom-[-25vh] left-[-22vw] right-[-22vw] z-[25]"
+            className="absolute top-[-18vh] bottom-[-18vh] left-[-20vw] right-[-20vw] z-[10]"
             style={{ filter: 'drop-shadow(0 24px 32px rgba(0,0,0,0.1))' }}
-            onPointerDown={startInteract}
-            onPointerUp={endInteract}
-            onPointerCancel={endInteract}
-            onPointerLeave={endInteract}
-            onWheel={bumpInteract}
           >
             {/* Suspense fallback = static poster while the lazy
                 Three.js chunk loads. Recipients always see their card
@@ -259,6 +283,15 @@ export default function CardViewerPage() {
                 insideImageUrl={data.insideImageUrl}
                 open={open}
                 onOpenChange={setOpen}
+                // Orbit gadget removed SITE-WIDE (Kevin 2026-07-07:
+                // "fancy gadget that does not really do much other
+                // than cause us issues"). Cards rest ajar (~22°, the
+                // studio-reveal pose) and tap to open/close — that's
+                // the whole interaction model now.
+                enableRotate={false}
+                enableZoom={false}
+                closedAngle={-0.38}
+                restYaw={-0.12}
                 className="w-full h-full"
                 // Card3DViewer auto-derives its hit zone from framingMargin,
                 // but our outer wrapper bleeds 25vh + 22vw past the visible
@@ -277,75 +310,35 @@ export default function CardViewerPage() {
           </div>
         </div>
 
-        {/* UI — flows below the stage. The card canvas extends past
-            the stage into this zone at z-0; UI sits at z-10.
-            Buttons + hints + make-your-own panel fade out while the
-            user is actively interacting with the card (drag/zoom),
-            so anything the card rotates over doesn't clip against
-            the UI. Fade back in 1.2s after the last interaction. */}
-        <div
-          className="relative z-30 max-w-xl mx-auto px-4 pt-2 pb-16 transition-opacity duration-500"
-          style={{
-            opacity: isInteracting ? 0 : 1,
-            pointerEvents: isInteracting ? 'none' : 'auto',
-          }}
-        >
+        {/* UI — flows below the stage. Always visible: the old
+            fade-while-interacting belonged to the drag-rotate era
+            (orbit removed site-wide 2026-07-07). */}
+        <div className="relative z-30 max-w-xl mx-auto px-4 pt-2 pb-16">
           {/* Gesture hints — sit close to the card with generous gap
               between them and the action row below. Container
               collapses (max-height → 0) once hasInteracted fires,
               smoothly pulling the action row upward as the hints
               fade out so no dead whitespace is left behind. */}
-          <div
-            className="flex justify-center items-start overflow-hidden transition-[height] duration-500 ease-out"
-            style={{ height: hasInteracted ? 0 : 72 }}
-          >
-            <GestureHints open={open || hasInteracted} />
+          <div className="flex h-[72px] items-start justify-center">
+            <GestureHints
+              open={open}
+              hideRotateHint
+              hideZoomHint
+              openLabel="Tap to close"
+            />
           </div>
 
-          {/* Action row */}
-          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-3">
-            <Button
-              onClick={() => setOpen(!open)}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground font-semibold px-7 py-3 rounded-lg w-full sm:w-auto"
-              size="lg"
-              data-testid="btn-viewer-open"
-            >
-              {open ? 'Close card' : 'Open card'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShareOpen(true)}
-              className="w-full sm:w-auto bg-white"
-              size="lg"
-              data-testid="btn-viewer-share"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-          </div>
-
-          {/* Acquisition panel — boxed so it reads as a distinct
-              moment. */}
-          <Link
-            href={createHref}
-            className="mt-8 block bg-white rounded-xl border border-stone-200 p-4 hover:border-brand/60 hover:shadow-sm transition-all group"
-            data-testid="btn-viewer-create"
-          >
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-muted text-brand flex-shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink">Make one of your own</p>
-                <p className="text-xs text-stone-600 mt-0.5">
-                  A few minutes to craft a card worth sending.
-                </p>
-              </div>
-              <span className="text-brand group-hover:text-brand-dark text-sm font-medium whitespace-nowrap">
-                Start →
-              </span>
-            </div>
-          </Link>
+          {/* Acquisition moment (Kevin 2026-07-08): a STRONG make-your-
+              own CTA — plus the honest path for the 95% who aren't
+              ready right now: email yourself the link for later.
+              Recipients arrive emotional but busy; capture the intent,
+              don't demand the act. */}
+          <MakeYourOwnPanel
+            createHref={createHref}
+            onClaim={claimFreeCard}
+            cardId={cardId}
+            onShare={() => setShareOpen(true)}
+          />
         </div>
       </div>
 
@@ -363,6 +356,174 @@ export default function CardViewerPage() {
 
       <WelcomeGate show={!gateOpen} onOpen={() => setGateOpen(true)} />
     </Shell>
+  );
+}
+
+// ── MakeYourOwnPanel ─────────────────────────────────────────────────
+// The acquisition moment, two-speed (Kevin 2026-07-08): a strong
+// primary for the ready-now visitor, and an email-capture for the
+// realistic majority who love the card but aren't making one on the
+// spot. The capture stores a lead + fires ONE immediate "here's your
+// link" email — intent preserved past the moment.
+function MakeYourOwnPanel({
+  createHref,
+  onClaim,
+  cardId,
+  onShare,
+}: {
+  /** Route for signed-in visitors; null when signed out (claim instead). */
+  createHref: string | null;
+  onClaim: () => void;
+  cardId: number;
+  onShare: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [optIn, setOptIn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const { toast } = useToast();
+
+  const submit = async () => {
+    if (busy || sent) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          source: 'card-viewer',
+          cardId,
+          marketingOptIn: optIn,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? 'Please try again.');
+      }
+      setSent(true);
+    } catch (err: any) {
+      toast({
+        title: "Couldn't save that",
+        description: err?.message ?? 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8 text-center shadow-sm"
+      data-testid="make-your-own-panel"
+    >
+      {/* 1 — the hook */}
+      <p className="text-xl sm:text-2xl font-semibold text-keeper-ink">
+        Someone made this just for you.
+      </p>
+      <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-keeper-body">
+        Now put someone you love in the picture — upload a photo, describe
+        the scene, and we make the card. Free to make.
+      </p>
+
+      {/* 2 — the act-now path. Signed in → straight to the maker.
+          Signed out → the free-card claim (3 dates, then the card's
+          free), because they need an account either way and the offer
+          is a better reason than "we'll email you a code". */}
+      {createHref ? (
+        <Link
+          href={createHref}
+          className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
+          data-testid="btn-viewer-create"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Make one of your own — free
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onClaim}
+          className="mt-5 inline-flex h-[52px] w-full items-center justify-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand-dark sm:w-auto sm:min-w-[300px]"
+          data-testid="btn-viewer-create"
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Make one of your own — your first is on us
+        </button>
+      )}
+
+      {/* 3 — recipient utility, quiet */}
+      <div className="mt-3">
+        <button
+          type="button"
+          onClick={onShare}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-meta underline underline-offset-4 transition-colors hover:text-brand-dark"
+          data-testid="btn-viewer-share"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          Share this card
+        </button>
+      </div>
+
+      {/* 4 — the not-right-now path */}
+      <div className="mt-6 border-t border-stone-100 pt-5">
+        {sent ? (
+          <p className="text-sm font-medium text-cta-hover" data-testid="lead-captured">
+            Done — the link's in your inbox for whenever you're ready. ✨
+          </p>
+        ) : (
+          <>
+            <p className="text-sm font-medium text-keeper-ink">Not the moment?</p>
+            <p className="mt-0.5 text-xs text-keeper-meta">
+              We'll email you the link for later.
+            </p>
+            <form
+              className="mx-auto mt-3 flex max-w-sm items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+            >
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-sm text-keeper-ink placeholder:text-keeper-meta focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                data-testid="input-lead-email"
+              />
+              <Button
+                type="submit"
+                disabled={busy}
+                className="h-11 shrink-0 bg-brand hover:bg-brand-dark text-brand-foreground"
+                data-testid="btn-lead-submit"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send it'}
+              </Button>
+            </form>
+            {/* Explicit opt-in for anything beyond the one link email
+                (GDPR-clean: unticked default, plain language). */}
+            <label className="mx-auto mt-3 flex max-w-sm cursor-pointer items-start gap-2 text-left">
+              <input
+                type="checkbox"
+                checked={optIn}
+                onChange={(e) => setOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 accent-[#5c57d4]"
+                data-testid="check-lead-optin"
+              />
+              <span className="text-[11.5px] leading-snug text-keeper-meta">
+                Keep me posted now and then — new features and ideas.
+                Unsubscribe anytime.
+              </span>
+            </label>
+            <p className="mx-auto mt-2 max-w-sm text-[10.5px] text-keeper-meta">
+              We'll send your link straight away. No spam, ever.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -426,21 +587,21 @@ function ShareDialog({
             label="Copy link"
             color="bg-stone-100"
             onClick={onCopy}
-            icon={<Copy className="w-5 h-5 text-stone-700" />}
-            textColor="text-stone-700"
+            icon={<Copy className="w-5 h-5 text-keeper-body" />}
+            textColor="text-keeper-body"
           />
         </div>
 
         {hasNativeShare && (
           <button
             onClick={onNativeShare}
-            className="mt-4 w-full text-center text-sm text-stone-600 hover:text-brand-dark transition-colors"
+            className="mt-4 w-full text-center text-sm text-keeper-body hover:text-brand-dark transition-colors"
           >
             More sharing options…
           </button>
         )}
 
-        <div className="mt-4 text-xs text-stone-500 text-center truncate px-2">
+        <div className="mt-4 text-xs text-keeper-meta text-center truncate px-2">
           {shareUrl}
         </div>
       </DialogContent>
@@ -464,14 +625,14 @@ function ShareTile({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 text-xs text-stone-600 hover:text-ink transition-colors"
+      className="flex flex-col items-center gap-1.5 text-xs text-keeper-body hover:text-keeper-ink transition-colors"
     >
       <div
         className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center shadow-sm`}
       >
         {icon}
       </div>
-      <span className={textColor ?? 'text-stone-600'}>{label}</span>
+      <span className={textColor ?? 'text-keeper-body'}>{label}</span>
     </button>
   );
 }
@@ -562,7 +723,7 @@ function WelcomeGate({ show, onOpen }: { show: boolean; onOpen: () => void }) {
               </motion.div>
             </motion.button>
 
-            <p className="text-xs uppercase tracking-[0.25em] text-stone-500">
+            <p className="text-xs uppercase tracking-[0.25em] text-keeper-meta">
               Tap to open
             </p>
           </motion.div>
@@ -625,7 +786,7 @@ function SquareEnvelope({ opening }: { opening: boolean }) {
 function Shell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen overflow-x-clip bg-white">
       {/* Header at z-20. The 3D canvas sits at z-0 and extends past
           the stage bounds, so the card visually passes behind the
           header (and the UI below, at z-10) when zoomed/rotated.
@@ -638,14 +799,14 @@ function Shell({ children }: { children: React.ReactNode }) {
         {isAuthenticated ? (
           <Link
             href="/studio"
-            className="text-sm font-medium text-stone-700 hover:text-brand-dark"
+            className="text-sm font-medium text-keeper-body hover:text-brand-dark"
           >
             My studio
           </Link>
         ) : (
           <Link
             href="/login"
-            className="text-sm font-medium text-stone-700 hover:text-brand-dark"
+            className="text-sm font-medium text-keeper-body hover:text-brand-dark"
           >
             Sign in
           </Link>
@@ -696,6 +857,11 @@ function CardFrontPoster({
         <img
           src={frontImageUrl}
           alt=""
+          // Share one CORS-clean cache entry with the 3D viewer's texture
+          // loader (which is crossOrigin). Without this, this flat image —
+          // which loads first — caches a no-CORS response that poisons the
+          // WebGL texture fetch and the 3D card renders blank.
+          crossOrigin="anonymous"
           className="max-w-[min(75vw,55vh)] max-h-[55vh] aspect-square object-cover rounded-lg shadow-[0_12px_32px_-8px_rgba(15,23,42,0.25)]"
           // Hint to the browser: front asset is the highest-priority
           // resource on this page. Modern browsers respect fetchpriority
@@ -706,7 +872,7 @@ function CardFrontPoster({
         />
       ) : (
         <div className="w-[min(60vw,40vh)] aspect-square rounded-lg bg-stone-100 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-keeper-meta" />
         </div>
       )}
     </div>

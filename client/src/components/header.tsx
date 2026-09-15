@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { User, LogOut, LogIn, Sparkles } from "lucide-react";
 import { Link } from "wouter";
-import logoSrc from "../assets/Logo2.png";
+import logoSrc from "../assets/logo-mark.webp";
 
 export default function Header() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();

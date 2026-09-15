@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  celebrait.co.uk sitemap.
+
+  PUBLIC marketing pages only. Deliberately excluded: /studio + /admin +
+  /checkout (auth-gated), /card/* (private recipient links), /login, and
+  the internal stages (/card-capture, /hero-poc, /og). /keeper is omitted
+  as well — it's an alias of "/" and listing both would be duplicate
+  content competing with itself.
+
+  Canonical host is www (the apex 301s to it), so every URL here is www.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.celebrait.co.uk/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/pricing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/contact</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/blog/how-to-turn-a-photo-into-a-greeting-card</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/blog/ai-generated-greeting-cards</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/blog/personalised-birthday-card-ideas</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/privacy-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.celebrait.co.uk/terms-of-service</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

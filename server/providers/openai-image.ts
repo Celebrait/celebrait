@@ -32,6 +32,43 @@ export interface OpenAIVariantConfig {
   costByQuality: Record<'low' | 'medium' | 'high', number>;
   /** Pre-formatted USD price string for the UI quality dropdown. */
   qualityDisplay: Record<'low' | 'medium' | 'high', string>;
+  /** When true, a reference-image request GENERATES a new image via the
+   *  Responses API (image_generation tool, action:"generate") instead of
+   *  editing the source via /v1/images/edits. Edit-mode welds gpt-image-2 to
+   *  high input-fidelity → it copies the source's expression + gaze; generate
+   *  mode references identity but composes fresh, so it MAY break that
+   *  ceiling. Lab-only A/B lever (Kevin 2026-07-17). */
+  useResponsesGenerate?: boolean;
+  /** Top-level orchestrator model for the Responses API call (it invokes the
+   *  image_generation tool). Overridable at runtime via OPENAI_RESPONSES_MODEL
+   *  — a hedge since this API surface is newer than the model's knowledge and
+   *  the right orchestrator id may need a nudge without a redeploy. */
+  responsesModel?: string;
+  /** Price each call from the `usage` block the Images API returns
+   *  (text-in $5 / image-in $8 / image-out $30 per 1M tokens — the rate
+   *  card gpt-image-2 and 2.5 share) instead of the per-quality table.
+   *  gpt-image-2.5's token consumption per tier is unpublished ("the
+   *  GPT Image 2 calculator does not estimate GPT Image 2.5 token
+   *  consumption"), so a fixed table would make the Cost Ledger lie.
+   *  The table stays as the fallback when no usage comes back. */
+  costFromUsage?: boolean;
+}
+
+/** OpenAI image-token rate card, US cents per token (2026-09). Shared by
+ *  gpt-image-2 and both gpt-image-2.5 models. */
+const OPENAI_IMAGE_TOKEN_CENTS = { textIn: 500 / 1e6, imageIn: 800 / 1e6, imageOut: 3000 / 1e6 };
+
+/** Cost in cents from an Images API `usage` block, or null when the
+ *  response carried none. */
+function costFromUsageCents(usage: any): number | null {
+  if (!usage || typeof usage !== 'object') return null;
+  const out = Number(usage.output_tokens ?? 0);
+  const textIn = Number(usage.input_tokens_details?.text_tokens ?? 0);
+  const imageIn = Number(usage.input_tokens_details?.image_tokens ?? 0);
+  if (!out && !textIn && !imageIn) return null;
+  return out * OPENAI_IMAGE_TOKEN_CENTS.imageOut
+    + textIn * OPENAI_IMAGE_TOKEN_CENTS.textIn
+    + imageIn * OPENAI_IMAGE_TOKEN_CENTS.imageIn;
 }
 
 export const OPENAI_VARIANTS = {
@@ -71,6 +108,52 @@ export const OPENAI_VARIANTS = {
       high: '$0.211',
     },
   },
+  /** gpt-image-2 via the Responses API GENERATE path — same model + pricing
+   *  as v2, but a reference photo is passed as context to compose a NEW image
+   *  rather than editing the source. Lab-only A/B lever to test whether
+   *  generate-mode frees expression/pose that edit-mode's forced high-fidelity
+   *  copies (Kevin 2026-07-17). Not for production until proven in the Lab. */
+  v2_gen: {
+    id: 'openai-2-gen',
+    displayName: 'OpenAI gpt-image-2 (Responses generate)',
+    model: 'gpt-image-2',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: {
+      low: '$0.006',
+      medium: '$0.053',
+      high: '$0.211',
+    },
+    useResponsesGenerate: true,
+    responsesModel: 'gpt-5.6',
+  },
+  /** gpt-image-2.5 (ChatGPT Images 2.5, released 2026-09-08) — two API
+   *  models on the same endpoints and the same token rates as gpt-image-2.
+   *  FLARE is OpenAI's new default: gpt-image-2 quality at up to half
+   *  the latency. SUNBURST is the premium one: slower, "editing
+   *  precision", and the claim that matters to us — subjects from a
+   *  reference photo carry through more reliably (the cameo's exact
+   *  failure). Both accept low/medium/high (plus xhigh/max, not exposed
+   *  yet). Rolling aliases; dated snapshots are `-2026-09-08`.
+   *
+   *  Lab-only until proven (Prompt Lab first). Prices shown are gpt-
+   *  image-2's, marked "~": same rate card, consumption per tier
+   *  unpublished, so the ledger prices each call from `usage`. */
+  v2_5_flare: {
+    id: 'openai-2.5-flare',
+    displayName: 'OpenAI gpt-image-2.5 Flare',
+    model: 'gpt-image-2.5-flare',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: { low: '~$0.006', medium: '~$0.053', high: '~$0.211' },
+    costFromUsage: true,
+  },
+  v2_5_sunburst: {
+    id: 'openai-2.5-sunburst',
+    displayName: 'OpenAI gpt-image-2.5 Sunburst',
+    model: 'gpt-image-2.5-sunburst',
+    costByQuality: { low: 0.6, medium: 5.3, high: 21.1 },
+    qualityDisplay: { low: '~$0.006', medium: '~$0.053', high: '~$0.211' },
+    costFromUsage: true,
+  },
 } satisfies Record<string, OpenAIVariantConfig>;
 
 export class OpenAIImageProvider implements ImageProvider {
@@ -79,6 +162,9 @@ export class OpenAIImageProvider implements ImageProvider {
   readonly model: string;
   private readonly costByQuality: Record<'low' | 'medium' | 'high', number>;
   private readonly qualityDisplay: Record<'low' | 'medium' | 'high', string>;
+  private readonly useResponsesGenerate: boolean;
+  private readonly responsesModel: string;
+  private readonly costFromUsage: boolean;
 
   constructor(variant: OpenAIVariantConfig = OPENAI_VARIANTS.v1_5) {
     this.id = variant.id;
@@ -86,6 +172,9 @@ export class OpenAIImageProvider implements ImageProvider {
     this.model = variant.model;
     this.costByQuality = variant.costByQuality;
     this.qualityDisplay = variant.qualityDisplay;
+    this.useResponsesGenerate = variant.useResponsesGenerate ?? false;
+    this.responsesModel = variant.responsesModel ?? 'gpt-5.6';
+    this.costFromUsage = variant.costFromUsage ?? false;
   }
 
   isAvailable(): boolean {
@@ -108,8 +197,15 @@ export class OpenAIImageProvider implements ImageProvider {
     const startTime = Date.now();
     const q = req.quality;
     let imageUrl: string | null = null;
+    // The Images API's `usage` block, when the path we took returns one.
+    let usage: any = null;
 
-    if (req.referenceImageBase64) {
+    if (req.referenceImageBase64 && this.useResponsesGenerate && !req.editMode) {
+      // ── Reference-conditioned GENERATE via the Responses API ──
+      // The photo is context for identity; the model composes a NEW image
+      // rather than editing the source pixels. See generateViaResponses.
+      imageUrl = await this.generateViaResponses(req, q, startTime);
+    } else if (req.referenceImageBase64) {
       // ── Image-to-image via /v1/images/edits ──
       // Collect all reference images (primary + additional).
       // OpenAI supports multiple via image[] array syntax.
@@ -154,6 +250,9 @@ export class OpenAIImageProvider implements ImageProvider {
       formData.append('quality', q);
       formData.append('moderation', 'low');
       formData.append('background', 'auto');
+      // input_fidelity is a gpt-image-1-only parameter; gpt-image-2
+      // rejects it outright ("does not support"), so only send it there.
+      if (req.inputFidelity && this.model === 'gpt-image-1') formData.append('input_fidelity', req.inputFidelity);
 
       const fetch = (await import('node-fetch')).default;
       const totalImageBytes = allImages.reduce((sum, img) => {
@@ -170,6 +269,12 @@ export class OpenAIImageProvider implements ImageProvider {
           ...formData.getHeaders(),
         },
         body: formData as any,
+        // Historically this fetch had NO timeout → a stalled OpenAI
+        // request hung the card forever (cycling wait-stage quotes,
+        // nothing happening). Abort after 6 min so a true stall surfaces
+        // as a failure → retry. gpt-image 'high' is ~5 min worst case, so
+        // this only fires on a genuine hang, not a legitimately-slow gen.
+        signal: AbortSignal.timeout(req.timeoutMs ?? 6 * 60 * 1000),
       });
       console.log(
         `[PROVIDER:openai] ← ${response.status} ${response.statusText} (${Date.now() - startTime}ms)`,
@@ -197,6 +302,7 @@ export class OpenAIImageProvider implements ImageProvider {
         });
       }
       imageUrl = `data:image/png;base64,${b64}`;
+      usage = json?.usage ?? null;
     } else {
       // ── Text-only via SDK ──
       if (!openai) {
@@ -217,7 +323,12 @@ export class OpenAIImageProvider implements ImageProvider {
           n: 1,
           size: openaiSize(req.size) as any,
           quality: q,
-        } as any);
+        } as any, {
+          // The SDK's own defaults are a 10-minute timeout and two silent
+          // retries — up to 30 minutes for one stalled call. Bound it.
+          timeout: req.timeoutMs ?? 6 * 60 * 1000,
+          maxRetries: req.timeoutMs ? 0 : 1,
+        });
       } catch (sdkErr: unknown) {
         throw classifyOpenAIError(sdkErr, this.id);
       }
@@ -232,6 +343,7 @@ export class OpenAIImageProvider implements ImageProvider {
       } else if (data?.url) {
         imageUrl = data.url;
       }
+      usage = gen?.usage ?? null;
       if (!imageUrl) {
         throw new ProviderError({
           kind: 'server',
@@ -244,7 +356,14 @@ export class OpenAIImageProvider implements ImageProvider {
     }
 
     const durationMs = Date.now() - startTime;
-    const costCents = this.costByQuality[q] ?? this.costByQuality.low;
+    const tableCents = this.costByQuality[q] ?? this.costByQuality.low;
+    const usageCents = this.costFromUsage ? costFromUsageCents(usage) : null;
+    if (this.costFromUsage) {
+      console.log(
+        `[PROVIDER:openai] ${this.model} quality=${q} usage=${usage ? JSON.stringify(usage) : 'none'} → ${usageCents !== null ? `${usageCents.toFixed(2)}¢` : `table ${tableCents}¢`}`,
+      );
+    }
+    const costCents = usageCents ?? tableCents;
     return {
       imageUrl,
       durationMs,
@@ -253,6 +372,106 @@ export class OpenAIImageProvider implements ImageProvider {
       provider: this.id,
       model: this.model,
     };
+  }
+
+  /**
+   * Reference-conditioned GENERATE via the Responses API.
+   *
+   * Unlike /v1/images/edits (which edits the source photo's pixels and, on
+   * gpt-image-2, is welded to high input-fidelity → it copies the source's
+   * expression + gaze), this passes the photo as CONTEXT and asks the
+   * image_generation tool to compose a NEW image. Same identity signal, but
+   * built fresh — the hypothesis being it frees the pose/expression that edit
+   * mode preserves. Lab-only A/B lever; unproven until tested.
+   *
+   * Shape verified against OpenAI's live docs 2026-07-17:
+   *   POST /v1/responses
+   *   { model, input:[{role:'user', content:[{type:'input_text',text},
+   *     {type:'input_image',image_url}]}],
+   *     tools:[{type:'image_generation', action:'generate', size, quality}] }
+   *   → output[].{type:'image_generation_call'}.result  (base64 PNG)
+   *
+   * Returns a data: URL, matching the generate() output contract.
+   */
+  private async generateViaResponses(
+    req: ImageGenerationRequest,
+    q: 'low' | 'medium' | 'high',
+    startTime: number,
+  ): Promise<string> {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new ProviderError({
+        kind: 'auth',
+        code: 'no_key',
+        message: 'OpenAI API key not configured',
+        retryable: false,
+        provider: this.id,
+      });
+    }
+    // Orchestrator model is env-overridable — this API surface is newer than
+    // the model's knowledge, so the right id can be nudged without a redeploy.
+    const model = process.env.OPENAI_RESPONSES_MODEL || this.responsesModel;
+
+    const refs = [req.referenceImageBase64, ...(req.additionalReferenceImages ?? [])]
+      .filter((s): s is string => !!s)
+      .map((img) => (img.startsWith('data:') ? img : `data:image/png;base64,${img}`));
+
+    const content: any[] = [{ type: 'input_text', text: req.prompt }];
+    for (const image_url of refs) content.push({ type: 'input_image', image_url });
+
+    const body = {
+      model,
+      input: [{ role: 'user', content }],
+      tools: [
+        {
+          type: 'image_generation',
+          action: 'generate',
+          size: openaiSize(req.size),
+          quality: q,
+        },
+      ],
+    };
+
+    const fetch = (await import('node-fetch')).default;
+    console.log(
+      `[PROVIDER:openai] → POST /v1/responses (model=${model} image_generation:generate quality=${q} refs=${refs.length})`,
+    );
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(req.timeoutMs ?? 6 * 60 * 1000),
+    });
+    console.log(
+      `[PROVIDER:openai] ← ${response.status} ${response.statusText} (${Date.now() - startTime}ms)`,
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData: any;
+      try { errorData = JSON.parse(errorText); } catch { errorData = { error: { message: errorText } }; }
+      throw classifyOpenAIError({ ...errorData, status: response.status }, this.id);
+    }
+
+    const json = (await response.json()) as any;
+    const call = Array.isArray(json?.output)
+      ? json.output.find((o: any) => o?.type === 'image_generation_call')
+      : null;
+    const b64 = call?.result;
+    if (!b64) {
+      throw new ProviderError({
+        kind: 'server',
+        code: 'empty_response',
+        message:
+          'Responses API returned no image (no image_generation_call.result in output). ' +
+          `Raw output types: ${JSON.stringify((json?.output ?? []).map((o: any) => o?.type))}`,
+        retryable: true,
+        provider: this.id,
+      });
+    }
+    return `data:image/png;base64,${b64}`;
   }
 
   /**
