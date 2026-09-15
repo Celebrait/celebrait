@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Celebrait — demo run</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/" } }</script>
+    <style>
+      /* The site's own faces (client/src/index.css): Fraunces for the moments, Figtree for the rest. */
+      @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 100 900; font-display: block; src: url("assets/fonts/fraunces-latin-standard-normal.woff2") format("woff2-variations"); }
+      @font-face { font-family: "Figtree"; font-style: normal; font-weight: 300 900; font-display: block; src: url("assets/fonts/figtree-latin-wght-normal.woff2") format("woff2-variations"); }
+
+      :root {
+        --paper: #faf8f4; --paper-top: #fffdf9;
+        --ink: #211d19; --body: #3a342e; --meta: #7d746a; --hair: #e9e4dc;
+        --brand: #7a76e8; --brand-dark: #5c57d4; --brand-muted: #f2f1fb;
+        --go: #5fd94a;
+        --display: "Fraunces", Georgia, serif; --sans: "Figtree", system-ui, sans-serif;
+        --card: 680px;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, var(--paper-top) 0%, var(--paper) 100%); }
+
+      /* ── the living background: the current card, blurred, plus two violet orbs and grain ── */
+      .amb { position: absolute; inset: -12%; pointer-events: none; }
+      .amb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(90px) saturate(1.15); opacity: 0; }
+      .amb-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,253,249,0.88) 0%, rgba(250,248,244,0.82) 100%); }
+      .orb { position: absolute; width: 900px; height: 900px; border-radius: 50%; pointer-events: none; filter: blur(40px);
+        background: radial-gradient(circle, rgba(122,118,232,0.22) 0%, rgba(122,118,232,0) 62%); }
+      #orb-a { left: -300px; top: 120px; } #orb-b { right: -360px; bottom: 60px; }
+      .grain { position: absolute; inset: 0; pointer-events: none; z-index: 60; opacity: 0.12; mix-blend-mode: multiply;
+        background-image: radial-gradient(rgba(33,29,25,0.10) 1px, transparent 1.2px), radial-gradient(rgba(33,29,25,0.06) 1px, transparent 1.2px);
+        background-size: 3px 3px, 5px 5px; background-position: 0 0, 1px 2px; }
+
+      .clip { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 84px; text-align: center; }
+      .topbar { justify-content: flex-start; align-items: flex-start; padding-top: 110px; }
+      .topbar img { display: block; width: 230px; height: auto; }
+
+      .kicker { display: block; font-weight: 700; font-size: 27px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brand-dark); margin-bottom: 28px; }
+      .h { display: block; font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
+      .h .ln { display: block; }
+      .sub { display: block; margin-top: 30px; font-weight: 400; font-size: 40px; line-height: 1.35; color: var(--body); max-width: 24ch; }
+
+      /* S1 — the hook: kinetic words, the recipient shimmering violet → ink */
+      .hook { align-items: flex-start; text-align: left; padding: 0 96px; }
+      .hookline { display: block; font-family: var(--display); font-weight: 700; font-size: 116px; line-height: 1.04; letter-spacing: -0.015em; color: var(--ink); }
+      .hookline .w { display: inline-block; white-space: nowrap; opacity: 0; }
+      .hookline .sp { display: inline-block; width: 0.26em; }
+      .hookline .who { display: inline-block; background-image: linear-gradient(90deg, var(--brand) 0%, var(--brand-dark) 35%, var(--ink) 70%, var(--ink) 100%); background-size: 240% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: 0.08em; }
+      .rule { display: block; width: 180px; height: 8px; border-radius: 4px; background: var(--brand); margin-top: 60px; transform-origin: 0 50%; }
+
+      /* S2 — the brief as pills */
+      .pills { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+      .pill { display: block; padding: 24px 46px; border-radius: 999px; border: 2px solid var(--hair); background: rgba(255,255,255,0.92); font-weight: 500; font-size: 42px; line-height: 1.2; color: var(--ink); max-width: 880px; box-shadow: 0 18px 40px -26px rgba(33,29,25,0.35); }
+
+      /* Cards — one size everywhere so the card holds its place across scenes */
+      .stage { position: relative; display: block; width: 900px; height: 780px; margin-top: 20px; }
+      .card { position: absolute; left: 50%; top: 50%; width: var(--card); height: var(--card); margin: calc(var(--card) / -2) 0 0 calc(var(--card) / -2); border-radius: 24px; overflow: hidden; background: #fff;
+        box-shadow: 0 60px 100px -40px rgba(33,29,25,0.5), 0 0 0 1px rgba(33,29,25,0.06); }
+      .card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .sheen { position: absolute; inset: -40%; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 60%); }
+      .ring { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 6px solid var(--brand); background: rgba(122,118,232,0.22); pointer-events: none; }
+      .caption { display: block; margin-top: 28px; font-family: var(--display); font-weight: 600; line-height: 1.22; color: var(--ink); max-width: 20ch; }
+
+      /* S4 — the photo goes in */
+      .photo { position: absolute; left: 50%; top: 50%; width: 500px; height: 640px; margin: -320px 0 0 -250px; border-radius: 30px; overflow: hidden; border: 8px solid #fff; background: #fff; box-shadow: 0 50px 90px -40px rgba(33,29,25,0.45); }
+      .photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .cameo { clip-path: circle(0% at 50% 50%); }
+
+      /* S5 — the real card: a WebGL layer (three.js), paper-thick, lit, on a shadowed ground */
+      .three-stage { position: relative; display: block; width: 1080px; height: 1080px; margin: 0 -84px; }
+      .three-stage canvas { display: block; width: 1080px; height: 1080px; }
+
+      /* S6 — on the way */
+      .tick { display: flex; align-items: center; justify-content: center; width: 210px; height: 210px; border-radius: 50%; background: var(--go); margin-bottom: 44px; box-shadow: 0 30px 60px -30px rgba(95,217,74,0.7); }
+      .tick svg { width: 110px; height: 110px; }
+      .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; }
+      .burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+      .burst i { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 4px; background: var(--brand); opacity: 0; }
+      .burst i:nth-child(3n) { background: var(--go); } .burst i:nth-child(3n+1) { background: var(--brand-dark); }
+      .logo-big { display: block; width: 460px; height: auto; margin-top: 64px; }
+      .pill-cta { display: block; margin-top: 36px; padding: 24px 52px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; font-size: 40px; letter-spacing: -0.01em; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1080" data-height="1920" data-duration="{{DURATION}}" data-fps="30">
+
+      <!-- the living background, whole run -->
+      <div id="amb" class="amb">
+        <img id="amb-a" src="{{FRONT1}}" alt="" />
+        <img id="amb-b" src="{{FINAL_FRONT}}" alt="" />
+        <img id="amb-c" src="{{INSIDE}}" alt="" />
+        <div class="amb-wash"></div>
+        <div id="orb-a" class="orb"></div>
+        <div id="orb-b" class="orb"></div>
+      </div>
+      <div class="grain"></div>
+
+      <section id="topbar" class="clip topbar" data-start="{{T_BRIEF}}" data-duration="{{D_TOP}}" data-track-index="1">
+        <img id="topbar-logo" src="assets/logo.webp" alt="" />
+      </section>
+
+      <!-- S1 · the hook -->
+      <section id="s1" class="clip hook" data-start="0" data-duration="{{T_BRIEF}}" data-track-index="0">
+        <p id="s1-line" class="hookline">{{HOOK_HTML}}</p>
+        <span id="s1-rule" class="rule"></span>
+      </section>
+
+      <!-- S2 · the brief -->
+      <section id="s2" class="clip" data-start="{{T_BRIEF}}" data-duration="{{D_BRIEF}}" data-track-index="0">
+        <span id="s2-k" class="kicker">The brief</span>
+        <div id="s2-pills" class="pills">{{CHIPS_HTML}}</div>
+      </section>
+
+      <!-- S3 · three cards, one picked -->
+      <section id="s3" class="clip" data-start="{{T_THREE}}" data-duration="{{D_THREE}}" data-track-index="0">
+        <span id="s3-h" class="h"><span class="ln">Three cards.</span><span class="ln">Pick one.</span></span>
+        <div id="s3-stage" class="stage">
+          <div id="s3-c0" class="card"><img src="{{FRONT1}}" alt="" /><div class="sheen"></div></div>
+          <div id="s3-c1" class="card"><img src="{{FRONT2}}" alt="" /><div class="sheen"></div></div>
+          <div id="s3-c2" class="card"><img src="{{FRONT3}}" alt="" /><div class="sheen"></div></div>
+          <div id="s3-ring" class="ring"></div>
+        </div>
+        <span id="s3-cap" class="caption" style="font-size: {{CAPTION_SIZE}}px">{{PICKED_TEXT}}</span>
+      </section>
+
+      <!--IF_PHOTO-->
+      <!-- S4 · the photo goes in -->
+      <section id="s4" class="clip" data-start="{{T_PHOTO}}" data-duration="{{D_PHOTO}}" data-track-index="0">
+        <span id="s4-k" class="kicker">Add a photo</span>
+        <span id="s4-h" class="h">Put {{WHO}} in it.</span>
+        <div id="s4-stage" class="stage">
+          <div id="s4-base" class="card"><img src="{{PICKED_FRONT}}" alt="" /></div>
+          <div id="s4-cameo" class="card cameo"><img src="{{CAMEO}}" alt="" /><div id="s4-sheen" class="sheen"></div></div>
+          <div id="s4-photo" class="photo"><img src="{{PHOTO}}" alt="" /></div>
+          <div id="s4-ring" class="ring"></div>
+        </div>
+      </section>
+      <!--END_PHOTO-->
+
+      <!-- S5 · the inside -->
+      <section id="s5" class="clip" data-start="{{T_INSIDE}}" data-duration="{{D_INSIDE}}" data-track-index="0">
+        <span id="s5-k" class="kicker">Your words inside</span>
+        <div id="s5-stage" class="three-stage"><canvas id="s5-three" width="2160" height="2160"></canvas></div>
+      </section>
+
+      <!-- S6 · on the way -->
+      <section id="s6" class="clip" data-start="{{T_CLOSE}}" data-duration="{{D_CLOSE}}" data-track-index="0">
+        <div id="s6-burst" class="burst">{{PARTICLES}}</div>
+        <div id="s6-tick" class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path id="s6-tickpath" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <span id="s6-h" class="h">It’s on the way.</span>
+        <span id="s6-sub" class="sub">Printed today, posted tracked. Expect it by {{EXPECT}}.</span>
+        <img id="s6-logo" class="logo-big" src="assets/logo-close.webp" alt="" />
+        <span id="s6-pill" class="pill-cta">celebrait.co.uk</span>
+      </section>
+    </div>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+      const T = { brief: {{T_BRIEF}}, three: {{T_THREE}}, photo: {{T_PHOTO}}, inside: {{T_INSIDE}}, close: {{T_CLOSE}}, end: {{T_END}} };
+      const HAS_PHOTO = {{HAS_PHOTO}};
+      const PICKED = {{PICKED}};
+      const tl = gsap.timeline({ paused: true });
+      // A scene leaves by pushing through the camera: up, bigger, blurred.
+      const push = (targets, at) => tl.to(targets, { y: -30, scale: 1.04, opacity: 0, filter: "blur(10px)", duration: 0.42, ease: "power2.in", stagger: 0.03 }, at);
+      // Headline words land from below, sharpening as they arrive.
+      const land = (targets, at, stagger = 0.08) => tl.fromTo(targets, { y: 46, opacity: 0, filter: "blur(14px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power3.out", stagger }, at);
+      const sheen = (id, at, dur = 1.1) => tl.fromTo(id, { xPercent: -60, opacity: 0 }, { xPercent: 60, opacity: 1, duration: dur, ease: "power1.inOut" }, at);
+      const tapRing = (id, at) => tl.fromTo(id, { scale: 0.4, opacity: 0.95 }, { scale: 2.2, opacity: 0, duration: 0.7, ease: "power2.out" }, at);
+
+      // ---- ambient: the background carries the card, and breathes ----
+      gsap.set(["#amb-a", "#amb-b", "#amb-c"], { opacity: 0 });
+      tl.to("#amb-a", { opacity: 0.55, duration: 1.2, ease: "sine.inOut" }, T.three);
+      tl.to("#amb-a", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
+      tl.to("#amb-b", { opacity: 0.55, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
+      tl.to("#amb-b", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
+      tl.to("#amb-c", { opacity: 0.4, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
+      tl.fromTo("#orb-a", { x: 0, y: 0 }, { x: 160, y: 120, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#orb-b", { x: 0, y: 0 }, { x: -140, y: -160, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#amb", { scale: 1 }, { scale: 1.06, duration: T.end, ease: "sine.inOut" }, 0);
+
+      // ---- S1 · the hook ----
+      land("#s1-line .w", 0.25, 0.11);
+      tl.fromTo("#s1-line .who", { backgroundPosition: "100% 0" }, { backgroundPosition: "0% 0", duration: 1.4, ease: "power2.inOut", immediateRender: false }, 1.0);
+      tl.fromTo("#s1-rule", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.6, ease: "power3.out" }, 1.5);
+      push(["#s1-line", "#s1-rule"], T.brief - 0.42);
+
+      // ---- S2 · the brief ----
+      tl.fromTo("#topbar-logo", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, T.brief + 0.1);
+      tl.fromTo("#s2-k", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, T.brief + 0.1);
+      gsap.utils.toArray("#s2-pills .pill").forEach((el, i) => {
+        tl.fromTo(el, { x: i % 2 ? 90 : -90, y: 30, opacity: 0, rotation: i % 2 ? 3 : -3, scale: 0.92 }, { x: 0, y: 0, opacity: 1, rotation: 0, scale: 1, duration: 0.65, ease: "back.out(1.7)" }, T.brief + 0.35 + i * 0.22);
+      });
+      push(["#s2-k", "#s2-pills .pill"], T.three - 0.42);
+
+      // ---- S3 · the fan, the pick ----
+      land("#s3-h .ln", T.three + 0.05, 0.12);
+      const fan = [{ x: -250, r: -9 }, { x: 0, r: 0 }, { x: 250, r: 9 }];
+      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
+        tl.fromTo(id, { y: 980, x: fan[i].x, rotation: fan[i].r - 6, scale: 0.78, opacity: 0 }, { y: 0, x: fan[i].x, rotation: fan[i].r, scale: 0.78, opacity: 1, duration: 1.0, ease: "expo.out" }, T.three + 0.3 + i * 0.14);
+        sheen(`${id} .sheen`, T.three + 0.9 + i * 0.14, 1.0);
+      });
+      // a thumb lands on the chosen card
+      const pickAt = T.three + 2.5;
+      tapRing("#s3-ring", pickAt);
+      tl.to("#s3-ring", { x: fan[PICKED].x * 0.78 }, 0);
+      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
+        if (i === PICKED) tl.to(id, { x: 0, rotation: 0, scale: 1, duration: 0.85, ease: "power3.inOut", overwrite: "auto" }, pickAt + 0.15);
+        else tl.to(id, { x: fan[i].x * 2.1, y: 120, opacity: 0, rotation: fan[i].r * 2, scale: 0.7, duration: 0.7, ease: "power2.in", overwrite: "auto" }, pickAt + 0.1);
+      });
+      sheen(`#s3-c${PICKED} .sheen`, pickAt + 0.9, 1.0);
+      land("#s3-cap", pickAt + 0.7, 0);
+      // leave: the card stays, the words go
+      push(["#s3-h .ln", "#s3-cap"], T.photo - 0.42);
+      tl.to(`#s3-c${PICKED}`, { opacity: 0, duration: 0.3, ease: "power1.in" }, T.photo - 0.05);
+
+      // ---- S4 · the photo goes in ----
+      if (HAS_PHOTO) {
+        gsap.set("#s4-base", { scale: 1 });
+        land(["#s4-k", "#s4-h"], T.photo + 0.05, 0.1);
+        tl.fromTo("#s4-photo", { y: 700, rotation: -8, scale: 0.7, opacity: 0 }, { y: 0, rotation: -4, scale: 1, opacity: 1, duration: 0.9, ease: "back.out(1.2)" }, T.photo + 0.5);
+        tapRing("#s4-ring", T.photo + 1.7);
+        // the photo dives into the card; the cameo blooms out from where it landed
+        tl.to("#s4-photo", { scale: 0.12, rotation: 0, opacity: 0, duration: 0.55, ease: "power3.in" }, T.photo + 1.85);
+        tl.to("#s4-base", { scale: 0.96, duration: 0.3, ease: "power2.in" }, T.photo + 2.1);
+        tl.fromTo("#s4-cameo", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(75% at 50% 50%)", duration: 1.0, ease: "power3.out" }, T.photo + 2.35);
+        tl.to("#s4-base", { scale: 1, duration: 0.5, ease: "back.out(1.5)" }, T.photo + 2.4);
+        sheen("#s4-sheen", T.photo + 2.9, 1.1);
+        push(["#s4-k", "#s4-h"], T.inside - 0.42);
+        tl.to(["#s4-base", "#s4-cameo"], { opacity: 0, duration: 0.3, ease: "power1.in" }, T.inside - 0.05);
+      }
+
+      // ---- S5 · the real card, opened ----
+      land("#s5-k", T.inside + 0.05, 0);
+      tl.fromTo("#s5-stage", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, T.inside + 0.05);
+      push(["#s5-k", "#s5-stage"], T.close - 0.42);
+
+      // ── the card itself: three.js, rendered from HyperFrames time (hf-seek) ──
+      // Geometry mirrors the product's viewer (client/src/components/card-3d-viewer.tsx):
+      // two paper-thick panels on a spine hinge, the cover ajar at rest, swinging
+      // open to the left; the inside page carries the run's inside image.
+      const W = 1.45, H = 1.45, TH = 0.012;
+      const canvas = document.getElementById("s5-three");
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(2160, 2160, false); renderer.setPixelRatio(1);
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      const scene = new THREE.Scene();
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+      const loader = new THREE.TextureLoader();
+      const tex = (src) => loader.loadAsync(src).then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; });
+      const [frontTex, insideTex] = await Promise.all([tex("{{FINAL_FRONT}}"), tex("{{INSIDE}}")]);
+      const paper = (map) => new THREE.MeshStandardMaterial({ map: map ?? null, color: map ? 0xffffff : 0xf7f2e9, roughness: 0.92, metalness: 0, envMapIntensity: 0.35 });
+      const edge = new THREE.MeshStandardMaterial({ color: 0xf1ebe1, roughness: 1 });
+      // panel: BoxGeometry face order +x -x +y -y +z -z
+      const panel = (frontMap, backMap) => {
+        const g = new THREE.BoxGeometry(W, H, TH);
+        const m = new THREE.Mesh(g, [edge, edge, edge, edge, paper(frontMap), paper(backMap)]);
+        m.castShadow = true; m.receiveShadow = true; return m;
+      };
+      const rig = new THREE.Group(); scene.add(rig);
+      // inside page: spine at x=0, page to the right; its +z face shows the inside image
+      const insidePage = panel(insideTex, null); insidePage.position.set(W / 2, 0, 0); rig.add(insidePage);
+      // cover: hinged at the spine; +z face is the front, -z face (inner) is blank paper
+      const hinge = new THREE.Group(); rig.add(hinge);
+      const cover = panel(frontTex, null); cover.position.set(W / 2, 0, TH + 0.002); hinge.add(cover);
+      // ground shadow
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.26 }));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = -H / 2 - 0.01; ground.receiveShadow = true; scene.add(ground);
+      // light: a soft key from up-left, a cool fill, a warm rim
+      const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(-1.6, 6.2, 3.2); key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.radius = 6;
+      Object.assign(key.shadow.camera, { near: 0.5, far: 14, left: -3.5, right: 3.5, top: 3.5, bottom: -3.5 });
+      scene.add(key);
+      scene.add(new THREE.HemisphereLight(0xfff7ec, 0xd9d3ea, 0.9));
+      const rim = new THREE.DirectionalLight(0xe6e2ff, 0.8); rim.position.set(3, 1.5, -3); scene.add(rim);
+
+      const clamp01 = (v) => Math.max(0, Math.min(1, v));
+      const smooth = (a, b, t) => { const x = clamp01((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+      const lerp = (a, b, t) => a + (b - a) * t;
+      function renderCard(time) {
+        const t = time - T.inside;            // scene-local seconds
+        const AJAR = -0.34, OPEN = -2.85;      // radians about the spine
+        const o = smooth(1.3, 2.6, t);         // the open
+        hinge.rotation.y = lerp(AJAR, OPEN, o);
+        // a slow settle after the open, like the product's resting yaw
+        const settle = Math.sin(Math.max(0, t - 2.6) * 1.4) * 0.03 * smooth(2.6, 3.4, t);
+        rig.rotation.y = lerp(-0.42, -0.10, smooth(0.0, 2.8, t)) + settle;
+        rig.rotation.x = lerp(0.10, 0.04, smooth(0.2, 2.6, t));
+        rig.position.y = lerp(-0.25, 0.0, smooth(0.0, 0.9, t));
+        // the camera dollies in and re-centres on the spread as it opens
+        const focusX = lerp(W / 2, 0.05, o);
+        camera.position.set(focusX + lerp(0.35, 0.0, o), lerp(0.40, 0.30, o), lerp(4.9, 6.6, o));
+        camera.lookAt(focusX, -0.02, 0);
+        renderer.render(scene, camera);
+      }
+      window.addEventListener("hf-seek", (e) => renderCard(e.detail.time));
+      renderCard(window.__hfThreeTime || 0);
+
+      // ---- S6 · on the way ----
+      tl.fromTo("#s6-tick", { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2.2)" }, T.close + 0.05);
+      tl.to("#s6-tickpath", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, T.close + 0.4);
+      gsap.utils.toArray("#s6-burst i").forEach((el, i) => {
+        const a = (i / 26) * Math.PI * 2; const d = 260 + (i * 37) % 160;
+        const ex = Math.cos(a) * d, ey = Math.sin(a) * d - 60;
+        tl.fromTo(el, { x: 0, y: 0, scale: 0.4, opacity: 0, rotation: 0 }, { x: ex, y: ey, scale: 1, opacity: 1, rotation: 180 + i * 20, duration: 0.7, ease: "power3.out" }, T.close + 0.45);
+        tl.to(el, { opacity: 0, y: ey + 90, duration: 0.6, ease: "power1.in" }, T.close + 1.2);
+      });
+      land("#s6-h", T.close + 0.5, 0);
+      tl.fromTo("#s6-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power2.out" }, T.close + 0.8);
+      tl.fromTo("#s6-logo", { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.3)" }, T.close + 1.15);
+      tl.fromTo("#s6-pill", { y: 30, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, T.close + 1.4);
+      tl.to("#s6-pill", { scale: 1.04, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, T.close + 2.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

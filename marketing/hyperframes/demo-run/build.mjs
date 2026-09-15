@@ -59,11 +59,16 @@ const inside = await grab(run.insideUrl, 'inside.png');
 
 // ── words ─────────────────────────────────────────────────────────────
 const b = run.brief ?? {};
+const gradientWords = [b.who, b.name].filter(Boolean);
 const esc = (t) => String(t ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const NAME_LIKE = ['Mum', 'Dad', 'Nan', 'Grandad'];
 const who = b.name?.trim() && b.front === 'name' ? b.name.trim() : NAME_LIKE.includes(b.who) ? b.who : (b.who ? `your ${String(b.who).toLowerCase()}` : 'them');
-const hookLine = run.hook_line || `Watch us make a card for ${who}.`;
-const gradientWords = [b.who, b.name].filter(Boolean);
+// The thought: the buyer's own half-sentence about them, in handwriting.
+const ord = (n) => { const v = Number(n); if (!v) return ''; const s = ['th', 'st', 'nd', 'rd'], k = v % 100; return v + (s[(k - 20) % 10] || s[k] || s[0]); };
+const occ = b.occasion ? String(b.occasion).toLowerCase() : 'birthday';
+const noteLine = `${b.who ?? 'Someone'}’s ${b.age ? ord(b.age) + ' ' : ''}${occ === 'birthday' ? 'birthday' : occ} is coming up. ${b.thing ? String(b.thing).replace(/[.]+$/, '') + '.' : ''}`.trim();
+const noteHtml = noteLine.split(' ').map((w) => `<span class="w${gradientWords.some((x) => w.replace(/[^\w'’-]+$/, '') === x || w.replace(/[^\w'’-]+$/, '') === x + '’s') ? ' vi' : ''}">${esc(w)}</span>`).join('');
+const hookLine = run.hook_line || noteLine;
 // Each character its own span so it can type; the recipient's word carries the gradient.
 function hookHtml(line) {
   // Whole words animate (no mid-word wraps); the recipient's word carries the
@@ -75,13 +80,14 @@ function hookHtml(line) {
   }).join(' ');
 }
 const VIBE = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
-const chips = [
-  b.who && `For ${esc(b.who)}`,
-  b.occasion && `${esc(b.occasion[0].toUpperCase() + b.occasion.slice(1))}${b.age ? ` · ${esc(b.age)}` : ''}`,
+const chipsPlain = [
+  b.who && `For ${b.who}`,
+  b.occasion && `${b.occasion[0].toUpperCase() + b.occasion.slice(1)}${b.age ? ` · ${b.age}` : ''}`,
   b.vibe && VIBE[b.vibe],
-  b.thing && `“${esc(b.thing)}”`,
-  b.cant && `Can’t stand ${esc(b.cant)}`,
+  b.thing && `“${b.thing}”`,
+  b.cant && `Can’t stand ${b.cant}`,
 ].filter(Boolean);
+const chips = chipsPlain.map(esc);
 const picked = Number.isInteger(run.picked_index) ? run.picked_index : 0;
 const pickedRaw = run.concepts?.[picked]?.front_text ?? '';
 const pickedText = esc(pickedRaw);
@@ -94,13 +100,13 @@ const expectStr = expectBy.toLocaleDateString('en-GB', { weekday: 'short', day: 
 
 // ── timing (seconds) ──────────────────────────────────────────────────
 const hasPhoto = !!(photo && cameo);
-const T = { hook: 0, brief: 3.2, three: 6.2, photo: 11.2, inside: hasPhoto ? 15.6 : 11.2 };
-T.close = T.inside + 4.3; T.end = T.close + 3.4;
+const T = { hook: 0, brief: 3.4, three: 7.4, photo: 11.8, inside: hasPhoto ? 15.6 : 11.8 };
+T.close = T.inside + 4.2; T.end = T.close + 4.6;
 
 // ── compose ───────────────────────────────────────────────────────────
 let html = await fs.readFile(path.join(HERE, 'src', 'template.html'), 'utf8');
 const vars = {
-  DURATION: T.end.toFixed(2), HOOK_HTML: hookHtml(hookLine), WHO: esc(who),
+  DURATION: T.end.toFixed(2), HOOK_HTML: hookHtml(hookLine), NOTE_HTML: noteHtml, PILLS_JSON: JSON.stringify(chipsPlain), WHO: esc(who),
   CHIPS_HTML: chips.map((c, i) => `<span class="pill" id="s2-p${i}">${c}</span>`).join(''),
   FRONT1: fronts[0] ?? '', FRONT2: fronts[1] ?? '', FRONT3: fronts[2] ?? '', PICKED: String(picked), PICKED_TEXT: pickedText, CAPTION_SIZE: String(captionSize),
   PHOTO: photo ?? '', CAMEO: cameo ?? '', FINAL_FRONT: finalFront ?? '', PICKED_FRONT: pickedFront, PARTICLES: particles, INSIDE: inside ?? '', EXPECT: esc(expectStr),

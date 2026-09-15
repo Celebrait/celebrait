@@ -7,316 +7,376 @@
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/" } }</script>
     <style>
-      /* The site's own faces (client/src/index.css): Fraunces for the moments, Figtree for the rest. */
+      /* The site's own faces (client/src/index.css) plus Caveat for the thought. */
       @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 100 900; font-display: block; src: url("assets/fonts/fraunces-latin-standard-normal.woff2") format("woff2-variations"); }
       @font-face { font-family: "Figtree"; font-style: normal; font-weight: 300 900; font-display: block; src: url("assets/fonts/figtree-latin-wght-normal.woff2") format("woff2-variations"); }
+      @font-face { font-family: "Caveat"; font-style: normal; font-weight: 700; font-display: block; src: url("assets/fonts/caveat-latin.woff2") format("woff2"); }
 
       :root {
         --paper: #faf8f4; --paper-top: #fffdf9;
         --ink: #211d19; --body: #3a342e; --meta: #7d746a; --hair: #e9e4dc;
         --brand: #7a76e8; --brand-dark: #5c57d4; --brand-muted: #f2f1fb;
         --go: #5fd94a;
-        --display: "Fraunces", Georgia, serif; --sans: "Figtree", system-ui, sans-serif;
-        --card: 680px;
+        --display: "Fraunces", Georgia, serif; --sans: "Figtree", system-ui, sans-serif; --hand: "Caveat", cursive;
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
       #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, var(--paper-top) 0%, var(--paper) 100%); }
 
-      /* ── the living background: the current card, blurred, plus two violet orbs and grain ── */
+      /* the living background */
       .amb { position: absolute; inset: -12%; pointer-events: none; }
       .amb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(90px) saturate(1.15); opacity: 0; }
-      .amb-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,253,249,0.88) 0%, rgba(250,248,244,0.82) 100%); }
-      .orb { position: absolute; width: 900px; height: 900px; border-radius: 50%; pointer-events: none; filter: blur(40px);
-        background: radial-gradient(circle, rgba(122,118,232,0.22) 0%, rgba(122,118,232,0) 62%); }
+      .amb-wash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,253,249,0.9) 0%, rgba(250,248,244,0.84) 100%); }
+      .orb { position: absolute; width: 900px; height: 900px; border-radius: 50%; pointer-events: none; filter: blur(40px); background: radial-gradient(circle, rgba(122,118,232,0.22) 0%, rgba(122,118,232,0) 62%); }
       #orb-a { left: -300px; top: 120px; } #orb-b { right: -360px; bottom: 60px; }
-      .grain { position: absolute; inset: 0; pointer-events: none; z-index: 60; opacity: 0.12; mix-blend-mode: multiply;
-        background-image: radial-gradient(rgba(33,29,25,0.10) 1px, transparent 1.2px), radial-gradient(rgba(33,29,25,0.06) 1px, transparent 1.2px);
-        background-size: 3px 3px, 5px 5px; background-position: 0 0, 1px 2px; }
+      .grain { position: absolute; inset: 0; pointer-events: none; z-index: 60; opacity: 0.11; mix-blend-mode: multiply;
+        background-image: radial-gradient(rgba(33,29,25,0.10) 1px, transparent 1.2px), radial-gradient(rgba(33,29,25,0.06) 1px, transparent 1.2px); background-size: 3px 3px, 5px 5px; background-position: 0 0, 1px 2px; }
 
-      .clip { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 84px; text-align: center; }
+      /* the world: one WebGL layer for the whole run */
+      #world { position: absolute; inset: 0; width: 1080px; height: 1920px; display: block; z-index: 5; }
+
+      .clip { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 84px; text-align: center; pointer-events: none; z-index: 10; }
       .topbar { justify-content: flex-start; align-items: flex-start; padding-top: 110px; }
       .topbar img { display: block; width: 230px; height: auto; }
-
-      .kicker { display: block; font-weight: 700; font-size: 27px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brand-dark); margin-bottom: 28px; }
-      .h { display: block; font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
+      .kicker { display: block; font-weight: 700; font-size: 27px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--brand-dark); }
+      .h { display: block; font-family: var(--display); font-weight: 700; font-size: 92px; line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
       .h .ln { display: block; }
       .sub { display: block; margin-top: 30px; font-weight: 400; font-size: 40px; line-height: 1.35; color: var(--body); max-width: 24ch; }
+      .top { justify-content: flex-start; padding-top: 330px; }
+      .bottom { justify-content: flex-end; padding-bottom: 260px; }
 
-      /* S1 — the hook: kinetic words, the recipient shimmering violet → ink */
-      .hook { align-items: flex-start; text-align: left; padding: 0 96px; }
-      .hookline { display: block; font-family: var(--display); font-weight: 700; font-size: 116px; line-height: 1.04; letter-spacing: -0.015em; color: var(--ink); }
-      .hookline .w { display: inline-block; white-space: nowrap; opacity: 0; }
-      .hookline .sp { display: inline-block; width: 0.26em; }
-      .hookline .who { display: inline-block; background-image: linear-gradient(90deg, var(--brand) 0%, var(--brand-dark) 35%, var(--ink) 70%, var(--ink) 100%); background-size: 240% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: 0.08em; }
-      .rule { display: block; width: 180px; height: 8px; border-radius: 4px; background: var(--brand); margin-top: 60px; transform-origin: 0 50%; }
+      /* A · the thought: a handwritten note, floating */
+      .note { display: block; width: 860px; padding: 70px 76px; background: #fff; border-radius: 26px; border: 1.5px solid rgba(33,29,25,0.08);
+        box-shadow: 0 50px 90px -40px rgba(33,29,25,0.35); text-align: left; }
+      .note .line { display: block; font-family: var(--hand); font-weight: 700; font-size: 86px; line-height: 1.12; color: var(--ink); }
+      .note .w { display: inline-block; margin-right: 0.22em; opacity: 0; }
+      .note .w.vi { color: var(--brand-dark); }
+      .note .tag { display: block; margin-top: 26px; font-family: var(--sans); font-weight: 600; font-size: 28px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--meta); }
 
-      /* S2 — the brief as pills */
-      .pills { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-      .pill { display: block; padding: 24px 46px; border-radius: 999px; border: 2px solid var(--hair); background: rgba(255,255,255,0.92); font-weight: 500; font-size: 42px; line-height: 1.2; color: var(--ink); max-width: 880px; box-shadow: 0 18px 40px -26px rgba(33,29,25,0.35); }
-
-      /* Cards — one size everywhere so the card holds its place across scenes */
-      .stage { position: relative; display: block; width: 900px; height: 780px; margin-top: 20px; }
-      .card { position: absolute; left: 50%; top: 50%; width: var(--card); height: var(--card); margin: calc(var(--card) / -2) 0 0 calc(var(--card) / -2); border-radius: 24px; overflow: hidden; background: #fff;
-        box-shadow: 0 60px 100px -40px rgba(33,29,25,0.5), 0 0 0 1px rgba(33,29,25,0.06); }
-      .card img { display: block; width: 100%; height: 100%; object-fit: cover; }
-      .sheen { position: absolute; inset: -40%; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 60%); }
-      .ring { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 6px solid var(--brand); background: rgba(122,118,232,0.22); pointer-events: none; }
-      .caption { display: block; margin-top: 28px; font-family: var(--display); font-weight: 600; line-height: 1.22; color: var(--ink); max-width: 20ch; }
-
-      /* S4 — the photo goes in */
-      .photo { position: absolute; left: 50%; top: 50%; width: 500px; height: 640px; margin: -320px 0 0 -250px; border-radius: 30px; overflow: hidden; border: 8px solid #fff; background: #fff; box-shadow: 0 50px 90px -40px rgba(33,29,25,0.45); }
-      .photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
-      .cameo { clip-path: circle(0% at 50% 50%); }
-
-      /* S5 — the real card: a WebGL layer (three.js), paper-thick, lit, on a shadowed ground */
-      .three-stage { position: relative; display: block; width: 1080px; height: 1080px; margin: 0 -84px; }
-      .three-stage canvas { display: block; width: 1080px; height: 1080px; }
-
-      /* S6 — on the way */
-      .tick { display: flex; align-items: center; justify-content: center; width: 210px; height: 210px; border-radius: 50%; background: var(--go); margin-bottom: 44px; box-shadow: 0 30px 60px -30px rgba(95,217,74,0.7); }
-      .tick svg { width: 110px; height: 110px; }
+      /* F · on the way */
+      .tick { display: flex; align-items: center; justify-content: center; width: 190px; height: 190px; border-radius: 50%; background: var(--go); margin-bottom: 34px; box-shadow: 0 30px 60px -30px rgba(95,217,74,0.7); }
+      .tick svg { width: 100px; height: 100px; }
       .tick path { stroke-dasharray: 40; stroke-dashoffset: 40; }
-      .burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
-      .burst i { position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 4px; background: var(--brand); opacity: 0; }
-      .burst i:nth-child(3n) { background: var(--go); } .burst i:nth-child(3n+1) { background: var(--brand-dark); }
-      .logo-big { display: block; width: 460px; height: auto; margin-top: 64px; }
-      .pill-cta { display: block; margin-top: 36px; padding: 24px 52px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; font-size: 40px; letter-spacing: -0.01em; }
+      .logo-big { display: block; width: 420px; height: auto; margin-top: 44px; }
+      .pill-cta { display: block; margin-top: 30px; padding: 22px 50px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; font-size: 38px; letter-spacing: -0.01em; }
     </style>
   </head>
   <body>
     <div id="root" data-composition-id="main" data-start="0" data-width="1080" data-height="1920" data-duration="{{DURATION}}" data-fps="30">
 
-      <!-- the living background, whole run -->
       <div id="amb" class="amb">
-        <img id="amb-a" src="{{FRONT1}}" alt="" />
+        <img id="amb-a" src="{{PICKED_FRONT}}" alt="" />
         <img id="amb-b" src="{{FINAL_FRONT}}" alt="" />
         <img id="amb-c" src="{{INSIDE}}" alt="" />
         <div class="amb-wash"></div>
         <div id="orb-a" class="orb"></div>
         <div id="orb-b" class="orb"></div>
       </div>
+
+      <canvas id="world" width="1620" height="2880"></canvas>
       <div class="grain"></div>
 
       <section id="topbar" class="clip topbar" data-start="{{T_BRIEF}}" data-duration="{{D_TOP}}" data-track-index="1">
         <img id="topbar-logo" src="assets/logo.webp" alt="" />
       </section>
 
-      <!-- S1 · the hook -->
-      <section id="s1" class="clip hook" data-start="0" data-duration="{{T_BRIEF}}" data-track-index="0">
-        <p id="s1-line" class="hookline">{{HOOK_HTML}}</p>
-        <span id="s1-rule" class="rule"></span>
-      </section>
-
-      <!-- S2 · the brief -->
-      <section id="s2" class="clip" data-start="{{T_BRIEF}}" data-duration="{{D_BRIEF}}" data-track-index="0">
-        <span id="s2-k" class="kicker">The brief</span>
-        <div id="s2-pills" class="pills">{{CHIPS_HTML}}</div>
-      </section>
-
-      <!-- S3 · three cards, one picked -->
-      <section id="s3" class="clip" data-start="{{T_THREE}}" data-duration="{{D_THREE}}" data-track-index="0">
-        <span id="s3-h" class="h"><span class="ln">Three cards.</span><span class="ln">Pick one.</span></span>
-        <div id="s3-stage" class="stage">
-          <div id="s3-c0" class="card"><img src="{{FRONT1}}" alt="" /><div class="sheen"></div></div>
-          <div id="s3-c1" class="card"><img src="{{FRONT2}}" alt="" /><div class="sheen"></div></div>
-          <div id="s3-c2" class="card"><img src="{{FRONT3}}" alt="" /><div class="sheen"></div></div>
-          <div id="s3-ring" class="ring"></div>
+      <!-- A · someone is thinking of a card -->
+      <section id="sA" class="clip" data-start="0" data-duration="{{T_BRIEF}}" data-track-index="0">
+        <div id="sA-note" class="note">
+          <span class="line">{{NOTE_HTML}}</span>
+          <span id="sA-tag" class="tag">Thinking of a card…</span>
         </div>
-        <span id="s3-cap" class="caption" style="font-size: {{CAPTION_SIZE}}px">{{PICKED_TEXT}}</span>
+      </section>
+
+      <!-- B · the brief comes together (3D pills; only the kicker is HTML) -->
+      <section id="sB" class="clip top" data-start="{{T_BRIEF}}" data-duration="{{D_BRIEF}}" data-track-index="0">
+        <span id="sB-k" class="kicker">The brief</span>
+      </section>
+
+      <!-- C · three cards, pick one -->
+      <section id="sC" class="clip top" data-start="{{T_THREE}}" data-duration="{{D_THREE}}" data-track-index="0">
+        <span id="sC-h" class="h"><span class="ln">Three cards.</span><span class="ln">Pick one.</span></span>
       </section>
 
       <!--IF_PHOTO-->
-      <!-- S4 · the photo goes in -->
-      <section id="s4" class="clip" data-start="{{T_PHOTO}}" data-duration="{{D_PHOTO}}" data-track-index="0">
-        <span id="s4-k" class="kicker">Add a photo</span>
-        <span id="s4-h" class="h">Put {{WHO}} in it.</span>
-        <div id="s4-stage" class="stage">
-          <div id="s4-base" class="card"><img src="{{PICKED_FRONT}}" alt="" /></div>
-          <div id="s4-cameo" class="card cameo"><img src="{{CAMEO}}" alt="" /><div id="s4-sheen" class="sheen"></div></div>
-          <div id="s4-photo" class="photo"><img src="{{PHOTO}}" alt="" /></div>
-          <div id="s4-ring" class="ring"></div>
-        </div>
+      <!-- D · add a photo -->
+      <section id="sD" class="clip top" data-start="{{T_PHOTO}}" data-duration="{{D_PHOTO}}" data-track-index="0">
+        <span id="sD-k" class="kicker">Add a photo</span>
+        <span id="sD-h" class="h">Put {{WHO}} in it.</span>
       </section>
       <!--END_PHOTO-->
 
-      <!-- S5 · the inside -->
-      <section id="s5" class="clip" data-start="{{T_INSIDE}}" data-duration="{{D_INSIDE}}" data-track-index="0">
-        <span id="s5-k" class="kicker">Your words inside</span>
-        <div id="s5-stage" class="three-stage"><canvas id="s5-three" width="2160" height="2160"></canvas></div>
+      <!-- E · the inside -->
+      <section id="sE" class="clip top" data-start="{{T_INSIDE}}" data-duration="{{D_INSIDE}}" data-track-index="0">
+        <span id="sE-k" class="kicker">Your words inside</span>
       </section>
 
-      <!-- S6 · on the way -->
-      <section id="s6" class="clip" data-start="{{T_CLOSE}}" data-duration="{{D_CLOSE}}" data-track-index="0">
-        <div id="s6-burst" class="burst">{{PARTICLES}}</div>
-        <div id="s6-tick" class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path id="s6-tickpath" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-        <span id="s6-h" class="h">It’s on the way.</span>
-        <span id="s6-sub" class="sub">Printed today, posted tracked. Expect it by {{EXPECT}}.</span>
-        <img id="s6-logo" class="logo-big" src="assets/logo-close.webp" alt="" />
-        <span id="s6-pill" class="pill-cta">celebrait.co.uk</span>
+      <!-- F · on the way -->
+      <section id="sF" class="clip bottom" data-start="{{T_CLOSE}}" data-duration="{{D_CLOSE}}" data-track-index="0">
+        <div id="sF-tick" class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path id="sF-tickpath" d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <span id="sF-h" class="h">It’s on the way.</span>
+        <span id="sF-sub" class="sub">Printed today, posted tracked. Expect it by {{EXPECT}}.</span>
+        <img id="sF-logo" class="logo-big" src="assets/logo-close.webp" alt="" />
+        <span id="sF-pill" class="pill-cta">celebrait.co.uk</span>
       </section>
     </div>
 
     <script type="module">
       import * as THREE from "three";
       import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
       const T = { brief: {{T_BRIEF}}, three: {{T_THREE}}, photo: {{T_PHOTO}}, inside: {{T_INSIDE}}, close: {{T_CLOSE}}, end: {{T_END}} };
       const HAS_PHOTO = {{HAS_PHOTO}};
       const PICKED = {{PICKED}};
-      const tl = gsap.timeline({ paused: true });
-      // A scene leaves by pushing through the camera: up, bigger, blurred.
-      const push = (targets, at) => tl.to(targets, { y: -30, scale: 1.04, opacity: 0, filter: "blur(10px)", duration: 0.42, ease: "power2.in", stagger: 0.03 }, at);
-      // Headline words land from below, sharpening as they arrive.
-      const land = (targets, at, stagger = 0.08) => tl.fromTo(targets, { y: 46, opacity: 0, filter: "blur(14px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power3.out", stagger }, at);
-      const sheen = (id, at, dur = 1.1) => tl.fromTo(id, { xPercent: -60, opacity: 0 }, { xPercent: 60, opacity: 1, duration: dur, ease: "power1.inOut" }, at);
-      const tapRing = (id, at) => tl.fromTo(id, { scale: 0.4, opacity: 0.95 }, { scale: 2.2, opacity: 0, duration: 0.7, ease: "power2.out" }, at);
+      const PILLS = {{PILLS_JSON}};
 
-      // ---- ambient: the background carries the card, and breathes ----
-      gsap.set(["#amb-a", "#amb-b", "#amb-c"], { opacity: 0 });
-      tl.to("#amb-a", { opacity: 0.55, duration: 1.2, ease: "sine.inOut" }, T.three);
-      tl.to("#amb-a", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
-      tl.to("#amb-b", { opacity: 0.55, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
-      tl.to("#amb-b", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
-      tl.to("#amb-c", { opacity: 0.4, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
-      tl.fromTo("#orb-a", { x: 0, y: 0 }, { x: 160, y: 120, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
-      tl.fromTo("#orb-b", { x: 0, y: 0 }, { x: -140, y: -160, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
-      tl.fromTo("#amb", { scale: 1 }, { scale: 1.06, duration: T.end, ease: "sine.inOut" }, 0);
+      // ── maths ──
+      const clamp01 = (v) => Math.max(0, Math.min(1, v));
+      const sm = (a, b, t) => { const x = clamp01((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+      const expo = (a, b, t) => { const x = clamp01((t - a) / (b - a)); return x === 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+      const back = (a, b, t, s = 1.4) => { const x = clamp01((t - a) / (b - a)) - 1; return 1 + x * x * ((s + 1) * x + s); };
+      const lerp = (a, b, t) => a + (b - a) * t;
 
-      // ---- S1 · the hook ----
-      land("#s1-line .w", 0.25, 0.11);
-      tl.fromTo("#s1-line .who", { backgroundPosition: "100% 0" }, { backgroundPosition: "0% 0", duration: 1.4, ease: "power2.inOut", immediateRender: false }, 1.0);
-      tl.fromTo("#s1-rule", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.6, ease: "power3.out" }, 1.5);
-      push(["#s1-line", "#s1-rule"], T.brief - 0.42);
-
-      // ---- S2 · the brief ----
-      tl.fromTo("#topbar-logo", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, T.brief + 0.1);
-      tl.fromTo("#s2-k", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, T.brief + 0.1);
-      gsap.utils.toArray("#s2-pills .pill").forEach((el, i) => {
-        tl.fromTo(el, { x: i % 2 ? 90 : -90, y: 30, opacity: 0, rotation: i % 2 ? 3 : -3, scale: 0.92 }, { x: 0, y: 0, opacity: 1, rotation: 0, scale: 1, duration: 0.65, ease: "back.out(1.7)" }, T.brief + 0.35 + i * 0.22);
-      });
-      push(["#s2-k", "#s2-pills .pill"], T.three - 0.42);
-
-      // ---- S3 · the fan, the pick ----
-      land("#s3-h .ln", T.three + 0.05, 0.12);
-      const fan = [{ x: -250, r: -9 }, { x: 0, r: 0 }, { x: 250, r: 9 }];
-      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
-        tl.fromTo(id, { y: 980, x: fan[i].x, rotation: fan[i].r - 6, scale: 0.78, opacity: 0 }, { y: 0, x: fan[i].x, rotation: fan[i].r, scale: 0.78, opacity: 1, duration: 1.0, ease: "expo.out" }, T.three + 0.3 + i * 0.14);
-        sheen(`${id} .sheen`, T.three + 0.9 + i * 0.14, 1.0);
-      });
-      // a thumb lands on the chosen card
-      const pickAt = T.three + 2.5;
-      tapRing("#s3-ring", pickAt);
-      tl.to("#s3-ring", { x: fan[PICKED].x * 0.78 }, 0);
-      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
-        if (i === PICKED) tl.to(id, { x: 0, rotation: 0, scale: 1, duration: 0.85, ease: "power3.inOut", overwrite: "auto" }, pickAt + 0.15);
-        else tl.to(id, { x: fan[i].x * 2.1, y: 120, opacity: 0, rotation: fan[i].r * 2, scale: 0.7, duration: 0.7, ease: "power2.in", overwrite: "auto" }, pickAt + 0.1);
-      });
-      sheen(`#s3-c${PICKED} .sheen`, pickAt + 0.9, 1.0);
-      land("#s3-cap", pickAt + 0.7, 0);
-      // leave: the card stays, the words go
-      push(["#s3-h .ln", "#s3-cap"], T.photo - 0.42);
-      tl.to(`#s3-c${PICKED}`, { opacity: 0, duration: 0.3, ease: "power1.in" }, T.photo - 0.05);
-
-      // ---- S4 · the photo goes in ----
-      if (HAS_PHOTO) {
-        gsap.set("#s4-base", { scale: 1 });
-        land(["#s4-k", "#s4-h"], T.photo + 0.05, 0.1);
-        tl.fromTo("#s4-photo", { y: 700, rotation: -8, scale: 0.7, opacity: 0 }, { y: 0, rotation: -4, scale: 1, opacity: 1, duration: 0.9, ease: "back.out(1.2)" }, T.photo + 0.5);
-        tapRing("#s4-ring", T.photo + 1.7);
-        // the photo dives into the card; the cameo blooms out from where it landed
-        tl.to("#s4-photo", { scale: 0.12, rotation: 0, opacity: 0, duration: 0.55, ease: "power3.in" }, T.photo + 1.85);
-        tl.to("#s4-base", { scale: 0.96, duration: 0.3, ease: "power2.in" }, T.photo + 2.1);
-        tl.fromTo("#s4-cameo", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(75% at 50% 50%)", duration: 1.0, ease: "power3.out" }, T.photo + 2.35);
-        tl.to("#s4-base", { scale: 1, duration: 0.5, ease: "back.out(1.5)" }, T.photo + 2.4);
-        sheen("#s4-sheen", T.photo + 2.9, 1.1);
-        push(["#s4-k", "#s4-h"], T.inside - 0.42);
-        tl.to(["#s4-base", "#s4-cameo"], { opacity: 0, duration: 0.3, ease: "power1.in" }, T.inside - 0.05);
-      }
-
-      // ---- S5 · the real card, opened ----
-      land("#s5-k", T.inside + 0.05, 0);
-      tl.fromTo("#s5-stage", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, T.inside + 0.05);
-      push(["#s5-k", "#s5-stage"], T.close - 0.42);
-
-      // ── the card itself: three.js, rendered from HyperFrames time (hf-seek) ──
-      // Geometry mirrors the product's viewer (client/src/components/card-3d-viewer.tsx):
-      // two paper-thick panels on a spine hinge, the cover ajar at rest, swinging
-      // open to the left; the inside page carries the run's inside image.
-      const W = 1.45, H = 1.45, TH = 0.012;
-      const canvas = document.getElementById("s5-three");
+      // ── the world ──
+      const canvas = document.getElementById("world");
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setSize(2160, 2160, false); renderer.setPixelRatio(1);
+      renderer.setSize(1620, 2880, false); renderer.setPixelRatio(1);
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0xfaf8f4, 0.05);
       const pmrem = new THREE.PMREMGenerator(renderer);
       scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-      const loader = new THREE.TextureLoader();
-      const tex = (src) => loader.loadAsync(src).then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; });
-      const [frontTex, insideTex] = await Promise.all([tex("{{FINAL_FRONT}}"), tex("{{INSIDE}}")]);
-      const paper = (map) => new THREE.MeshStandardMaterial({ map: map ?? null, color: map ? 0xffffff : 0xf7f2e9, roughness: 0.92, metalness: 0, envMapIntensity: 0.35 });
-      const edge = new THREE.MeshStandardMaterial({ color: 0xf1ebe1, roughness: 1 });
-      // panel: BoxGeometry face order +x -x +y -y +z -z
-      const panel = (frontMap, backMap) => {
-        const g = new THREE.BoxGeometry(W, H, TH);
-        const m = new THREE.Mesh(g, [edge, edge, edge, edge, paper(frontMap), paper(backMap)]);
-        m.castShadow = true; m.receiveShadow = true; return m;
-      };
-      const rig = new THREE.Group(); scene.add(rig);
-      // inside page: spine at x=0, page to the right; its +z face shows the inside image
-      const insidePage = panel(insideTex, null); insidePage.position.set(W / 2, 0, 0); rig.add(insidePage);
-      // cover: hinged at the spine; +z face is the front, -z face (inner) is blank paper
-      const hinge = new THREE.Group(); rig.add(hinge);
-      const cover = panel(frontTex, null); cover.position.set(W / 2, 0, TH + 0.002); hinge.add(cover);
-      // ground shadow
-      const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.26 }));
-      ground.rotation.x = -Math.PI / 2; ground.position.y = -H / 2 - 0.01; ground.receiveShadow = true; scene.add(ground);
-      // light: a soft key from up-left, a cool fill, a warm rim
-      const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(-1.6, 6.2, 3.2); key.castShadow = true;
+      const camera = new THREE.PerspectiveCamera(32, 1080 / 1920, 0.1, 60);
+
+      const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(-2.0, 6.0, 4.0); key.castShadow = true;
       key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.radius = 6;
-      Object.assign(key.shadow.camera, { near: 0.5, far: 14, left: -3.5, right: 3.5, top: 3.5, bottom: -3.5 });
+      Object.assign(key.shadow.camera, { near: 0.5, far: 20, left: -5, right: 5, top: 6, bottom: -6 });
       scene.add(key);
       scene.add(new THREE.HemisphereLight(0xfff7ec, 0xd9d3ea, 0.9));
-      const rim = new THREE.DirectionalLight(0xe6e2ff, 0.8); rim.position.set(3, 1.5, -3); scene.add(rim);
+      const rim = new THREE.DirectionalLight(0xe6e2ff, 0.7); rim.position.set(3, 1.5, -3); scene.add(rim);
 
-      const clamp01 = (v) => Math.max(0, Math.min(1, v));
-      const smooth = (a, b, t) => { const x = clamp01((t - a) / (b - a)); return x * x * (3 - 2 * x); };
-      const lerp = (a, b, t) => a + (b - a) * t;
-      function renderCard(time) {
-        const t = time - T.inside;            // scene-local seconds
-        const AJAR = -0.34, OPEN = -2.85;      // radians about the spine
-        const o = smooth(1.3, 2.6, t);         // the open
-        hinge.rotation.y = lerp(AJAR, OPEN, o);
-        // a slow settle after the open, like the product's resting yaw
-        const settle = Math.sin(Math.max(0, t - 2.6) * 1.4) * 0.03 * smooth(2.6, 3.4, t);
-        rig.rotation.y = lerp(-0.42, -0.10, smooth(0.0, 2.8, t)) + settle;
-        rig.rotation.x = lerp(0.10, 0.04, smooth(0.2, 2.6, t));
-        rig.position.y = lerp(-0.25, 0.0, smooth(0.0, 0.9, t));
-        // the camera dollies in and re-centres on the spread as it opens
-        const focusX = lerp(W / 2, 0.05, o);
-        camera.position.set(focusX + lerp(0.35, 0.0, o), lerp(0.40, 0.30, o), lerp(4.9, 6.6, o));
-        camera.lookAt(focusX, -0.02, 0);
+      // dust in the air (seeded)
+      const N = 420; const pos = new Float32Array(N * 3); const seedv = new Float32Array(N);
+      let s = 7;
+      const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+      for (let i = 0; i < N; i++) { pos[i * 3] = (rnd() - 0.5) * 9; pos[i * 3 + 1] = (rnd() - 0.5) * 14; pos[i * 3 + 2] = (rnd() - 0.5) * 8 - 1; seedv[i] = rnd() * 6.28; }
+      const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute("position", new THREE.BufferAttribute(pos.slice(), 3));
+      const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0x8b86e8, size: 0.035, transparent: true, opacity: 0.55, depthWrite: false }));
+      scene.add(dust);
+
+      // ── textures ──
+      const loader = new THREE.TextureLoader();
+      const tex = (src) => loader.loadAsync(src).then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; });
+      await document.fonts.load("500 48px Figtree"); await document.fonts.load("700 48px Caveat");
+      const [f1, f2, f3, insideTex, cameoTex, photoTex] = await Promise.all([
+        tex("{{FRONT1}}"), tex("{{FRONT2}}"), tex("{{FRONT3}}"), tex("{{INSIDE}}"),
+        HAS_PHOTO ? tex("{{CAMEO}}") : Promise.resolve(null), HAS_PHOTO ? tex("{{PHOTO}}") : Promise.resolve(null),
+      ]);
+      const fronts = [f1, f2, f3];
+
+      // a pill drawn on canvas → a floating 3D chip
+      function pillMesh(raw) {
+        const text = raw.length > 42 ? raw.slice(0, 41).replace(/\s+\S*$/, "") + "…" : raw;
+        const c = document.createElement("canvas"); const ctx = c.getContext("2d");
+        ctx.font = "500 56px Figtree"; const tw = Math.min(ctx.measureText(text).width, 1100);
+        const w = Math.ceil(tw + 140), h = 132; c.width = w; c.height = h;
+        ctx.font = "500 56px Figtree";
+        const r = h / 2; ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(w - r, 0); ctx.arc(w - r, r, r, -Math.PI / 2, Math.PI / 2); ctx.lineTo(r, h); ctx.arc(r, r, r, Math.PI / 2, -Math.PI / 2); ctx.closePath();
+        ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(122,118,232,0.55)"; ctx.stroke();
+        ctx.fillStyle = "#211d19"; ctx.textBaseline = "middle"; ctx.textAlign = "center"; ctx.fillText(text, w / 2, h / 2 + 2, w - 100);
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+        const scale = Math.min(0.0028, 1.95 / w); const m = new THREE.Mesh(new THREE.PlaneGeometry(w * scale, h * scale), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.9, envMapIntensity: 0.3 }));
+        m.material.opacity = 0; return m;
+      }
+      const pills = PILLS.map((p) => { const m = pillMesh(p); scene.add(m); return m; });
+
+      // a card: paper-thick cover on a spine hinge + an inside page
+      const W = 1.45, H = 1.45, TH = 0.012;
+      const paper = (map, col = 0xf7f2e9) => new THREE.MeshStandardMaterial({ map: map ?? null, color: map ? 0xffffff : col, roughness: 0.92, metalness: 0, envMapIntensity: 0.35, transparent: true });
+      const edgeMat = () => new THREE.MeshStandardMaterial({ color: 0xf1ebe1, roughness: 1, transparent: true });
+      function panel(frontMap, backMap) {
+        const e = edgeMat(); const m = new THREE.Mesh(new THREE.BoxGeometry(W, H, TH), [e, e, e, e, paper(frontMap), paper(backMap)]);
+        m.castShadow = true; m.receiveShadow = true; return m;
+      }
+      function makeCard(frontMap, insideMap) {
+        const g = new THREE.Group(); g.userData.mats = [];
+        const page = panel(insideMap, null); page.position.set(W / 2, 0, 0); g.add(page);
+        const hinge = new THREE.Group(); g.add(hinge);
+        const cover = panel(frontMap, null); cover.position.set(W / 2, 0, TH + 0.002); hinge.add(cover);
+        // the pivot sits on the spine; offset so a closed card is centred on the group
+        const root = new THREE.Group(); root.add(g); g.position.x = -W / 2;
+        root.userData = { g, hinge, cover, page, alpha: (a) => { for (const m of [...cover.material, ...page.material]) m.opacity = a; } };
+        return root;
+      }
+      const cards = fronts.map((f, i) => { const c = makeCard(f, i === PICKED ? insideTex : null); scene.add(c); return c; });
+      const picked = cards[PICKED];
+      // the cameo: a second cover skin over the picked card, revealed by a radial alpha mask
+      let cameoSkin = null, maskCtx = null, maskTex = null;
+      if (HAS_PHOTO) {
+        const mc = document.createElement("canvas"); mc.width = mc.height = 512; maskCtx = mc.getContext("2d");
+        maskTex = new THREE.CanvasTexture(mc);
+        const mat = new THREE.MeshStandardMaterial({ map: cameoTex, alphaMap: maskTex, transparent: true, roughness: 0.92, envMapIntensity: 0.35 });
+        cameoSkin = new THREE.Mesh(new THREE.PlaneGeometry(W, H), mat); cameoSkin.position.set(W / 2, 0, TH * 1.5 + 0.004);
+        picked.userData.hinge.add(cameoSkin);
+      }
+      // the photo print: a small bordered print
+      let print = null;
+      if (HAS_PHOTO) {
+        const pc = document.createElement("canvas"); pc.width = 700; pc.height = 880; const pctx = pc.getContext("2d");
+        pctx.fillStyle = "#fff"; pctx.fillRect(0, 0, 700, 880);
+        const img = photoTex.image; const ar = img.width / img.height; const iw = 620, ih = 620 / ar;
+        pctx.drawImage(img, 40, 40, iw, Math.min(ih, 800));
+        const pt = new THREE.CanvasTexture(pc); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 8;
+        const e = edgeMat(); print = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.88, 0.01), [e, e, e, e, paper(pt), paper(null, 0xffffff)]);
+        print.castShadow = true; scene.add(print);
+      }
+      // the envelope: back, front, a flap on a hinge, a seal
+      const env = new THREE.Group(); scene.add(env);
+      const envMat = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, envMapIntensity: 0.3 });
+      const EW = 1.9, EH = 1.3;
+      const envBack = new THREE.Mesh(new THREE.BoxGeometry(EW, EH, 0.02), envMat(0xdedcf6)); envBack.position.z = -0.05; envBack.castShadow = true; env.add(envBack);
+      const envFront = new THREE.Mesh(new THREE.BoxGeometry(EW, EH, 0.02), envMat(0xe5e4f9)); envFront.position.z = 0.05; envFront.castShadow = true; env.add(envFront);
+      const flapShape = new THREE.Shape(); flapShape.moveTo(-EW / 2, 0); flapShape.lineTo(EW / 2, 0); flapShape.lineTo(0, -0.78); flapShape.closePath();
+      const flapPivot = new THREE.Group(); flapPivot.position.set(0, EH / 2, 0.065); env.add(flapPivot);
+      const flap = new THREE.Mesh(new THREE.ExtrudeGeometry(flapShape, { depth: 0.02, bevelEnabled: false }), envMat(0xd5d3f4)); flap.castShadow = true; flapPivot.add(flap);
+      const seal = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.035, 48), new THREE.MeshStandardMaterial({ color: 0x7a76e8, roughness: 0.4, metalness: 0.1 }));
+      seal.rotation.x = Math.PI / 2; seal.position.set(0, EH / 2 - 0.7, 0.1); env.add(seal);
+      // a soft ground for weight, low and far
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.22 }));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = -1.3; ground.receiveShadow = true; scene.add(ground);
+
+      // ── the run, as a function of time ──
+      function renderAt(t) {
+        // dust drifts
+        const p = dustGeo.attributes.position.array;
+        for (let i = 0; i < N; i++) { p[i * 3] = pos[i * 3] + Math.sin(t * 0.25 + seedv[i]) * 0.25; p[i * 3 + 1] = pos[i * 3 + 1] + t * 0.05 + Math.cos(t * 0.2 + seedv[i]) * 0.2; }
+        dustGeo.attributes.position.needsUpdate = true;
+
+        // B · pills assemble in the air, then lift away
+        const n = pills.length;
+        pills.forEach((m, i) => {
+          const at = T.brief + 0.25 + i * 0.22; const e = expo(at, at + 0.9, t);
+          const ty = 0.8 - i * (2.3 / Math.max(1, n - 1)); const tx = (i % 2 ? 0.12 : -0.12);
+          const lift = sm(T.three - 0.5, T.three - 0.05, t);
+          m.position.set(lerp(tx + (i % 2 ? 2.5 : -2.5), tx, e), lerp(ty - 0.6, ty, e) + Math.sin(t * 1.3 + i) * 0.025 + lift * 3.5, lerp(-12, 0, e) + lift * 2);
+          m.rotation.set(0, lerp(i % 2 ? 0.9 : -0.9, 0, e), lerp(i % 2 ? 0.2 : -0.2, 0, e));
+          m.material.opacity = clamp01(e * 1.4) * (1 - lift);
+        });
+
+        // C · three cards rise, fan, and one is picked
+        const lanes = [{ x: -0.82, z: -0.9, ry: 0.5 }, { x: 0, z: -0.3, ry: 0 }, { x: 0.82, z: -0.9, ry: -0.5 }];
+        const pickAt = T.three + 2.5;
+        cards.forEach((c, i) => {
+          const L = lanes[i]; const at = T.three + 0.15 + i * 0.16; const e = expo(at, at + 1.1, t);
+          const pk = sm(pickAt, pickAt + 0.9, t);
+          const isP = i === PICKED;
+          let x = L.x, y = 0, z = L.z, ry = L.ry, a = clamp01(e * 1.5), sc = 0.85;
+          if (isP) { x = lerp(L.x, 0, pk); z = lerp(L.z, 0.5, pk); ry = lerp(L.ry, -0.06, pk); sc = lerp(0.85, 1, pk); }
+          else { x = lerp(L.x, L.x * 2.1, pk); z = lerp(L.z, L.z - 3.5, pk); a *= 1 - pk; sc = lerp(0.85, 0.7, pk); }
+          // enter from below, tilted back
+          c.position.set(x, lerp(-6, y, e) + Math.sin(t * 0.9 + i * 2) * 0.02, lerp(z - 2, z, e));
+          c.rotation.set(lerp(-0.55, 0, e), ry, lerp(i === 1 ? 0 : (i === 0 ? -0.08 : 0.08), 0, e));
+          c.scale.setScalar(sc);
+          c.userData.hinge.rotation.y = -0.3;
+          c.userData.alpha(a);
+          if (!isP) c.visible = a > 0.01;
+        });
+
+        // D · the print flies in and dives into the card; the cameo blooms out
+        let reveal = 0;
+        if (HAS_PHOTO) {
+          const e = back(T.photo + 0.1, T.photo + 0.95, t, 1.1); const dive = sm(T.photo + 1.5, T.photo + 2.05, t);
+          print.position.set(lerp(3.2, 0.75, e) * (1 - dive) + 0 * dive, lerp(1.6, -0.05, e) * (1 - dive), lerp(2.2, 1.1, e) * (1 - dive) + 0.55 * dive);
+          print.rotation.set(lerp(-0.3, 0.05, e), lerp(0.9, -0.35, e) * (1 - dive), lerp(0.3, -0.1, e));
+          print.scale.setScalar(lerp(1, 0.08, dive)); print.visible = t > T.photo && dive < 0.999;
+          reveal = sm(T.photo + 2.0, T.photo + 3.0, t);
+          maskCtx.clearRect(0, 0, 512, 512); maskCtx.fillStyle = "#000"; maskCtx.fillRect(0, 0, 512, 512);
+          const r = reveal * 400; const grd = maskCtx.createRadialGradient(256, 256, Math.max(0, r - 60), 256, 256, r + 1);
+          grd.addColorStop(0, "#fff"); grd.addColorStop(1, "#000"); maskCtx.fillStyle = grd; maskCtx.beginPath(); maskCtx.arc(256, 256, r + 1, 0, 6.29); maskCtx.fill();
+          maskTex.needsUpdate = true; cameoSkin.visible = reveal > 0;
+          // a pop as it lands
+          const pop = Math.sin(clamp01((t - (T.photo + 2.0)) / 0.5) * Math.PI) * 0.05;
+          if (t > T.photo) picked.scale.setScalar(1 + pop);
+        }
+
+        // E · the open
+        const o = sm(T.inside + 0.4, T.inside + 1.7, t);
+        const settle = Math.sin(Math.max(0, t - (T.inside + 1.7)) * 1.4) * 0.03 * sm(T.inside + 1.7, T.inside + 2.5, t);
+        // F · close, and into the envelope
+        const closeK = sm(T.close - 0.2, T.close + 0.6, t);
+        const envIn = expo(T.close + 0.3, T.close + 1.2, t);
+        const slide = sm(T.close + 1.2, T.close + 2.0, t);
+        const flapK = sm(T.close + 2.1, T.close + 2.7, t);
+        const sealK = back(T.close + 2.75, T.close + 3.15, t, 2.2);
+        if (t >= T.inside) {
+          picked.userData.hinge.rotation.y = lerp(lerp(-0.3, -2.85, o), -0.3, closeK);
+          picked.rotation.y = lerp(-0.06, 0.14, o) * (1 - closeK) + settle;
+          picked.rotation.x = lerp(0, 0.04, o) * (1 - closeK);
+          picked.position.set(0, lerp(0, 0.65, slide) + lerp(0, 0.08, o) * (1 - closeK), lerp(0.5, 0.34, closeK));
+          picked.scale.setScalar(lerp(1, 0.72, slide));
+          picked.userData.alpha(1 - sm(0.55, 0.95, slide)); if (cameoSkin) cameoSkin.material.opacity = 1 - sm(0.55, 0.95, slide);
+          picked.visible = true;
+        }
+        env.visible = t > T.close + 0.2;
+        env.position.set(0, lerp(-6.5, 0.6, envIn), 0.35);
+        env.rotation.set(lerp(-0.5, 0.05, envIn), 0, 0);
+        flapPivot.rotation.x = lerp(-2.3, 0, flapK);
+        seal.scale.setScalar(Math.max(0.001, sealK)); seal.visible = t > T.close + 2.7;
+        // the picked card is inside the envelope once it slides: render order keeps it between back and front
+        picked.renderOrder = 1; envFront.renderOrder = 2; flap.renderOrder = 3;
+
+        // ── camera: one continuous path ──
+        let cx = 0, cy = 0.2, cz = 7.2, lx = 0, ly = 0, lz = 0;
+        if (t < T.brief) { cx = lerp(0.4, 0.1, sm(0, T.brief, t)); cz = lerp(8.5, 7.6, sm(0, T.brief, t)); }
+        else if (t < T.three) { const k = sm(T.brief, T.three, t); cx = lerp(0.1, -0.5, k); cy = lerp(0.2, 0.35, k); cz = lerp(7.6, 6.6, k); }
+        else if (t < (HAS_PHOTO ? T.photo : T.inside)) { const k = sm(T.three, T.three + 2.4, t); const pk = sm(pickAt, pickAt + 1.0, t); cx = lerp(0.6, -0.3, k) * (1 - pk); cy = lerp(0.4, 0.2, k); cz = lerp(7.9, 7.3, k) + lerp(0, -0.9, pk); ly = lerp(-0.15, 0, pk); }
+        else if (HAS_PHOTO && t < T.inside) { const k = sm(T.photo, T.photo + 3.0, t); cx = lerp(0, 0.25, k); cy = 0.2; cz = lerp(6.4, 5.8, k); }
+        else if (t < T.close) { lx = lerp(0, -W / 2 + 0.1, o); cx = lerp(0.35, lx, o); cy = lerp(0.35, 0.3, o); cz = lerp(5.8, 10.2, o); }
+        else { const k = sm(T.close, T.close + 1.6, t); lx = lerp(-W / 2 + 0.1, 0, k); cx = lerp(lx, 0.15, k); cy = lerp(0.3, 0.6, k); cz = lerp(10.2, 8.6, k); ly = lerp(0, 0.05, k); }
+        camera.position.set(cx, cy, cz); camera.lookAt(lx, ly, lz);
         renderer.render(scene, camera);
       }
-      window.addEventListener("hf-seek", (e) => renderCard(e.detail.time));
-      renderCard(window.__hfThreeTime || 0);
+      window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
+      renderAt(window.__hfThreeTime || 0);
 
-      // ---- S6 · on the way ----
-      tl.fromTo("#s6-tick", { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2.2)" }, T.close + 0.05);
-      tl.to("#s6-tickpath", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, T.close + 0.4);
-      gsap.utils.toArray("#s6-burst i").forEach((el, i) => {
-        const a = (i / 26) * Math.PI * 2; const d = 260 + (i * 37) % 160;
-        const ex = Math.cos(a) * d, ey = Math.sin(a) * d - 60;
-        tl.fromTo(el, { x: 0, y: 0, scale: 0.4, opacity: 0, rotation: 0 }, { x: ex, y: ey, scale: 1, opacity: 1, rotation: 180 + i * 20, duration: 0.7, ease: "power3.out" }, T.close + 0.45);
-        tl.to(el, { opacity: 0, y: ey + 90, duration: 0.6, ease: "power1.in" }, T.close + 1.2);
-      });
-      land("#s6-h", T.close + 0.5, 0);
-      tl.fromTo("#s6-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power2.out" }, T.close + 0.8);
-      tl.fromTo("#s6-logo", { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.3)" }, T.close + 1.15);
-      tl.fromTo("#s6-pill", { y: 30, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, T.close + 1.4);
-      tl.to("#s6-pill", { scale: 1.04, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, T.close + 2.2);
+      // ── the words (HTML), timed against the same clock ──
+      const tl = gsap.timeline({ paused: true });
+      const push = (targets, at) => tl.to(targets, { y: -30, scale: 1.04, opacity: 0, filter: "blur(10px)", duration: 0.42, ease: "power2.in", stagger: 0.03 }, at);
+      const land = (targets, at, stagger = 0.08) => tl.fromTo(targets, { y: 46, opacity: 0, filter: "blur(14px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.7, ease: "power3.out", stagger }, at);
+
+      gsap.set(["#amb-a", "#amb-b", "#amb-c"], { opacity: 0 });
+      tl.to("#amb-a", { opacity: 0.5, duration: 1.2, ease: "sine.inOut" }, T.three);
+      tl.to("#amb-a", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
+      tl.to("#amb-b", { opacity: 0.5, duration: 1.0, ease: "sine.inOut" }, T.inside - 0.6);
+      tl.to("#amb-b", { opacity: 0, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
+      tl.to("#amb-c", { opacity: 0.35, duration: 1.0, ease: "sine.inOut" }, T.close - 0.4);
+      tl.fromTo("#orb-a", { x: 0, y: 0 }, { x: 160, y: 120, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#orb-b", { x: 0, y: 0 }, { x: -140, y: -160, duration: T.end / 2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+
+      // A · the thought
+      tl.fromTo("#sA-note", { y: 120, opacity: 0, rotation: -3 }, { y: 0, opacity: 1, rotation: -1.5, duration: 0.8, ease: "back.out(1.3)" }, 0.15);
+      tl.to("#sA-note .w", { opacity: 1, duration: 0.25, ease: "power2.out", stagger: 0.11 }, 0.7);
+      tl.fromTo("#sA-tag", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.5);
+      tl.to("#sA-note", { rotation: -0.4, y: -10, duration: 2.2, ease: "sine.inOut" }, 0.9);
+      push("#sA-note", T.brief - 0.45);
+      // B
+      tl.fromTo("#topbar-logo", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, T.brief + 0.1);
+      land("#sB-k", T.brief + 0.1, 0); push("#sB-k", T.three - 0.42);
+      // C
+      land("#sC-h .ln", T.three + 0.1, 0.12); push("#sC-h .ln", (HAS_PHOTO ? T.photo : T.inside) - 0.42);
+      // D
+      if (HAS_PHOTO) { land(["#sD-k", "#sD-h"], T.photo + 0.05, 0.1); push(["#sD-k", "#sD-h"], T.inside - 0.42); }
+      // E
+      land("#sE-k", T.inside + 0.05, 0); push("#sE-k", T.close - 0.42);
+      // F
+      tl.fromTo("#sF-tick", { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2.2)" }, T.close + 2.6);
+      tl.to("#sF-tickpath", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, T.close + 2.9);
+      land("#sF-h", T.close + 2.9, 0);
+      tl.fromTo("#sF-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power2.out" }, T.close + 3.15);
+      tl.fromTo("#sF-logo", { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.3)" }, T.close + 3.35);
+      tl.fromTo("#sF-pill", { y: 30, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, T.close + 3.55);
 
       window.__timelines["main"] = tl;
     </script>
