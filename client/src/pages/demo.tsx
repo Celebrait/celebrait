@@ -67,7 +67,15 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
 
 type Speed = 'normal' | 'fast';
 /** What one run needs: a preset's worth of brief, plus how to play it. */
-export interface DemoConfig extends DemoPreset { speed: Speed; hook: boolean; /** Seconds before the run starts — time to hit record. */ countdown: number }
+export interface DemoConfig extends DemoPreset {
+  speed: Speed; hook: boolean;
+  /** Seconds before the run starts — time to hit record. */
+  countdown: number;
+  /** 'auto' = the director taps through it; 'manual' = Aidan does, on the
+   *  same clean screens (2026-09-15: "allow me to manually run this end
+   *  to end rather than pre-set and hit play"). */
+  mode: 'auto' | 'manual';
+}
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
   // ring lands — the beat where a viewer reads what's there (Aidan
@@ -225,6 +233,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const [cardOpen, setCardOpen] = useState(false);
   const [error, setError] = useState('');
   const railRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
   // Latest engine state for the director's async steps.
   const conceptsRef = useRef<Concept[]>([]); conceptsRef.current = concepts;
@@ -348,6 +357,21 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
+    if (cfg.mode === 'manual') {
+      // Aidan drives. His taps get the ring; the hook types itself then steps aside.
+      const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
+      window.addEventListener('pointerdown', onDown, true);
+      const t = window.setTimeout(() => {
+        if (!cfg.hook) return;
+        (async () => {
+          const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
+          const target = hookEl.querySelector('p')!; const caret = '<span class="caret"></span>';
+          for (let i = 1; i <= cfg.hookLine.length; i++) { target.innerHTML = cfg.hookLine.slice(0, i) + caret; await sleep(38 + (cfg.hookLine[i - 1] === '.' ? 260 : 0)); }
+          await sleep(1400); hookEl.classList.add('out');
+        })();
+      }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
+      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); };
+    }
     const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -409,7 +433,8 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         <motion.section key="photo" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
-          <button type="button" data-demo="add-photo" onClick={() => { /* the director drops the photo in */ }}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const fr = new FileReader(); fr.onload = () => setPhotoUrl(String(fr.result)); fr.readAsDataURL(f); } e.target.value = ''; }} />
+          <button type="button" data-demo="add-photo" onClick={() => { if (cfg.mode !== 'manual') return; /* auto: the director drops the photo in */ if (cfg.photo) void toDataUrl(cfg.photo).then(setPhotoUrl); else fileRef.current?.click(); }}
             className={`mt-6 flex aspect-[4/5] w-full max-w-[260px] items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
             {photoUrl
               ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
@@ -505,25 +530,34 @@ const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px
 const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
 
 function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
-  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3 });
+  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual' });
+  const manual = cfg.mode === 'manual';
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
-  const ready = cfg.who && cfg.occasion && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim());
+  const ready = manual || (cfg.who && cfg.occasion && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
   return (
     <div className="keeper-serif min-h-screen" style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)' }}>
       <div className="mx-auto max-w-xl px-5 pb-24 pt-8">
         <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         <h1 className={`${H1} mt-6`}>Make a demo.</h1>
-        <p className="mt-1 text-[14px] text-keeper-body">Set the brief, press Run, start your screen recording during the countdown. The page does the rest.</p>
+        <p className="mt-1 text-[14px] text-keeper-body">{manual ? 'Press Run, start your screen recording during the countdown, then tap through it yourself.' : 'Set the brief, press Run, start your screen recording during the countdown. The page does the rest.'}</p>
 
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-6"><span className={label}>Who drives</span>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={chip(manual)} onClick={() => set({ mode: 'manual' })}>I tap through it</button>
+            <button type="button" className={chip(!manual)} onClick={() => set({ mode: 'auto' })}>It plays itself</button>
+          </div>
+        </div>
+
+        {!manual && <div className="mt-5 flex flex-wrap gap-2">
           {Object.entries(DEMO_PRESETS).map(([k, p]) => (
             <button key={k} type="button" className={chip(false)} onClick={() => set({ ...p })}>{p.who}, {p.age}</button>
           ))}
-        </div>
+        </div>}
 
         <div className="mt-7 space-y-6">
+          {!manual && <>
           <div><span className={label}>Who</span>
             <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>
           </div>
@@ -546,11 +580,12 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             </div>
             {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          </>}
+          {!manual && <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
             <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
-          </div>
-          <div><span className={label}>Photo of them</span>
+          </div>}
+          <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
             <div className="flex items-center gap-3">
               <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
               {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
@@ -562,7 +597,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 120) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>
+            {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
         </div>
@@ -579,7 +614,7 @@ export default function DemoPage() {
   // A preset in the link runs straight away (the recorder's path); otherwise the builder.
   const fromLink = useMemo<DemoConfig | null>(() => {
     const p = DEMO_PRESETS[q.get('preset') ?? ''];
-    return p ? { ...p, speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0 } : null;
+    return p ? { ...p, speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' } : null;
   }, [q]);
   const [cfg, setCfg] = useState<DemoConfig | null>(fromLink);
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
