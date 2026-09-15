@@ -348,7 +348,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
-    const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + 900);
+    const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
