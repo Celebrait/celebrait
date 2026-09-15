@@ -111,6 +111,12 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Standalone when added to a home screen: the /demo recordings need a
+         phone screen with no browser bars (2026-09-15). No service worker,
+         so no install prompts anywhere. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <!-- Caveat: signature/handwritten display font for accent words.
          Fraunces: serif display font being TESTED for landing headlines
          (variable optical-size + weight axes).

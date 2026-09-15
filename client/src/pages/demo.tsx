@@ -21,6 +21,7 @@
 // beats + timestamps and stops on state 'end'.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles } from 'lucide-react';
 import { BriefQuestions, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
@@ -66,8 +67,11 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
 
 type Speed = 'normal' | 'fast';
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
-  normal: { hold: 1500, type: 75, settle: 450, walk: 2400, look: 2600 },
-  fast: { hold: 800, type: 45, settle: 250, walk: 1400, look: 1400 },
+  // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
+  // ring lands — the beat where a viewer reads what's there (Aidan
+  // 2026-09-15: "longer on screens before things are clicked, a beat or 2").
+  normal: { hold: 2000, type: 80, settle: 1600, walk: 2800, look: 3400 },
+  fast: { hold: 1000, type: 50, settle: 700, walk: 1600, look: 1800 },
 };
 
 // ── skin ─────────────────────────────────────────────────────────────
@@ -142,7 +146,12 @@ async function tap(el: HTMLElement, settle: number, hold: number) {
   await bringIn(el, settle);
   const r = el.getBoundingClientRect();
   ring(r.left + Math.min(r.width * 0.5, 140), r.top + r.height / 2);
-  await sleep(90);
+  // A press you can see: the element dips for a beat before it acts.
+  const prev = el.style.transform; const prevT = el.style.transition;
+  el.style.transition = 'transform 140ms ease'; el.style.transform = 'scale(0.96)';
+  await sleep(180);
+  el.style.transform = prev; setTimeout(() => { el.style.transition = prevT; }, 200);
+  await sleep(120);
   el.click();
   await sleep(hold);
 }
@@ -186,6 +195,10 @@ const toDataUrl = async (url: string) => {
 type Phase = 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
 
 // ── the page ─────────────────────────────────────────────────────────
+
+/** Every screen enters rising and fading in, and leaves fading out — a
+ *  cut between two flat screens reads as a glitch on video. */
+const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: 0.5, ease: [0.2, 0.7, 0.3, 1] } } as const;
 
 const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
 const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
@@ -315,7 +328,7 @@ export default function DemoPage() {
     // The card, tapped open.
     const card = await findDemo('card');
     const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.3);
+    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.8);
     await tap(await findDemo('send'), b.settle, b.hold * 0.6);
 
     // Where it's going.
@@ -345,26 +358,27 @@ export default function DemoPage() {
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
 
+      <AnimatePresence mode="wait">
       {/* 1 · the brief */}
       {phase === 'brief' && (
-        <section className="absolute inset-0 flex flex-col justify-center px-5 py-16">
+        <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16">
           <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5">
             <BriefQuestions skin="landing" brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch((e) => setError(e?.message ?? 'That didn’t work')); }} />
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 2 · generating — a blank card breathing violet */}
       {(phase === 'generating' || phase === 'photo-generating' || phase === 'inside-generating') && (
-        <section className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
+        <motion.section key="generating" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
           <div className="demo-glow-card" />
           <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-keeper-meta">Generating</p>
-        </section>
+        </motion.section>
       )}
 
       {/* 3 · option 1 / 2 / 3 */}
       {phase === 'results' && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
+        <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
           <div className="px-5"><h1 className={H1}>Three cards for {who}.</h1><p className="mt-1 text-[13px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Option {slide + 1} of 3</p></div>
           <div ref={railRef} onScroll={onRailScroll} className="demo-rail mt-5 flex snap-x snap-mandatory overflow-x-auto">
             {fronts.map((u, i) => (
@@ -377,12 +391,12 @@ export default function DemoPage() {
           <div className="mt-7 flex flex-col items-center gap-3 px-5">
             <button type="button" data-demo="choose" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setPicked(slide); setPhase('photo'); }}>Choose this one</button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 4 · add a photo? */}
       {phase === 'photo' && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="photo" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <button type="button" data-demo="add-photo" onClick={() => { /* the director drops the photo in */ }}
@@ -396,24 +410,24 @@ export default function DemoPage() {
               ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch((e) => setError(e?.message ?? 'That didn’t work')); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
               : <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 5 · there they are */}
       {phase === 'photo-result' && cameoUrl && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There’s {who}.</h1>
           <div className="mt-5 w-full max-w-[340px] self-center"><AjarTile imageUrl={cameoUrl} alt="" eager /></div>
           <div className="mt-8 flex flex-col items-center gap-4">
             <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
             <button type="button" data-demo="keep-original" className={QUIET} onClick={() => { setUseCameo(false); setPhase('inside'); }}>Keep the original</button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 6 · the inside */}
       {phase === 'inside' && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
             <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
@@ -423,12 +437,12 @@ export default function DemoPage() {
           <div className="mt-6 flex flex-col items-center">
             <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch((e) => setError(e?.message ?? 'That didn’t work'))}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 7 · the card, tap to open */}
       {phase === 'card' && chosenFront && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There it is.</h1>
           <div data-demo="card" className="mt-1 h-[60vh] w-full">
             {/* Big and centred; the open cover may swing past the edge (Aidan
@@ -439,12 +453,12 @@ export default function DemoPage() {
           <div className="mt-3 flex flex-col items-center">
             <button type="button" data-demo="send" className={`${PRIMARY} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => setPhase('send')}>Send it</button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 8 · where's it going? */}
       {phase === 'send' && (
-        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="send" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Where’s it going?</h1>
           <div className="mt-6 flex flex-col gap-3">
             <button type="button" data-demo="send-them" className={`${TILE} demo-pulse text-left`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
@@ -456,17 +470,18 @@ export default function DemoPage() {
               <span className="text-[13px] text-keeper-meta">To hand over in person</span>
             </button>
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* 9 · on its way */}
       {phase === 'sent' && (
-        <section className="demo-in absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
+        <motion.section key="sent" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
           <span className="demo-tick flex h-20 w-20 items-center justify-center rounded-full bg-cta text-cta-foreground"><Check className="h-10 w-10" strokeWidth={3} /></span>
           <h1 className={H1}>It’s on the way.</h1>
           <p className="text-[15px] text-keeper-body">Printed today, posted tracked.<br />Expect it by <span className="font-semibold text-keeper-ink">{formatDayMonth(expectedBy())}</span>.</p>
-        </section>
+        </motion.section>
       )}
+      </AnimatePresence>
     </div>
   );
 }
