@@ -66,13 +66,13 @@ const hookLine = run.hook_line || `Watch us make a card for ${who}.`;
 const gradientWords = [b.who, b.name].filter(Boolean);
 // Each character its own span so it can type; the recipient's word carries the gradient.
 function hookHtml(line) {
-  // Words stay whole (no mid-word wraps); the recipient's word carries the gradient.
+  // Whole words animate (no mid-word wraps); the recipient's word carries the
+  // gradient on the SAME element that clips it, so the contrast audit sees paint.
   return line.split(' ').map((word) => {
     const core = word.replace(/[^\w'’-]+$/, ''); const tail = word.slice(core.length);
     const isWho = gradientWords.some((x) => x === core);
-    const chars = (t) => [...t].map((ch) => `<span class="ch">${esc(ch)}</span>`).join('');
-    return `<span class="w">${isWho ? `<span class="who">${chars(core)}</span>` : chars(core)}${chars(tail)}</span>`;
-  }).join('<span class="ch sp"> </span>');
+    return `<span class="w">${isWho ? `<span class="who">${esc(core)}</span>` : esc(core)}${esc(tail)}</span>`;
+  }).join(' ');
 }
 const VIBE = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
 const chips = [
@@ -87,13 +87,15 @@ const pickedRaw = run.concepts?.[picked]?.front_text ?? '';
 const pickedText = esc(pickedRaw);
 const captionSize = pickedRaw.length > 90 ? 30 : pickedRaw.length > 50 ? 36 : 44;
 const finalFront = cameo ?? fronts[picked];
+const pickedFront = fronts[picked] ?? '';
+const particles = Array.from({ length: 26 }, () => '<i></i>').join('');
 const expectBy = new Date(); expectBy.setDate(expectBy.getDate() + 7);
 const expectStr = expectBy.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 
 // ── timing (seconds) ──────────────────────────────────────────────────
 const hasPhoto = !!(photo && cameo);
-const T = { hook: 0, brief: 3.4, three: 6.6, photo: 11.8, inside: hasPhoto ? 16.2 : 11.8 };
-T.close = T.inside + 4.4; T.end = T.close + 3.2;
+const T = { hook: 0, brief: 3.2, three: 6.2, photo: 11.2, inside: hasPhoto ? 15.6 : 11.2 };
+T.close = T.inside + 4.3; T.end = T.close + 3.4;
 
 // ── compose ───────────────────────────────────────────────────────────
 let html = await fs.readFile(path.join(HERE, 'src', 'template.html'), 'utf8');
@@ -101,7 +103,7 @@ const vars = {
   DURATION: T.end.toFixed(2), HOOK_HTML: hookHtml(hookLine), WHO: esc(who),
   CHIPS_HTML: chips.map((c, i) => `<span class="pill" id="s2-p${i}">${c}</span>`).join(''),
   FRONT1: fronts[0] ?? '', FRONT2: fronts[1] ?? '', FRONT3: fronts[2] ?? '', PICKED: String(picked), PICKED_TEXT: pickedText, CAPTION_SIZE: String(captionSize),
-  PHOTO: photo ?? '', CAMEO: cameo ?? '', FINAL_FRONT: finalFront ?? '', INSIDE: inside ?? '', EXPECT: esc(expectStr),
+  PHOTO: photo ?? '', CAMEO: cameo ?? '', FINAL_FRONT: finalFront ?? '', PICKED_FRONT: pickedFront, PARTICLES: particles, INSIDE: inside ?? '', EXPECT: esc(expectStr),
   T_BRIEF: T.brief, T_THREE: T.three, T_PHOTO: T.photo, T_INSIDE: T.inside, T_CLOSE: T.close, T_END: T.end,
   D_BRIEF: (T.three - T.brief).toFixed(2), D_THREE: (T.photo - T.three).toFixed(2), D_PHOTO: (T.inside - T.photo).toFixed(2),
   D_INSIDE: (T.close - T.inside).toFixed(2), D_TOP: (T.end - T.brief).toFixed(2), D_CLOSE: (T.end - T.close).toFixed(2), HAS_PHOTO: hasPhoto ? 'true' : 'false',
