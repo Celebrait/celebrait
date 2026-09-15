@@ -117,6 +117,9 @@ const CSS = `
   @keyframes demo-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(122,118,232,.45) } 50% { transform: scale(1.03); box-shadow: 0 0 0 14px rgba(122,118,232,0) } }
   .demo-pulse { animation: demo-pulse 1.7s ease-in-out infinite; }
 
+  @keyframes demo-field-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.35), 0 10px 36px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.55), 0 14px 48px rgba(122,118,232,.38) } }
+  .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
+
   .demo-rail { scrollbar-width: none; } .demo-rail::-webkit-scrollbar { display: none; }
 
   @keyframes demo-tick { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1) } }
@@ -275,6 +278,8 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
 
   const who = whoPhrase({ who: brief.who || preset.who, name: '' });
   const chosenFront = useCameo && cameoUrl ? cameoUrl : fronts[picked];
+  // An engine failure ends the run visibly — and tells the recorder.
+  const fail = (e: any) => { const m = e?.message ?? 'That didn’t work'; setError(m); mark(`FAILED: ${m}`, 'failed'); };
   const until = async (p: Phase, timeoutMs: number) => { const t0 = Date.now(); while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); } };
 
   // ── engine steps (what the product does) ──
@@ -424,7 +429,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {phase === 'brief' && (
         <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16">
           <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5">
-            <BriefQuestions skin="landing" brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch((e) => setError(e?.message ?? 'That didn’t work')); }} />
+            <BriefQuestions skin="landing" brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
           </div>
         </motion.section>
       )}
@@ -433,7 +438,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {(phase === 'generating' || phase === 'photo-generating' || phase === 'inside-generating') && (
         <motion.section key="generating" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
           <div className="demo-glow-card" />
-          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-keeper-meta">Generating</p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-keeper-meta">
+            {phase === 'generating' ? `Generating 3 different cards for ${who}` : phase === 'photo-generating' ? 'Adding photo' : 'Assembling card'}
+          </p>
         </motion.section>
       )}
 
@@ -469,7 +476,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           </button>
           <div className="mt-8 flex flex-col items-center gap-4">
             {photoUrl
-              ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch((e) => setError(e?.message ?? 'That didn’t work')); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
+              ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
               : <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
           </div>
         </motion.section>
@@ -493,26 +500,29 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
             <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] leading-relaxed text-keeper-ink focus:outline-none" />
+            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
             <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
           <div className="mt-6 flex flex-col items-center">
-            <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch((e) => setError(e?.message ?? 'That didn’t work'))}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
+            <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch(fail)}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
           </div>
         </motion.section>
       )}
 
       {/* 7 · the card, tap to open */}
       {phase === 'card' && chosenFront && (
-        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col px-5 pb-6 pt-16 text-center">
           <h1 className={H1}>There it is.</h1>
-          <div data-demo="card" className="mt-1 h-[60vh] w-full">
+          {/* The card takes the room and may draw past its box; the button
+              is pushed to the bottom and can go (Aidan 2026-09-15: "it's
+              not that important to see here"). */}
+          <div data-demo="card" className="mx-auto mt-2 h-[60vh] w-full overflow-visible">
             {/* Big and centred; the open cover may swing past the edge (Aidan
                 2026-09-15: "bigger… it can open off screen"). */}
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={1.25} minDistance={1.4} className="h-full w-full" />
           </div>
           <p className="mt-1 text-center text-[13px] text-keeper-meta">{cardOpen ? ' ' : 'Tap to open'}</p>
-          <div className="mt-3 flex flex-col items-center">
+          <div className="mt-auto flex flex-col items-center pt-3">
             <button type="button" data-demo="send" className={`${PRIMARY} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => setPhase('send')}>Send it</button>
           </div>
         </motion.section>
