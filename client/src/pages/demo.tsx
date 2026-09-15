@@ -271,6 +271,20 @@ const toDataUrl = async (url: string) => {
   const blob = await fetch(url).then((r) => r.blob());
   return new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error('read')); fr.readAsDataURL(blob); });
 };
+/** A phone photo the way the product sends one (make.tsx readCameoFile):
+ *  decoded and oriented, no edge over 1600px, JPEG — so a full-size HEIC
+ *  never reaches the model raw (2026-09-15: a photo of Mum came back as
+ *  the same card without her). */
+async function preparePhoto(file: Blob): Promise<string> {
+  const asDataUrl = () => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('read failed')); r.readAsDataURL(file); });
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+    cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close();
+    return cv.toDataURL('image/jpeg', 0.9);
+  } catch { return await asDataUrl(); }
+}
 
 type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
 
@@ -334,7 +348,14 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const renderCameo = async (photo: string) => {
     const c = conceptsRef.current[pickedRef.current];
     setPhase('photo-generating'); mark('photo: generating', 'photo');
-    const r = await post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+    const draw = () => post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+    let r = await draw();
+    // The same vision check the product runs, then one quiet retry if
+    // she isn't in it — a demo can't show "we think this came out wrong".
+    try {
+      const qa = await post('cameo-check', { cardImage: r.imageUrl, cameoPhoto: photo }, 30_000);
+      if (qa?.result?.verdict === 'bad') { mark('photo: redraw'); r = await draw(); }
+    } catch { /* fail open: show what we have */ }
     setCameoUrl(r.imageUrl); setPhase('photo-result'); mark('photo: done', 'photo-result');
   };
   const renderInside = async () => {
@@ -387,7 +408,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     if (p.photo) {
       await sleep(b.look * 0.5);
       await tap(await findDemo('add-photo'), b.settle, 300);
-      setPhotoUrl(await toDataUrl(p.photo)); mark('photo: added'); await sleep(b.hold);
+      setPhotoUrl(await preparePhoto(await fetch(p.photo).then((r) => r.blob()))); mark('photo: added'); await sleep(b.hold);
       await tap(await findDemo('put-in'), b.settle, 300);
       await until('photo-result', 240_000); await sleep(b.look);
       await tap(await findDemo('keep-cameo'), b.settle, b.hold * 0.6); mark('photo: kept');
@@ -518,8 +539,8 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         <motion.section key="photo" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const fr = new FileReader(); fr.onload = () => setPhotoUrl(String(fr.result)); fr.readAsDataURL(f); } e.target.value = ''; }} />
-          <button type="button" data-demo="add-photo" onClick={() => { if (cfg.mode !== 'manual') return; /* auto: the director drops the photo in */ if (cfg.photo) void toDataUrl(cfg.photo).then(setPhotoUrl); else fileRef.current?.click(); }}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(setPhotoUrl); e.target.value = ''; }} />
+          <button type="button" data-demo="add-photo" onClick={() => { if (cfg.mode !== 'manual') return; /* auto: the director drops the photo in */ if (cfg.photo) void fetch(cfg.photo).then((r) => r.blob()).then(preparePhoto).then(setPhotoUrl); else fileRef.current?.click(); }}
             className={`mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
             {photoUrl
               ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
