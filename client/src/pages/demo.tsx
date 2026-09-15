@@ -90,9 +90,9 @@ const CSS = `
   @keyframes demo-ring { 0% { transform: translate(-50%,-50%) scale(.55); opacity: .95 } 70% { opacity: .55 } 100% { transform: translate(-50%,-50%) scale(1.7); opacity: 0 } }
   @keyframes demo-dot { 0% { opacity: .9 } 100% { opacity: 0 } }
   .demo-ring { position: fixed; z-index: 2147483000; pointer-events: none; width: 46px; height: 46px; border-radius: 50%;
-    border: 3px solid #7a76e8; background: rgba(122,118,232,.22); animation: demo-ring 720ms cubic-bezier(.2,.7,.3,1) forwards; }
+    border: 3px solid #7a76e8; background: rgba(122,118,232,.22); animation: demo-ring 420ms cubic-bezier(.2,.7,.3,1) forwards; }
   .demo-dot { position: fixed; z-index: 2147483000; pointer-events: none; width: 14px; height: 14px; border-radius: 50%; background: #7a76e8;
-    transform: translate(-50%,-50%); animation: demo-dot 720ms ease-out forwards; }
+    transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 8vw;
     background: linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%); transition: opacity 600ms ease; }
@@ -123,11 +123,17 @@ const CSS = `
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** The ring belongs to the screen it was tapped on (Aidan 2026-09-15: it
+ *  was "pulsing on a place that is not relevant on the next screen"). So:
+ *  a short flash, and anything still showing is cleared the moment the
+ *  screen moves on. */
+const RING_MS = 420;
+function clearRings() { for (const el of Array.from(document.querySelectorAll('.demo-ring, .demo-dot'))) el.remove(); }
 function ring(x: number, y: number) {
   for (const cls of ['demo-ring', 'demo-dot']) {
     const el = document.createElement('div');
     el.className = cls; el.style.left = `${x}px`; el.style.top = `${y}px`;
-    document.body.appendChild(el); setTimeout(() => el.remove(), 800);
+    document.body.appendChild(el); setTimeout(() => el.remove(), RING_MS + 40);
   }
 }
 
@@ -156,12 +162,14 @@ async function tap(el: HTMLElement, settle: number, hold: number) {
   await bringIn(el, settle);
   const r = el.getBoundingClientRect();
   ring(r.left + Math.min(r.width * 0.5, 140), r.top + r.height / 2);
-  // A press you can see: the element dips for a beat before it acts.
+  // A press you can see: the element dips while the ring flashes, and only
+  // acts once the flash is over — so nothing carries into the next screen.
   const prev = el.style.transform; const prevT = el.style.transition;
   el.style.transition = 'transform 140ms ease'; el.style.transform = 'scale(0.96)';
-  await sleep(180);
+  await sleep(200);
   el.style.transform = prev; setTimeout(() => { el.style.transition = prevT; }, 200);
-  await sleep(120);
+  await sleep(RING_MS - 200 + 60);
+  clearRings();
   el.click();
   await sleep(hold);
 }
@@ -360,7 +368,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
       const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
+      const onClick = () => { window.setTimeout(clearRings, 140); };
       window.addEventListener('pointerdown', onDown, true);
+      window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
         if (!cfg.hook) return;
         (async () => {
@@ -370,11 +380,13 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           await sleep(1400); hookEl.classList.add('out');
         })();
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); };
+      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
     }
     const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { clearRings(); }, [phase]);
 
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
 
