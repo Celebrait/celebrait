@@ -194,27 +194,43 @@ async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, se
 }
 
 const escapeHtml = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
-/** The hook line so far, with the recipient's word(s) in the gradient —
- *  including a word still being typed. */
-function hookHtml(prefix: string, words: string[]) {
-  let html = escapeHtml(prefix);
-  for (const w of words.filter(Boolean)) {
-    const e = escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    html = html.replace(new RegExp(`\\b${e}\\b`, 'g'), (m) => `<span class="who">${m}</span>`);
-    // A partial at the very end ("Mu" of "Mum") colours as it lands.
-    for (let n = w.length - 1; n >= 1; n--) {
-      const part = escapeHtml(w.slice(0, n));
-      if (html.endsWith(part) && !html.endsWith('</span>') && new RegExp(`\\b${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(html)) { html = html.slice(0, -part.length) + `<span class="who">${part}</span>`; break; }
-    }
+/** A hook line is plain text plus the ranges that take the gradient:
+ *  anything wrapped in *asterisks* (Aidan 2026-09-15: "purple black
+ *  gradient a word by putting a tag on it"), and the recipient's word and
+ *  name automatically. The asterisks never show. */
+interface HookLine { text: string; ranges: Array<[number, number]> }
+function parseHook(raw: string, words: string[]): HookLine {
+  let text = ''; const ranges: Array<[number, number]> = []; let open = -1;
+  for (const ch of raw) {
+    if (ch === '*') { if (open < 0) open = text.length; else { if (text.length > open) ranges.push([open, text.length]); open = -1; } continue; }
+    text += ch;
   }
-  return html + '<span class="caret"></span>';
+  if (open >= 0 && text.length > open) ranges.push([open, text.length]);
+  for (const w of words.filter(Boolean)) {
+    const re = new RegExp(`(^|[^\\w])(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})(?=$|[^\\w])`, 'g');
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) { const a = m.index + m[1].length; const len = m[2].length; if (!ranges.some(([x, y]) => a < y && a + len > x)) ranges.push([a, a + len]); }
+  }
+  return { text, ranges };
+}
+/** The line typed up to `n` characters, gradient ranges wrapped — a range
+ *  still being typed colours as it lands. */
+function hookHtml(line: HookLine, n: number) {
+  const t = line.text.slice(0, n); let out = ''; let i = 0;
+  const starts = [...line.ranges].sort((a, b) => a[0] - b[0]);
+  for (const [a, b] of starts) {
+    if (a >= t.length) break;
+    out += escapeHtml(t.slice(i, a)); out += `<span class="who">${escapeHtml(t.slice(a, Math.min(b, t.length)))}</span>`; i = Math.min(b, t.length);
+  }
+  out += escapeHtml(t.slice(i));
+  return out + '<span class="caret"></span>';
 }
 /** How long to wait AFTER the character at `i` has landed. Sentences
  *  breathe at full stops, commas take a beat, the recipient's name gets a
  *  pause before it lands and a hold after, words start a touch slower
  *  than they finish, and a deterministic jitter keeps it from reading as
  *  a metronome (Aidan 2026-09-15: "pauses on the right place"). */
-function typingDelay(line: string, i: number, words: string[], base = 42): number {
+function typingDelay(line: string, i: number, ranges: Array<[number, number]>, base = 42): number {
   const ch = line[i]; const next = line[i + 1] ?? '';
   const jitter = 0.75 + ((Math.sin((i + 1) * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.5; // 0.75–1.25, seeded
   let d = base * jitter;
@@ -222,19 +238,15 @@ function typingDelay(line: string, i: number, words: string[], base = 42): numbe
   else if (ch === ',' || ch === ';' || ch === '—' || ch === '…') d += 230;  // a breath
   else if (ch === ' ') d += 40;                                    // between words
   if (next === ' ' || next === '') d += 10;                        // letting a word finish
-  // a beat before the recipient's word, a hold once it's complete
-  const rest = line.slice(i + 1);
-  for (const w of words.filter(Boolean)) {
-    if (rest.startsWith(' ' + w)) d += 280;
-    if (line.slice(0, i + 1).endsWith(w) && !/\w/.test(next)) d += 260;
-  }
+  // a beat before a gradient word, a hold once it's complete
+  for (const [x, y] of ranges) { if (i + 1 === x && ch === ' ') d += 280; if (i + 1 === y) d += 260; }
   return d;
 }
-async function typeHook(line: string, words: string[]) {
+async function typeHook(raw: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
-  const target = hookEl.querySelector('p')!;
+  const target = hookEl.querySelector('p')!; const line = parseHook(raw, words);
   await sleep(500); // a moment before the first letter
-  for (let i = 0; i < line.length; i++) { target.innerHTML = hookHtml(line.slice(0, i + 1), words); await sleep(typingDelay(line, i, words)); }
+  for (let i = 0; i < line.text.length; i++) { target.innerHTML = hookHtml(line, i + 1); await sleep(typingDelay(line.text, i, line.ranges)); }
   await sleep(1500); hookEl.classList.add('out'); await sleep(650);
 }
 
@@ -670,7 +682,8 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
           <div><span className={label}>Opening line</span>
             <div className="flex flex-wrap gap-2"><button type="button" className={chip(cfg.hook)} onClick={() => set({ hook: true })}>Typed hook</button><button type="button" className={chip(!cfg.hook)} onClick={() => set({ hook: false })}>Straight in</button></div>
-            {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 120) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
+            {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 140) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
+            {cfg.hook && <p className="mt-1.5 text-[12px] text-keeper-meta">Wrap a word in *asterisks* for the purple-to-black gradient. The recipient’s word gets it anyway.</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
