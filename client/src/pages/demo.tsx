@@ -185,10 +185,10 @@ async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, se
   el.focus(); await sleep(350);
   const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!;
-  for (let i = 1; i <= text.length; i++) {
-    setter.call(el, text.slice(0, i));
+  for (let i = 0; i < text.length; i++) {
+    setter.call(el, text.slice(0, i + 1));
     el.dispatchEvent(new Event('input', { bubbles: true }));
-    await sleep(delay + (text[i - 1] === ' ' ? 40 : 0));
+    await sleep(typingDelay(text, i, [], delay));
   }
   await sleep(600);
 }
@@ -209,11 +209,33 @@ function hookHtml(prefix: string, words: string[]) {
   }
   return html + '<span class="caret"></span>';
 }
+/** How long to wait AFTER the character at `i` has landed. Sentences
+ *  breathe at full stops, commas take a beat, the recipient's name gets a
+ *  pause before it lands and a hold after, words start a touch slower
+ *  than they finish, and a deterministic jitter keeps it from reading as
+ *  a metronome (Aidan 2026-09-15: "pauses on the right place"). */
+function typingDelay(line: string, i: number, words: string[], base = 42): number {
+  const ch = line[i]; const next = line[i + 1] ?? '';
+  const jitter = 0.75 + ((Math.sin((i + 1) * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.5; // 0.75–1.25, seeded
+  let d = base * jitter;
+  if (ch === '.' || ch === '!' || ch === '?') d += 520;            // end of a thought
+  else if (ch === ',' || ch === ';' || ch === '—' || ch === '…') d += 230;  // a breath
+  else if (ch === ' ') d += 40;                                    // between words
+  if (next === ' ' || next === '') d += 10;                        // letting a word finish
+  // a beat before the recipient's word, a hold once it's complete
+  const rest = line.slice(i + 1);
+  for (const w of words.filter(Boolean)) {
+    if (rest.startsWith(' ' + w)) d += 280;
+    if (line.slice(0, i + 1).endsWith(w) && !/\w/.test(next)) d += 260;
+  }
+  return d;
+}
 async function typeHook(line: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
   const target = hookEl.querySelector('p')!;
-  for (let i = 1; i <= line.length; i++) { target.innerHTML = hookHtml(line.slice(0, i), words); await sleep(38 + (line[i - 1] === '.' ? 260 : 0)); }
-  await sleep(1400); hookEl.classList.add('out'); await sleep(650);
+  await sleep(500); // a moment before the first letter
+  for (let i = 0; i < line.length; i++) { target.innerHTML = hookHtml(line.slice(0, i + 1), words); await sleep(typingDelay(line, i, words)); }
+  await sleep(1500); hookEl.classList.add('out'); await sleep(650);
 }
 
 declare global { interface Window { __demo?: { state: string; events: Array<{ name: string; t: number }> } } }
@@ -533,10 +555,10 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           {/* The card takes the room and may draw past its box; the button
               is pushed to the bottom and can go (Aidan 2026-09-15: "it's
               not that important to see here"). */}
-          <div data-demo="card" className="mx-auto mt-2 h-[60vh] w-full overflow-visible">
+          <div data-demo="card" className="mx-auto mt-2 h-[min(60vh,92vw)] w-full shrink-0 overflow-visible">
             {/* Big and centred; the open cover may swing past the edge (Aidan
                 2026-09-15: "bigger… it can open off screen"). */}
-            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={1.25} minDistance={1.4} className="h-full w-full" />
+            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={1.4} minDistance={1.4} className="h-full w-full" />
           </div>
           <p className="mt-1 text-center text-[13px] text-keeper-meta">{cardOpen ? ' ' : 'Tap to open'}</p>
           <div className="mt-auto flex flex-col items-center pt-3">
