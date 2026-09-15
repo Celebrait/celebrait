@@ -124,6 +124,8 @@ const DoorwayPage = lazy(() => import("@/pages/doorway"));
 const DoorwayBPage = lazy(() => import("@/pages/doorway-b"));
 const GatePage = lazy(() => import("@/pages/gate"));
 const MakePage = lazy(() => import("@/pages/make"));
+// The self-driving three-card route for social video (admin-only).
+const DemoPage = lazy(() => import("@/pages/demo"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
@@ -323,6 +325,13 @@ function Router() {
           <Route path="/door" component={DoorwayPage} />
           <Route path="/door2" component={DoorwayBPage} />
           <Route path="/make" component={MakePage} />
+          {/* THE DEMO: /make driving itself for social recordings. Admin
+              only — every load spends a set of generations. */}
+          <Route path="/demo">
+            <RequireAdmin>
+              <DemoPage />
+            </RequireAdmin>
+          </Route>
           {/* The PUBLIC photo maker (2026-09-04): recipient → photo →
               scene → front text signed out; sign-up at Generate. */}
           <Route path="/photo/make" component={PhotoMakerPage} />
