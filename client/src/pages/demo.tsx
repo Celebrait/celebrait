@@ -465,10 +465,10 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {phase === 'results' && (
         <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
           <div className="px-5"><h1 className={H1}>Three cards for {who}.</h1><p className="mt-1 text-[13px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Option {slide + 1} of 3</p></div>
-          <div ref={railRef} onScroll={onRailScroll} className="demo-rail mt-5 flex snap-x snap-mandatory overflow-x-auto">
+          <div ref={railRef} onScroll={onRailScroll} className="demo-rail mt-5 flex shrink-0 snap-x snap-mandatory overflow-x-auto">
             {fronts.map((u, i) => (
               <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
-                <div className="w-full max-w-[340px]"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager /></div>
+                <div className="w-[min(84vw,50vh,380px)] shrink-0"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager /></div>
               </div>
             ))}
           </div>
@@ -486,7 +486,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const fr = new FileReader(); fr.onload = () => setPhotoUrl(String(fr.result)); fr.readAsDataURL(f); } e.target.value = ''; }} />
           <button type="button" data-demo="add-photo" onClick={() => { if (cfg.mode !== 'manual') return; /* auto: the director drops the photo in */ if (cfg.photo) void toDataUrl(cfg.photo).then(setPhotoUrl); else fileRef.current?.click(); }}
-            className={`mt-6 flex aspect-[4/5] w-full max-w-[260px] items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
+            className={`mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
             {photoUrl
               ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
               : <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>}
@@ -503,7 +503,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {phase === 'photo-result' && cameoUrl && (
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There’s {who}.</h1>
-          <div className="mt-5 w-full max-w-[340px] self-center"><AjarTile imageUrl={cameoUrl} alt="" eager /></div>
+          <div className="mt-5 w-[min(84vw,50vh,380px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager /></div>
           <div className="mt-8 flex flex-col items-center gap-4">
             <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
             <button type="button" data-demo="keep-original" className={QUIET} onClick={() => { setUseCameo(false); setPhase('inside'); }}>Keep the original</button>
