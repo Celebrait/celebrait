@@ -347,7 +347,7 @@ export default function DemoPage() {
 
       {/* 1 · the brief */}
       {phase === 'brief' && (
-        <section className="absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="absolute inset-0 flex flex-col justify-center px-5 py-16">
           <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5">
             <BriefQuestions skin="landing" brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch((e) => setError(e?.message ?? 'That didn’t work')); }} />
           </div>
@@ -364,7 +364,7 @@ export default function DemoPage() {
 
       {/* 3 · option 1 / 2 / 3 */}
       {phase === 'results' && (
-        <section className="demo-in absolute inset-0 flex flex-col px-0 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
           <div className="px-5"><h1 className={H1}>Three cards for {who}.</h1><p className="mt-1 text-[13px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Option {slide + 1} of 3</p></div>
           <div ref={railRef} onScroll={onRailScroll} className="demo-rail mt-5 flex snap-x snap-mandatory overflow-x-auto">
             {fronts.map((u, i) => (
@@ -374,7 +374,7 @@ export default function DemoPage() {
             ))}
           </div>
           <p className="mt-3 text-center text-[13px] text-keeper-meta">Swipe to see the others</p>
-          <div className="mt-auto flex flex-col items-center gap-3 px-5">
+          <div className="mt-7 flex flex-col items-center gap-3 px-5">
             <button type="button" data-demo="choose" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setPicked(slide); setPhase('photo'); }}>Choose this one</button>
           </div>
         </section>
@@ -382,7 +382,7 @@ export default function DemoPage() {
 
       {/* 4 · add a photo? */}
       {phase === 'photo' && (
-        <section className="demo-in absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <button type="button" data-demo="add-photo" onClick={() => { /* the director drops the photo in */ }}
@@ -391,7 +391,7 @@ export default function DemoPage() {
               ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
               : <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>}
           </button>
-          <div className="mt-auto flex flex-col items-center gap-4">
+          <div className="mt-8 flex flex-col items-center gap-4">
             {photoUrl
               ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch((e) => setError(e?.message ?? 'That didn’t work')); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
               : <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
@@ -401,10 +401,10 @@ export default function DemoPage() {
 
       {/* 5 · there they are */}
       {phase === 'photo-result' && cameoUrl && (
-        <section className="demo-in absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There’s {who}.</h1>
           <div className="mt-5 w-full max-w-[340px] self-center"><AjarTile imageUrl={cameoUrl} alt="" eager /></div>
-          <div className="mt-auto flex flex-col items-center gap-4">
+          <div className="mt-8 flex flex-col items-center gap-4">
             <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
             <button type="button" data-demo="keep-original" className={QUIET} onClick={() => { setUseCameo(false); setPhase('inside'); }}>Keep the original</button>
           </div>
@@ -413,14 +413,14 @@ export default function DemoPage() {
 
       {/* 6 · the inside */}
       {phase === 'inside' && (
-        <section className="demo-in absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
-            <input data-demo="dear" value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <textarea data-demo="message" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] leading-relaxed text-keeper-ink focus:outline-none" />
-            <input data-demo="from" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] leading-relaxed text-keeper-ink focus:outline-none" />
+            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
-          <div className="mt-auto flex flex-col items-center">
+          <div className="mt-6 flex flex-col items-center">
             <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch((e) => setError(e?.message ?? 'That didn’t work'))}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
           </div>
         </section>
@@ -428,12 +428,12 @@ export default function DemoPage() {
 
       {/* 7 · the card, tap to open */}
       {phase === 'card' && chosenFront && (
-        <section className="demo-in absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There it is.</h1>
-          <div data-demo="card" className="mt-2 min-h-0 flex-1">
-            {/* A portrait canvas: loosen the fit and lift the distance ceiling so
-                the OPEN spread (cover swung left) stays in frame. */}
-            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={2.7} maxDistance={14} className="h-full w-full" />
+          <div data-demo="card" className="mt-1 h-[60vh] w-full">
+            {/* Big and centred; the open cover may swing past the edge (Aidan
+                2026-09-15: "bigger… it can open off screen"). */}
+            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={1.25} minDistance={1.4} className="h-full w-full" />
           </div>
           <p className="mt-1 text-center text-[13px] text-keeper-meta">{cardOpen ? ' ' : 'Tap to open'}</p>
           <div className="mt-3 flex flex-col items-center">
@@ -444,14 +444,14 @@ export default function DemoPage() {
 
       {/* 8 · where's it going? */}
       {phase === 'send' && (
-        <section className="demo-in absolute inset-0 flex flex-col px-5 pb-8 pt-20">
+        <section className="demo-in absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Where’s it going?</h1>
           <div className="mt-6 flex flex-col gap-3">
-            <button type="button" data-demo="send-them" className={`${TILE} demo-pulse`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
+            <button type="button" data-demo="send-them" className={`${TILE} demo-pulse text-left`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
               <span className="text-[16px] font-semibold text-keeper-ink">Straight to {who}</span>
               <span className="text-[13px] text-keeper-meta">Addressed to them, posted tracked</span>
             </button>
-            <button type="button" data-demo="send-me" className={TILE} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
+            <button type="button" data-demo="send-me" className={`${TILE} text-left`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
               <span className="text-[16px] font-semibold text-keeper-ink">To me first</span>
               <span className="text-[13px] text-keeper-meta">To hand over in person</span>
             </button>
