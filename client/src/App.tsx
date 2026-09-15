@@ -127,6 +127,7 @@ const MakePage = lazy(() => import("@/pages/make"));
 // The self-driving three-card route for social video (admin-only).
 const DemoPage = lazy(() => import("@/pages/demo"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
+const AdminDemoRunsPage = lazy(() => import("@/pages/admin-demo-runs"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const BuyPage = lazy(() => import("@/pages/buy"));
@@ -419,6 +420,13 @@ function Router() {
           {/* The guided maker preview — the customer flow rehearsed
               behind admin auth, deliberately OUTSIDE AdminLayout so it
               looks like what it is: the customer experience. */}
+          <Route path="/admin/demo-runs">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminDemoRunsPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
           <Route path="/admin/research">
             <RequireAdmin>
               <AdminLayout>

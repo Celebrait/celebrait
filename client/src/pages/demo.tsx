@@ -407,6 +407,23 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { clearRings(); }, [phase]);
+  // The run saves itself at "It's on the way" — the assets behind a
+  // produced social video (see /admin/demo-runs). Fire and forget.
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (phase !== 'sent' || savedRef.current || fronts.length === 0) return;
+    savedRef.current = true;
+    const beats = (window.__demo?.events ?? []); const t0 = beats[0]?.t ?? Date.now();
+    void fetch('/api/admin/demo-runs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: cfg.mode, label: `${who}, ${brief.age || cfg.age} · ${occasionLabelFor(brief)}`,
+        brief, hookLine: cfg.hook ? cfg.hookLine : undefined, concepts, fronts, pickedIndex: picked,
+        photo: photoUrl ?? undefined, cameo: cameoUrl ?? undefined, inside: insideUrl ?? undefined,
+        words: { dear, message, from }, beats: beats.map((e) => ({ name: e.name, t: e.t - t0 })),
+      }),
+    }).then((r) => { if (!r.ok) console.warn('[DEMO] save failed', r.status); }).catch((e) => console.warn('[DEMO] save failed', e));
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
 

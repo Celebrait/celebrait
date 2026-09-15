@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Celebrait — demo run</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* The site's own faces (client/src/index.css): Fraunces for the moments, Figtree for the rest. */
+      @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 100 900; font-display: block; src: url("assets/fonts/fraunces-latin-standard-normal.woff2") format("woff2-variations"); }
+      @font-face { font-family: "Figtree"; font-style: normal; font-weight: 300 900; font-display: block; src: url("assets/fonts/figtree-latin-wght-normal.woff2") format("woff2-variations"); }
+
+      :root {
+        /* tailwind.config.ts — keeper paper / ink / the one brand violet */
+        --paper: #faf8f4; --paper-top: #fffdf9;
+        --ink: #211d19; --body: #3a342e; --meta: #7d746a; --hair: #e9e4dc;
+        --brand: #7a76e8; --brand-dark: #5c57d4; --brand-muted: #f2f1fb;
+        --go: #5fd94a;
+        --display: "Fraunces", Georgia, serif; --sans: "Figtree", system-ui, sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, var(--paper-top) 0%, var(--paper) 100%); }
+
+      .clip { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 84px; text-align: center; }
+      .topbar { justify-content: flex-start; align-items: flex-start; padding-top: 120px; }
+      .topbar img { display: block; width: 230px; height: auto; }
+
+      .kicker { display: block; font-weight: 700; font-size: 28px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--meta); margin-bottom: 30px; }
+      .h { display: block; font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
+      .sub { display: block; margin-top: 34px; font-weight: 400; font-size: 40px; line-height: 1.35; color: var(--body); max-width: 24ch; }
+
+      /* S1 — the hook, typed. Left-aligned, Fraunces Bold, the recipient violet → ink. */
+      .hook { align-items: flex-start; text-align: left; padding: 0 96px; }
+      .hookline { display: block; font-family: var(--display); font-weight: 700; font-size: 112px; line-height: 1.06; letter-spacing: -0.015em; color: var(--ink); }
+      .hookline .w { display: inline-block; white-space: nowrap; }
+      .hookline .ch { display: inline-block; opacity: 0; }
+      .hookline .ch.sp { width: 0.28em; }
+      .hookline .who .ch { background: linear-gradient(90deg, var(--brand) 0%, var(--ink) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .hookline .who { display: inline-block; background: linear-gradient(90deg, var(--brand) 0%, var(--ink) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .hookline .who .ch { background: none; color: inherit; -webkit-text-fill-color: inherit; }
+      .caret { display: inline-block; width: 0.07em; height: 0.9em; background: var(--brand); margin-left: 0.06em; vertical-align: -0.08em; }
+
+      /* S2 — the brief as pills */
+      .pills { display: flex; flex-direction: column; align-items: center; gap: 22px; margin-top: 8px; }
+      .pill { display: block; padding: 24px 44px; border-radius: 999px; border: 2px solid var(--hair); background: #fff; font-weight: 500; font-size: 42px; line-height: 1.2; color: var(--ink); max-width: 880px; }
+      .pill.on { border-color: var(--brand); background: var(--brand-muted); color: var(--brand-dark); }
+
+      /* S3 — three fronts, one picked */
+      .fan { position: relative; display: block; width: 900px; height: 780px; margin-top: 30px; }
+      .fan .card { position: absolute; left: 50%; top: 50%; width: 560px; height: 560px; margin: -280px 0 0 -280px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 40px 80px -30px rgba(33, 29, 25, 0.45), 0 0 0 1px rgba(33, 29, 25, 0.06); }
+      .fan .card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .caption { display: block; margin-top: 26px; font-family: var(--display); font-weight: 600; font-size: 44px; line-height: 1.2; color: var(--ink); max-width: 20ch; }
+
+      /* S4 — the photo goes in */
+      .stage { position: relative; display: block; width: 760px; height: 760px; margin-top: 24px; }
+      .glow { position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; margin: -550px 0 0 -550px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(122, 118, 232, 0.32) 0%, rgba(122, 118, 232, 0) 62%); }
+      .photo { position: absolute; left: 50%; top: 50%; width: 520px; height: 650px; margin: -325px 0 0 -260px; border-radius: 28px; overflow: hidden; border: 6px solid var(--brand); background: #fff; box-shadow: 0 40px 80px -30px rgba(33, 29, 25, 0.4); }
+      .photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .sq { position: absolute; left: 50%; top: 50%; width: 700px; height: 700px; margin: -350px 0 0 -350px; border-radius: 24px; overflow: hidden; background: #fff; box-shadow: 0 40px 80px -30px rgba(33, 29, 25, 0.45), 0 0 0 1px rgba(33, 29, 25, 0.06); }
+      .sq img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+      /* S5 — the card flips to its inside */
+      .flipstage { position: relative; display: block; width: 760px; height: 760px; margin-top: 24px; perspective: 1800px; }
+      .card3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+      .face { position: absolute; inset: 0; border-radius: 24px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #fff; box-shadow: 0 40px 80px -30px rgba(33, 29, 25, 0.45), 0 0 0 1px rgba(33, 29, 25, 0.06); }
+      .face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .face.back { transform: rotateY(180deg); }
+
+      /* S6 — on the way */
+      .tick { display: flex; align-items: center; justify-content: center; width: 200px; height: 200px; border-radius: 50%; background: var(--go); margin-bottom: 44px; }
+      .tick svg { width: 104px; height: 104px; }
+      .logo-big { display: block; width: 460px; height: auto; margin-top: 70px; }
+      .pill-cta { display: block; margin-top: 36px; padding: 24px 52px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; font-size: 40px; letter-spacing: -0.01em; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1080" data-height="1920" data-duration="{{DURATION}}" data-fps="30">
+
+      <section id="topbar" class="clip topbar" data-start="{{T_BRIEF}}" data-duration="{{D_TOP}}" data-track-index="1">
+        <img id="topbar-logo" src="assets/logo.webp" alt="" />
+      </section>
+
+      <!-- S1 · the hook -->
+      <section id="s1" class="clip hook" data-start="0" data-duration="{{T_BRIEF}}" data-track-index="0">
+        <p id="s1-line" class="hookline">{{HOOK_HTML}}<span id="s1-caret" class="caret"></span></p>
+      </section>
+
+      <!-- S2 · the brief -->
+      <section id="s2" class="clip" data-start="{{T_BRIEF}}" data-duration="{{D_BRIEF}}" data-track-index="0">
+        <span id="s2-k" class="kicker">The brief</span>
+        <div id="s2-pills" class="pills">{{CHIPS_HTML}}</div>
+      </section>
+
+      <!-- S3 · three cards, one picked -->
+      <section id="s3" class="clip" data-start="{{T_THREE}}" data-duration="{{D_THREE}}" data-track-index="0">
+        <span id="s3-h" class="h">Three cards.<span style="display:block">Pick one.</span></span>
+        <div id="s3-fan" class="fan">
+          <div id="s3-c0" class="card"><img src="{{FRONT1}}" alt="" /></div>
+          <div id="s3-c1" class="card"><img src="{{FRONT2}}" alt="" /></div>
+          <div id="s3-c2" class="card"><img src="{{FRONT3}}" alt="" /></div>
+        </div>
+        <span id="s3-cap" class="caption" style="font-size: {{CAPTION_SIZE}}px">{{PICKED_TEXT}}</span>
+      </section>
+
+      <!--IF_PHOTO-->
+      <!-- S4 · the photo goes in -->
+      <section id="s4" class="clip" data-start="{{T_PHOTO}}" data-duration="{{D_PHOTO}}" data-track-index="0">
+        <span id="s4-k" class="kicker">Add a photo</span>
+        <span id="s4-h" class="h">Put {{WHO}} in it.</span>
+        <div id="s4-stage" class="stage">
+          <div id="s4-glow" class="glow"></div>
+          <div id="s4-photo" class="photo"><img src="{{PHOTO}}" alt="" /></div>
+          <div id="s4-cameo" class="sq"><img src="{{CAMEO}}" alt="" /></div>
+        </div>
+      </section>
+      <!--END_PHOTO-->
+
+      <!-- S5 · the inside -->
+      <section id="s5" class="clip" data-start="{{T_INSIDE}}" data-duration="{{D_INSIDE}}" data-track-index="0">
+        <span id="s5-k" class="kicker">Your words inside</span>
+        <div id="s5-stage" class="flipstage">
+          <div id="s5-card" class="card3d">
+            <div class="face front"><img src="{{FINAL_FRONT}}" alt="" /></div>
+            <div class="face back"><img src="{{INSIDE}}" alt="" /></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- S6 · on the way -->
+      <section id="s6" class="clip" data-start="{{T_CLOSE}}" data-duration="{{D_CLOSE}}" data-track-index="0">
+        <div id="s6-tick" class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <span id="s6-h" class="h">It’s on the way.</span>
+        <span id="s6-sub" class="sub">Printed today, posted tracked. Expect it by {{EXPECT}}.</span>
+        <img id="s6-logo" class="logo-big" src="assets/logo-close.webp" alt="" />
+        <span id="s6-pill" class="pill-cta">celebrait.co.uk</span>
+      </section>
+    </div>
+
+    <script>
+      const T = { brief: {{T_BRIEF}}, three: {{T_THREE}}, photo: {{T_PHOTO}}, inside: {{T_INSIDE}}, close: {{T_CLOSE}}, end: {{T_END}} };
+      const HAS_PHOTO = {{HAS_PHOTO}};
+      const PICKED = {{PICKED}};
+      const tl = gsap.timeline({ paused: true });
+      const out = (targets, at) => tl.to(targets, { y: -24, opacity: 0, duration: 0.3, ease: "power2.in", stagger: 0.03 }, at);
+
+      // ---- S1 · the hook types itself ----
+      const chars = gsap.utils.toArray("#s1-line .ch");
+      tl.to(chars, { opacity: 1, duration: 0.01, stagger: 0.048, ease: "none" }, 0.3);
+      tl.fromTo("#s1-caret", { opacity: 1 }, { opacity: 0, duration: 0.45, ease: "steps(1)", repeat: 5, yoyo: true }, 0.3);
+      out("#s1-line", T.brief - 0.35);
+
+      // ---- S2 · the brief, pill by pill ----
+      tl.fromTo("#s2-k", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, T.brief + 0.1);
+      tl.fromTo("#s2-pills .pill", { y: 40, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.4)", stagger: 0.28 }, T.brief + 0.35);
+      tl.fromTo("#topbar-logo", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, T.brief + 0.2);
+      out(["#s2-k", "#s2-pills .pill"], T.three - 0.35);
+
+      // ---- S3 · three fronts fan in; one is picked ----
+      tl.fromTo("#s3-h", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: "power3.out" }, T.three + 0.1);
+      const fan = [{ x: -255, r: -9 }, { x: 0, r: 0 }, { x: 255, r: 9 }];
+      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
+        tl.fromTo(id, { y: 900, x: fan[i].x, rotation: fan[i].r, scale: 0.86, opacity: 0 }, { y: 0, x: fan[i].x, rotation: fan[i].r, scale: 0.86, opacity: 1, duration: 0.9, ease: "expo.out" }, T.three + 0.35 + i * 0.16);
+      });
+      // the pick: the chosen card comes to the front, the others step aside
+      ["#s3-c0", "#s3-c1", "#s3-c2"].forEach((id, i) => {
+        if (i === PICKED) tl.to(id, { x: 0, rotation: 0, scale: 1.12, duration: 0.8, ease: "power3.inOut", overwrite: "auto" }, T.three + 2.6);
+        else tl.to(id, { x: fan[i].x * 1.8, opacity: 0, scale: 0.8, duration: 0.6, ease: "power2.in", overwrite: "auto" }, T.three + 2.6);
+      });
+      tl.fromTo("#s3-cap", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, T.three + 3.2);
+      out(["#s3-h", "#s3-fan", "#s3-cap"], T.photo - 0.35);
+
+      // ---- S4 · the photo goes in, and becomes the cameo ----
+      if (HAS_PHOTO) {
+        tl.fromTo("#s4-k", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, T.photo + 0.1);
+        tl.fromTo("#s4-h", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: "power3.out" }, T.photo + 0.2);
+        tl.fromTo("#s4-glow", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 1.2, ease: "power2.out" }, T.photo + 0.4);
+        tl.fromTo("#s4-photo", { y: 260, opacity: 0, rotation: -4, scale: 0.9 }, { y: 0, opacity: 1, rotation: -2, scale: 1, duration: 0.8, ease: "back.out(1.3)" }, T.photo + 0.5);
+        gsap.set("#s4-cameo", { opacity: 0, scale: 0.92 });
+        // the swap: photo dissolves into the card with them in it
+        tl.to("#s4-photo", { opacity: 0, scale: 0.7, rotation: 4, duration: 0.6, ease: "power2.in" }, T.photo + 2.2);
+        tl.to("#s4-cameo", { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, T.photo + 2.5);
+        tl.to("#s4-glow", { scale: 1.15, duration: 1.2, ease: "sine.inOut" }, T.photo + 2.5);
+        out(["#s4-k", "#s4-h", "#s4-stage"], T.inside - 0.35);
+      }
+
+      // ---- S5 · the card flips to its inside ----
+      tl.fromTo("#s5-k", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, T.inside + 0.1);
+      tl.fromTo("#s5-card", { y: 500, opacity: 0, rotationZ: -4, rotationY: 0 }, { y: 0, opacity: 1, rotationZ: 0, duration: 0.9, ease: "expo.out" }, T.inside + 0.2);
+      tl.to("#s5-card", { rotationY: 180, duration: 1.1, ease: "power2.inOut" }, T.inside + 1.6);
+      tl.to("#s5-stage", { y: -10, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 1 }, T.inside + 2.8);
+      out(["#s5-k", "#s5-stage"], T.close - 0.35);
+
+      // ---- S6 · on the way ----
+      tl.fromTo("#s6-tick", { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(2.2)" }, T.close + 0.1);
+      tl.fromTo("#s6-h", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, T.close + 0.4);
+      tl.fromTo("#s6-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power2.out" }, T.close + 0.65);
+      tl.fromTo("#s6-logo", { y: 30, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.3)" }, T.close + 1.1);
+      tl.fromTo("#s6-pill", { y: 30, opacity: 0, scale: 0.94 }, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, T.close + 1.35);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

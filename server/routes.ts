@@ -38,6 +38,7 @@ import { registerAdminCompCodeRoutes } from "./routes/admin-comp-codes";
 import { registerAdminCardLabRoutes } from "./routes/admin-card-lab";
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerResearchRoutes } from "./routes/research";
+import { registerDemoRunRoutes } from "./routes/demo-runs";
 import { registerShopRoutes } from "./routes/shop";
 import { registerMakeRoutes } from "./routes/make";
 import { registerThumbRoutes } from "./routes/thumbs";
@@ -429,6 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminCardLabRoutes(app);
   registerCatalogueRoutes(app);
   registerResearchRoutes(app);
+  registerDemoRunRoutes(app);
   registerShopRoutes(app);
   registerMakeRoutes(app);
   registerThumbRoutes(app);

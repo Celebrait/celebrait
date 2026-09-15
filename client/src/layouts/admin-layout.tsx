@@ -4,7 +4,7 @@
 // warm violet primary, stone neutrals, green CTAs.
 
 import { Link, useLocation } from 'wouter';
-import { LogOut, ExternalLink, Sparkles, BarChart3, Mail, Users, TrendingUp, Image as ImageIcon, type LucideIcon, Share2, FlaskConical, Star, Cake } from 'lucide-react';
+import { LogOut, ExternalLink, Sparkles, BarChart3, Mail, Users, TrendingUp, Image as ImageIcon, type LucideIcon, Share2, FlaskConical, Star, Cake, Clapperboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Cost Ledger', href: '/admin/costs', icon: BarChart3 },
   { label: 'Emails', href: '/admin/emails', icon: Mail },
   { label: 'Social studio', href: '/admin/social', icon: Share2 },
+  { label: 'Demo runs', href: '/admin/demo-runs', icon: Clapperboard },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
