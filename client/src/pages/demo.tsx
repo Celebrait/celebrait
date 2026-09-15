@@ -94,9 +94,11 @@ const CSS = `
   .demo-dot { position: fixed; z-index: 2147483000; pointer-events: none; width: 14px; height: 14px; border-radius: 50%; background: #7a76e8;
     transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
-  .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 8vw;
+  .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
     background: linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%); transition: opacity 600ms ease; }
-  .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; }
+  /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
+  .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: left; max-width: 100%; }
+  .demo-hook .who { background: linear-gradient(90deg, #7a76e8 0%, #211D19 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .demo-hook .caret { display: inline-block; width: .08em; height: .95em; background: #7a76e8; margin-left: .08em; vertical-align: -.1em; animation: demo-caret 900ms steps(2) infinite; }
   @keyframes demo-caret { 50% { opacity: 0 } }
   .demo-hook.out { opacity: 0; pointer-events: none; }
@@ -186,6 +188,29 @@ async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, se
     await sleep(delay + (text[i - 1] === ' ' ? 40 : 0));
   }
   await sleep(600);
+}
+
+const escapeHtml = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+/** The hook line so far, with the recipient's word(s) in the gradient —
+ *  including a word still being typed. */
+function hookHtml(prefix: string, words: string[]) {
+  let html = escapeHtml(prefix);
+  for (const w of words.filter(Boolean)) {
+    const e = escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    html = html.replace(new RegExp(`\\b${e}\\b`, 'g'), (m) => `<span class="who">${m}</span>`);
+    // A partial at the very end ("Mu" of "Mum") colours as it lands.
+    for (let n = w.length - 1; n >= 1; n--) {
+      const part = escapeHtml(w.slice(0, n));
+      if (html.endsWith(part) && !html.endsWith('</span>') && new RegExp(`\\b${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(html)) { html = html.slice(0, -part.length) + `<span class="who">${part}</span>`; break; }
+    }
+  }
+  return html + '<span class="caret"></span>';
+}
+async function typeHook(line: string, words: string[]) {
+  const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
+  const target = hookEl.querySelector('p')!;
+  for (let i = 1; i <= line.length; i++) { target.innerHTML = hookHtml(line.slice(0, i), words); await sleep(38 + (line[i - 1] === '.' ? 260 : 0)); }
+  await sleep(1400); hookEl.classList.add('out'); await sleep(650);
 }
 
 declare global { interface Window { __demo?: { state: string; events: Array<{ name: string; t: number }> } } }
@@ -285,12 +310,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const direct = async () => {
     const b = beats; const p = preset;
     mark('brief: open', 'brief');
-    if (hook) {
-      const hookEl = await find('.demo-hook', null, 5000);
-      const target = hookEl.querySelector('p')!; const caret = '<span class="caret"></span>';
-      for (let i = 1; i <= p.hookLine.length; i++) { target.innerHTML = p.hookLine.slice(0, i) + caret; await sleep(38 + (p.hookLine[i - 1] === '.' ? 260 : 0)); }
-      await sleep(1400); hookEl.classList.add('out'); await sleep(650); mark('hook: done');
-    }
+    if (hook) { await typeHook(p.hookLine, [p.who, p.name]); mark('hook: done'); }
     await sleep(600);
     const B = (re: RegExp) => find('button', re);
     await tap(await B(new RegExp(`^${p.who}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
@@ -373,12 +393,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
         if (!cfg.hook) return;
-        (async () => {
-          const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
-          const target = hookEl.querySelector('p')!; const caret = '<span class="caret"></span>';
-          for (let i = 1; i <= cfg.hookLine.length; i++) { target.innerHTML = cfg.hookLine.slice(0, i) + caret; await sleep(38 + (cfg.hookLine[i - 1] === '.' ? 260 : 0)); }
-          await sleep(1400); hookEl.classList.add('out');
-        })();
+        void typeHook(cfg.hookLine, [cfg.who, cfg.name]);
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
       return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
     }
