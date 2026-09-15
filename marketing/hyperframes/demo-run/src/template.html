@@ -194,7 +194,7 @@
 
       // a card: paper-thick cover on a spine hinge + an inside page
       const W = 1.45, H = 1.45, TH = 0.012;
-      const paper = (map, col = 0xf7f2e9) => new THREE.MeshStandardMaterial({ map: map ?? null, color: map ? 0xffffff : col, roughness: 0.92, metalness: 0, envMapIntensity: 0.35, transparent: true });
+      const paper = (map, col = 0xefe9de) => new THREE.MeshStandardMaterial({ map: map ?? null, color: map ? 0xffffff : col, roughness: 0.92, metalness: 0, envMapIntensity: 0.35, transparent: true });
       const edgeMat = () => new THREE.MeshStandardMaterial({ color: 0xf1ebe1, roughness: 1, transparent: true });
       function panel(frontMap, backMap) {
         const e = edgeMat(); const m = new THREE.Mesh(new THREE.BoxGeometry(W, H, TH), [e, e, e, e, paper(frontMap), paper(backMap)]);
@@ -244,7 +244,7 @@
       const seal = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.035, 48), new THREE.MeshStandardMaterial({ color: 0x7a76e8, roughness: 0.4, metalness: 0.1 }));
       seal.rotation.x = Math.PI / 2; seal.position.set(0, EH / 2 - 0.7, 0.1); env.add(seal);
       // a soft ground for weight, low and far
-      const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.22 }));
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.3 }));
       ground.rotation.x = -Math.PI / 2; ground.position.y = -1.3; ground.receiveShadow = true; scene.add(ground);
 
       // ── the run, as a function of time ──
@@ -266,15 +266,15 @@
         });
 
         // C · three cards rise, fan, and one is picked
-        const lanes = [{ x: -0.82, z: -0.9, ry: 0.5 }, { x: 0, z: -0.3, ry: 0 }, { x: 0.82, z: -0.9, ry: -0.5 }];
+        const lanes = [{ x: -0.72, z: -0.9, ry: 0.5 }, { x: 0, z: -0.3, ry: 0 }, { x: 0.72, z: -0.9, ry: -0.5 }];
         const pickAt = T.three + 2.5;
         cards.forEach((c, i) => {
           const L = lanes[i]; const at = T.three + 0.15 + i * 0.16; const e = expo(at, at + 1.1, t);
           const pk = sm(pickAt, pickAt + 0.9, t);
           const isP = i === PICKED;
-          let x = L.x, y = 0, z = L.z, ry = L.ry, a = clamp01(e * 1.5), sc = 0.85;
-          if (isP) { x = lerp(L.x, 0, pk); z = lerp(L.z, 0.5, pk); ry = lerp(L.ry, -0.06, pk); sc = lerp(0.85, 1, pk); }
-          else { x = lerp(L.x, L.x * 2.1, pk); z = lerp(L.z, L.z - 3.5, pk); a *= 1 - pk; sc = lerp(0.85, 0.7, pk); }
+          let x = L.x, y = 0, z = L.z, ry = L.ry, a = clamp01(e * 1.5), sc = 0.8;
+          if (isP) { x = lerp(L.x, 0, pk); z = lerp(L.z, 0.5, pk); ry = lerp(L.ry, -0.06, pk); sc = lerp(0.8, 1, pk); }
+          else { x = lerp(L.x, L.x * 2.1, pk); z = lerp(L.z, L.z - 3.5, pk); a *= 1 - pk; sc = lerp(0.8, 0.66, pk); }
           // enter from below, tilted back
           c.position.set(x, lerp(-6, y, e) + Math.sin(t * 0.9 + i * 2) * 0.02, lerp(z - 2, z, e));
           c.rotation.set(lerp(-0.55, 0, e), ry, lerp(i === 1 ? 0 : (i === 0 ? -0.08 : 0.08), 0, e));
@@ -312,7 +312,7 @@
         const sealK = back(T.close + 2.75, T.close + 3.15, t, 2.2);
         if (t >= T.inside) {
           picked.userData.hinge.rotation.y = lerp(lerp(-0.3, -2.85, o), -0.3, closeK);
-          picked.rotation.y = lerp(-0.06, 0.14, o) * (1 - closeK) + settle;
+          picked.rotation.y = lerp(-0.06, 0.24, o) * (1 - closeK) + settle;
           picked.rotation.x = lerp(0, 0.04, o) * (1 - closeK);
           picked.position.set(0, lerp(0, 0.65, slide) + lerp(0, 0.08, o) * (1 - closeK), lerp(0.5, 0.34, closeK));
           picked.scale.setScalar(lerp(1, 0.72, slide));
@@ -331,7 +331,7 @@
         let cx = 0, cy = 0.2, cz = 7.2, lx = 0, ly = 0, lz = 0;
         if (t < T.brief) { cx = lerp(0.4, 0.1, sm(0, T.brief, t)); cz = lerp(8.5, 7.6, sm(0, T.brief, t)); }
         else if (t < T.three) { const k = sm(T.brief, T.three, t); cx = lerp(0.1, -0.5, k); cy = lerp(0.2, 0.35, k); cz = lerp(7.6, 6.6, k); }
-        else if (t < (HAS_PHOTO ? T.photo : T.inside)) { const k = sm(T.three, T.three + 2.4, t); const pk = sm(pickAt, pickAt + 1.0, t); cx = lerp(0.6, -0.3, k) * (1 - pk); cy = lerp(0.4, 0.2, k); cz = lerp(7.9, 7.3, k) + lerp(0, -0.9, pk); ly = lerp(-0.15, 0, pk); }
+        else if (t < (HAS_PHOTO ? T.photo : T.inside)) { const k = sm(T.three, T.three + 2.4, t); const pk = sm(pickAt, pickAt + 1.0, t); cx = lerp(0.3, -0.15, k) * (1 - pk); cy = lerp(0.4, 0.2, k); cz = lerp(7.9, 7.3, k) + lerp(0, -0.9, pk); ly = lerp(-0.15, 0, pk); }
         else if (HAS_PHOTO && t < T.inside) { const k = sm(T.photo, T.photo + 3.0, t); cx = lerp(0, 0.25, k); cy = 0.2; cz = lerp(6.4, 5.8, k); }
         else if (t < T.close) { lx = lerp(0, -W / 2 + 0.1, o); cx = lerp(0.35, lx, o); cy = lerp(0.35, 0.3, o); cz = lerp(5.8, 10.2, o); }
         else { const k = sm(T.close, T.close + 1.6, t); lx = lerp(-W / 2 + 0.1, 0, k); cx = lerp(lx, 0.15, k); cy = lerp(0.3, 0.6, k); cz = lerp(10.2, 8.6, k); ly = lerp(0, 0.05, k); }
