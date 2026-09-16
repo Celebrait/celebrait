@@ -94,6 +94,15 @@ const CSS = `
   .demo-dot { position: fixed; z-index: 2147483000; pointer-events: none; width: 14px; height: 14px; border-radius: 50%; background: #7a76e8;
     transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
+  /* The manual-run cursor (Aidan 2026-09-16: "make my mouse the purple
+     hover… the glow"): the system pointer hides, a violet dot follows. */
+  .demo-cursor-on, .demo-cursor-on * { cursor: none !important; }
+  .demo-cursor { position: fixed; left: 0; top: 0; z-index: 2147483001; pointer-events: none; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+    border-radius: 50%; background: rgba(122,118,232,.55); border: 2px solid #7a76e8;
+    box-shadow: 0 0 0 6px rgba(122,118,232,.14), 0 0 26px 6px rgba(122,118,232,.45);
+    transition: transform 120ms ease, opacity 160ms ease, width 160ms ease, height 160ms ease; opacity: 0; will-change: transform; }
+  .demo-cursor.down { width: 16px; height: 16px; margin: -8px 0 0 -8px; background: rgba(122,118,232,.8); }
+  .demo-cursor.over { width: 30px; height: 30px; margin: -15px 0 0 -15px; background: rgba(122,118,232,.28); }
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
     background: linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%); transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
@@ -242,12 +251,36 @@ function typingDelay(line: string, i: number, ranges: Array<[number, number]>, b
   for (const [x, y] of ranges) { if (i + 1 === x && ch === ' ') d += 280; if (i + 1 === y) d += 260; }
   return d;
 }
+/** One sentence per screen (Aidan 2026-09-16: "each sentence after a
+ *  full stop should be typed on a different screen"). "Mum. 70. Lives in
+ *  her garden." → three beats; *stars* and the recipient's gradient work
+ *  inside each. */
+function sentencesOf(raw: string): string[] {
+  const out = raw.match(/[^.!?]+(?:[.!?]+["”’)]*)?\s*/g) ?? [raw];
+  return out.map((x) => x.trim()).filter(Boolean);
+}
 async function typeHook(raw: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
-  const target = hookEl.querySelector('p')!; const line = parseHook(raw, words);
+  const target = hookEl.querySelector('p')! as HTMLElement;
+  target.style.transition = 'opacity 260ms ease, transform 260ms ease';
+  const parts = sentencesOf(raw);
   await sleep(500); // a moment before the first letter
-  for (let i = 0; i < line.text.length; i++) { target.innerHTML = hookHtml(line, i + 1); await sleep(typingDelay(line.text, i, line.ranges)); }
-  await sleep(1500); hookEl.classList.add('out'); await sleep(650);
+  for (let k = 0; k < parts.length; k++) {
+    const line = parseHook(parts[k], words);
+    target.style.opacity = '1'; target.style.transform = 'none';
+    for (let i = 0; i < line.text.length; i++) {
+      target.innerHTML = hookHtml(line, i + 1);
+      // the full stop at the end of a screen holds below, not here
+      await sleep(i === line.text.length - 1 ? 60 : typingDelay(line.text, i, line.ranges));
+    }
+    await sleep(k === parts.length - 1 ? 1500 : 1100); // read it
+    if (k < parts.length - 1) {
+      target.style.opacity = '0'; target.style.transform = 'translateY(-10px)';
+      await sleep(300); target.innerHTML = '<span class="caret"></span>'; target.style.transform = 'translateY(10px)';
+      await sleep(40); target.style.opacity = '1'; target.style.transform = 'none'; await sleep(360);
+    }
+  }
+  hookEl.classList.add('out'); await sleep(650);
 }
 
 declare global { interface Window { __demo?: { state: string; events: Array<{ name: string; t: number }> } } }
@@ -299,6 +332,61 @@ const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-k
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
 const TILE = 'flex w-full flex-col items-start gap-1 rounded-2xl border border-keeper-hair bg-white/85 px-5 py-4 text-left';
 
+// ── the photo picker (Aidan 2026-09-16: "some kind of photo picker
+// animation") — a phone-style Recents sheet. Their photo sits among real
+// source photos from the site; only theirs is pickable. Tap → numbered
+// tick → the sheet drops and the photo flies into the tile. ──
+const ROLL: Array<{ src: string; pos?: string }> = [
+  { src: '/hero-source-photo.webp' }, { src: '/proof-bigben-source.webp' }, { src: '/handover-blank.webp' },
+  { src: '/hero-real-source.webp', pos: '50% 30%' }, { src: '' /* theirs */ }, { src: '/reaction-poster.webp', pos: '50% 12%' },
+  { src: '/proof-timessquare-source.webp' }, { src: '/hero-source-photo.webp', pos: '85% 50%' }, { src: '/reaction-poster.webp', pos: '50% 60%' },
+];
+function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: (from: DOMRect) => void; onCancel: () => void }) {
+  const [chosen, setChosen] = useState(false);
+  const theirs = useRef<HTMLButtonElement>(null);
+  const choose = () => {
+    if (chosen) return; setChosen(true);
+    window.setTimeout(() => { const r = theirs.current?.getBoundingClientRect(); if (r) onPick(r); }, 520);
+  };
+  return (
+    <motion.div key="picker" className="fixed inset-0 z-40" initial={{ opacity: 1 }} exit={{ opacity: 1 }}>
+      <motion.div className="absolute inset-0 bg-[#211D19]" initial={{ opacity: 0 }} animate={{ opacity: 0.32 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }} onClick={onCancel} />
+      <motion.div
+        className="absolute inset-x-0 bottom-0 rounded-t-[22px] bg-white pb-8 shadow-[0_-20px_60px_rgba(33,29,25,0.25)]"
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 260, damping: 32 }}>
+        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-stone-300" />
+        <div className="flex items-center justify-between px-5 pb-3 pt-3">
+          <button type="button" onClick={onCancel} className="text-[15px] text-brand">Cancel</button>
+          <p className="text-[16px] font-semibold text-keeper-ink">Recents</p>
+          <span className="w-[52px]" />
+        </div>
+        <div className="grid grid-cols-3 gap-[2px]">
+          {ROLL.map((t, i) => {
+            const mine = !t.src;
+            return (
+              <motion.button key={i} ref={mine ? theirs : undefined} type="button" data-demo={mine ? 'picker-photo' : undefined}
+                onClick={mine ? choose : undefined}
+                className="relative aspect-square overflow-hidden bg-stone-100"
+                initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.12 + i * 0.035, duration: 0.3, ease: 'easeOut' }}>
+                <img src={mine ? photo : t.src} alt="" className="h-full w-full object-cover" style={{ objectPosition: t.pos ?? '50% 50%' }} />
+                {mine && chosen && (
+                  <>
+                    <motion.span className="absolute inset-0 border-[3px] border-brand bg-brand/15" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} />
+                    <motion.span className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand text-[12px] font-bold text-white"
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>1</motion.span>
+                  </>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'brief');
@@ -319,6 +407,26 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const railRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
+  // The picker: the prepared photo it offers, whether it's up, and the
+  // photo in flight from the grid to the tile.
+  const [pickerPhoto, setPickerPhoto] = useState<string | null>(null);
+  const pickerPhotoRef = useRef<string | null>(null); pickerPhotoRef.current = pickerPhoto;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [flight, setFlight] = useState<{ src: string; from: DOMRect; to: DOMRect } | null>(null);
+  const photoUrlRef = useRef<string | null>(null); photoUrlRef.current = photoUrl;
+  const openPicker = async () => {
+    if (photoUrlRef.current || pickerOpen) return;
+    if (!cfg.photo) { fileRef.current?.click(); return; }
+    const prepared = pickerPhotoRef.current ?? await preparePhoto(await fetch(cfg.photo).then((r) => r.blob()));
+    setPickerPhoto(prepared); setPickerOpen(true);
+  };
+  const landPhoto = (from: DOMRect) => {
+    const src = pickerPhotoRef.current; const tile = document.querySelector('[data-demo="add-photo"]');
+    setPickerOpen(false);
+    if (!src || !tile) return;
+    setFlight({ src, from, to: tile.getBoundingClientRect() });
+    window.setTimeout(() => { setPhotoUrl(src); setFlight(null); }, 760);
+  };
   // Latest engine state for the director's async steps.
   const conceptsRef = useRef<Concept[]>([]); conceptsRef.current = concepts;
   const pickedRef = useRef(0); pickedRef.current = picked;
@@ -400,15 +508,22 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
 
     await until('results', 300_000); await sleep(b.look);
     // Swipe through the options, come back to the first.
-    const rail = railRef.current!; const w = rail.clientWidth;
+    // The carousel mounts once the screen transition finishes — wait for it.
+    { const t0 = Date.now(); while (!railRef.current && Date.now() - t0 < 10_000) await sleep(80); }
+    const rail = railRef.current; if (!rail) throw new Error('demo: the options never appeared');
+    const w = rail.clientWidth;
     for (const i of [1, 2, 0]) { rail.scrollTo({ left: i * w, behavior: 'smooth' }); await sleep(b.walk); }
     await tap(await findDemo('choose'), b.settle, b.hold); mark('picked card 1');
 
     // The photo.
     if (p.photo) {
       await sleep(b.look * 0.5);
+      setPickerPhoto(await preparePhoto(await fetch(p.photo).then((r) => r.blob())));
       await tap(await findDemo('add-photo'), b.settle, 300);
-      setPhotoUrl(await preparePhoto(await fetch(p.photo).then((r) => r.blob()))); mark('photo: added'); await sleep(b.hold);
+      const mine = await findDemo('picker-photo', 8000); await sleep(900); // the grid settles
+      await tap(mine, b.settle * 0.8, 200);
+      { const t0 = Date.now(); while (!photoUrlRef.current && Date.now() - t0 < 5000) await sleep(80); }
+      mark('photo: added'); await sleep(b.hold);
       await tap(await findDemo('put-in'), b.settle, 300);
       await until('photo-result', 240_000); await sleep(b.look);
       await tap(await findDemo('keep-cameo'), b.settle, b.hold * 0.6); mark('photo: kept');
@@ -447,15 +562,29 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
+      // A glowing violet cursor for mouse/trackpad (touch has none to replace).
+      const cur = document.createElement('div'); cur.className = 'demo-cursor'; document.body.appendChild(cur);
+      document.documentElement.classList.add('demo-cursor-on');
+      const onMove = (e: PointerEvent) => {
+        if (e.pointerType === 'touch') { cur.style.opacity = '0'; return; }
+        cur.style.opacity = '1'; cur.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        const hit = (e.target as HTMLElement | null)?.closest?.('button, a, input, textarea, [role="button"], label');
+        cur.classList.toggle('over', !!hit);
+      };
+      const onLeave = () => { cur.style.opacity = '0'; };
+      const onDown = (e: PointerEvent) => { ring(e.clientX, e.clientY); cur.classList.add('down'); };
+      const onUp = () => cur.classList.remove('down');
       const onClick = () => { window.setTimeout(clearRings, 140); };
+      window.addEventListener('pointermove', onMove, true);
+      document.addEventListener('mouseleave', onLeave);
       window.addEventListener('pointerdown', onDown, true);
+      window.addEventListener('pointerup', onUp, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
         if (!cfg.hook) return;
         void typeHook(cfg.hookLine, [cfg.who, cfg.name]);
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
+      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointermove', onMove, true); document.removeEventListener('mouseleave', onLeave); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('pointerup', onUp, true); window.removeEventListener('click', onClick, true); cur.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
     }
     const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
@@ -487,6 +616,16 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
+
+      <AnimatePresence>
+        {pickerOpen && pickerPhoto && <PhotoPicker photo={pickerPhoto} onPick={landPhoto} onCancel={() => setPickerOpen(false)} />}
+      </AnimatePresence>
+      {flight && (
+        <motion.img src={flight.src} alt="" className="pointer-events-none fixed z-50 object-cover shadow-[0_30px_60px_-20px_rgba(33,29,25,0.45)]"
+          initial={{ left: flight.from.left, top: flight.from.top, width: flight.from.width, height: flight.from.height, borderRadius: 2 }}
+          animate={{ left: flight.to.left, top: flight.to.top, width: flight.to.width, height: flight.to.height, borderRadius: 16 }}
+          transition={{ duration: 0.72, ease: [0.3, 0.8, 0.25, 1] }} />
+      )}
 
       <AnimatePresence mode="wait">
       {/* 0 · time to hit record */}
@@ -540,14 +679,14 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(setPhotoUrl); e.target.value = ''; }} />
-          <button type="button" data-demo="add-photo" onClick={() => { if (cfg.mode !== 'manual') return; /* auto: the director drops the photo in */ if (cfg.photo) void fetch(cfg.photo).then((r) => r.blob()).then(preparePhoto).then(setPhotoUrl); else fileRef.current?.click(); }}
+          <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
             className={`mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
             {photoUrl
               ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-              : <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>}
+              : !flight && <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>}
           </button>
           <div className="mt-8 flex flex-col items-center gap-4">
-            {photoUrl
+            {photoUrl || flight
               ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
               : <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
           </div>
