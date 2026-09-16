@@ -22,10 +22,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Camera, Sparkles, Play } from 'lucide-react';
+import { Check, Camera, Sparkles, Play, Send } from 'lucide-react';
 import { BriefQuestions, RECIPIENTS, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { GestureHints } from '@/components/gesture-hints';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -325,7 +326,39 @@ async function preparePhoto(file: Blob): Promise<string> {
   } catch { return await asDataUrl(); }
 }
 
-type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
+// The posted moment: the card dips, then flies up and off to the right,
+// with two faint copies trailing it.
+const POST_FLIGHT_MS = 1700;
+function PostFlight({ src }: { src: string }) {
+  const W = typeof window === 'undefined' ? 400 : window.innerWidth;
+  const H = typeof window === 'undefined' ? 800 : window.innerHeight;
+  const size = Math.min(W * 0.62, 300);
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {[0.14, 0.07, 0].map((lag, k) => (
+        <motion.img
+          key={k}
+          src={src}
+          crossOrigin="anonymous"
+          alt=""
+          style={{ width: size, height: size, position: 'absolute' }}
+          className="rounded-[6px] object-cover shadow-[0_24px_50px_-20px_rgba(20,18,30,.45)]"
+          initial={{ x: 0, y: 0, rotate: -3, scale: 0.9, opacity: 0 }}
+          animate={{
+            x: [0, 0, -10, W * 0.75],
+            y: [0, 0, 16, -H * 0.8],
+            rotate: [-3, -3, -7, 24],
+            scale: [0.9, 1, 0.95, 0.3],
+            opacity: k === 2 ? [0, 1, 1, 0.9] : [0, 0, k === 0 ? 0.18 : 0.32, 0],
+          }}
+          transition={{ duration: (POST_FLIGHT_MS - 300) / 1000, delay: lag, times: [0, 0.22, 0.45, 1], ease: ['easeOut', 'easeInOut', [0.5, 0, 0.9, 0.4]] }}
+        />
+      ))}
+    </div>
+  );
+}
+
+type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'sent';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -414,6 +447,8 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  // The auto run turns the open card for a few seconds.
+  const [spin, setSpin] = useState(false);
   const [error, setError] = useState('');
   const railRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -563,13 +598,12 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     // The card, tapped open.
     const card = await findDemo('card');
     const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.8);
-    await tap(await findDemo('send'), b.settle, b.hold * 0.6);
-
-    // Where it's going.
-    await until('send', 10_000); await sleep(b.look * 0.6);
-    await tap(await findDemo('send-them'), b.settle, 300); mark('send: them');
-    await until('sent', 10_000); await sleep(b.look * 1.4);
+    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.2);
+    setSpin(true); await sleep(b.look * 1.4); setSpin(false); await sleep(b.look * 0.8);
+    mark('card: done');
+    await tap(await findDemo('post'), b.settle, 300);
+    // The card flies off, then the tick and the words land.
+    await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
     mark('end', 'end');
   };
 
@@ -735,47 +769,38 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         </motion.section>
       )}
 
-      {/* 7 · the card, tap to open */}
+      {/* 7 · the card, in real 3D: tap to open, drag to rotate, the green
+          hints under it, and one button (Aidan 2026-09-16). Demo only — the
+          product's viewer stays open/close with no orbit. */}
       {phase === 'card' && chosenFront && (
-        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col px-5 pb-6 pt-16 text-center">
-          {/* The card takes the room and may draw past its box; the button
-              is pushed to the bottom and can go (Aidan 2026-09-15: "it's
-              not that important to see here"). */}
-          <div data-demo="card" className="mx-auto mt-2 h-[min(60vh,92vw)] w-full shrink-0 overflow-visible">
-            {/* Big and centred; the open cover may swing past the edge (Aidan
-                2026-09-15: "bigger… it can open off screen"). */}
-            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen} enableRotate={false} enableZoom={false} closedAngle={-0.38} restYaw={-0.12} framingMargin={1.4} minDistance={1.4} className="h-full w-full" />
+        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col">
+          <div data-demo="card" className="relative min-h-0 w-full flex-1 pt-10">
+            <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
+              enableRotate enableZoom={false} autoRotate={spin} autoRotateSpeed={2.2}
+              closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
-          <p className="mt-1 text-center text-[13px] text-keeper-meta">{cardOpen ? ' ' : 'Tap to open'}</p>
-          <div className="mt-auto flex flex-col items-center pt-3">
-            <button type="button" data-demo="send" className={`${PRIMARY} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => setPhase('send')}>Send it</button>
+          <div className="flex h-[76px] shrink-0 items-start justify-center">
+            <GestureHints open={cardOpen} mountDelayMs={500} hideZoomHint openLabel="Tap to close" />
           </div>
-        </motion.section>
-      )}
-
-      {/* 8 · where's it going? */}
-      {phase === 'send' && (
-        <motion.section key="send" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
-          <h1 className={H1}>Where’s it going?</h1>
-          <div className="mt-6 flex flex-col gap-3">
-            <button type="button" data-demo="send-them" className={`${TILE} demo-pulse text-left`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
-              <span className="text-[16px] font-semibold text-keeper-ink">Straight to {who}</span>
-              <span className="text-[13px] text-keeper-meta">Addressed to them, posted tracked</span>
-            </button>
-            <button type="button" data-demo="send-me" className={`${TILE} text-left`} onClick={() => { setPhase('sent'); mark('sent', 'sent'); }}>
-              <span className="text-[16px] font-semibold text-keeper-ink">To me first</span>
-              <span className="text-[13px] text-keeper-meta">To hand over in person</span>
+          <div className="shrink-0 px-5 pb-8">
+            <button type="button" data-demo="post" className={`${PRIMARY} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
+              <Send className="h-4 w-4" /> Post it to them
             </button>
           </div>
         </motion.section>
       )}
 
-      {/* 9 · on its way */}
+      {/* 8 · posted: the card flies off, then "on the way" lands. */}
       {phase === 'sent' && (
-        <motion.section key="sent" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
-          <span className="demo-tick flex h-20 w-20 items-center justify-center rounded-full bg-cta text-cta-foreground"><Check className="h-10 w-10" strokeWidth={3} /></span>
-          <h1 className={H1}>It’s on the way.</h1>
-          <p className="text-[15px] text-keeper-body">Printed today, posted tracked.<br />Expect it by <span className="font-semibold text-keeper-ink">{formatDayMonth(expectedBy())}</span>.</p>
+        <motion.section key="sent" {...SCREEN} className="absolute inset-0 overflow-hidden">
+          {chosenFront && <PostFlight src={chosenFront} />}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
+            <span className="demo-tick flex h-20 w-20 items-center justify-center rounded-full bg-cta text-cta-foreground" style={{ animationDelay: `${POST_FLIGHT_MS - 250}ms` }}><Check className="h-10 w-10" strokeWidth={3} /></span>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: POST_FLIGHT_MS / 1000, duration: 0.5, ease: 'easeOut' }} className="flex flex-col items-center gap-3">
+              <h1 className={H1}>Posted to {who}.<br />It’s on the way.</h1>
+              <p className="text-[15px] text-keeper-body">Printed today, sent tracked.<br />Expect it by <span className="font-semibold text-keeper-ink">{formatDayMonth(expectedBy())}</span>.</p>
+            </motion.div>
+          </div>
         </motion.section>
       )}
       </AnimatePresence>
