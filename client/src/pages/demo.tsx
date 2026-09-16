@@ -104,7 +104,9 @@ const CSS = `
     transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
   /* Manual runs: no pointer on screen at all (Aidan 2026-09-16). */
-  .demo-cursor-on, .demo-cursor-on * { cursor: none !important; }
+  /* Manual runs: a tiny faint dot instead of the pointer, so Aidan can see
+     where he is but it barely reads on a recording. Taps still burst. */
+  .demo-cursor-on, .demo-cursor-on * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='4' cy='4' r='2.5' fill='rgba(60,56,70,0.32)' stroke='rgba(255,255,255,0.5)' stroke-width='0.75'/%3E%3C/svg%3E") 4 4, auto !important; }
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
     background: transparent; transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
@@ -619,7 +621,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
       // No pointer at all on the recording (Aidan 2026-09-16) — the system
-      // cursor is hidden; clicks still land and still show the tap ring.
+      // cursor is a tiny faint dot; clicks still land and still show the tap ring.
       document.documentElement.classList.add('demo-cursor-on');
       const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
       const onClick = () => { window.setTimeout(clearRings, 140); };
