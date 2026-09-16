@@ -52,8 +52,8 @@ type Tone = 'funny' | 'warm' | 'rude' | 'mix';
 /** The OpenAI image models the render endpoints accept from the admin
  *  door (server: LAB_IMAGE_PROVIDERS). First is production. */
 const RENDER_PROVIDERS = [
-  { id: 'openai-2', label: 'gpt-image-2' },
   { id: 'openai-2.5-flare', label: '2.5 Flare' },
+  { id: 'openai-2', label: 'gpt-image-2' },
   { id: 'openai-2.5-sunburst', label: '2.5 Sunburst' },
 ] as const;
 type RenderProvider = (typeof RENDER_PROVIDERS)[number]['id'];
@@ -242,9 +242,9 @@ export default function AdminOccasionStudioPage() {
    *  only to run the same brief both ways for the test plan. */
   const [layBuyer, setLayBuyer] = useState(true);
   /** Which OpenAI image model draws this set (2026-09-14, gpt-image-2.5
-   *  landed 2026-09-08). Lab-only lever: the public maker stays on
-   *  gpt-image-2 until a set here says the newer one earns it. */
-  const [renderProvider, setRenderProvider] = useState<RenderProvider>('openai-2');
+   *  landed 2026-09-08). 2.5 Flare is production since 2026-09-16; the
+   *  chip still flips to gpt-image-2 or Sunburst to compare. */
+  const [renderProvider, setRenderProvider] = useState<RenderProvider>('openai-2.5-flare');
   const [cells, setCells] = useState<Cell[]>([]);
   /** Floors still broken after the repair round. The engine ships them
    *  VISIBLY by design — but the studio was swallowing the report, so a
@@ -802,9 +802,9 @@ export default function AdminOccasionStudioPage() {
             </button>
             <button type="button"
               onClick={() => setRenderProvider((v) => RENDER_PROVIDERS[(RENDER_PROVIDERS.findIndex((p) => p.id === v) + 1) % RENDER_PROVIDERS.length].id)}
-              title="Which OpenAI image model draws the fronts and insides. gpt-image-2 is production. 2.5 Flare = same quality, about half the wait. 2.5 Sunburst = the premium one, slower, better at keeping the person from the photo intact."
+              title="Which OpenAI image model draws the fronts and insides. 2.5 Flare is production (same price as gpt-image-2, quicker). gpt-image-2 = the previous model. 2.5 Sunburst = the premium one, slower, better at keeping the person from the photo intact."
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                renderProvider === 'openai-2' ? 'border-stone-200 bg-white text-stone-500 hover:border-brand/50' : 'border-brand bg-brand-muted/50 text-brand-dark'}`}>
+                renderProvider === 'openai-2.5-flare' ? 'border-stone-200 bg-white text-stone-500 hover:border-brand/50' : 'border-brand bg-brand-muted/50 text-brand-dark'}`}>
               Draw with: {RENDER_PROVIDERS.find((p) => p.id === renderProvider)?.label}
             </button>
           </div>

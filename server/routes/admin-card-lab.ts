@@ -55,7 +55,10 @@ import { assessCameoRender } from '../photos/analyze';
  *  slots via the Prompt Lab); its prompt is built in this file and its
  *  model is this constant. Changing production = changing this line,
  *  after the lab has proven the replacement. */
-const PRODUCTION_IMAGE_PROVIDER = 'openai-2';
+// gpt-image-2.5 Flare since 2026-09-16 (Aidan, after the cost test: same
+// tokens and price per image as gpt-image-2, and quicker). gpt-image-2 stays
+// selectable in the builder for comparison.
+const PRODUCTION_IMAGE_PROVIDER = 'openai-2.5-flare';
 /** Models the occasion builder may pick for an A/B (2026-09-14). */
 const LAB_IMAGE_PROVIDERS = z.enum(['openai-2', 'openai-2.5-flare', 'openai-2.5-sunburst']);
 /** A requested model counts only through the admin door; the public
@@ -3569,7 +3572,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         `Square 1024x1024. ${IS_THE_CARD_ITSELF}`,
       ].filter(Boolean).join('\n');
       try {
-        const result = await getProvider('openai-2').generate({
+        const result = await getProvider(PRODUCTION_IMAGE_PROVIDER).generate({
           prompt, quality: 'low', size: '1024x1024', slot: 'card_lab',
         });
         void logGeneration({
