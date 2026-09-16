@@ -9,6 +9,7 @@
 //
 //   npx tsx server/scripts/measure-route-costs.ts three 3      # three-card sets (the 3rd adds a photo)
 //   npx tsx server/scripts/measure-route-costs.ts photo 2      # photo-route cards, front + inside
+//   npx tsx server/scripts/measure-route-costs.ts flare 1      # a three-card set + photo drawn with gpt-image-2.5 Flare (admin door)
 //   npx tsx server/scripts/measure-route-costs.ts dry          # plumbing only, no paid calls
 //
 // OpenAI calls are priced from the usage OpenAI returns, so they should
@@ -73,21 +74,24 @@ async function measure<T>(label: string, run: () => Promise<T>) {
 }
 
 // ── route 1: the three-card route (/make) ─────────────────────────────
-async function threeCardSet(withPhoto: boolean) {
+async function threeCardSet(withPhoto: boolean, provider?: string) {
+  // A model other than production can only be chosen through the admin door.
+  const door = provider ? '/api/admin/card-lab' : '/api/make';
+  const pick = provider ? { provider } : {};
   const brief = { occasion: '70th Birthday', who: 'Mum', gender: 'her', tone: 'warm', age: 70, interest: 'Her garden — the roses, the robin, the shed radio', dislikes: 'Slugs', frontWord: 'Mum', recipientName: 'Linda' };
-  const j = await call('/api/make/concepts', { body: { ...brief, pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, freeComposition: true, memory: false } });
+  const j = await call(`${door}/concepts`, { body: { ...brief, pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, freeComposition: true, memory: false } });
   const cs = j.concepts as any[];
-  const art = (c: any) => ({ front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
-  const fronts = await Promise.all(cs.map((c) => call('/api/make/render', { body: art(c) })));
+  const art = (c: any) => ({ front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, ...pick });
+  const fronts = await Promise.all(cs.map((c) => call(`${door}/render`, { body: art(c) })));
   console.log(`   fronts: ${cs.map((c) => `"${String(c.front_text).slice(0, 40)}"`).join(' · ')}`);
   if (withPhoto) {
     const photo = await photoDataUrl('proof-source-photo.webp');
-    const cameo = await call('/api/make/render', { body: { ...art(cs[0]), cameoPhoto: photo, cameoMode: 'redraw' } });
-    const qa = await call('/api/make/cameo-check', { body: { cardImage: cameo.imageUrl, cameoPhoto: photo } });
+    const cameo = await call(`${door}/render`, { body: { ...art(cs[0]), cameoPhoto: photo, cameoMode: 'redraw' } });
+    const qa = await call(`${door}/cameo-check`, { body: { cardImage: cameo.imageUrl, cameoPhoto: photo } });
     console.log(`   cameo check: ${qa?.result?.verdict ?? 'no verdict'}`);
   }
   const c = cs[0];
-  await call('/api/make/render-inside', { body: { mode: 'own', message: `Dear Mum,\n\n${c.inside_text ?? 'Happy birthday.'}\n\nAll our love, Aidan & Sam x`, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction } });
+  await call(`${door}/render-inside`, { body: { ...pick, mode: 'own', message: `Dear Mum,\n\n${c.inside_text ?? 'Happy birthday.'}\n\nAll our love, Aidan & Sam x`, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction } });
   return fronts.length;
 }
 
@@ -134,6 +138,8 @@ async function main() {
     print('dry run (upload analysis only — Gemini)', await ledger(from, new Date()));
   } else if (what === 'three') {
     for (let i = 0; i < n; i++) totals.push(await measure(`three-card set ${i + 1}${i === n - 1 && n >= 3 ? ' + photo' : ''}`, () => threeCardSet(i === n - 1 && n >= 3)));
+  } else if (what === 'flare') {
+    for (let i = 0; i < n; i++) totals.push(await measure(`2.5 Flare set ${i + 1} + photo`, () => threeCardSet(true, 'openai-2.5-flare')));
   } else if (what === 'photo') {
     for (let i = 0; i < n; i++) totals.push(await measure(`photo-route card ${i + 1}`, () => photoCard()));
   }
