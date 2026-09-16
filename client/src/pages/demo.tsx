@@ -42,6 +42,11 @@ export interface DemoPreset {
   /** A photo of them for the cameo step (public path). Without one the
    *  demo taps "No photo". */
   photo?: string;
+  /** Who writes the inside message: 'us' (prefilled, Dear/From typed) or
+   *  'me' (all three typed). */
+  insideBy?: 'us' | 'me';
+  /** The message typed when insideBy is 'me'. */
+  message?: string;
 }
 
 export const DEMO_PRESETS: Record<string, DemoPreset> = {
@@ -50,6 +55,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     thing: 'Her garden — the roses, the robin, the shed radio', cant: 'Slugs', front: 'role', name: 'Linda',
     dear: 'Dear Mum,', from: 'All our love, Aidan & Sam x',
     hookLine: 'Watch us make a card for Mum. 70. Lives in her garden.',
+    message: 'Happy 70th, Mum. Here’s to the roses, the robin, and you in the middle of it all.',
     photo: '/proof-source-photo.webp',
   },
   'dad-60-canal': {
@@ -57,6 +63,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     thing: 'Fishing on the canal every Sunday, rain or shine', cant: 'Getting up before 6am', front: 'role', name: 'Dave',
     dear: 'Dear Dad,', from: 'Love, Aidan x',
     hookLine: 'Watch us make a card for Dad. 60. Canal fishing every Sunday.',
+    message: 'Happy 60th, Dad. Tight lines and quiet Sundays — you’ve earned every one.',
   },
   'mate-30-fiveaside': {
     who: 'Best mate', occasion: 'Birthday', age: '30', vibe: 'Cheeky',
@@ -318,7 +325,7 @@ async function preparePhoto(file: Blob): Promise<string> {
   } catch { return await asDataUrl(); }
 }
 
-type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
+type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'send' | 'sent';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -424,6 +431,14 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   };
   // Picked → straight into "Adding the photo" (Aidan 2026-09-16: skip the
   // filled-tile screen). The wait begins as the sheet drops.
+  // Choosing a card is a tap on the card itself (no button).
+  const chooseCard = (i: number) => { setPicked(i); setPhase('photo'); };
+  // "Write it for me" prefills the message (Dear/From stay blank);
+  // "I'll write it" leaves all three empty.
+  const chooseInside = (by: 'us' | 'me') => {
+    setMessage(by === 'us' ? (conceptsRef.current[pickedRef.current]?.inside_text ?? '') : '');
+    setDear(''); setFrom(''); setPhase('inside');
+  };
   const usePhoto = (src: string) => {
     setPhotoUrl(src);
     window.setTimeout(() => { renderCameo(src).catch(fail); }, 120);
@@ -455,7 +470,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     });
     const cs: Concept[] = j.concepts ?? [];
     if (!cs.length) throw new Error('Nothing came back');
-    setConcepts(cs); setMessage(cs[0].inside_text ?? '');
+    setConcepts(cs);
     const urls = await Promise.all(cs.map((c) => post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true }).then((r) => r.imageUrl as string)));
     setFronts(urls); setPhase('results'); mark('results', 'results');
   };
@@ -519,7 +534,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     const rail = railRef.current; if (!rail) throw new Error('demo: the options never appeared');
     const w = rail.clientWidth;
     for (const i of [1, 2, 0]) { rail.scrollTo({ left: i * w, behavior: 'smooth' }); await sleep(b.walk); }
-    await tap(await findDemo('choose'), b.settle, b.hold); mark('picked card 1');
+    await tap(await findDemo('card-0'), b.settle, b.hold); mark('picked card 1');
 
     // The photo.
     if (p.photo) {
@@ -530,14 +545,17 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       await tap(mine, b.settle * 0.8, 200);
       await until('photo-generating', 10_000); mark('photo: added');
       await until('photo-result', 240_000); await sleep(b.look);
-      await tap(await findDemo('keep-cameo'), b.settle, b.hold * 0.6); mark('photo: kept');
+      await tap(await findDemo('to-inside'), b.settle, b.hold * 0.6); mark('photo: kept');
     } else {
       await sleep(b.look * 0.5);
       await tap(await findDemo('no-photo'), b.settle, b.hold * 0.6); mark('photo: skipped');
     }
 
     // The inside.
+    const by = p.insideBy ?? 'us';
+    await tap(await findDemo(by === 'us' ? 'inside-us' : 'inside-me'), b.settle, b.hold * 0.6); mark(`inside: ${by}`);
     await type(await findDemo('dear') as HTMLInputElement, p.dear, b.settle, b.type);
+    if (by === 'me') await type(await findDemo('message') as HTMLTextAreaElement, p.message ?? `Happy birthday, ${p.who}.`, b.settle, b.type);
     await type(await findDemo('from') as HTMLInputElement, p.from, b.settle, b.type);
     await tap(await findDemo('design-inside'), b.settle, 300);
     await until('card', 240_000); await sleep(b.look);
@@ -651,14 +669,12 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           <div ref={railRef} onScroll={onRailScroll} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
             {fronts.map((u, i) => (
               <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
-                <div className="w-[min(76vw,44vh,340px)] shrink-0"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager openDeg={22} /></div>
+                <button type="button" data-demo={`card-${i}`} onClick={() => chooseCard(i)} aria-label={`Choose: ${concepts[i]?.front_text ?? 'this card'}`}
+                  className="w-[min(76vw,44vh,340px)] shrink-0 transition-transform active:scale-[0.98]"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager openDeg={22} /></button>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-center text-[13px] text-keeper-meta">Swipe to see the others</p>
-          <div className="mt-7 flex flex-col items-center gap-3 px-5">
-            <button type="button" data-demo="choose" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setPicked(slide); setPhase('photo'); }}>Choose this one</button>
-          </div>
+          <p className="mt-3 text-center text-[13px] text-keeper-meta">Swipe to see the others, tap one to choose</p>
         </motion.section>
       )}
 
@@ -673,7 +689,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
             <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
           </button>
           <div className="mt-8 flex flex-col items-center gap-4">
-            {!photoUrl && <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
+            {!photoUrl && <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside-choice')}>No photo — carry on</button>}
           </div>
         </motion.section>
       )}
@@ -683,19 +699,34 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <div className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></div>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
-            <button type="button" data-demo="keep-original" className={QUIET} onClick={() => { setUseCameo(false); setPhase('inside'); }}>Keep the original</button>
+            <button type="button" data-demo="to-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside-choice'); }}><Sparkles className="h-4 w-4 text-cta" /> Now design the inside</button>
           </div>
         </motion.section>
       )}
 
       {/* 6 · the inside */}
+      {phase === 'inside-choice' && (
+        <motion.section key="inside-choice" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+          <h1 className={H1}>Now the inside.</h1>
+          <div className="mt-6 flex flex-col gap-3">
+            <button type="button" data-demo="inside-us" className={`${TILE} text-left`} onClick={() => chooseInside('us')}>
+              <span className="flex items-center gap-2 text-[16px] font-semibold text-keeper-ink"><Sparkles className="h-4 w-4 text-brand" /> Write it for me</span>
+              <span className="text-[13px] text-keeper-meta">We write the message. You add who it’s to and from.</span>
+            </button>
+            <button type="button" data-demo="inside-me" className={`${TILE} text-left`} onClick={() => chooseInside('me')}>
+              <span className="text-[16px] font-semibold text-keeper-ink">I’ll write it</span>
+              <span className="text-[13px] text-keeper-meta">Your own words, set in the card’s style.</span>
+            </button>
+          </div>
+        </motion.section>
+      )}
+
       {phase === 'inside' && (
         <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
             <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
+            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
             <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
           <div className="mt-6 flex flex-col items-center">
@@ -813,6 +844,13 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
           </div>
           </>}
+          {!manual && <div><span className={label}>The inside</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Write it for me</button>
+              <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>I’ll write it</button>
+            </div>
+            {cfg.insideBy === 'me' && <textarea value={cfg.message ?? ''} onChange={(e) => set({ message: e.target.value.slice(0, 300) })} rows={2} placeholder="The message to type" className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
+          </div>}
           {!manual && <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
             <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
