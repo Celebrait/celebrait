@@ -643,7 +643,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
 
       {/* 1 · the brief */}
       {phase === 'brief' && (
-        <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16">
+        <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start px-5 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
           <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5">
             <BriefQuestions skin="landing" minimal brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
           </div>

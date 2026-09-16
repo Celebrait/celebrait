@@ -236,6 +236,11 @@ interface BriefQuestionsProps {
 export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
+  // In the filmed demo nothing shows as chosen until it's tapped (a
+  // default 'One of each' or 'Mum' already lit reads as a glitch).
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
+  const touch = (k: string) => setTouched((t) => (t.has(k) ? t : new Set(t).add(k)));
+  const shown = (k: string, on: boolean) => on && (!minimal || touched.has(k));
   const [showMore, setShowMore] = useState(false);
   const [otherText, setOtherText] = useState(() => (brief.occasion && !isKnownOccasion(brief.occasion) ? brief.occasion : ''));
 
@@ -275,7 +280,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
       {on && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
     </button>
   );
-  const optionalTag = <span className="ml-2 align-middle text-xs font-normal text-keeper-meta">optional</span>;
+  // No 'optional' tags in the filmed demo (Aidan 2026-09-16).
+  const optionalTag = minimal ? null : <span className="ml-2 align-middle text-xs font-normal text-keeper-meta">optional</span>;
 
   return (
     <div className={compact ? 'min-h-[300px] flex flex-col' : 'flex flex-col'}>
@@ -292,8 +298,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {brief.who && AMBIGUOUS.has(brief.who) && (
               <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-keeper-body">
                 for a…
-                {(['him', 'her'] as const).map((g) => <button key={g} type="button" className={s.chip(brief.gender === g)} onClick={() => set({ gender: brief.gender === g ? null : g })}>{g}</button>)}
-                <button type="button" className={s.chip(brief.gender === null)} onClick={() => set({ gender: null })}>not saying</button>
+                {(['him', 'her'] as const).map((g) => <button key={g} type="button" className={s.chip(shown('gender', brief.gender === g))} onClick={() => { touch('gender'); set({ gender: brief.gender === g ? null : g }); }}>{g}</button>)}
+                <button type="button" className={s.chip(shown('gender', brief.gender === null))} onClick={() => { touch('gender'); set({ gender: null }); }}>not saying</button>
               </div>
             )}
           </>
@@ -342,11 +348,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 // last, after a rule, dashed, no fill.
                 const mix = t === 'mix';
                 return (
-                  <button key={t} type="button" disabled={off} onClick={() => { set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(brief.vibe === t)} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
+                  <button key={t} type="button" disabled={off} onClick={() => { touch('vibe'); set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(shown('vibe', brief.vibe === t))} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
                     {minimal
                       ? <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' — not under 18' : ''}</span>
                       : <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>}
-                    {brief.vibe === t && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
+                    {shown('vibe', brief.vibe === t) && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
                 );
               })}
@@ -374,10 +380,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {!minimal && <p className={s.sub}>One of your three cards leads with it — sometimes as the artwork itself.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {NAME_LIKE.has(brief.who.trim()) && (
-                <button type="button" className={s.chip(brief.front === 'role')} onClick={() => set({ front: 'role' })}>{brief.who.trim()}</button>
+                <button type="button" className={s.chip(shown('front', brief.front === 'role'))} onClick={() => { touch('front'); set({ front: 'role' }); }}>{brief.who.trim()}</button>
               )}
-              <button type="button" className={s.chip(brief.front === 'name')} onClick={() => set({ front: 'name' })}>Their name</button>
-              <button type="button" className={s.chip(brief.front === 'none')} onClick={() => set({ front: 'none' })}>Nothing</button>
+              <button type="button" className={s.chip(shown('front', brief.front === 'name'))} onClick={() => { touch('front'); set({ front: 'name' }); }}>Their name</button>
+              <button type="button" className={s.chip(shown('front', brief.front === 'none'))} onClick={() => { touch('front'); set({ front: 'none' }); }}>Nothing</button>
             </div>
             {brief.front === 'name' && (
               <>
