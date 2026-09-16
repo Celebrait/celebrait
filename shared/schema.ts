@@ -10,6 +10,7 @@ export * from "./models/studio-orders";
 export * from "./models/card-attempts";
 export * from "./models/research";
 export * from "./models/demo";
+export * from "./models/site";
 export * from "./models/order-items";
 export * from "./models/card-templates";
 export * from "./models/address-book";

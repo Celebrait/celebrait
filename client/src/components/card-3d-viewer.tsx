@@ -204,6 +204,10 @@ interface Card3DViewerProps {
   frontImageUrl: string;
   insideImageUrl?: string | null;
   backCredit?: string;
+  /** The brand logo, large and centred, on the back of the card, with
+   *  an optional line under it (the pre-launch page, 2026-09-16). */
+  backLogo?: boolean;
+  backCaption?: string;
   className?: string;
   /** Optional controlled open state — lets a parent component wire an
    *  external "Open card" button to the hinge. If omitted, the viewer
@@ -343,6 +347,8 @@ export function Card3DViewer({
   frontImageUrl,
   insideImageUrl,
   backCredit = 'Made with Celebrait',
+  backLogo = false,
+  backCaption,
   className,
   open: openProp,
   onOpenChange,
@@ -628,6 +634,8 @@ export function Card3DViewer({
               frontUrl={frontImageUrl}
               insideUrl={insideUrl}
               backCredit={backCredit}
+              backLogo={backLogo}
+              backCaption={backCaption}
               open={open}
               onOpenChange={setOpen}
               framingMargin={framingMargin}
@@ -735,6 +743,8 @@ function Scene({
   frontUrl,
   insideUrl,
   backCredit,
+  backLogo,
+  backCaption,
   open,
   onOpenChange,
   framingMargin,
@@ -756,6 +766,8 @@ function Scene({
   frontUrl: string;
   insideUrl: string;
   backCredit: string;
+  backLogo?: boolean;
+  backCaption?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
@@ -821,6 +833,8 @@ function Scene({
         frontUrl={frontUrl}
         insideUrl={insideUrl}
         backCredit={backCredit}
+        backLogo={backLogo}
+        backCaption={backCaption}
         open={open}
         onOpenChange={onOpenChange}
         openProgress={openProgress}
@@ -1058,6 +1072,8 @@ function Card({
   frontUrl,
   insideUrl,
   backCredit,
+  backLogo,
+  backCaption,
   open,
   onOpenChange,
   openProgress,
@@ -1070,6 +1086,8 @@ function Card({
   frontUrl: string;
   insideUrl: string;
   backCredit: string;
+  backLogo?: boolean;
+  backCaption?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   openProgress?: MotionValue<number>;
@@ -1101,7 +1119,9 @@ function Card({
     });
   }, [frontTex, insideTex, maxAnisotropy]);
 
-  const backTex = usePaperTexture({ credit: backCredit, anisotropy: maxAnisotropy });
+  const backTex = usePaperTexture(backLogo
+    ? { anisotropy: maxAnisotropy, logoUrl: celebraitLogo, logoCentre: true, caption: backCaption }
+    : { credit: backCredit, anisotropy: maxAnisotropy });
   // Inside-left panel carries the brand mark, small at the bottom
   // (Kevin 2026-07-05).
   const coverBackTex = usePaperTexture({
@@ -1249,7 +1269,11 @@ function Card({
         geometry={cardGeom}
         receiveShadow
       >
-        <meshStandardMaterial map={backTex} roughness={0.95} side={THREE.DoubleSide} />
+        {/* With the logo on it, the back gets the same emissive lift as
+            the inside-left panel so it reads paper-white, not grey. */}
+        {backLogo
+          ? <meshStandardMaterial map={backTex} roughness={0.95} side={THREE.DoubleSide} emissive="#ffffff" emissiveMap={backTex} emissiveIntensity={0.45} />
+          : <meshStandardMaterial map={backTex} roughness={0.95} side={THREE.DoubleSide} />}
       </mesh>
 
       {/* Cover — pivoted at the spine edge. Casts shadows onto the
@@ -1316,8 +1340,12 @@ function usePaperTexture(opts: {
    *  face (Kevin 2026-07-05: brand mark on the inside-left panel).
    *  Drawn async when the image decodes; the texture re-uploads. */
   logoUrl?: string;
+  /** Draw the logo large and centred instead of small at the bottom. */
+  logoCentre?: boolean;
+  /** A small uppercase line under a centred logo. */
+  caption?: string;
 }): THREE.CanvasTexture {
-  const { credit, anisotropy, logoUrl } = opts;
+  const { credit, anisotropy, logoUrl, logoCentre = false, caption } = opts;
   return useMemo(() => {
     const size = 1024;
     const canvas = document.createElement('canvas');
@@ -1393,18 +1421,26 @@ function usePaperTexture(opts: {
     if (logoUrl) {
       const img = new Image();
       img.onload = () => {
-        const w = size * 0.24;
+        const w = size * (logoCentre ? 0.5 : 0.24);
         const h = w * (img.naturalHeight / img.naturalWidth);
         ctx.globalAlpha = 0.9;
-        ctx.drawImage(img, (size - w) / 2, size - h - size * 0.06, w, h);
+        const y = logoCentre ? (size - h) / 2 - (caption ? 30 : 0) : size - h - size * 0.06;
+        ctx.drawImage(img, (size - w) / 2, y, w, h);
         ctx.globalAlpha = 1;
+        if (logoCentre && caption) {
+          ctx.fillStyle = '#6b6258';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.font = "600 26px Figtree, 'Inter', system-ui, sans-serif";
+          ctx.fillText(caption.toUpperCase(), size / 2, y + h + 34);
+        }
         tex.needsUpdate = true;
       };
       img.src = logoUrl;
     }
 
     return tex;
-  }, [credit, anisotropy, logoUrl]);
+  }, [credit, anisotropy, logoUrl, logoCentre, caption]);
 }
 
 function clamp8(v: number): number {

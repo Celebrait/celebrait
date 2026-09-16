@@ -44,6 +44,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ScrollToTop from "@/components/scroll-to-top";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { SiteGate } from "@/components/site-gate";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
@@ -128,6 +129,7 @@ const MakePage = lazy(() => import("@/pages/make"));
 const DemoPage = lazy(() => import("@/pages/demo"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const AdminDemoRunsPage = lazy(() => import("@/pages/admin-demo-runs"));
+const AdminSitePage = lazy(() => import("@/pages/admin-site"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const BuyPage = lazy(() => import("@/pages/buy"));
@@ -172,6 +174,9 @@ function Router() {
           the first LOAD gets the same values server-injected
           (server/seo-inject.ts), so crawlers and users always agree. */}
       <SeoSync />
+      {/* The pre-launch lock (2026-09-16): locked visitors get the
+          launching-soon page instead of any route below. */}
+      <SiteGate>
       <Suspense fallback={<RouteFallback />}>
         <Switch>
           {/* THE GATE (2026-09-03): one question at the door — photo or
@@ -420,6 +425,13 @@ function Router() {
           {/* The guided maker preview — the customer flow rehearsed
               behind admin auth, deliberately OUTSIDE AdminLayout so it
               looks like what it is: the customer experience. */}
+          <Route path="/admin/site">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminSitePage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
           <Route path="/admin/demo-runs">
             <RequireAdmin>
               <AdminLayout>
@@ -478,6 +490,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </Suspense>
+      </SiteGate>
     </>
   );
 }

@@ -39,6 +39,7 @@ import { registerAdminCardLabRoutes } from "./routes/admin-card-lab";
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerResearchRoutes } from "./routes/research";
 import { registerDemoRunRoutes } from "./routes/demo-runs";
+import { registerSiteLock } from "./routes/site-lock";
 import { registerShopRoutes } from "./routes/shop";
 import { registerMakeRoutes } from "./routes/make";
 import { registerThumbRoutes } from "./routes/thumbs";
@@ -72,6 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // and skip our own testing. Still cookieless, IP-less, bot-filtered
   // and fire-and-forget; it sits ahead of every page route below.
   registerVisitLogging(app);
+
+  // The pre-launch lock (2026-09-16) — ahead of every API it closes.
+  registerSiteLock(app);
 
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");
@@ -132,8 +136,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           occasionDate,
           occasionType,
         });
-        // Fire-and-forget — the lead is stored either way.
-        void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
+        // Fire-and-forget — the lead is stored either way. The early-access
+        // list gets no link email: the site it would link to is locked.
+        if (source !== "early-access") void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
           console.warn("[LEADS] link email failed:", err?.message ?? err),
         );
       }

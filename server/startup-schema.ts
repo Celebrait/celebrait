@@ -21,6 +21,18 @@ export async function ensureLaunchColumns(): Promise<void> {
       label text, mode text, brief jsonb, hook_line text, concepts jsonb, front_paths jsonb,
       picked_index integer, photo_path text, cameo_path text, inside_path text, words jsonb, beats jsonb
     )`);
+    // 2026-09-16: back-office switches (the pre-launch site lock).
+    await db.execute(sql`create table if not exists site_settings (
+      key text primary key, value jsonb not null, updated_at timestamptz not null default now()
+    )`);
+    // The early-access list writes to marketing_leads — make sure it exists
+    // everywhere (it was a manual prod SQL step before).
+    await db.execute(sql`create table if not exists marketing_leads (
+      id serial primary key, email text not null, source text not null,
+      card_id integer, marketing_opt_in boolean default false,
+      recipient_name text, occasion_date text, created_at timestamp default now()
+    )`);
+    await db.execute(sql`alter table marketing_leads add column if not exists occasion_type text`);
   } catch (err) {
     console.warn('[SCHEMA] launch column check failed:', (err as Error)?.message ?? err);
   }
