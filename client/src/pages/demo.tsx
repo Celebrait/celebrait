@@ -28,6 +28,7 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 // ── versions ─────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ const CSS = `
   .demo-cursor.down { width: 16px; height: 16px; margin: -8px 0 0 -8px; background: rgba(122,118,232,.8); }
   .demo-cursor.over { width: 30px; height: 30px; margin: -15px 0 0 -15px; background: rgba(122,118,232,.28); }
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
-    background: linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%); transition: opacity 600ms ease; }
+    background: transparent; transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
   .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: left; max-width: 100%; }
   .demo-hook .who { background: linear-gradient(90deg, #7a76e8 0%, #211D19 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -397,6 +398,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'brief');
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
   const [count, setCount] = useState(cfg.countdown);
+  // While the hook types, the question panel waits out of sight (the hook
+  // overlay is see-through so the backdrop icons show).
+  const [hookOn, setHookOn] = useState(cfg.hook);
   const [brief, setBrief] = useState<Brief>(emptyBrief());
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [fronts, setFronts] = useState<string[]>([]);
@@ -483,7 +487,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const direct = async () => {
     const b = beats; const p = preset;
     mark('brief: open', 'brief');
-    if (hook) { await typeHook(p.hookLine, [p.who, p.name]); mark('hook: done'); }
+    if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
     await sleep(600);
     const B = (re: RegExp) => find('button', re);
     await tap(await B(new RegExp(`^${p.who}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
@@ -587,7 +591,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
         if (!cfg.hook) return;
-        void typeHook(cfg.hookLine, [cfg.who, cfg.name]);
+        void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => setHookOn(false));
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
       return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointermove', onMove, true); document.removeEventListener('mouseleave', onLeave); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('pointerup', onUp, true); window.removeEventListener('click', onClick, true); cur.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
     }
@@ -617,7 +621,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
 
   return (
-    <div className="keeper-serif fixed inset-0 overflow-hidden" style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)' }}>
+    <div className="keeper-serif fixed inset-0 overflow-hidden">
+      {/* The make page's own backdrop: cream wash + the floating celebration icons. */}
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
@@ -644,9 +650,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {/* 1 · the brief */}
       {phase === 'brief' && (
         <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start px-5 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
-          <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5">
+          <motion.div className="rounded-2xl border border-keeper-hair bg-white/85 p-5" initial={false} animate={{ opacity: hookOn ? 0 : 1, y: hookOn ? 12 : 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
             <BriefQuestions skin="landing" minimal brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
-          </div>
+          </motion.div>
         </motion.section>
       )}
 
@@ -791,7 +797,8 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
   const ready = manual || (cfg.who && cfg.occasion && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
   return (
-    <div className="keeper-serif min-h-screen" style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)' }}>
+    <div className="keeper-serif relative min-h-screen">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <div className="mx-auto max-w-xl px-5 pb-24 pt-8">
         <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         <h1 className={`${H1} mt-6`}>Make a demo.</h1>
