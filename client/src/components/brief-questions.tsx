@@ -264,7 +264,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const [jokeAsked, setJokeAsked] = useState(false);
   const advance = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
   const next = () => {
-    if (question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
+    // Not in the filmed demo — the popup gets in the way (Aidan 2026-09-16).
+    if (!minimal && question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
     advance();
   };
   const closeJoke = () => { setJokeAsked(true); setJokeAsk(false); advance(); };

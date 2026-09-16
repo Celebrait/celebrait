@@ -376,7 +376,9 @@ function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: (from
                 className="relative aspect-square overflow-hidden bg-stone-100"
                 initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.12 + i * 0.035, duration: 0.3, ease: 'easeOut' }}>
-                <img src={mine ? photo : t.src} alt="" className="h-full w-full object-cover" style={{ objectPosition: t.pos ?? '50% 50%' }} />
+                {/* Other people's photos are blurred (and scaled so the blur has
+                    no soft edge); only theirs is sharp. */}
+                <img src={mine ? photo : t.src} alt="" className={`h-full w-full object-cover ${mine ? '' : 'scale-110 blur-[7px]'}`} style={{ objectPosition: t.pos ?? '50% 50%' }} />
                 {mine && chosen && (
                   <>
                     <motion.span className="absolute inset-0 border-[3px] border-brand bg-brand/15" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} />
