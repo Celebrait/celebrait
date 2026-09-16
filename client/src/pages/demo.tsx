@@ -114,11 +114,16 @@ const CSS = `
 
   /* The generator: a blank card, breathing violet. No words but one. */
   @keyframes demo-shimmer { 0% { background-position: 0% 50% } 50% { background-position: 100% 50% } 100% { background-position: 0% 50% } }
-  @keyframes demo-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.16), 0 26px 70px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.4), 0 34px 96px rgba(122,118,232,.5) } }
-  .demo-glow-card { width: min(74vw, 330px); aspect-ratio: 1 / 1; border-radius: 16px; position: relative;
+  @keyframes demo-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.18), 0 14px 30px rgba(122,118,232,.16) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.42), 0 18px 40px rgba(122,118,232,.26) } }
+  /* The glow is a round halo behind the tile, not a huge box-shadow — the
+     shadow rendered with faint square edges on video. */
+  @keyframes demo-halo { 0%, 100% { opacity: .55; transform: scale(.94) } 50% { opacity: 1; transform: scale(1.04) } }
+  .demo-glow-card { width: min(56vw, 240px); aspect-ratio: 1 / 1; border-radius: 16px; position: relative;
     background: linear-gradient(120deg, #ffffff 0%, #edecfb 35%, #ffffff 55%, #f2f1fb 100%); background-size: 260% 260%;
     animation: demo-shimmer 2.6s ease-in-out infinite, demo-glow 2.6s ease-in-out infinite; }
   .demo-glow-card::after { content: ''; position: absolute; inset: 14px; border-radius: 10px; border: 1px dashed rgba(122,118,232,.35); }
+  .demo-glow-card::before { content: ''; position: absolute; inset: -38%; z-index: -1; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(122,118,232,.34), rgba(122,118,232,.12) 55%, rgba(122,118,232,0)); animation: demo-halo 2.6s ease-in-out infinite; }
   @keyframes demo-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
   .demo-in { animation: demo-fade-up 420ms ease-out both; }
 
@@ -649,8 +654,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {(phase === 'generating' || phase === 'photo-generating' || phase === 'inside-generating') && (
         <motion.section key="generating" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
           <div className="demo-glow-card" />
-          <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-keeper-meta">
-            {phase === 'generating' ? `Generating 3 different cards for ${who}` : phase === 'photo-generating' ? 'Adding photo' : 'Assembling card'}
+          {/* Readable on a phone video: sentence case, bigger, darker. */}
+          <p className="max-w-[300px] text-center text-[18px] font-medium leading-snug text-keeper-ink">
+            {phase === 'generating' ? `Generating 3 front of card choices for ${who}` : phase === 'photo-generating' ? `Adding the photo of ${who}` : 'Assembling the card'}
           </p>
         </motion.section>
       )}
