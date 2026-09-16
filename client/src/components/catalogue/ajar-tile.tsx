@@ -20,9 +20,12 @@ interface AjarTileProps {
    *  on screen at first paint or inside a moving strip, where the
    *  browser's lazy-load intersection lags the transform. */
   eager?: boolean;
+  /** How far the cover rests open, in degrees. Default 14 (the catalogue
+   *  wall); /demo uses the product's ~22° resting angle. */
+  openDeg?: number;
 }
 
-export function AjarTile({ imageUrl, alt, eager = false }: AjarTileProps) {
+export function AjarTile({ imageUrl, alt, eager = false, openDeg }: AjarTileProps) {
   return (
     <div className="relative aspect-square" style={{ perspective: '900px' }}>
       {/* The inside — cream page peeking from behind the cover's
@@ -32,6 +35,7 @@ export function AjarTile({ imageUrl, alt, eager = false }: AjarTileProps) {
       <div
         className="absolute inset-0 origin-left overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-white transition-transform duration-300 ease-out [transform:rotateY(-14deg)] group-hover:[transform:rotateY(-22deg)]"
         style={{
+          ...(openDeg !== undefined ? { transform: `rotateY(-${openDeg}deg)` } : {}),
           boxShadow:
             '2px 4px 14px rgba(33,29,25,0.18), 8px 14px 32px -12px rgba(33,29,25,0.28)',
         }}

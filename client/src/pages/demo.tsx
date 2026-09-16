@@ -659,10 +659,10 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {phase === 'results' && (
         <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
           <div className="px-5"><h1 className={H1}>Three cards for {who}.</h1><p className="mt-1 text-[13px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Option {slide + 1} of 3</p></div>
-          <div ref={railRef} onScroll={onRailScroll} className="demo-rail mt-5 flex shrink-0 snap-x snap-mandatory overflow-x-auto">
+          <div ref={railRef} onScroll={onRailScroll} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
             {fronts.map((u, i) => (
               <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
-                <div className="w-[min(84vw,50vh,380px)] shrink-0"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager /></div>
+                <div className="w-[min(76vw,44vh,340px)] shrink-0"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager openDeg={22} /></div>
               </div>
             ))}
           </div>
@@ -697,7 +697,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {phase === 'photo-result' && cameoUrl && (
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>There’s {who}.</h1>
-          <div className="mt-5 w-[min(84vw,50vh,380px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager /></div>
+          <div className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></div>
           <div className="mt-8 flex flex-col items-center gap-4">
             <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
             <button type="button" data-demo="keep-original" className={QUIET} onClick={() => { setUseCameo(false); setPhase('inside'); }}>Keep the original</button>
