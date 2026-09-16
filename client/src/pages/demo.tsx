@@ -347,12 +347,12 @@ const ROLL: Array<{ src: string; pos?: string }> = [
   { src: '/hero-real-source.webp', pos: '50% 30%' }, { src: '' /* theirs */ }, { src: '/reaction-poster.webp', pos: '50% 12%' },
   { src: '/proof-timessquare-source.webp' }, { src: '/hero-source-photo.webp', pos: '85% 50%' }, { src: '/reaction-poster.webp', pos: '50% 60%' },
 ];
-function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: (from: DOMRect) => void; onCancel: () => void }) {
+function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: () => void; onCancel: () => void }) {
   const [chosen, setChosen] = useState(false);
   const theirs = useRef<HTMLButtonElement>(null);
   const choose = () => {
     if (chosen) return; setChosen(true);
-    window.setTimeout(() => { const r = theirs.current?.getBoundingClientRect(); if (r) onPick(r); }, 520);
+    window.setTimeout(onPick, 560);
   };
   return (
     <motion.div key="picker" className="fixed inset-0 z-40" initial={{ opacity: 1 }} exit={{ opacity: 1 }}>
@@ -418,12 +418,10 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const railRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
-  // The picker: the prepared photo it offers, whether it's up, and the
-  // photo in flight from the grid to the tile.
+  // The picker: the prepared photo it offers and whether it's up.
   const [pickerPhoto, setPickerPhoto] = useState<string | null>(null);
   const pickerPhotoRef = useRef<string | null>(null); pickerPhotoRef.current = pickerPhoto;
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [flight, setFlight] = useState<{ src: string; from: DOMRect; to: DOMRect } | null>(null);
   const photoUrlRef = useRef<string | null>(null); photoUrlRef.current = photoUrl;
   const openPicker = async () => {
     if (photoUrlRef.current || pickerOpen) return;
@@ -431,12 +429,16 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     const prepared = pickerPhotoRef.current ?? await preparePhoto(await fetch(cfg.photo).then((r) => r.blob()));
     setPickerPhoto(prepared); setPickerOpen(true);
   };
-  const landPhoto = (from: DOMRect) => {
-    const src = pickerPhotoRef.current; const tile = document.querySelector('[data-demo="add-photo"]');
+  // Picked → straight into "Adding the photo" (Aidan 2026-09-16: skip the
+  // filled-tile screen). The wait begins as the sheet drops.
+  const usePhoto = (src: string) => {
+    setPhotoUrl(src);
+    window.setTimeout(() => { renderCameo(src).catch(fail); }, 120);
+  };
+  const landPhoto = () => {
+    const src = pickerPhotoRef.current;
     setPickerOpen(false);
-    if (!src || !tile) return;
-    setFlight({ src, from, to: tile.getBoundingClientRect() });
-    window.setTimeout(() => { setPhotoUrl(src); setFlight(null); }, 760);
+    if (src) usePhoto(src);
   };
   // Latest engine state for the director's async steps.
   const conceptsRef = useRef<Concept[]>([]); conceptsRef.current = concepts;
@@ -533,9 +535,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       await tap(await findDemo('add-photo'), b.settle, 300);
       const mine = await findDemo('picker-photo', 8000); await sleep(900); // the grid settles
       await tap(mine, b.settle * 0.8, 200);
-      { const t0 = Date.now(); while (!photoUrlRef.current && Date.now() - t0 < 5000) await sleep(80); }
-      mark('photo: added'); await sleep(b.hold);
-      await tap(await findDemo('put-in'), b.settle, 300);
+      await until('photo-generating', 10_000); mark('photo: added');
       await until('photo-result', 240_000); await sleep(b.look);
       await tap(await findDemo('keep-cameo'), b.settle, b.hold * 0.6); mark('photo: kept');
     } else {
@@ -633,12 +633,6 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       <AnimatePresence>
         {pickerOpen && pickerPhoto && <PhotoPicker photo={pickerPhoto} onPick={landPhoto} onCancel={() => setPickerOpen(false)} />}
       </AnimatePresence>
-      {flight && (
-        <motion.img src={flight.src} alt="" className="pointer-events-none fixed z-50 object-cover shadow-[0_30px_60px_-20px_rgba(33,29,25,0.45)]"
-          initial={{ left: flight.from.left, top: flight.from.top, width: flight.from.width, height: flight.from.height, borderRadius: 2 }}
-          animate={{ left: flight.to.left, top: flight.to.top, width: flight.to.width, height: flight.to.height, borderRadius: 16 }}
-          transition={{ duration: 0.72, ease: [0.3, 0.8, 0.25, 1] }} />
-      )}
 
       <AnimatePresence mode="wait">
       {/* 0 · time to hit record */}
@@ -672,7 +666,6 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {/* 3 · option 1 / 2 / 3 */}
       {phase === 'results' && (
         <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
-          <div className="px-5"><h1 className={H1}>Three cards for {who}.</h1><p className="mt-1 text-[13px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Option {slide + 1} of 3</p></div>
           <div ref={railRef} onScroll={onRailScroll} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
             {fronts.map((u, i) => (
               <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
@@ -692,17 +685,13 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         <motion.section key="photo" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(setPhotoUrl); e.target.value = ''; }} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(usePhoto); e.target.value = ''; }} />
           <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
-            className={`mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 ${photoUrl ? 'border-brand' : 'border-dashed border-keeper-hair bg-white/70'}`}>
-            {photoUrl
-              ? <img src={photoUrl} alt="" className="h-full w-full object-cover" />
-              : !flight && <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>}
+            className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white/70">
+            <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
           </button>
           <div className="mt-8 flex flex-col items-center gap-4">
-            {photoUrl || flight
-              ? <button type="button" data-demo="put-in" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { if (photoUrl) renderCameo(photoUrl).catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Put {who} in it</button>
-              : <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
+            {!photoUrl && <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside')}>No photo — carry on</button>}
           </div>
         </motion.section>
       )}
@@ -710,7 +699,6 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {/* 5 · there they are */}
       {phase === 'photo-result' && cameoUrl && (
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
-          <h1 className={H1}>There’s {who}.</h1>
           <div className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></div>
           <div className="mt-8 flex flex-col items-center gap-4">
             <button type="button" data-demo="keep-cameo" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside'); }}>Keep this one</button>
@@ -737,7 +725,6 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {/* 7 · the card, tap to open */}
       {phase === 'card' && chosenFront && (
         <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col px-5 pb-6 pt-16 text-center">
-          <h1 className={H1}>There it is.</h1>
           {/* The card takes the room and may draw past its box; the button
               is pushed to the bottom and can go (Aidan 2026-09-15: "it's
               not that important to see here"). */}
