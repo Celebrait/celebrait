@@ -95,15 +95,8 @@ const CSS = `
   .demo-dot { position: fixed; z-index: 2147483000; pointer-events: none; width: 14px; height: 14px; border-radius: 50%; background: #7a76e8;
     transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
-  /* The manual-run cursor (Aidan 2026-09-16: "make my mouse the purple
-     hover… the glow"): the system pointer hides, a violet dot follows. */
+  /* Manual runs: no pointer on screen at all (Aidan 2026-09-16). */
   .demo-cursor-on, .demo-cursor-on * { cursor: none !important; }
-  .demo-cursor { position: fixed; left: 0; top: 0; z-index: 2147483001; pointer-events: none; width: 22px; height: 22px; margin: -11px 0 0 -11px;
-    border-radius: 50%; background: rgba(122,118,232,.55); border: 2px solid #7a76e8;
-    box-shadow: 0 0 0 6px rgba(122,118,232,.14), 0 0 26px 6px rgba(122,118,232,.45);
-    transition: transform 120ms ease, opacity 160ms ease, width 160ms ease, height 160ms ease; opacity: 0; will-change: transform; }
-  .demo-cursor.down { width: 16px; height: 16px; margin: -8px 0 0 -8px; background: rgba(122,118,232,.8); }
-  .demo-cursor.over { width: 30px; height: 30px; margin: -15px 0 0 -15px; background: rgba(122,118,232,.28); }
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
     background: transparent; transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
@@ -573,29 +566,18 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      // A glowing violet cursor for mouse/trackpad (touch has none to replace).
-      const cur = document.createElement('div'); cur.className = 'demo-cursor'; document.body.appendChild(cur);
+      // No pointer at all on the recording (Aidan 2026-09-16) — the system
+      // cursor is hidden; clicks still land and still show the tap ring.
       document.documentElement.classList.add('demo-cursor-on');
-      const onMove = (e: PointerEvent) => {
-        if (e.pointerType === 'touch') { cur.style.opacity = '0'; return; }
-        cur.style.opacity = '1'; cur.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-        const hit = (e.target as HTMLElement | null)?.closest?.('button, a, input, textarea, [role="button"], label');
-        cur.classList.toggle('over', !!hit);
-      };
-      const onLeave = () => { cur.style.opacity = '0'; };
-      const onDown = (e: PointerEvent) => { ring(e.clientX, e.clientY); cur.classList.add('down'); };
-      const onUp = () => cur.classList.remove('down');
+      const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
       const onClick = () => { window.setTimeout(clearRings, 140); };
-      window.addEventListener('pointermove', onMove, true);
-      document.addEventListener('mouseleave', onLeave);
       window.addEventListener('pointerdown', onDown, true);
-      window.addEventListener('pointerup', onUp, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
         if (!cfg.hook) return;
         void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => setHookOn(false));
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointermove', onMove, true); document.removeEventListener('mouseleave', onLeave); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('pointerup', onUp, true); window.removeEventListener('click', onClick, true); cur.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
+      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); document.documentElement.classList.remove('demo-cursor-on'); };
     }
     const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
