@@ -38,11 +38,11 @@ export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'>): string | 
 
 export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: 'Cheekier' };
 /** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
-const VIBE_META: Record<Vibe, { label: string }> = {
-  funny: { label: 'Light humour' },
-  warm: { label: 'Warm' },
-  rude: { label: 'Cheeky' },
-  mix: { label: 'Can’t decide? One of each' },
+const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
+  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
+  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
+  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
+  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes — you choose after' },
 };
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
@@ -227,9 +227,13 @@ interface BriefQuestionsProps {
   jumpTo?: number | null;
   /** Hide the built-in dots when the page draws progress itself. */
   hideDots?: boolean;
+  /** Questions and answers only — no helper copy. For /demo, where the
+   *  screen is filmed (Aidan 2026-09-15: "drop all sub-copy… keep clean");
+   *  the real pages keep their helper copy (2026-09-16). */
+  minimal?: boolean;
 }
 
-export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false }: BriefQuestionsProps) {
+export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
   const [showMore, setShowMore] = useState(false);
@@ -279,6 +283,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'who' && (
           <>
             <p className={s.h1}>{skin === 'landing' ? "Start here — who's it for?" : "Right — who's the card for?"}</p>
+            {skin === 'studio' && !minimal && <p className={`${s.sub} mb-4`}>Three original cards, written and drawn for one person.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {RECIPIENTS.map((r) => (
                 <button key={r.label} type="button" className={s.chip(brief.who === r.label)} onClick={() => { const b = { ...brief, who: r.label, gender: r.implies ?? null, front: defaultFront(r.label, brief.name) }; onChange(b); if (!AMBIGUOUS.has(r.label)) setQIndex(idx + 1); }}>{r.label}</button>
@@ -318,9 +323,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'age' && (
           <>
-            {/* No sub-copy on any question (Aidan 2026-09-15: "drop all
-                sub-copy… keep clean"). The heading carries it. */}
             <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'}{brief.occasion === 'birthday' ? ' turning' : ''}?{optionalTag}</p>
+            {!minimal && (brief.occasion === 'birthday'
+              ? <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
+              : <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>)}
             <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
@@ -328,6 +334,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'vibe' && (
           <>
             <p className={s.h1}>What's the vibe?</p>
+            {!minimal && <p className={s.sub}>You'll see three cards either way — this sets what they lean towards.</p>}
             <div className="space-y-2.5 mt-4">
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
@@ -336,7 +343,9 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 const mix = t === 'mix';
                 return (
                   <button key={t} type="button" disabled={off} onClick={() => { set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(brief.vibe === t)} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
-                    <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' — not under 18' : ''}</span>
+                    {minimal
+                      ? <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' — not under 18' : ''}</span>
+                      : <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>}
                     {brief.vibe === t && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
                 );
@@ -348,6 +357,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'interest' && (
           <>
             <p className={s.h1}>What's {whoPossessive(brief)} thing?</p>
+            {!minimal && <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>}
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
             <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={placeholder} rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
@@ -361,6 +371,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 or nothing. One card leads with it; the engine gets the
                 literal word via frontWordOf(). */}
             <p className={s.h1}>What goes on the front?{optionalTag}</p>
+            {!minimal && <p className={s.sub}>One of your three cards leads with it — sometimes as the artwork itself.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {NAME_LIKE.has(brief.who.trim()) && (
                 <button type="button" className={s.chip(brief.front === 'role')} onClick={() => set({ front: 'role' })}>{brief.who.trim()}</button>
@@ -371,9 +382,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {brief.front === 'name' && (
               <>
                 <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
-                {brief.name.trim() && <p className={s.warn}>Printed exactly as typed — worth a double-check.</p>}
+                {brief.name.trim() && <p className={s.warn}>{minimal ? 'Printed exactly as typed — worth a double-check.' : 'It’ll be printed exactly as you type it — worth a double-check.'}</p>}
               </>
             )}
+            {!minimal && <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>}
           </>
         )}
       </div>
@@ -383,10 +395,12 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-bold text-keeper-ink">Fancy a joke on one of them?</DialogTitle>
             <DialogDescription className="text-[14px] leading-relaxed text-keeper-body">
-              Tell us one thing they can't stand.
+              {minimal
+                ? 'Tell us one thing they can’t stand.'
+                : 'Tell us something they can’t stand — the rival team, mornings, oat milk, slow walkers — and we’ll build one of the three around it. Making light of the thing they hate, never of them.'}
             </DialogDescription>
           </DialogHeader>
-          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team, mornings, slow walkers…" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
+          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={minimal ? 'The rival team, mornings, slow walkers…' : 'The rival team / mornings / slow walkers'} className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
           <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
             <button type="button" onClick={() => { set({ cant: '' }); closeJoke(); }} className={s.skip}>No thanks</button>
             <button type="button" onClick={closeJoke} disabled={!brief.cant.trim()} className={s.next}>Add it <ChevronRight className="w-4 h-4" /></button>
