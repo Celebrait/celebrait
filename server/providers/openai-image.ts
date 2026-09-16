@@ -107,6 +107,9 @@ export const OPENAI_VARIANTS = {
       medium: '$0.053',
       high: '$0.211',
     },
+    // Billed per token, and a photo sent for a cameo or an edit is billed
+    // as image INPUT on top — the fixed table missed that (2026-09-16).
+    costFromUsage: true,
   },
   /** gpt-image-2 via the Responses API GENERATE path — same model + pricing
    *  as v2, but a reference photo is passed as context to compose a NEW image

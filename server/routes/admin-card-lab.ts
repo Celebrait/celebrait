@@ -47,7 +47,7 @@ import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
 import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
-import { llmCostCents } from '../prompts/llm-cost';
+import { llmCostCents, chatUsageCents } from '../prompts/llm-cost';
 import { assessCameoRender } from '../photos/analyze';
 
 /** The model every door draws with in production. The three-card route
@@ -1536,6 +1536,9 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
       ],
       response_format: { type: 'json_object' },
     });
+    // The sense referee runs up to three times a set — it was spending unlogged.
+    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+      provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: chatUsageCents(CONCEPT_MODEL, r.usage), durationMs: 0, success: true });
     const parsed = JSON.parse(r.choices[0]?.message?.content ?? '{}');
     const out: string[] = [];
     (Array.isArray(parsed.cards) ? parsed.cards : []).forEach((c: any, i: number) => {
@@ -2675,6 +2678,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ],
           response_format: { type: 'json_object' },
         });
+        void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: chatUsageCents(CONCEPT_MODEL, archRes.usage), durationMs: 0, success: true });
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
         if (restingSeamText) briefLines.push(restingSeamText);
         if (groundRestText) briefLines.push(groundRestText);
@@ -2876,7 +2881,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           });
           void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
             provider: 'openai', model: CONCEPT_MODEL, quality: null,
-            costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
+            costCents: chatUsageCents(CONCEPT_MODEL, gen.usage),
             durationMs: 0, success: true });
           concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
             // Free-comp writers ramble in the metadata fields; every
@@ -3220,7 +3225,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         void logGeneration({
           cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
           provider: 'openai', model: CONCEPT_MODEL, quality: null,
-          costCents: llmCostCents(CONCEPT_MODEL, review.usage?.prompt_tokens ?? 0, review.usage?.completion_tokens ?? 0),
+          costCents: chatUsageCents(CONCEPT_MODEL, review.usage),
           durationMs: 0, success: true,
         });
       } catch (e) {
@@ -3731,7 +3736,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
         });
         void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
           provider: 'openai', model: CONCEPT_MODEL, quality: null,
-          costCents: llmCostCents(CONCEPT_MODEL, gen.usage?.prompt_tokens ?? 0, gen.usage?.completion_tokens ?? 0),
+          costCents: chatUsageCents(CONCEPT_MODEL, gen.usage),
           durationMs: 0, success: true });
         art = String(JSON.parse(gen.choices[0]?.message?.content ?? '{}').art_direction ?? '').trim();
         // Law 6: re-screen everything a fixer writes — a repairing LLM
@@ -3952,10 +3957,12 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
     const photo = decode(parsed.data.cameoPhoto);
     if (!card || !photo) return res.status(400).json({ message: 'Could not read those images' });
     try {
-      const { result, raw, model, durationMs } = await assessCameoRender({
+      const { result, raw, model, durationMs, promptTokens, outputTokens } = await assessCameoRender({
         cardBytes: card.bytes, cardMimeType: card.mimeType,
         photoBytes: photo.bytes, photoMimeType: photo.mimeType,
       });
+      void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+        provider: 'gemini', model, quality: null, costCents: llmCostCents(model, promptTokens, outputTokens), durationMs, success: !!result });
       // Fail OPEN: a QA check that blocks curation is worse than none.
       // `result: null` means "no opinion", and the UI shows no badge.
       res.json({ result, raw: result ? undefined : raw, model, durationMs });
