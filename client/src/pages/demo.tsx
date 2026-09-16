@@ -13,7 +13,7 @@
 //
 // Versions are links, so a link IS a version:
 //   /demo?preset=mum-70-garden&hook=typed   (the photo step needs a preset with a photo)
-//   /demo?preset=dad-60-canal               (no photo → "No photo" tap)
+//   /demo?preset=dad-60-canal               (no photo → the photo screen is skipped)
 //   /demo?…&speed=fast                       tighter beats for a 30s cut
 //
 // Admin-only (every load spends real generations) and noindex. The
@@ -41,7 +41,7 @@ export interface DemoPreset {
   /** The typed hook line, when the run opens with one. */
   hookLine: string;
   /** A photo of them for the cameo step (public path). Without one the
-   *  demo taps "No photo". */
+   *  auto run skips the photo screen. */
   photo?: string;
   /** Who writes the inside message: 'us' (prefilled, Dear/From typed) or
    *  'me' (all three typed). */
@@ -88,6 +88,8 @@ export interface DemoConfig extends DemoPreset {
   askDislike?: boolean;
   /** The running clock, top right (on unless false). */
   timer?: boolean;
+  /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
+  skipPhoto?: boolean;
 }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
@@ -394,6 +396,8 @@ const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, 
 const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
 const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
+/** The studio's green go button. */
+const GREEN = 'inline-flex items-center justify-center gap-2 rounded-full bg-cta px-6 py-3.5 text-[15px] font-semibold text-cta-foreground shadow-sm transition-colors hover:bg-cta-hover';
 const TILE = 'flex w-full flex-col items-start gap-1 rounded-2xl border border-keeper-hair bg-white/85 px-5 py-4 text-left';
 
 // ── the photo picker (Aidan 2026-09-16: "some kind of photo picker
@@ -499,7 +503,8 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   // Picked → straight into "Adding the photo" (Aidan 2026-09-16: skip the
   // filled-tile screen). The wait begins as the sheet drops.
   // Choosing a card is a tap on the card itself (no button).
-  const chooseCard = (i: number) => { setPicked(i); setPhase('photo'); };
+  const photoStep = !cfg.skipPhoto && (cfg.mode === 'manual' || !!cfg.photo);
+  const chooseCard = (i: number) => { setPicked(i); setPhase(photoStep ? 'photo' : 'inside-choice'); };
   // "Write it for me" prefills the message (Dear/From stay blank);
   // "I'll write it" leaves all three empty.
   const chooseInside = (by: 'us' | 'me') => {
@@ -598,7 +603,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     await tap(await findDemo('card-0'), b.settle, b.hold); mark('picked card 1');
 
     // The photo.
-    if (p.photo) {
+    if (photoStep && p.photo) {
       await sleep(b.look * 0.5);
       setPickerPhoto(await preparePhoto(await fetch(p.photo).then((r) => r.blob())));
       await tap(await findDemo('add-photo'), b.settle, 300);
@@ -608,8 +613,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       await until('photo-result', 240_000); await sleep(b.look);
       await tap(await findDemo('to-inside'), b.settle, b.hold * 0.6); mark('photo: kept');
     } else {
-      await sleep(b.look * 0.5);
-      await tap(await findDemo('no-photo'), b.settle, b.hold * 0.6); mark('photo: skipped');
+      mark('photo: skipped');
     }
 
     // The inside.
@@ -714,8 +718,13 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {cfg.timer !== false && clockFrom != null && (
-        <div className="absolute right-5 top-[22px] z-10 flex items-center gap-1.5 text-[14px] font-semibold tabular-nums text-keeper-body" aria-label="Time taken">
-          <span className={`h-1.5 w-1.5 rounded-full ${clockTo == null ? 'animate-pulse bg-cta' : 'bg-keeper-meta'}`} />{clockText}
+        // Centred under the logo: clear of the like/share rail (right) and the
+        // caption (bottom) on Reels and TikTok.
+        <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white/85 px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Time taken to get here</span>
+          <span className="flex items-center gap-1.5 text-[22px] font-bold leading-tight tabular-nums text-keeper-ink">
+            <span className={`h-2 w-2 rounded-full ${clockTo == null ? 'animate-pulse bg-cta' : 'bg-keeper-meta'}`} />{clockText}
+          </span>
         </div>
       )}
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
@@ -770,7 +779,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
 
       {/* 4 · add a photo? */}
       {phase === 'photo' && (
-        <motion.section key="photo" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="photo" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 pb-12 text-center ${cfg.timer !== false ? 'pt-[20vh]' : 'pt-16'}`}>
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(usePhoto); e.target.value = ''; }} />
@@ -778,19 +787,15 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
             className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white/70">
             <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
           </button>
-          <div className="mt-8 flex flex-col items-center gap-4">
-            {!photoUrl && <button type="button" data-demo="no-photo" className={QUIET} onClick={() => setPhase('inside-choice')}>No photo — carry on</button>}
-          </div>
         </motion.section>
       )}
 
       {/* 5 · there they are */}
       {phase === 'photo-result' && cameoUrl && (
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
-          <div className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></div>
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <button type="button" data-demo="to-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setUseCameo(true); setPhase('inside-choice'); }}><Sparkles className="h-4 w-4 text-cta" /> Now design the inside</button>
-          </div>
+          {/* Tap the card to go on to the inside — no button (Aidan 2026-09-16). */}
+          <button type="button" data-demo="to-inside" aria-label="Use this card" onClick={() => { setUseCameo(true); setPhase('inside-choice'); }}
+            className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center transition-transform active:scale-[0.98]"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></button>
         </motion.section>
       )}
 
@@ -830,7 +835,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
           product's viewer stays open/close with no orbit. */}
       {phase === 'card' && chosenFront && (
         <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col">
-          <div data-demo="card" className="relative min-h-0 w-full flex-1 pt-10">
+          <div data-demo="card" className={`relative min-h-0 w-full flex-1 ${cfg.timer !== false ? 'pt-[20vh]' : 'pt-10'}`}>
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
               enableRotate enableZoom={false} autoRotate={spin} autoRotateSpeed={2.2}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
@@ -839,7 +844,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
             <GestureHints open={cardOpen} mountDelayMs={500} hideZoomHint openLabel="Tap to close" />
           </div>
           <div className="shrink-0 px-5 pb-8">
-            <button type="button" data-demo="post" className={`${PRIMARY} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
+            <button type="button" data-demo="post" className={`${GREEN} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
               <Send className="h-4 w-4" /> Post it to them
             </button>
           </div>
@@ -951,13 +956,19 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
             <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
           </div>}
-          <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
+          <div><span className={label}>Photo step</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip(!cfg.skipPhoto)} onClick={() => set({ skipPhoto: false })}>Include it</button>
+              <button type="button" className={chip(!!cfg.skipPhoto)} onClick={() => set({ skipPhoto: true })}>Skip it</button>
+            </div>
+          </div>
+          {!cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
             <div className="flex items-center gap-3">
               <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
               {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
-              {cfg.photo && <button type="button" className={QUIET} onClick={() => set({ photo: undefined })}>No photo step</button>}
+              {cfg.photo && <button type="button" className={QUIET} onClick={() => set({ photo: undefined })}>Remove</button>}
             </div>
-          </div>
+          </div>}
           <div><span className={label}>Opening line</span>
             <div className="flex flex-wrap gap-2"><button type="button" className={chip(cfg.hook)} onClick={() => set({ hook: true })}>Typed hook</button><button type="button" className={chip(!cfg.hook)} onClick={() => set({ hook: false })}>Straight in</button></div>
             {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 140) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
