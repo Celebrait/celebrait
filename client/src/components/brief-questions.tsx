@@ -256,7 +256,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   // The interest field's placeholder types itself out while it's empty —
   // examples chosen for the recipient, restarting if they change who.
   const thingExamples = useMemo(() => thingExamplesFor(brief.who), [brief.who]);
-  const placeholder = useTypewriter(thingExamples, question === 'interest' && !brief.thing);
+  // The filmed demo shows no example text in any box — on a recording it
+  // reads as an answer (Aidan 2026-09-16: "they're misleading").
+  const placeholder = useTypewriter(thingExamples, !minimal && question === 'interest' && !brief.thing);
+  const ph = (t: string) => (minimal ? undefined : t);
   const isLast = idx === questions.length - 1;
   const isKid = isKidBrief(brief);
   const set = (patch: Partial<Brief>) => onChange({ ...brief, ...patch });
@@ -323,7 +326,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             </div>
             <Input value={occQuery} onChange={(e) => setOccQuery(e.target.value.slice(0, 40))}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); pickTyped(); } }}
-              placeholder="Something else? Type it… e.g. Retirement" className={`${s.input} mt-3`} aria-label="Type the occasion" />
+              placeholder={ph('Something else? Type it… e.g. Retirement')} className={`${s.input} mt-3`} aria-label="Type the occasion" />
             {occQ && (
               <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {occMatches.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => pickOccasion(o)))}
@@ -339,7 +342,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {!minimal && (brief.occasion === 'birthday'
               ? <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
               : <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>)}
-            <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
+            <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder={ph('Their age')} aria-label="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
 
@@ -372,14 +375,14 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {!minimal && <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>}
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
-            <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={placeholder} rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
+            <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={minimal ? undefined : placeholder} aria-label="Their thing" rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
           </>
         )}
 
         {question === 'dislike' && (
           <>
             <p className={s.h1}>Anything {whoPhrase(brief) !== 'them' ? whoPhrase(brief) : 'they'} can’t stand?</p>
-            <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team, mornings, slow walkers…" className={`${s.input} mt-4`} autoFocus aria-label="Something they can't stand" onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
+            <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={ph('The rival team, mornings, slow walkers…')} className={`${s.input} mt-4`} autoFocus aria-label="Something they can't stand" onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
 
@@ -400,7 +403,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             </div>
             {brief.front === 'name' && (
               <>
-                <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
+                <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder={ph('Their first name')} aria-label="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
                 {brief.name.trim() && <p className={s.warn}>{minimal ? 'Printed exactly as typed — worth a double-check.' : 'It’ll be printed exactly as you type it — worth a double-check.'}</p>}
               </>
             )}
@@ -419,7 +422,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 : 'Tell us something they can’t stand — the rival team, mornings, oat milk, slow walkers — and we’ll build one of the three around it. Making light of the thing they hate, never of them.'}
             </DialogDescription>
           </DialogHeader>
-          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={minimal ? 'The rival team, mornings, slow walkers…' : 'The rival team / mornings / slow walkers'} className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
+          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={minimal ? undefined : 'The rival team / mornings / slow walkers'} aria-label="Something they can't stand" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
           <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
             <button type="button" onClick={() => { set({ cant: '' }); closeJoke(); }} className={s.skip}>No thanks</button>
             <button type="button" onClick={closeJoke} disabled={!brief.cant.trim()} className={s.next}>Add it <ChevronRight className="w-4 h-4" /></button>

@@ -90,6 +90,9 @@ export interface DemoConfig extends DemoPreset {
   timer?: boolean;
   /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
   skipPhoto?: boolean;
+  /** 'phone' = the run plays inside a phone mockup on the page (Aidan
+   *  2026-09-16: "render this in a phone mock up"); 'full' = edge to edge. */
+  frame?: 'phone' | 'full';
 }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
@@ -457,7 +460,7 @@ function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: () =>
   );
 }
 
-function DemoRun({ cfg }: { cfg: DemoConfig }) {
+function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
   const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'brief');
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
@@ -578,7 +581,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     await type(await find('textarea', null) as HTMLTextAreaElement, p.thing, b.settle, b.type);
     await tap(await B(/^Next/), b.settle, b.hold * 0.6); mark('interest: next');
     if (cfg.askDislike) {
-      const cantBox = await find('input', /rival team/i) as HTMLInputElement;
+      const cantBox = await find('input', /can.t stand/i) as HTMLInputElement;
       if (p.cant.trim()) await type(cantBox, p.cant, b.settle, b.type);
       await tap(await B(/^(Next|Skip)/), b.settle, b.hold * 0.75); mark(`can't stand: ${p.cant || 'skipped'}`);
     }
@@ -712,7 +715,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
 
   return (
-    <div className="keeper-serif fixed inset-0 overflow-hidden">
+    // Inside the phone mockup the screen starts under the status bar and
+    // stops above the home bar.
+    <div className={`keeper-serif fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {/* The make page's own backdrop: cream wash + the floating celebration icons. */}
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
@@ -820,9 +825,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
         <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
-            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
-            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Your message" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
+            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
           <div className="mt-6 flex flex-col items-center">
             <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch(fail)}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
@@ -879,7 +884,7 @@ const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px
 const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
 
 function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
-  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual' });
+  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual', frame: 'phone' });
   const manual = cfg.mode === 'manual';
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
@@ -976,6 +981,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
+            <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
         </div>
@@ -987,6 +993,71 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   );
 }
 
+// ── the phone mockup ─────────────────────────────────────────────────
+// The run plays in an iframe the size of an iPhone 15, so every vw/vh and
+// fixed layer inside it measures the phone, not the browser window. The
+// builder's settings go across by postMessage (a photo can be too big for
+// storage).
+const PHONE_W = 393, PHONE_H = 852, BEZEL = 14;
+const EMBED_READY = 'celebrait-demo-embed-ready';
+const EMBED_CFG = 'celebrait-demo-embed-cfg';
+
+function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const fit = () => setScale(Math.min(1, (window.innerHeight - 40) / (PHONE_H + BEZEL * 2), (window.innerWidth - 32) / (PHONE_W + BEZEL * 2)));
+    fit(); window.addEventListener('resize', fit);
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.data?.type !== EMBED_READY) return;
+      frameRef.current?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
+    };
+    window.addEventListener('message', onMsg);
+    return () => { window.removeEventListener('resize', fit); window.removeEventListener('message', onMsg); };
+  }, [cfg]);
+  return (
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)' }}>
+      <div style={{ width: PHONE_W + BEZEL * 2, height: PHONE_H + BEZEL * 2, transform: `scale(${scale})`, padding: BEZEL }}
+        className="relative shrink-0 rounded-[66px] bg-[#1d1a17] shadow-[0_50px_90px_-40px_rgba(33,29,25,.55),inset_0_0_0_2px_rgba(255,255,255,.08)]">
+        <div className="relative h-full w-full overflow-hidden rounded-[52px] bg-keeper-paper">
+          <iframe ref={frameRef} src="/demo?embed=1" title="Celebrait demo" className="absolute inset-0 h-full w-full border-0" />
+          {/* status bar */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[50px] items-center justify-between px-[34px] pt-[4px] text-[16px] font-semibold text-keeper-ink" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            <span>9:41</span>
+            <span className="flex items-center gap-[6px]">
+              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor" /><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor" /><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor" /><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor" /></svg>
+              <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0L8 11.5Zm-4.2-4.3L2.3 5.7a8 8 0 0 1 11.4 0l-1.5 1.5a5.9 5.9 0 0 0-8.4 0ZM.9 4.3-.6 2.8a12 12 0 0 1 17.2 0l-1.5 1.5a9.9 9.9 0 0 0-14.2 0Z" fill="currentColor" /></svg>
+              <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x="0.5" y="0.5" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" opacity=".4" /><rect x="2" y="2" width="19" height="8" rx="2" fill="currentColor" /><rect x="24" y="4" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".45" /></svg>
+            </span>
+          </div>
+          {/* dynamic island + home bar */}
+          <div className="pointer-events-none absolute left-1/2 top-[11px] h-[35px] w-[124px] -translate-x-1/2 rounded-full bg-[#0c0b0a]" />
+          <div className="pointer-events-none absolute bottom-[8px] left-1/2 h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-keeper-ink/85" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmbeddedRun() {
+  const [cfg, setCfg] = useState<DemoConfig | null>(null);
+  useEffect(() => {
+    // Keep asking until the page answers (it may still be mounting); the
+    // first answer wins and the asking stops.
+    const ask = () => window.parent?.postMessage({ type: EMBED_READY }, window.location.origin);
+    const t = window.setInterval(ask, 300);
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.data?.type !== EMBED_CFG) return;
+      window.clearInterval(t);
+      setCfg((prev) => prev ?? (e.data.cfg as DemoConfig));
+    };
+    window.addEventListener('message', onMsg);
+    ask();
+    return () => { window.removeEventListener('message', onMsg); window.clearInterval(t); };
+  }, []);
+  return cfg ? <DemoRun cfg={cfg} embedded /> : <div className="fixed inset-0 bg-keeper-paper" />;
+}
+
 export default function DemoPage() {
   const q = useMemo(() => new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''), []);
   // A preset in the link runs straight away (the recorder's path); otherwise the builder.
@@ -996,5 +1067,7 @@ export default function DemoPage() {
   }, [q]);
   const [cfg, setCfg] = useState<DemoConfig | null>(fromLink);
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
-  return cfg ? <DemoRun cfg={cfg} /> : <DemoSetup onRun={setCfg} />;
+  if (q.get('embed') === '1') return <EmbeddedRun />;
+  if (!cfg) return <DemoSetup onRun={setCfg} />;
+  return cfg.frame === 'phone' && !fromLink ? <PhoneFrame cfg={cfg} /> : <DemoRun cfg={cfg} />;
 }
