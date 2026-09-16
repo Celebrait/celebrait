@@ -10,7 +10,7 @@
 // so refresh, back and the hand-off to /make all carry it.
 
 import { useMemo, useState, useEffect } from 'react';
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTypewriter } from '@/hooks/use-typewriter';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -160,11 +160,13 @@ export type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'di
  *  occasion (Aidan 2026-09-03: it arms the kids register and switches
  *  Cheeky off under 18, which matters at Christmas as much as a
  *  birthday); dislike only when there's humour to feed. */
-export function questionsFor(b: Brief): QuestionKey[] {
+export function questionsFor(b: Brief, askDislike = false): QuestionKey[] {
   // 'dislike' is no longer a step of its own (Aidan 2026-09-06): when the
   // vibe has humour in it, the interest question's Next offers it as a
   // one-off prompt instead — see jokeAsk in BriefQuestions.
-  const q: QuestionKey[] = ['who', 'occasion', 'age', 'vibe', 'interest', 'name'];
+  // /demo can still ask it as its own page (Aidan 2026-09-16).
+  const q: QuestionKey[] = askDislike ? ['who', 'occasion', 'age', 'vibe', 'interest', 'dislike', 'name'] : ['who', 'occasion', 'age', 'vibe', 'interest', 'name'];
+  void b;
   return q;
 }
 
@@ -231,9 +233,11 @@ interface BriefQuestionsProps {
    *  screen is filmed (Aidan 2026-09-15: "drop all sub-copy… keep clean");
    *  the real pages keep their helper copy (2026-09-16). */
   minimal?: boolean;
+  /** Ask "anything they can't stand?" as its own page after their thing. */
+  askDislike?: boolean;
 }
 
-export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false }: BriefQuestionsProps) {
+export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false, askDislike = false }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
   // In the filmed demo nothing shows as chosen until it's tapped (a
@@ -241,10 +245,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const touch = (k: string) => setTouched((t) => (t.has(k) ? t : new Set(t).add(k)));
   const shown = (k: string, on: boolean) => on && (!minimal || touched.has(k));
-  const [showMore, setShowMore] = useState(false);
-  const [otherText, setOtherText] = useState(() => (brief.occasion && !isKnownOccasion(brief.occasion) ? brief.occasion : ''));
+  // Anything past the big four is typed, not scrolled for (Aidan 2026-09-16).
+  const [occQuery, setOccQuery] = useState(() => (!brief.occasion || PRIMARY_OCCASIONS.includes(brief.occasion) || brief.occasion === 'other' ? '' : isKnownOccasion(brief.occasion) ? getOccasionLabel(brief.occasion) : brief.occasion));
 
-  const questions = useMemo(() => questionsFor(brief), [brief.occasion, brief.vibe]); // eslint-disable-line react-hooks/exhaustive-deps
+  const questions = useMemo(() => questionsFor(brief, askDislike), [brief.occasion, brief.vibe, askDislike]); // eslint-disable-line react-hooks/exhaustive-deps
   const idx = Math.min(qIndex, questions.length - 1);
   useEffect(() => { onStepChange?.(idx, questions); }, [idx, questions]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (jumpTo != null) setQIndex(jumpTo); }, [jumpTo]);
@@ -265,15 +269,20 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const advance = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
   const next = () => {
     // Not in the filmed demo — the popup gets in the way (Aidan 2026-09-16).
-    if (!minimal && question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
+    if (!minimal && !askDislike && question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
     advance();
   };
   const closeJoke = () => { setJokeAsked(true); setJokeAsk(false); advance(); };
   const back = () => { if (idx > 0) setQIndex(idx - 1); };
 
   const isOtherPicked = brief.occasion === 'other' || (!!brief.occasion && !isKnownOccasion(brief.occasion));
-  const moreOccasions = OCCASION_OPTIONS.filter((o) => !PRIMARY_OCCASIONS.includes(o) && o !== 'other');
-  const showMoreRow = showMore || isOtherPicked || (!!brief.occasion && !PRIMARY_OCCASIONS.includes(brief.occasion));
+  const occQ = occQuery.trim().toLowerCase();
+  const occMatches = occQ
+    ? OCCASION_OPTIONS.filter((o) => o !== 'other' && (getOccasionLabel(o).toLowerCase().includes(occQ) || o.includes(occQ))).slice(0, 4)
+    : [];
+  const occExact = occMatches.some((o) => getOccasionLabel(o).toLowerCase() === occQ);
+  const pickOccasion = (o: string) => { set({ occasion: o }); setQIndex(idx + 1); };
+  const pickTyped = () => { if (occMatches.length) pickOccasion(occMatches[0]); else if (occQuery.trim()) pickOccasion(occQuery.trim().slice(0, 40)); };
   const occasionTile = (o: string, labelText: string, Icon: typeof OCCASION_ICON[string] | undefined, on: boolean, onPick: () => void) => (
     <button key={o} type="button" onClick={onPick} className={s.tile(on)}>
       {Icon && <span className={s.tileIcon(on)}><Icon className="w-[18px] h-[18px]" strokeWidth={1.75} /></span>}
@@ -312,18 +321,14 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
               {PRIMARY_OCCASIONS.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => { set({ occasion: o }); setQIndex(idx + 1); }))}
             </div>
-            {!showMoreRow && (
-              <button type="button" onClick={() => setShowMore(true)} className={`${s.skip} mt-3 inline-flex items-center gap-1`}>More occasions <ChevronDown className="w-4 h-4" /></button>
-            )}
-            {showMoreRow && (
+            <Input value={occQuery} onChange={(e) => setOccQuery(e.target.value.slice(0, 40))}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); pickTyped(); } }}
+              placeholder="Something else? Type it… e.g. Retirement" className={`${s.input} mt-3`} aria-label="Type the occasion" />
+            {occQ && (
               <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {moreOccasions.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => { set({ occasion: o }); setQIndex(idx + 1); }))}
-                {occasionTile('other', 'Something else', OCCASION_ICON.other, isOtherPicked, () => set({ occasion: otherText.trim() || 'other' }))}
+                {occMatches.map((o) => occasionTile(o, getOccasionLabel(o), OCCASION_ICON[o], brief.occasion === o, () => pickOccasion(o)))}
+                {!occExact && occasionTile('typed', `“${occQuery.trim()}”`, OCCASION_ICON.other, isOtherPicked && brief.occasion === occQuery.trim(), () => pickOccasion(occQuery.trim().slice(0, 40)))}
               </div>
-            )}
-            {isOtherPicked && (
-              <Input value={otherText} autoFocus onChange={(e) => { const v = e.target.value.slice(0, 40); setOtherText(v); set({ occasion: v.trim() || 'other' }); }}
-                placeholder="Type the occasion… e.g. Retirement, New home" className={`${s.input} mt-3`} />
             )}
           </>
         )}
@@ -368,6 +373,13 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
             <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={placeholder} rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
+          </>
+        )}
+
+        {question === 'dislike' && (
+          <>
+            <p className={s.h1}>Anything {whoPhrase(brief) !== 'them' ? whoPhrase(brief) : 'they'} can’t stand?</p>
+            <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder="The rival team, mornings, slow walkers…" className={`${s.input} mt-4`} autoFocus aria-label="Something they can't stand" onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
 
@@ -417,7 +429,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          {idx > 0 ? <button type="button" onClick={back} className={s.back}><ChevronLeft className="w-4 h-4" /> Back</button> : <span />}
+          {idx > (minimal ? initialStep : 0) ? <button type="button" onClick={back} className={s.back}><ChevronLeft className="w-4 h-4" /> Back</button> : <span />}
           {optionalQ && !isLast && <button type="button" onClick={next} className={s.skip}>Skip this one</button>}
         </div>
         {isLast

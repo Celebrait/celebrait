@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Play, Send } from 'lucide-react';
-import { BriefQuestions, RECIPIENTS, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
+import { BriefQuestions, RECIPIENTS, defaultFront, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
@@ -84,6 +84,10 @@ export interface DemoConfig extends DemoPreset {
    *  same clean screens (2026-09-15: "allow me to manually run this end
    *  to end rather than pre-set and hit play"). */
   mode: 'auto' | 'manual';
+  /** Ask "anything they can't stand?" as its own screen. */
+  askDislike?: boolean;
+  /** The running clock, top right (on unless false). */
+  timer?: boolean;
 }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
@@ -107,7 +111,9 @@ const CSS = `
   /* Manual runs: a tiny faint dot instead of the pointer, so Aidan can see
      where he is but it barely reads on a recording. Taps still burst. */
   .demo-cursor-on, .demo-cursor-on * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='4' cy='4' r='2.5' fill='rgba(60,56,70,0.32)' stroke='rgba(255,255,255,0.5)' stroke-width='0.75'/%3E%3C/svg%3E") 4 4, auto !important; }
-  .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: flex-start; padding: 8vw;
+  /* The first letter lands at one fixed point and the text only grows
+     downward from there — no re-centring as lines wrap (Aidan 2026-09-16). */
+  .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: flex-start; padding: 36vh 8vw 8vw;
     background: transparent; transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
   .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: left; max-width: 100%; }
@@ -271,12 +277,12 @@ function sentencesOf(raw: string): string[] {
 async function typeHook(raw: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
   const target = hookEl.querySelector('p')! as HTMLElement;
-  target.style.transition = 'opacity 260ms ease, transform 260ms ease';
+  target.style.transition = 'opacity 260ms ease';
   const parts = sentencesOf(raw);
   await sleep(500); // a moment before the first letter
   for (let k = 0; k < parts.length; k++) {
     const line = parseHook(parts[k], words);
-    target.style.opacity = '1'; target.style.transform = 'none';
+    target.style.opacity = '1';
     for (let i = 0; i < line.text.length; i++) {
       target.innerHTML = hookHtml(line, i + 1);
       // the full stop at the end of a screen holds below, not here
@@ -284,9 +290,10 @@ async function typeHook(raw: string, words: string[]) {
     }
     await sleep(k === parts.length - 1 ? 1500 : 1100); // read it
     if (k < parts.length - 1) {
-      target.style.opacity = '0'; target.style.transform = 'translateY(-10px)';
-      await sleep(300); target.innerHTML = '<span class="caret"></span>'; target.style.transform = 'translateY(10px)';
-      await sleep(40); target.style.opacity = '1'; target.style.transform = 'none'; await sleep(360);
+      // Fade out and back in on the same spot — no slide.
+      target.style.opacity = '0';
+      await sleep(300); target.innerHTML = '<span class="caret"></span>';
+      await sleep(40); target.style.opacity = '1'; await sleep(360);
     }
   }
   hookEl.classList.add('out'); await sleep(650);
@@ -326,6 +333,22 @@ async function preparePhoto(file: Blob): Promise<string> {
     cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close();
     return cv.toDataURL('image/jpeg', 0.9);
   } catch { return await asDataUrl(); }
+}
+
+const OCCASION_KEYS: Record<string, string> = { birthday: 'birthday', christmas: 'christmas', anniversary: 'anniversary', wedding: 'wedding' };
+/** Where the on-screen brief opens: after who, occasion and age. */
+const FIRST_ON_SCREEN = 3;
+function briefFromConfig(cfg: DemoConfig): Brief {
+  const who = cfg.who.trim();
+  const occ = cfg.occasion.trim();
+  return {
+    ...emptyBrief(),
+    who,
+    gender: RECIPIENTS.find((r) => r.label === who)?.implies ?? null,
+    occasion: OCCASION_KEYS[occ.toLowerCase()] ?? occ,
+    age: cfg.age.replace(/\D/g, '').slice(0, 3),
+    front: defaultFront(who, ''),
+  };
 }
 
 // The posted moment: the card dips, then flies up and off to the right,
@@ -438,7 +461,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   // While the hook types, the question panel waits out of sight (the hook
   // overlay is see-through so the backdrop icons show).
   const [hookOn, setHookOn] = useState(cfg.hook);
-  const [brief, setBrief] = useState<Brief>(emptyBrief());
+  // Who, the occasion and the age are set in the builder and said in the
+  // typed hook, so the filmed brief opens on the vibe (Aidan 2026-09-16).
+  const [brief, setBrief] = useState<Brief>(() => briefFromConfig(cfg));
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [fronts, setFronts] = useState<string[]>([]);
   const [picked, setPicked] = useState(0);
@@ -451,6 +476,11 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
   const [cardOpen, setCardOpen] = useState(false);
   // The auto run turns the open card for a few seconds.
   const [spin, setSpin] = useState(false);
+  // The clock: from the first question on screen to the moment it's posted
+  // (Aidan 2026-09-16: "shows how long this takes end to end").
+  const [clockFrom, setClockFrom] = useState<number | null>(null);
+  const [clockTo, setClockTo] = useState<number | null>(null);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const railRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -539,19 +569,13 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
     await sleep(600);
     const B = (re: RegExp) => find('button', re);
-    await tap(await B(new RegExp(`^${p.who}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
-    // Partner / mate / friend don't auto-advance (the brief offers a him/her row) — tap Next.
-    if (!(await find('button', new RegExp(`^${p.occasion}`), 1200).catch(() => null))) await tap(await B(/^Next/), b.settle * 0.5, b.hold * 0.6);
-    await tap(await B(new RegExp(`^${p.occasion}`)), b.settle, b.hold); mark(`occasion: ${p.occasion}`);
-    await type(await find('input', /Their age/) as HTMLInputElement, p.age, b.settle, b.type * 1.8);
-    await tap(await B(/^Next/), b.settle, b.hold * 0.75); mark(`age: ${p.age}`);
     await tap(await B(new RegExp(p.vibe)), b.settle, b.hold); mark(`vibe: ${p.vibe}`);
     await type(await find('textarea', null) as HTMLTextAreaElement, p.thing, b.settle, b.type);
     await tap(await B(/^Next/), b.settle, b.hold * 0.6); mark('interest: next');
-    const addIt = await find('button', /^Add it/, 2500, false).catch(() => null);
-    if (addIt) {
-      await type(await find('input', /rival team/i) as HTMLInputElement, p.cant, b.settle, b.type);
-      await tap(await B(/^Add it/), b.settle, b.hold * 0.75); mark("can't stand: added");
+    if (cfg.askDislike) {
+      const cantBox = await find('input', /rival team/i) as HTMLInputElement;
+      if (p.cant.trim()) await type(cantBox, p.cant, b.settle, b.type);
+      await tap(await B(/^(Next|Skip)/), b.settle, b.hold * 0.75); mark(`can't stand: ${p.cant || 'skipped'}`);
     }
     if (p.front === 'name') {
       await tap(await B(/^Their name$/), b.settle, b.hold * 0.6);
@@ -656,6 +680,31 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
     }).then((r) => { if (!r.ok) console.warn('[DEMO] save failed', r.status); }).catch((e) => console.warn('[DEMO] save failed', e));
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A mouse can move the carousel too: the wheel or a sideways drag steps
+  // one card; a drag never counts as choosing.
+  const railStep = (dir: number) => { const el = railRef.current; if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' }); };
+  const wheelAt = useRef(0);
+  const onRailWheel = (e: React.WheelEvent) => {
+    const d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : 0; if (Math.abs(d) < 4) return;
+    const now = Date.now(); if (now - wheelAt.current < 500) return; wheelAt.current = now; railStep(Math.sign(d));
+  };
+  const dragFrom = useRef<number | null>(null);
+  const dragged = useRef(false);
+  const onRailDown = (e: React.PointerEvent) => { if (e.pointerType === 'mouse') { dragFrom.current = e.clientX; dragged.current = false; } };
+  const onRailUp = (e: React.PointerEvent) => {
+    if (dragFrom.current == null) return; const dx = e.clientX - dragFrom.current; dragFrom.current = null;
+    if (Math.abs(dx) > 30) { dragged.current = true; railStep(dx < 0 ? 1 : -1); }
+  };
+  useEffect(() => { if (clockFrom == null && phase === 'brief' && !hookOn) setClockFrom(Date.now()); }, [phase, hookOn, clockFrom]);
+  useEffect(() => { if (phase === 'sent' && clockTo == null) setClockTo(Date.now()); }, [phase, clockTo]);
+  useEffect(() => {
+    if (clockFrom == null || clockTo != null) return;
+    const t = window.setInterval(() => setClockNow(Date.now()), 200);
+    return () => window.clearInterval(t);
+  }, [clockFrom, clockTo]);
+  const clockMs = clockFrom == null ? 0 : (clockTo ?? clockNow) - clockFrom;
+  const clockText = `${Math.floor(clockMs / 60000)}:${String(Math.floor(clockMs / 1000) % 60).padStart(2, '0')}`;
+  const clockWords = (() => { const t = Math.floor(clockMs / 1000); const m = Math.floor(t / 60); return m ? `${m}m ${t % 60}s` : `${t}s`; })();
   const onRailScroll = () => { const el = railRef.current; if (el) setSlide(Math.round(el.scrollLeft / el.clientWidth)); };
 
   return (
@@ -664,6 +713,11 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
+      {cfg.timer !== false && clockFrom != null && (
+        <div className="absolute right-5 top-[22px] z-10 flex items-center gap-1.5 text-[14px] font-semibold tabular-nums text-keeper-body" aria-label="Time taken">
+          <span className={`h-1.5 w-1.5 rounded-full ${clockTo == null ? 'animate-pulse bg-cta' : 'bg-keeper-meta'}`} />{clockText}
+        </div>
+      )}
       {error && <p className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-accent-red-light px-4 py-3 text-sm text-accent-red-dark">{error}</p>}
 
       <AnimatePresence>
@@ -681,9 +735,9 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
 
       {/* 1 · the brief */}
       {phase === 'brief' && (
-        <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start px-5 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
+        <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start overflow-y-auto px-5 pb-10 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
           <motion.div className="rounded-2xl border border-keeper-hair bg-white/85 p-5" initial={false} animate={{ opacity: hookOn ? 0 : 1, y: hookOn ? 12 : 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
-            <BriefQuestions skin="landing" minimal brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
+            <BriefQuestions skin="landing" minimal initialStep={FIRST_ON_SCREEN} askDislike={!!cfg.askDislike} brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
           </motion.div>
         </motion.section>
       )}
@@ -702,10 +756,10 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       {/* 3 · option 1 / 2 / 3 */}
       {phase === 'results' && (
         <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
-          <div ref={railRef} onScroll={onRailScroll} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
+          <div ref={railRef} onScroll={onRailScroll} onWheel={onRailWheel} onPointerDown={onRailDown} onPointerUp={onRailUp} onDragStart={(e) => e.preventDefault()} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
             {fronts.map((u, i) => (
               <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
-                <button type="button" data-demo={`card-${i}`} onClick={() => chooseCard(i)} aria-label={`Choose: ${concepts[i]?.front_text ?? 'this card'}`}
+                <button type="button" data-demo={`card-${i}`} onClick={() => { if (dragged.current) { dragged.current = false; return; } chooseCard(i); }} aria-label={`Choose: ${concepts[i]?.front_text ?? 'this card'}`}
                   className="w-[min(76vw,44vh,340px)] shrink-0 transition-transform active:scale-[0.98]"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager openDeg={22} /></button>
               </div>
             ))}
@@ -758,7 +812,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
       )}
 
       {phase === 'inside' && (
-        <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
+        <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
             <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
@@ -801,6 +855,7 @@ function DemoRun({ cfg }: { cfg: DemoConfig }) {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: POST_FLIGHT_MS / 1000, duration: 0.5, ease: 'easeOut' }} className="flex flex-col items-center gap-3">
               <h1 className={H1}>Posted to {who}.<br />It’s on the way.</h1>
               <p className="text-[15px] text-keeper-body">Printed today, sent tracked.<br />Expect it by <span className="font-semibold text-keeper-ink">{formatDayMonth(expectedBy())}</span>.</p>
+              {cfg.timer !== false && clockFrom != null && <p className="text-[13px] font-medium text-keeper-meta">Made and posted in {clockWords}</p>}
             </motion.div>
           </div>
         </motion.section>
@@ -824,7 +879,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
-  const ready = manual || (cfg.who && cfg.occasion && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
+  const ready = !!(cfg.who && cfg.occasion.trim()) && (manual || (cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim())));
   return (
     <div className="keeper-serif relative min-h-screen">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -847,18 +902,32 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
         </div>}
 
         <div className="mt-7 space-y-6">
-          {!manual && <>
+          <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
+          <p className="text-[13px] text-keeper-body">Not shown on screen: say these in the opening line.</p>
           <div><span className={label}>Who</span>
             <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>
           </div>
           <div><span className={label}>Occasion</span>
             <div className="flex flex-wrap gap-2">{['Birthday', 'Christmas', 'Anniversary', 'Wedding'].map((o) => <button key={o} type="button" className={chip(cfg.occasion === o)} onClick={() => set({ occasion: o })}>{o}</button>)}</div>
+            <input value={['Birthday', 'Christmas', 'Anniversary', 'Wedding'].includes(cfg.occasion) ? '' : cfg.occasion} onChange={(e) => set({ occasion: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Or type it… e.g. Retirement" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Age</span><input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={field} placeholder="60" /></div>
-            <div><span className={label}>Vibe</span>
-              <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
+          <div><span className={label}>Age</span><input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={`${field} max-w-[140px]`} placeholder="60" /></div>
+          </div>
+          <div><span className={label}>Can’t stand</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip(!!cfg.askDislike)} onClick={() => set({ askDislike: true })}>Ask it on screen</button>
+              <button type="button" className={chip(!cfg.askDislike)} onClick={() => set({ askDislike: false })}>Leave it out</button>
             </div>
+          </div>
+          <div><span className={label}>Timer</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip(cfg.timer !== false)} onClick={() => set({ timer: true })}>Show it</button>
+              <button type="button" className={chip(cfg.timer === false)} onClick={() => set({ timer: false })}>Hide it</button>
+            </div>
+          </div>
+          {!manual && <>
+          <div><span className={label}>Vibe</span>
+            <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
           </div>
           <div><span className={label}>Their thing</span><textarea value={cfg.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 120) })} rows={2} className="w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" /></div>
           <div><span className={label}>Can’t stand (humour only)</span><input value={cfg.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} className={field} placeholder="Getting up before 6am" /></div>
