@@ -974,9 +974,11 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       {(phase === 'generating' || phase === 'photo-generating' || phase === 'inside-generating') && (
         <motion.section key="generating" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
           {/* Readable on a phone video: sentence case, bigger, darker. */}
-          <p className="flex max-w-[320px] items-center justify-center gap-2.5 text-center text-[18px] font-medium leading-snug text-keeper-ink">
-            <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
-            <span>{phase === 'generating' ? `Generating your 3 options for ${who}` : phase === 'photo-generating' ? `Adding the photo of ${who}` : 'Assembling the card'}</span>
+          {/* Spinner centred over the line, so a line that wraps still
+              reads as one centred block (Aidan 2026-09-17). */}
+          <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
+          <p className="-mt-3 max-w-[320px] text-center text-[18px] font-medium leading-snug text-keeper-ink">
+            {phase === 'generating' ? `Generating your 3 options for ${who}` : phase === 'photo-generating' ? `Adding the photo of ${who}` : 'Assembling the card'}
           </p>
         </motion.section>
       )}
