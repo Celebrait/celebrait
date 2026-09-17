@@ -331,9 +331,9 @@ function sentencesOf(raw: string): string[] {
 async function typeHook(raw: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
   const target = hookEl.querySelector('p')! as HTMLElement;
-  target.style.transition = 'opacity 260ms ease';
+  target.style.transition = 'opacity 200ms ease';
   const parts = sentencesOf(raw);
-  await sleep(500); // a moment before the first letter
+  await sleep(350); // a moment before the first letter
   for (let k = 0; k < parts.length; k++) {
     const line = parseHook(parts[k], words);
     target.style.opacity = '1';
@@ -348,16 +348,17 @@ async function typeHook(raw: string, words: string[]) {
       // letter-by-letter flickers once the edit is sped up (Aidan 2026-09-17).
       target.style.opacity = '0';
       target.innerHTML = hookHtml(line, line.text.length).replace('<span class="caret"></span>', '');
-      await sleep(40); target.style.opacity = '1'; await sleep(700);
+      await sleep(40); target.style.opacity = '1'; await sleep(260);
     }
-    await sleep(k === parts.length - 1 ? 1500 : 1100); // read it
+    // Read it: a beat on the typed line, less on the ones that fade in whole.
+    await sleep(k === parts.length - 1 ? 900 : k === 0 ? 750 : 550);
     if (k < parts.length - 1) {
       // Fade out; the next sentence fades in on the same spot.
       target.style.opacity = '0';
-      await sleep(320);
+      await sleep(230);
     }
   }
-  hookEl.classList.add('out'); await sleep(650);
+  hookEl.classList.add('out'); await sleep(450);
 }
 
 declare global { interface Window { __demo?: { state: string; events: Array<{ name: string; t: number }> } } }
