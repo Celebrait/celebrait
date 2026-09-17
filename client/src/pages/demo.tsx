@@ -446,7 +446,7 @@ function PostFlight({ src }: { src: string }) {
   );
 }
 
-type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'sent' | 'intro' | 'guess';
+type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'sent' | 'intro' | 'guess';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -459,7 +459,6 @@ const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-k
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
 /** The studio's green go button. */
 const GREEN = 'inline-flex items-center justify-center gap-2 rounded-full bg-cta px-6 py-3.5 text-[15px] font-semibold text-cta-foreground shadow-sm transition-colors hover:bg-cta-hover';
-const TILE = 'flex w-full flex-col items-start gap-1 rounded-2xl border border-keeper-hair bg-white/85 px-5 py-4 text-left';
 
 // ── the photo picker (Aidan 2026-09-16: "some kind of photo picker
 // animation") — a phone-style Recents sheet. Their photo sits among real
@@ -611,13 +610,13 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   // filled-tile screen). The wait begins as the sheet drops.
   // Choosing a card is a tap on the card itself (no button).
   const photoStep = !cfg.skipPhoto && (cfg.mode === 'manual' || !!cfg.photo);
-  const chooseCard = (i: number) => { if (replay && i !== pi) return; setPicked(i); setPhase(photoStep ? 'photo' : 'inside-choice'); };
-  // "Write it for me" prefills the message (Dear/From stay blank);
-  // "I'll write it" leaves all three empty.
-  const chooseInside = (by: 'us' | 'me') => {
-    setMessage(by === 'us' ? (conceptsRef.current[pickedRef.current]?.inside_text ?? '') : '');
+  // Straight to the inside with our message already in, editable; Dear
+  // and From start blank (Aidan 2026-09-17: no "who writes it?" step).
+  const toInside = (i: number) => {
+    setMessage(conceptsRef.current[i]?.inside_text ?? '');
     setDear(''); setFrom(''); setPhase('inside');
   };
+  const chooseCard = (i: number) => { if (replay && i !== pi) return; setPicked(i); if (photoStep) setPhase('photo'); else toInside(i); };
   const usePhoto = (src: string) => {
     setPhotoUrl(src);
     window.setTimeout(() => { renderCameo(src).catch(fail); }, 120);
@@ -846,8 +845,9 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     }
 
     // The inside.
+    // Our message is already in; a run with its own words types over it.
     const by = p.insideBy ?? 'us';
-    await tap(await findDemo(by === 'us' ? 'inside-us' : 'inside-me'), b.settle, b.hold * 0.6); mark(`inside: ${by}`);
+    await until('inside', 10_000); mark(`inside: ${by}`);
     await type(await findDemo('dear') as HTMLInputElement, p.dear, b.settle, b.type);
     if (by === 'me') await type(await findDemo('message') as HTMLTextAreaElement, p.message ?? `Happy birthday, ${p.who}.`, b.settle, b.type);
     await type(await findDemo('from') as HTMLInputElement, p.from, b.settle, b.type);
@@ -1020,28 +1020,12 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       {phase === 'photo-result' && cameoUrl && (
         <motion.section key="photo-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
           {/* Tap the card to go on to the inside — no button (Aidan 2026-09-16). */}
-          <button type="button" data-demo="to-inside" aria-label="Use this card" onClick={() => { setUseCameo(true); setPhase('inside-choice'); }}
+          <button type="button" data-demo="to-inside" aria-label="Use this card" onClick={() => { setUseCameo(true); toInside(pickedRef.current); }}
             className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center transition-transform active:scale-[0.98]"><AjarTile imageUrl={cameoUrl} alt="" eager openDeg={22} /></button>
         </motion.section>
       )}
 
       {/* 6 · the inside */}
-      {phase === 'inside-choice' && (
-        <motion.section key="inside-choice" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
-          <h1 className={H1}>Now the inside.</h1>
-          <div className="mt-6 flex flex-col gap-3">
-            <button type="button" data-demo="inside-us" className={`${TILE} text-left`} onClick={() => chooseInside('us')}>
-              <span className="flex items-center gap-2 text-[16px] font-semibold text-keeper-ink"><Sparkles className="h-4 w-4 text-brand" /> Write it for me</span>
-              <span className="text-[13px] text-keeper-meta">We write the message. You add who it’s to and from.</span>
-            </button>
-            <button type="button" data-demo="inside-me" className={`${TILE} text-left`} onClick={() => chooseInside('me')}>
-              <span className="text-[16px] font-semibold text-keeper-ink">I’ll write it</span>
-              <span className="text-[13px] text-keeper-meta">Your own words, set in the card’s style.</span>
-            </button>
-          </div>
-        </motion.section>
-      )}
-
       {phase === 'inside' && (
         <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
@@ -1291,8 +1275,8 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </>}
           {!manual && !isReplay && <div><span className={label}>The inside</span>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Write it for me</button>
-              <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>I’ll write it</button>
+              <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Keep our message</button>
+              <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>Type my own over it</button>
             </div>
             {cfg.insideBy === 'me' && <textarea value={cfg.message ?? ''} onChange={(e) => set({ message: e.target.value.slice(0, 300) })} rows={2} placeholder="The message to type" className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
           </div>}
