@@ -26,7 +26,6 @@ import { Check, Camera, Sparkles, Play, Send } from 'lucide-react';
 import { BriefQuestions, RECIPIENTS, defaultFront, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
-import { GestureHints } from '@/components/gesture-hints';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -457,8 +456,6 @@ const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, 
 const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
 const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
-/** The studio's green go button. */
-const GREEN = 'inline-flex items-center justify-center gap-2 rounded-full bg-cta px-6 py-3.5 text-[15px] font-semibold text-cta-foreground shadow-sm transition-colors hover:bg-cta-hover';
 
 // ── the photo picker (Aidan 2026-09-16: "some kind of photo picker
 // animation") — a phone-style Recents sheet. Their photo sits among real
@@ -1030,9 +1027,9 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
         <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
-            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
             <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Your message" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
-            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
           <div className="mt-6 flex flex-col items-center">
             <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch(fail)}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
@@ -1044,18 +1041,17 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
           hints under it, and one button (Aidan 2026-09-16). Demo only — the
           product's viewer stays open/close with no orbit. */}
       {phase === 'card' && chosenFront && (
-        <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col">
-          <div data-demo="card" className={`relative min-h-0 w-full flex-1 ${showClock ? 'pt-[20vh]' : 'pt-10'}`}>
+        // The card, then the button straight under it — no hints (Aidan
+        // 2026-09-17), and the same dark pulsing button as every other step.
+        <motion.section key="card" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
+          <div data-demo="card" className="relative h-[min(56vh,104vw)] w-full shrink-0">
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
               enableRotate enableZoom={false} autoRotate={spin} autoRotateSpeed={2.2}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
-          <div className="flex h-[76px] shrink-0 items-start justify-center">
-            <GestureHints open={cardOpen} mountDelayMs={500} hideZoomHint openLabel="Tap to close" />
-          </div>
-          <div className={`shrink-0 px-5 pb-8 ${clip === 'open' ? 'invisible' : ''}`}>
-            <button type="button" data-demo="post" className={`${GREEN} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
-              <Send className="h-4 w-4" /> Post it to them
+          <div className={`mt-4 shrink-0 px-5 ${clip === 'open' ? 'invisible' : ''}`}>
+            <button type="button" data-demo="post" className={`${PRIMARY} demo-pulse w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
+              <Send className="h-4 w-4 text-cta" /> Post it to them
             </button>
           </div>
         </motion.section>
@@ -1170,6 +1166,13 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
         <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         <h1 className={`${H1} mt-6`}>Make a demo.</h1>
         <p className="mt-1 text-[14px] text-keeper-body">{manual ? 'Press Run, start your screen recording during the countdown, then tap through it yourself.' : 'Set the brief, press Run, start your screen recording during the countdown. The page does the rest.'}</p>
+
+        {/* Run sits at the top and stays there while you scroll, so the
+            recording can be ready before you press it (Aidan 2026-09-17). */}
+        <div className="sticky top-0 z-20 -mx-5 mt-4 border-b border-keeper-hair/70 bg-[#FFFDF9]/90 px-5 py-3 backdrop-blur">
+          <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> {isReplay ? 'Play the replay' : 'Run the demo'}</button>
+          <p className="mt-1.5 text-center text-[12px] text-keeper-meta">{isReplay ? 'Replays reuse the saved cards. No new generations.' : 'Each run spends one set of generations.'}</p>
+        </div>
 
         <div className="mt-6"><span className={label}>Who drives</span>
           <div className="flex flex-wrap gap-2">
@@ -1309,8 +1312,6 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         </div>
 
-        <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} mt-9 w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> {isReplay ? 'Play the replay' : 'Run the demo'}</button>
-        <p className="mt-3 text-center text-[12px] text-keeper-meta">{isReplay ? 'Replays reuse the saved cards. No new generations.' : 'Each run spends one set of generations.'}</p>
       </div>
     </div>
   );
