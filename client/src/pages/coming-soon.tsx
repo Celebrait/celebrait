@@ -29,8 +29,7 @@ const field = 'h-12 w-full rounded-full border border-keeper-hair bg-white/95 px
 export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { hasPassword?: boolean; onUnlocked?: () => void }) {
   // The admin's carousel picks only, as on the gate.
   const picks = useDriftCards(20, null);
-  // Phones get a slightly smaller card and a shorter slide, so the open
-  // spread stays on screen.
+  // Phones place the card so its open spread stays on screen.
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   useEffect(() => {
     const f = () => setNarrow(window.innerWidth < 640);
@@ -50,9 +49,6 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
 
   useEffect(() => {
     document.title = 'Celebrait — unbinnable greetings cards, launching soon';
-    // Cards open themselves once, a beat after they land.
-    const t = window.setTimeout(() => setOpen(true), 2200);
-    return () => window.clearTimeout(t);
   }, []);
 
   const join = async (e: React.FormEvent) => {
@@ -93,21 +89,24 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
 
         <div className="mt-4 grid flex-1 items-center gap-6 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
           {/* The card */}
-          <div className="relative flex flex-col items-center">
-            <div className="relative aspect-square w-full max-w-[560px]">
-              {/* The canvas bleeds past the square so the opening cover never
-                  clips; drag turns it to show the logo on the back. It slides
-                  right by half a card as it opens, so the spread sits centred. */}
-              <motion.div className="absolute -inset-x-[16%] -inset-y-[6%]" initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1, x: open ? (narrow ? '13%' : '20%') : '0%' }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], x: { duration: 0.9, ease: [0.45, 0, 0.2, 1] } }}>
+          <div className={`relative flex flex-col ${narrow ? 'ml-auto mr-[3%] w-[54%]' : 'ml-auto w-full max-w-[460px]'}`}>
+            {/* The card stays put and opens fully to the left, never
+                clipped (Aidan 2026-09-17): the canvas bleeds far past the
+                square like the photo lander's hero, and ignores the pointer
+                except over the card itself, so the form beside it still
+                works. On phones the card sits a little right of centre so
+                the open cover fits on screen. */}
+            <div className="pointer-events-none relative aspect-square w-full">
+              <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
+                initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
                 <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
                   backLogo backCaption="Unbinnable greetings cards · launching soon"
                   enableRotate enableZoom={false}
-                  closedAngle={-0.38} restYaw={-0.12} framingMargin={narrow ? 2.35 : 2} minDistance={1.4} className="h-full w-full" />
+                  closedAngle={-0.5} restYaw={-0.12} framingMargin={narrow ? 1.75 : 2.3} minDistance={1.2} className="h-full w-full" />
               </motion.div>
             </div>
-            <div className="h-[72px]">
+            <div className={`flex h-[72px] justify-center ${narrow ? '-mx-[30%]' : ''}`}>
               <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
             </div>
           </div>
