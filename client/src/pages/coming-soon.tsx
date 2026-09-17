@@ -14,30 +14,29 @@ import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import celebraitLogo from '@/assets/celebrait.webp';
 
 // The same card as the photo lander's hero (Aidan 2026-09-17), with the
 // logo on its back.
 const HERO_FRONT = '/hero-card-front.webp';
 const HERO_INSIDE = '/hero-card-inside.webp';
+// …and the everyday photo it was made from (before → after).
+const HERO_SOURCE = '/hero-source-photo.webp';
 
 // ── the page ─────────────────────────────────────────────────────────
 
 const field = 'h-12 w-full rounded-full border border-keeper-hair bg-white/95 px-5 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { hasPassword?: boolean; onUnlocked?: () => void }) {
-  // The admin's carousel picks only, as on the gate.
-  const picks = useDriftCards(20, null);
   // Phones place the card so its open spread stays on screen.
-  // Laptops get a smaller card so the open cover still lands on screen.
+  // The card may open off screen (Aidan 2026-09-17), so it stays big.
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1440));
   useEffect(() => {
     const f = () => setVw(window.innerWidth);
     window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
   }, []);
   const narrow = vw < 640;
-  const framing = narrow ? 1.75 : vw >= 1024 && vw < 1400 ? 2.55 + Math.max(0, 1280 - vw) * 0.003 : 2.1;
+  const framing = narrow ? 1.8 : 1.6;
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -107,16 +106,16 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
               <br />greetings cards.
             </h1>
             <p className="mt-4 max-w-[440px] text-[16.5px] leading-relaxed text-keeper-body sm:text-[17px]">
-              Made for one person: their photo, their in-jokes, their name. Printed on thick card and posted to their door. The kind that ends up on the fridge.
+              Celebrait creates personalised greetings cards that are so good they’ll probably never end up in the bin. We’re launching some time soon so add your details below and we’ll let you know when we do!
             </p>
           </div>
 
-          {/* The card: stays put, opens fully to the left, never clipped.
-              The canvas bleeds far past the square (as on the photo lander)
-              and only the card itself takes the pointer. On phones it sits
-              right of centre so the open cover fits on screen. */}
+          {/* The card, big: on desktop its left edge lines up with the logo;
+              it opens to the left and may run off screen. The canvas bleeds
+              far past the square and only the card takes the pointer. The
+              photo it was made from sits at its corner: before and after. */}
           <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
-            <div className={`relative flex flex-col ${narrow ? 'ml-auto mr-[4%] w-[52%]' : 'ml-auto w-full max-w-[400px]'}`}>
+            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[66%]' : 'w-full max-w-[540px] lg:-translate-x-[2%]'}`}>
               <div className="pointer-events-none relative aspect-square w-full">
                 <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
                   initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -124,10 +123,19 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                   <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
                     backLogo backCaption="Unbinnable greetings cards · launching soon"
                     enableRotate enableZoom={false}
-                    closedAngle={-0.5} restYaw={-0.12} framingMargin={framing} minDistance={1.2} className="h-full w-full" />
+                    closedAngle={-0.5} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
                 </motion.div>
+                <motion.figure
+                  initial={{ opacity: 0, y: 16, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: 6 }}
+                  transition={{ delay: 0.6, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className={`pointer-events-none absolute z-10 ${narrow ? '-bottom-[6%] -right-[14%] w-[40%]' : 'bottom-[2%] -right-[8%] w-[32%]'}`}>
+                  <div className="rounded-md border-[6px] border-white bg-white shadow-[0_18px_40px_-14px_rgba(33,29,25,0.45)]">
+                    <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
+                  </div>
+                  <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
+                </motion.figure>
               </div>
-              <div className={`flex h-[64px] justify-center ${narrow ? '-mx-[34%]' : ''}`}>
+              <div className={`flex h-[64px] justify-center ${narrow ? 'mt-4 -mx-[20%]' : 'mt-2'}`}>
                 <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
               </div>
             </div>
@@ -145,7 +153,6 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
               </motion.div>
             ) : (
               <form onSubmit={join} className="max-w-[460px] space-y-3">
-                <p className="text-[14px] font-semibold text-keeper-ink">Get on the list and you’re first in.</p>
                 <div className="grid grid-cols-[0.8fr_1.2fr] gap-2.5">
                   <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={field} />
                   <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={field} />
@@ -172,15 +179,6 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             {passErr && <p className="mt-2 px-1 text-[13px] font-medium text-accent-red-dark">{passErr}</p>}
           </div>
         </div>
-
-        {picks.cards.length > 0 && (
-          <div className="mt-2">
-            <p className="text-center text-[11.5px] font-semibold uppercase tracking-[0.16em] text-keeper-meta">A few we’ve made</p>
-            <div className="-mx-5 mt-1 sm:-mx-8">
-              <CardDrift padFrom={null} peek peekCta={false} cards={picks.cards} />
-            </div>
-          </div>
-        )}
 
         <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12px] text-keeper-meta">
           <span>© {new Date().getFullYear()} Celebrait</span>
