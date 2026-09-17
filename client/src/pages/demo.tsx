@@ -109,6 +109,8 @@ export interface DemoConfig extends DemoPreset {
   /** Which of who / occasion / age appear as questions on screen; the
    *  rest are set in the builder and said in the hook (Aidan 2026-09-16). */
   askOnScreen?: { who?: boolean; occasion?: boolean; age?: boolean };
+  /** Punch in on each tap while the run plays itself (on unless false). */
+  zoom?: boolean;
   /** The running clock, top right (on unless false). */
   timer?: boolean;
   /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
@@ -166,6 +168,8 @@ const CSS = `
   @keyframes demo-field-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.35), 0 10px 36px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.55), 0 14px 48px rgba(122,118,232,.38) } }
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
 
+  .demo-zoomer { transition: transform 340ms cubic-bezier(.22,1,.36,1); will-change: transform; }
+
   .demo-rail { scrollbar-width: none; } .demo-rail::-webkit-scrollbar { display: none; }
 
   @keyframes demo-tick { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1) } }
@@ -205,12 +209,34 @@ async function find(sel: string, text: RegExp | null, timeoutMs = 20_000, enable
 }
 const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="${key}"]`, null, timeoutMs);
 
+/** THE PUNCH-IN (Aidan 2026-09-17: "zoom into the things that are
+ *  clicked like pan in and out so the cut is snappy"). The whole screen
+ *  scales towards whatever is about to be tapped or typed into, then
+ *  back out — a camera move, not a layout change, so nothing reflows.
+ *  Self-playing runs only. */
+let zoomRoot: HTMLElement | null = null;
+let zoomOn = false;
+const ZOOM_MS = 340;
+async function zoomTo(el: HTMLElement, scale = 1.3) {
+  const root = zoomRoot; if (!root || !zoomOn) return;
+  const r = el.getBoundingClientRect(); const rr = root.getBoundingClientRect();
+  root.style.transformOrigin = `${r.left + r.width / 2 - rr.left}px ${r.top + r.height / 2 - rr.top}px`;
+  root.style.transform = `scale(${scale})`;
+  await sleep(ZOOM_MS);
+}
+async function zoomOut(wait = true) {
+  const root = zoomRoot; if (!root || !zoomOn) return;
+  root.style.transform = 'none';
+  if (wait) await sleep(ZOOM_MS);
+}
+
 async function bringIn(el: HTMLElement, settle: number) {
   el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   await sleep(settle);
 }
 async function tap(el: HTMLElement, settle: number, hold: number) {
   await bringIn(el, settle);
+  await zoomTo(el);
   const r = el.getBoundingClientRect();
   ring(r.left + Math.min(r.width * 0.5, 140), r.top + r.height / 2);
   // A press you can see: the element dips while the ring flashes, and only
@@ -222,11 +248,14 @@ async function tap(el: HTMLElement, settle: number, hold: number) {
   await sleep(RING_MS - 200 + 60);
   clearRings();
   el.click();
-  await sleep(hold);
+  await sleep(Math.max(140, hold * 0.35));
+  await zoomOut(false);
+  await sleep(Math.max(ZOOM_MS, hold * 0.65));
 }
 /** Type into a React-controlled input, one character at a time. */
 async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
   await bringIn(el, settle);
+  await zoomTo(el, 1.22);
   const r = el.getBoundingClientRect(); ring(r.left + 40, r.top + r.height / 2);
   el.focus(); await sleep(350);
   const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -236,7 +265,9 @@ async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, se
     el.dispatchEvent(new Event('input', { bubbles: true }));
     await sleep(typingDelay(text, i, [], delay));
   }
-  await sleep(600);
+  await sleep(320);
+  await zoomOut(false);
+  await sleep(380);
 }
 
 const escapeHtml = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
@@ -579,6 +610,13 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const [cardOpen, setCardOpen] = useState(false);
   // The auto run turns the open card for a few seconds.
   const [spin, setSpin] = useState(false);
+  // The camera: the self-playing run punches in on each tap.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    zoomRoot = rootRef.current;
+    zoomOn = cfg.mode === 'auto' && cfg.zoom !== false;
+    return () => { zoomRoot = null; zoomOn = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // The clock: from the first question on screen to the moment it's posted
   // (Aidan 2026-09-16: "shows how long this takes end to end").
   const [clockFrom, setClockFrom] = useState<number | null>(null);
@@ -931,7 +969,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   return (
     // Inside the phone mockup the screen starts under the status bar and
     // stops above the home bar.
-    <div className={`keeper-serif fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
+    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {/* The make page's own backdrop: cream wash + the floating celebration icons. */}
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
@@ -1307,6 +1345,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
+            {!manual && <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>}
             <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
