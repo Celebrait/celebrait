@@ -32,6 +32,9 @@ interface CardDriftProps {
   peek?: boolean;
   /** Cards the page already holds — skips this component's own fetch. */
   cards?: CatalogueCard[];
+  /** The peek's onward button (off on the pre-launch page, where it would
+   *  lead to a locked page). */
+  peekCta?: boolean;
 }
 
 const shuffle = <T,>(a: T[]): T[] => { const p = [...a]; for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
@@ -66,7 +69,7 @@ export function useDriftCards(size = 20, padFrom: string | null = 'birthday', en
   return { cards, loaded };
 }
 
-export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false, cards: given }: CardDriftProps) {
+export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false, cards: given, peekCta = true }: CardDriftProps) {
   const own = useDriftCards(size, given ? null : padFrom, !given);
   const cards = given ?? own.cards;
   const loaded = given ? true : own.loaded;
@@ -105,13 +108,13 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
           )
         ))}
       </div>
-      {peek && <CardPeek card={peeking} onClose={() => setPeeking(null)} />}
+      {peek && <CardPeek card={peeking} onClose={() => setPeeking(null)} cta={peekCta} />}
     </div>
   );
 }
 
 /** The lightbox: the card ajar, tap to open, one way onward. */
-function CardPeek({ card, onClose }: { card: CatalogueCard | null; onClose: () => void }) {
+function CardPeek({ card, onClose, cta = true }: { card: CatalogueCard | null; onClose: () => void; cta?: boolean }) {
   const showcase = card?.published === false;
   return (
     <Dialog open={!!card} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -127,7 +130,7 @@ function CardPeek({ card, onClose }: { card: CatalogueCard | null; onClose: () =
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <p className="text-[12.5px] text-keeper-meta">{card.insideImageUrl ? 'Tap the card to look inside' : 'Tap the card to turn it'}</p>
-              {showcase ? (
+              {!cta ? null : showcase ? (
                 <Link href="/photo/make" className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">Make one from a photo</Link>
               ) : (
                 <Link href={`/card/${card.id}`} className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">See this card</Link>

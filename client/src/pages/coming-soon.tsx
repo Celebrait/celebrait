@@ -1,12 +1,11 @@
 // client/src/pages/coming-soon.tsx — THE PRE-LAUNCH PAGE
 //
-// What a visitor sees while the site is locked (Aidan 2026-09-16: "a
-// cool 3d Greetings card with my logo on the rear which says Unbinnable
-// Greetings cards launching soon with a cool message inside"). The card
-// is the real Card3DViewer — its back already carries the logo — with a
-// front and an inside drawn here on a canvas, so no generation and no
-// image files. Below it: the early-access list (marketing_leads, source
-// 'early-access') and a quiet "got the password?" door.
+// What a visitor sees while the site is locked (Aidan 2026-09-16). The
+// card is the real Card3DViewer showing the photo lander's hero card,
+// the logo on its back (2026-09-17: "use the same card with the photo").
+// Beside it: the early-access list (marketing_leads, source
+// 'early-access') and a quiet "got the password?" door. Below: the
+// drifting wall of the cards picked for the main site.
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
@@ -15,127 +14,28 @@ import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import celebraitLogo from '@/assets/celebrait.webp';
 
-const VIOLET = '#7a76e8';
-const VIOLET_DARK = '#5c57d4';
-const PAPER = '#FAF8F4';
-const INK = '#211D19';
-const GREEN = '#5fd94a';
-
-// ── the two faces ────────────────────────────────────────────────────
-
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
-  const out: string[] = []; let line = '';
-  for (const w of text.split(' ')) {
-    const t = line ? `${line} ${w}` : w;
-    if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t;
-  }
-  if (line) out.push(line);
-  return out;
-}
-
-function grain(ctx: CanvasRenderingContext2D, S: number, alpha: number) {
-  // A light paper tooth so the faces read as printed, not flat fills.
-  let seed = 7;
-  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  ctx.save(); ctx.globalAlpha = alpha;
-  for (let i = 0; i < 9000; i++) { ctx.fillStyle = rnd() > 0.5 ? '#ffffff' : '#000000'; ctx.fillRect(rnd() * S, rnd() * S, 1.4, 1.4); }
-  ctx.restore();
-}
-
-function drawFront(S = 1024): string {
-  const c = document.createElement('canvas'); c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  const g = ctx.createLinearGradient(0, 0, S, S);
-  g.addColorStop(0, VIOLET); g.addColorStop(1, VIOLET_DARK);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
-  grain(ctx, S, 0.05);
-
-  // Confetti: a few paper and green marks, placed by hand so it never
-  // lands on the words.
-  const bits: Array<[number, number, number, number, string]> = [
-    [150, 170, 0.5, 26, PAPER], [860, 150, -0.4, 22, GREEN], [900, 330, 0.9, 16, PAPER],
-    [110, 420, -0.8, 14, GREEN], [820, 860, 0.3, 24, PAPER], [180, 880, -0.2, 18, GREEN], [520, 120, 1.1, 12, PAPER],
-  ];
-  for (const [x, y, r, s, col] of bits) {
-    ctx.save(); ctx.translate(x, y); ctx.rotate(r); ctx.fillStyle = col; ctx.globalAlpha = 0.9;
-    ctx.beginPath(); ctx.roundRect(-s, -s * 0.38, s * 2, s * 0.76, s * 0.3); ctx.fill(); ctx.restore();
-  }
-
-  ctx.fillStyle = PAPER; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  const x = 96;
-  ctx.font = '600 44px Figtree, system-ui, sans-serif';
-  ctx.globalAlpha = 0.85; ctx.fillText('celebrait presents', x, 318); ctx.globalAlpha = 1;
-  // "Unbinnable" on one line, as big as the face allows.
-  let size = 176;
-  do { ctx.font = `800 ${size}px Fraunces, Georgia, serif`; size -= 4; } while (ctx.measureText('Unbinnable').width > S - x * 2 && size > 80);
-  ctx.fillText('Unbinnable', x - 4, 330 + size);
-  ctx.font = 'italic 600 112px Fraunces, Georgia, serif';
-  ctx.fillText('greetings', x, 470 + size);
-  ctx.fillText('cards.', x, 580 + size);
-
-  // The pill: launching soon.
-  ctx.font = '700 38px Figtree, system-ui, sans-serif';
-  const label = 'LAUNCHING SOON';
-  const w = ctx.measureText(label).width + 72;
-  ctx.fillStyle = PAPER; ctx.beginPath(); ctx.roundRect(x, 850, w, 78, 39); ctx.fill();
-  ctx.fillStyle = GREEN; ctx.beginPath(); ctx.arc(x + 34, 889, 9, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = VIOLET_DARK; ctx.fillText(label, x + 56, 903);
-  return c.toDataURL('image/png');
-}
-
-function drawInside(S = 1024): string {
-  const c = document.createElement('canvas'); c.width = S; c.height = S;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#FFFDF9'; ctx.fillRect(0, 0, S, S);
-  grain(ctx, S, 0.035);
-  const x = 110; const maxW = S - x * 2;
-  ctx.textAlign = 'left';
-
-  ctx.fillStyle = VIOLET_DARK; ctx.font = '800 104px Fraunces, Georgia, serif';
-  ctx.fillText('Psst.', x, 250);
-  ctx.fillStyle = INK; ctx.font = '700 72px Fraunces, Georgia, serif';
-  ctx.fillText('You’re early.', x, 340);
-
-  ctx.font = '400 40px Figtree, system-ui, sans-serif'; ctx.fillStyle = '#3A342E';
-  let y = 440;
-  for (const para of [
-    'We’re making cards so personal nobody bins them.',
-    'Written for one person, drawn for them, printed and posted to their door.',
-  ]) {
-    for (const l of wrap(ctx, para, maxW)) { ctx.fillText(l, x, y); y += 56; }
-    y += 22;
-  }
-  ctx.font = '600 40px Figtree, system-ui, sans-serif'; ctx.fillStyle = INK;
-  ctx.fillText('Doors open soon. You’ll be first in.', x, y + 10);
-
-  ctx.font = 'italic 600 58px Fraunces, Georgia, serif'; ctx.fillStyle = VIOLET_DARK;
-  ctx.fillText('Love, Celebrait x', x, 880);
-  return c.toDataURL('image/png');
-}
-
-function useFaces(): { front: string; inside: string } | null {
-  const [faces, setFaces] = useState<{ front: string; inside: string } | null>(null);
-  useEffect(() => {
-    let off = false;
-    const fonts = ['800 100px Fraunces', 'italic 600 60px Fraunces', '700 60px Fraunces', '400 40px Figtree', '700 40px Figtree'];
-    // Draw once the type is in; if fonts are slow, draw anyway after a beat.
-    Promise.race([
-      Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => undefined),
-      new Promise((r) => setTimeout(r, 2500)),
-    ]).then(() => { if (!off) setFaces({ front: drawFront(), inside: drawInside() }); });
-    return () => { off = true; };
-  }, []);
-  return faces;
-}
+// The same card as the photo lander's hero (Aidan 2026-09-17), with the
+// logo on its back.
+const HERO_FRONT = '/hero-card-front.webp';
+const HERO_INSIDE = '/hero-card-inside.webp';
 
 // ── the page ─────────────────────────────────────────────────────────
 
 const field = 'h-12 w-full rounded-full border border-keeper-hair bg-white/95 px-5 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { hasPassword?: boolean; onUnlocked?: () => void }) {
-  const faces = useFaces();
+  // The admin's carousel picks only, as on the gate.
+  const picks = useDriftCards(20, null);
+  // Phones get a slightly smaller card and a shorter slide, so the open
+  // spread stays on screen.
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  useEffect(() => {
+    const f = () => setNarrow(window.innerWidth < 640);
+    window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
+  }, []);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -195,22 +95,17 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
           {/* The card */}
           <div className="relative flex flex-col items-center">
             <div className="relative aspect-square w-full max-w-[560px]">
-              {faces ? (
-                // The canvas bleeds past the square so the opening cover
-                // never clips; drag turns it to show the logo on the back.
-                // It slides right by half a card as it opens, so the open
-                // spread sits centred instead of hanging off the left.
-                <motion.div className="absolute -inset-x-[16%] -inset-y-[6%]" initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1, x: open ? '20%' : '0%' }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], x: { duration: 0.9, ease: [0.45, 0, 0.2, 1] } }}>
-                  <Card3DViewer frontImageUrl={faces.front} insideImageUrl={faces.inside} open={open} onOpenChange={setOpen}
-                    backLogo backCaption="Unbinnable greetings cards · launching soon"
-                    enableRotate enableZoom={false}
-                    closedAngle={-0.38} restYaw={-0.12} framingMargin={2} minDistance={1.4} className="h-full w-full" />
-                </motion.div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-keeper-meta" /></div>
-              )}
+              {/* The canvas bleeds past the square so the opening cover never
+                  clips; drag turns it to show the logo on the back. It slides
+                  right by half a card as it opens, so the spread sits centred. */}
+              <motion.div className="absolute -inset-x-[16%] -inset-y-[6%]" initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1, x: open ? (narrow ? '13%' : '20%') : '0%' }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], x: { duration: 0.9, ease: [0.45, 0, 0.2, 1] } }}>
+                <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
+                  backLogo backCaption="Unbinnable greetings cards · launching soon"
+                  enableRotate enableZoom={false}
+                  closedAngle={-0.38} restYaw={-0.12} framingMargin={narrow ? 2.35 : 2} minDistance={1.4} className="h-full w-full" />
+              </motion.div>
             </div>
             <div className="h-[72px]">
               <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
@@ -271,6 +166,15 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             )}
           </section>
         </div>
+
+        {picks.cards.length > 0 && (
+          <div className="mt-10">
+            <p className="text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-keeper-meta">A few we’ve made</p>
+            <div className="-mx-4 mt-2 sm:-mx-6">
+              <CardDrift padFrom={null} peek peekCta={false} cards={picks.cards} />
+            </div>
+          </div>
+        )}
 
         <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12px] text-keeper-meta">
           <span>© {new Date().getFullYear()} Celebrait</span>
