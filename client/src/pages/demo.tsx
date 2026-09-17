@@ -321,8 +321,31 @@ interface Concept { front_text: string; inside_text?: string; art_direction: str
 async function post(path: string, body: unknown, timeoutMs = 120_000): Promise<any> {
   const r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.message ?? `${path} failed (${r.status})`);
+  if (!r.ok) throw Object.assign(new Error(j?.message ?? `${path} failed (${r.status})`), { code: j?.code as string | undefined, status: r.status });
   return j;
+}
+/** Draw one card the way /make does: a safety refusal is deterministic
+ *  (usually a film or show's own characters), so the art direction is
+ *  rewritten once — the property's world without its cast — and the card
+ *  drawn again (2026-09-17: a Toy Story brief ended the demo). Returns
+ *  the concept actually drawn, so later steps use the same picture. */
+async function drawSafely<T extends { front_text: string; art_direction: string }>(
+  c: T, interest: string | undefined, draw: (c: T) => Promise<any>, onRewrite?: () => void,
+): Promise<{ r: any; concept: T }> {
+  try {
+    return { r: await draw(c), concept: c };
+  } catch (e: any) {
+    if (e?.code !== 'safety') throw e;
+    onRewrite?.();
+    const fix = await post('ip-safe-art', { front_text: c.front_text, art_direction: c.art_direction, interest }, 45_000);
+    const concept = { ...c, art_direction: fix.art_direction as string };
+    try {
+      return { r: await draw(concept), concept };
+    } catch (e2: any) {
+      if (e2?.code === 'safety') throw new Error('We couldn’t draw that one, even with a safer picture. Try a different thing they love.');
+      throw e2;
+    }
+  }
 }
 const toDataUrl = async (url: string) => {
   const blob = await fetch(url).then((r) => r.blob());
@@ -555,14 +578,27 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     const cs: Concept[] = j.concepts ?? [];
     if (!cs.length) throw new Error('Nothing came back');
     setConcepts(cs);
-    const urls = await Promise.all(cs.map((c) => post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true }).then((r) => r.imageUrl as string)));
-    setFronts(urls); setPhase('results'); mark('results', 'results');
+    const interest = b.thing.trim() || undefined;
+    const drawn = await Promise.all(cs.map((c, i) => drawSafely(c, interest,
+      (x) => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true }),
+      () => mark(`card ${i + 1}: safer picture`))));
+    // Any rewritten picture replaces the original, so the photo and the
+    // inside follow the card that was actually drawn.
+    setConcepts(drawn.map((d) => d.concept));
+    setFronts(drawn.map((d) => d.r.imageUrl as string)); setPhase('results'); mark('results', 'results');
   };
   const renderCameo = async (photo: string) => {
-    const c = conceptsRef.current[pickedRef.current];
+    let c = conceptsRef.current[pickedRef.current];
     setPhase('photo-generating'); mark('photo: generating', 'photo');
-    const draw = () => post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
-    let r = await draw();
+    const drawWith = (x: Concept) => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+    const first = await drawSafely(c, brief.thing.trim() || undefined, drawWith, () => mark('photo: safer picture'));
+    let r = first.r;
+    if (first.concept !== c) {
+      c = first.concept;
+      const at = pickedRef.current;
+      setConcepts((prev) => prev.map((x, i) => (i === at ? c : x)));
+    }
+    const draw = () => drawWith(c);
     // The same vision check the product runs, then one quiet retry if
     // she isn't in it — a demo can't show "we think this came out wrong".
     try {
