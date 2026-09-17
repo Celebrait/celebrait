@@ -22,7 +22,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Camera, Sparkles, Play, Send } from 'lucide-react';
+import { Check, Camera, Sparkles, Play, Send, Loader2 } from 'lucide-react';
 import { BriefQuestions, RECIPIENTS, defaultFront, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
@@ -316,17 +316,24 @@ async function typeHook(raw: string, words: string[]) {
   for (let k = 0; k < parts.length; k++) {
     const line = parseHook(parts[k], words);
     target.style.opacity = '1';
-    for (let i = 0; i < line.text.length; i++) {
-      target.innerHTML = hookHtml(line, i + 1);
-      // the full stop at the end of a screen holds below, not here
-      await sleep(i === line.text.length - 1 ? 60 : typingDelay(line.text, i, line.ranges));
+    if (k === 0) {
+      for (let i = 0; i < line.text.length; i++) {
+        target.innerHTML = hookHtml(line, i + 1);
+        // the full stop at the end of a screen holds below, not here
+        await sleep(i === line.text.length - 1 ? 60 : typingDelay(line.text, i, line.ranges));
+      }
+    } else {
+      // Only the first sentence types; the rest fade in whole, no caret —
+      // letter-by-letter flickers once the edit is sped up (Aidan 2026-09-17).
+      target.style.opacity = '0';
+      target.innerHTML = hookHtml(line, line.text.length).replace('<span class="caret"></span>', '');
+      await sleep(40); target.style.opacity = '1'; await sleep(700);
     }
     await sleep(k === parts.length - 1 ? 1500 : 1100); // read it
     if (k < parts.length - 1) {
-      // Fade out and back in on the same spot — no slide.
+      // Fade out; the next sentence fades in on the same spot.
       target.style.opacity = '0';
-      await sleep(300); target.innerHTML = '<span class="caret"></span>';
-      await sleep(40); target.style.opacity = '1'; await sleep(360);
+      await sleep(320);
     }
   }
   hookEl.classList.add('out'); await sleep(650);
@@ -979,8 +986,10 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
         <motion.section key="generating" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
           <div className="demo-glow-card" />
           {/* Readable on a phone video: sentence case, bigger, darker. */}
-          <p className="max-w-[300px] text-center text-[18px] font-medium leading-snug text-keeper-ink">
-            {phase === 'generating' ? `Generating 3 front of card choices for ${who}` : phase === 'photo-generating' ? `Adding the photo of ${who}` : 'Assembling the card'}
+          {/* A small spinner with the words (Aidan 2026-09-17). */}
+          <p className="flex max-w-[320px] items-center justify-center gap-2.5 text-center text-[18px] font-medium leading-snug text-keeper-ink">
+            <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
+            <span>{phase === 'generating' ? `Generating your 3 options for ${who}` : phase === 'photo-generating' ? `Adding the photo of ${who}` : 'Assembling the card'}</span>
           </p>
         </motion.section>
       )}
@@ -990,7 +999,9 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
         <motion.section key="results" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-0 py-16 text-center">
           <div ref={railRef} onScroll={onRailScroll} onWheel={onRailWheel} onPointerDown={onRailDown} onPointerUp={onRailUp} onDragStart={(e) => e.preventDefault()} className="demo-rail -my-4 flex shrink-0 snap-x snap-mandatory overflow-x-auto py-12">
             {fronts.map((u, i) => (
-              <div key={i} className="flex w-full shrink-0 snap-center items-center justify-center px-8">
+              <div key={i} className="flex w-full shrink-0 snap-center flex-col items-center justify-center gap-4 px-8">
+                {/* Option 1 / 2 / 3 travels with its card (Aidan 2026-09-17). */}
+                <span className="rounded-full border border-brand/30 bg-brand-muted px-3.5 py-1 text-[14px] font-semibold text-brand-dark">Option {i + 1}</span>
                 <button type="button" data-demo={`card-${i}`} onClick={() => { if (dragged.current) { dragged.current = false; return; } chooseCard(i); }} aria-label={`Choose: ${concepts[i]?.front_text ?? 'this card'}`}
                   className="w-[min(76vw,44vh,340px)] shrink-0 transition-transform active:scale-[0.98]"><AjarTile imageUrl={u} alt={concepts[i]?.front_text ?? ''} eager openDeg={22} /></button>
               </div>
