@@ -235,9 +235,11 @@ interface BriefQuestionsProps {
   minimal?: boolean;
   /** Ask "anything they can't stand?" as its own page after their thing. */
   askDislike?: boolean;
+  /** Questions answered before the screen (the demo builder sets them). */
+  hide?: QuestionKey[];
 }
 
-export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false, askDislike = false }: BriefQuestionsProps) {
+export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0, doneLabel = 'Design my three cards', compact = false, onStepChange, jumpTo = null, hideDots = false, minimal = false, askDislike = false, hide }: BriefQuestionsProps) {
   const s = SKIN[skin];
   const [qIndex, setQIndex] = useState(initialStep);
   // In the filmed demo nothing shows as chosen until it's tapped (a
@@ -248,7 +250,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   // Anything past the big four is typed, not scrolled for (Aidan 2026-09-16).
   const [occQuery, setOccQuery] = useState(() => (!brief.occasion || PRIMARY_OCCASIONS.includes(brief.occasion) || brief.occasion === 'other' ? '' : isKnownOccasion(brief.occasion) ? getOccasionLabel(brief.occasion) : brief.occasion));
 
-  const questions = useMemo(() => questionsFor(brief, askDislike), [brief.occasion, brief.vibe, askDislike]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hideKey = (hide ?? []).join(',');
+  const questions = useMemo(() => questionsFor(brief, askDislike).filter((k) => !hide?.includes(k)), [brief.occasion, brief.vibe, askDislike, hideKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const idx = Math.min(qIndex, questions.length - 1);
   useEffect(() => { onStepChange?.(idx, questions); }, [idx, questions]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (jumpTo != null) setQIndex(jumpTo); }, [jumpTo]);

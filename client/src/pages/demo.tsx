@@ -86,6 +86,9 @@ export interface DemoConfig extends DemoPreset {
   mode: 'auto' | 'manual';
   /** Ask "anything they can't stand?" as its own screen. */
   askDislike?: boolean;
+  /** Which of who / occasion / age appear as questions on screen; the
+   *  rest are set in the builder and said in the hook (Aidan 2026-09-16). */
+  askOnScreen?: { who?: boolean; occasion?: boolean; age?: boolean };
   /** The running clock, top right (on unless false). */
   timer?: boolean;
   /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
@@ -341,17 +344,23 @@ async function preparePhoto(file: Blob): Promise<string> {
 }
 
 const OCCASION_KEYS: Record<string, string> = { birthday: 'birthday', christmas: 'christmas', anniversary: 'anniversary', wedding: 'wedding' };
-/** Where the on-screen brief opens: after who, occasion and age. */
-const FIRST_ON_SCREEN = 3;
+/** The questions answered in the builder, not on screen. */
+function hiddenQuestions(cfg: DemoConfig): Array<'who' | 'occasion' | 'age'> {
+  const a = cfg.askOnScreen ?? {};
+  return (['who', 'occasion', 'age'] as const).filter((k) => !a[k]);
+}
+/** Only what the builder answered is filled in; anything asked on screen
+ *  starts blank so nothing shows as already chosen. */
 function briefFromConfig(cfg: DemoConfig): Brief {
-  const who = cfg.who.trim();
-  const occ = cfg.occasion.trim();
+  const a = cfg.askOnScreen ?? {};
+  const who = a.who ? '' : cfg.who.trim();
+  const occ = a.occasion ? '' : cfg.occasion.trim();
   return {
     ...emptyBrief(),
     who,
     gender: RECIPIENTS.find((r) => r.label === who)?.implies ?? null,
     occasion: OCCASION_KEYS[occ.toLowerCase()] ?? occ,
-    age: cfg.age.replace(/\D/g, '').slice(0, 3),
+    age: a.age ? '' : cfg.age.replace(/\D/g, '').slice(0, 3),
     front: defaultFront(who, ''),
   };
 }
@@ -577,6 +586,32 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
     await sleep(600);
     const B = (re: RegExp) => find('button', re);
+    const ask = cfg.askOnScreen ?? {};
+    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (ask.who) {
+      await tap(await B(new RegExp(`^${esc(p.who)}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
+      // Partner / mate / friend don't move on by themselves (a him/her row shows) — tap Next.
+      await sleep(900);
+      if (await find('button', new RegExp(`^${esc(p.who)}$`), 300).catch(() => null)) await tap(await B(/^Next/), b.settle * 0.5, b.hold * 0.6);
+    }
+    if (ask.occasion) {
+      const tile = await find('button', new RegExp(`^${esc(p.occasion)}`, 'i'), 2500).catch(() => null);
+      if (tile) await tap(tile, b.settle, b.hold);
+      else {
+        const box = await find('input', /Type the occasion/) as HTMLInputElement;
+        await type(box, p.occasion, b.settle, b.type);
+        await sleep(400);
+        box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      }
+      mark(`occasion: ${p.occasion}`);
+    }
+    if (ask.age) {
+      if (p.age.trim()) {
+        await type(await find('input', /Their age/) as HTMLInputElement, p.age, b.settle, b.type * 1.8);
+        await tap(await B(/^Next/), b.settle, b.hold * 0.75);
+      } else await tap(await B(/^Skip this one/), b.settle, b.hold * 0.6);
+      mark(`age: ${p.age || 'skipped'}`);
+    }
     await tap(await B(new RegExp(p.vibe)), b.settle, b.hold); mark(`vibe: ${p.vibe}`);
     await type(await find('textarea', null) as HTMLTextAreaElement, p.thing, b.settle, b.type);
     await tap(await B(/^Next/), b.settle, b.hold * 0.6); mark('interest: next');
@@ -751,7 +786,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       {phase === 'brief' && (
         <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start overflow-y-auto px-5 pb-10 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
           <motion.div className="rounded-2xl border border-keeper-hair bg-white/85 p-5" initial={false} animate={{ opacity: hookOn ? 0 : 1, y: hookOn ? 12 : 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
-            <BriefQuestions skin="landing" minimal initialStep={FIRST_ON_SCREEN} askDislike={!!cfg.askDislike} brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
+            <BriefQuestions skin="landing" minimal hide={hiddenQuestions(cfg)} askDislike={!!cfg.askDislike} brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
           </motion.div>
         </motion.section>
       )}
@@ -883,13 +918,29 @@ const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-[14px] font-
 const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand';
 const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
 
+function AskRow({ label: text, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="mb-1.5 flex items-center justify-between gap-2">
+      <span className={label.replace('mb-1.5 ', '')}>{text}</span>
+      <span className="flex gap-1.5">
+        <button type="button" className={`${chip(!on)} !px-3 !py-1 !text-[12px]`} onClick={() => onChange(false)}>Set here</button>
+        <button type="button" className={`${chip(on)} !px-3 !py-1 !text-[12px]`} onClick={() => onChange(true)}>Ask on screen</button>
+      </span>
+    </div>
+  );
+}
+
 function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual', frame: 'phone' });
   const manual = cfg.mode === 'manual';
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
+  const ask = cfg.askOnScreen ?? {};
+  const setAsk = (k: 'who' | 'occasion' | 'age', v: boolean) => set({ askOnScreen: { ...ask, [k]: v } });
+  // A value is still needed when set here, or when the run plays itself.
+  const showValue = (k: 'who' | 'occasion' | 'age') => !ask[k] || !manual;
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
-  const ready = !!(cfg.who && cfg.occasion.trim()) && (manual || (cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim())));
+  const ready = manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
   return (
     <div className="keeper-serif relative min-h-screen">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -913,15 +964,15 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
 
         <div className="mt-7 space-y-6">
           <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
-          <p className="text-[13px] text-keeper-body">Not shown on screen: say these in the opening line.</p>
-          <div><span className={label}>Who</span>
-            <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>
+          <p className="text-[13px] text-keeper-body">Set here, these stay off screen, so say them in the opening line. Or ask any of them on screen.</p>
+          <div><AskRow label="Who" on={!!ask.who} onChange={(v) => setAsk('who', v)} />
+            {showValue('who') && <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>}
           </div>
-          <div><span className={label}>Occasion</span>
-            <div className="flex flex-wrap gap-2">{['Birthday', 'Christmas', 'Anniversary', 'Wedding'].map((o) => <button key={o} type="button" className={chip(cfg.occasion === o)} onClick={() => set({ occasion: o })}>{o}</button>)}</div>
-            <input value={['Birthday', 'Christmas', 'Anniversary', 'Wedding'].includes(cfg.occasion) ? '' : cfg.occasion} onChange={(e) => set({ occasion: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Or type it… e.g. Retirement" />
+          <div><AskRow label="Occasion" on={!!ask.occasion} onChange={(v) => setAsk('occasion', v)} />
+            {showValue('occasion') && <><div className="flex flex-wrap gap-2">{['Birthday', 'Christmas', 'Anniversary', 'Wedding'].map((o) => <button key={o} type="button" className={chip(cfg.occasion === o)} onClick={() => set({ occasion: o })}>{o}</button>)}</div>
+            <input value={['Birthday', 'Christmas', 'Anniversary', 'Wedding'].includes(cfg.occasion) ? '' : cfg.occasion} onChange={(e) => set({ occasion: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Or type it… e.g. Retirement" /></>}
           </div>
-          <div><span className={label}>Age</span><input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={`${field} max-w-[140px]`} placeholder="60" /></div>
+          <div><AskRow label="Age" on={!!ask.age} onChange={(v) => setAsk('age', v)} />{showValue('age') && <input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={`${field} max-w-[140px]`} placeholder="60" />}</div>
           </div>
           <div><span className={label}>Can’t stand</span>
             <div className="flex flex-wrap gap-2">
