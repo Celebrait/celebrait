@@ -407,7 +407,9 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {brief.front === 'name' && (
               <>
                 <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder={ph('Their first name')} aria-label="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
-                {brief.name.trim() && <p className={s.warn}>{minimal ? 'Printed exactly as typed — worth a double-check.' : 'It’ll be printed exactly as you type it — worth a double-check.'}</p>}
+                {/* Not in the filmed demo — red copy under the name reads as
+                    an error on video (Aidan 2026-09-17). Real buyers keep it. */}
+                {!minimal && brief.name.trim() && <p className={s.warn}>It’ll be printed exactly as you type it — worth a double-check.</p>}
               </>
             )}
             {!minimal && <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>}
