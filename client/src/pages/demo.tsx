@@ -126,10 +126,11 @@ export interface DemoConfig extends DemoPreset {
 }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
-  // ring lands — the beat where a viewer reads what's there (Aidan
-  // 2026-09-15: "longer on screens before things are clicked, a beat or 2").
-  normal: { hold: 2000, type: 80, settle: 1600, walk: 2800, look: 3400 },
-  fast: { hold: 1000, type: 50, settle: 700, walk: 1600, look: 1800 },
+  // ring lands. Cut back 2026-09-17 ("too much delay between landing on a
+  // new screen and inputting or clicking") — the punch-in now carries that
+  // beat, so the dead time went with it.
+  normal: { hold: 1100, type: 62, settle: 520, walk: 1450, look: 1900 },
+  fast: { hold: 650, type: 40, settle: 280, walk: 900, look: 1050 },
 };
 
 // ── skin ─────────────────────────────────────────────────────────────
@@ -608,8 +609,6 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
-  // The auto run turns the open card for a few seconds.
-  const [spin, setSpin] = useState(false);
   // The camera: the self-playing run punches in on each tap.
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -781,13 +780,13 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     await until('photo-generating', 10_000); mark('photo: added');
     await until('photo-result', 240_000); await sleep(b.look);
   };
-  const openCard = async (turn: boolean) => {
+  // The card opens and stays put — no turn afterwards (Aidan 2026-09-17).
+  const openCard = async () => {
     const b = beats;
-    await until('card', 240_000); await sleep(b.look);
+    await until('card', 240_000); await sleep(b.look * 0.7);
     const card = await findDemo('card');
     const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.2);
-    if (turn) { setSpin(true); await sleep(b.look * 1.4); setSpin(false); await sleep(b.look * 0.8); }
+    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.5);
     mark('card: done');
   };
   const postIt = async () => {
@@ -800,8 +799,8 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     const b = beats;
     if (clip === 'options') { await swipeAndPick(); await sleep(b.look * 0.8); }
     else if (clip === 'photo') { await addPhoto(); await sleep(b.look * 1.2); }
-    else if (clip === 'open') { await openCard(true); await sleep(b.look * 0.6); }
-    else if (clip === 'posted') { await openCard(false); await postIt(); }
+    else if (clip === 'open') { await openCard(); await sleep(b.look * 1.2); }
+    else if (clip === 'posted') { await openCard(); await postIt(); }
     else if (clip === 'guess') { await until('guess', 10_000); await sleep(900 + guessChips.length * GUESS_STEP_MS + b.look * 1.6); }
   };
 
@@ -818,7 +817,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     }
     mark('brief: open', 'brief');
     if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
-    await sleep(600);
+    await sleep(320);
     const B = (re: RegExp) => find('button', re);
     const ask = cfg.askOnScreen ?? {};
     const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -885,7 +884,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     await tap(await findDemo('design-inside'), b.settle, 300);
     await until('card', 240_000); await sleep(b.look);
 
-    await openCard(true);
+    await openCard();
     await postIt();
     mark('end', 'end');
   };
@@ -1084,7 +1083,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
         <motion.section key="card" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
           <div data-demo="card" className="relative h-[min(56vh,104vw)] w-full shrink-0">
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
-              enableRotate enableZoom={false} autoRotate={spin} autoRotateSpeed={2.2}
+              enableRotate enableZoom={false}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
           <div className={`mt-4 shrink-0 px-5 ${clip === 'open' ? 'invisible' : ''}`}>
