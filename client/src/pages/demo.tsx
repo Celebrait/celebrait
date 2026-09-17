@@ -35,7 +35,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 export interface DemoPreset {
   /** Chip labels exactly as the brief shows them. */
-  who: string; occasion: string; age: string; vibe: 'Light humour' | 'Warm' | 'Cheeky';
+  who: string; occasion: string; age: string; vibe: 'Light humour' | 'Warm' | 'Cheeky' | 'One of each';
   thing: string; cant: string; front: 'role' | 'name' | 'none'; name: string;
   dear: string; from: string;
   /** The typed hook line, when the run opens with one. */
@@ -76,6 +76,27 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
 
 type Speed = 'normal' | 'fast';
 /** What one run needs: a preset's worth of brief, plus how to play it. */
+/** A saved run (/api/admin/demo-runs/:id), played back with no new
+ *  generations (Aidan 2026-09-17: "long form… chop it up into little
+ *  bits for socials"). */
+export interface ReplayRun {
+  id: number; label: string | null; created_at?: string; hook_line?: string | null;
+  brief: Partial<Brief> | null; concepts: Concept[]; frontUrls: string[]; pickedIndex: number;
+  photoUrl: string | null; cameoUrl: string | null; insideUrl: string | null;
+  words: { dear: string; message: string; from: string } | null;
+  beats: Array<{ name: string; t: number }> | null;
+}
+/** Which part of a replay plays: the whole run, or one short moment. */
+export type ClipKey = 'full' | 'options' | 'photo' | 'open' | 'posted' | 'guess';
+export const CLIPS: Array<{ key: ClipKey; label: string; hook: (who: string) => string }> = [
+  { key: 'full', label: 'Whole run', hook: (w) => `Watch us make a card for ${w}.` },
+  { key: 'options', label: 'Three options', hook: (w) => `Three cards for ${w}. Pick one.` },
+  { key: 'photo', label: 'Add the photo', hook: (w) => `Now put ${w} in it.` },
+  { key: 'open', label: 'Open it', hook: () => 'Open it.' },
+  { key: 'posted', label: 'Post it', hook: () => 'Then we post it.' },
+  { key: 'guess', label: 'Guess the brief', hook: () => 'Guess what we were told.' },
+];
+
 export interface DemoConfig extends DemoPreset {
   speed: Speed; hook: boolean;
   /** Seconds before the run starts — time to hit record. */
@@ -96,6 +117,11 @@ export interface DemoConfig extends DemoPreset {
   /** 'phone' = the run plays inside a phone mockup on the page (Aidan
    *  2026-09-16: "render this in a phone mock up"); 'full' = edge to edge. */
   frame?: 'phone' | 'full';
+  /** Play a saved run instead of generating. */
+  replay?: ReplayRun;
+  clip?: ClipKey;
+  /** Replay waits: as long as the original run took, or short. */
+  waits?: 'real' | 'short';
 }
 const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
@@ -420,7 +446,7 @@ function PostFlight({ src }: { src: string }) {
   );
 }
 
-type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'sent';
+type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside-choice' | 'inside' | 'inside-generating' | 'card' | 'sent' | 'intro' | 'guess';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -492,9 +518,55 @@ function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: () =>
   );
 }
 
+const OCCASION_CHIP: Record<string, string> = { birthday: 'Birthday', christmas: 'Christmas', anniversary: 'Anniversary', wedding: 'Wedding' };
+const VIBE_CHIP: Record<string, DemoPreset['vibe']> = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
+/** A builder config filled from a saved run: the answers, the words and
+ *  the photo come from the run, so the replay types what was typed. */
+export function configFromRun(r: ReplayRun, base: DemoConfig, clip: ClipKey = base.clip ?? 'full'): DemoConfig {
+  const b = r.brief ?? {};
+  const occ = String(b.occasion ?? '');
+  const inside = (r.concepts[r.pickedIndex]?.inside_text ?? '').trim();
+  const msg = (r.words?.message ?? '').trim();
+  const who = String(b.who ?? '');
+  const whoWords = whoPhrase({ who, name: '' });
+  return {
+    ...base,
+    replay: r, clip,
+    who, occasion: OCCASION_CHIP[occ] ?? occ, age: String(b.age ?? ''),
+    vibe: VIBE_CHIP[String(b.vibe ?? '')] ?? 'Warm',
+    thing: String(b.thing ?? ''), cant: String(b.cant ?? ''),
+    front: (b.front as DemoPreset['front']) ?? 'none', name: String(b.name ?? ''),
+    dear: r.words?.dear ?? '', from: r.words?.from ?? '', message: msg,
+    insideBy: msg && msg !== inside ? 'me' : 'us',
+    photo: r.photoUrl ?? undefined, skipPhoto: !r.cameoUrl || !r.photoUrl,
+    askDislike: !!String(b.cant ?? '').trim(),
+    hookLine: clip === 'full' && r.hook_line ? r.hook_line : (CLIPS.find((c) => c.key === clip) ?? CLIPS[0]).hook(whoWords === 'them' ? 'them' : whoWords),
+  };
+}
+const VIBE_WORDS: Record<string, string> = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
+/** The brief as a few short chips, for "Guess the brief". */
+function guessChipsOf(b: Partial<Brief> | null): string[] {
+  if (!b) return [];
+  const out: string[] = [];
+  if (b.who) out.push(String(b.who));
+  const occ = occasionLabelFor({ ...emptyBrief(), ...b } as Brief);
+  if (occ) out.push(occ);
+  if (b.age && !/\d/.test(occ)) out.push(`${b.age}`);
+  if (b.vibe && VIBE_WORDS[b.vibe]) out.push(VIBE_WORDS[b.vibe]);
+  if (b.thing) out.push(`“${String(b.thing).trim()}”`);
+  if (b.cant && String(b.cant).trim()) out.push(`Can’t stand: ${String(b.cant).trim()}`);
+  return out;
+}
+const GUESS_STEP_MS = 850;
+
 function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
   const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
-  const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'brief');
+  const replay = cfg.replay;
+  const clip: ClipKey = replay ? (cfg.clip ?? 'full') : 'full';
+  const pi = replay?.pickedIndex ?? 0;
+  const firstPhase: Phase = clip === 'full' ? 'brief' : 'intro';
+  const showClock = cfg.timer !== false && clip === 'full';
+  const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : firstPhase);
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
   const [count, setCount] = useState(cfg.countdown);
   // While the hook types, the question panel waits out of sight (the hook
@@ -539,7 +611,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   // filled-tile screen). The wait begins as the sheet drops.
   // Choosing a card is a tap on the card itself (no button).
   const photoStep = !cfg.skipPhoto && (cfg.mode === 'manual' || !!cfg.photo);
-  const chooseCard = (i: number) => { setPicked(i); setPhase(photoStep ? 'photo' : 'inside-choice'); };
+  const chooseCard = (i: number) => { if (replay && i !== pi) return; setPicked(i); setPhase(photoStep ? 'photo' : 'inside-choice'); };
   // "Write it for me" prefills the message (Dear/From stay blank);
   // "I'll write it" leaves all three empty.
   const chooseInside = (by: 'us' | 'me') => {
@@ -566,9 +638,39 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const fail = (e: any) => { const m = e?.message ?? 'That didn’t work'; setError(m); mark(`FAILED: ${m}`, 'failed'); };
   const until = async (p: Phase, timeoutMs: number) => { const t0 = Date.now(); while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); } };
 
+  // ── replay ──
+  // Waits last as long as they did in the original run, unless short.
+  const replayWait = (start: string, end: string, short: number) => {
+    if (cfg.waits === 'short' || !replay?.beats) return short;
+    const a = replay.beats.find((e) => e.name === start)?.t;
+    const z = replay.beats.find((e) => e.name === end)?.t;
+    return a != null && z != null && z > a ? Math.min(z - a, 240_000) : short;
+  };
+  const loadReplay = () => {
+    if (!replay) return;
+    setConcepts(replay.concepts); setFronts(replay.frontUrls); setPicked(pi);
+    setUseCameo(!!replay.cameoUrl); setCameoUrl(replay.cameoUrl);
+    setInsideUrl(replay.insideUrl); setCardOpen(false);
+  };
+  /** Jump to a clip's first screen with the run's assets in place. */
+  const enterClip = async () => {
+    if (clip === 'options') { await generate(brief); return; }
+    loadReplay();
+    if (clip === 'photo') { setUseCameo(false); setCameoUrl(null); setPhase('photo'); }
+    else if (clip === 'guess') setPhase('guess');
+    else setPhase('card');
+    mark(`clip: ${clip}`);
+  };
+  const guessChips = guessChipsOf(replay?.brief ?? null);
+
   // ── engine steps (what the product does) ──
   const generate = async (b: Brief) => {
     setPhase('generating'); mark('generating', 'generating');
+    if (replay) {
+      await sleep(replayWait('generating', 'results', 3500));
+      setConcepts(replay.concepts); setFronts(replay.frontUrls); setPhase('results'); mark('results', 'results');
+      return;
+    }
     const ageNum = ageOf(b); const isKid = isKidBrief(b);
     const j = await post('concepts', {
       occasion: occasionLabelFor(b), who: b.who.trim() || 'Anyone', gender: b.gender ?? undefined, tone: isKid && b.vibe === 'rude' ? 'funny' : b.vibe,
@@ -590,6 +692,11 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const renderCameo = async (photo: string) => {
     let c = conceptsRef.current[pickedRef.current];
     setPhase('photo-generating'); mark('photo: generating', 'photo');
+    if (replay) {
+      await sleep(replayWait('photo: generating', 'photo: done', 3000));
+      setCameoUrl(replay.cameoUrl); setPhase('photo-result'); mark('photo: done', 'photo-result');
+      return;
+    }
     const drawWith = (x: Concept) => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
     const first = await drawSafely(c, brief.thing.trim() || undefined, drawWith, () => mark('photo: safer picture'));
     let r = first.r;
@@ -610,14 +717,75 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const renderInside = async () => {
     const c = conceptsRef.current[pickedRef.current]; const w = wordsRef.current;
     setPhase('inside-generating'); mark('inside: generating', 'inside');
+    if (replay) {
+      await sleep(replayWait('inside: generating', 'inside: done', 2600));
+      setInsideUrl(replay.insideUrl); setPhase('card'); mark('inside: done', 'card');
+      return;
+    }
     const joined = [w.dear.trim(), w.message.trim(), w.from.trim()].filter(Boolean).join('\n\n');
     const r = await post('render-inside', { ...(joined ? { mode: 'own', message: joined } : { mode: 'blank' }), palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
     setInsideUrl(r.imageUrl); setPhase('card'); mark('inside: done', 'card');
   };
 
   // ── the director (what the thumb does) ──
+  // Director steps shared by the whole run and the clips.
+  const swipeAndPick = async () => {
+    const b = beats;
+    await until('results', 300_000); await sleep(b.look);
+    // Swipe through the options and land on the one that gets picked.
+    // The carousel mounts once the screen transition finishes — wait for it.
+    { const t0 = Date.now(); while (!railRef.current && Date.now() - t0 < 10_000) await sleep(80); }
+    const rail = railRef.current; if (!rail) throw new Error('demo: the options never appeared');
+    const w = rail.clientWidth;
+    const seq = pi === 0 ? [1, 2, 0] : pi === 1 ? [1, 2, 1] : [1, 2];
+    for (const i of seq) { rail.scrollTo({ left: i * w, behavior: 'smooth' }); await sleep(b.walk); }
+    await tap(await findDemo(`card-${pi}`), b.settle, b.hold); mark(`picked card ${pi + 1}`);
+  };
+  const addPhoto = async () => {
+    const b = beats; const p = preset;
+    await sleep(b.look * 0.5);
+    setPickerPhoto(await preparePhoto(await fetch(p.photo!).then((r) => r.blob())));
+    await tap(await findDemo('add-photo'), b.settle, 300);
+    const mine = await findDemo('picker-photo', 8000); await sleep(900); // the grid settles
+    await tap(mine, b.settle * 0.8, 200);
+    await until('photo-generating', 10_000); mark('photo: added');
+    await until('photo-result', 240_000); await sleep(b.look);
+  };
+  const openCard = async (turn: boolean) => {
+    const b = beats;
+    await until('card', 240_000); await sleep(b.look);
+    const card = await findDemo('card');
+    const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
+    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.2);
+    if (turn) { setSpin(true); await sleep(b.look * 1.4); setSpin(false); await sleep(b.look * 0.8); }
+    mark('card: done');
+  };
+  const postIt = async () => {
+    const b = beats;
+    await tap(await findDemo('post'), b.settle, 300);
+    // The card flies off, then the tick and the words land.
+    await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
+  };
+  const playClip = async () => {
+    const b = beats;
+    if (clip === 'options') { await swipeAndPick(); await sleep(b.look * 0.8); }
+    else if (clip === 'photo') { await addPhoto(); await sleep(b.look * 1.2); }
+    else if (clip === 'open') { await openCard(true); await sleep(b.look * 0.6); }
+    else if (clip === 'posted') { await openCard(false); await postIt(); }
+    else if (clip === 'guess') { await until('guess', 10_000); await sleep(900 + guessChips.length * GUESS_STEP_MS + b.look * 1.6); }
+  };
+
   const direct = async () => {
     const b = beats; const p = preset;
+    if (clip !== 'full') {
+      mark(`clip: ${clip}`, 'intro');
+      if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
+      await sleep(400);
+      await enterClip();
+      await playClip();
+      mark('end', 'end');
+      return;
+    }
     mark('brief: open', 'brief');
     if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
     await sleep(600);
@@ -667,24 +835,11 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     mark(`front: ${p.front}`);
     await tap(await B(/Design my three cards/), b.settle, 300);
 
-    await until('results', 300_000); await sleep(b.look);
-    // Swipe through the options, come back to the first.
-    // The carousel mounts once the screen transition finishes — wait for it.
-    { const t0 = Date.now(); while (!railRef.current && Date.now() - t0 < 10_000) await sleep(80); }
-    const rail = railRef.current; if (!rail) throw new Error('demo: the options never appeared');
-    const w = rail.clientWidth;
-    for (const i of [1, 2, 0]) { rail.scrollTo({ left: i * w, behavior: 'smooth' }); await sleep(b.walk); }
-    await tap(await findDemo('card-0'), b.settle, b.hold); mark('picked card 1');
+    await swipeAndPick();
 
     // The photo.
     if (photoStep && p.photo) {
-      await sleep(b.look * 0.5);
-      setPickerPhoto(await preparePhoto(await fetch(p.photo).then((r) => r.blob())));
-      await tap(await findDemo('add-photo'), b.settle, 300);
-      const mine = await findDemo('picker-photo', 8000); await sleep(900); // the grid settles
-      await tap(mine, b.settle * 0.8, 200);
-      await until('photo-generating', 10_000); mark('photo: added');
-      await until('photo-result', 240_000); await sleep(b.look);
+      await addPhoto();
       await tap(await findDemo('to-inside'), b.settle, b.hold * 0.6); mark('photo: kept');
     } else {
       mark('photo: skipped');
@@ -699,15 +854,8 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     await tap(await findDemo('design-inside'), b.settle, 300);
     await until('card', 240_000); await sleep(b.look);
 
-    // The card, tapped open.
-    const card = await findDemo('card');
-    const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.2);
-    setSpin(true); await sleep(b.look * 1.4); setSpin(false); await sleep(b.look * 0.8);
-    mark('card: done');
-    await tap(await findDemo('post'), b.settle, 300);
-    // The card flies off, then the tick and the words land.
-    await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
+    await openCard(true);
+    await postIt();
     mark('end', 'end');
   };
 
@@ -719,7 +867,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('brief'); } }, 1000);
+    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
       // No pointer at all on the recording (Aidan 2026-09-16) — the system
@@ -730,8 +878,10 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
-        if (!cfg.hook) return;
-        void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => setHookOn(false));
+        // A clip jumps to its own first screen once the hook has typed.
+        const go = () => { if (clip !== 'full') enterClip().catch(fail); };
+        if (!cfg.hook) { go(); return; }
+        void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => { setHookOn(false); go(); });
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
       return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); document.documentElement.classList.remove('demo-cursor-on'); };
     }
@@ -744,7 +894,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   // produced social video (see /admin/demo-runs). Fire and forget.
   const savedRef = useRef(false);
   useEffect(() => {
-    if (phase !== 'sent' || savedRef.current || fronts.length === 0) return;
+    if (phase !== 'sent' || savedRef.current || fronts.length === 0 || replay) return;
     savedRef.current = true;
     const beats = (window.__demo?.events ?? []); const t0 = beats[0]?.t ?? Date.now();
     void fetch('/api/admin/demo-runs', {
@@ -793,7 +943,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
-      {cfg.timer !== false && clockFrom != null && (
+      {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
         // caption (bottom) on Reels and TikTok.
         <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white/85 px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
@@ -855,7 +1005,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
 
       {/* 4 · add a photo? */}
       {phase === 'photo' && (
-        <motion.section key="photo" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 pb-12 text-center ${cfg.timer !== false ? 'pt-[20vh]' : 'pt-16'}`}>
+        <motion.section key="photo" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 pb-12 text-center ${showClock ? 'pt-[20vh]' : 'pt-16'}`}>
           <h1 className={H1}>Add a photo of {who}?</h1>
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(usePhoto); e.target.value = ''; }} />
@@ -911,7 +1061,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
           product's viewer stays open/close with no orbit. */}
       {phase === 'card' && chosenFront && (
         <motion.section key="card" {...SCREEN} className="absolute inset-0 flex flex-col">
-          <div data-demo="card" className={`relative min-h-0 w-full flex-1 ${cfg.timer !== false ? 'pt-[20vh]' : 'pt-10'}`}>
+          <div data-demo="card" className={`relative min-h-0 w-full flex-1 ${showClock ? 'pt-[20vh]' : 'pt-10'}`}>
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
               enableRotate enableZoom={false} autoRotate={spin} autoRotateSpeed={2.2}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
@@ -919,10 +1069,24 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
           <div className="flex h-[76px] shrink-0 items-start justify-center">
             <GestureHints open={cardOpen} mountDelayMs={500} hideZoomHint openLabel="Tap to close" />
           </div>
-          <div className="shrink-0 px-5 pb-8">
+          <div className={`shrink-0 px-5 pb-8 ${clip === 'open' ? 'invisible' : ''}`}>
             <button type="button" data-demo="post" className={`${GREEN} ${cardOpen ? 'demo-pulse' : ''} w-full`} onClick={() => { setPhase('sent'); mark('posted', 'sent'); }}>
               <Send className="h-4 w-4" /> Post it to them
             </button>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Guess the brief: the finished card, then what we were told. */}
+      {phase === 'guess' && chosenFront && (
+        <motion.section key="guess" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-6">
+          <div className="w-[min(64vw,36vh,280px)] shrink-0"><AjarTile imageUrl={chosenFront} alt="" eager openDeg={22} /></div>
+          <div className="flex max-w-[340px] flex-wrap justify-center gap-2">
+            {guessChips.map((t, i) => (
+              <motion.span key={i} initial={{ opacity: 0, y: 8, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.9 + (i * GUESS_STEP_MS) / 1000, duration: 0.35, ease: 'easeOut' }}
+                className="rounded-full border border-brand/40 bg-brand-muted px-3.5 py-1.5 text-[15px] font-medium text-brand-dark">{t}</motion.span>
+            ))}
           </div>
         </motion.section>
       )}
@@ -936,7 +1100,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: POST_FLIGHT_MS / 1000, duration: 0.5, ease: 'easeOut' }} className="flex flex-col items-center gap-3">
               <h1 className={H1}>Posted to {who}.<br />It’s on the way.</h1>
               <p className="text-[15px] text-keeper-body">Printed today, sent tracked.<br />Expect it by <span className="font-semibold text-keeper-ink">{formatDayMonth(expectedBy())}</span>.</p>
-              {cfg.timer !== false && clockFrom != null && <p className="text-[13px] font-medium text-keeper-meta">Made and posted in {clockWords}</p>}
+              {showClock && clockFrom != null && <p className="text-[13px] font-medium text-keeper-meta">Made and posted in {clockWords}</p>}
             </motion.div>
           </div>
         </motion.section>
@@ -953,6 +1117,26 @@ const NAME_LIKE = ['Mum', 'Dad', 'Nan', 'Grandad'];
 const chip = (on: boolean) => `rounded-full border px-3.5 py-2 text-[14px] font-medium transition-colors ${on ? 'border-brand bg-brand-muted text-brand-dark' : 'border-keeper-hair bg-white/80 text-keeper-ink hover:border-brand/60'}`;
 const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand';
 const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
+
+/** A saved-run row from the API, in the shape a replay uses. */
+function toReplay(x: any): ReplayRun {
+  return {
+    id: x.id, label: x.label ?? null, created_at: x.created_at, hook_line: x.hook_line ?? null,
+    brief: x.brief ?? null, concepts: Array.isArray(x.concepts) ? x.concepts : [], frontUrls: Array.isArray(x.frontUrls) ? x.frontUrls : [],
+    pickedIndex: typeof x.picked_index === 'number' ? x.picked_index : 0,
+    photoUrl: x.photoUrl ?? null, cameoUrl: x.cameoUrl ?? null, insideUrl: x.insideUrl ?? null,
+    words: x.words ?? null, beats: Array.isArray(x.beats) ? x.beats : null,
+  };
+}
+const playable = (r: ReplayRun) => r.frontUrls.length === 3 && r.concepts.length === 3 && !!r.insideUrl;
+/** How long the original run took, start to posted. */
+function takenFor(r: ReplayRun): string {
+  const b = r.beats ?? [];
+  const z = b.find((e) => e.name === 'posted' || e.name === 'sent' || e.name === 'end')?.t;
+  if (z == null) return '';
+  const s = Math.round((z - (b[0]?.t ?? 0)) / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 
 function AskRow({ label: text, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -974,9 +1158,27 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const ask = cfg.askOnScreen ?? {};
   const setAsk = (k: 'who' | 'occasion' | 'age', v: boolean) => set({ askOnScreen: { ...ask, [k]: v } });
   // A value is still needed when set here, or when the run plays itself.
-  const showValue = (k: 'who' | 'occasion' | 'age') => !ask[k] || !manual;
+  const showValue = (k: 'who' | 'occasion' | 'age') => (!ask[k] || !manual) && source !== 'replay';
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
-  const ready = manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
+  // Replay: play a saved run again, whole or as a short clip, with no new
+  // generations (Aidan 2026-09-17).
+  const [source, setSource] = useState<'new' | 'replay'>('new');
+  const [runs, setRuns] = useState<ReplayRun[] | null>(null);
+  const [runsErr, setRunsErr] = useState('');
+  useEffect(() => {
+    if (source !== 'replay' || runs) return;
+    fetch('/api/admin/demo-runs', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => setRuns((j.runs ?? []).map(toReplay).filter(playable)))
+      .catch(() => setRunsErr('Could not load saved runs.'));
+  }, [source, runs]);
+  const isReplay = source === 'replay';
+  const clip: ClipKey = cfg.clip ?? 'full';
+  // The brief options only matter when the whole run plays.
+  const full = !isReplay || clip === 'full';
+  const pickRun = (r: ReplayRun) => setCfg((c) => configFromRun(r, c, c.clip ?? 'full'));
+  const pickClip = (k: ClipKey) => setCfg((c) => (c.replay ? configFromRun(c.replay, c, k) : { ...c, clip: k }));
+  const ready = isReplay ? !!cfg.replay : manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
   return (
     <div className="keeper-serif relative min-h-screen">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -992,15 +1194,65 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         </div>
 
-        {!manual && <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-5"><span className={label}>Start from</span>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={chip(!isReplay)} onClick={() => { setSource('new'); set({ replay: undefined, clip: undefined }); }}>A new run</button>
+            <button type="button" className={chip(isReplay)} onClick={() => setSource('replay')}>Replay a saved run</button>
+          </div>
+        </div>
+
+        {isReplay && (
+          <div className="mt-5 space-y-5">
+            {runsErr && <p className="text-[13px] text-accent-red-dark">{runsErr}</p>}
+            {!runs && !runsErr && <p className="text-[13px] text-keeper-meta">Loading saved runs…</p>}
+            {runs && runs.length === 0 && <p className="text-[13px] text-keeper-meta">No saved runs yet. Every run that reaches “It’s on the way” is saved.</p>}
+            {runs && runs.length > 0 && (
+              <div className="grid grid-cols-3 gap-2.5">
+                {runs.map((r) => {
+                  const on = cfg.replay?.id === r.id; const t = takenFor(r);
+                  return (
+                    <button key={r.id} type="button" onClick={() => pickRun(r)}
+                      className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${on ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
+                      <img src={r.cameoUrl ?? r.frontUrls[r.pickedIndex]} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" loading="lazy" />
+                      <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">
+                        {r.label ?? `Run ${r.id}`}
+                        <span className="block text-keeper-meta">{r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{t ? ` · ${t}` : ''}{r.cameoUrl ? ' · photo' : ''}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {cfg.replay && (
+              <>
+                <div><span className={label}>Clip</span>
+                  <div className="flex flex-wrap gap-2">
+                    {CLIPS.map((c) => {
+                      const off = c.key === 'photo' && !(cfg.replay?.cameoUrl && cfg.replay?.photoUrl);
+                      return <button key={c.key} type="button" disabled={off} className={`${chip(clip === c.key)} disabled:opacity-35`} onClick={() => pickClip(c.key)}>{c.label}</button>;
+                    })}
+                  </div>
+                </div>
+                <div><span className={label}>Waits</span>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" className={chip(cfg.waits !== 'short')} onClick={() => set({ waits: 'real' })}>As long as they really took</button>
+                    <button type="button" className={chip(cfg.waits === 'short')} onClick={() => set({ waits: 'short' })}>Short</button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {!manual && !isReplay && <div className="mt-5 flex flex-wrap gap-2">
           {Object.entries(DEMO_PRESETS).map(([k, p]) => (
             <button key={k} type="button" className={chip(false)} onClick={() => set({ ...p })}>{p.who}, {p.age}</button>
           ))}
         </div>}
 
         <div className="mt-7 space-y-6">
-          <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
-          <p className="text-[13px] text-keeper-body">Set here, these stay off screen, so say them in the opening line. Or ask any of them on screen.</p>
+          {full && <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
+          <p className="text-[13px] text-keeper-body">{isReplay ? 'Answers come from the saved run. Ask any of these on screen, or leave them for the opening line.' : 'Set here, these stay off screen, so say them in the opening line. Or ask any of them on screen.'}</p>
           <div><AskRow label="Who" on={!!ask.who} onChange={(v) => setAsk('who', v)} />
             {showValue('who') && <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>}
           </div>
@@ -1009,20 +1261,20 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             <input value={['Birthday', 'Christmas', 'Anniversary', 'Wedding'].includes(cfg.occasion) ? '' : cfg.occasion} onChange={(e) => set({ occasion: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Or type it… e.g. Retirement" /></>}
           </div>
           <div><AskRow label="Age" on={!!ask.age} onChange={(v) => setAsk('age', v)} />{showValue('age') && <input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={`${field} max-w-[140px]`} placeholder="60" />}</div>
-          </div>
-          <div><span className={label}>Can’t stand</span>
+          </div>}
+          {full && <div><span className={label}>Can’t stand</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!!cfg.askDislike)} onClick={() => set({ askDislike: true })}>Ask it on screen</button>
               <button type="button" className={chip(!cfg.askDislike)} onClick={() => set({ askDislike: false })}>Leave it out</button>
             </div>
-          </div>
-          <div><span className={label}>Timer</span>
+          </div>}
+          {full && <div><span className={label}>Timer</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(cfg.timer !== false)} onClick={() => set({ timer: true })}>Show it</button>
               <button type="button" className={chip(cfg.timer === false)} onClick={() => set({ timer: false })}>Hide it</button>
             </div>
-          </div>
-          {!manual && <>
+          </div>}
+          {!manual && !isReplay && <>
           <div><span className={label}>Vibe</span>
             <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
           </div>
@@ -1037,24 +1289,24 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
           </div>
           </>}
-          {!manual && <div><span className={label}>The inside</span>
+          {!manual && !isReplay && <div><span className={label}>The inside</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Write it for me</button>
               <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>I’ll write it</button>
             </div>
             {cfg.insideBy === 'me' && <textarea value={cfg.message ?? ''} onChange={(e) => set({ message: e.target.value.slice(0, 300) })} rows={2} placeholder="The message to type" className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
           </div>}
-          {!manual && <div className="grid grid-cols-2 gap-3">
+          {!manual && !isReplay && <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
             <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
           </div>}
-          <div><span className={label}>Photo step</span>
+          {!isReplay && <div><span className={label}>Photo step</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!cfg.skipPhoto)} onClick={() => set({ skipPhoto: false })}>Include it</button>
               <button type="button" className={chip(!!cfg.skipPhoto)} onClick={() => set({ skipPhoto: true })}>Skip it</button>
             </div>
-          </div>
-          {!cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
+          </div>}
+          {!isReplay && !cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
             <div className="flex items-center gap-3">
               <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
               {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
@@ -1073,8 +1325,8 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         </div>
 
-        <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} mt-9 w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> Run the demo</button>
-        <p className="mt-3 text-center text-[12px] text-keeper-meta">Each run spends one set of generations.</p>
+        <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} mt-9 w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> {isReplay ? 'Play the replay' : 'Run the demo'}</button>
+        <p className="mt-3 text-center text-[12px] text-keeper-meta">{isReplay ? 'Replays reuse the saved cards. No new generations.' : 'Each run spends one set of generations.'}</p>
       </div>
     </div>
   );
@@ -1153,8 +1405,24 @@ export default function DemoPage() {
     return p ? { ...p, speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' } : null;
   }, [q]);
   const [cfg, setCfg] = useState<DemoConfig | null>(fromLink);
+  // A saved run in the link replays straight away (for recording and checks).
+  const replayId = q.get('replay');
+  const [linkErr, setLinkErr] = useState('');
+  useEffect(() => {
+    if (!replayId || cfg) return;
+    fetch(`/api/admin/demo-runs/${encodeURIComponent(replayId)}`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => {
+        const run = toReplay(j.run);
+        const clipKey = (CLIPS.find((c) => c.key === q.get('clip'))?.key ?? 'full') as ClipKey;
+        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto', waits: q.get('waits') === 'short' ? 'short' : 'real' };
+        setCfg(configFromRun(run, base, clipKey));
+      })
+      .catch(() => setLinkErr('Could not load that saved run.'));
+  }, [replayId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
   if (q.get('embed') === '1') return <EmbeddedRun />;
+  if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
-  return cfg.frame === 'phone' && !fromLink ? <PhoneFrame cfg={cfg} /> : <DemoRun cfg={cfg} />;
+  return cfg.frame === 'phone' && !fromLink && !replayId ? <PhoneFrame cfg={cfg} /> : <DemoRun cfg={cfg} />;
 }
