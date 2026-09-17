@@ -135,6 +135,14 @@ const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: n
 
 // ── skin ─────────────────────────────────────────────────────────────
 
+/** The whole /demo page — builder, countdown, run, the phone's bezel —
+ *  shows a tiny faint dot instead of the pointer, in both modes (Aidan
+ *  2026-09-17: "dot throughout, the cursor is intrusive for my screen
+ *  recording"). Taps still burst in manual runs. */
+const CURSOR_CSS = `
+  .demo-cursor-on, .demo-cursor-on * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='4' cy='4' r='2.5' fill='rgba(60,56,70,0.32)' stroke='rgba(255,255,255,0.5)' stroke-width='0.75'/%3E%3C/svg%3E") 4 4, auto !important; }
+`;
+
 const CSS = `
   @keyframes demo-ring { 0% { transform: translate(-50%,-50%) scale(.55); opacity: .95 } 70% { opacity: .55 } 100% { transform: translate(-50%,-50%) scale(1.7); opacity: 0 } }
   @keyframes demo-dot { 0% { opacity: .9 } 100% { opacity: 0 } }
@@ -144,9 +152,6 @@ const CSS = `
     transform: translate(-50%,-50%); animation: demo-dot 420ms ease-out forwards; }
 
   /* Manual runs: no pointer on screen at all (Aidan 2026-09-16). */
-  /* Manual runs: a tiny faint dot instead of the pointer, so Aidan can see
-     where he is but it barely reads on a recording. Taps still burst. */
-  .demo-cursor-on, .demo-cursor-on * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='4' cy='4' r='2.5' fill='rgba(60,56,70,0.32)' stroke='rgba(255,255,255,0.5)' stroke-width='0.75'/%3E%3C/svg%3E") 4 4, auto !important; }
   /* The first letter lands at one fixed point and the text only grows
      downward from there — no re-centring as lines wrap (Aidan 2026-09-16). */
   .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: flex-start; padding: 36vh 8vw 8vw;
@@ -901,9 +906,6 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      // No pointer at all on the recording (Aidan 2026-09-16) — the system
-      // cursor is a tiny faint dot; clicks still land and still show the tap ring.
-      document.documentElement.classList.add('demo-cursor-on');
       const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
       const onClick = () => { window.setTimeout(clearRings, 140); };
       window.addEventListener('pointerdown', onDown, true);
@@ -914,7 +916,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
         if (!cfg.hook) { go(); return; }
         void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => { setHookOn(false); go(); });
       }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); document.documentElement.classList.remove('demo-cursor-on'); };
+      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
     }
     const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
@@ -1444,7 +1446,12 @@ export default function DemoPage() {
       })
       .catch(() => setLinkErr('Could not load that saved run.'));
   }, [replayId]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
+  useEffect(() => {
+    const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m);
+    const st = document.createElement('style'); st.textContent = CURSOR_CSS; document.head.appendChild(st);
+    document.documentElement.classList.add('demo-cursor-on');
+    return () => { m.remove(); st.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
+  }, []);
   if (q.get('embed') === '1') return <EmbeddedRun />;
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
