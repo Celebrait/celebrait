@@ -406,6 +406,32 @@ async function drawSafely<T extends { front_text: string; art_direction: string 
     }
   }
 }
+/** Decode an image BEFORE the screen that shows it mounts, so a card
+ *  never lands as an empty tile that fills in (Aidan 2026-09-18: "no
+ *  space behind before showing"). Mirrors ThumbImg's ladder — the grid
+ *  thumb first, then the self-healing thumb route, then the original —
+ *  with the same crossOrigin, so the tile and the 3D viewer both hit
+ *  the cache. Never blocks for more than a few seconds. */
+const PNG_URL = /^(https?:\/\/[^?#]+\/|\/images\/)([A-Za-z0-9_-]+)\.png$/;
+function loadImage(u: string): Promise<boolean> {
+  return new Promise((res) => {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).then(() => res(true), () => res(true)); };
+    im.onerror = () => res(false);
+    im.src = u;
+  });
+}
+async function warm(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  const job = (async () => {
+    const m = PNG_URL.exec(url);
+    if (m) { if (!(await loadImage(`${m[1]}${m[2]}_t.webp`))) await loadImage(`/api/thumb/${m[2]}.png`); }
+    await loadImage(url);
+  })();
+  await Promise.race([job, sleep(6000)]);
+}
+const warmAll = (urls: Array<string | null | undefined>) => Promise.all(urls.map(warm)).then(() => undefined);
+
 const toDataUrl = async (url: string) => {
   const blob = await fetch(url).then((r) => r.blob());
   return new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error('read')); fr.readAsDataURL(blob); });
@@ -485,7 +511,8 @@ type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo
 
 /** Every screen enters rising and fading in, and leaves fading out — a
  *  cut between two flat screens reads as a glitch on video. */
-const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 }, transition: { duration: 0.5, ease: [0.2, 0.7, 0.3, 1] } } as const;
+// Exit is quick so the next screen (already decoded) lands without a gap.
+const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10, transition: { duration: 0.22 } }, transition: { duration: 0.42, ease: [0.2, 0.7, 0.3, 1] } } as const;
 
 const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
 const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
@@ -615,6 +642,8 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  // The card screen stays invisible until the viewer's first frame.
+  const [cardPainted, setCardPainted] = useState(false);
   // The camera: the self-playing run punches in on each tap.
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -690,6 +719,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   /** Jump to a clip's first screen with the run's assets in place. */
   const enterClip = async () => {
     if (clip === 'options') { await generate(brief); return; }
+    if (replay) await warmAll([replay.frontUrls[pi], replay.cameoUrl, replay.insideUrl, replay.photoUrl]);
     loadReplay();
     if (clip === 'photo') { setUseCameo(false); setCameoUrl(null); setPhase('photo'); }
     else if (clip === 'guess') setPhase('guess');
@@ -702,7 +732,7 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
   const generate = async (b: Brief) => {
     setPhase('generating'); mark('generating', 'generating');
     if (replay) {
-      await sleep(replayWait('generating', 'results', 3500));
+      await Promise.all([sleep(replayWait('generating', 'results', 3500)), warmAll(replay.frontUrls)]);
       setConcepts(replay.concepts); setFronts(replay.frontUrls); setPhase('results'); mark('results', 'results');
       return;
     }
@@ -722,13 +752,15 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
     // Any rewritten picture replaces the original, so the photo and the
     // inside follow the card that was actually drawn.
     setConcepts(drawn.map((d) => d.concept));
-    setFronts(drawn.map((d) => d.r.imageUrl as string)); setPhase('results'); mark('results', 'results');
+    const urls = drawn.map((d) => d.r.imageUrl as string);
+    await warmAll(urls);
+    setFronts(urls); setPhase('results'); mark('results', 'results');
   };
   const renderCameo = async (photo: string) => {
     let c = conceptsRef.current[pickedRef.current];
     setPhase('photo-generating'); mark('photo: generating', 'photo');
     if (replay) {
-      await sleep(replayWait('photo: generating', 'photo: done', 3000));
+      await Promise.all([sleep(replayWait('photo: generating', 'photo: done', 3000)), warm(replay.cameoUrl)]);
       setCameoUrl(replay.cameoUrl); setPhase('photo-result'); mark('photo: done', 'photo-result');
       return;
     }
@@ -747,18 +779,20 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       const qa = await post('cameo-check', { cardImage: r.imageUrl, cameoPhoto: photo }, 30_000);
       if (qa?.result?.verdict === 'bad') { mark('photo: redraw'); r = await draw(); }
     } catch { /* fail open: show what we have */ }
+    await warm(r.imageUrl);
     setCameoUrl(r.imageUrl); setPhase('photo-result'); mark('photo: done', 'photo-result');
   };
   const renderInside = async () => {
     const c = conceptsRef.current[pickedRef.current]; const w = wordsRef.current;
     setPhase('inside-generating'); mark('inside: generating', 'inside');
     if (replay) {
-      await sleep(replayWait('inside: generating', 'inside: done', 2600));
+      await Promise.all([sleep(replayWait('inside: generating', 'inside: done', 2600)), warmAll([replay.insideUrl, chosenFront])]);
       setInsideUrl(replay.insideUrl); setPhase('card'); mark('inside: done', 'card');
       return;
     }
     const joined = [w.dear.trim(), w.message.trim(), w.from.trim()].filter(Boolean).join('\n\n');
     const r = await post('render-inside', { ...(joined ? { mode: 'own', message: joined } : { mode: 'blank' }), palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
+    await warmAll([r.imageUrl, chosenFront]);
     setInsideUrl(r.imageUrl); setPhase('card'); mark('inside: done', 'card');
   };
 
@@ -1083,9 +1117,11 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
       {phase === 'card' && chosenFront && (
         // The card, then the button straight under it — no hints (Aidan
         // 2026-09-17), and the same dark pulsing button as every other step.
-        <motion.section key="card" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
+        <motion.section key="card" initial={{ opacity: 0, y: 16 }} animate={cardPainted ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }} exit={SCREEN.exit} transition={SCREEN.transition}
+          className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
           <div data-demo="card" className="relative h-[min(56vh,104vw)] w-full shrink-0">
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
+              onFirstFrame={() => setCardPainted(true)}
               enableRotate enableZoom={false}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
