@@ -118,6 +118,9 @@ export interface DemoConfig extends DemoPreset {
   /** 'phone' = the run plays inside a phone mockup on the page (Aidan
    *  2026-09-16: "render this in a phone mock up"); 'full' = edge to edge. */
   frame?: 'phone' | 'full';
+  /** The mockup breathes: a slow handheld sway, a light drifting over the
+   *  glass, soft clouds moving behind (on unless false). */
+  alive?: boolean;
   /** Play a saved run instead of generating. */
   replay?: ReplayRun;
   clip?: ClipKey;
@@ -1384,6 +1387,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           <div className="grid grid-cols-2 gap-3">
             {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
             {!manual && <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>}
+            {cfg.frame !== 'full' && <div><span className={label}>Feel</span><div className="flex gap-2"><button type="button" className={chip(cfg.alive !== false)} onClick={() => set({ alive: true })}>Handheld</button><button type="button" className={chip(cfg.alive === false)} onClick={() => set({ alive: false })}>Still</button></div></div>}
             <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
@@ -1416,10 +1420,43 @@ function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
     window.addEventListener('message', onMsg);
     return () => { window.removeEventListener('resize', fit); window.removeEventListener('message', onMsg); };
   }, [cfg]);
+  const alive = cfg.alive !== false;
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)' }}>
-      <div style={{ width: PHONE_W + BEZEL * 2, height: PHONE_H + BEZEL * 2, transform: `scale(${scale})`, padding: BEZEL }}
-        className="relative shrink-0 rounded-[66px] bg-[#1d1a17] shadow-[0_50px_90px_-40px_rgba(33,29,25,.55),inset_0_0_0_2px_rgba(255,255,255,.08)]">
+    // Not a still (Aidan 2026-09-18: "feels really static and 1D"): the
+    // phone sways in 3D as if held, a soft light drifts across the glass,
+    // and cloud-like blobs move slowly behind it. All CSS, all gentle —
+    // an 11s sway, a 14s light, 40-60s clouds — so nothing reads as a loop.
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)', perspective: 1400 }}>
+      {alive && (
+        <>
+          <style>{`
+            @keyframes demo-sway { 0% { transform: rotateX(1.6deg) rotateY(-2.4deg) translate3d(0,0,0) } 25% { transform: rotateX(-1.2deg) rotateY(1.8deg) translate3d(3px,-4px,0) } 50% { transform: rotateX(1.4deg) rotateY(2.6deg) translate3d(-2px,3px,0) } 75% { transform: rotateX(-1.6deg) rotateY(-1.4deg) translate3d(2px,4px,0) } 100% { transform: rotateX(1.6deg) rotateY(-2.4deg) translate3d(0,0,0) } }
+            @keyframes demo-shadow { 0% { transform: translate(-18px, 0) scaleX(1) } 25% { transform: translate(14px, 6px) scaleX(1.04) } 50% { transform: translate(20px, -2px) scaleX(0.98) } 75% { transform: translate(-10px, 8px) scaleX(1.03) } 100% { transform: translate(-18px, 0) scaleX(1) } }
+            @keyframes demo-glass { 0% { transform: translate(-70%, -30%) rotate(18deg) } 100% { transform: translate(70%, 30%) rotate(18deg) } }
+            @keyframes demo-cloud-a { 0% { transform: translate(-6%, -4%) scale(1) } 50% { transform: translate(8%, 6%) scale(1.12) } 100% { transform: translate(-6%, -4%) scale(1) } }
+            @keyframes demo-cloud-b { 0% { transform: translate(6%, 5%) scale(1.08) } 50% { transform: translate(-9%, -6%) scale(0.96) } 100% { transform: translate(6%, 5%) scale(1.08) } }
+            @keyframes demo-cloud-c { 0% { transform: translate(0, 8%) scale(1) } 50% { transform: translate(5%, -8%) scale(1.15) } 100% { transform: translate(0, 8%) scale(1) } }
+            .demo-sway { animation: demo-sway 11s ease-in-out infinite; transform-style: preserve-3d; will-change: transform; }
+            .demo-shadow { animation: demo-shadow 11s ease-in-out infinite; }
+            .demo-glass { animation: demo-glass 14s ease-in-out infinite alternate; }
+            .demo-cloud-a { animation: demo-cloud-a 46s ease-in-out infinite; }
+            .demo-cloud-b { animation: demo-cloud-b 58s ease-in-out infinite; }
+            .demo-cloud-c { animation: demo-cloud-c 39s ease-in-out infinite; }
+            @media (prefers-reduced-motion: reduce) { .demo-sway, .demo-shadow, .demo-glass, .demo-cloud-a, .demo-cloud-b, .demo-cloud-c { animation: none; } }
+          `}</style>
+          {/* the clouds */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="demo-cloud-a absolute -left-[10%] -top-[12%] h-[62vh] w-[62vh] rounded-full bg-[#7a76e8] opacity-[0.11] blur-[70px]" />
+            <div className="demo-cloud-b absolute -bottom-[16%] -right-[8%] h-[70vh] w-[70vh] rounded-full bg-[#5fd94a] opacity-[0.09] blur-[80px]" />
+            <div className="demo-cloud-c absolute left-[30%] top-[28%] h-[48vh] w-[48vh] rounded-full bg-[#e5e4f9] opacity-[0.55] blur-[60px]" />
+          </div>
+        </>
+      )}
+      <div style={{ width: PHONE_W + BEZEL * 2, height: PHONE_H + BEZEL * 2, transform: `scale(${scale})` }} className="relative shrink-0">
+        {/* the shadow moves with the sway */}
+        {alive && <div aria-hidden className="demo-shadow pointer-events-none absolute inset-x-[6%] bottom-[-3%] h-[10%] rounded-[50%] bg-[#211D19] opacity-[0.28] blur-[26px]" />}
+        <div style={{ padding: BEZEL }}
+          className={`relative h-full w-full rounded-[66px] bg-[#1d1a17] shadow-[0_50px_90px_-40px_rgba(33,29,25,.55),inset_0_0_0_2px_rgba(255,255,255,.08)] ${alive ? 'demo-sway' : ''}`}>
         <div className="relative h-full w-full overflow-hidden rounded-[52px] bg-keeper-paper">
           <iframe ref={frameRef} src="/demo?embed=1" title="Celebrait demo" className="absolute inset-0 h-full w-full border-0" />
           {/* status bar */}
@@ -1434,6 +1471,9 @@ function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
           {/* dynamic island + home bar */}
           <div className="pointer-events-none absolute left-1/2 top-[11px] h-[35px] w-[124px] -translate-x-1/2 rounded-full bg-[#0c0b0a]" />
           <div className="pointer-events-none absolute bottom-[8px] left-1/2 h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-keeper-ink/85" />
+          {/* the light on the glass */}
+          {alive && <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[52px]"><div className="demo-glass absolute -inset-[40%]" style={{ background: 'linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.10) 50%, transparent 58%)' }} /></div>}
+        </div>
         </div>
       </div>
     </div>
