@@ -702,6 +702,15 @@ function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolea
 
   const who = whoPhrase({ who: brief.who || preset.who, name: '' });
   const chosenFront = useCameo && cameoUrl ? cameoUrl : fronts[picked];
+  // The glow: the mockup tints itself with the card on screen.
+  useEffect(() => {
+    if (!embedded) return;
+    const url = phase === 'results' ? fronts[slide] : phase === 'photo-result' ? cameoUrl : phase === 'card' || phase === 'guess' ? chosenFront : null;
+    if (!url) { tellGlow(null); return; }
+    let off = false;
+    cardGlow(url).then((c) => { if (!off) tellGlow(c); });
+    return () => { off = true; };
+  }, [embedded, phase, slide, fronts, cameoUrl, chosenFront]);
   // An engine failure ends the run visibly — and tells the recorder.
   const fail = (e: any) => { const m = e?.message ?? 'That didn’t work'; setError(m); mark(`FAILED: ${m}`, 'failed'); };
   const until = async (p: Phase, timeoutMs: number) => { const t0 = Date.now(); while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); } };
@@ -1408,6 +1417,24 @@ const PHONE_W = 393, PHONE_H = 852, BEZEL = 14;
 const EMBED_READY = 'celebrait-demo-embed-ready';
 const EMBED_CFG = 'celebrait-demo-embed-cfg';
 const EMBED_TAP = 'celebrait-demo-embed-tap';
+const EMBED_GLOW = 'celebrait-demo-embed-glow';
+/** Inside the mockup's iframe: the colour of the card on screen, or none. */
+function tellGlow(color: string | null) { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_GLOW, color }, window.location.origin); }
+const glowCache = new Map<string, string>();
+/** A card's average colour, lifted a little so it reads as light, not mud. */
+async function cardGlow(url: string): Promise<string> {
+  const hit = glowCache.get(url); if (hit) return hit;
+  const ok = await loadImage(url); if (!ok) return 'rgb(122,118,232)';
+  const im = new Image(); im.crossOrigin = 'anonymous'; im.src = url; await im.decode().catch(() => undefined);
+  const c = document.createElement('canvas'); c.width = 12; c.height = 12;
+  const ctx = c.getContext('2d')!; ctx.drawImage(im, 0, 0, 12, 12);
+  let r = 0, g = 0, b = 0, n = 0;
+  try { const d = ctx.getImageData(0, 0, 12, 12).data; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } } catch { return 'rgb(122,118,232)'; }
+  r /= n; g /= n; b /= n;
+  const mean = (r + g + b) / 3; const sat = 1.5; const lift = 40;
+  const f = (v: number) => Math.min(255, Math.round(mean + (v - mean) * sat + lift));
+  const out = `rgb(${f(r)},${f(g)},${f(b)})`; glowCache.set(url, out); return out;
+}
 /** Inside the mockup's iframe: tell the page a tap landed. */
 function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
 
@@ -1421,6 +1448,7 @@ const FLECKS = Array.from({ length: 18 }, (_, i) => {
 function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const nudgeRef = useRef<HTMLDivElement>(null);
+  const [glow, setGlow] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   useEffect(() => {
     const fit = () => setScale(Math.min(1, (window.innerHeight - 40) / (PHONE_H + BEZEL * 2), (window.innerWidth - 32) / (PHONE_W + BEZEL * 2)));
@@ -1435,6 +1463,7 @@ function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
         window.clearTimeout(nudgeT); nudgeT = window.setTimeout(() => el.classList.remove('demo-nudge'), 340);
         return;
       }
+      if (e.data?.type === EMBED_GLOW) { setGlow(cfg.alive !== false ? (e.data.color ?? null) : null); return; }
       if (e.data?.type !== EMBED_READY) return;
       frameRef.current?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
     };
@@ -1485,11 +1514,15 @@ function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
         </>
       )}
       <div style={{ width: PHONE_W + BEZEL * 2, height: PHONE_H + BEZEL * 2, transform: `scale(${scale})` }} className={`relative shrink-0 ${alive ? 'demo-breathe' : ''}`}>
+        {/* the card's light spilling out behind the phone */}
+        {alive && <div aria-hidden className="pointer-events-none absolute -inset-[22%] rounded-full blur-[60px]" style={{ background: glow ? `radial-gradient(ellipse at 50% 45%, ${glow} 0%, transparent 62%)` : 'transparent', opacity: glow ? 0.55 : 0, transition: 'opacity 1.4s ease, background 1.4s ease' }} />}
         {/* the shadow moves with the sway */}
         {alive && <div aria-hidden className="demo-shadow pointer-events-none absolute inset-x-[6%] bottom-[-3%] h-[10%] rounded-[50%] bg-[#211D19] opacity-[0.28] blur-[26px]" />}
         <div ref={nudgeRef} className="relative h-full w-full" style={{ transformStyle: 'preserve-3d' }}>
-        <div style={{ padding: BEZEL }}
-          className={`relative h-full w-full rounded-[66px] bg-[#1d1a17] shadow-[0_50px_90px_-40px_rgba(33,29,25,.55),inset_0_0_0_2px_rgba(255,255,255,.08)] ${alive ? 'demo-sway' : ''}`}>
+        <div style={{ padding: BEZEL, boxShadow: `0 50px 90px -40px rgba(33,29,25,.55), inset 0 0 0 2px rgba(255,255,255,.08)${glow ? `, 0 0 70px -10px ${glow}` : ''}`, transition: 'box-shadow 1.4s ease',
+            // The reflection: the phone mirrored on the surface below, fading fast.
+            ...(alive ? { WebkitBoxReflect: 'below 10px linear-gradient(transparent 74%, rgba(0,0,0,.22))' } : {}) }}
+          className={`relative h-full w-full rounded-[66px] bg-[#1d1a17] ${alive ? 'demo-sway' : ''}`}>
         <div className="relative h-full w-full overflow-hidden rounded-[52px] bg-keeper-paper">
           <iframe ref={frameRef} src="/demo?embed=1" title="Celebrait demo" className="absolute inset-0 h-full w-full border-0" />
           {/* status bar */}
