@@ -26,13 +26,13 @@ const STEPS: Step[] = [
     icon: Sparkles,
     eyebrow: 'Step 02',
     title: 'We illustrate it',
-    body: 'A premium AI illustrator paints your card in seconds. Tweak any part for free until it\'s right.',
+    body: 'We write and illustrate your card in a few minutes — 3–5 made for them, 7–10 from a photo. Tweak any part for free until it\'s right.',
   },
   {
     icon: Send,
     eyebrow: 'Step 03',
-    title: 'Send digital or printed',
-    body: 'A private animated link, or a 350gsm card posted anywhere from £7.99. Often both.',
+    title: 'We print and post it',
+    body: 'A premium 280gsm gloss card, printed once, just for them, then posted across the UK — with a private animated link to share included. Allow at least a week from order to arrival.',
   },
 ];
 

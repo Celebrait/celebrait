@@ -68,13 +68,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5, // 5 minutes instead of Infinity
       gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
-      retry: (failureCount, error) => {
-        // Don't retry on quota exceeded errors
-        if (error.message?.includes('QuotaExceededError')) {
-          return false;
-        }
-        return failureCount < 3;
-      },
+      retry: (failureCount) => failureCount < 3,
     },
     mutations: {
       retry: false,
@@ -82,129 +76,8 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Helper function to clear cache before payment to prevent quota errors
-export function clearCacheForPayment() {
-  try {
-    // Clear all React Query caches aggressively
-    queryClient.clear();
-    queryClient.removeQueries();
-    queryClient.invalidateQueries();
-    
-    // Preserve important delivery flow data before clearing
-    const preserveKeys = ['selectedDeliveryType', 'deliverTo'];
-    const preservedData: { [key: string]: string | null } = {};
-    
-    preserveKeys.forEach(key => {
-      try {
-        preservedData[key] = sessionStorage.getItem(key);
-      } catch (e) {
-        // Ignore errors reading individual keys
-      }
-    });
-    
-    // Clear all localStorage and sessionStorage
-    try {
-      localStorage.clear();
-    } catch (e) {
-      console.warn('Could not clear localStorage:', e);
-    }
-    
-    try {
-      sessionStorage.clear();
-    } catch (e) {
-      console.warn('Could not clear sessionStorage:', e);
-    }
-    
-    // Restore preserved delivery flow data
-    preserveKeys.forEach(key => {
-      if (preservedData[key] !== null) {
-        try {
-          sessionStorage.setItem(key, preservedData[key]);
-        } catch (e) {
-          // Ignore errors restoring individual keys
-        }
-      }
-    });
-    
-    // Force garbage collection if available
-    if (window.gc) {
-      window.gc();
-    }
-    
-    console.log('Aggressive cache clearing completed for payment processing');
-  } catch (error) {
-    console.warn('Cache clearing failed:', error);
-  }
-}
-
-// Check storage quota and clear if approaching limit
-function checkStorageQuota() {
-  if ('storage' in navigator && 'estimate' in navigator.storage) {
-    navigator.storage.estimate().then(estimate => {
-      const usage = estimate.usage || 0;
-      const quota = estimate.quota || 0;
-      const usagePercentage = (usage / quota) * 100;
-      
-      if (usagePercentage > 80) { // If using more than 80%
-        console.warn('Storage quota approaching limit, clearing cache');
-        clearCacheForPayment();
-      }
-    });
-  }
-}
-
-// Enhanced error handler for quota errors
-export function handleQuotaError(error: Error) {
-  if (error.message && error.message.includes('quota')) {
-    console.error('Quota exceeded, attempting recovery');
-    clearCacheForPayment();
-    
-    // Wait a moment then reload the page to ensure clean state
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-    
-    return true; // Handled
-  }
-  return false; // Not handled
-}
-
-// Monitor storage usage periodically
-setInterval(checkStorageQuota, 30000); // Check every 30 seconds
-
-// Emergency storage cleanup for critical navigation points
-export function emergencyStorageCleanup() {
-  try {
-    // Clear all caches immediately
-    clearCacheForPayment();
-    
-    // Clear any IndexedDB storage
-    if ('indexedDB' in window) {
-      indexedDB.databases().then(databases => {
-        databases.forEach(db => {
-          if (db.name && (db.name.includes('keyval') || db.name.includes('react-query'))) {
-            indexedDB.deleteDatabase(db.name);
-          }
-        });
-      }).catch(() => {});
-    }
-    
-    // Clear service worker caches
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
-      }).catch(() => {});
-    }
-    
-    // Force immediate garbage collection
-    if (window.gc) {
-      window.gc();
-    }
-    
-    console.log('Emergency storage cleanup completed');
-    return true;
-  } catch (error) {
-    console.warn('Emergency cleanup failed:', error);
-    return false;
-  }
-}
+// NOTE: a legacy "storage quota" apparatus (a 30s interval that could call
+// localStorage.clear() at >80% device storage — wiping the photo-consent
+// record, welcome/hint flags, etc.) was removed here 2026-07-02. It existed
+// only to protect utils/image-store.ts (base64 images in localStorage),
+// which is dead. React Query's own gcTime handles cache memory.

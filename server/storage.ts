@@ -1,9 +1,11 @@
 import "dotenv/config";
+import { randomBytes } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { cards, orders, photos, type Card, type CardGridItem, type InsertCard, type Order, type InsertOrder, type Photo, type InsertPhoto, type User } from "@shared/schema";
 import { users } from "@shared/models/auth";
+import { publicImageUrl, resolveStoredImageUrl } from "./image-storage";
 
 const db = drizzle(neon(process.env.DATABASE_URL!));
 
@@ -57,6 +59,9 @@ export class DatabaseStorage implements IStorage {
       userId: cardData.userId || null,
       cardType: cardData.cardType || 'printed',
       printOption: cardData.printOption || 'front-and-inside',
+      // Stable unguessable secret for this card's image object keys, so
+      // they can't be enumerated from the sequential id (audit 2026-07-02).
+      imageKey: randomBytes(16).toString('base64url'),
     }).returning();
     return result[0];
   }
@@ -117,6 +122,9 @@ export class DatabaseStorage implements IStorage {
         -- tiles in the dashboard activity column. Nullable on legacy
         -- rows that predate the step field.
         (c.conversation_data->>'step')::int AS "draftStep",
+        -- Take-family id (Start-again clones) — groups takes in the
+        -- dashboard. NULL on standalone cards.
+        (c.conversation_data->>'rerollFamilyId')::int AS "rerollFamilyId",
         -- Boolean: does this card have at least one paid Studio order?
         -- EXISTS keeps the grid one row per card even if a user has
         -- multiple orders against the same card (reorder, etc.).
@@ -133,6 +141,19 @@ export class DatabaseStorage implements IStorage {
         (c.status = 'completed' AND c.notified_at IS NULL) AS "isJustFinished"
       FROM cards c
       WHERE c.user_id = ${userId}
+        -- Hide never-touched drafts (a "new card" tap that went nowhere
+        -- creates the row up front). There's nothing to resume in them,
+        -- and they cluttered both the customer's In-progress shelf and
+        -- the admin CRM (Aidan 2026-08-04). Any name/occasion/scene/photo
+        -- or generated image keeps the card visible.
+        AND NOT (
+          c.status = 'draft'
+          AND c.front_image_url IS NULL
+          AND COALESCE(c.conversation_data->'recipient'->>'name', '') = ''
+          AND COALESCE(c.conversation_data->'recipient'->>'occasion', '') = ''
+          AND COALESCE(c.conversation_data->'scene'->>'description', '') = ''
+          AND COALESCE(jsonb_array_length(c.conversation_data->'photos'->'photoIds'), 0) = 0
+        )
       ORDER BY c.created_at DESC
       LIMIT 200
     `);
@@ -153,9 +174,11 @@ export class DatabaseStorage implements IStorage {
       // with 1-year cache); fall back to the direct URL column for
       // legacy rows. Some cards have only one populated; never assume
       // both — that's why the dashboard was showing empty thumbnails.
-      frontImageUrl: r.frontImagePath
-        ? `/images/${r.frontImagePath}`
-        : (r.frontImageUrl ?? null),
+      frontImageUrl: resolveStoredImageUrl(r.frontImagePath, r.frontImageUrl),
+      rerollFamilyId:
+        typeof r.rerollFamilyId === 'number' && Number.isFinite(r.rerollFamilyId)
+          ? r.rerollFamilyId
+          : null,
       hasPaidOrder: Boolean(r.hasPaidOrder),
       draftStep:
         typeof r.draftStep === 'number' && Number.isFinite(r.draftStep)

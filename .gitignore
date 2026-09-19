@@ -23,3 +23,4 @@ replit.nix
 # Office lock files
 ~$*.docx
 ~$*.xlsx
+dev-emails/

@@ -23,6 +23,37 @@ in the occasion reminder email. Natural upsell surface.
 
 ---
 
+## Quality & trust
+
+### Quirky card maker — customer flow (SCOPED)
+The Card Lab as a product: who/occasion/one-thing-they-love → three
+designs → pick → refine (re-roll design, re-roll text, edit text) →
+sign off → inside (blank / AI / write your own, always with To+Love) →
+3D review → existing print path. **Full scope: `SCOPE_QUIRKY_MAKER.md`.**
+Engine already built and benched in `/admin/card-lab`; ~£0.04/card.
+**Gate:** one real Prodigi print of a Lab card before any build.
+
+### Illustrated cards — no photo route (SCOPED)
+Pick a theme or describe an idea; no upload. Engine already supports it
+(referenceImageBase64 is optional; both providers branch to
+text-to-image) — the work is a new short `no_photo` front_scene variant
+plus a step-flow fork. **Full scope: `SCOPE_NO_PHOTO_CARDS.md`.**
+**Why it matters:** serves occasions a face is wrong for (sympathy,
+thank-you, business) = net-new demand. **The danger:** framed as "skip
+the photo" it becomes the easier default and drains the moat — must
+ship as a different product, not an easier path.
+
+### Targeted card edits — weight/clothing/text (SCOPED)
+Bounded, templated fixes on a finished card instead of full re-roll:
+"truer to the photo" (likeness repair — never a weight control), change
+clothing, fix text. Front edits via the existing Gemini `refine()` path;
+inside text via `inside_write` re-render. Single-person cards first.
+**Full scope: `SCOPE_CARD_EDITS.md`.** PL pass rates gate what ships.
+**Why it matters:** render drift from the photo breaks the core promise;
+today's only fix gambles the whole card.
+
+---
+
 ## Product expansion
 
 ### Celebration stationery suite (tier 1 — natural extensions)
