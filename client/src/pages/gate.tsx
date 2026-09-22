@@ -73,12 +73,10 @@ interface DoorProps {
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-/** The hero's phone: the featured run replaying itself, with the photo it
- *  started from tucked at its corner — before and after, side by side.
- *  Falls back to the still card if no run is featured yet. */
+/** The hero's phone: a 9-second reel of a real card being made (see
+ *  /demo-loop). Falls back to the still card if nothing is featured. */
 function HeroDemo() {
   const [ok, setOk] = useState<boolean | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
   // The phone is sized to the window: shorter on phones, where the words
   // and the button come first.
   const [cap, setCap] = useState(520);
@@ -90,7 +88,7 @@ function HeroDemo() {
     let off = false;
     fetch('/api/demo-runs/featured')
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (off) return; setOk(!!j?.run); setPhoto(j?.run?.photoUrl ?? null); })
+      .then((j) => { if (!off) setOk(!!j?.run); })
       .catch(() => { if (!off) setOk(false); });
     return () => { off = true; };
   }, []);
@@ -102,14 +100,6 @@ function HeroDemo() {
         <div className={`transition-opacity duration-700 ${ok ? 'opacity-100' : 'opacity-0'}`}>
           <PhoneMockup src="/demo-loop" title="Watch a Celebrait card being made" fit="inline" maxHeight={cap} />
         </div>
-      )}
-      {photo && (
-        <figure className="pointer-events-none absolute bottom-4 -left-8 w-[33%] -rotate-6 sm:-left-16">
-          <div className="rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_16px_36px_-12px_rgba(33,29,25,0.45)]">
-            <img src={photo} alt="The everyday photo the card was made from" crossOrigin="anonymous" className="block aspect-[3/4] w-full rounded-sm object-cover" />
-          </div>
-          <figcaption className="mt-1.5 text-center text-[11px] font-medium leading-tight text-keeper-meta">started as this</figcaption>
-        </figure>
       )}
     </div>
   );
