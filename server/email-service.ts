@@ -538,6 +538,78 @@ export async function sendMakeYourOwnLinkEmail(
   });
 }
 
+// ── Early access (pre-launch list) ───────────────────────────────────
+// Fired when someone joins the launching-soon list (marketing_leads,
+// source 'early-access'). Deliberately has NO call to action: the site
+// is locked, so every link would land them back on the same page. The
+// job here is simply to prove the signup worked and say what happens
+// next — a social push sends people who don't know us yet, and silence
+// after handing over an email address reads as a dead form.
+//
+// Marketing-class: sets List-Unsubscribe and carries a visible opt-out,
+// because this is a list they joined rather than an order they placed.
+export async function sendEarlyAccessConfirmEmail(params: {
+  email: string;
+  firstName?: string | null;
+  marketingOptIn?: boolean;
+}): Promise<boolean> {
+  const { email, firstName, marketingOptIn } = params;
+  const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
+  // Only promise the extra emails to people who actually ticked the box.
+  const optInLine = marketingOptIn
+    ? `<p style="margin: 0 0 16px;">You also said yes to the odd card idea once we're up and running. We'll keep those rare, and worth opening.</p>`
+    : '';
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      Thanks for putting your name down. You're on the early-access list,
+      which means you'll hear from us before we tell anybody else.
+    </p>
+    <p style="margin: 0 0 16px;">
+      Here's the idea: tell us about someone, or hand us a photo of them,
+      and we'll make a card that is genuinely <strong>about them</strong>
+      rather than about a generic birthday. Printed properly on heavy
+      card, and posted anywhere in the UK.
+    </p>
+    ${optInLine}
+    <p style="margin: 0 0 8px;">
+      We're not open yet. When we are, you'll get one email from us with
+      the doors unlocked. Nothing else in between.
+    </p>
+  `;
+  const html = chassis({
+    preheader: "You're on the list — we'll email you the moment we open.",
+    heading: "You're on the list.",
+    heroImages: [
+      {
+        src: `${PUBLIC_ORIGIN}/og-image.jpg`,
+        alt: 'A real photo of a couple, turned into a personalised illustrated card',
+      },
+    ],
+    bodyHtml: body,
+    footerNote:
+      `You're getting this because you joined the Celebrait early-access list. ` +
+      `<a href="mailto:${FROM_EMAIL}?subject=Unsubscribe" style="color:${EMAIL_BRAND};">Unsubscribe</a>`,
+  });
+  const text =
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n` +
+    `Thanks for putting your name down. You're on the early-access list, which means you'll hear from us before we tell anybody else.\n\n` +
+    `Here's the idea: tell us about someone, or hand us a photo of them, and we'll make a card that is genuinely about them rather than about a generic birthday. Printed properly on heavy card, and posted anywhere in the UK.\n\n` +
+    (marketingOptIn
+      ? `You also said yes to the odd card idea once we're up and running. We'll keep those rare, and worth opening.\n\n`
+      : '') +
+    `We're not open yet. When we are, you'll get one email from us with the doors unlocked. Nothing else in between.\n\n` +
+    `— Aidan at Celebrait\n\n` +
+    `You're getting this because you joined the Celebrait early-access list. To stop, reply with "Unsubscribe".`;
+  return sendEmail({
+    to: email,
+    subject: "You're on the list",
+    html,
+    text,
+    marketing: true,
+  });
+}
+
 // ── Welcome (fired once on signup) ───────────────────────────────────
 // Warm hello + a nudge to make the first card. Fired from the OTP-verify
 // and Google new-user branches (fire-and-forget). No card hero — they

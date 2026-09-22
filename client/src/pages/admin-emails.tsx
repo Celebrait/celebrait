@@ -56,7 +56,8 @@ type EmailTemplate =
   | 'reminder-t7'
   | 'otp'
   | 'make-your-own'
-  | 'welcome';
+  | 'welcome'
+  | 'early-access';
 
 interface EmailEntry {
   template: EmailTemplate;
@@ -112,6 +113,7 @@ const EMAIL_GROUPS: EmailGroup[] = [
   {
     groupLabel: 'Acquisition & onboarding',
     emails: [
+      { template: 'early-access', label: 'Early access — you\'re on the list', description: 'Joined the launching-soon list. No call to action: the site is still locked.', who: 'sender' },
       { template: 'welcome', label: 'Welcome', description: 'New signup — warm hello + make your first card.', who: 'sender' },
       { template: 'make-your-own', label: 'Make your own (link)', description: 'Lead asked us to email them the link.', who: 'recipient' },
     ],

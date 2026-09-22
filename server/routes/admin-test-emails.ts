@@ -60,6 +60,7 @@ import {
   sendOtpEmail,
   sendMakeYourOwnLinkEmail,
   sendWelcomeEmail,
+  sendEarlyAccessConfirmEmail,
   renderEmailForPreview,
   sendEmail,
   type ReminderTier,
@@ -200,6 +201,7 @@ const KNOWN_TEMPLATES = [
   'otp',
   'make-your-own',
   'welcome',
+  'early-access',
 ] as const;
 
 type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
@@ -388,6 +390,16 @@ async function dispatchTemplate(
     }
     case 'welcome': {
       return sendWelcomeEmail({ email: targetTo, firstName: vars.senderName });
+    }
+    case 'early-access': {
+      // Pre-launch list confirmation. body.marketingOptIn toggles the
+      // extra "card ideas after launch" line, which only appears for
+      // people who actually ticked the box on the launching-soon page.
+      return sendEarlyAccessConfirmEmail({
+        email: targetTo,
+        firstName: vars.recipientName,
+        marketingOptIn: body.marketingOptIn === true,
+      });
     }
     default: {
       // Unreachable — callers gate via isKnownTemplate first.

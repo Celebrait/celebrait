@@ -20,7 +20,7 @@ import {
 import { db } from "./db";
 import { and, eq, gte } from "drizzle-orm";
 import { marketingLeads } from "@shared/schema";
-import { sendMakeYourOwnLinkEmail } from "./email-service";
+import { sendMakeYourOwnLinkEmail, sendEarlyAccessConfirmEmail } from "./email-service";
 import { registerPromptRoutes } from "./routes/prompts";
 import { registerPhotoRoutes } from "./routes/photos";
 import { registerStudioDraftRoutes } from "./routes/studio-drafts";
@@ -137,10 +137,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           occasionType,
         });
         // Fire-and-forget — the lead is stored either way. The early-access
-        // list gets no link email: the site it would link to is locked.
-        if (source !== "early-access") void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
-          console.warn("[LEADS] link email failed:", err?.message ?? err),
-        );
+        // list gets its own confirmation instead of the link email: the
+        // site a link would point at is still locked, so that email just
+        // says you're on the list and what happens next.
+        if (source === "early-access") {
+          void sendEarlyAccessConfirmEmail({
+            email,
+            firstName: recipientName,
+            marketingOptIn,
+          }).catch((err) =>
+            console.warn("[LEADS] early-access email failed:", err?.message ?? err),
+          );
+        } else {
+          void sendMakeYourOwnLinkEmail(email, { recipientName, occasionDate }).catch((err) =>
+            console.warn("[LEADS] link email failed:", err?.message ?? err),
+          );
+        }
       }
       res.json({ ok: true });
     } catch (err: any) {

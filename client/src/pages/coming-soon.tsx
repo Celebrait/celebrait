@@ -36,7 +36,11 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
     window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
   }, []);
   const narrow = vw < 640;
-  const framing = narrow ? 1.8 : 1.6;
+  // The rendered card spans ≈ min(canvasW, canvasH) / framingMargin, and
+  // the canvas bleeds well past the square — so a small-looking margin
+  // here produces a very big card. 1.6 had it filling ~92% of the square
+  // (Aidan 2026-09-22: "the card is huge"). These land it near 70%.
+  const framing = narrow ? 2.2 : 2.0;
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -110,12 +114,24 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             </p>
           </div>
 
-          {/* The card, big: on desktop its left edge lines up with the logo;
-              it opens to the left and may run off screen. The canvas bleeds
-              far past the square and only the card takes the pointer. The
-              photo it was made from sits at its corner: before and after. */}
+          {/* On desktop the card's left edge lines up with the logo; it
+              opens to the left and may run off screen. The canvas bleeds
+              far past the square and only the card takes the pointer.
+              The photo it was made from sits ABOVE the card, left — the
+              open spread sweeps across the whole square, so anything
+              placed over the square gets covered (Aidan 2026-09-22:
+              "top left of the card and no overlap"). */}
           <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
-            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[66%]' : 'w-full max-w-[540px] lg:-translate-x-[2%]'}`}>
+            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[74%]' : 'w-full max-w-[440px] lg:-translate-x-[2%]'}`}>
+              <motion.figure
+                initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -4 }}
+                transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="pointer-events-none relative z-10 mb-1 w-[30%] min-w-[88px] self-start">
+                <div className="rounded-md border-[5px] border-white bg-white shadow-[0_14px_32px_-14px_rgba(33,29,25,0.45)]">
+                  <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
+                </div>
+                <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
+              </motion.figure>
               <div className="pointer-events-none relative aspect-square w-full">
                 <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
                   initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -123,17 +139,8 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                   <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
                     backLogo backCaption="Unbinnable greetings cards · launching soon"
                     enableRotate enableZoom={false}
-                    closedAngle={-0.5} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
+                    closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
                 </motion.div>
-                <motion.figure
-                  initial={{ opacity: 0, y: 16, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: 6 }}
-                  transition={{ delay: 0.6, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className={`pointer-events-none absolute z-10 ${narrow ? '-bottom-[6%] -right-[14%] w-[40%]' : 'bottom-[2%] -right-[8%] w-[32%]'}`}>
-                  <div className="rounded-md border-[6px] border-white bg-white shadow-[0_18px_40px_-14px_rgba(33,29,25,0.45)]">
-                    <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
-                  </div>
-                  <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
-                </motion.figure>
               </div>
               <div className={`flex h-[64px] justify-center ${narrow ? 'mt-4 -mx-[20%]' : 'mt-2'}`}>
                 <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
