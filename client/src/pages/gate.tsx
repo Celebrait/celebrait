@@ -211,7 +211,11 @@ export default function GatePage() {
             </div>
           )}
 
-          <p className={`mx-auto mt-14 max-w-4xl text-center md:mt-20 ${EYEBROW}`}>Two ways in · what kind of card buyer are you?</p>
+          {/* A proper headline over the doors, left with everything else —
+              the site's display face, a step down from the hero. */}
+          <h2 className={`mx-auto mt-14 max-w-4xl text-left text-[clamp(22px,3vw,34px)] leading-[1.14] md:mt-20 ${DISPLAY}`}>
+            Two ways in · what kind of card buyer are you?
+          </h2>
           <div id="doors" className="mx-auto mt-4 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-6 md:grid-cols-[1fr_1.3fr] md:items-stretch">
             <Door
               href="/make"
