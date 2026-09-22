@@ -34,8 +34,6 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
-import { PhoneMockup } from '@/components/phone-mockup';
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP, MAKE_TIME } from '@shared/pricing';
@@ -73,38 +71,6 @@ interface DoorProps {
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
-/** The hero's phone: a 9-second reel of a real card being made (see
- *  /demo-loop). Falls back to the still card if nothing is featured. */
-function HeroDemo() {
-  const [ok, setOk] = useState<boolean | null>(null);
-  // The phone is sized to the window: shorter on phones, where the words
-  // and the button come first.
-  const [cap, setCap] = useState(520);
-  useEffect(() => {
-    const f = () => setCap(window.innerWidth < 640 ? Math.round(window.innerHeight * 0.52) : Math.min(640, Math.round(window.innerHeight * 0.62)));
-    f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
-  }, []);
-  useEffect(() => {
-    let off = false;
-    fetch('/api/demo-runs/featured')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!off) setOk(!!j?.run); })
-      .catch(() => { if (!off) setOk(false); });
-    return () => { off = true; };
-  }, []);
-  return (
-    <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[330px]">
-      {ok === false ? (
-        <img src="/hero-card-front.webp" alt="A Celebrait card" crossOrigin="anonymous" className="w-full rounded-2xl shadow-[0_30px_70px_-30px_rgba(33,29,25,0.45)]" />
-      ) : (
-        <div className={`transition-opacity duration-700 ${ok ? 'opacity-100' : 'opacity-0'}`}>
-          <PhoneMockup src="/demo-loop" title="Watch a Celebrait card being made" fit="inline" maxHeight={cap} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Door({ href, icon: Icon, chip, title, line, time, effort, price, photo, points, cta, fine, proof, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
@@ -205,37 +171,34 @@ export default function GatePage() {
           {/* The product goes first (Aidan 2026-09-21: the page "needs to be
               more engaging and ALIVE"). Words on the left, a phone on the
               right making a real card, on a loop. */}
-          {/* Phones read headline, phone, then the rest — the demo lands
-              before the fold. Desktop keeps the words together on the left. */}
-          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-12">
-            <div className="text-left md:col-start-1 md:row-start-1 md:self-end">
-              <p className={EYEBROW}>Unbinnable Greetings Cards</p>
-              {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
-                  rotation needed). Bold ink, then italic medium ink. */}
-              <h1 className={`mt-4 max-w-[18ch] text-[clamp(28px,4.4vw,54px)] leading-[1.06] ${DISPLAY}`}>
-                Stop settling for
-                <br />
-                <span className="font-medium italic">“that one will do”</span>
-              </h1>
-            </div>
-            <div className="md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
-              <HeroDemo />
-            </div>
-            <div className="text-left md:col-start-1 md:row-start-2 md:self-start">
-              <p className={`max-w-[34rem] !mt-0 ${SUB}`}>
-                Cards made for one person — their name, their in-jokes, their photo — printed and posted to their door.
-                Watch one get made, then pick your way in.
-              </p>
-              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px] text-keeper-meta">
-                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Three designs, you pick</span>
-                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Printed and posted</span>
-                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> From {maker}</span>
-              </div>
-              <a href="#doors" className="mt-6 inline-flex items-center gap-2 rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover">
-                Make one for someone <ArrowRight className="h-4 w-4" />
-              </a>
+          <div className="mx-auto max-w-4xl text-left">
+            <p className={EYEBROW}>Unbinnable Greetings Cards</p>
+            {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
+                rotation needed). Bold ink, then italic medium ink. */}
+            <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
+              Stop settling for
+              <br />
+              <span className="font-medium italic">“that one will do”</span>
+            </h1>
+            <p className={`max-w-[40rem] ${SUB}`}>
+              Cards made for one person — their name, their in-jokes, their photo — printed and posted to their door.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px] text-keeper-meta">
+              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Three designs, you pick</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Printed and posted</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> From {maker}</span>
             </div>
           </div>
+
+          {/* The carousel sits straight under the headline (Aidan
+              2026-09-22) — the hand-picked rack, drifting, tap to open. */}
+          {picks.cards.length > 0 && (
+            <div className="mt-8 md:mt-10">
+              <div className="-mx-6 pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
+                <CardDrift padFrom={null} peek cards={picks.cards} />
+              </div>
+            </div>
+          )}
 
           <p className={`mx-auto mt-14 max-w-4xl text-center md:mt-20 ${EYEBROW}`}>Two ways in · what kind of card buyer are you?</p>
           <div id="doors" className="mx-auto mt-4 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-6 md:grid-cols-[1fr_1.3fr] md:items-stretch">
@@ -293,14 +256,6 @@ export default function GatePage() {
             />
           </div>
 
-          {picks.cards.length > 0 && (
-            <div className="mt-12 md:mt-16">
-              <p className={`mx-auto max-w-4xl ${EYEBROW}`}>From the rack · hand-picked</p>
-              <div className="-mx-6 mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
-                <CardDrift padFrom={null} peek cards={picks.cards} />
-              </div>
-            </div>
-          )}
         </section>
       </main>
       <MarketingFooter cta="gate" />
