@@ -181,7 +181,7 @@ export default function GatePage() {
               <span className="font-medium italic">“that one will do”</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
-              Celebrait allows you to create mind-blowing personalised cards in minutes.
+              Celebrait allows you to create mind-blowing personalised greetings cards in minutes.
               Start with a photo and describe any scene you can imagine. Or write a few words about them and pick from three.
             </p>
             {/* The promises, each icon in a soft violet disc (a step up from
@@ -189,8 +189,8 @@ export default function GatePage() {
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               {[
                 { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted anywhere in the UK from <span className="font-semibold">£4.99</span></> },
-                { icon: Link2, label: <>Free digital link, available before payment to share at will</> },
-                { icon: HandCoins, label: <>Design for free, pay only when your design is finished</> },
+                { icon: HandCoins, label: <>Design for free, pay only when you’re happy with your design</> },
+                { icon: Link2, label: <>Free digital link</> },
               ].map(({ icon: Icon, label }, n) => (
                 <span key={n} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/80 py-1.5 pl-1.5 pr-4 text-[13.5px] text-keeper-ink shadow-[0_1px_2px_rgba(33,29,25,0.04)]">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark">
