@@ -20,7 +20,7 @@
 // recorder (scratchpad rec/record-demo.mjs) reads window.__demo for
 // beats + timestamps and stops on state 'end'.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Play, Send, Loader2 } from 'lucide-react';
 import { BriefQuestions, RECIPIENTS, defaultFront, emptyBrief, occasionLabelFor, ageOf, isKidBrief, whoPhrase, frontWordOf, type Brief } from '@/components/brief-questions';
@@ -29,6 +29,7 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { PhoneMockup, EMBED_TAP, EMBED_GLOW } from '@/components/phone-mockup';
 
 // ── versions ─────────────────────────────────────────────────────────
 
@@ -620,7 +621,7 @@ function guessChipsOf(b: Partial<Brief> | null): string[] {
 }
 const GUESS_STEP_MS = 850;
 
-function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
+export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
   const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
   const replay = cfg.replay;
   const clip: ClipKey = replay ? (cfg.clip ?? 'full') : 'full';
@@ -1188,7 +1189,7 @@ const field = 'h-11 w-full rounded-full border border-keeper-hair bg-white/90 px
 const label = 'mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.14em] text-keeper-meta';
 
 /** A saved-run row from the API, in the shape a replay uses. */
-function toReplay(x: any): ReplayRun {
+export function toReplay(x: any): ReplayRun {
   return {
     id: x.id, label: x.label ?? null, created_at: x.created_at, hook_line: x.hook_line ?? null,
     brief: x.brief ?? null, concepts: Array.isArray(x.concepts) ? x.concepts : [], frontUrls: Array.isArray(x.frontUrls) ? x.frontUrls : [],
@@ -1413,11 +1414,8 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
 // fixed layer inside it measures the phone, not the browser window. The
 // builder's settings go across by postMessage (a photo can be too big for
 // storage).
-const PHONE_W = 393, PHONE_H = 852, BEZEL = 14;
 const EMBED_READY = 'celebrait-demo-embed-ready';
 const EMBED_CFG = 'celebrait-demo-embed-cfg';
-const EMBED_TAP = 'celebrait-demo-embed-tap';
-const EMBED_GLOW = 'celebrait-demo-embed-glow';
 /** Inside the mockup's iframe: the colour of the card on screen, or none. */
 function tellGlow(color: string | null) { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_GLOW, color }, window.location.origin); }
 const glowCache = new Map<string, string>();
@@ -1438,113 +1436,12 @@ async function cardGlow(url: string): Promise<string> {
 /** Inside the mockup's iframe: tell the page a tap landed. */
 function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
 
-/** Paper flecks behind the phone — seeded, so every recording drifts the same. */
-const FLECKS = Array.from({ length: 18 }, (_, i) => {
-  const r = (n: number) => { const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };
-  const colors = ['#7a76e8', '#5fd94a', '#FAF8F4', '#e5e4f9', '#c9c6f4'];
-  return { left: 4 + r(1) * 92, w: 5 + r(2) * 7, h: 3 + r(3) * 5, color: colors[i % colors.length], dur: 26 + r(4) * 22, delay: r(5) * 40, dx: (r(6) - 0.5) * 220, rot: 360 + r(7) * 720, o: 0.35 + r(8) * 0.4 };
-});
-
 function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
-  const nudgeRef = useRef<HTMLDivElement>(null);
-  const [glow, setGlow] = useState<string | null>(null);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const fit = () => setScale(Math.min(1, (window.innerHeight - 40) / (PHONE_H + BEZEL * 2), (window.innerWidth - 32) / (PHONE_W + BEZEL * 2)));
-    fit(); window.addEventListener('resize', fit);
-    let nudgeT = 0;
-    const onMsg = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type === EMBED_TAP && cfg.alive !== false) {
-        // A tap dips the phone, like pressing a real screen.
-        const el = nudgeRef.current; if (!el) return;
-        el.classList.remove('demo-nudge'); void el.offsetWidth; el.classList.add('demo-nudge');
-        window.clearTimeout(nudgeT); nudgeT = window.setTimeout(() => el.classList.remove('demo-nudge'), 340);
-        return;
-      }
-      if (e.data?.type === EMBED_GLOW) { setGlow(cfg.alive !== false ? (e.data.color ?? null) : null); return; }
-      if (e.data?.type !== EMBED_READY) return;
-      frameRef.current?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
-    };
-    window.addEventListener('message', onMsg);
-    return () => { window.removeEventListener('resize', fit); window.removeEventListener('message', onMsg); };
+  const onMessage = useCallback((e: MessageEvent, frame: HTMLIFrameElement | null) => {
+    if (e.data?.type !== EMBED_READY) return;
+    frame?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
   }, [cfg]);
-  const alive = cfg.alive !== false;
-  return (
-    // Not a still (Aidan 2026-09-18: "feels really static and 1D"): the
-    // phone sways in 3D as if held, a soft light drifts across the glass,
-    // and cloud-like blobs move slowly behind it. All CSS, all gentle —
-    // an 11s sway, a 14s light, 40-60s clouds — so nothing reads as a loop.
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: alive ? undefined : 'linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)', perspective: 1400 }}>
-      {alive && (
-        <>
-          <style>{`
-            @keyframes demo-sway { 0% { transform: rotateX(2.6deg) rotateY(-4deg) translate3d(0,0,0) } 25% { transform: rotateX(-2deg) rotateY(3deg) translate3d(7px,-8px,0) } 50% { transform: rotateX(2.4deg) rotateY(4.4deg) translate3d(-5px,6px,0) } 75% { transform: rotateX(-2.8deg) rotateY(-2.4deg) translate3d(5px,9px,0) } 100% { transform: rotateX(2.6deg) rotateY(-4deg) translate3d(0,0,0) } }
-            @keyframes demo-shadow { 0% { transform: translate(-30px, 0) scaleX(1) } 25% { transform: translate(24px, 8px) scaleX(1.06) } 50% { transform: translate(34px, -4px) scaleX(0.96) } 75% { transform: translate(-18px, 10px) scaleX(1.05) } 100% { transform: translate(-30px, 0) scaleX(1) } }
-            @keyframes demo-breathe { 0% { transform: scale(1) translateY(0) } 50% { transform: scale(1.035) translateY(-6px) } 100% { transform: scale(1) translateY(0) } }
-            @keyframes demo-nudge { 0% { transform: none } 35% { transform: translateY(5px) rotateX(-2.6deg) scale(0.99) } 100% { transform: none } }
-            @keyframes demo-fleck { 0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0 } 8% { opacity: var(--o) } 92% { opacity: var(--o) } 100% { transform: translate3d(var(--dx), -115vh, 0) rotate(var(--rot)); opacity: 0 } }
-            .demo-breathe { animation: demo-breathe 22s ease-in-out infinite; transform-style: preserve-3d; }
-            .demo-nudge { animation: demo-nudge 320ms ease-out; transform-style: preserve-3d; }
-            .demo-fleck { position: absolute; bottom: -4vh; border-radius: 2px; animation: demo-fleck var(--d) linear infinite; animation-delay: var(--delay); will-change: transform; }
-            @keyframes demo-glass { 0% { transform: translate(-70%, -30%) rotate(18deg) } 100% { transform: translate(70%, 30%) rotate(18deg) } }
-            @keyframes demo-cloud-a { 0% { transform: translate(-6%, -4%) scale(1) } 50% { transform: translate(8%, 6%) scale(1.12) } 100% { transform: translate(-6%, -4%) scale(1) } }
-            @keyframes demo-cloud-b { 0% { transform: translate(6%, 5%) scale(1.08) } 50% { transform: translate(-9%, -6%) scale(0.96) } 100% { transform: translate(6%, 5%) scale(1.08) } }
-            @keyframes demo-cloud-c { 0% { transform: translate(0, 8%) scale(1) } 50% { transform: translate(5%, -8%) scale(1.15) } 100% { transform: translate(0, 8%) scale(1) } }
-            .demo-sway { animation: demo-sway 11s ease-in-out infinite; transform-style: preserve-3d; will-change: transform; }
-            .demo-shadow { animation: demo-shadow 11s ease-in-out infinite; }
-            .demo-glass { animation: demo-glass 14s ease-in-out infinite alternate; }
-            .demo-cloud-a { animation: demo-cloud-a 46s ease-in-out infinite; }
-            .demo-cloud-b { animation: demo-cloud-b 58s ease-in-out infinite; }
-            .demo-cloud-c { animation: demo-cloud-c 39s ease-in-out infinite; }
-            @media (prefers-reduced-motion: reduce) { .demo-sway, .demo-shadow, .demo-glass, .demo-cloud-a, .demo-cloud-b, .demo-cloud-c { animation: none; } }
-          `}</style>
-          {/* the site's floating celebration icons, behind everything */}
-          <CelebrationBackdrop background="linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)" permanentFade />
-          {/* the clouds, and paper confetti rising slowly through them */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            {FLECKS.map((f, i) => (
-              <span key={i} className="demo-fleck" style={{ left: `${f.left}%`, width: f.w, height: f.h, background: f.color, ['--d' as string]: `${f.dur}s`, ['--delay' as string]: `-${f.delay}s`, ['--dx' as string]: `${f.dx}px`, ['--rot' as string]: `${f.rot}deg`, ['--o' as string]: f.o }} />
-            ))}
-            <div className="demo-cloud-a absolute -left-[10%] -top-[12%] h-[62vh] w-[62vh] rounded-full bg-[#7a76e8] opacity-[0.11] blur-[70px]" />
-            <div className="demo-cloud-b absolute -bottom-[16%] -right-[8%] h-[70vh] w-[70vh] rounded-full bg-[#5fd94a] opacity-[0.09] blur-[80px]" />
-            <div className="demo-cloud-c absolute left-[30%] top-[28%] h-[48vh] w-[48vh] rounded-full bg-[#e5e4f9] opacity-[0.55] blur-[60px]" />
-          </div>
-        </>
-      )}
-      <div style={{ width: PHONE_W + BEZEL * 2, height: PHONE_H + BEZEL * 2, transform: `scale(${scale})` }} className={`relative shrink-0 ${alive ? 'demo-breathe' : ''}`}>
-        {/* the card's light spilling out behind the phone */}
-        {alive && <div aria-hidden className="pointer-events-none absolute -inset-[22%] rounded-full blur-[60px]" style={{ background: glow ? `radial-gradient(ellipse at 50% 45%, ${glow} 0%, transparent 62%)` : 'transparent', opacity: glow ? 0.55 : 0, transition: 'opacity 1.4s ease, background 1.4s ease' }} />}
-        {/* the shadow moves with the sway */}
-        {alive && <div aria-hidden className="demo-shadow pointer-events-none absolute inset-x-[6%] bottom-[-3%] h-[10%] rounded-[50%] bg-[#211D19] opacity-[0.28] blur-[26px]" />}
-        <div ref={nudgeRef} className="relative h-full w-full" style={{ transformStyle: 'preserve-3d' }}>
-        <div style={{ padding: BEZEL, boxShadow: `0 50px 90px -40px rgba(33,29,25,.55), inset 0 0 0 2px rgba(255,255,255,.08)${glow ? `, 0 0 70px -10px ${glow}` : ''}`, transition: 'box-shadow 1.4s ease',
-            // The reflection: the phone mirrored on the surface below, fading fast.
-            ...(alive ? { WebkitBoxReflect: 'below 10px linear-gradient(transparent 74%, rgba(0,0,0,.22))' } : {}) }}
-          className={`relative h-full w-full rounded-[66px] bg-[#1d1a17] ${alive ? 'demo-sway' : ''}`}>
-        <div className="relative h-full w-full overflow-hidden rounded-[52px] bg-keeper-paper">
-          <iframe ref={frameRef} src="/demo?embed=1" title="Celebrait demo" className="absolute inset-0 h-full w-full border-0" />
-          {/* status bar */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[50px] items-center justify-between px-[34px] pt-[4px] text-[16px] font-semibold text-keeper-ink" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-            <span>9:41</span>
-            <span className="flex items-center gap-[6px]">
-              <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor" /><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor" /><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor" /><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor" /></svg>
-              <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0L8 11.5Zm-4.2-4.3L2.3 5.7a8 8 0 0 1 11.4 0l-1.5 1.5a5.9 5.9 0 0 0-8.4 0ZM.9 4.3-.6 2.8a12 12 0 0 1 17.2 0l-1.5 1.5a9.9 9.9 0 0 0-14.2 0Z" fill="currentColor" /></svg>
-              <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><rect x="0.5" y="0.5" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" opacity=".4" /><rect x="2" y="2" width="19" height="8" rx="2" fill="currentColor" /><rect x="24" y="4" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".45" /></svg>
-            </span>
-          </div>
-          {/* dynamic island + home bar */}
-          <div className="pointer-events-none absolute left-1/2 top-[11px] h-[35px] w-[124px] -translate-x-1/2 rounded-full bg-[#0c0b0a]" />
-          <div className="pointer-events-none absolute bottom-[8px] left-1/2 h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-keeper-ink/85" />
-          {/* the light on the glass */}
-          {alive && <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[52px]"><div className="demo-glass absolute -inset-[40%]" style={{ background: 'linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.10) 50%, transparent 58%)' }} /></div>}
-        </div>
-        </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <PhoneMockup src="/demo?embed=1" alive={cfg.alive !== false} onMessage={onMessage} />;
 }
 
 function EmbeddedRun() {

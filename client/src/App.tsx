@@ -127,6 +127,7 @@ const GatePage = lazy(() => import("@/pages/gate"));
 const MakePage = lazy(() => import("@/pages/make"));
 // The self-driving three-card route for social video (admin-only).
 const DemoPage = lazy(() => import("@/pages/demo"));
+const DemoLoopPage = lazy(() => import("@/pages/demo-loop"));
 const AdminResearchPage = lazy(() => import("@/pages/admin-research"));
 const AdminDemoRunsPage = lazy(() => import("@/pages/admin-demo-runs"));
 const AdminSitePage = lazy(() => import("@/pages/admin-site"));
@@ -333,6 +334,9 @@ function Router() {
           <Route path="/make" component={MakePage} />
           {/* THE DEMO: /make driving itself for social recordings. Admin
               only — every load spends a set of generations. */}
+          {/* The home page's looping demo, in the hero's phone. Public: it
+              replays a saved run's own cards, so it spends nothing. */}
+          <Route path="/demo-loop" component={DemoLoopPage} />
           <Route path="/demo">
             <RequireAdmin>
               <DemoPage />

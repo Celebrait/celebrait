@@ -34,6 +34,8 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
+import { PhoneMockup } from '@/components/phone-mockup';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP, MAKE_TIME } from '@shared/pricing';
@@ -71,6 +73,48 @@ interface DoorProps {
 
 /** A studio choice tile. The whole tile is the door (click anywhere);
  *  the fold inside stops the click so it can open without leaving. */
+/** The hero's phone: the featured run replaying itself, with the photo it
+ *  started from tucked at its corner — before and after, side by side.
+ *  Falls back to the still card if no run is featured yet. */
+function HeroDemo() {
+  const [ok, setOk] = useState<boolean | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  // The phone is sized to the window: shorter on phones, where the words
+  // and the button come first.
+  const [cap, setCap] = useState(520);
+  useEffect(() => {
+    const f = () => setCap(window.innerWidth < 640 ? Math.round(window.innerHeight * 0.52) : Math.min(640, Math.round(window.innerHeight * 0.62)));
+    f(); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f);
+  }, []);
+  useEffect(() => {
+    let off = false;
+    fetch('/api/demo-runs/featured')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (off) return; setOk(!!j?.run); setPhoto(j?.run?.photoUrl ?? null); })
+      .catch(() => { if (!off) setOk(false); });
+    return () => { off = true; };
+  }, []);
+  return (
+    <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[330px]">
+      {ok === false ? (
+        <img src="/hero-card-front.webp" alt="A Celebrait card" crossOrigin="anonymous" className="w-full rounded-2xl shadow-[0_30px_70px_-30px_rgba(33,29,25,0.45)]" />
+      ) : (
+        <div className={`transition-opacity duration-700 ${ok ? 'opacity-100' : 'opacity-0'}`}>
+          <PhoneMockup src="/demo-loop" title="Watch a Celebrait card being made" fit="inline" maxHeight={cap} />
+        </div>
+      )}
+      {photo && (
+        <figure className="pointer-events-none absolute bottom-4 -left-8 w-[33%] -rotate-6 sm:-left-16">
+          <div className="rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_16px_36px_-12px_rgba(33,29,25,0.45)]">
+            <img src={photo} alt="The everyday photo the card was made from" crossOrigin="anonymous" className="block aspect-[3/4] w-full rounded-sm object-cover" />
+          </div>
+          <figcaption className="mt-1.5 text-center text-[11px] font-medium leading-tight text-keeper-meta">started as this</figcaption>
+        </figure>
+      )}
+    </div>
+  );
+}
+
 function Door({ href, icon: Icon, chip, title, line, time, effort, price, photo, points, cta, fine, proof, lead = false }: DoorProps) {
   const [, navigate] = useLocation();
   const go = () => navigate(href);
@@ -85,7 +129,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, photo,
   return (
     <div
       onClick={go}
-      className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all hover:-translate-y-0.5 sm:p-6 ${tile}`}
+      className={`group flex cursor-pointer flex-col rounded-xl border-2 p-4 text-left transition-all duration-200 hover:-translate-y-1.5 hover:shadow-[0_26px_60px_-30px_rgba(33,29,25,0.45)] sm:p-6 ${tile}`}
     >
       <div className="flex items-start justify-between gap-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:h-11 sm:w-11 bg-brand-muted text-keeper-gold`}>
@@ -168,22 +212,43 @@ export default function GatePage() {
       <KeeperHeader />
       <main className={HERO_MAIN}>
         <section className={`px-6 pb-16 md:pb-24 ${HERO_TOP}`}>
-          <div className="mx-auto max-w-4xl text-left">
-            <p className={EYEBROW}>Unbinnable Greetings Cards</p>
-            {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
-                rotation needed). Bold ink, then italic medium ink. */}
-            <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
-              Stop settling for
-              <br />
-              <span className="font-medium italic">“that one will do”</span>
-            </h1>
-            <p className={`max-w-[40rem] ${SUB}`}>
-              Celebrait offers two ways to design a greetings card that's unique to them.
-              Before we create one… what kind of card buyer are you?
-            </p>
+          {/* The product goes first (Aidan 2026-09-21: the page "needs to be
+              more engaging and ALIVE"). Words on the left, a phone on the
+              right making a real card, on a loop. */}
+          {/* Phones read headline, phone, then the rest — the demo lands
+              before the fold. Desktop keeps the words together on the left. */}
+          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-12">
+            <div className="text-left md:col-start-1 md:row-start-1 md:self-end">
+              <p className={EYEBROW}>Unbinnable Greetings Cards</p>
+              {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
+                  rotation needed). Bold ink, then italic medium ink. */}
+              <h1 className={`mt-4 max-w-[18ch] text-[clamp(28px,4.4vw,54px)] leading-[1.06] ${DISPLAY}`}>
+                Stop settling for
+                <br />
+                <span className="font-medium italic">“that one will do”</span>
+              </h1>
+            </div>
+            <div className="md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
+              <HeroDemo />
+            </div>
+            <div className="text-left md:col-start-1 md:row-start-2 md:self-start">
+              <p className={`max-w-[34rem] !mt-0 ${SUB}`}>
+                Cards made for one person — their name, their in-jokes, their photo — printed and posted to their door.
+                Watch one get made, then pick your way in.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px] text-keeper-meta">
+                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Three designs, you pick</span>
+                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Printed and posted</span>
+                <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> From {maker}</span>
+              </div>
+              <a href="#doors" className="mt-6 inline-flex items-center gap-2 rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover">
+                Make one for someone <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
           </div>
 
-          <div id="doors" className="mx-auto mt-8 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-10 md:grid-cols-[1fr_1.3fr] md:items-stretch">
+          <p className={`mx-auto mt-14 max-w-4xl text-center md:mt-20 ${EYEBROW}`}>Two ways in · what kind of card buyer are you?</p>
+          <div id="doors" className="mx-auto mt-4 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-6 md:grid-cols-[1fr_1.3fr] md:items-stretch">
             <Door
               href="/make"
               icon={Sparkles}

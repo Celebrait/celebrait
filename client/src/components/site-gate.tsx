@@ -17,7 +17,7 @@ const ComingSoonPage = lazy(() => import('@/pages/coming-soon'));
 const OPEN: RegExp[] = [
   /^\/login/, /^\/admin/, /^\/demo/, /^\/privacy-policy/, /^\/terms-of-service/, /^\/contact/,
   /^\/c\//, /^\/card\/[^/]+\/view/, /^\/order\//, /^\/checkout\/(success|cancelled)/,
-  /^\/card-capture/, /^\/og(\/|$)/,
+  /^\/card-capture/, /^\/og(\/|$)/, /^\/demo-loop/,
 ];
 
 interface LockState { locked: boolean; allowed: boolean; hasPassword: boolean }

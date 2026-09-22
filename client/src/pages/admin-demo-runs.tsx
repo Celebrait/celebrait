@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Home } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface Run {
@@ -22,7 +22,10 @@ interface Run {
 export default function AdminDemoRunsPage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [busy, setBusy] = useState(true);
-  const load = () => apiRequest('GET', '/api/admin/demo-runs').then((r) => r.json()).then((j) => setRuns(j.runs ?? [])).finally(() => setBusy(false));
+  const [featured, setFeatured] = useState<number | null>(null);
+  const load = () => apiRequest('GET', '/api/admin/demo-runs').then((r) => r.json()).then((j) => { setRuns(j.runs ?? []); setFeatured(j.featuredId ?? null); }).finally(() => setBusy(false));
+  // The home page loops the featured run in a phone (Aidan 2026-09-21).
+  const feature = async (id: number, on: boolean) => { await apiRequest('PUT', `/api/admin/demo-runs/${id}/feature`, { featured: on }); void load(); };
   useEffect(() => { void load(); }, []);
   const remove = async (id: number) => { if (!confirm(`Delete run ${id}?`)) return; await apiRequest('DELETE', `/api/admin/demo-runs/${id}`); void load(); };
 
@@ -45,6 +48,9 @@ export default function AdminDemoRunsPage() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-display text-lg font-bold text-keeper-ink">#{r.id} · {r.label ?? 'Untitled run'}</h2>
                 <div className="flex items-center gap-3 text-xs text-keeper-meta">
+                  {featured === r.id
+                    ? <button type="button" onClick={() => feature(r.id, false)} className="inline-flex items-center gap-1 rounded-full border border-brand bg-brand-muted px-2.5 py-0.5 font-semibold text-brand-dark" title="Click to stop featuring"><Home className="h-3 w-3" /> On the home page</button>
+                    : <button type="button" onClick={() => feature(r.id, true)} className="inline-flex items-center gap-1 rounded-full border border-keeper-hair px-2.5 py-0.5 hover:border-brand hover:text-brand-dark"><Home className="h-3 w-3" /> Feature on the home page</button>}
                   <span>{new Date(r.created_at).toLocaleString('en-GB')}</span>
                   <span className="rounded-full border border-keeper-hair px-2 py-0.5">{r.mode ?? 'auto'}</span>
                   <button type="button" onClick={() => remove(r.id)} className="text-stone-400 hover:text-accent-red-dark" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
