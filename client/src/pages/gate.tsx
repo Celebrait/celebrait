@@ -176,7 +176,9 @@ export default function GatePage() {
             {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
                 rotation needed). Bold ink, then italic medium ink. */}
             <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
-              Stop settling for
+              {/* One word in violet-to-ink; the quote back to medium italic
+                  (Aidan 2026-09-22). */}
+              <span className="bg-gradient-to-r from-[#7a76e8] via-[#6b67e0] to-[#211D19] bg-clip-text pb-[0.06em] text-transparent">Stop</span> settling for
               <br />
               <span className="font-medium italic">“that one will do”</span>
             </h1>
@@ -211,11 +213,7 @@ export default function GatePage() {
             </div>
           )}
 
-          {/* A proper headline over the doors, left with everything else —
-              the site's display face, a step down from the hero. */}
-          <h2 className={`mx-auto mt-14 max-w-4xl text-left text-[clamp(22px,3vw,34px)] leading-[1.14] md:mt-20 ${DISPLAY}`}>
-            Two ways in · what kind of card buyer are you?
-          </h2>
+          <p className={`mx-auto mt-14 max-w-4xl text-left md:mt-20 ${EYEBROW}`}>Two ways in · what kind of card buyer are you?</p>
           <div id="doors" className="mx-auto mt-4 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-6 md:grid-cols-[1fr_1.3fr] md:items-stretch">
             <Door
               href="/make"
