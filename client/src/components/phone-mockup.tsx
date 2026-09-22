@@ -1,9 +1,9 @@
 // client/src/components/phone-mockup.tsx — THE HANDHELD PHONE
 //
 // An iPhone-sized frame around an iframe, alive: it sways in 3D as if
-// held, breathes, has a light drifting over the glass, a reflection on
-// the surface below, clouds and paper flecks behind, dips on every tap
-// and glows with the colour of the card on screen. Built for /demo
+// held, breathes, has a reflection on the surface below, clouds and
+// paper flecks behind, dips on every tap, and glows with the colour of
+// the card on screen. No shine on the glass (Aidan 2026-09-22). Built for /demo
 // (2026-09-18, Aidan: "feels really static and 1D") and now shared with
 // the home page's looping demo (2026-09-21).
 //
@@ -35,7 +35,6 @@ const MOTION_CSS = `
   @keyframes demo-breathe { 0% { transform: scale(1) translateY(0) } 50% { transform: scale(1.035) translateY(-6px) } 100% { transform: scale(1) translateY(0) } }
   @keyframes demo-nudge { 0% { transform: none } 35% { transform: translateY(5px) rotateX(-2.6deg) scale(0.99) } 100% { transform: none } }
   @keyframes demo-fleck { 0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0 } 8% { opacity: var(--o) } 92% { opacity: var(--o) } 100% { transform: translate3d(var(--dx), var(--rise), 0) rotate(var(--rot)); opacity: 0 } }
-  @keyframes demo-glass { 0% { transform: translate(-70%, -30%) rotate(18deg) } 100% { transform: translate(70%, 30%) rotate(18deg) } }
   @keyframes demo-cloud-a { 0% { transform: translate(-6%, -4%) scale(1) } 50% { transform: translate(8%, 6%) scale(1.12) } 100% { transform: translate(-6%, -4%) scale(1) } }
   @keyframes demo-cloud-b { 0% { transform: translate(6%, 5%) scale(1.08) } 50% { transform: translate(-9%, -6%) scale(0.96) } 100% { transform: translate(6%, 5%) scale(1.08) } }
   @keyframes demo-cloud-c { 0% { transform: translate(0, 8%) scale(1) } 50% { transform: translate(5%, -8%) scale(1.15) } 100% { transform: translate(0, 8%) scale(1) } }
@@ -44,11 +43,9 @@ const MOTION_CSS = `
   .demo-fleck { position: absolute; bottom: -4%; border-radius: 2px; animation: demo-fleck var(--d) linear infinite; animation-delay: var(--delay); will-change: transform; }
   .demo-sway { animation: demo-sway 11s ease-in-out infinite; transform-style: preserve-3d; will-change: transform; }
   .demo-shadow { animation: demo-shadow 11s ease-in-out infinite; }
-  .demo-glass { animation: demo-glass 14s ease-in-out infinite alternate; }
   .demo-cloud-a { animation: demo-cloud-a 46s ease-in-out infinite; }
   .demo-cloud-b { animation: demo-cloud-b 58s ease-in-out infinite; }
   .demo-cloud-c { animation: demo-cloud-c 39s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce) { .demo-sway, .demo-shadow, .demo-glass, .demo-breathe, .demo-fleck, .demo-cloud-a, .demo-cloud-b, .demo-cloud-c { animation: none; } }
 `;
 
 export interface PhoneMockupProps {
@@ -157,8 +154,6 @@ export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit =
               {/* dynamic island + home bar */}
               <div className="pointer-events-none absolute left-1/2 top-[11px] h-[35px] w-[124px] -translate-x-1/2 rounded-full bg-[#0c0b0a]" />
               <div className="pointer-events-none absolute bottom-[8px] left-1/2 h-[5px] w-[136px] -translate-x-1/2 rounded-full bg-keeper-ink/85" />
-              {/* the light on the glass */}
-              {alive && <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[52px]"><div className="demo-glass absolute -inset-[40%]" style={{ background: 'linear-gradient(100deg, transparent 42%, rgba(255,255,255,0.10) 50%, transparent 58%)' }} /></div>}
             </div>
           </div>
         </div>
