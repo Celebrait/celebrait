@@ -32,7 +32,7 @@ import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, Refres
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
+import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY, H1 } from '@/pages/doorway';
 import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
 import { useSeo } from '@/lib/use-seo';
@@ -122,7 +122,7 @@ function Door({ href, icon: Icon, chip, title, line, time, effort, price, photo,
       <Link
         href={href}
         onClick={stop}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-go px-6 py-2.5 text-[15px] sm:mt-5 sm:py-3 font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold"
+        className={`${BTN_PRIMARY} mt-4 w-full sm:mt-5`}
       >
         {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </Link>
@@ -175,7 +175,7 @@ export default function GatePage() {
             <p className={EYEBROW}>Unbinnable Greetings Cards</p>
             {/* "Stop settling for" + the one quote (Aidan 2026-09-04: no
                 rotation needed). Bold ink, then italic medium ink. */}
-            <h1 className={`mt-4 max-w-[22ch] text-[clamp(28px,5vw,58px)] leading-[1.06] ${DISPLAY}`}>
+            <h1 className={`mt-4 max-w-[22ch] ${H1} ${DISPLAY}`}>
               {/* One word in violet-to-ink; the quote back to medium italic
                   (Aidan 2026-09-22). */}
               <span className="bg-gradient-to-r from-[#7a76e8] via-[#6b67e0] to-[#211D19] bg-clip-text pb-[0.06em] text-transparent">Stop</span> settling for

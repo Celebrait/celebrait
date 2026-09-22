@@ -38,6 +38,14 @@ export const HERO_MAIN = 'pt-32';
 export const HERO_TOP = 'pt-10 md:pt-20';
 export const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold';
 export const SUB = 'mt-4 text-[16px] leading-relaxed text-keeper-body md:mt-5 md:text-[18px]';
+/** THE PRIMARY BUTTON, once (2026-09-22 consistency pass — the photo LP,
+ *  /create and the gate had three sizes of the same violet pill). Violet
+ *  is the only primary; green stays for readiness and ticks, ink for
+ *  quiet secondary actions. `BTN_PRIMARY_LG` is the hero size. */
+export const BTN_PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-go px-7 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold';
+export const BTN_PRIMARY_LG = 'inline-flex items-center justify-center gap-2 rounded-full bg-go px-8 py-3.5 text-[16px] font-semibold text-go-foreground transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold';
+/** The hero headline, one scale on every public page. */
+export const H1 = 'text-[clamp(28px,5vw,58px)] leading-[1.06]';
 
 export const OCCASIONS = [
   { slug: 'christmas', label: 'Christmas' },

@@ -55,6 +55,9 @@ import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
 import { GestureHints } from '@/components/gesture-hints';
+// The shared kit: display face, hero headline scale, the one primary
+// button. This page kept its own copies, which is how it drifted (2026-09-22).
+import { DISPLAY, H1, BTN_PRIMARY, BTN_PRIMARY_LG } from '@/pages/doorway';
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
 // the JS bundle instead of after it. On prod that parallel start is
@@ -106,7 +109,6 @@ const Card3DViewer = lazy(() =>
 const EASE = [0.22, 1, 0.36, 1] as const;
 // Fraunces Bold for every display headline (Kevin 2026-07-04). Serif
 // wants gentler negative tracking than the grotesque did.
-const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 
 function Rise({
   children,
@@ -333,9 +335,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
   const authed = !isLoading && isAuthenticated;
   // Violet go primary (2026-09-04): one primary treatment across the
   // gate, /create and this page; the header's ink pill stays secondary.
-  const cls = `inline-flex items-center justify-center rounded-full bg-go font-semibold text-go-foreground shadow-[0_10px_30px_-12px_rgba(92,87,212,0.5)] transition-colors hover:bg-go-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-keeper-gold ${
-    large ? 'px-9 py-4 text-base' : 'px-7 py-3 text-[15px]'
-  }`;
+  const cls = large ? BTN_PRIMARY_LG : BTN_PRIMARY;
   return authed ? (
     <Link href="/studio/new-card" className={cls} data-testid="keeper-cta">
       Make a card — it's free
@@ -903,7 +903,7 @@ function HeroSection() {
               short enough to fit at all breakpoints — the layout can
               never reflow, so the 3D card column never moves. */}
           <h1
-            className={`mt-4 text-[clamp(44px,7vw,74px)] leading-[1.04] ${DISPLAY}`}
+            className={`mt-4 ${H1} ${DISPLAY}`}
           >
             Put
             <br />
