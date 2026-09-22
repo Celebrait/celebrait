@@ -28,7 +28,7 @@
 
 import { type MouseEvent } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, RefreshCw, PenLine, Zap, LockOpen, Users, ScanFace, Gem } from 'lucide-react';
+import { Camera, Sparkles, ArrowRight, ChevronDown, Check, Clock, Wrench, RefreshCw, PenLine, Zap, LockOpen, Users, ScanFace, Gem, Stamp, Link2 } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -181,12 +181,23 @@ export default function GatePage() {
               <span className="font-medium italic">“that one will do”</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
-              Cards made for one person — their name, their in-jokes, their photo — printed and posted to their door.
+              Mind-blowing personalised cards, in minutes. Start with a photo and describe any scene —
+              or say a few words about them and pick from three.
             </p>
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px] text-keeper-meta">
-              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Three designs, you pick</span>
-              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> Printed and posted</span>
-              <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cta" /> From {maker}</span>
+            {/* Two promises, the icon in a soft violet disc (a step up from
+                the photo lander's plain chips, same family). */}
+            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+              {[
+                { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted anywhere in the UK from <span className="font-semibold">£4.99</span></> },
+                { icon: Link2, label: <>Free digital link</> },
+              ].map(({ icon: Icon, label }, n) => (
+                <span key={n} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/80 py-1.5 pl-1.5 pr-4 text-[13.5px] text-keeper-ink shadow-[0_1px_2px_rgba(33,29,25,0.04)]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark">
+                    <Icon className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  {label}
+                </span>
+              ))}
             </div>
           </div>
 
