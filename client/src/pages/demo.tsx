@@ -259,16 +259,23 @@ async function bringIn(el: HTMLElement, settle: number) {
 }
 export async function tap(el: HTMLElement, settle: number, hold: number) {
   await bringIn(el, settle);
-  await zoomTo(el);
   const r = el.getBoundingClientRect();
   ring(r.left + Math.min(r.width * 0.5, 140), r.top + r.height / 2);
+  // The punch-in RIDES THE PRESS rather than leading it (Aidan
+  // 2026-09-23: "make the zoom effect happen when we click"). It used to
+  // finish moving in and then sit still waiting for the tap, which on a
+  // fast cut reads as the video stalling. Started, not awaited, so the
+  // camera and the finger move together; the origin is measured before
+  // the dip, so the press can't drag the framing with it.
+  const punch = zoomTo(el);
   // A press you can see: the element dips while the ring flashes, and only
   // acts once the flash is over — so nothing carries into the next screen.
   const prev = el.style.transform; const prevT = el.style.transition;
   el.style.transition = 'transform 140ms ease'; el.style.transform = 'scale(0.96)';
   await sleep(200);
   el.style.transform = prev; setTimeout(() => { el.style.transition = prevT; }, 200);
-  await sleep(RING_MS - 200 + 60);
+  await punch;
+  await sleep(Math.max(0, RING_MS - ZOOM_MS + 60));
   clearRings();
   el.click();
   tellTap(); // the phone dips AFTER the click lands, never under the finger
