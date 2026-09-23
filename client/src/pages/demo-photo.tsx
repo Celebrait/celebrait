@@ -404,13 +404,17 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
     // The card.
     await until('card', 300_000);
-    // The card TURNS, it does not open (Aidan 2026-09-23: "just let it
-    // spin… nice clean full rotation"). Opening it mid-spin was the
-    // weirdness: the spread is twice as wide as the card, so it swung
-    // straight off both edges of the frame. A turn and a bit, so the
-    // front comes back round to face the camera before the tap.
+    // ONE full turn, then it opens. Held to a whole revolution rather
+    // than a turn-and-a-bit so the camera is back round on the front
+    // before the cover swings — opening mid-spin was the original
+    // weirdness. A few degrees of drift from frame-rate variance reads
+    // as a hand holding it, not as an error.
     await findDemo('card');
-    mark('card: turning'); await sleep(FULL_TURN_MS * 1.15);
+    mark('card: turning'); await sleep(FULL_TURN_MS);
+    setCardOpen(true); mark('card: open');
+    // The open spread is the payoff — the inside is the half nobody
+    // else shows — so it gets a proper hold, not a glance.
+    await sleep(b.look * 3.8);
     await tap(await findDemo('post'), b.settle, 300);
     await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
     mark('end', 'end');
@@ -623,13 +627,19 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
                     camera sat close enough that a perspective lens blew
                     the near edge up past the frame as the card came
                     side-on. Further back, the whole turn stays in shot.
+                  · it turns, THEN opens, and the spin stops as it does —
+                    opening mid-spin was the original weirdness. The
+                    open spread runs off the sides and that is fine
+                    (Aidan 2026-09-23: "the card can open off screen so
+                    no need to be smaller"); shrinking the card to fit a
+                    double-width spread would cost the whole turn.
                 NB the product's viewer still has no orbit and no spin
                 (card interaction model) — this is the demo only. */}
             <div data-demo="card" className="relative h-[min(60vh,110vw)] w-full shrink-0">
               <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
                 onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
                 backLogo
-                autoRotate autoRotateSpeed={8}
+                autoRotate={!cardOpen} autoRotateSpeed={8}
                 closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
             </div>
             <div className="mt-4 shrink-0 px-5">
