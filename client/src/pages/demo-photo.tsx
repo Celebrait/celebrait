@@ -40,6 +40,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { CardOnTable } from '@/components/card-on-table';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
@@ -209,6 +210,10 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
   const [cardPainted, setCardPainted] = useState(false);
+  /** After the turn the card settles onto a real table — a photograph
+   *  with the finished art warped into it, which sells the object far
+   *  better than a card floating on cream (Aidan 2026-09-23). */
+  const [landed, setLanded] = useState(false);
   const [error, setError] = useState('');
 
   // The picker sheet, shared with the three-card route.
@@ -415,6 +420,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     // front comes back round to face the camera before the tap.
     await findDemo('card');
     mark('card: turning'); await sleep(FULL_TURN_MS * 1.15);
+    setLanded(true); mark('card: on the table'); await sleep(b.look * 1.8);
     await tap(await findDemo('post'), b.settle, 300);
     await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
     mark('end', 'end');
@@ -641,11 +647,17 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
                 NB the product's viewer still has no orbit and no spin
                 (card interaction model) — this is the demo only. */}
             <div data-demo="card" className="relative h-[min(60vh,110vw)] w-full shrink-0">
-              <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
-                onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
-                backLogo
-                autoRotate autoRotateSpeed={8}
-                closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
+              <motion.div className="absolute inset-0" animate={{ opacity: landed ? 0 : 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
+                <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
+                  onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
+                  backLogo
+                  autoRotate autoRotateSpeed={8}
+                  closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
+              </motion.div>
+              <motion.div className="absolute inset-0 flex items-center" initial={false}
+                animate={{ opacity: landed ? 1 : 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
+                <CardOnTable frontImageUrl={frontUrl} className="w-full" />
+              </motion.div>
             </div>
             <div className="mt-4 shrink-0 px-5">
               <button type="button" data-demo="post" className={`${PRIMARY} demo-pulse w-full`}
