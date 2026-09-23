@@ -1,7 +1,7 @@
 import { KeeperHeader } from "@/components/landing/keeper-header";
 import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
-import { CONTROLLER, TERMS_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
+import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, TERMS_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function TermsOfService() {
   return (
@@ -75,8 +75,9 @@ export default function TermsOfService() {
               </h2>
               <p className="text-keeper-body leading-relaxed mb-4">
                 These Terms of Service ("Terms") are a legally binding agreement
-                between you and {CONTROLLER.legalName}, trading as{" "}
-                {CONTROLLER.tradingAs} ("we", "us", "our"), for your use of{" "}
+                between you and{" "}
+                {ENTITY_NAMED ? `${CONTROLLER.legalName}, trading as ${CONTROLLER.tradingAs}` : CONTROLLER.tradingAs}{" "}
+                ("we", "us", "our"), for your use of{" "}
                 {CONTROLLER.website} and our AI greeting-card service (the
                 "Service"). By creating an account, uploading content, or placing
                 an order, you agree to these Terms. If you do not agree, please
@@ -84,12 +85,13 @@ export default function TermsOfService() {
               </p>
               <div className="bg-brand-muted/30 p-4 rounded-lg text-keeper-body">
                 <p>
-                  <strong>{CONTROLLER.legalName}</strong> (trading as{" "}
-                  {CONTROLLER.tradingAs})
+                  <strong>{PARTY}</strong>
+                  {ENTITY_NAMED && <> (trading as {CONTROLLER.tradingAs})</>}
                 </p>
-                <p>{CONTROLLER.address}</p>
-                <p>Company number: {CONTROLLER.companyNumber}</p>
+                {CONTROLLER.address && <p>{CONTROLLER.address}</p>}
+                {CONTROLLER.companyNumber && <p>Company number: {CONTROLLER.companyNumber}</p>}
                 <p>Email: {CONTROLLER.contactEmail}</p>
+                {!ENTITY_NAMED && <p className="mt-2 text-sm">{PRE_LAUNCH_NOTE}</p>}
               </div>
               <p className="text-keeper-body leading-relaxed mt-4">
                 Please also read our{" "}

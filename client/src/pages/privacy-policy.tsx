@@ -1,7 +1,7 @@
 import { KeeperHeader } from "@/components/landing/keeper-header";
 import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
-import { CONTROLLER, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
+import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function PrivacyPolicy() {
   return (
@@ -65,18 +65,22 @@ export default function PrivacyPolicy() {
                 1. Who we are
               </h2>
               <p className="text-keeper-body leading-relaxed">
-                {CONTROLLER.legalName}, trading as {CONTROLLER.tradingAs} ("we",
-                "us", "our"), is the data controller responsible for your
+                {ENTITY_NAMED ? `${CONTROLLER.legalName}, trading as ${CONTROLLER.tradingAs}` : CONTROLLER.tradingAs} ("we",
+                "us", "our") is the data controller responsible for your
                 personal information under the UK General Data Protection
                 Regulation (UK GDPR) and the Data Protection Act 2018.
               </p>
+              {/* Every line here is dropped rather than printed as a
+                  [placeholder] while the entity is unset — this page is
+                  outside the pre-launch lock, so real people read it. */}
               <div className="bg-brand-muted/30 p-4 rounded-lg mt-4 text-keeper-body">
                 <p>
-                  <strong>{CONTROLLER.legalName}</strong>
+                  <strong>{PARTY}</strong>
                 </p>
-                <p>{CONTROLLER.address}</p>
+                {CONTROLLER.address && <p>{CONTROLLER.address}</p>}
                 <p>Email: {CONTROLLER.privacyEmail}</p>
-                <p>ICO registration: {CONTROLLER.icoNumber}</p>
+                {CONTROLLER.icoNumber && <p>ICO registration: {CONTROLLER.icoNumber}</p>}
+                {!ENTITY_NAMED && <p className="mt-2 text-sm">{PRE_LAUNCH_NOTE}</p>}
               </div>
             </section>
 
@@ -484,10 +488,10 @@ export default function PrivacyPolicy() {
                 </p>
                 <div className="bg-brand-muted/30 p-4 rounded-lg">
                   <p>
-                    <strong>{CONTROLLER.legalName}</strong> (trading as{" "}
-                    {CONTROLLER.tradingAs})
+                    <strong>{PARTY}</strong>
+                    {ENTITY_NAMED && <> (trading as {CONTROLLER.tradingAs})</>}
                   </p>
-                  <p>{CONTROLLER.address}</p>
+                  {CONTROLLER.address && <p>{CONTROLLER.address}</p>}
                   <p>Email: {CONTROLLER.privacyEmail}</p>
                   <p>Website: {CONTROLLER.website}</p>
                 </div>
