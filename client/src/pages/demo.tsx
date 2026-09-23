@@ -240,17 +240,62 @@ export const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="$
 let zoomRoot: HTMLElement | null = null;
 let zoomOn = false;
 const ZOOM_MS = 340;
-export async function zoomTo(el: HTMLElement, scale = 1.3) {
+/** Clear space left around the thing being punched in on. */
+const ZOOM_PAD = 22;
+/** Below this there is nothing to see — hold still rather than nudge. */
+const ZOOM_MIN = 1.05;
+export async function zoomTo(el: HTMLElement, scale = 1.22) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   const r = el.getBoundingClientRect(); const rr = root.getBoundingClientRect();
-  root.style.transformOrigin = `${r.left + r.width / 2 - rr.left}px ${r.top + r.height / 2 - rr.top}px`;
-  root.style.transform = `scale(${scale})`;
+  // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
+  // 2026-09-23: "when zooming it crops … we get a nice view of each
+  // element"). Scaling about the element's own centre pushed anything
+  // wider than viewport/scale off BOTH edges, so a full-width question
+  // lost its first letter and both sides of its box.
+  //
+  // Two fixes. The scale is capped at what still fits the element with
+  // padding, so a near-full-width textarea correctly barely moves while
+  // a chip or a tile still gets the full punch. And the frame is
+  // TRANSLATED to bring the element to the middle, rather than scaled
+  // away from wherever it happened to sit.
+  const fit = Math.min(
+    (rr.width - ZOOM_PAD * 2) / Math.max(1, r.width),
+    (rr.height - ZOOM_PAD * 2) / Math.max(1, r.height),
+  );
+  const s = Math.max(1, Math.min(scale, fit));
+  if (s < ZOOM_MIN) { await sleep(ZOOM_MS); return; }
+  const ex = r.left + r.width / 2 - rr.left;
+  const ey = r.top + r.height / 2 - rr.top;
+  // Centre the element, then hold the camera inside the content: with
+  // origin 0 0 the scaled frame spans [t, t + size*s], so keeping t in
+  // [size*(1-s), 0] means an edge of the page can never swing into
+  // shot. Without it, punching into something near the top or bottom
+  // panned onto bare background.
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const tx = clamp(rr.width / 2 - ex * s, rr.width * (1 - s), 0);
+  const ty = clamp(rr.height / 2 - ey * s, rr.height * (1 - s), 0);
+  root.style.transformOrigin = '0 0';
+  root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
   await sleep(ZOOM_MS);
 }
 export async function zoomOut(wait = true) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   root.style.transform = 'none';
   if (wait) await sleep(ZOOM_MS);
+}
+/** Home the camera with NO easing. A tap usually changes the screen,
+ *  and the eased pull-back (340ms) outlasts the cross-fade, so the new
+ *  screen mounted inside the old framing and arrived magnified and cut
+ *  off — exactly the crop Aidan reported on 2026-09-23. Snapping means
+ *  every screen is born at 1:1, and the jump is hidden under the fade
+ *  that is already running. */
+export function zoomHome() {
+  const root = zoomRoot; if (!root || !zoomOn) return;
+  const prev = root.style.transition;
+  root.style.transition = 'none';
+  root.style.transform = 'none';
+  void root.offsetWidth; // commit before the easing goes back on
+  root.style.transition = prev;
 }
 
 async function bringIn(el: HTMLElement, settle: number) {
@@ -279,9 +324,15 @@ export async function tap(el: HTMLElement, settle: number, hold: number) {
   clearRings();
   el.click();
   tellTap(); // the phone dips AFTER the click lands, never under the finger
-  await sleep(Math.max(140, hold * 0.35));
-  await zoomOut(false);
-  await sleep(Math.max(ZOOM_MS, hold * 0.65));
+  // Release the camera ON the click, not a beat later. A tap usually
+  // changes the screen, and holding the punch-in through that change
+  // meant the NEW screen mounted inside the old framing — which is what
+  // "when zooming it crops" looked like on the inside step: a card
+  // still fading out while the fields underneath arrived magnified and
+  // cut off at both edges. In / out on the tap also reads as a pulse,
+  // which is what a press should feel like.
+  zoomHome();
+  await sleep(Math.max(ZOOM_MS, hold * 0.8));
 }
 /** Type into a React-controlled input, one character at a time. */
 export async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
