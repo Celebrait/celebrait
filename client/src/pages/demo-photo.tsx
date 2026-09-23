@@ -9,11 +9,16 @@
 // is a genuinely different run. No concepts, no carousel, no picking —
 // one card, built from a real photograph:
 //
-//   hook → who is it for → their photo (picked, uploaded, checked)
-//        → describe the scene, in their own words
-//        → what the front says → the front draws (~30–120s)
-//        → there they are → the inside → the inside draws
-//        → the 3D card, tapped open → post it → on the way.
+//   hook → who is it for (one box) → who's on the card → upload their
+//        photo → describe the front → text on the front → the front
+//        draws (~30–120s) → there they are → text on the inside → the
+//        inside draws → the 3D card, tapped open → post it → on the way.
+//
+// Stripped back on 2026-09-23 to headings only: no sub-lines under the
+// questions and no "analysing your photo" screen. The upload and the
+// likeness check still run — they just run behind the next question
+// instead of behind a spinner, and there is plenty of typing time
+// before the front generation needs either of them.
 //
 // The engine is the REAL studio one, driven exactly as the maker drives
 // it: a fresh draft per run (POST /api/studio/drafts), the photo through
@@ -33,7 +38,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Camera, Sparkles, Send, Loader2, User, Users, AlertTriangle } from 'lucide-react';
+import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -41,7 +46,6 @@ import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
-import { likenessNoteForSet, type PhotoSetNote } from '@/lib/photo-likeness';
 import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
@@ -161,25 +165,8 @@ async function pollDraft(id: number, done: Set<string>, timeoutMs: number, onTic
   throw new Error('The card took too long');
 }
 
-/** The live studio never calls /api/photos/assess when signed in — the
- *  analysis lands on the photo row after the upload returns and the step
- *  polls the library for it. Same here, with the product's own 30s
- *  fail-open gate (ANALYSIS_GATE_MS): if the check hasn't settled by
- *  then the customer is let through, so the film is let through too. */
-const ANALYSIS_GATE_MS = 30_000;
-async function waitForVerdict(photoId: number, mode: PhotoMode): Promise<PhotoSetNote | null> {
-  const t0 = Date.now();
-  while (Date.now() - t0 < ANALYSIS_GATE_MS) {
-    const list = (await api('GET', '/api/user/photos').catch(() => null)) as Array<{ id: number; analyzedAt?: string | null; likeness?: unknown }> | null;
-    const row = list?.find((p) => p.id === photoId);
-    if (row?.analyzedAt) return likenessNoteForSet([row as never], mode);
-    await sleep(1500);
-  }
-  return null;
-}
-
 type Phase =
-  | 'countdown' | 'who' | 'mode' | 'photo' | 'checking' | 'scene' | 'front'
+  | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front'
   | 'front-generating' | 'front-result' | 'inside' | 'inside-generating'
   | 'card' | 'sent';
 
@@ -203,7 +190,6 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
   // What the person on screen fills in.
   const [name, setName] = useState('');
-  const [occasion, setOccasion] = useState('');
   const [scene, setScene] = useState('');
   const [frontText, setFrontText] = useState('');
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
@@ -215,9 +201,6 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   // the product (nothing is written to the draft until it's chosen).
   const [photoMode, setPhotoMode] = useState<PhotoMode>('one_person');
   const photoModeRef = useRef<PhotoMode>('one_person'); photoModeRef.current = photoMode;
-  /** The real traffic-light verdict off the uploaded photo row — the
-   *  same note the customer reads, not a stand-in. Null = still looking. */
-  const [note, setNote] = useState<PhotoSetNote | null>(null);
   const [frontUrl, setFrontUrl] = useState<string | null>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
@@ -298,7 +281,11 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
   const usePhoto = async (dataUrl: string) => {
     setPhotoData(dataUrl);
-    setPhase('checking'); mark('photo: checking', 'checking');
+    // Straight on to the scene — no "analysing" screen (Aidan
+    // 2026-09-23). The upload and the likeness check still happen, they
+    // just happen behind the next question instead of behind a spinner,
+    // and there is plenty of typing time before the front needs them.
+    setPhase('scene'); mark('scene', 'scene');
     const id = await ensureDraft();
     const photoId = await uploadPhoto(dataUrl);
     await api('PATCH', `/api/studio/drafts/${id}`, {
@@ -313,16 +300,6 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     // the film is that a person types one plain sentence and gets a
     // card; offering them three of ours first muddies that, and the
     // chips cost a screen's worth of reading time on a 30s cut.
-    // The real verdict, the way the signed-in studio gets it: the
-    // analysis lands on the photo row after the upload returns, so poll
-    // the library until analyzedAt is stamped, then read the same note
-    // the customer reads. Fails open like the product's 30s gate — a
-    // demo must never stall on a check that's only advisory.
-    const verdict = await waitForVerdict(photoId, photoModeRef.current);
-    setNote(verdict);
-    mark(`photo: ${verdict ? verdict.tone : 'unchecked'}`);
-    await sleep(verdict ? beats.look * 1.1 : 900);
-    setPhase('scene'); mark('scene', 'scene');
   };
 
   const landPhoto = () => { const src = pickerPhoto; setPickerOpen(false); if (src) void usePhoto(src).catch(fail); };
@@ -388,8 +365,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
     // Who it's for.
     await typeInto(await findDemo('name') as HTMLInputElement, p.name, b.settle, b.type);
-    await typeInto(await findDemo('occasion') as HTMLInputElement, p.occasion, b.settle, b.type);
-    await tap(await findDemo('who-next'), b.settle, b.hold * 0.7); mark(`who: ${p.name}, ${p.occasion}`);
+    await tap(await findDemo('who-next'), b.settle, b.hold * 0.7); mark(`who: ${p.name} (${p.occasion})`);
 
     // Who's on the card. Only tap the tile when it isn't the default
     // already — a tap that changes nothing looks like a mis-click.
@@ -461,14 +437,10 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { clearRings(); }, [phase]);
 
-  const waitLine =
-    phase === 'front-generating' ? `Drawing ${who} into the scene`
-    : phase === 'inside-generating' ? 'Writing the inside'
-    // The live step's own words while the likeness check settles.
-    : 'Analysing your photo…';
-  const waitSub = phase === 'checking'
-    ? 'A few seconds — we’re checking it’ll give a strong likeness.'
-    : null;
+  // Group mode puts more than one person in, so don't name just one.
+  const waitLine = phase === 'inside-generating'
+    ? 'Writing the inside'
+    : photoMode === 'group' ? 'Drawing everyone into the scene' : `Drawing ${who} into the scene`;
 
   return (
     <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
@@ -516,11 +488,13 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
             <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5 transition-all duration-[450ms] ease-out"
               style={{ opacity: hookOn ? 0 : 1, transform: hookOn ? 'translateY(12px)' : 'none' }}>
               <h1 className={H1}>Who’s it for?</h1>
-              <div className="mt-4 flex flex-col gap-3">
-                <input data-demo="name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Their first name"
-                  className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink focus:outline-none" />
-                <input data-demo="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)} aria-label="The occasion"
-                  className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink focus:outline-none" />
+              {/* ONE box (Aidan 2026-09-23). The occasion still has to
+                  reach the draft — the front's readiness gate wants name
+                  AND occasion — so it rides in from the preset rather
+                  than costing a second field on screen. */}
+              <div className="mt-4">
+                <input data-demo="name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Their first name" placeholder="Their first name"
+                  className="h-12 w-full rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
               </div>
               <button type="button" data-demo="who-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
                 onClick={() => { setPhase('mode'); mark('mode', 'mode'); }}>Next</button>
@@ -537,9 +511,6 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {phase === 'mode' && (
           <motion.section key="mode" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 ${showClock ? 'pt-[18vh]' : ''}`}>
             <h1 className={H1}>Who&rsquo;s on the card?</h1>
-            <p className="mt-2 text-[15px] text-keeper-body">
-              We&rsquo;ll use this to put {who} in the card &mdash; a clear photo of their face works best.
-            </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               {([
                 { key: 'one_person' as const, icon: User, label: `Just ${who}`, sub: 'Multi-angle likeness' },
@@ -566,10 +537,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {/* 3 · their photo */}
         {phase === 'photo' && (
           <motion.section key="photo" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 pb-12 text-center ${showClock ? 'pt-[20vh]' : 'pt-16'}`}>
-            <h1 className={H1}>{photoMode === 'group' ? 'One photo with everyone in it.' : `A photo of ${who}.`}</h1>
-            <p className="mt-2 text-[15px] text-keeper-body">
-              {photoMode === 'group' ? 'Faces clearly visible. We take it from there.' : 'Any everyday photo. We take it from there.'}
-            </p>
+            <h1 className={H1}>{photoMode === 'group' ? `Upload ${who}’s photo, everyone in it` : `Upload ${who}’s photo`}</h1>
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then((d) => usePhoto(d)).catch(fail); e.target.value = ''; }} />
             <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
@@ -579,51 +547,25 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
           </motion.section>
         )}
 
-        {/* 3 · the waits — one screen, three jobs */}
-        {(phase === 'checking' || phase === 'front-generating' || phase === 'inside-generating') && (
+        {/* 3 · the wait. Their photo stays on screen through the long
+            front render, so the wait is watching THEIR face become a
+            card rather than a spinner on a blank page. */}
+        {(phase === 'front-generating' || phase === 'inside-generating') && (
           <motion.section key="wait" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
-            {/* Their photo stays on screen through the long front render, so
-                the wait is watching THEIR face become a card, not a spinner
-                on a blank page. */}
             {phase === 'front-generating' && photoData && (
               <motion.img src={photoData} alt="" aria-hidden="true"
                 initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}
                 className="h-[26vh] w-auto rounded-2xl border-[5px] border-white object-cover shadow-[0_18px_40px_-16px_rgba(33,29,25,.45)]" />
             )}
-            {/* On the checking beat, the traffic light replaces the
-                spinner the moment it lands — it is the real note off the
-                photo row, the same words the customer gets. */}
-            {phase === 'checking' && note ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}
-                /* The live step's own colours (emerald / amber / red,
-                   stock Tailwind — NOT the retired accent-amber brand
-                   token), so the film shows the traffic light a customer
-                   actually sees. */
-                className={`flex max-w-[330px] flex-col items-center gap-2 rounded-2xl border px-5 py-4 text-center ${
-                  note.tone === 'good' ? 'border-emerald-300 bg-emerald-50'
-                  : note.tone === 'warn' ? 'border-amber-400 bg-amber-50'
-                  : 'border-red-400 bg-red-50'}`}>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full ${note.tone === 'good' ? 'bg-emerald-600 text-white' : note.tone === 'warn' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>
-                  {note.tone === 'good' ? <Check className="h-5 w-5" strokeWidth={3} /> : <AlertTriangle className="h-5 w-5" strokeWidth={2.5} />}
-                </span>
-                <span className="text-[16px] font-semibold leading-snug text-keeper-ink">{note.headline}</span>
-                <span className="text-[13.5px] leading-snug text-keeper-body">{note.detail}</span>
-              </motion.div>
-            ) : (
-              <>
-                <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
-                <p className="-mt-3 max-w-[320px] text-center text-[18px] font-medium leading-snug text-keeper-ink">{waitLine}</p>
-                {waitSub && <p className="-mt-4 max-w-[300px] text-center text-[13.5px] leading-snug text-keeper-body">{waitSub}</p>}
-              </>
-            )}
+            <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
+            <p className="-mt-3 max-w-[320px] text-center text-[18px] font-medium leading-snug text-keeper-ink">{waitLine}</p>
           </motion.section>
         )}
 
         {/* 4 · describe the scene */}
         {phase === 'scene' && (
           <motion.section key="scene" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 ${showClock ? 'pt-[18vh]' : ''}`}>
-            <h1 className={H1}>Where should {who} be?</h1>
-            <p className="mt-2 text-[15px] text-keeper-body">Describe anywhere. We’ll put them in it.</p>
+            <h1 className={H1}>Describe the front of the card</h1>
             <textarea data-demo="scene" value={scene} onChange={(e) => setScene(e.target.value)} aria-label="Describe the scene" rows={4}
               className="demo-glow-field mt-4 rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
             <button type="button" data-demo="scene-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
@@ -634,8 +576,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {/* 5 · what the front says */}
         {phase === 'front' && (
           <motion.section key="front" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 ${showClock ? 'pt-[18vh]' : ''}`}>
-            <h1 className={H1}>What should the front say?</h1>
-            <p className="mt-2 text-[15px] text-keeper-body">Leave it to us, or write your own.</p>
+            <h1 className={H1}>Text on the front?</h1>
             <input data-demo="front-text" value={frontText} onChange={(e) => setFrontText(e.target.value)} aria-label="Front of the card"
               placeholder={`Happy ${preset.occasion}, ${who}`}
               className="mt-4 h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
@@ -658,7 +599,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {/* 7 · the inside */}
         {phase === 'inside' && (
           <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
-            <h1 className={H1}>Now the inside.</h1>
+            <h1 className={H1}>Text on the inside?</h1>
             <div className="mt-5 flex flex-col gap-3">
               <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" placeholder={`Dear ${who},`}
                 className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
