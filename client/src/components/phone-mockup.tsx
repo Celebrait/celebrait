@@ -1,9 +1,11 @@
 // client/src/components/phone-mockup.tsx — THE HANDHELD PHONE
 //
 // An iPhone-sized frame around an iframe, alive: it sways in 3D as if
-// held, breathes, has a reflection on the surface below, clouds and
-// paper flecks behind, dips on every tap, and glows with the colour of
-// the card on screen. No shine on the glass (Aidan 2026-09-22). Built for /demo
+// held, breathes, has a reflection on the surface below, paper flecks
+// behind, dips on every tap, and glows with the colour of the card on
+// screen. No shine on the glass, and no drifting colour behind it
+// either: the violet and green clouds washed the whole frame and read
+// as a weird sheen on camera (Aidan 2026-09-23). Built for /demo
 // (2026-09-18, Aidan: "feels really static and 1D") and now shared with
 // the home page's looping demo (2026-09-21).
 //
@@ -35,37 +37,35 @@ const MOTION_CSS = `
   @keyframes demo-breathe { 0% { transform: scale(1) translateY(0) } 50% { transform: scale(1.035) translateY(-6px) } 100% { transform: scale(1) translateY(0) } }
   @keyframes demo-nudge { 0% { transform: none } 35% { transform: translateY(5px) rotateX(-2.6deg) scale(0.99) } 100% { transform: none } }
   @keyframes demo-fleck { 0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0 } 8% { opacity: var(--o) } 92% { opacity: var(--o) } 100% { transform: translate3d(var(--dx), var(--rise), 0) rotate(var(--rot)); opacity: 0 } }
-  @keyframes demo-cloud-a { 0% { transform: translate(-6%, -4%) scale(1) } 50% { transform: translate(8%, 6%) scale(1.12) } 100% { transform: translate(-6%, -4%) scale(1) } }
-  @keyframes demo-cloud-b { 0% { transform: translate(6%, 5%) scale(1.08) } 50% { transform: translate(-9%, -6%) scale(0.96) } 100% { transform: translate(6%, 5%) scale(1.08) } }
-  @keyframes demo-cloud-c { 0% { transform: translate(0, 8%) scale(1) } 50% { transform: translate(5%, -8%) scale(1.15) } 100% { transform: translate(0, 8%) scale(1) } }
   .demo-breathe { animation: demo-breathe 22s ease-in-out infinite; transform-style: preserve-3d; }
   .demo-nudge { animation: demo-nudge 320ms ease-out; transform-style: preserve-3d; }
   .demo-fleck { position: absolute; bottom: -4%; border-radius: 2px; animation: demo-fleck var(--d) linear infinite; animation-delay: var(--delay); will-change: transform; }
   .demo-sway { animation: demo-sway 11s ease-in-out infinite; transform-style: preserve-3d; will-change: transform; }
   .demo-shadow { animation: demo-shadow 11s ease-in-out infinite; }
-  .demo-cloud-a { animation: demo-cloud-a 46s ease-in-out infinite; }
-  .demo-cloud-b { animation: demo-cloud-b 58s ease-in-out infinite; }
-  .demo-cloud-c { animation: demo-cloud-c 39s ease-in-out infinite; }
 `;
 
 export interface PhoneMockupProps {
   /** What plays on the phone. */
   src: string;
   title?: string;
-  /** Sway, glow, reflection, clouds, flecks. */
+  /** Sway, glow, reflection, flecks. */
   alive?: boolean;
   fit?: 'viewport' | 'inline';
   /** 'inline' only: the tallest the phone may be, in px. */
   maxHeight?: number;
   /** 'viewport' only: draw the site's floating icons behind. */
   backdrop?: boolean;
+  /** Multiplies the fitted size, so a recording can be framed for the
+   *  platform it's going to: under 1 leaves room for the caption and
+   *  the like rail, over 1 fills a 9:16 crop (Aidan 2026-09-23). */
+  zoom?: number;
   /** Same-origin messages from the page inside that aren't tap/glow. */
   onMessage?: (e: MessageEvent, frame: HTMLIFrameElement | null) => void;
   className?: string;
   children?: ReactNode;
 }
 
-export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit = 'viewport', maxHeight, backdrop = fit === 'viewport', onMessage, className = '' }: PhoneMockupProps) {
+export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit = 'viewport', maxHeight, backdrop = fit === 'viewport', zoom = 1, onMessage, className = '' }: PhoneMockupProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const nudgeRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -75,8 +75,8 @@ export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit =
 
   useEffect(() => {
     const fit_ = () => {
-      if (fit === 'viewport') setScale(Math.min(1, (window.innerHeight - 40) / H, (window.innerWidth - 32) / W));
-      else { const w = boxRef.current?.clientWidth ?? W; setScale(Math.min(1, w / W, maxHeight ? maxHeight / H : 1)); }
+      if (fit === 'viewport') setScale(Math.min(1, (window.innerHeight - 40) / H, (window.innerWidth - 32) / W) * zoom);
+      else { const w = boxRef.current?.clientWidth ?? W; setScale(Math.min(1, w / W, maxHeight ? maxHeight / H : 1) * zoom); }
     };
     fit_();
     window.addEventListener('resize', fit_);
@@ -99,7 +99,7 @@ export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit =
     };
     window.addEventListener('message', onMsg);
     return () => { window.removeEventListener('resize', fit_); window.removeEventListener('message', onMsg); ro?.disconnect(); };
-  }, [fit, alive, onMessage, W, H, maxHeight]);
+  }, [fit, alive, onMessage, W, H, maxHeight, zoom]);
 
   const outer = fit === 'viewport'
     ? 'fixed inset-0 flex items-center justify-center overflow-hidden'
@@ -113,15 +113,12 @@ export function PhoneMockup({ src, title = 'Celebrait demo', alive = true, fit =
         <>
           <style>{MOTION_CSS}</style>
           {backdrop && fit === 'viewport' && <CelebrationBackdrop background="linear-gradient(180deg, #F6F3EE 0%, #EFEBE4 100%)" permanentFade />}
-          {/* the clouds, and paper confetti rising slowly through them */}
+          {/* paper confetti, rising slowly behind the phone */}
           <div aria-hidden className={`pointer-events-none absolute overflow-hidden ${fit === 'viewport' ? 'inset-0' : '-inset-x-[30%] -inset-y-[12%]'}`}
             style={fit === 'inline' ? { maskImage: 'radial-gradient(closest-side, black 55%, transparent 100%)', WebkitMaskImage: 'radial-gradient(closest-side, black 55%, transparent 100%)' } : undefined}>
             {FLECKS.map((f, i) => (
               <span key={i} className="demo-fleck" style={{ left: `${f.left}%`, width: f.w, height: f.h, background: f.color, ['--d' as string]: `${f.dur}s`, ['--delay' as string]: `-${f.delay}s`, ['--dx' as string]: `${f.dx}px`, ['--rot' as string]: `${f.rot}deg`, ['--o' as string]: f.o, ['--rise' as string]: rise }} />
             ))}
-            <div className="demo-cloud-a absolute -left-[10%] -top-[12%] h-[62%] w-[62%] rounded-full bg-[#7a76e8] opacity-[0.11] blur-[70px]" />
-            <div className="demo-cloud-b absolute -bottom-[16%] -right-[8%] h-[70%] w-[70%] rounded-full bg-[#5fd94a] opacity-[0.09] blur-[80px]" />
-            <div className={`demo-cloud-c absolute left-[30%] top-[28%] h-[48%] w-[48%] rounded-full bg-[#e5e4f9] blur-[60px] ${fit === 'inline' ? 'opacity-[0.3]' : 'opacity-[0.55]'}`} />
           </div>
         </>
       )}

@@ -119,6 +119,12 @@ export interface DemoConfig extends DemoPreset {
   askOnScreen?: { who?: boolean; occasion?: boolean; age?: boolean };
   /** Punch in on each tap while the run plays itself (on unless false). */
   zoom?: boolean;
+  /** How big the whole thing is drawn in the recorded frame, 1 = as it
+   *  fits today. Under 1 pulls back so a platform's caption and like
+   *  rail don't sit over anything; over 1 punches in to fill a 9:16
+   *  crop (Aidan 2026-09-23: "alter the scale … so it fits nicer on
+   *  social platforms"). Applies with the phone mockup AND full screen. */
+  scale?: number;
   /** The running clock, top right (on unless false). */
   timer?: boolean;
   /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
@@ -1445,6 +1451,14 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {!manual && <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>}
             {cfg.frame !== 'full' && <div><span className={label}>Feel</span><div className="flex gap-2"><button type="button" className={chip(cfg.alive !== false)} onClick={() => set({ alive: true })}>Handheld</button><button type="button" className={chip(cfg.alive === false)} onClick={() => set({ alive: false })}>Still</button></div></div>}
             <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
+            <div><span className={label}>Size in frame</span>
+              <div className="flex flex-wrap gap-2">
+                {[0.7, 0.8, 0.9, 1, 1.15, 1.3].map((z) => (
+                  <button key={z} type="button" className={chip((cfg.scale ?? 1) === z)} onClick={() => set({ scale: z })}>{Math.round(z * 100)}%</button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[12px] text-keeper-meta">Under 100% pulls back, so a caption or the like rail doesn&rsquo;t cover anything. Over 100% fills a 9:16 crop. Works with the phone and full screen.</p>
+            </div>
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
         </div>
@@ -1486,7 +1500,7 @@ function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
     if (e.data?.type !== EMBED_READY) return;
     frame?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
   }, [cfg]);
-  return <PhoneMockup src="/demo?embed=1" alive={cfg.alive !== false} onMessage={onMessage} />;
+  return <PhoneMockup src="/demo?embed=1" alive={cfg.alive !== false} zoom={cfg.scale ?? 1} onMessage={onMessage} />;
 }
 
 function EmbeddedRun() {
@@ -1515,7 +1529,8 @@ export default function DemoPage() {
   // `?route=photo&photo=<key>` films the photo door instead of the
   // three-card one — a different product, so a different run.
   const fromLink = useMemo<DemoConfig | null>(() => {
-    const common = { speed: (q.get('speed') === 'fast' ? 'fast' : 'normal') as Speed, hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' as const };
+    const z = Number(q.get('scale'));
+    const common = { speed: (q.get('speed') === 'fast' ? 'fast' : 'normal') as Speed, hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' as const, scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
     const photoKey = q.get('photo');
     if (q.get('route') === 'photo' || photoKey) {
       const key = photoKey && DEMO_PHOTO_PRESETS[photoKey] ? photoKey : Object.keys(DEMO_PHOTO_PRESETS)[0];
@@ -1557,5 +1572,16 @@ export default function DemoPage() {
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
   if (cfg.frame === 'phone' && !fromLink && !replayId) return <PhoneFrame cfg={cfg} />;
-  return cfg.route === 'photo' ? <PhotoRun cfg={cfg} /> : <DemoRun cfg={cfg} />;
+  const run = cfg.route === 'photo' ? <PhotoRun cfg={cfg} /> : <DemoRun cfg={cfg} />;
+  const s = cfg.scale ?? 1;
+  if (s === 1) return run;
+  // A transform makes this the containing block for the run's own
+  // `fixed inset-0` root, so the run still lays out at full viewport
+  // size and is scaled as one piece. Paper behind, so pulling back
+  // letterboxes in the site's own colour rather than white.
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-keeper-paper">
+      <div className="absolute inset-0" style={{ transform: `scale(${s})`, transformOrigin: 'center center' }}>{run}</div>
+    </div>
+  );
 }
