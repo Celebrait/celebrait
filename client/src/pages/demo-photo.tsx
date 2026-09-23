@@ -40,7 +40,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
-import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
@@ -170,9 +169,8 @@ async function pollDraft(id: number, done: Set<string>, timeoutMs: number, onTic
 const FULL_TURN_MS = 7500;
 
 type Phase =
-  | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front'
-  | 'front-generating' | 'front-result' | 'inside' | 'inside-generating'
-  | 'card' | 'sent';
+  | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front' | 'inside'
+  | 'generating' | 'card' | 'sent';
 
 // ── the run ──────────────────────────────────────────────────────────
 
@@ -209,6 +207,8 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
   const [cardPainted, setCardPainted] = useState(false);
+  /** Which half is drawing — the wait line changes, the screen doesn't. */
+  const [drawingInside, setDrawingInside] = useState(false);
   const [error, setError] = useState('');
 
   // The picker sheet, shared with the three-card route.
@@ -255,7 +255,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   // The mockup tints itself with whatever card is on screen.
   useEffect(() => {
     if (!embedded) return;
-    const url = phase === 'front-result' ? frontUrl : phase === 'card' ? frontUrl : null;
+    const url = phase === 'card' ? frontUrl : null;
     if (!url) { tellGlow(null); return; }
     let off = false;
     cardGlow(url).then((c) => { if (!off) tellGlow(c); });
@@ -315,49 +315,48 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
   /** The front. This is the long one — a real photo-likeness render at
    *  production quality, so 30–120s is normal and the screen says so. */
-  const generateFront = async () => {
+  /** BOTH HALVES, ONE WAIT (Aidan 2026-09-23: "we should write the
+   *  inside and generate both"). The words for the inside are collected
+   *  BEFORE anything is drawn, so the run has one long wait instead of
+   *  two, and the card that lands is finished — no going back to type
+   *  more after the front has already been revealed.
+   *
+   *  It is still two calls underneath. /generate takes a mode, but the
+   *  server ORs it with a FRONT_FIRST_GEN env flag, so there is no way
+   *  to force the old single-job 'full' path from here — asking for
+   *  front-first and then chaining the inside behaves the same on every
+   *  environment, which matters more than saving a round trip. */
+  const generateCard = async () => {
     const id = await ensureDraft();
-    setPhase('front-generating'); mark('front: generating', 'front-generating');
-    // PATCH replaces the WHOLE state (the route is a deliberate overwrite,
-    // not patch semantics), so read what's there and merge — writing a
-    // fresh object here would drop the photo ids and the front would fail
-    // its readiness gate.
-    const current = await api('GET', `/api/studio/drafts/${id}`);
-    const merged: CardDraftState = {
-      ...(current.state ?? { version: 1, step: 0 }),
-      version: 1, step: 4,
-      recipient: { name: preset.name, occasion: preset.occasion },
-      scene: { description: sceneRef.current.trim(), source: 'manual' },
-      front: frontRef.current.trim() ? { mode: 'write', text: frontRef.current.trim() } : { mode: 'write' },
-    };
-    await api('PATCH', `/api/studio/drafts/${id}`, { state: merged });
-    await api('POST', `/api/studio/drafts/${id}/generate`, { mode: 'front' });
-    const d = await pollDraft(id, FRONT_DONE, 300_000, (s) => mark(`front: ${s}`));
-    if (!d.frontImageUrl) throw new Error('The front came back empty');
-    await warm(d.frontImageUrl);
-    setFrontUrl(d.frontImageUrl);
-    setPhase('front-result'); mark('front: done', 'front-result');
-  };
-
-  /** The inside, from the words on the inside screen. */
-  const generateInside = async () => {
-    const id = draftRef.current;
-    if (!id) throw new Error('No draft');
-    setPhase('inside-generating'); mark('inside: generating', 'inside-generating');
+    setPhase('generating'); mark('generating', 'generating');
     const w = wordsRef.current;
+    // PATCH replaces the WHOLE state (the route is a deliberate
+    // overwrite, not patch semantics), so read what's there and merge —
+    // a fresh object would drop the photo ids and the front would fail
+    // its readiness gate. Front and inside go in together.
     const current = await api('GET', `/api/studio/drafts/${id}`);
     const merged: CardDraftState = {
       ...(current.state ?? { version: 1, step: 0 }),
       version: 1, step: 5,
+      recipient: { name: preset.name, occasion: preset.occasion },
+      scene: { description: sceneRef.current.trim(), source: 'manual' },
+      front: frontRef.current.trim() ? { mode: 'write', text: frontRef.current.trim() } : { mode: 'write' },
       inside: { mode: 'write', path: 'self', write: { salutation: w.dear.trim(), message: w.message.trim(), signoff: w.from.trim() } },
     };
     await api('PATCH', `/api/studio/drafts/${id}`, { state: merged });
+
+    await api('POST', `/api/studio/drafts/${id}/generate`, { mode: 'front' });
+    const f = await pollDraft(id, FRONT_DONE, 300_000, (st) => mark(`front: ${st}`));
+    if (!f.frontImageUrl) throw new Error('The front came back empty');
+    setFrontUrl(f.frontImageUrl);
+    setDrawingInside(true); mark('front: done');
+
     await api('POST', `/api/studio/drafts/${id}/generate-inside`, {});
-    const d = await pollDraft(id, INSIDE_DONE, 300_000, (s) => mark(`inside: ${s}`));
-    await warmAll([d.insideImageUrl, d.frontImageUrl ?? frontUrl]);
+    const d = await pollDraft(id, INSIDE_DONE, 300_000, (st) => mark(`inside: ${st}`));
+    await warmAll([d.frontImageUrl ?? f.frontImageUrl, d.insideImageUrl]);
     if (d.frontImageUrl) setFrontUrl(d.frontImageUrl);
     setInsideUrl(d.insideImageUrl);
-    setPhase('card'); mark('inside: done', 'card');
+    setPhase('card'); mark('card', 'card');
   };
 
   // ── the director ──
@@ -393,18 +392,15 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     // What the front says.
     await until('front', 10_000); await sleep(b.look * 0.6);
     if (p.front.trim()) await typeInto(await findDemo('front-text') as HTMLInputElement, p.front, b.settle, b.type);
-    await tap(await findDemo('draw-front'), b.settle, 300); mark('front: asked');
+    await tap(await findDemo('front-next'), b.settle, b.hold * 0.7); mark('front: set');
 
-    // The long wait, then the reveal.
-    await until('front-result', 300_000); await sleep(b.look * 1.4);
-    await tap(await findDemo('to-inside'), b.settle, b.hold * 0.7); mark('front: kept');
-
-    // The inside.
+    // The inside, written BEFORE anything is drawn, so there is one
+    // wait instead of two and the card that lands is finished.
     await until('inside', 10_000);
     await typeInto(await findDemo('dear') as HTMLInputElement, p.dear, b.settle, b.type);
     await typeInto(await findDemo('message') as HTMLTextAreaElement, p.message, b.settle, b.type);
     await typeInto(await findDemo('from') as HTMLInputElement, p.from, b.settle, b.type);
-    await tap(await findDemo('design-inside'), b.settle, 300); mark('inside: asked');
+    await tap(await findDemo('make-card'), b.settle, 300); mark('card: asked');
 
     // The card.
     await until('card', 300_000);
@@ -446,7 +442,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   useEffect(() => { clearRings(); }, [phase]);
 
   // Group mode puts more than one person in, so don't name just one.
-  const waitLine = phase === 'inside-generating'
+  const waitLine = drawingInside
     ? 'Writing the inside'
     : photoMode === 'group' ? 'Drawing everyone into the scene' : `Drawing ${who} into the scene`;
 
@@ -558,9 +554,9 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {/* 3 · the wait. Their photo stays on screen through the long
             front render, so the wait is watching THEIR face become a
             card rather than a spinner on a blank page. */}
-        {(phase === 'front-generating' || phase === 'inside-generating') && (
+        {phase === 'generating' && (
           <motion.section key="wait" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-7 px-5">
-            {phase === 'front-generating' && photoData && (
+            {!drawingInside && photoData && (
               <motion.img src={photoData} alt="" aria-hidden="true"
                 initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}
                 className="h-[26vh] w-auto rounded-2xl border-[5px] border-white object-cover shadow-[0_18px_40px_-16px_rgba(33,29,25,.45)]" />
@@ -588,23 +584,12 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
             <input data-demo="front-text" value={frontText} onChange={(e) => setFrontText(e.target.value)} aria-label="Front of the card"
               placeholder={`Happy ${preset.occasion}, ${who}`}
               className="mt-4 h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <button type="button" data-demo="draw-front" className={`${PRIMARY} demo-pulse mt-5 w-full`}
-              onClick={() => { generateFront().catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Draw the front</button>
+            <button type="button" data-demo="front-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
+              onClick={() => { setDear(''); setMessage(''); setFrom(''); setPhase('inside'); mark('inside', 'inside'); }}>Next</button>
           </motion.section>
         )}
 
-        {/* 6 · there they are */}
-        {phase === 'front-result' && frontUrl && (
-          <motion.section key="front-result" {...SCREEN} className="absolute inset-0 flex flex-col justify-center px-5 py-16 text-center">
-            <button type="button" data-demo="to-inside" aria-label="Use this card"
-              onClick={() => { setDear(''); setMessage(''); setFrom(''); setPhase('inside'); mark('inside', 'inside'); }}
-              className="mt-8 mb-3 w-[min(76vw,44vh,340px)] shrink-0 self-center transition-transform active:scale-[0.98]">
-              <AjarTile imageUrl={frontUrl} alt="" eager openDeg={22} />
-            </button>
-          </motion.section>
-        )}
-
-        {/* 7 · the inside */}
+        {/* 6 · the inside, written BEFORE anything is drawn */}
         {phase === 'inside' && (
           <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
             <h1 className={H1}>Text on the inside?</h1>
@@ -617,8 +602,8 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
                 className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
             </div>
             <div className="mt-6 flex flex-col items-center">
-              <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`}
-                onClick={() => { generateInside().catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>
+              <button type="button" data-demo="make-card" className={`${PRIMARY} demo-pulse w-full`}
+                onClick={() => { generateCard().catch(fail); }}><Sparkles className="h-4 w-4 text-cta" /> Make the card</button>
             </div>
           </motion.section>
         )}
