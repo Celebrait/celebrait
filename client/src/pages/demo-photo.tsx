@@ -165,6 +165,10 @@ async function pollDraft(id: number, done: Set<string>, timeoutMs: number, onTic
   throw new Error('The card took too long');
 }
 
+/** One full turn at autoRotateSpeed 8. drei's autoRotateSpeed is
+ *  "30s per orbit at 2.0 / 60fps", so 8 ≈ 7.5s. Keep the two in step. */
+const FULL_TURN_MS = 7500;
+
 type Phase =
   | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front'
   | 'front-generating' | 'front-result' | 'inside' | 'inside-generating'
@@ -403,10 +407,14 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     await tap(await findDemo('design-inside'), b.settle, 300); mark('inside: asked');
 
     // The card.
-    await until('card', 300_000); await sleep(b.look * 0.7);
-    const card = await findDemo('card');
-    const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.6);
+    await until('card', 300_000);
+    // The card TURNS, it does not open (Aidan 2026-09-23: "just let it
+    // spin… nice clean full rotation"). Opening it mid-spin was the
+    // weirdness: the spread is twice as wide as the card, so it swung
+    // straight off both edges of the frame. A turn and a bit, so the
+    // front comes back round to face the camera before the tap.
+    await findDemo('card');
+    mark('card: turning'); await sleep(FULL_TURN_MS * 1.15);
     await tap(await findDemo('post'), b.settle, 300);
     await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
     mark('end', 'end');
@@ -619,10 +627,25 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
         {phase === 'card' && frontUrl && (
           <motion.section key="card" initial={{ opacity: 0, y: 16 }} animate={cardPainted ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }} exit={SCREEN.exit} transition={SCREEN.transition}
             className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
-            <div data-demo="card" className="relative h-[min(56vh,104vw)] w-full shrink-0">
+            {/* THE REVEAL: one clean, continuous turn (Aidan 2026-09-23:
+                "just let it spin, show my logo on the rear white, nice
+                clean full rotation").
+                  · backLogo swaps the default grey "Made with Celebrait"
+                    credit plate for the mark on paper.
+                  · closedAngle 0 — a card that is ajar while it turns
+                    reads as broken, not as a card.
+                  · framingMargin 1.35 → 1.95. That was the crop: the
+                    camera sat close enough that a perspective lens blew
+                    the near edge up past the frame as the card came
+                    side-on. Further back, the whole turn stays in shot.
+                NB the product's viewer still has no orbit and no spin
+                (card interaction model) — this is the demo only. */}
+            <div data-demo="card" className="relative h-[min(60vh,110vw)] w-full shrink-0">
               <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
                 onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
-                closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
+                backLogo
+                autoRotate autoRotateSpeed={8}
+                closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
             </div>
             <div className="mt-4 shrink-0 px-5">
               <button type="button" data-demo="post" className={`${PRIMARY} demo-pulse w-full`}
