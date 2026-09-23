@@ -30,6 +30,7 @@ import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { PhoneMockup, EMBED_TAP, EMBED_GLOW } from '@/components/phone-mockup';
+import { PhotoRun, DEMO_PHOTO_PRESETS } from '@/pages/demo-photo';
 
 // ── versions ─────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
   },
 };
 
-type Speed = 'normal' | 'fast';
+export type Speed = 'normal' | 'fast';
 /** What one run needs: a preset's worth of brief, plus how to play it. */
 /** A saved run (/api/admin/demo-runs/:id), played back with no new
  *  generations (Aidan 2026-09-17: "long form… chop it up into little
@@ -98,6 +99,12 @@ export const CLIPS: Array<{ key: ClipKey; label: string; hook: (who: string) => 
 ];
 
 export interface DemoConfig extends DemoPreset {
+  /** Which door this run films. 'cards' = the three-card route (this
+   *  file). 'photo' = the photo-first route, which is a different
+   *  product with a different engine — see demo-photo.tsx. */
+  route?: 'cards' | 'photo';
+  /** Photo-route only: which saved photo brief the run plays. */
+  photoPreset?: string;
   speed: Speed; hook: boolean;
   /** Seconds before the run starts — time to hit record. */
   countdown: number;
@@ -128,7 +135,7 @@ export interface DemoConfig extends DemoPreset {
   /** Replay waits: as long as the original run took, or short. */
   waits?: 'real' | 'short';
 }
-const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
+export const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
   // ring lands. Cut back 2026-09-17 ("too much delay between landing on a
   // new screen and inputting or clicking") — the punch-in now carries that
@@ -147,7 +154,7 @@ const CURSOR_CSS = `
   .demo-cursor-on, .demo-cursor-on * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='4' cy='4' r='2.5' fill='rgba(60,56,70,0.32)' stroke='rgba(255,255,255,0.5)' stroke-width='0.75'/%3E%3C/svg%3E") 4 4, auto !important; }
 `;
 
-const CSS = `
+export const CSS = `
   @keyframes demo-ring { 0% { transform: translate(-50%,-50%) scale(.55); opacity: .95 } 70% { opacity: .55 } 100% { transform: translate(-50%,-50%) scale(1.7); opacity: 0 } }
   @keyframes demo-dot { 0% { opacity: .9 } 100% { opacity: 0 } }
   .demo-ring { position: fixed; z-index: 2147483000; pointer-events: none; width: 46px; height: 46px; border-radius: 50%;
@@ -186,15 +193,15 @@ const CSS = `
   .demo-tick { animation: demo-tick 700ms cubic-bezier(.2,.8,.3,1.2) both; }
 `;
 
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** The ring belongs to the screen it was tapped on (Aidan 2026-09-15: it
  *  was "pulsing on a place that is not relevant on the next screen"). So:
  *  a short flash, and anything still showing is cleared the moment the
  *  screen moves on. */
 const RING_MS = 420;
-function clearRings() { for (const el of Array.from(document.querySelectorAll('.demo-ring, .demo-dot'))) el.remove(); }
-function ring(x: number, y: number) {
+export function clearRings() { for (const el of Array.from(document.querySelectorAll('.demo-ring, .demo-dot'))) el.remove(); }
+export function ring(x: number, y: number) {
   for (const cls of ['demo-ring', 'demo-dot']) {
     const el = document.createElement('div');
     el.className = cls; el.style.left = `${x}px`; el.style.top = `${y}px`;
@@ -203,7 +210,7 @@ function ring(x: number, y: number) {
 }
 
 /** Find one element by selector and visible text/label/placeholder, polling. */
-async function find(sel: string, text: RegExp | null, timeoutMs = 20_000, enabled = true): Promise<HTMLElement> {
+export async function find(sel: string, text: RegExp | null, timeoutMs = 20_000, enabled = true): Promise<HTMLElement> {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
     const all = Array.from(document.querySelectorAll<HTMLElement>(sel)).filter((el) => {
@@ -217,7 +224,7 @@ async function find(sel: string, text: RegExp | null, timeoutMs = 20_000, enable
   }
   throw new Error(`demo: never found ${sel} ${text ?? ''}`);
 }
-const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="${key}"]`, null, timeoutMs);
+export const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="${key}"]`, null, timeoutMs);
 
 /** THE PUNCH-IN (Aidan 2026-09-17: "zoom into the things that are
  *  clicked like pan in and out so the cut is snappy"). The whole screen
@@ -227,14 +234,14 @@ const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="${key}"]
 let zoomRoot: HTMLElement | null = null;
 let zoomOn = false;
 const ZOOM_MS = 340;
-async function zoomTo(el: HTMLElement, scale = 1.3) {
+export async function zoomTo(el: HTMLElement, scale = 1.3) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   const r = el.getBoundingClientRect(); const rr = root.getBoundingClientRect();
   root.style.transformOrigin = `${r.left + r.width / 2 - rr.left}px ${r.top + r.height / 2 - rr.top}px`;
   root.style.transform = `scale(${scale})`;
   await sleep(ZOOM_MS);
 }
-async function zoomOut(wait = true) {
+export async function zoomOut(wait = true) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   root.style.transform = 'none';
   if (wait) await sleep(ZOOM_MS);
@@ -244,7 +251,7 @@ async function bringIn(el: HTMLElement, settle: number) {
   el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   await sleep(settle);
 }
-async function tap(el: HTMLElement, settle: number, hold: number) {
+export async function tap(el: HTMLElement, settle: number, hold: number) {
   await bringIn(el, settle);
   await zoomTo(el);
   const r = el.getBoundingClientRect();
@@ -264,7 +271,7 @@ async function tap(el: HTMLElement, settle: number, hold: number) {
   await sleep(Math.max(ZOOM_MS, hold * 0.65));
 }
 /** Type into a React-controlled input, one character at a time. */
-async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
+export async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
   await bringIn(el, settle);
   await zoomTo(el, 1.22);
   const r = el.getBoundingClientRect(); ring(r.left + 40, r.top + r.height / 2);
@@ -280,6 +287,13 @@ async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, se
   await zoomOut(false);
   await sleep(380);
 }
+
+/** `type` is awkward to import by name (it collides with TypeScript's
+ *  type-only import syntax), so the other routes take this alias. */
+export const typeInto = type;
+/** Point the punch-in at another route's root (see demo-photo.tsx).
+ *  Self-playing runs only — a manual run passes on=false. */
+export function setZoomRoot(el: HTMLElement | null, on: boolean) { zoomRoot = el; zoomOn = on; }
 
 const escapeHtml = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 /** A hook line is plain text plus the ranges that take the gradient:
@@ -338,7 +352,7 @@ function sentencesOf(raw: string): string[] {
   const out = raw.match(/[^.!?]+(?:[.!?]+["”’)]*)?\s*/g) ?? [raw];
   return out.map((x) => x.trim()).filter(Boolean);
 }
-async function typeHook(raw: string, words: string[]) {
+export async function typeHook(raw: string, words: string[]) {
   const hookEl = await find('.demo-hook', null, 5000).catch(() => null); if (!hookEl) return;
   const target = hookEl.querySelector('p')! as HTMLElement;
   target.style.transition = 'opacity 200ms ease';
@@ -372,7 +386,7 @@ async function typeHook(raw: string, words: string[]) {
 }
 
 declare global { interface Window { __demo?: { state: string; events: Array<{ name: string; t: number }> } } }
-function mark(name: string, state?: string) {
+export function mark(name: string, state?: string) {
   const d = (window.__demo ??= { state: 'idle', events: [] });
   d.events.push({ name, t: Date.now() });
   if (state) { d.state = state; document.documentElement.dataset.demoState = state; }
@@ -426,7 +440,7 @@ function loadImage(u: string): Promise<boolean> {
     im.src = u;
   });
 }
-async function warm(url: string | null | undefined): Promise<void> {
+export async function warm(url: string | null | undefined): Promise<void> {
   if (!url) return;
   const job = (async () => {
     const m = PNG_URL.exec(url);
@@ -435,7 +449,7 @@ async function warm(url: string | null | undefined): Promise<void> {
   })();
   await Promise.race([job, sleep(6000)]);
 }
-const warmAll = (urls: Array<string | null | undefined>) => Promise.all(urls.map(warm)).then(() => undefined);
+export const warmAll = (urls: Array<string | null | undefined>) => Promise.all(urls.map(warm)).then(() => undefined);
 
 const toDataUrl = async (url: string) => {
   const blob = await fetch(url).then((r) => r.blob());
@@ -445,7 +459,7 @@ const toDataUrl = async (url: string) => {
  *  decoded and oriented, no edge over 1600px, JPEG — so a full-size HEIC
  *  never reaches the model raw (2026-09-15: a photo of Mum came back as
  *  the same card without her). */
-async function preparePhoto(file: Blob): Promise<string> {
+export async function preparePhoto(file: Blob): Promise<string> {
   const asDataUrl = () => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('read failed')); r.readAsDataURL(file); });
   try {
     const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
@@ -480,8 +494,8 @@ function briefFromConfig(cfg: DemoConfig): Brief {
 
 // The posted moment: the card dips, then flies up and off to the right,
 // with two faint copies trailing it.
-const POST_FLIGHT_MS = 1700;
-function PostFlight({ src }: { src: string }) {
+export const POST_FLIGHT_MS = 1700;
+export function PostFlight({ src }: { src: string }) {
   const W = typeof window === 'undefined' ? 400 : window.innerWidth;
   const H = typeof window === 'undefined' ? 800 : window.innerHeight;
   const size = Math.min(W * 0.62, 300);
@@ -517,10 +531,10 @@ type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo
 /** Every screen enters rising and fading in, and leaves fading out — a
  *  cut between two flat screens reads as a glitch on video. */
 // Exit is quick so the next screen (already decoded) lands without a gap.
-const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10, transition: { duration: 0.22 } }, transition: { duration: 0.42, ease: [0.2, 0.7, 0.3, 1] } } as const;
+export const SCREEN = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10, transition: { duration: 0.22 } }, transition: { duration: 0.42, ease: [0.2, 0.7, 0.3, 1] } } as const;
 
-const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
-const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
+export const H1 = 'font-display text-[26px] leading-[1.15] font-bold tracking-[-0.015em] text-keeper-ink';
+export const PRIMARY = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-6 py-3.5 text-[15px] font-semibold text-keeper-paper';
 const QUIET = 'text-[14px] text-keeper-meta underline decoration-keeper-hair underline-offset-4';
 
 // ── the photo picker (Aidan 2026-09-16: "some kind of photo picker
@@ -532,7 +546,7 @@ const ROLL: Array<{ src: string; pos?: string }> = [
   { src: '/hero-real-source.webp', pos: '50% 30%' }, { src: '' /* theirs */ }, { src: '/reaction-poster.webp', pos: '50% 12%' },
   { src: '/proof-timessquare-source.webp' }, { src: '/hero-source-photo.webp', pos: '85% 50%' }, { src: '/reaction-poster.webp', pos: '50% 60%' },
 ];
-function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: () => void; onCancel: () => void }) {
+export function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick: () => void; onCancel: () => void }) {
   const [chosen, setChosen] = useState(false);
   const theirs = useRef<HTMLButtonElement>(null);
   const choose = () => {
@@ -1243,12 +1257,16 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
       .catch(() => setRunsErr('Could not load saved runs.'));
   }, [source, runs]);
   const isReplay = source === 'replay';
+  // Which door this run films. The photo route is a different product
+  // with a different engine, so it ignores almost every option below —
+  // there is no vibe, no three cards and nothing to pick.
+  const isPhoto = cfg.route === 'photo';
   const clip: ClipKey = cfg.clip ?? 'full';
   // The brief options only matter when the whole run plays.
   const full = !isReplay || clip === 'full';
   const pickRun = (r: ReplayRun) => setCfg((c) => configFromRun(r, c, c.clip ?? 'full'));
   const pickClip = (k: ClipKey) => setCfg((c) => (c.replay ? configFromRun(c.replay, c, k) : { ...c, clip: k }));
-  const ready = isReplay ? !!cfg.replay : manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
+  const ready = isPhoto ? true : isReplay ? !!cfg.replay : manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
   return (
     <div className="keeper-serif relative min-h-screen">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -1271,14 +1289,41 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         </div>
 
-        <div className="mt-5"><span className={label}>Start from</span>
+        <div className="mt-5"><span className={label}>Which door</span>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={chip(!isPhoto)} onClick={() => set({ route: 'cards' })}>Three cards</button>
+            <button type="button" className={chip(isPhoto)} onClick={() => {
+              const key = cfg.photoPreset ?? Object.keys(DEMO_PHOTO_PRESETS)[0];
+              set({ route: 'photo', photoPreset: key, hookLine: DEMO_PHOTO_PRESETS[key].hookLine, replay: undefined, clip: undefined });
+              setSource('new');
+            }}>Photo first</button>
+          </div>
+          <p className="mt-1.5 text-[12px] text-keeper-meta">{isPhoto ? 'A real photo, a described scene, one card. The front takes 30\u2013120s to draw \u2014 that wait is the product, so it stays on film.' : 'A few words about them, three cards to pick from.'}</p>
+        </div>
+
+        {isPhoto && (
+          <div className="mt-5"><span className={label}>Whose photo</span>
+            <div className="grid grid-cols-3 gap-2.5">
+              {Object.entries(DEMO_PHOTO_PRESETS).map(([k, p]) => (
+                <button key={k} type="button" onClick={() => set({ photoPreset: k, hookLine: p.hookLine })}
+                  className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${cfg.photoPreset === k ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
+                  <img src={p.photo} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                  <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">{p.name}<span className="block text-keeper-meta">{p.occasion}</span></span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[12px] text-keeper-meta">{DEMO_PHOTO_PRESETS[cfg.photoPreset ?? '']?.scene ?? ''}</p>
+          </div>
+        )}
+
+        {!isPhoto && <div className="mt-5"><span className={label}>Start from</span>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={chip(!isReplay)} onClick={() => { setSource('new'); set({ replay: undefined, clip: undefined }); }}>A new run</button>
             <button type="button" className={chip(isReplay)} onClick={() => setSource('replay')}>Replay a saved run</button>
           </div>
-        </div>
+        </div>}
 
-        {isReplay && (
+        {isReplay && !isPhoto && (
           <div className="mt-5 space-y-5">
             {runsErr && <p className="text-[13px] text-accent-red-dark">{runsErr}</p>}
             {!runs && !runsErr && <p className="text-[13px] text-keeper-meta">Loading saved runs…</p>}
@@ -1321,14 +1366,14 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         )}
 
-        {!manual && !isReplay && <div className="mt-5 flex flex-wrap gap-2">
+        {!manual && !isReplay && !isPhoto && <div className="mt-5 flex flex-wrap gap-2">
           {Object.entries(DEMO_PRESETS).map(([k, p]) => (
             <button key={k} type="button" className={chip(false)} onClick={() => set({ ...p })}>{p.who}, {p.age}</button>
           ))}
         </div>}
 
         <div className="mt-7 space-y-6">
-          {full && <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
+          {full && !isPhoto && <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
           <p className="text-[13px] text-keeper-body">{isReplay ? 'Answers come from the saved run. Ask any of these on screen, or leave them for the opening line.' : 'Set here, these stay off screen, so say them in the opening line. Or ask any of them on screen.'}</p>
           <div><AskRow label="Who" on={!!ask.who} onChange={(v) => setAsk('who', v)} />
             {showValue('who') && <div className="flex flex-wrap gap-2">{RECIPIENTS.map((r) => <button key={r.label} type="button" className={chip(cfg.who === r.label)} onClick={() => set({ who: r.label, front: NAME_LIKE.includes(r.label) ? 'role' : cfg.name.trim() ? 'name' : 'none' })}>{r.label}</button>)}</div>}
@@ -1339,7 +1384,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
           <div><AskRow label="Age" on={!!ask.age} onChange={(v) => setAsk('age', v)} />{showValue('age') && <input value={cfg.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" className={`${field} max-w-[140px]`} placeholder="60" />}</div>
           </div>}
-          {full && <div><span className={label}>Can’t stand</span>
+          {full && !isPhoto && <div><span className={label}>Can’t stand</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!!cfg.askDislike)} onClick={() => set({ askDislike: true })}>Ask it on screen</button>
               <button type="button" className={chip(!cfg.askDislike)} onClick={() => set({ askDislike: false })}>Leave it out</button>
@@ -1351,7 +1396,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               <button type="button" className={chip(cfg.timer === false)} onClick={() => set({ timer: false })}>Hide it</button>
             </div>
           </div>}
-          {!manual && !isReplay && <>
+          {!manual && !isReplay && !isPhoto && <>
           <div><span className={label}>Vibe</span>
             <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
           </div>
@@ -1366,24 +1411,24 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
           </div>
           </>}
-          {!manual && !isReplay && <div><span className={label}>The inside</span>
+          {!manual && !isReplay && !isPhoto && <div><span className={label}>The inside</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Keep our message</button>
               <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>Type my own over it</button>
             </div>
             {cfg.insideBy === 'me' && <textarea value={cfg.message ?? ''} onChange={(e) => set({ message: e.target.value.slice(0, 300) })} rows={2} placeholder="The message to type" className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
           </div>}
-          {!manual && !isReplay && <div className="grid grid-cols-2 gap-3">
+          {!manual && !isReplay && !isPhoto && <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
             <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
           </div>}
-          {!isReplay && <div><span className={label}>Photo step</span>
+          {!isReplay && !isPhoto && <div><span className={label}>Photo step</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!cfg.skipPhoto)} onClick={() => set({ skipPhoto: false })}>Include it</button>
               <button type="button" className={chip(!!cfg.skipPhoto)} onClick={() => set({ skipPhoto: true })}>Skip it</button>
             </div>
           </div>}
-          {!isReplay && !cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
+          {!isReplay && !isPhoto && !cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
             <div className="flex items-center gap-3">
               <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
               {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
@@ -1417,10 +1462,10 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
 const EMBED_READY = 'celebrait-demo-embed-ready';
 const EMBED_CFG = 'celebrait-demo-embed-cfg';
 /** Inside the mockup's iframe: the colour of the card on screen, or none. */
-function tellGlow(color: string | null) { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_GLOW, color }, window.location.origin); }
+export function tellGlow(color: string | null) { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_GLOW, color }, window.location.origin); }
 const glowCache = new Map<string, string>();
 /** A card's average colour, lifted a little so it reads as light, not mud. */
-async function cardGlow(url: string): Promise<string> {
+export async function cardGlow(url: string): Promise<string> {
   const hit = glowCache.get(url); if (hit) return hit;
   const ok = await loadImage(url); if (!ok) return 'rgb(122,118,232)';
   const im = new Image(); im.crossOrigin = 'anonymous'; im.src = url; await im.decode().catch(() => undefined);
@@ -1434,7 +1479,7 @@ async function cardGlow(url: string): Promise<string> {
   const out = `rgb(${f(r)},${f(g)},${f(b)})`; glowCache.set(url, out); return out;
 }
 /** Inside the mockup's iframe: tell the page a tap landed. */
-function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
+export function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
 
 function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
   const onMessage = useCallback((e: MessageEvent, frame: HTMLIFrameElement | null) => {
@@ -1460,15 +1505,31 @@ function EmbeddedRun() {
     ask();
     return () => { window.removeEventListener('message', onMsg); window.clearInterval(t); };
   }, []);
-  return cfg ? <DemoRun cfg={cfg} embedded /> : <div className="fixed inset-0 bg-keeper-paper" />;
+  if (!cfg) return <div className="fixed inset-0 bg-keeper-paper" />;
+  return cfg.route === 'photo' ? <PhotoRun cfg={cfg} embedded /> : <DemoRun cfg={cfg} embedded />;
 }
 
 export default function DemoPage() {
   const q = useMemo(() => new URLSearchParams(typeof window !== 'undefined' ? window.location.search : ''), []);
   // A preset in the link runs straight away (the recorder's path); otherwise the builder.
+  // `?route=photo&photo=<key>` films the photo door instead of the
+  // three-card one — a different product, so a different run.
   const fromLink = useMemo<DemoConfig | null>(() => {
+    const common = { speed: (q.get('speed') === 'fast' ? 'fast' : 'normal') as Speed, hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' as const };
+    const photoKey = q.get('photo');
+    if (q.get('route') === 'photo' || photoKey) {
+      const key = photoKey && DEMO_PHOTO_PRESETS[photoKey] ? photoKey : Object.keys(DEMO_PHOTO_PRESETS)[0];
+      const p = DEMO_PHOTO_PRESETS[key];
+      // A DemoConfig carries the three-card fields whether or not this
+      // route uses them, so it starts from a card preset — but the bits
+      // the photo run actually reads (the opening line, who it's for)
+      // must come from the PHOTO preset, or the hook introduces somebody
+      // who never appears (caught 2026-09-22: Sarah's run opened with
+      // "Watch us make a card for Mum … lives in her garden").
+      return { ...DEMO_PRESETS['mum-70-garden'], ...common, route: 'photo', photoPreset: key, hookLine: p.hookLine, who: p.name, name: p.name, occasion: p.occasion };
+    }
     const p = DEMO_PRESETS[q.get('preset') ?? ''];
-    return p ? { ...p, speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' } : null;
+    return p ? { ...p, ...common } : null;
   }, [q]);
   const [cfg, setCfg] = useState<DemoConfig | null>(fromLink);
   // A saved run in the link replays straight away (for recording and checks).
@@ -1495,5 +1556,6 @@ export default function DemoPage() {
   if (q.get('embed') === '1') return <EmbeddedRun />;
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
-  return cfg.frame === 'phone' && !fromLink && !replayId ? <PhoneFrame cfg={cfg} /> : <DemoRun cfg={cfg} />;
+  if (cfg.frame === 'phone' && !fromLink && !replayId) return <PhoneFrame cfg={cfg} />;
+  return cfg.route === 'photo' ? <PhotoRun cfg={cfg} /> : <DemoRun cfg={cfg} />;
 }
