@@ -10,19 +10,18 @@
 // one card, built from a real photograph:
 //
 //   hook → who is it for → their photo (picked, uploaded, checked)
-//        → describe the scene (ours to suggest, theirs to edit)
+//        → describe the scene, in their own words
 //        → what the front says → the front draws (~30–120s)
 //        → there they are → the inside → the inside draws
 //        → the 3D card, tapped open → post it → on the way.
 //
 // The engine is the REAL studio one, driven exactly as the maker drives
 // it: a fresh draft per run (POST /api/studio/drafts), the photo through
-// /api/photos/upload, the scene through /api/studio/scene-suggestions,
-// then PATCH the draft state and POST /generate {mode:'front'} and
-// /generate-inside, polling GET /api/studio/drafts/:id for the status to
-// land. So what is on film is what a customer gets, at the quality a
-// customer gets — which is the whole point of filming this door rather
-// than faking it.
+// /api/photos/upload, then PATCH the draft state and POST
+// /generate {mode:'front'} and /generate-inside, polling
+// GET /api/studio/drafts/:id for the status to land. So what is on
+// film is what a customer gets, at the quality a customer gets — the
+// whole point of filming this door rather than faking it.
 //
 // Admin-only, like the rest of /demo: every run spends real generations
 // and real money. A fresh draft each time because /generate 409s on any
@@ -34,13 +33,15 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Camera, Sparkles, Send, Loader2, Wand2 } from 'lucide-react';
+import { Check, Camera, Sparkles, Send, Loader2, User, Users, AlertTriangle } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import type { CardDraftState } from '@shared/models/card-draft';
+import type { PhotoMode } from '@shared/schema';
+import { likenessNoteForSet, type PhotoSetNote } from '@/lib/photo-likeness';
 import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
@@ -61,6 +62,13 @@ export interface PhotoPreset {
   occasion: string;
   /** The photograph, from client/public. */
   photo: string;
+  /** Which door the photo goes through, exactly as the live step asks
+   *  it: 'one_person' = 1–5 shots of the same face, 'group' = one photo
+   *  that already has everyone in it. This is NOT cosmetic — the
+   *  generator resolves a different front_scene prompt variant per mode
+   *  (background-generator.ts reads state.photos.mode), so a couple sent
+   *  as one_person is filmed through the wrong prompt. */
+  photoMode: PhotoMode;
   /** What gets typed into "describe the scene". */
   scene: string;
   /** The front headline. Blank = let the product derive it from name +
@@ -76,6 +84,9 @@ export const DEMO_PHOTO_PRESETS: Record<string, PhotoPreset> = {
   'sarah-anniversary': {
     name: 'Sarah', occasion: 'Anniversary',
     photo: '/hero-source-photo.webp',
+    // Two people in the shot — 'group', or the front draws through the
+    // single-face prompt and one of them goes missing.
+    photoMode: 'group',
     scene: 'The two of us on a rooftop in New York at sunset, city lights behind us',
     front: '',
     dear: 'Sarah,',
@@ -86,6 +97,7 @@ export const DEMO_PHOTO_PRESETS: Record<string, PhotoPreset> = {
   'linda-70': {
     name: 'Linda', occasion: 'Birthday',
     photo: '/proof-source-photo.webp',
+    photoMode: 'one_person',
     scene: 'Standing in her garden with the roses in full bloom and a robin on the fence',
     front: '',
     dear: 'Dear Mum,',
@@ -96,6 +108,7 @@ export const DEMO_PHOTO_PRESETS: Record<string, PhotoPreset> = {
   'london-trip': {
     name: 'Emma', occasion: 'Birthday',
     photo: '/proof-bigben-source.webp',
+    photoMode: 'one_person',
     scene: 'Outside Big Ben on a bright morning, London bus going past behind her',
     front: '',
     dear: 'Emma,',
@@ -148,8 +161,25 @@ async function pollDraft(id: number, done: Set<string>, timeoutMs: number, onTic
   throw new Error('The card took too long');
 }
 
+/** The live studio never calls /api/photos/assess when signed in — the
+ *  analysis lands on the photo row after the upload returns and the step
+ *  polls the library for it. Same here, with the product's own 30s
+ *  fail-open gate (ANALYSIS_GATE_MS): if the check hasn't settled by
+ *  then the customer is let through, so the film is let through too. */
+const ANALYSIS_GATE_MS = 30_000;
+async function waitForVerdict(photoId: number, mode: PhotoMode): Promise<PhotoSetNote | null> {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ANALYSIS_GATE_MS) {
+    const list = (await api('GET', '/api/user/photos').catch(() => null)) as Array<{ id: number; analyzedAt?: string | null; likeness?: unknown }> | null;
+    const row = list?.find((p) => p.id === photoId);
+    if (row?.analyzedAt) return likenessNoteForSet([row as never], mode);
+    await sleep(1500);
+  }
+  return null;
+}
+
 type Phase =
-  | 'countdown' | 'who' | 'photo' | 'checking' | 'scene' | 'front'
+  | 'countdown' | 'who' | 'mode' | 'photo' | 'checking' | 'scene' | 'front'
   | 'front-generating' | 'front-result' | 'inside' | 'inside-generating'
   | 'card' | 'sent';
 
@@ -181,9 +211,15 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   // What the engine gives back.
   const [draftId, setDraftId] = useState<number | null>(null);
   const [photoData, setPhotoData] = useState<string | null>(null);
+  // Mirrors the live step's first question. Default one_person, same as
+  // the product (nothing is written to the draft until it's chosen).
+  const [photoMode, setPhotoMode] = useState<PhotoMode>('one_person');
+  const photoModeRef = useRef<PhotoMode>('one_person'); photoModeRef.current = photoMode;
+  /** The real traffic-light verdict off the uploaded photo row — the
+   *  same note the customer reads, not a stand-in. Null = still looking. */
+  const [note, setNote] = useState<PhotoSetNote | null>(null);
   const [frontUrl, setFrontUrl] = useState<string | null>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [cardOpen, setCardOpen] = useState(false);
   const [cardPainted, setCardPainted] = useState(false);
   const [error, setError] = useState('');
@@ -269,19 +305,23 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
       state: {
         version: 1, step: 2,
         recipient: { name: preset.name, occasion: preset.occasion },
-        photos: { mode: 'one_person', photoIds: [photoId] },
+        photos: { mode: photoModeRef.current, photoIds: [photoId] },
       } satisfies CardDraftState,
     });
-    mark('photo: saved');
-    // The scene suggestions are fetched while the "checking the photo"
-    // beat plays, so the next screen already has its chips. They read
-    // recipient + occasion off the draft, which is why this runs AFTER
-    // the patch above. Failure is silent: the box gets typed into either
-    // way, and a missing chip row is better than a dead run.
-    void api('POST', '/api/studio/scene-suggestions', { cardId: id }, 45_000)
-      .then((j) => setSuggestions(((j?.suggestions ?? []) as Array<{ text?: string }>).map((s) => s?.text ?? '').filter(Boolean).slice(0, 3)))
-      .catch(() => undefined);
-    await sleep(1400);
+    mark(`photo: saved (${photoModeRef.current})`);
+    // No scene suggestions on the demo (Aidan 2026-09-23). The point of
+    // the film is that a person types one plain sentence and gets a
+    // card; offering them three of ours first muddies that, and the
+    // chips cost a screen's worth of reading time on a 30s cut.
+    // The real verdict, the way the signed-in studio gets it: the
+    // analysis lands on the photo row after the upload returns, so poll
+    // the library until analyzedAt is stamped, then read the same note
+    // the customer reads. Fails open like the product's 30s gate — a
+    // demo must never stall on a check that's only advisory.
+    const verdict = await waitForVerdict(photoId, photoModeRef.current);
+    setNote(verdict);
+    mark(`photo: ${verdict ? verdict.tone : 'unchecked'}`);
+    await sleep(verdict ? beats.look * 1.1 : 900);
     setPhase('scene'); mark('scene', 'scene');
   };
 
@@ -351,6 +391,12 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     await typeInto(await findDemo('occasion') as HTMLInputElement, p.occasion, b.settle, b.type);
     await tap(await findDemo('who-next'), b.settle, b.hold * 0.7); mark(`who: ${p.name}, ${p.occasion}`);
 
+    // Who's on the card. Only tap the tile when it isn't the default
+    // already — a tap that changes nothing looks like a mis-click.
+    await until('mode', 10_000); await sleep(b.look * 0.6);
+    if (p.photoMode !== 'one_person') await tap(await findDemo(`mode-${p.photoMode}`), b.settle, b.hold * 0.8);
+    await tap(await findDemo('mode-next'), b.settle, b.hold * 0.6); mark(`mode: ${p.photoMode}`);
+
     // Their photo.
     await until('photo', 10_000); await sleep(b.look * 0.5);
     setPickerPhoto(await preparePhoto(await fetch(p.photo).then((r) => r.blob())));
@@ -360,7 +406,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     mark('photo: added');
 
     // The scene.
-    await until('scene', 120_000); await sleep(b.look * 0.8);
+    await until('scene', 180_000); await sleep(b.look * 0.8);
     await typeInto(await findDemo('scene') as HTMLTextAreaElement, p.scene, b.settle, b.type);
     await tap(await findDemo('scene-next'), b.settle, b.hold * 0.7); mark('scene: set');
 
@@ -418,7 +464,11 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   const waitLine =
     phase === 'front-generating' ? `Drawing ${who} into the scene`
     : phase === 'inside-generating' ? 'Writing the inside'
-    : `Checking the photo of ${who}`;
+    // The live step's own words while the likeness check settles.
+    : 'Analysing your photo…';
+  const waitSub = phase === 'checking'
+    ? 'A few seconds — we’re checking it’ll give a strong likeness.'
+    : null;
 
   return (
     <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
@@ -473,16 +523,53 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
                   className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink focus:outline-none" />
               </div>
               <button type="button" data-demo="who-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
-                onClick={() => { setPhase('photo'); mark('photo', 'photo'); }}>Next</button>
+                onClick={() => { setPhase('mode'); mark('mode', 'mode'); }}>Next</button>
             </div>
           </motion.section>
         )}
 
-        {/* 2 · their photo */}
+        {/* 2 · who's on the card — the live step's first question, in the
+            demo's one-thing-per-screen shape. Same two options, same
+            explainers, same default. It decides which front_scene prompt
+            variant the generator resolves, so it is a real fork, not a
+            label (Aidan 2026-09-23: "mainly look at single person or
+            group photo uploads"). */}
+        {phase === 'mode' && (
+          <motion.section key="mode" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 ${showClock ? 'pt-[18vh]' : ''}`}>
+            <h1 className={H1}>Who&rsquo;s on the card?</h1>
+            <p className="mt-2 text-[15px] text-keeper-body">
+              We&rsquo;ll use this to put {who} in the card &mdash; a clear photo of their face works best.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {([
+                { key: 'one_person' as const, icon: User, label: `Just ${who}`, sub: 'Multi-angle likeness' },
+                { key: 'group' as const, icon: Users, label: `${who} + others`, sub: 'One photo, several faces' },
+              ]).map(({ key, icon: Icon, label: lab, sub }) => {
+                const on = photoMode === key;
+                return (
+                  <button key={key} type="button" data-demo={`mode-${key}`} aria-pressed={on}
+                    onClick={() => setPhotoMode(key)}
+                    className={`relative flex flex-col items-start gap-1.5 rounded-2xl border-2 p-4 text-left transition-colors ${on ? 'border-brand bg-brand-muted' : 'border-keeper-hair bg-white/85'}`}>
+                    {on && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-cta text-cta-foreground"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+                    <Icon className={`h-6 w-6 ${on ? 'text-brand-dark' : 'text-keeper-meta'}`} strokeWidth={1.6} />
+                    <span className="text-[15px] font-semibold leading-tight text-keeper-ink">{lab}</span>
+                    <span className="text-[12.5px] leading-snug text-keeper-meta">{sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" data-demo="mode-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
+              onClick={() => { setPhase('photo'); mark(`photo (${photoMode})`, 'photo'); }}>Next</button>
+          </motion.section>
+        )}
+
+        {/* 3 · their photo */}
         {phase === 'photo' && (
           <motion.section key="photo" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 pb-12 text-center ${showClock ? 'pt-[20vh]' : 'pt-16'}`}>
-            <h1 className={H1}>A photo of {who}.</h1>
-            <p className="mt-2 text-[15px] text-keeper-body">Any everyday photo. We take it from there.</p>
+            <h1 className={H1}>{photoMode === 'group' ? 'One photo with everyone in it.' : `A photo of ${who}.`}</h1>
+            <p className="mt-2 text-[15px] text-keeper-body">
+              {photoMode === 'group' ? 'Faces clearly visible. We take it from there.' : 'Any everyday photo. We take it from there.'}
+            </p>
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then((d) => usePhoto(d)).catch(fail); e.target.value = ''; }} />
             <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
@@ -503,8 +590,32 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
                 initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}
                 className="h-[26vh] w-auto rounded-2xl border-[5px] border-white object-cover shadow-[0_18px_40px_-16px_rgba(33,29,25,.45)]" />
             )}
-            <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
-            <p className="-mt-3 max-w-[320px] text-center text-[18px] font-medium leading-snug text-keeper-ink">{waitLine}</p>
+            {/* On the checking beat, the traffic light replaces the
+                spinner the moment it lands — it is the real note off the
+                photo row, the same words the customer gets. */}
+            {phase === 'checking' && note ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: 'easeOut' }}
+                /* The live step's own colours (emerald / amber / red,
+                   stock Tailwind — NOT the retired accent-amber brand
+                   token), so the film shows the traffic light a customer
+                   actually sees. */
+                className={`flex max-w-[330px] flex-col items-center gap-2 rounded-2xl border px-5 py-4 text-center ${
+                  note.tone === 'good' ? 'border-emerald-300 bg-emerald-50'
+                  : note.tone === 'warn' ? 'border-amber-400 bg-amber-50'
+                  : 'border-red-400 bg-red-50'}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full ${note.tone === 'good' ? 'bg-emerald-600 text-white' : note.tone === 'warn' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>
+                  {note.tone === 'good' ? <Check className="h-5 w-5" strokeWidth={3} /> : <AlertTriangle className="h-5 w-5" strokeWidth={2.5} />}
+                </span>
+                <span className="text-[16px] font-semibold leading-snug text-keeper-ink">{note.headline}</span>
+                <span className="text-[13.5px] leading-snug text-keeper-body">{note.detail}</span>
+              </motion.div>
+            ) : (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={2.5} aria-hidden="true" />
+                <p className="-mt-3 max-w-[320px] text-center text-[18px] font-medium leading-snug text-keeper-ink">{waitLine}</p>
+                {waitSub && <p className="-mt-4 max-w-[300px] text-center text-[13.5px] leading-snug text-keeper-body">{waitSub}</p>}
+              </>
+            )}
           </motion.section>
         )}
 
@@ -515,16 +626,6 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
             <p className="mt-2 text-[15px] text-keeper-body">Describe anywhere. We’ll put them in it.</p>
             <textarea data-demo="scene" value={scene} onChange={(e) => setScene(e.target.value)} aria-label="Describe the scene" rows={4}
               className="demo-glow-field mt-4 rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
-            {suggestions.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2">
-                {suggestions.map((s, i) => (
-                  <button key={i} type="button" data-demo={`scene-idea-${i}`} onClick={() => setScene(s)}
-                    className="flex items-start gap-2 rounded-2xl border border-brand/30 bg-brand-muted px-3.5 py-2 text-left text-[13.5px] leading-snug text-brand-dark">
-                    <Wand2 className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />{s}
-                  </button>
-                ))}
-              </div>
-            )}
             <button type="button" data-demo="scene-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
               onClick={() => { setPhase('front'); mark('front', 'front'); }}>Next</button>
           </motion.section>
