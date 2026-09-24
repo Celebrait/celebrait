@@ -240,12 +240,46 @@ const FIELD: Motif[] = (() => {
 const FIELD_MASK =
   'radial-gradient(ellipse 74% 54% at 50% 46%, rgba(0,0,0,0.17) 0%, rgba(0,0,0,0.28) 40%, rgba(0,0,0,0.62) 74%, rgba(0,0,0,0.95) 100%)';
 
+/** TEMPORARY, while Aidan picks a ground: ?ground=a|b|c on any demo URL.
+ *  'b' is the default until he calls it. Delete the loser branches. */
+function groundChoice(): 'a' | 'b' | 'c' {
+  if (typeof window === 'undefined') return 'b';
+  const g = new URLSearchParams(window.location.search).get('ground');
+  return g === 'a' || g === 'c' ? g : 'b';
+}
+
+const PAPER = 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 55%, #F4F1EA 100%)';
+
+/** Fine paper grain — one inline SVG, no request, no clipart. */
+const GRAIN =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.42'/></svg>\")";
+
 export function DemoBackdrop() {
+  const g = groundChoice();
+
+  // B — no clipart at all. Paper: a tonal wash, a fine grain, and one
+  // soft violet bloom well off-centre so the frame has a light source.
+  if (g === 'b') {
+    return (
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" style={{ background: PAPER }}>
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(ellipse 90% 60% at 50% -10%, rgba(92,87,212,0.07), transparent 70%), radial-gradient(ellipse 70% 50% at 50% 112%, rgba(92,87,212,0.05), transparent 70%)',
+        }} />
+        <div className="absolute inset-0" style={{ backgroundImage: GRAIN, backgroundSize: '180px 180px', opacity: 0.22, mixBlendMode: 'multiply' }} />
+      </div>
+    );
+  }
+
+  // A — the wallpaper, taken right down: every other motif dropped and
+  // the whole field at a third of the weight. A watermark, not a print.
+  // C — the wallpaper as-is.
+  const field = g === 'a' ? FIELD.filter((_, i) => i % 2 === 0) : FIELD;
+  const weight = g === 'a' ? 0.34 : 1;
+
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 55%, #F4F1EA 100%)' }}>
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" style={{ background: PAPER }}>
       <div className="absolute inset-0" style={{ maskImage: FIELD_MASK, WebkitMaskImage: FIELD_MASK }}>
-        {FIELD.map((f, i) => (
+        {field.map((f, i) => (
           <img
             key={i}
             src={f.icon}
@@ -254,8 +288,8 @@ export function DemoBackdrop() {
             className="demo-float absolute select-none"
             style={{
               left: `${f.x}%`, top: `${f.y}%`,
-              height: `clamp(22px, ${f.size}vmin, 64px)`, width: 'auto',
-              opacity: f.o,
+              height: `clamp(22px, ${f.size * (g === 'a' ? 1.15 : 1)}vmin, 72px)`, width: 'auto',
+              opacity: f.o * weight,
               ['--rot' as string]: `${f.rot}deg`,
               ['--dur' as string]: `${f.dur}s`,
               ['--delay' as string]: `-${f.delay}s`,
@@ -307,6 +341,16 @@ export const CSS = `
 
   @keyframes demo-field-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.35), 0 10px 36px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.55), 0 14px 48px rgba(122,118,232,.38) } }
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
+
+  /* A HELD SHOT IS STILL. The pulse and the field glow are affordances —
+     they say "this is the one thing to do" — and that job is done the
+     moment the camera has punched in on it. Left running they throb
+     violet through the whole held frame, which is the purple spot in
+     shot (Aidan 2026-09-24: "kill the pulse while the camera's held").
+     The field keeps its static violet border, so which field is live is
+     still legible; it just stops breathing. */
+  :root[data-demo-held="1"] .demo-pulse { animation: none; transform: none; box-shadow: none; }
+  :root[data-demo-held="1"] .demo-glow-field { animation: none; box-shadow: 0 0 0 1px rgba(122,118,232,.35); }
 
   .demo-zoomer { transition: transform 520ms cubic-bezier(.4,0,.2,1); will-change: transform; }
   @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-9px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
@@ -406,6 +450,14 @@ export function resetZoomForScreen() { zoomedThisScreen = false; framedSig = nul
  *  to tell a FRAMING tap from an ACTING one. */
 export function needsFraming(): boolean { return !zoomedThisScreen || screenMovedOn(); }
 
+/** Marks the document while the camera is holding a punched-in shot,
+ *  so the CSS can stop everything that throbs. */
+function held(on: boolean) {
+  if (typeof document === 'undefined') return;
+  if (on) document.documentElement.dataset.demoHeld = '1';
+  else delete document.documentElement.dataset.demoHeld;
+}
+
 /** Clear space left around the thing being punched in on. */
 const ZOOM_PAD = 22;
 /** Below this there is nothing to see — hold still rather than nudge. */
@@ -483,7 +535,7 @@ export async function zoomTo(el: HTMLElement, scale = 1.3) {
   const ty = clamp(rr.height / 2 - ey * s, rr.height * (1 - s), 0);
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  zoomedThisScreen = true;
+  zoomedThisScreen = true; held(true);
   mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
   await sleep(ZOOM_MS);
   // Take the reading AFTER the move, not before it: a screen is often
@@ -528,12 +580,13 @@ export function zoomAt(x: number, y: number, scale = 1.3) {
   const ty = clamp(py - py * s, rr.height * (1 - s), 0);
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  zoomedThisScreen = true; framedSig = screenSignature();
+  zoomedThisScreen = true; framedSig = screenSignature(); held(true);
   mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
 }
 
 export async function zoomOut(wait = true) {
   const root = zoomRoot; if (!root || !zoomOn) return;
+  held(false);
   root.style.transform = 'none';
   if (wait) await sleep(ZOOM_MS);
 }
@@ -544,7 +597,7 @@ export async function zoomOut(wait = true) {
  *  every screen is born at 1:1, and the jump is hidden under the fade
  *  that is already running. */
 export function zoomHome() {
-  zoomedThisScreen = false; framedSig = null;
+  zoomedThisScreen = false; framedSig = null; held(false);
   const root = zoomRoot; if (!root || !zoomOn) return;
   const prev = root.style.transition;
   root.style.transition = 'none';
