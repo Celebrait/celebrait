@@ -1402,7 +1402,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
                   <button key={z} type="button" className={chip((cfg.scale ?? 1) === z)} onClick={() => set({ scale: z })}>{Math.round(z * 100)}%</button>
                 ))}
               </div>
-              <p className="mt-1.5 text-[12px] text-keeper-meta">Under 100% pulls back, so a caption or the like rail doesn&rsquo;t cover anything. Over 100% fills a 9:16 crop. Works with the phone and full screen.</p>
+              <p className="mt-1.5 text-[12px] text-keeper-meta">Under 100% pulls back, so a caption or the like rail doesn&rsquo;t cover anything. Over 100% fills a 9:16 crop. The background fills the frame either way.</p>
             </div>
             <div><span className={label}>Countdown</span><div className="flex gap-2">{[0, 3, 5, 10].map((n) => <button key={n} type="button" className={chip(cfg.countdown === n)} onClick={() => set({ countdown: n })}>{n}s</button>)}</div></div>
           </div>
