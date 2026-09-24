@@ -558,6 +558,29 @@ async function post(path: string, body: unknown, timeoutMs = 120_000): Promise<a
   if (!r.ok) throw Object.assign(new Error(j?.message ?? `${path} failed (${r.status})`), { code: j?.code as string | undefined, status: r.status });
   return j;
 }
+/** A render that never answers used to take the whole run with it. The
+ *  three cards are drawn in PARALLEL, so one stuck request killed the
+ *  take — and killed it late, about two minutes in, which on a shoot is
+ *  the worst possible moment (2026-09-24: a run died with two of three
+ *  back and the third silent, no error, the provider simply never
+ *  replied).
+ *
+ *  Renders now get a SHORT deadline and one fresh attempt, so a hung
+ *  request costs fifteen seconds instead of the take. Only a STALL is
+ *  retried — a real error still surfaces immediately, and a safety
+ *  refusal still goes to drawSafely, which wraps this. */
+const RENDER_MS = 45_000;
+const isStall = (e: any) => e?.name === 'TimeoutError' || e?.name === 'AbortError';
+async function drawOnce<T>(draw: () => Promise<T>, onRetry?: () => void): Promise<T> {
+  try {
+    return await draw();
+  } catch (e) {
+    if (!isStall(e)) throw e;
+    onRetry?.();
+    return await draw();
+  }
+}
+
 /** Draw one card the way /make does: a safety refusal is deterministic
  *  (usually a film or show's own characters), so the art direction is
  *  rewritten once — the property's world without its cast — and the card
@@ -931,7 +954,10 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
     setConcepts(cs);
     const interest = b.thing.trim() || undefined;
     const drawn = await Promise.all(cs.map((c, i) => drawSafely(c, interest,
-      (x) => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true }),
+      (x) => drawOnce(
+        () => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true }, RENDER_MS),
+        () => mark(`card ${i + 1}: stalled, redrawing`),
+      ),
       () => mark(`card ${i + 1}: safer picture`))));
     // Any rewritten picture replaces the original, so the photo and the
     // inside follow the card that was actually drawn.
@@ -948,7 +974,10 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       setCameoUrl(replay.cameoUrl); setPhase('photo-result'); mark('photo: done', 'photo-result');
       return;
     }
-    const drawWith = (x: Concept) => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+    const drawWith = (x: Concept) => drawOnce(
+      () => post('render', { front_text: x.front_text, art_direction: x.art_direction, palette: x.palette, typeface: x.typeface, format: x.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' }, RENDER_MS),
+      () => mark('photo: stalled, redrawing'),
+    );
     const first = await drawSafely(c, brief.thing.trim() || undefined, drawWith, () => mark('photo: safer picture'));
     let r = first.r;
     if (first.concept !== c) {
@@ -975,7 +1004,10 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       return;
     }
     const joined = [w.dear.trim(), w.message.trim(), w.from.trim()].filter(Boolean).join('\n\n');
-    const r = await post('render-inside', { ...(joined ? { mode: 'own', message: joined } : { mode: 'blank' }), palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
+    const r = await drawOnce(
+      () => post('render-inside', { ...(joined ? { mode: 'own', message: joined } : { mode: 'blank' }), palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction }, RENDER_MS),
+      () => mark('inside: stalled, redrawing'),
+    );
     await warmAll([r.imageUrl, chosenFront]);
     setInsideUrl(r.imageUrl); setPhase('card'); mark('inside: done', 'card');
   };
