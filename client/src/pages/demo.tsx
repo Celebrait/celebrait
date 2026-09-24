@@ -169,37 +169,76 @@ export const BEATS: Record<Speed, { hold: number; type: number; settle: number; 
 // (Aidan 2026-09-24: "I need zoomed out views to have a full design
 // bg").
 //
-// So: the same four motifs, many more of them, arranged rather than
-// scattered at random — bigger and nearer along the bottom, smaller and
-// further back up top, so the frame has a front and a back. A radial
-// mask holds the middle clear, which is the guarantee that a fuller
-// ground can never fight the words: the content column is literally cut
-// out of it. Everything is low-contrast paper tones, no colour wash —
-// a tinted field behind the phone read as a weird sheen once and got
-// binned (2026-09-23).
+// The first attempt at "more" was a SCATTER — a dozen objects from 6 to
+// 18vmin thrown at the corners with the middle cut out of a mask — and
+// it read as broken for three reasons worth keeping written down:
+//
+//   1. The mask ramp ran ACROSS each object. A 130px present sitting on
+//      the 46%→72% edge of the gradient was solid down one side and
+//      dissolved down the other. Half an object is a rendering fault,
+//      not a design.
+//   2. The size range was too wide to be depth. The 6vmin motifs at 0.11
+//      didn't read as "far away", they read as dirt on the lens.
+//   3. Scattered objects sliced in half by the frame edge look dropped.
+//
+// So this is a WALLPAPER, not a scatter, and every one of those three
+// stops being a problem: one motif size on a staggered grid, one opacity
+// band, and a vignette so gradual that no single motif spans enough of
+// it to fade unevenly. A pattern is *allowed* to run off the edge — that
+// is how the eye reads "it continues", so the clipping now helps.
+//
+// Still paper tones only, no colour wash — a tinted field behind the
+// phone read as a weird sheen once and got binned (2026-09-23).
 
-const FIELD: Array<{ x: number; y: number; size: number; rot: number; o: number; icon: string; dur: number; delay: number }> = [
-  // near band, along the bottom — the biggest, most present objects
-  { x: 8,  y: 88, size: 17, rot: -9, o: 0.30, icon: cakeIcon,    dur: 11, delay: 0 },
-  { x: 91, y: 90, size: 18, rot: 8,  o: 0.30, icon: presentIcon, dur: 13, delay: 1.9 },
-  { x: 30, y: 96, size: 12, rot: 5,  o: 0.20, icon: heartIcon,   dur: 12, delay: 3.1 },
-  { x: 68, y: 97, size: 11, rot: -6, o: 0.18, icon: ringIcon,    dur: 14, delay: 0.8 },
-  // mid band, hugging the sides
-  { x: 4,  y: 60, size: 11, rot: 7,  o: 0.20, icon: ringIcon,    dur: 15, delay: 2.4 },
-  { x: 96, y: 56, size: 12, rot: -8, o: 0.20, icon: heartIcon,   dur: 12, delay: 1.1 },
-  { x: 7,  y: 36, size: 9,  rot: -5, o: 0.15, icon: presentIcon, dur: 16, delay: 3.6 },
-  { x: 94, y: 33, size: 10, rot: 6,  o: 0.15, icon: cakeIcon,    dur: 13, delay: 0.4 },
-  // far band, up top — smallest, faintest, sitting back
-  { x: 17, y: 11, size: 9,  rot: -7, o: 0.22, icon: heartIcon,   dur: 14, delay: 1.5 },
-  { x: 84, y: 13, size: 9,  rot: 6,  o: 0.22, icon: ringIcon,    dur: 12, delay: 2.8 },
-  { x: 50, y: 5,  size: 7,  rot: 3,  o: 0.13, icon: cakeIcon,    dur: 17, delay: 4.2 },
-  { x: 35, y: 20, size: 6,  rot: -4, o: 0.11, icon: presentIcon, dur: 15, delay: 2.0 },
-  { x: 66, y: 23, size: 6,  rot: 5,  o: 0.11, icon: heartIcon,   dur: 16, delay: 3.4 },
-];
+const MOTIFS = [cakeIcon, ringIcon, presentIcon, heartIcon];
 
-/** Keeps the field off the words: the middle of the frame is cut out of
- *  the mask entirely, fading in only towards the edges. */
-const FIELD_MASK = 'radial-gradient(ellipse 58% 42% at 50% 50%, transparent 0%, transparent 46%, rgba(0,0,0,0.55) 72%, #000 100%)';
+/** Deterministic jitter, so the ground is identical on every load and
+ *  in every take — a shoot re-runs the same screen a dozen times and the
+ *  background may not shuffle between them. */
+function jitter(seed: number): number {
+  const n = Math.sin(seed * 12.9898) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+type Motif = { x: number; y: number; size: number; rot: number; o: number; icon: string; dur: number; delay: number };
+
+const FIELD: Motif[] = (() => {
+  const out: Motif[] = [];
+  const COL = 22; // % of the frame between columns
+  const ROW = 13; // % of the frame between rows
+  let seed = 0;
+  let r = 0;
+  for (let y = -4; y < 107; y += ROW, r++) {
+    const stagger = r % 2 ? COL / 2 : 0;
+    let c = 0;
+    for (let x = -7 + stagger; x < 108; x += COL, c++) {
+      const a = jitter(++seed);
+      const b = jitter(seed + 91);
+      const d = jitter(seed + 17);
+      const e = jitter(seed + 53);
+      out.push({
+        x: x + (a - 0.5) * 5,
+        y: y + (b - 0.5) * 4,
+        size: 6.4 + d * 2.0,
+        rot: (e - 0.5) * 30,
+        o: 0.54 + a * 0.26,
+        // c*3 + r*5 walks all four motifs along a row and shifts the
+        // start each row, so no two neighbours ever match.
+        icon: MOTIFS[(c * 3 + r * 5) % MOTIFS.length],
+        dur: 11 + b * 7,
+        delay: d * 9,
+      });
+    }
+  }
+  return out;
+})();
+
+/** Holds the field back behind the words without ever cutting a hole in
+ *  it. Every stop is opaque to some degree — the middle is quiet, not
+ *  empty — and the ramp runs over ~30% of the frame, which is six times
+ *  a motif's width, so nothing fades visibly across its own body. */
+const FIELD_MASK =
+  'radial-gradient(ellipse 74% 54% at 50% 46%, rgba(0,0,0,0.17) 0%, rgba(0,0,0,0.28) 40%, rgba(0,0,0,0.62) 74%, rgba(0,0,0,0.95) 100%)';
 
 export function DemoBackdrop() {
   return (
@@ -215,12 +254,11 @@ export function DemoBackdrop() {
             className="demo-float absolute select-none"
             style={{
               left: `${f.x}%`, top: `${f.y}%`,
-              height: `clamp(26px, ${f.size}vmin, 160px)`, width: 'auto',
+              height: `clamp(22px, ${f.size}vmin, 64px)`, width: 'auto',
               opacity: f.o,
               ['--rot' as string]: `${f.rot}deg`,
               ['--dur' as string]: `${f.dur}s`,
               ['--delay' as string]: `-${f.delay}s`,
-              filter: 'drop-shadow(0 10px 18px rgba(33,29,25,0.10))',
             }}
           />
         ))}
@@ -271,8 +309,8 @@ export const CSS = `
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
 
   .demo-zoomer { transition: transform 340ms cubic-bezier(.22,1,.36,1); will-change: transform; }
-  @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-14px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
-  .demo-float { transform: translate(-50%,-50%) rotate(var(--rot)); animation: demo-float var(--dur) ease-in-out infinite; animation-delay: var(--delay); will-change: transform; }
+  @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-9px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
+  .demo-float { transform: translate(-50%,-50%) rotate(var(--rot)); animation: demo-float var(--dur) ease-in-out infinite; animation-delay: var(--delay); }
   @media (prefers-reduced-motion: reduce) { .demo-float { animation: none } }
 
   .demo-rail { scrollbar-width: none; } .demo-rail::-webkit-scrollbar { display: none; }
@@ -1391,7 +1429,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
         // caption (bottom) on Reels and TikTok.
-        <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white/85 px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
+        <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Time taken to get here</span>
           <span className="flex items-center gap-1.5 text-[22px] font-bold leading-tight tabular-nums text-keeper-ink">
             <span className={`h-2 w-2 rounded-full ${clockTo == null ? 'animate-pulse bg-cta' : 'bg-keeper-meta'}`} />{clockText}
@@ -1416,7 +1454,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       {/* 1 · the brief */}
       {phase === 'brief' && (
         <motion.section key="brief" {...SCREEN} className="absolute inset-0 flex flex-col justify-start overflow-y-auto px-5 pb-10 pt-[24vh]" /* top edge pinned: only the bottom moves between questions */>
-          <motion.div className="rounded-2xl border border-keeper-hair bg-white/85 p-5" initial={false} animate={{ opacity: hookOn ? 0 : 1, y: hookOn ? 12 : 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
+          <motion.div className="rounded-2xl border border-keeper-hair bg-white p-5" initial={false} animate={{ opacity: hookOn ? 0 : 1, y: hookOn ? 12 : 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
             <BriefQuestions skin="landing" minimal hide={hiddenQuestions(cfg)} askDislike={!!cfg.askDislike} brief={brief} onChange={setBrief} hideDots onDone={(b) => { setBrief(b); generate(b).catch(fail); }} />
           </motion.div>
         </motion.section>
@@ -1459,7 +1497,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
           <p className="mt-2 text-[15px] text-keeper-body">We redesign this card with them in it.</p>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then(usePhoto); e.target.value = ''; }} />
           <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
-            className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white/70">
+            className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white">
             <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
           </button>
         </motion.section>
@@ -1479,9 +1517,9 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
         <motion.section key="inside" {...SCREEN} className="absolute inset-0 flex flex-col justify-center overflow-y-auto px-5 py-16 text-center">
           <h1 className={H1}>Now the inside.</h1>
           <div className="mt-5 flex flex-col gap-3">
-            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
-            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Your message" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
-            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" placeholder={`Dear ${who},`} className="h-12 rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+            <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Your message" rows={5} className="demo-glow-field rounded-2xl border border-keeper-hair bg-white px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
+            <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" placeholder="Love, …" className="h-12 rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
           </div>
           <div className="mt-6 flex flex-col items-center">
             <button type="button" data-demo="design-inside" className={`${PRIMARY} demo-pulse w-full`} onClick={() => renderInside().catch(fail)}><Sparkles className="h-4 w-4 text-cta" /> Design the inside</button>

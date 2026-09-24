@@ -568,7 +568,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
     <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
-        <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white/85 px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
+        <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Time taken to get here</span>
           <span className="flex items-center gap-1.5 text-[22px] font-bold leading-tight tabular-nums text-keeper-ink">
             <span className={`h-2 w-2 rounded-full ${clockTo == null ? 'animate-pulse bg-cta' : 'bg-keeper-meta'}`} />{clockText}
@@ -605,7 +605,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
                 can stall the exit, and the run then sits on a blank
                 screen forever (caught 2026-09-22 — the photo screen
                 never mounted when the run opened with a typed hook). */}
-            <div className="rounded-2xl border border-keeper-hair bg-white/85 p-5 transition-all duration-[450ms] ease-out"
+            <div className="rounded-2xl border border-keeper-hair bg-white p-5 transition-all duration-[450ms] ease-out"
               style={{ opacity: hookOn ? 0 : 1, transform: hookOn ? 'translateY(12px)' : 'none' }}>
               <h1 className={H1}>Who’s it for?</h1>
               {/* ONE box (Aidan 2026-09-23). The occasion still has to
@@ -614,7 +614,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
                   than costing a second field on screen. */}
               <div className="mt-4">
                 <input data-demo="name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Their first name" placeholder="Their first name"
-                  className="h-12 w-full rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+                  className="h-12 w-full rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
               </div>
               <button type="button" data-demo="who-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
                 onClick={() => { setPhase('mode'); mark('mode', 'mode'); }}>Next</button>
@@ -640,7 +640,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
                 return (
                   <button key={key} type="button" data-demo={`mode-${key}`} aria-pressed={on}
                     onClick={() => setPhotoMode(key)}
-                    className={`relative flex flex-col items-start gap-1.5 rounded-2xl border-2 p-4 text-left transition-colors ${on ? 'border-brand bg-brand-muted' : 'border-keeper-hair bg-white/85'}`}>
+                    className={`relative flex flex-col items-start gap-1.5 rounded-2xl border-2 p-4 text-left transition-colors ${on ? 'border-brand bg-brand-muted' : 'border-keeper-hair bg-white'}`}>
                     {on && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-cta text-cta-foreground"><Check className="h-3 w-3" strokeWidth={3} /></span>}
                     <Icon className={`h-6 w-6 ${on ? 'text-brand-dark' : 'text-keeper-meta'}`} strokeWidth={1.6} />
                     <span className="text-[15px] font-semibold leading-tight text-keeper-ink">{lab}</span>
@@ -661,7 +661,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then((d) => usePhoto(d)).catch(fail); e.target.value = ''; }} />
             <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
-              className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white/70">
+              className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white">
               <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
             </button>
           </motion.section>
@@ -687,7 +687,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
           <motion.section key="scene" {...SCREEN} className={`absolute inset-0 flex flex-col justify-center px-5 ${showClock ? 'pt-[18vh]' : ''}`}>
             <h1 className={H1}>Describe the front of the card</h1>
             <textarea data-demo="scene" value={scene} onChange={(e) => setScene(e.target.value)} aria-label="Describe the scene" rows={4}
-              className="demo-glow-field mt-4 rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
+              className="demo-glow-field mt-4 rounded-2xl border border-keeper-hair bg-white px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
             <button type="button" data-demo="scene-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
               onClick={() => { setPhase('front'); mark('front', 'front'); }}>Next</button>
           </motion.section>
@@ -699,7 +699,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
             <h1 className={H1}>Text on the front?</h1>
             <input data-demo="front-text" value={frontText} onChange={(e) => setFrontText(e.target.value)} aria-label="Front of the card"
               placeholder={`Happy ${preset.occasion}, ${who}`}
-              className="mt-4 h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+              className="mt-4 h-12 rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
             <button type="button" data-demo="front-next" className={`${PRIMARY} demo-pulse mt-5 w-full`}
               onClick={() => { setDear(''); setMessage(''); setFrom(''); setPhase('inside'); mark('inside', 'inside'); }}>Next</button>
           </motion.section>
@@ -711,11 +711,11 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
             <h1 className={H1}>Text on the inside?</h1>
             <div className="mt-5 flex flex-col gap-3">
               <input data-demo="dear" style={{ textAlign: 'left' }} value={dear} onChange={(e) => setDear(e.target.value)} aria-label="Dear" placeholder={`Dear ${who},`}
-                className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+                className="h-12 rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
               <textarea data-demo="message" style={{ textAlign: 'left' }} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="Your message" rows={5}
-                className="demo-glow-field rounded-2xl border border-keeper-hair bg-white/95 px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
+                className="demo-glow-field rounded-2xl border border-keeper-hair bg-white px-4 py-3 text-[16px] leading-relaxed text-keeper-ink focus:outline-none" />
               <input data-demo="from" style={{ textAlign: 'left' }} value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" placeholder="Love, …"
-                className="h-12 rounded-full border border-keeper-hair bg-white/90 px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
+                className="h-12 rounded-full border border-keeper-hair bg-white px-4 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none" />
             </div>
             <div className="mt-6 flex flex-col items-center">
               <button type="button" data-demo="make-card" className={`${PRIMARY} demo-pulse w-full`}
