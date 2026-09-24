@@ -32,7 +32,7 @@
 // and real money. A fresh draft each time because /generate 409s on any
 // draft that is not still in 'draft'.
 //
-// The screens, the director's hands, the punch-in, the dot cursor, the
+// The screens, the tap ring, the dot cursor, the
 // clock and the posted flight are all shared with the three-card route
 // (imported from demo.tsx) so the two films cut together.
 
@@ -44,10 +44,10 @@ import { expectedBy, formatDayMonth } from '@shared/pricing';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
 import {
-  BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
+  CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
-  clearRings, find, findDemo, mark, preparePhoto, ring,
-  DemoBackdrop, needsFraming, resetZoomForScreen, setZoomRoot, sleep, tap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
+  clearRings, mark, preparePhoto, ring,
+  DemoBackdrop, sleep, typeHook, warm, warmAll,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -221,7 +221,7 @@ type Phase =
 // ── the run ──────────────────────────────────────────────────────────
 
 export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; replay?: ReplayCard; ground?: boolean }) {
-  // Replaying: the brief IS the finished card's own, so the director
+  // Replaying: the brief IS the finished card's own, so the screens
   // types the real name, the real scene sentence and the real words,
   // and the card that lands is the one those words actually produced.
   const preset = useMemo<PhotoPreset>(() => {
@@ -236,7 +236,6 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
       hookLine: cfg.hookLine?.trim() || `One photo of *${replay.name}*. One sentence. Watch what we do with it.`,
     };
   }, [cfg.photoPreset, cfg.hookLine, replay]);
-  const beats = BEATS[cfg.speed];
   const hook = cfg.hook;
   const showClock = cfg.timer !== false;
   // The builder can rewrite the opening line; the preset's is the default.
@@ -283,11 +282,6 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   const sceneRef = useRef(''); sceneRef.current = scene;
   const wordsRef = useRef({ dear: '', message: '', from: '' }); wordsRef.current = { dear, message, from };
   const frontRef = useRef(''); frontRef.current = frontText;
-
-  useEffect(() => {
-    setZoomRoot(rootRef.current, cfg.zoom !== false); // manual runs punch in on the user's own taps
-    return () => setZoomRoot(null, false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The clock — the same one the three-card route films, so the two cuts
   // can be compared honestly. It starts at the first question and stops
@@ -428,67 +422,6 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
     setPhase('card'); mark('card', 'card');
   };
 
-  // ── the director ──
-  const direct = async () => {
-    const b = beats; const p = preset;
-    mark('who: open', 'who');
-    if (hook) { await typeHook(hookLine, [p.name]); setHookOn(false); mark('hook: done'); }
-    await sleep(320);
-
-    // Who it's for.
-    await typeInto(await findDemo('name') as HTMLInputElement, p.name, b.settle, b.type);
-    await tap(await findDemo('who-next'), b.settle, b.hold * 0.7); mark(`who: ${p.name} (${p.occasion})`);
-
-    // Who's on the card. Only tap the tile when it isn't the default
-    // already — a tap that changes nothing looks like a mis-click.
-    await until('mode', 10_000); await sleep(b.look * 0.6);
-    if (p.photoMode !== 'one_person') await tap(await findDemo(`mode-${p.photoMode}`), b.settle, b.hold * 0.8);
-    await tap(await findDemo('mode-next'), b.settle, b.hold * 0.6); mark(`mode: ${p.photoMode}`);
-
-    // Their photo.
-    await until('photo', 10_000); await sleep(b.look * 0.5);
-    setPickerPhoto(await preparePhoto(await fetch(p.photo).then((r) => r.blob())));
-    await tap(await findDemo('add-photo'), b.settle, 300);
-    const mine = await findDemo('picker-photo', 8000); await sleep(900);
-    await tap(mine, b.settle * 0.8, 200);
-    mark('photo: added');
-
-    // The scene.
-    await until('scene', 180_000); await sleep(b.look * 0.8);
-    await typeInto(await findDemo('scene') as HTMLTextAreaElement, p.scene, b.settle, b.type);
-    await tap(await findDemo('scene-next'), b.settle, b.hold * 0.7); mark('scene: set');
-
-    // What the front says.
-    await until('front', 10_000); await sleep(b.look * 0.6);
-    if (p.front.trim()) await typeInto(await findDemo('front-text') as HTMLInputElement, p.front, b.settle, b.type);
-    await tap(await findDemo('front-next'), b.settle, b.hold * 0.7); mark('front: set');
-
-    // The inside, written BEFORE anything is drawn, so there is one
-    // wait instead of two and the card that lands is finished.
-    await until('inside', 10_000);
-    await typeInto(await findDemo('dear') as HTMLInputElement, p.dear, b.settle, b.type);
-    await typeInto(await findDemo('message') as HTMLTextAreaElement, p.message, b.settle, b.type);
-    await typeInto(await findDemo('from') as HTMLInputElement, p.from, b.settle, b.type);
-    await tap(await findDemo('make-card'), b.settle, 300); mark('card: asked');
-
-    // The card.
-    await until('card', 300_000);
-    // ONE full turn, then it opens. Held to a whole revolution rather
-    // than a turn-and-a-bit so the camera is back round on the front
-    // before the cover swings — opening mid-spin was the original
-    // weirdness. A few degrees of drift from frame-rate variance reads
-    // as a hand holding it, not as an error.
-    await findDemo('card');
-    mark('card: turning'); await sleep(FULL_TURN_MS);
-    setCardOpen(true); mark('card: open');
-    // The open spread is the payoff — the inside is the half nobody
-    // else shows — so it gets a proper hold, not a glance.
-    await sleep(b.look * 3.8);
-    await tap(await findDemo('post'), b.settle, 300);
-    await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
-    mark('end', 'end');
-  };
-
   useEffect(() => {
     const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s);
     return () => { s.remove(); };
@@ -497,57 +430,20 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('who'); } }, 1000);
-    if (cfg.mode === 'manual') {
-      // MANUAL RUNS ARE TWO TAPS PER SCREEN (Aidan 2026-09-24: "a click
-      // zooms into the spot for focus without the ring and then another
-      // click is the action").
-      //
-      //   1. FRAME — the camera moves to wherever you pressed. No ring,
-      //      and the press is swallowed, so nothing fires. You choose
-      //      the shot and can hold it as long as you like.
-      //   2. ACT — the next press does what it says, with the ring.
-      //
-      // Worth the extra tap because it hands the camera and the action
-      // to you separately: on a take you can punch in, let it breathe,
-      // then move. A self-playing run still does both at once.
-      let swallowClick = false;
-      const onDown = (e: PointerEvent) => {
-        if (needsFraming()) { zoomAt(e.clientX, e.clientY); swallowClick = true; return; }
-        ring(e.clientX, e.clientY);
-      };
-      // Held a beat past the tap so a quick press still reads as a
-      // camera move, then home. A tap that changes the screen homes
-      // instantly instead — see the phase effect below.
-      // The framing press is eaten here, in the capture phase, before
-      // React's own listener on the root can see it.
-      const onClick = (e: MouseEvent) => {
-        if (swallowClick) {
-          swallowClick = false;
-          e.preventDefault(); e.stopPropagation();
-          // A framing press must activate NOTHING, and focus counts:
-          // the press lands focus on whatever is under it, which on a
-          // text field pops the keyboard over the shot you were lining
-          // up. (It is not what draws the violet halo on a primary
-          // button — that is .demo-pulse, running the whole time.)
-          (document.activeElement as HTMLElement | null)?.blur?.();
-          return;
-        }
-        window.setTimeout(clearRings, 140);
-      };
-      window.addEventListener('pointerdown', onDown, true);
-      window.addEventListener('click', onClick, true);
-      const t = window.setTimeout(() => {
-        if (!cfg.hook) return;
-        void typeHook(hookLine, [preset.name]).then(() => setHookOn(false));
-      }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
-    }
-    const t = window.setTimeout(() => { direct().catch(fail); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-    return () => { window.clearTimeout(t); window.clearInterval(tick); };
+    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('who'); mark('who: open', 'who'); } }, 1000);
+    // Aidan drives, always. His taps get the ring; the hook types
+    // itself and then steps aside.
+    const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
+    const onUp = () => window.setTimeout(clearRings, 140);
+    window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('click', onUp, true);
+    const t = window.setTimeout(() => {
+      if (!cfg.hook) return;
+      void typeHook(hookLine, [preset.name]).then(() => setHookOn(false));
+    }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
+    return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onUp, true); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // A new screen arrives wide, waiting for its one move in.
-  useEffect(() => { clearRings(); zoomHome(); resetZoomForScreen(); }, [phase]);
+  useEffect(() => { clearRings(); }, [phase]);
 
   // Group mode puts more than one person in, so don't name just one.
   const waitLine = drawingInside
@@ -566,7 +462,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
       {ground && <DemoBackdrop />}
-    <div ref={rootRef} className="keeper-serif demo-zoomer fixed inset-0 overflow-hidden">
+    <div ref={rootRef} className="keeper-serif fixed inset-0 overflow-hidden">
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">

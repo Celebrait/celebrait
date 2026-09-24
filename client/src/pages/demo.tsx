@@ -1,11 +1,16 @@
 // client/src/pages/demo.tsx
 //
-// THE DEMO — the three-card route as a product demo for social video,
-// driving itself (Aidan 2026-09-15). Its own screens, one per beat, no
-// scrolling, no chrome; the SAME engine underneath (concepts, fronts,
-// the cameo, the inside all come from /api/make/*), so what's on film is
-// what the product makes. A director walks it like a thumb: scroll to
-// the thing, a violet ring where the tap lands, the tap, a held beat.
+// THE DEMO — the three-card route as a product demo for social video
+// (Aidan 2026-09-15). Its own screens, one per beat, no scrolling, no
+// chrome; the SAME engine underneath (concepts, fronts, the cameo, the
+// inside all come from /api/make/*), so what's on film is what the
+// product makes.
+//
+// AIDAN DRIVES IT. It used to be able to play itself — a director that
+// walked the screens like a thumb — and that went, along with the
+// camera punch-in, on 2026-09-24 ("remove play itself feature entirely,
+// remove zoom push entirely"). What is left is clean screens, a violet
+// ring where his tap lands, and a clock.
 //
 //   hook → brief → glowing generator → Option 1/2/3 (swipe, pulsing
 //   Choose) → add a photo? → put them in → the inside → the 3D card,
@@ -14,7 +19,6 @@
 // Versions are links, so a link IS a version:
 //   /demo?preset=mum-70-garden&hook=typed   (the photo step needs a preset with a photo)
 //   /demo?preset=dad-60-canal               (no photo → the photo screen is skipped)
-//   /demo?…&speed=fast                       tighter beats for a 30s cut
 //
 // Admin-only (every load spends real generations) and noindex. The
 // recorder (scratchpad rec/record-demo.mjs) reads window.__demo for
@@ -78,7 +82,6 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
   },
 };
 
-export type Speed = 'normal' | 'fast';
 /** What one run needs: a preset's worth of brief, plus how to play it. */
 /** A saved run (/api/admin/demo-runs/:id), played back with no new
  *  generations (Aidan 2026-09-17: "long form… chop it up into little
@@ -114,20 +117,14 @@ export interface DemoConfig extends DemoPreset {
    *  the saved run, and no generation, upload or draft is needed to
    *  play it back. Costs nothing and works on every card ever made. */
   replayCardId?: number;
-  speed: Speed; hook: boolean;
+  hook: boolean;
   /** Seconds before the run starts — time to hit record. */
   countdown: number;
-  /** 'auto' = the director taps through it; 'manual' = Aidan does, on the
-   *  same clean screens (2026-09-15: "allow me to manually run this end
-   *  to end rather than pre-set and hit play"). */
-  mode: 'auto' | 'manual';
   /** Ask "anything they can't stand?" as its own screen. */
   askDislike?: boolean;
   /** Which of who / occasion / age appear as questions on screen; the
    *  rest are set in the builder and said in the hook (Aidan 2026-09-16). */
   askOnScreen?: { who?: boolean; occasion?: boolean; age?: boolean };
-  /** Punch in on each tap while the run plays itself (on unless false). */
-  zoom?: boolean;
   /** How big the whole thing is drawn in the recorded frame, 1 = as it
    *  fits today. Under 1 pulls back so a platform's caption and like
    *  rail don't sit over anything; over 1 punches in to fill a 9:16
@@ -144,14 +141,6 @@ export interface DemoConfig extends DemoPreset {
   /** Replay waits: as long as the original run took, or short. */
   waits?: 'real' | 'short' | 'none';
 }
-export const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
-  // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
-  // ring lands. Cut back 2026-09-17 ("too much delay between landing on a
-  // new screen and inputting or clicking") — the punch-in now carries that
-  // beat, so the dead time went with it.
-  normal: { hold: 1100, type: 62, settle: 520, walk: 1450, look: 1900 },
-  fast: { hold: 650, type: 40, settle: 280, walk: 900, look: 1050 },
-};
 
 // ── the ground ───────────────────────────────────────────────────────
 //
@@ -307,17 +296,6 @@ export const CSS = `
   @keyframes demo-field-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.35), 0 10px 36px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.55), 0 14px 48px rgba(122,118,232,.38) } }
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
 
-  /* A HELD SHOT IS STILL. The pulse and the field glow are affordances —
-     they say "this is the one thing to do" — and that job is done the
-     moment the camera has punched in on it. Left running they throb
-     violet through the whole held frame, which is the purple spot in
-     shot (Aidan 2026-09-24: "kill the pulse while the camera's held").
-     The field keeps its static violet border, so which field is live is
-     still legible; it just stops breathing. */
-  :root[data-demo-held="1"] .demo-pulse { animation: none; transform: none; box-shadow: none; }
-  :root[data-demo-held="1"] .demo-glow-field { animation: none; box-shadow: 0 0 0 1px rgba(122,118,232,.35); }
-
-  .demo-zoomer { transition: transform 520ms cubic-bezier(.4,0,.2,1); will-change: transform; }
   @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-9px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
   .demo-float { transform: translate(-50%,-50%) rotate(var(--rot)); animation: demo-float var(--dur) ease-in-out infinite; animation-delay: var(--delay); }
   @media (prefers-reduced-motion: reduce) { .demo-float { animation: none } }
@@ -359,281 +337,6 @@ export async function find(sel: string, text: RegExp | null, timeoutMs = 20_000,
   }
   throw new Error(`demo: never found ${sel} ${text ?? ''}`);
 }
-export const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="${key}"]`, null, timeoutMs);
-
-/** THE PUNCH-IN (Aidan 2026-09-17: "zoom into the things that are
- *  clicked like pan in and out so the cut is snappy"). The whole screen
- *  scales towards whatever is about to be tapped or typed into, then
- *  back out — a camera move, not a layout change, so nothing reflows.
- *  Self-playing runs only. */
-let zoomRoot: HTMLElement | null = null;
-let zoomOn = false;
-const ZOOM_MS = 520;
-/** ONE CAMERA MOVE PER SCREEN, HELD (Aidan 2026-09-24: "limit each
- *  screen to one initial tap in only and never let it zoom out until
- *  the next page, which is zoomed out until one tap in").
- *
- *  So: a screen arrives wide. The first thing touched on it — a tap or
- *  the first field typed into — punches in, and the camera then STAYS
- *  there for the rest of that screen, however many more taps it takes.
- *  It only goes wide again when the screen changes. Punching in and out
- *  on every single tap, which is what it used to do, reads as the
- *  camera fidgeting. */
-let zoomedThisScreen = false;
-/** Everything that was on screen at the moment we last framed.
- *
- *  "One move per screen" can't key off the PHASE alone: the three-card
- *  route's entire brief — who, occasion, age, vibe, their thing, what's
- *  on the front — is a single phase, so the camera punched in on the
- *  first question and then sat still through all six, which looks
- *  exactly like the punch-in being switched off on that route (Aidan
- *  2026-09-24: "why is the camera punch not turned on for all routes?").
- *
- *  So a screen is defined by what's on it: touch a control that wasn't
- *  there when we framed, and the screen has moved on, whatever the
- *  phase says. Within one genuine screen every control is present from
- *  the start, so it still frames only once. */
-let framedSig: string | null = null;
-/** What the screen is OFFERING, as a string. Deliberately the buttons'
- *  words and not the elements themselves: React reuses the same DOM
- *  nodes between brief questions, so identity says "same screen" when
- *  the reader is plainly looking at a new one. The labels change every
- *  time, so they are the honest signal. Typing doesn't disturb it. */
-function screenSignature(): string {
-  return Array.from(document.querySelectorAll('button'))
-    .filter((el) => el.getClientRects().length > 0)
-    .map((el) => (el.textContent ?? '').trim())
-    .join('|');
-}
-/** Has the screen moved on under us, whatever the phase says? */
-function screenMovedOn(): boolean {
-  return framedSig === null || screenSignature() !== framedSig;
-}
-/** Called when the screen changes, so the next one starts wide. */
-export function resetZoomForScreen() { zoomedThisScreen = false; framedSig = null; }
-/** Is this screen still waiting for its one move in? Manual runs use it
- *  to tell a FRAMING tap from an ACTING one. */
-export function needsFraming(): boolean { return !zoomedThisScreen || screenMovedOn(); }
-
-/** Marks the document while the camera is holding a punched-in shot,
- *  so the CSS can stop everything that throbs. */
-function held(on: boolean) {
-  if (typeof document === 'undefined') return;
-  if (on) document.documentElement.dataset.demoHeld = '1';
-  else delete document.documentElement.dataset.demoHeld;
-}
-
-/** Clear space left around the thing being punched in on. */
-const ZOOM_PAD = 22;
-/** Below this there is nothing to see — hold still rather than nudge. */
-const ZOOM_MIN = 1.05;
-/** The box the punch-in must keep in shot.
- *
- *  For a BUTTON that is the label, not the pill: a full-width pill can
- *  lose its rounded ends and still read perfectly, and capping to the
- *  pill meant nothing on a full-width layout could zoom at all — every
- *  button on the photo route is `w-full`, so the punch-in silently
- *  switched itself off everywhere (Aidan 2026-09-24: "why are the
- *  tapped zooms not on for the photo route?").
- *
- *  For an INPUT or TEXTAREA it stays the whole box. That is where text
- *  actually got cut, and it is the crop this cap was added for. */
-function focusRect(el: HTMLElement): DOMRect {
-  const r = el.getBoundingClientRect();
-  const tag = el.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return r;
-  try {
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const t = range.getBoundingClientRect();
-    // Ignore a nonsense measurement (no text, or a laid-out-at-zero child).
-    if (t.width > 8 && t.height > 4 && t.width <= r.width) return t;
-  } catch { /* fall through to the element box */ }
-  return r;
-}
-
-// 1.16, not 1.3. Any punch-in on a screen whose heading runs the full
-// width WILL shave that heading — there is no scale above 1 that does
-// not. 1.3 took a whole letter off; 1.16 costs a few pixels of the
-// outermost glyph and still reads as a camera move.
-export async function zoomTo(el: HTMLElement, scale = 1.3) {
-  const root = zoomRoot; if (!root || !zoomOn) return;
-  if (zoomedThisScreen) {
-    // Same screen: hold exactly where we are.
-    if (!screenMovedOn()) return;
-    // A NEW screen, so it starts WIDE and then takes its one move in
-    // (Aidan 2026-09-24: "each page should allow one zoom in"). Panning
-    // from one magnified spot straight to the next never showed the
-    // page whole, which on the three-card brief meant it was zoomed for
-    // the entire run. Snapped, not eased — the ease belongs to the move
-    // in, and two eases back to back is a wobble.
-    zoomHome();
-    await sleep(140);
-  }
-  const r = focusRect(el); const rr = root.getBoundingClientRect();
-  // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
-  // 2026-09-23: "when zooming it crops … we get a nice view of each
-  // element"). Scaling about the element's own centre pushed anything
-  // wider than viewport/scale off BOTH edges, so a full-width question
-  // lost its first letter and both sides of its box.
-  //
-  // Two fixes. The scale is capped at what still fits the element with
-  // padding, so a near-full-width textarea correctly barely moves while
-  // a chip or a tile still gets the full punch. And the frame is
-  // TRANSLATED to bring the element to the middle, rather than scaled
-  // away from wherever it happened to sit.
-  const fit = Math.min(
-    (rr.width - ZOOM_PAD * 2) / Math.max(1, r.width),
-    (rr.height - ZOOM_PAD * 2) / Math.max(1, r.height),
-  );
-  const s = Math.max(1, Math.min(scale, fit));
-  if (s < ZOOM_MIN) { await sleep(ZOOM_MS); return; }
-  const ex = r.left + r.width / 2 - rr.left;
-  const ey = r.top + r.height / 2 - rr.top;
-  // Centre the element, then hold the camera inside the content: with
-  // origin 0 0 the scaled frame spans [t, t + size*s], so keeping t in
-  // [size*(1-s), 0] means an edge of the page can never swing into
-  // shot. Without it, punching into something near the top or bottom
-  // panned onto bare background.
-  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const tx = clamp(rr.width / 2 - ex * s, rr.width * (1 - s), 0);
-  const ty = clamp(rr.height / 2 - ey * s, rr.height * (1 - s), 0);
-  root.style.transformOrigin = '0 0';
-  root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  zoomedThisScreen = true; held(true);
-  mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
-  await sleep(ZOOM_MS);
-  // Take the reading AFTER the move, not before it: a screen is often
-  // still fading in when it is first touched, so half its buttons have
-  // no box yet and the signature read early looks different a moment
-  // later — which counted as the screen moving on, and punched twice.
-  framedSig = screenSignature();
-}
-/** Punch in KEEPING A SCREEN POINT FIXED — for a run a human is
- *  tapping (Aidan 2026-09-24: "I want it on when I tap"). The director's
- *  zoomTo centres the element it is about to hit, which is safe because
- *  it then calls .click() itself. Under a real finger that would be a
- *  bug: moving the element out from under the pointer means mouseup
- *  lands somewhere else and the click never reaches the button. Holding
- *  the tapped point still means whatever is under the finger stays
- *  under the finger. */
-/** Punch in for a run a HUMAN is tapping (Aidan 2026-09-24: "I want it
- *  on when I tap"), anchored on the finger's own point.
- *
- *  The director's zoomTo CENTRES what it is about to hit, which is safe
- *  only because it then calls .click() itself. Under a real finger that
- *  is a bug: move the element and mouseup lands somewhere else, so the
- *  click never reaches the button. Anchoring means whatever is under
- *  the finger stays under the finger.
- *
- *  Centring-when-it-fits and blending toward it were both tried and are
- *  worse, not better: on a row of side-by-side tiles, "centred on the
- *  right-hand tile" shoves the heading and the other tile further out of
- *  frame than simply holding the press point does. Kept deliberately
- *  dumb. */
-export function zoomAt(x: number, y: number, scale = 1.3) {
-  const root = zoomRoot; if (!root || !zoomOn) return;
-  if (zoomedThisScreen) {
-    if (!screenMovedOn()) return;
-    zoomHome(); // a new screen starts wide, then takes its one move in
-  }
-  const rr = root.getBoundingClientRect();
-  const s = Math.max(1, scale);
-  const px = x - rr.left, py = y - rr.top;
-  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const tx = clamp(px - px * s, rr.width * (1 - s), 0);
-  const ty = clamp(py - py * s, rr.height * (1 - s), 0);
-  root.style.transformOrigin = '0 0';
-  root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  zoomedThisScreen = true; framedSig = screenSignature(); held(true);
-  mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
-}
-
-export async function zoomOut(wait = true) {
-  const root = zoomRoot; if (!root || !zoomOn) return;
-  held(false);
-  root.style.transform = 'none';
-  if (wait) await sleep(ZOOM_MS);
-}
-/** Home the camera with NO easing. A tap usually changes the screen,
- *  and the eased pull-back (340ms) outlasts the cross-fade, so the new
- *  screen mounted inside the old framing and arrived magnified and cut
- *  off — exactly the crop Aidan reported on 2026-09-23. Snapping means
- *  every screen is born at 1:1, and the jump is hidden under the fade
- *  that is already running. */
-export function zoomHome() {
-  zoomedThisScreen = false; framedSig = null; held(false);
-  const root = zoomRoot; if (!root || !zoomOn) return;
-  const prev = root.style.transition;
-  root.style.transition = 'none';
-  root.style.transform = 'none';
-  void root.offsetWidth; // commit before the easing goes back on
-  root.style.transition = prev;
-}
-
-/** Bring the target into view — but ONLY as part of the screen's one
- *  move (Aidan 2026-09-24: "a new tap can move the screen though, i.e.
- *  shift over to the button").
- *
- *  Stopping the camera zooming again was only half of it: every tap
- *  also called scrollIntoView, so the page itself slid toward whatever
- *  was being pressed. That is the screen moving, whatever is causing
- *  it. Once a screen has been framed it now stays put, and the scroll
- *  happens with the punch-in as a single settling move. */
-async function bringIn(el: HTMLElement, settle: number) {
-  if (!zoomedThisScreen || screenMovedOn()) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  await sleep(settle);
-}
-export async function tap(el: HTMLElement, settle: number, hold: number) {
-  await bringIn(el, settle);
-  const r = el.getBoundingClientRect();
-  ring(r.left + Math.min(r.width * 0.5, 140), r.top + r.height / 2);
-  // The punch-in RIDES THE PRESS rather than leading it (Aidan
-  // 2026-09-23: "make the zoom effect happen when we click"). It used to
-  // finish moving in and then sit still waiting for the tap, which on a
-  // fast cut reads as the video stalling. Started, not awaited, so the
-  // camera and the finger move together; the origin is measured before
-  // the dip, so the press can't drag the framing with it.
-  const punch = zoomTo(el);
-  // A press you can see: the element dips while the ring flashes, and only
-  // acts once the flash is over — so nothing carries into the next screen.
-  const prev = el.style.transform; const prevT = el.style.transition;
-  el.style.transition = 'transform 140ms ease'; el.style.transform = 'scale(0.96)';
-  await sleep(200);
-  el.style.transform = prev; setTimeout(() => { el.style.transition = prevT; }, 200);
-  await punch;
-  await sleep(Math.max(0, RING_MS - ZOOM_MS + 60));
-  clearRings();
-  el.click();
-  // The camera is NOT released here. It stays where the first touch on
-  // this screen put it and only goes wide when the screen changes (the
-  // phase effect calls zoomHome). Releasing on every click was the
-  // fidget.
-  await sleep(Math.max(ZOOM_MS, hold * 0.8));
-}
-/** Type into a React-controlled input, one character at a time. */
-export async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
-  await bringIn(el, settle);
-  await zoomTo(el);
-  const r = el.getBoundingClientRect(); ring(r.left + 40, r.top + r.height / 2);
-  el.focus(); await sleep(350);
-  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-  const setter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!;
-  for (let i = 0; i < text.length; i++) {
-    setter.call(el, text.slice(0, i + 1));
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    await sleep(typingDelay(text, i, [], delay));
-  }
-  await sleep(320);
-  await sleep(380);
-}
-
-/** `type` is awkward to import by name (it collides with TypeScript's
- *  type-only import syntax), so the other routes take this alias. */
-export const typeInto = type;
-/** Point the punch-in at another route's root (see demo-photo.tsx).
- *  Self-playing runs only — a manual run passes on=false. */
-export function setZoomRoot(el: HTMLElement | null, on: boolean) { zoomRoot = el; zoomOn = on; }
 
 const escapeHtml = (t: string) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 /** A hook line is plain text plus the ranges that take the gradient:
@@ -999,7 +702,7 @@ function guessChipsOf(b: Partial<Brief> | null): string[] {
 const GUESS_STEP_MS = 850;
 
 export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: boolean }) {
-  const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
+  const preset = cfg; const hook = cfg.hook;
   const replay = cfg.replay;
   const clip: ClipKey = replay ? (cfg.clip ?? 'full') : 'full';
   const pi = replay?.pickedIndex ?? 0;
@@ -1026,13 +729,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const [cardOpen, setCardOpen] = useState(false);
   // The card screen stays invisible until the viewer's first frame.
   const [cardPainted, setCardPainted] = useState(false);
-  // The camera: the self-playing run punches in on each tap.
   const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    zoomRoot = rootRef.current;
-    zoomOn = cfg.zoom !== false; // manual runs punch in on the user's own taps
-    return () => { zoomRoot = null; zoomOn = false; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // The clock: from the first question on screen to the moment it's posted
   // (Aidan 2026-09-16: "shows how long this takes end to end").
   const [clockFrom, setClockFrom] = useState<number | null>(null);
@@ -1056,7 +753,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   // Picked → straight into "Adding the photo" (Aidan 2026-09-16: skip the
   // filled-tile screen). The wait begins as the sheet drops.
   // Choosing a card is a tap on the card itself (no button).
-  const photoStep = !cfg.skipPhoto && (cfg.mode === 'manual' || !!cfg.photo);
+  const photoStep = !cfg.skipPhoto;
   // Straight to the inside with our message already in, editable; Dear
   // and From start blank (Aidan 2026-09-17: no "who writes it?" step).
   const toInside = (i: number) => {
@@ -1073,7 +770,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     setPickerOpen(false);
     if (src) usePhoto(src);
   };
-  // Latest engine state for the director's async steps.
+  // Latest engine state for the async render steps.
   const conceptsRef = useRef<Concept[]>([]); conceptsRef.current = concepts;
   const pickedRef = useRef(0); pickedRef.current = picked;
   const wordsRef = useRef({ dear: '', message: '', from: '' }); wordsRef.current = { dear, message, from };
@@ -1082,7 +779,6 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const chosenFront = useCameo && cameoUrl ? cameoUrl : fronts[picked];
   // An engine failure ends the run visibly — and tells the recorder.
   const fail = (e: any) => { const m = e?.message ?? 'That didn’t work'; setError(m); mark(`FAILED: ${m}`, 'failed'); };
-  const until = async (p: Phase, timeoutMs: number) => { const t0 = Date.now(); while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); } };
 
   // ── replay ──
   // Waits last as long as they did in the original run, unless short.
@@ -1187,139 +883,6 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     setInsideUrl(r.imageUrl); setPhase('card'); mark('inside: done', 'card');
   };
 
-  // ── the director (what the thumb does) ──
-  // Director steps shared by the whole run and the clips.
-  const swipeAndPick = async () => {
-    const b = beats;
-    await until('results', 300_000); await sleep(b.look);
-    // Swipe through the options and land on the one that gets picked.
-    // The carousel mounts once the screen transition finishes — wait for it.
-    { const t0 = Date.now(); while (!railRef.current && Date.now() - t0 < 10_000) await sleep(80); }
-    const rail = railRef.current; if (!rail) throw new Error('demo: the options never appeared');
-    const w = rail.clientWidth;
-    const seq = pi === 0 ? [1, 2, 0] : pi === 1 ? [1, 2, 1] : [1, 2];
-    for (const i of seq) { rail.scrollTo({ left: i * w, behavior: 'smooth' }); await sleep(b.walk); }
-    await tap(await findDemo(`card-${pi}`), b.settle, b.hold); mark(`picked card ${pi + 1}`);
-  };
-  const addPhoto = async () => {
-    const b = beats; const p = preset;
-    await sleep(b.look * 0.5);
-    setPickerPhoto(await preparePhoto(await fetch(p.photo!).then((r) => r.blob())));
-    await tap(await findDemo('add-photo'), b.settle, 300);
-    const mine = await findDemo('picker-photo', 8000); await sleep(900); // the grid settles
-    await tap(mine, b.settle * 0.8, 200);
-    await until('photo-generating', 10_000); mark('photo: added');
-    await until('photo-result', 240_000); await sleep(b.look);
-  };
-  // The card opens and stays put — no turn afterwards (Aidan 2026-09-17).
-  const openCard = async () => {
-    const b = beats;
-    await until('card', 240_000); await sleep(b.look * 0.7);
-    const card = await findDemo('card');
-    const r = card.getBoundingClientRect(); ring(r.left + r.width / 2, r.top + r.height / 2); await sleep(120);
-    setCardOpen(true); mark('card: open'); await sleep(b.look * 1.5);
-    mark('card: done');
-  };
-  const postIt = async () => {
-    const b = beats;
-    await tap(await findDemo('post'), b.settle, 300);
-    // The card flies off, then the tick and the words land.
-    await until('sent', 10_000); await sleep(POST_FLIGHT_MS + b.look * 1.2);
-  };
-  const playClip = async () => {
-    const b = beats;
-    if (clip === 'options') { await swipeAndPick(); await sleep(b.look * 0.8); }
-    else if (clip === 'photo') { await addPhoto(); await sleep(b.look * 1.2); }
-    else if (clip === 'open') { await openCard(); await sleep(b.look * 1.2); }
-    else if (clip === 'posted') { await openCard(); await postIt(); }
-    else if (clip === 'guess') { await until('guess', 10_000); await sleep(900 + guessChips.length * GUESS_STEP_MS + b.look * 1.6); }
-  };
-
-  const direct = async () => {
-    const b = beats; const p = preset;
-    if (clip !== 'full') {
-      mark(`clip: ${clip}`, 'intro');
-      if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
-      await sleep(400);
-      await enterClip();
-      await playClip();
-      mark('end', 'end');
-      return;
-    }
-    mark('brief: open', 'brief');
-    if (hook) { await typeHook(p.hookLine, [p.who, p.name]); setHookOn(false); mark('hook: done'); }
-    await sleep(320);
-    const B = (re: RegExp) => find('button', re);
-    const ask = cfg.askOnScreen ?? {};
-    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (ask.who) {
-      await tap(await B(new RegExp(`^${esc(p.who)}$`)), b.settle, b.hold); mark(`who: ${p.who}`);
-      // Partner / mate / friend don't move on by themselves (a him/her row shows) — tap Next.
-      await sleep(900);
-      if (await find('button', new RegExp(`^${esc(p.who)}$`), 300).catch(() => null)) await tap(await B(/^Next/), b.settle * 0.5, b.hold * 0.6);
-    }
-    if (ask.occasion) {
-      const tile = await find('button', new RegExp(`^${esc(p.occasion)}`, 'i'), 2500).catch(() => null);
-      if (tile) await tap(tile, b.settle, b.hold);
-      else {
-        const box = await find('input', /Type the occasion/) as HTMLInputElement;
-        await type(box, p.occasion, b.settle, b.type);
-        await sleep(400);
-        box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-      }
-      mark(`occasion: ${p.occasion}`);
-    }
-    if (ask.age) {
-      if (p.age.trim()) {
-        await type(await find('input', /Their age/) as HTMLInputElement, p.age, b.settle, b.type * 1.8);
-        await tap(await B(/^Next/), b.settle, b.hold * 0.75);
-      } else await tap(await B(/^Skip this one/), b.settle, b.hold * 0.6);
-      mark(`age: ${p.age || 'skipped'}`);
-    }
-    await tap(await B(new RegExp(p.vibe)), b.settle, b.hold); mark(`vibe: ${p.vibe}`);
-    await type(await find('textarea', null) as HTMLTextAreaElement, p.thing, b.settle, b.type);
-    await tap(await B(/^Next/), b.settle, b.hold * 0.6); mark('interest: next');
-    if (cfg.askDislike) {
-      const cantBox = await find('input', /can.t stand/i) as HTMLInputElement;
-      if (p.cant.trim()) await type(cantBox, p.cant, b.settle, b.type);
-      await tap(await B(/^(Next|Skip)/), b.settle, b.hold * 0.75); mark(`can't stand: ${p.cant || 'skipped'}`);
-    }
-    if (p.front === 'name') {
-      await tap(await B(/^Their name$/), b.settle, b.hold * 0.6);
-      await type(await find('input', /Their first name/) as HTMLInputElement, p.name, b.settle, b.type * 1.5);
-    } else if (p.front === 'none') {
-      await tap(await B(/^Nothing$/), b.settle, b.hold * 0.6);
-    } else {
-      await tap(await B(new RegExp(`^${p.who}$`)), b.settle, b.hold * 0.6);
-    }
-    mark(`front: ${p.front}`);
-    await tap(await B(/Design my three cards/), b.settle, 300);
-
-    await swipeAndPick();
-
-    // The photo.
-    if (photoStep && p.photo) {
-      await addPhoto();
-      await tap(await findDemo('to-inside'), b.settle, b.hold * 0.6); mark('photo: kept');
-    } else {
-      mark('photo: skipped');
-    }
-
-    // The inside.
-    // Our message is already in; a run with its own words types over it.
-    const by = p.insideBy ?? 'us';
-    await until('inside', 10_000); mark(`inside: ${by}`);
-    await type(await findDemo('dear') as HTMLInputElement, p.dear, b.settle, b.type);
-    if (by === 'me') await type(await findDemo('message') as HTMLTextAreaElement, p.message ?? `Happy birthday, ${p.who}.`, b.settle, b.type);
-    await type(await findDemo('from') as HTMLInputElement, p.from, b.settle, b.type);
-    await tap(await findDemo('design-inside'), b.settle, 300);
-    await until('card', 240_000); await sleep(b.look);
-
-    await openCard();
-    await postIt();
-    mark('end', 'end');
-  };
-
   useEffect(() => {
     const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s);
     return () => { s.remove(); };
@@ -1328,61 +891,23 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); } }, 1000);
-    if (cfg.mode === 'manual') {
-      // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      // MANUAL RUNS ARE TWO TAPS PER SCREEN (Aidan 2026-09-24: "a click
-      // zooms into the spot for focus without the ring and then another
-      // click is the action").
-      //
-      //   1. FRAME — the camera moves to wherever you pressed. No ring,
-      //      and the press is swallowed, so nothing fires. You choose
-      //      the shot and can hold it as long as you like.
-      //   2. ACT — the next press does what it says, with the ring.
-      //
-      // Worth the extra tap because it hands the camera and the action
-      // to you separately: on a take you can punch in, let it breathe,
-      // then move. A self-playing run still does both at once.
-      let swallowClick = false;
-      const onDown = (e: PointerEvent) => {
-        if (needsFraming()) { zoomAt(e.clientX, e.clientY); swallowClick = true; return; }
-        ring(e.clientX, e.clientY);
-      };
-      // Held a beat past the tap so a quick press still reads as a
-      // camera move, then home. A tap that changes the screen homes
-      // instantly instead — see the phase effect below.
-      // The framing press is eaten here, in the capture phase, before
-      // React's own listener on the root can see it.
-      const onClick = (e: MouseEvent) => {
-        if (swallowClick) {
-          swallowClick = false;
-          e.preventDefault(); e.stopPropagation();
-          // A framing press must activate NOTHING, and focus counts:
-          // the press lands focus on whatever is under it, which on a
-          // text field pops the keyboard over the shot you were lining
-          // up. (It is not what draws the violet halo on a primary
-          // button — that is .demo-pulse, running the whole time.)
-          (document.activeElement as HTMLElement | null)?.blur?.();
-          return;
-        }
-        window.setTimeout(clearRings, 140);
-      };
-      window.addEventListener('pointerdown', onDown, true);
-      window.addEventListener('click', onClick, true);
-      const t = window.setTimeout(() => {
-        // A clip jumps to its own first screen once the hook has typed.
-        const go = () => { if (clip !== 'full') enterClip().catch(fail); };
-        if (!cfg.hook) { go(); return; }
-        void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => { setHookOn(false); go(); });
-      }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
-      return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onClick, true); };
-    }
-    const t = window.setTimeout(() => { direct().catch((e) => { setError(e?.message ?? String(e)); mark(`FAILED: ${e?.message ?? e}`, 'failed'); console.error('[DEMO]', e); }); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900)); // let the countdown fade out first
-    return () => { window.clearTimeout(t); window.clearInterval(tick); };
+    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); } }, 1000);
+    // Aidan drives, always. His taps get the ring; the hook types
+    // itself and then steps aside, and a clip jumps to its own first
+    // screen once it has.
+    const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
+    const onUp = () => window.setTimeout(clearRings, 140);
+    window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('click', onUp, true);
+    const t = window.setTimeout(() => {
+      const go = () => { if (clip !== 'full') enterClip().catch(fail); };
+      if (!cfg.hook) { go(); return; }
+      void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => { setHookOn(false); go(); });
+    }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
+    return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onUp, true); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A new screen arrives wide, waiting for its one move in.
-  useEffect(() => { clearRings(); zoomHome(); resetZoomForScreen(); }, [phase]);
+  useEffect(() => { clearRings(); }, [phase]);
   // The run saves itself at "It's on the way" — the assets behind a
   // produced social video (see /admin/demo-runs). Fire and forget.
   const savedRef = useRef(false);
@@ -1393,7 +918,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     void fetch('/api/admin/demo-runs', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mode: cfg.mode, label: `${who}, ${brief.age || cfg.age} · ${occasionLabelFor(brief)}`,
+        label: `${who}, ${brief.age || cfg.age} · ${occasionLabelFor(brief)}`,
         brief, hookLine: cfg.hook ? cfg.hookLine : undefined, concepts, fronts, pickedIndex: picked,
         photo: photoUrl ?? undefined, cameo: cameoUrl ?? undefined, inside: insideUrl ?? undefined,
         words: { dear, message, from }, beats: beats.map((e) => ({ name: e.name, t: e.t - t0 })),
@@ -1442,7 +967,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
       {ground && <DemoBackdrop />}
-    <div ref={rootRef} className="keeper-serif demo-zoomer fixed inset-0 overflow-hidden">
+    <div ref={rootRef} className="keeper-serif fixed inset-0 overflow-hidden">
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
@@ -1642,14 +1167,13 @@ function AskRow({ label: text, on, onChange }: { label: string; on: boolean; onC
 }
 
 function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
-  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual' });
-  const manual = cfg.mode === 'manual';
+  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], hook: true, countdown: 3 });
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
   const ask = cfg.askOnScreen ?? {};
   const setAsk = (k: 'who' | 'occasion' | 'age', v: boolean) => set({ askOnScreen: { ...ask, [k]: v } });
-  // A value is still needed when set here, or when the run plays itself.
-  const showValue = (k: 'who' | 'occasion' | 'age') => (!ask[k] || !manual) && source !== 'replay';
+  // A value is still needed when it is set here.
+  const showValue = (k: 'who' | 'occasion' | 'age') => !ask[k] && source !== 'replay';
   const readPhoto = (f: File) => { const r = new FileReader(); r.onload = () => set({ photo: String(r.result) }); r.readAsDataURL(f); };
   // Replay: play a saved run again, whole or as a short clip, with no new
   // generations (Aidan 2026-09-17).
@@ -1689,27 +1213,20 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const full = !isReplay || clip === 'full';
   const pickRun = (r: ReplayRun) => setCfg((c) => configFromRun(r, c, c.clip ?? 'full'));
   const pickClip = (k: ClipKey) => setCfg((c) => (c.replay ? configFromRun(c.replay, c, k) : { ...c, clip: k }));
-  const ready = isPhoto ? true : isReplay ? !!cfg.replay : manual ? (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim())) : !!(cfg.who && cfg.occasion.trim() && cfg.thing.trim() && (cfg.front !== 'name' || cfg.name.trim()));
+  const ready = isPhoto ? true : isReplay ? !!cfg.replay : (!!(ask.who || cfg.who) && !!(ask.occasion || cfg.occasion.trim()));
   return (
     <div className="keeper-serif relative min-h-screen">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <div className="mx-auto max-w-xl px-5 pb-24 pt-8">
         <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" />
         <h1 className={`${H1} mt-6`}>Make a demo.</h1>
-        <p className="mt-1 text-[14px] text-keeper-body">{manual ? 'Press Run, start your screen recording during the countdown, then tap through it yourself.' : 'Set the brief, press Run, start your screen recording during the countdown. The page does the rest.'}</p>
+        <p className="mt-1 text-[14px] text-keeper-body">Press Run, start your screen recording during the countdown, then tap through it yourself.</p>
 
         {/* Run sits at the top and stays there while you scroll, so the
             recording can be ready before you press it (Aidan 2026-09-17). */}
         <div className="sticky top-0 z-20 -mx-5 mt-4 border-b border-keeper-hair/70 bg-[#FFFDF9]/90 px-5 py-3 backdrop-blur">
           <button type="button" disabled={!ready} onClick={() => onRun(cfg)} className={`${PRIMARY} w-full disabled:opacity-40`}><Play className="h-4 w-4 text-cta" /> {isReplay ? 'Play the replay' : 'Run the demo'}</button>
           <p className="mt-1.5 text-center text-[12px] text-keeper-meta">{isReplay ? 'Replays reuse the saved cards. No new generations.' : 'Each run spends one set of generations.'}</p>
-        </div>
-
-        <div className="mt-6"><span className={label}>Who drives</span>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className={chip(manual)} onClick={() => set({ mode: 'manual' })}>I tap through it</button>
-            <button type="button" className={chip(!manual)} onClick={() => set({ mode: 'auto' })}>It plays itself</button>
-          </div>
         </div>
 
         <div className="mt-5"><span className={label}>Which door</span>
@@ -1836,12 +1353,6 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
         )}
 
-        {!manual && !isReplay && !isPhoto && <div className="mt-5 flex flex-wrap gap-2">
-          {Object.entries(DEMO_PRESETS).map(([k, p]) => (
-            <button key={k} type="button" className={chip(false)} onClick={() => set({ ...p })}>{p.who}, {p.age}</button>
-          ))}
-        </div>}
-
         <div className="mt-7 space-y-6">
           {full && !isPhoto && <div className="rounded-2xl border border-keeper-hair bg-white/70 p-4 space-y-4">
           <p className="text-[13px] text-keeper-body">{isReplay ? 'Answers come from the saved run. Ask any of these on screen, or leave them for the opening line.' : 'Set here, these stay off screen, so say them in the opening line. Or ask any of them on screen.'}</p>
@@ -1866,39 +1377,13 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               <button type="button" className={chip(cfg.timer === false)} onClick={() => set({ timer: false })}>Hide it</button>
             </div>
           </div>}
-          {!manual && !isReplay && !isPhoto && <>
-          <div><span className={label}>Vibe</span>
-            <div className="flex flex-wrap gap-2">{(['Light humour', 'Warm', 'Cheeky'] as const).map((v) => <button key={v} type="button" className={chip(cfg.vibe === v)} onClick={() => set({ vibe: v })}>{v}</button>)}</div>
-          </div>
-          <div><span className={label}>Their thing</span><textarea value={cfg.thing} onChange={(e) => set({ thing: e.target.value.slice(0, 120) })} rows={2} className="w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" /></div>
-          <div><span className={label}>Can’t stand (humour only)</span><input value={cfg.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} className={field} placeholder="Getting up before 6am" /></div>
-          <div><span className={label}>On the front</span>
-            <div className="flex flex-wrap gap-2">
-              {canRole && <button type="button" className={chip(cfg.front === 'role')} onClick={() => set({ front: 'role' })}>{cfg.who}</button>}
-              <button type="button" className={chip(cfg.front === 'name')} onClick={() => set({ front: 'name' })}>Their name</button>
-              <button type="button" className={chip(cfg.front === 'none')} onClick={() => set({ front: 'none' })}>Nothing</button>
-            </div>
-            {cfg.front === 'name' && <input value={cfg.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} className={`${field} mt-2`} placeholder="Their first name" />}
-          </div>
-          </>}
-          {!manual && !isReplay && !isPhoto && <div><span className={label}>The inside</span>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className={chip((cfg.insideBy ?? 'us') === 'us')} onClick={() => set({ insideBy: 'us' })}>Keep our message</button>
-              <button type="button" className={chip(cfg.insideBy === 'me')} onClick={() => set({ insideBy: 'me' })}>Type my own over it</button>
-            </div>
-            {cfg.insideBy === 'me' && <textarea value={cfg.message ?? ''} onChange={(e) => set({ message: e.target.value.slice(0, 300) })} rows={2} placeholder="The message to type" className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
-          </div>}
-          {!manual && !isReplay && !isPhoto && <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Dear</span><input value={cfg.dear} onChange={(e) => set({ dear: e.target.value })} className={field} /></div>
-            <div><span className={label}>From</span><input value={cfg.from} onChange={(e) => set({ from: e.target.value })} className={field} /></div>
-          </div>}
           {!isReplay && !isPhoto && <div><span className={label}>Photo step</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!cfg.skipPhoto)} onClick={() => set({ skipPhoto: false })}>Include it</button>
               <button type="button" className={chip(!!cfg.skipPhoto)} onClick={() => set({ skipPhoto: true })}>Skip it</button>
             </div>
           </div>}
-          {!isReplay && !isPhoto && !cfg.skipPhoto && <div><span className={label}>{manual ? 'Photo of them (optional — or pick one live from the tile)' : 'Photo of them'}</span>
+          {!isReplay && !isPhoto && !cfg.skipPhoto && <div><span className={label}>Photo of them (optional — or pick one live from the tile)</span>
             <div className="flex items-center gap-3">
               <label className={`${chip(false)} cursor-pointer`}>Choose photo<input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f); e.target.value = ''; }} /></label>
               {cfg.photo && <img src={cfg.photo} alt="" className="h-12 w-12 rounded-lg object-cover" />}
@@ -1911,11 +1396,6 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             {cfg.hook && <p className="mt-1.5 text-[12px] text-keeper-meta">Wrap a word in *asterisks* for the purple-to-black gradient. The recipient’s word gets it anyway.</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
-            {/* Shown in BOTH modes: the punch-in follows your own taps
-                now, not just a run that plays itself, so hiding the
-                switch in manual left no way to turn it off. */}
-            <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>
             <div><span className={label}>Size in frame</span>
               <div className="flex flex-wrap gap-2">
                 {[0.7, 0.8, 0.9, 1, 1.15, 1.3].map((z) => (
@@ -1969,7 +1449,7 @@ export default function DemoPage() {
     const w = q.get('waits');
     const waits = w === 'none' || w === 'short' || w === 'real' ? w : undefined;
     const z = Number(q.get('scale'));
-    const common = { speed: (q.get('speed') === 'fast' ? 'fast' : 'normal') as Speed, hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' as const, scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
+    const common = { hook: q.get('hook') === 'typed', countdown: 0, scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
     const photoKey = q.get('photo');
     if (q.get('route') === 'photo' || photoKey || replayCardId) {
       const key = photoKey && DEMO_PHOTO_PRESETS[photoKey] ? photoKey : Object.keys(DEMO_PHOTO_PRESETS)[0];
@@ -1996,7 +1476,7 @@ export default function DemoPage() {
       .then((j) => {
         const run = toReplay(j.run);
         const clipKey = (CLIPS.find((c) => c.key === q.get('clip'))?.key ?? 'full') as ClipKey;
-        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], speed: q.get('speed') === 'fast' ? 'fast' : 'normal', hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto', waits: q.get('waits') === 'short' ? 'short' : 'real' };
+        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], hook: q.get('hook') === 'typed', countdown: 0, waits: q.get('waits') === 'short' ? 'short' : 'real' };
         setCfg(configFromRun(run, base, clipKey));
       })
       .catch(() => setLinkErr('Could not load that saved run.'));
