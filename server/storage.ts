@@ -138,7 +138,20 @@ export class DatabaseStorage implements IStorage {
         -- Drives the "Just finished" badge on the Ready dashboard.
         -- Composite signal so the grid query stays self-sufficient
         -- (no client-side derivation required).
-        (c.status = 'completed' AND c.notified_at IS NULL) AS "isJustFinished"
+        (c.status = 'completed' AND c.notified_at IS NULL) AS "isJustFinished",
+        -- Was this card made through the PHOTO door, and is it complete
+        -- enough to play back? The /demo photo route can replay a
+        -- finished card instead of generating one, but only if the card
+        -- carries the things that route walks through: a described
+        -- scene, a photo it was built from, and both sides drawn. A
+        -- three-card-route card has none of the first two, so replaying
+        -- it would type an empty sentence over somebody else's photo.
+        (
+          COALESCE(c.conversation_data->'scene'->>'description', '') <> ''
+          AND COALESCE(jsonb_array_length(c.conversation_data->'photos'->'photoIds'), 0) > 0
+          AND (c.front_image_path IS NOT NULL OR c.front_image_url IS NOT NULL)
+          AND (c.inside_image_path IS NOT NULL OR c.inside_image_url IS NOT NULL)
+        ) AS "isReplayable"
       FROM cards c
       WHERE c.user_id = ${userId}
         -- Hide never-touched drafts (a "new card" tap that went nowhere
@@ -170,6 +183,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: r.createdAt ? new Date(r.createdAt) : null,
       recipientName: r.recipientName ?? null,
       occasion: r.occasion ?? null,
+      isReplayable: r.isReplayable === true,
       // Prefer stored-file path when we have it (served under /images/
       // with 1-year cache); fall back to the direct URL column for
       // legacy rows. Some cards have only one populated; never assume

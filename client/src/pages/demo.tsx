@@ -1445,14 +1445,18 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const [runsErr, setRunsErr] = useState('');
   // Photo route: replay a card that already exists. Every finished card
   // is a saved run, so this lists real cards rather than demo records.
-  const [cards, setCards] = useState<Array<{ id: number; frontImageUrl: string | null; recipientName: string | null; occasion: string | null; createdAt?: string }> | null>(null);
+  const [cards, setCards] = useState<Array<{ id: number; frontImageUrl: string | null; recipientName: string | null; occasion: string | null; isReplayable?: boolean; createdAt?: string }> | null>(null);
   const [cardsErr, setCardsErr] = useState('');
   useEffect(() => {
     if (!cfg.replayCardId && cards !== null) return;
     if (cards !== null) return;
     fetch('/api/user/cards', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((list) => setCards((Array.isArray(list) ? list : []).filter((c: { frontImageUrl?: string | null }) => !!c.frontImageUrl).slice(0, 24)))
+      // Only cards this route can actually play: made through the
+      // photo door, with a scene, a photo and both sides drawn. Listing
+      // everything offered dozens of three-card cards that would replay
+      // as an empty sentence over the wrong face (Aidan 2026-09-24).
+      .then((list) => setCards((Array.isArray(list) ? list : []).filter((c: { isReplayable?: boolean }) => c.isReplayable === true).slice(0, 12)))
       .catch(() => setCardsErr('Could not load your cards.'));
   }, [cards, cfg.replayCardId]);
   useEffect(() => {
@@ -1539,7 +1543,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               <div className="mt-4 space-y-4">
                 {cardsErr && <p className="text-[13px] text-accent-red-dark">{cardsErr}</p>}
                 {!cards && !cardsErr && <p className="text-[13px] text-keeper-meta">Loading your cards\u2026</p>}
-                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No finished cards yet. Make one first and it becomes replayable.</p>}
+                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No photo cards finished yet. Make one on this route and it becomes replayable.</p>}
                 {cards && cards.length > 0 && (
                   <div className="grid grid-cols-3 gap-2.5">
                     {cards.map((c) => {

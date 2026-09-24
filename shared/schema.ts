@@ -223,6 +223,12 @@ export type CardGridItem = {
    *  Ready vs Sent bucket split in the dashboard — a completed card
    *  without a paid order is "ready to send"; one with is "sent". */
   hasPaidOrder: boolean;
+  /** True when this card came through the PHOTO door and is complete
+   *  enough for /demo's photo route to replay instead of generating: a
+   *  described scene, a photo it was built from, and both sides drawn.
+   *  A three-card-route card has neither scene nor photo, so replaying
+   *  it would type an empty sentence over somebody else's face. */
+  isReplayable: boolean;
   /** Last step the user was on in the card maker (0-indexed per
    *  CARD_MAKER_STEPS). Nullable on legacy rows. Used by the Home
    *  Drafts column to show a "Step X of 6 · Label" progress cue on
