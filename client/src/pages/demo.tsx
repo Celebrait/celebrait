@@ -324,9 +324,18 @@ function focusRect(el: HTMLElement): DOMRect {
 // outermost glyph and still reads as a camera move.
 export async function zoomTo(el: HTMLElement, scale = 1.16) {
   const root = zoomRoot; if (!root || !zoomOn) return;
-  // Hold, unless the screen is offering something different from when
-  // we framed — then it has moved on and earns a fresh move.
-  if (zoomedThisScreen && !screenMovedOn()) return;
+  if (zoomedThisScreen) {
+    // Same screen: hold exactly where we are.
+    if (!screenMovedOn()) return;
+    // A NEW screen, so it starts WIDE and then takes its one move in
+    // (Aidan 2026-09-24: "each page should allow one zoom in"). Panning
+    // from one magnified spot straight to the next never showed the
+    // page whole, which on the three-card brief meant it was zoomed for
+    // the entire run. Snapped, not eased — the ease belongs to the move
+    // in, and two eases back to back is a wobble.
+    zoomHome();
+    await sleep(140);
+  }
   const r = focusRect(el); const rr = root.getBoundingClientRect();
   // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
   // 2026-09-23: "when zooming it crops … we get a nice view of each
@@ -390,7 +399,10 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
  *  dumb. */
 export function zoomAt(x: number, y: number, scale = 1.12) {
   const root = zoomRoot; if (!root || !zoomOn) return;
-  if (zoomedThisScreen && !screenMovedOn()) return;
+  if (zoomedThisScreen) {
+    if (!screenMovedOn()) return;
+    zoomHome(); // a new screen starts wide, then takes its one move in
+  }
   const rr = root.getBoundingClientRect();
   const s = Math.max(1, scale);
   const px = x - rr.left, py = y - rr.top;
