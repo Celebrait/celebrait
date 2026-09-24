@@ -257,8 +257,37 @@ const ZOOM_MS = 340;
  *  on every single tap, which is what it used to do, reads as the
  *  camera fidgeting. */
 let zoomedThisScreen = false;
+/** Everything that was on screen at the moment we last framed.
+ *
+ *  "One move per screen" can't key off the PHASE alone: the three-card
+ *  route's entire brief — who, occasion, age, vibe, their thing, what's
+ *  on the front — is a single phase, so the camera punched in on the
+ *  first question and then sat still through all six, which looks
+ *  exactly like the punch-in being switched off on that route (Aidan
+ *  2026-09-24: "why is the camera punch not turned on for all routes?").
+ *
+ *  So a screen is defined by what's on it: touch a control that wasn't
+ *  there when we framed, and the screen has moved on, whatever the
+ *  phase says. Within one genuine screen every control is present from
+ *  the start, so it still frames only once. */
+let framedSig: string | null = null;
+/** What the screen is OFFERING, as a string. Deliberately the buttons'
+ *  words and not the elements themselves: React reuses the same DOM
+ *  nodes between brief questions, so identity says "same screen" when
+ *  the reader is plainly looking at a new one. The labels change every
+ *  time, so they are the honest signal. Typing doesn't disturb it. */
+function screenSignature(): string {
+  return Array.from(document.querySelectorAll('button'))
+    .filter((el) => el.getClientRects().length > 0)
+    .map((el) => (el.textContent ?? '').trim())
+    .join('|');
+}
+/** Has the screen moved on under us, whatever the phase says? */
+function screenMovedOn(): boolean {
+  return framedSig === null || screenSignature() !== framedSig;
+}
 /** Called when the screen changes, so the next one starts wide. */
-export function resetZoomForScreen() { zoomedThisScreen = false; }
+export function resetZoomForScreen() { zoomedThisScreen = false; framedSig = null; }
 
 /** Clear space left around the thing being punched in on. */
 const ZOOM_PAD = 22;
@@ -295,7 +324,9 @@ function focusRect(el: HTMLElement): DOMRect {
 // outermost glyph and still reads as a camera move.
 export async function zoomTo(el: HTMLElement, scale = 1.16) {
   const root = zoomRoot; if (!root || !zoomOn) return;
-  if (zoomedThisScreen) return; // already in on this screen — hold it
+  // Hold, unless the screen is offering something different from when
+  // we framed — then it has moved on and earns a fresh move.
+  if (zoomedThisScreen && !screenMovedOn()) return;
   const r = focusRect(el); const rr = root.getBoundingClientRect();
   // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
   // 2026-09-23: "when zooming it crops … we get a nice view of each
@@ -327,7 +358,13 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
   zoomedThisScreen = true;
+  mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
   await sleep(ZOOM_MS);
+  // Take the reading AFTER the move, not before it: a screen is often
+  // still fading in when it is first touched, so half its buttons have
+  // no box yet and the signature read early looks different a moment
+  // later — which counted as the screen moving on, and punched twice.
+  framedSig = screenSignature();
 }
 /** Punch in KEEPING A SCREEN POINT FIXED — for a run a human is
  *  tapping (Aidan 2026-09-24: "I want it on when I tap"). The director's
@@ -353,7 +390,7 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
  *  dumb. */
 export function zoomAt(x: number, y: number, scale = 1.12) {
   const root = zoomRoot; if (!root || !zoomOn) return;
-  if (zoomedThisScreen) return; // already in on this screen — hold it
+  if (zoomedThisScreen && !screenMovedOn()) return;
   const rr = root.getBoundingClientRect();
   const s = Math.max(1, scale);
   const px = x - rr.left, py = y - rr.top;
@@ -362,7 +399,8 @@ export function zoomAt(x: number, y: number, scale = 1.12) {
   const ty = clamp(py - py * s, rr.height * (1 - s), 0);
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  zoomedThisScreen = true;
+  zoomedThisScreen = true; framedSig = screenSignature();
+  mark('camera: in'); // every real punch is on the record — it is the only honest way to count them
 }
 
 export async function zoomOut(wait = true) {
@@ -377,7 +415,7 @@ export async function zoomOut(wait = true) {
  *  every screen is born at 1:1, and the jump is hidden under the fade
  *  that is already running. */
 export function zoomHome() {
-  zoomedThisScreen = false;
+  zoomedThisScreen = false; framedSig = null;
   const root = zoomRoot; if (!root || !zoomOn) return;
   const prev = root.style.transition;
   root.style.transition = 'none';
@@ -396,7 +434,7 @@ export function zoomHome() {
  *  it. Once a screen has been framed it now stays put, and the scroll
  *  happens with the punch-in as a single settling move. */
 async function bringIn(el: HTMLElement, settle: number) {
-  if (!zoomedThisScreen) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (!zoomedThisScreen || screenMovedOn()) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   await sleep(settle);
 }
 export async function tap(el: HTMLElement, settle: number, hold: number) {
