@@ -1550,21 +1550,6 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
         </div>
 
         {isPhoto && (
-          <div className="mt-5"><span className={label}>Whose photo</span>
-            <div className="grid grid-cols-3 gap-2.5">
-              {Object.entries(DEMO_PHOTO_PRESETS).map(([k, p]) => (
-                <button key={k} type="button" onClick={() => set({ photoPreset: k, hookLine: p.hookLine })}
-                  className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${cfg.photoPreset === k ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
-                  <img src={p.photo} alt="" className="aspect-square w-full object-cover" loading="lazy" />
-                  <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">{p.name}<span className="block text-keeper-meta">{p.occasion}</span></span>
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-[12px] text-keeper-meta">{DEMO_PHOTO_PRESETS[cfg.photoPreset ?? '']?.scene ?? ''}</p>
-          </div>
-        )}
-
-        {isPhoto && (
           <div className="mt-5"><span className={label}>Start from</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!cfg.replayCardId)} onClick={() => set({ replayCardId: undefined })}>Make a new one</button>
@@ -1608,6 +1593,21 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {isPhoto && !cfg.replayCardId && (
+          <div className="mt-5"><span className={label}>Whose photo</span>
+            <div className="grid grid-cols-3 gap-2.5">
+              {Object.entries(DEMO_PHOTO_PRESETS).map(([k, p]) => (
+                <button key={k} type="button" onClick={() => set({ photoPreset: k, hookLine: p.hookLine })}
+                  className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${cfg.photoPreset === k ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
+                  <img src={p.photo} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                  <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">{p.name}<span className="block text-keeper-meta">{p.occasion}</span></span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[12px] text-keeper-meta">{DEMO_PHOTO_PRESETS[cfg.photoPreset ?? '']?.scene ?? ''}</p>
           </div>
         )}
 
@@ -1737,7 +1737,10 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {!manual && <div><span className={label}>Pace</span><div className="flex gap-2"><button type="button" className={chip(cfg.speed === 'normal')} onClick={() => set({ speed: 'normal' })}>Normal</button><button type="button" className={chip(cfg.speed === 'fast')} onClick={() => set({ speed: 'fast' })}>Fast</button></div></div>}
-            {!manual && <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>}
+            {/* Shown in BOTH modes: the punch-in follows your own taps
+                now, not just a run that plays itself, so hiding the
+                switch in manual left no way to turn it off. */}
+            <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>
             {cfg.frame !== 'full' && <div><span className={label}>Feel</span><div className="flex gap-2"><button type="button" className={chip(cfg.alive !== false)} onClick={() => set({ alive: true })}>Handheld</button><button type="button" className={chip(cfg.alive === false)} onClick={() => set({ alive: false })}>Still</button></div></div>}
             <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
             <div><span className={label}>Size in frame</span>
