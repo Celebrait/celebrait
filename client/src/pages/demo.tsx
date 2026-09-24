@@ -288,6 +288,9 @@ function screenMovedOn(): boolean {
 }
 /** Called when the screen changes, so the next one starts wide. */
 export function resetZoomForScreen() { zoomedThisScreen = false; framedSig = null; }
+/** Is this screen still waiting for its one move in? Manual runs use it
+ *  to tell a FRAMING tap from an ACTING one. */
+export function needsFraming(): boolean { return !zoomedThisScreen || screenMovedOn(); }
 
 /** Clear space left around the thing being punched in on. */
 const ZOOM_PAD = 22;
@@ -1206,13 +1209,32 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      const onDown = (e: PointerEvent) => { ring(e.clientX, e.clientY); zoomAt(e.clientX, e.clientY); };
+      // MANUAL RUNS ARE TWO TAPS PER SCREEN (Aidan 2026-09-24: "a click
+      // zooms into the spot for focus without the ring and then another
+      // click is the action").
+      //
+      //   1. FRAME — the camera moves to wherever you pressed. No ring,
+      //      and the press is swallowed, so nothing fires. You choose
+      //      the shot and can hold it as long as you like.
+      //   2. ACT — the next press does what it says, with the ring.
+      //
+      // Worth the extra tap because it hands the camera and the action
+      // to you separately: on a take you can punch in, let it breathe,
+      // then move. A self-playing run still does both at once.
+      let swallowClick = false;
+      const onDown = (e: PointerEvent) => {
+        if (needsFraming()) { zoomAt(e.clientX, e.clientY); swallowClick = true; return; }
+        ring(e.clientX, e.clientY);
+      };
       // Held a beat past the tap so a quick press still reads as a
       // camera move, then home. A tap that changes the screen homes
       // instantly instead — see the phase effect below.
-      // No release here either — the camera holds until the screen
-      // changes, same as a self-playing run.
-      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); };
+      // The framing press is eaten here, in the capture phase, before
+      // React's own listener on the root can see it.
+      const onClick = (e: MouseEvent) => {
+        if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
+        tellTap(); window.setTimeout(clearRings, 140);
+      };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
