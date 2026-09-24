@@ -244,9 +244,38 @@ const ZOOM_MS = 340;
 const ZOOM_PAD = 22;
 /** Below this there is nothing to see — hold still rather than nudge. */
 const ZOOM_MIN = 1.05;
-export async function zoomTo(el: HTMLElement, scale = 1.22) {
+/** The box the punch-in must keep in shot.
+ *
+ *  For a BUTTON that is the label, not the pill: a full-width pill can
+ *  lose its rounded ends and still read perfectly, and capping to the
+ *  pill meant nothing on a full-width layout could zoom at all — every
+ *  button on the photo route is `w-full`, so the punch-in silently
+ *  switched itself off everywhere (Aidan 2026-09-24: "why are the
+ *  tapped zooms not on for the photo route?").
+ *
+ *  For an INPUT or TEXTAREA it stays the whole box. That is where text
+ *  actually got cut, and it is the crop this cap was added for. */
+function focusRect(el: HTMLElement): DOMRect {
+  const r = el.getBoundingClientRect();
+  const tag = el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return r;
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const t = range.getBoundingClientRect();
+    // Ignore a nonsense measurement (no text, or a laid-out-at-zero child).
+    if (t.width > 8 && t.height > 4 && t.width <= r.width) return t;
+  } catch { /* fall through to the element box */ }
+  return r;
+}
+
+// 1.16, not 1.3. Any punch-in on a screen whose heading runs the full
+// width WILL shave that heading — there is no scale above 1 that does
+// not. 1.3 took a whole letter off; 1.16 costs a few pixels of the
+// outermost glyph and still reads as a camera move.
+export async function zoomTo(el: HTMLElement, scale = 1.16) {
   const root = zoomRoot; if (!root || !zoomOn) return;
-  const r = el.getBoundingClientRect(); const rr = root.getBoundingClientRect();
+  const r = focusRect(el); const rr = root.getBoundingClientRect();
   // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
   // 2026-09-23: "when zooming it crops … we get a nice view of each
   // element"). Scaling about the element's own centre pushed anything
