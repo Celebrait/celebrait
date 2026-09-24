@@ -42,7 +42,6 @@ import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-reac
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
-import celebraitLogo from '@/assets/celebrait.webp';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
 import {
@@ -537,10 +536,19 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
     : photoMode === 'group' ? 'Drawing everyone into the scene' : `Drawing ${who} into the scene`;
 
   return (
-    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
+    <>
+      {/* OUTSIDE the zoomer on purpose. The punch-in transforms
+          everything inside it, and a `fixed` layer inside a transformed
+          ancestor is positioned against THAT ancestor — so the floating
+          field scaled and slid away with the camera, and the frame lost
+          its pattern exactly when it was tightest. Out here it is a
+          still ground the content moves against, which is how a real
+          punch-in reads anyway (Aidan 2026-09-24: "when we have the
+          camera zoomed out lets retain the pattern on screen").
+          The logo went with it — not relevant on a demo. */}
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
-      <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {showClock && clockFrom != null && (
         <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white/85 px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Time taken to get here</span>
@@ -751,5 +759,6 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }

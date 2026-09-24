@@ -1277,11 +1277,19 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
   return (
     // Inside the phone mockup the screen starts under the status bar and
     // stops above the home bar.
-    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
-      {/* The make page's own backdrop: cream wash + the floating celebration icons. */}
+    <>
+      {/* OUTSIDE the zoomer on purpose. The punch-in transforms
+          everything inside it, and a `fixed` layer inside a transformed
+          ancestor is positioned against THAT ancestor — so the floating
+          field scaled and slid away with the camera, and the frame lost
+          its pattern exactly when it was tightest. Out here it is a
+          still ground the content moves against, which is how a real
+          punch-in reads anyway (Aidan 2026-09-24: "when we have the
+          camera zoomed out lets retain the pattern on screen").
+          The logo went with it — not relevant on a demo. */}
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
-      <div className="absolute left-5 top-5 z-10"><img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto" /></div>
       {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
         // caption (bottom) on Reels and TikTok.
@@ -1435,6 +1443,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
 
