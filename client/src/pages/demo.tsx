@@ -246,6 +246,20 @@ export const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="$
 let zoomRoot: HTMLElement | null = null;
 let zoomOn = false;
 const ZOOM_MS = 340;
+/** ONE CAMERA MOVE PER SCREEN, HELD (Aidan 2026-09-24: "limit each
+ *  screen to one initial tap in only and never let it zoom out until
+ *  the next page, which is zoomed out until one tap in").
+ *
+ *  So: a screen arrives wide. The first thing touched on it — a tap or
+ *  the first field typed into — punches in, and the camera then STAYS
+ *  there for the rest of that screen, however many more taps it takes.
+ *  It only goes wide again when the screen changes. Punching in and out
+ *  on every single tap, which is what it used to do, reads as the
+ *  camera fidgeting. */
+let zoomedThisScreen = false;
+/** Called when the screen changes, so the next one starts wide. */
+export function resetZoomForScreen() { zoomedThisScreen = false; }
+
 /** Clear space left around the thing being punched in on. */
 const ZOOM_PAD = 22;
 /** Below this there is nothing to see — hold still rather than nudge. */
@@ -281,6 +295,7 @@ function focusRect(el: HTMLElement): DOMRect {
 // outermost glyph and still reads as a camera move.
 export async function zoomTo(el: HTMLElement, scale = 1.16) {
   const root = zoomRoot; if (!root || !zoomOn) return;
+  if (zoomedThisScreen) return; // already in on this screen — hold it
   const r = focusRect(el); const rr = root.getBoundingClientRect();
   // THE PUNCH-IN MUST NEVER CROP WHAT IT IS PUNCHING IN ON (Aidan
   // 2026-09-23: "when zooming it crops … we get a nice view of each
@@ -311,6 +326,7 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
   const ty = clamp(rr.height / 2 - ey * s, rr.height * (1 - s), 0);
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  zoomedThisScreen = true;
   await sleep(ZOOM_MS);
 }
 /** Punch in KEEPING A SCREEN POINT FIXED — for a run a human is
@@ -337,6 +353,7 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
  *  dumb. */
 export function zoomAt(x: number, y: number, scale = 1.12) {
   const root = zoomRoot; if (!root || !zoomOn) return;
+  if (zoomedThisScreen) return; // already in on this screen — hold it
   const rr = root.getBoundingClientRect();
   const s = Math.max(1, scale);
   const px = x - rr.left, py = y - rr.top;
@@ -345,6 +362,7 @@ export function zoomAt(x: number, y: number, scale = 1.12) {
   const ty = clamp(py - py * s, rr.height * (1 - s), 0);
   root.style.transformOrigin = '0 0';
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  zoomedThisScreen = true;
 }
 
 export async function zoomOut(wait = true) {
@@ -359,6 +377,7 @@ export async function zoomOut(wait = true) {
  *  every screen is born at 1:1, and the jump is hidden under the fade
  *  that is already running. */
 export function zoomHome() {
+  zoomedThisScreen = false;
   const root = zoomRoot; if (!root || !zoomOn) return;
   const prev = root.style.transition;
   root.style.transition = 'none';
@@ -393,20 +412,16 @@ export async function tap(el: HTMLElement, settle: number, hold: number) {
   clearRings();
   el.click();
   tellTap(); // the phone dips AFTER the click lands, never under the finger
-  // Release the camera ON the click, not a beat later. A tap usually
-  // changes the screen, and holding the punch-in through that change
-  // meant the NEW screen mounted inside the old framing — which is what
-  // "when zooming it crops" looked like on the inside step: a card
-  // still fading out while the fields underneath arrived magnified and
-  // cut off at both edges. In / out on the tap also reads as a pulse,
-  // which is what a press should feel like.
-  zoomHome();
+  // The camera is NOT released here. It stays where the first touch on
+  // this screen put it and only goes wide when the screen changes (the
+  // phase effect calls zoomHome). Releasing on every click was the
+  // fidget.
   await sleep(Math.max(ZOOM_MS, hold * 0.8));
 }
 /** Type into a React-controlled input, one character at a time. */
 export async function type(el: HTMLInputElement | HTMLTextAreaElement, text: string, settle: number, delay: number) {
   await bringIn(el, settle);
-  await zoomTo(el, 1.22);
+  await zoomTo(el);
   const r = el.getBoundingClientRect(); ring(r.left + 40, r.top + r.height / 2);
   el.focus(); await sleep(350);
   const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -417,7 +432,6 @@ export async function type(el: HTMLInputElement | HTMLTextAreaElement, text: str
     await sleep(typingDelay(text, i, [], delay));
   }
   await sleep(320);
-  await zoomOut(false);
   await sleep(380);
 }
 
@@ -1105,7 +1119,9 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       // Held a beat past the tap so a quick press still reads as a
       // camera move, then home. A tap that changes the screen homes
       // instantly instead — see the phase effect below.
-      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); window.setTimeout(zoomHome, 240); };
+      // No release here either — the camera holds until the screen
+      // changes, same as a self-playing run.
+      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
@@ -1120,7 +1136,8 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { clearRings(); zoomHome(); }, [phase]);
+  // A new screen arrives wide, waiting for its one move in.
+  useEffect(() => { clearRings(); zoomHome(); resetZoomForScreen(); }, [phase]);
   // The run saves itself at "It's on the way" — the assets behind a
   // produced social video (see /admin/demo-runs). Fire and forget.
   const savedRef = useRef(false);

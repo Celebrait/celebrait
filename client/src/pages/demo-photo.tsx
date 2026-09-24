@@ -49,7 +49,7 @@ import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
   cardGlow, clearRings, find, findDemo, mark, preparePhoto, ring,
-  setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
+  resetZoomForScreen, setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -514,7 +514,9 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
       // Held a beat past the tap so a quick press still reads as a
       // camera move, then home. A tap that changes the screen homes
       // instantly instead — see the phase effect below.
-      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); window.setTimeout(zoomHome, 240); };
+      // No release here either — the camera holds until the screen
+      // changes, same as a self-playing run.
+      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
@@ -526,7 +528,8 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
     const t = window.setTimeout(() => { direct().catch(fail); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { clearRings(); zoomHome(); }, [phase]);
+  // A new screen arrives wide, waiting for its one move in.
+  useEffect(() => { clearRings(); zoomHome(); resetZoomForScreen(); }, [phase]);
 
   // Group mode puts more than one person in, so don't name just one.
   const waitLine = drawingInside
