@@ -386,8 +386,17 @@ export function zoomHome() {
   root.style.transition = prev;
 }
 
+/** Bring the target into view — but ONLY as part of the screen's one
+ *  move (Aidan 2026-09-24: "a new tap can move the screen though, i.e.
+ *  shift over to the button").
+ *
+ *  Stopping the camera zooming again was only half of it: every tap
+ *  also called scrollIntoView, so the page itself slid toward whatever
+ *  was being pressed. That is the screen moving, whatever is causing
+ *  it. Once a screen has been framed it now stays put, and the scroll
+ *  happens with the punch-in as a single settling move. */
 async function bringIn(el: HTMLElement, settle: number) {
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (!zoomedThisScreen) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   await sleep(settle);
 }
 export async function tap(el: HTMLElement, settle: number, hold: number) {
