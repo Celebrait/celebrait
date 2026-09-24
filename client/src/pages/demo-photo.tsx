@@ -40,7 +40,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
-import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
@@ -48,7 +47,7 @@ import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
   cardGlow, clearRings, find, findDemo, mark, preparePhoto, ring,
-  needsFraming, resetZoomForScreen, setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
+  DemoBackdrop, needsFraming, resetZoomForScreen, setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -565,7 +564,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
           punch-in reads anyway (Aidan 2026-09-24: "when we have the
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
-      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <DemoBackdrop />
     <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (

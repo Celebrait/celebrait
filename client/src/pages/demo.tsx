@@ -28,6 +28,10 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
+import cakeIcon from '@/assets/icons/cake.png';
+import ringIcon from '@/assets/icons/ring.png';
+import presentIcon from '@/assets/icons/present.png';
+import heartIcon from '@/assets/icons/heart.png';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { PhoneMockup, EMBED_TAP, EMBED_GLOW } from '@/components/phone-mockup';
 import { PhotoRun, DEMO_PHOTO_PRESETS, loadReplayCard, type ReplayCard } from '@/pages/demo-photo';
@@ -156,6 +160,75 @@ export const BEATS: Record<Speed, { hold: number; type: number; settle: number; 
   fast: { hold: 650, type: 40, settle: 280, walk: 900, look: 1050 },
 };
 
+// ── the ground ───────────────────────────────────────────────────────
+//
+// The shared CelebrationBackdrop puts FOUR objects in the four corners,
+// which is right for a landing page you scroll past. On a demo the
+// camera sits wide between every page, and four corner icons on a lot
+// of cream reads as an unfinished screen rather than a designed one
+// (Aidan 2026-09-24: "I need zoomed out views to have a full design
+// bg").
+//
+// So: the same four motifs, many more of them, arranged rather than
+// scattered at random — bigger and nearer along the bottom, smaller and
+// further back up top, so the frame has a front and a back. A radial
+// mask holds the middle clear, which is the guarantee that a fuller
+// ground can never fight the words: the content column is literally cut
+// out of it. Everything is low-contrast paper tones, no colour wash —
+// a tinted field behind the phone read as a weird sheen once and got
+// binned (2026-09-23).
+
+const FIELD: Array<{ x: number; y: number; size: number; rot: number; o: number; icon: string; dur: number; delay: number }> = [
+  // near band, along the bottom — the biggest, most present objects
+  { x: 8,  y: 88, size: 17, rot: -9, o: 0.30, icon: cakeIcon,    dur: 11, delay: 0 },
+  { x: 91, y: 90, size: 18, rot: 8,  o: 0.30, icon: presentIcon, dur: 13, delay: 1.9 },
+  { x: 30, y: 96, size: 12, rot: 5,  o: 0.20, icon: heartIcon,   dur: 12, delay: 3.1 },
+  { x: 68, y: 97, size: 11, rot: -6, o: 0.18, icon: ringIcon,    dur: 14, delay: 0.8 },
+  // mid band, hugging the sides
+  { x: 4,  y: 60, size: 11, rot: 7,  o: 0.20, icon: ringIcon,    dur: 15, delay: 2.4 },
+  { x: 96, y: 56, size: 12, rot: -8, o: 0.20, icon: heartIcon,   dur: 12, delay: 1.1 },
+  { x: 7,  y: 36, size: 9,  rot: -5, o: 0.15, icon: presentIcon, dur: 16, delay: 3.6 },
+  { x: 94, y: 33, size: 10, rot: 6,  o: 0.15, icon: cakeIcon,    dur: 13, delay: 0.4 },
+  // far band, up top — smallest, faintest, sitting back
+  { x: 17, y: 11, size: 9,  rot: -7, o: 0.22, icon: heartIcon,   dur: 14, delay: 1.5 },
+  { x: 84, y: 13, size: 9,  rot: 6,  o: 0.22, icon: ringIcon,    dur: 12, delay: 2.8 },
+  { x: 50, y: 5,  size: 7,  rot: 3,  o: 0.13, icon: cakeIcon,    dur: 17, delay: 4.2 },
+  { x: 35, y: 20, size: 6,  rot: -4, o: 0.11, icon: presentIcon, dur: 15, delay: 2.0 },
+  { x: 66, y: 23, size: 6,  rot: 5,  o: 0.11, icon: heartIcon,   dur: 16, delay: 3.4 },
+];
+
+/** Keeps the field off the words: the middle of the frame is cut out of
+ *  the mask entirely, fading in only towards the edges. */
+const FIELD_MASK = 'radial-gradient(ellipse 58% 42% at 50% 50%, transparent 0%, transparent 46%, rgba(0,0,0,0.55) 72%, #000 100%)';
+
+export function DemoBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 55%, #F4F1EA 100%)' }}>
+      <div className="absolute inset-0" style={{ maskImage: FIELD_MASK, WebkitMaskImage: FIELD_MASK }}>
+        {FIELD.map((f, i) => (
+          <img
+            key={i}
+            src={f.icon}
+            alt=""
+            draggable={false}
+            className="demo-float absolute select-none"
+            style={{
+              left: `${f.x}%`, top: `${f.y}%`,
+              height: `clamp(26px, ${f.size}vmin, 160px)`, width: 'auto',
+              opacity: f.o,
+              ['--rot' as string]: `${f.rot}deg`,
+              ['--dur' as string]: `${f.dur}s`,
+              ['--delay' as string]: `-${f.delay}s`,
+              filter: 'drop-shadow(0 10px 18px rgba(33,29,25,0.10))',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── skin ─────────────────────────────────────────────────────────────
 
 /** The whole /demo page — builder, countdown, run, the phone's bezel —
@@ -198,6 +271,9 @@ export const CSS = `
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
 
   .demo-zoomer { transition: transform 340ms cubic-bezier(.22,1,.36,1); will-change: transform; }
+  @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-14px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
+  .demo-float { transform: translate(-50%,-50%) rotate(var(--rot)); animation: demo-float var(--dur) ease-in-out infinite; animation-delay: var(--delay); will-change: transform; }
+  @media (prefers-reduced-motion: reduce) { .demo-float { animation: none } }
 
   .demo-rail { scrollbar-width: none; } .demo-rail::-webkit-scrollbar { display: none; }
 
@@ -1309,7 +1385,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
           punch-in reads anyway (Aidan 2026-09-24: "when we have the
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
-      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <DemoBackdrop />
     <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
