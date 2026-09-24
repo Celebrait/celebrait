@@ -308,7 +308,7 @@ export const CSS = `
   @keyframes demo-field-glow { 0%, 100% { box-shadow: 0 0 0 1px rgba(122,118,232,.35), 0 10px 36px rgba(122,118,232,.22) } 50% { box-shadow: 0 0 0 1px rgba(122,118,232,.55), 0 14px 48px rgba(122,118,232,.38) } }
   .demo-glow-field { border-color: rgba(122,118,232,.5) !important; animation: demo-field-glow 2.4s ease-in-out infinite; }
 
-  .demo-zoomer { transition: transform 340ms cubic-bezier(.22,1,.36,1); will-change: transform; }
+  .demo-zoomer { transition: transform 520ms cubic-bezier(.4,0,.2,1); will-change: transform; }
   @keyframes demo-float { 0% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } 50% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(-9px) } 100% { transform: translate(-50%,-50%) rotate(var(--rot)) translateY(0) } }
   .demo-float { transform: translate(-50%,-50%) rotate(var(--rot)); animation: demo-float var(--dur) ease-in-out infinite; animation-delay: var(--delay); }
   @media (prefers-reduced-motion: reduce) { .demo-float { animation: none } }
@@ -359,7 +359,7 @@ export const findDemo = (key: string, timeoutMs = 20_000) => find(`[data-demo="$
  *  Self-playing runs only. */
 let zoomRoot: HTMLElement | null = null;
 let zoomOn = false;
-const ZOOM_MS = 340;
+const ZOOM_MS = 520;
 /** ONE CAMERA MOVE PER SCREEN, HELD (Aidan 2026-09-24: "limit each
  *  screen to one initial tap in only and never let it zoom out until
  *  the next page, which is zoomed out until one tap in").
@@ -439,7 +439,7 @@ function focusRect(el: HTMLElement): DOMRect {
 // width WILL shave that heading — there is no scale above 1 that does
 // not. 1.3 took a whole letter off; 1.16 costs a few pixels of the
 // outermost glyph and still reads as a camera move.
-export async function zoomTo(el: HTMLElement, scale = 1.16) {
+export async function zoomTo(el: HTMLElement, scale = 1.3) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   if (zoomedThisScreen) {
     // Same screen: hold exactly where we are.
@@ -514,7 +514,7 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
  *  right-hand tile" shoves the heading and the other tile further out of
  *  frame than simply holding the press point does. Kept deliberately
  *  dumb. */
-export function zoomAt(x: number, y: number, scale = 1.12) {
+export function zoomAt(x: number, y: number, scale = 1.3) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   if (zoomedThisScreen) {
     if (!screenMovedOn()) return;
@@ -1346,7 +1346,17 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
       // The framing press is eaten here, in the capture phase, before
       // React's own listener on the root can see it.
       const onClick = (e: MouseEvent) => {
-        if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
+        if (swallowClick) {
+          swallowClick = false;
+          e.preventDefault(); e.stopPropagation();
+          // A framing press must activate NOTHING, and focus counts:
+          // the press lands focus on whatever is under it, which on a
+          // text field pops the keyboard over the shot you were lining
+          // up. (It is not what draws the violet halo on a primary
+          // button — that is .demo-pulse, running the whole time.)
+          (document.activeElement as HTMLElement | null)?.blur?.();
+          return;
+        }
         tellTap(); window.setTimeout(clearRings, 140);
       };
       window.addEventListener('pointerdown', onDown, true);

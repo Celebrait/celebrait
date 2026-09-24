@@ -531,7 +531,17 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
       // The framing press is eaten here, in the capture phase, before
       // React's own listener on the root can see it.
       const onClick = (e: MouseEvent) => {
-        if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
+        if (swallowClick) {
+          swallowClick = false;
+          e.preventDefault(); e.stopPropagation();
+          // A framing press must activate NOTHING, and focus counts:
+          // the press lands focus on whatever is under it, which on a
+          // text field pops the keyboard over the shot you were lining
+          // up. (It is not what draws the violet halo on a primary
+          // button — that is .demo-pulse, running the whole time.)
+          (document.activeElement as HTMLElement | null)?.blur?.();
+          return;
+        }
         tellTap(); window.setTimeout(clearRings, 140);
       };
       window.addEventListener('pointerdown', onDown, true);
