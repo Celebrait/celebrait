@@ -46,8 +46,8 @@ import type { PhotoMode } from '@shared/schema';
 import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
-  cardGlow, clearRings, find, findDemo, mark, preparePhoto, ring,
-  DemoBackdrop, needsFraming, resetZoomForScreen, setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
+  clearRings, find, findDemo, mark, preparePhoto, ring,
+  DemoBackdrop, needsFraming, resetZoomForScreen, setZoomRoot, sleep, tap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -220,7 +220,7 @@ type Phase =
 
 // ── the run ──────────────────────────────────────────────────────────
 
-export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; replay?: ReplayCard; embedded?: boolean }) {
+export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; replay?: ReplayCard; ground?: boolean }) {
   // Replaying: the brief IS the finished card's own, so the director
   // types the real name, the real scene sentence and the real words,
   // and the card that lands is the one those words actually produced.
@@ -313,15 +313,6 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
     while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); }
   };
 
-  // The mockup tints itself with whatever card is on screen.
-  useEffect(() => {
-    if (!embedded) return;
-    const url = phase === 'card' ? frontUrl : null;
-    if (!url) { tellGlow(null); return; }
-    let off = false;
-    cardGlow(url).then((c) => { if (!off) tellGlow(c); });
-    return () => { off = true; };
-  }, [embedded, phase, frontUrl]);
 
   // ── engine steps ──
   /** A draft is created up front so the photo has somewhere to live and
@@ -542,7 +533,7 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
           (document.activeElement as HTMLElement | null)?.blur?.();
           return;
         }
-        tellTap(); window.setTimeout(clearRings, 140);
+        window.setTimeout(clearRings, 140);
       };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
@@ -574,8 +565,8 @@ export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; r
           punch-in reads anyway (Aidan 2026-09-24: "when we have the
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
-      <DemoBackdrop />
-    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
+      {ground && <DemoBackdrop />}
+    <div ref={rootRef} className="keeper-serif demo-zoomer fixed inset-0 overflow-hidden">
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">

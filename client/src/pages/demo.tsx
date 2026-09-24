@@ -33,7 +33,6 @@ import ringIcon from '@/assets/icons/ring.png';
 import presentIcon from '@/assets/icons/present.png';
 import heartIcon from '@/assets/icons/heart.png';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { PhoneMockup, EMBED_TAP, EMBED_GLOW } from '@/components/phone-mockup';
 import { PhotoRun, DEMO_PHOTO_PRESETS, loadReplayCard, type ReplayCard } from '@/pages/demo-photo';
 
 // ── versions ─────────────────────────────────────────────────────────
@@ -133,18 +132,12 @@ export interface DemoConfig extends DemoPreset {
    *  fits today. Under 1 pulls back so a platform's caption and like
    *  rail don't sit over anything; over 1 punches in to fill a 9:16
    *  crop (Aidan 2026-09-23: "alter the scale … so it fits nicer on
-   *  social platforms"). Applies with the phone mockup AND full screen. */
+   *  social platforms"). The ground fills the frame at any scale. */
   scale?: number;
   /** The running clock, top right (on unless false). */
   timer?: boolean;
   /** Leave the photo screen out entirely (Aidan 2026-09-16: no "No photo" button on screen). */
   skipPhoto?: boolean;
-  /** 'phone' = the run plays inside a phone mockup on the page (Aidan
-   *  2026-09-16: "render this in a phone mock up"); 'full' = edge to edge. */
-  frame?: 'phone' | 'full';
-  /** The mockup breathes: a slow handheld sway, a light drifting over the
-   *  glass, soft clouds moving behind (on unless false). */
-  alive?: boolean;
   /** Play a saved run instead of generating. */
   replay?: ReplayRun;
   clip?: ClipKey;
@@ -612,7 +605,6 @@ export async function tap(el: HTMLElement, settle: number, hold: number) {
   await sleep(Math.max(0, RING_MS - ZOOM_MS + 60));
   clearRings();
   el.click();
-  tellTap(); // the phone dips AFTER the click lands, never under the finger
   // The camera is NOT released here. It stays where the first touch on
   // this screen put it and only goes wide when the screen changes (the
   // phase effect calls zoomHome). Releasing on every click was the
@@ -1006,7 +998,7 @@ function guessChipsOf(b: Partial<Brief> | null): string[] {
 }
 const GUESS_STEP_MS = 850;
 
-export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
+export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: boolean }) {
   const preset = cfg; const hook = cfg.hook; const beats = BEATS[cfg.speed];
   const replay = cfg.replay;
   const clip: ClipKey = replay ? (cfg.clip ?? 'full') : 'full';
@@ -1088,15 +1080,6 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
 
   const who = whoPhrase({ who: brief.who || preset.who, name: '' });
   const chosenFront = useCameo && cameoUrl ? cameoUrl : fronts[picked];
-  // The glow: the mockup tints itself with the card on screen.
-  useEffect(() => {
-    if (!embedded) return;
-    const url = phase === 'results' ? fronts[slide] : phase === 'photo-result' ? cameoUrl : phase === 'card' || phase === 'guess' ? chosenFront : null;
-    if (!url) { tellGlow(null); return; }
-    let off = false;
-    cardGlow(url).then((c) => { if (!off) tellGlow(c); });
-    return () => { off = true; };
-  }, [embedded, phase, slide, fronts, cameoUrl, chosenFront]);
   // An engine failure ends the run visibly — and tells the recorder.
   const fail = (e: any) => { const m = e?.message ?? 'That didn’t work'; setError(m); mark(`FAILED: ${m}`, 'failed'); };
   const until = async (p: Phase, timeoutMs: number) => { const t0 = Date.now(); while (phaseRef.current !== p) { if (Date.now() - t0 > timeoutMs) throw new Error(`demo: still waiting for ${p}`); await sleep(150); } };
@@ -1382,7 +1365,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
           (document.activeElement as HTMLElement | null)?.blur?.();
           return;
         }
-        tellTap(); window.setTimeout(clearRings, 140);
+        window.setTimeout(clearRings, 140);
       };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
@@ -1458,8 +1441,8 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
           punch-in reads anyway (Aidan 2026-09-24: "when we have the
           camera zoomed out lets retain the pattern on screen").
           The logo went with it — not relevant on a demo. */}
-      <DemoBackdrop />
-    <div ref={rootRef} className={`keeper-serif demo-zoomer fixed inset-x-0 overflow-hidden ${embedded ? 'bottom-[22px] top-[50px]' : 'inset-y-0'}`}>
+      {ground && <DemoBackdrop />}
+    <div ref={rootRef} className="keeper-serif demo-zoomer fixed inset-0 overflow-hidden">
       {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
@@ -1659,7 +1642,7 @@ function AskRow({ label: text, on, onChange }: { label: string; on: boolean; onC
 }
 
 function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
-  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual', frame: 'phone' });
+  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], speed: 'normal', hook: true, countdown: 3, mode: 'manual' });
   const manual = cfg.mode === 'manual';
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
@@ -1933,8 +1916,6 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
                 now, not just a run that plays itself, so hiding the
                 switch in manual left no way to turn it off. */}
             <div><span className={label}>Camera</span><div className="flex gap-2"><button type="button" className={chip(cfg.zoom !== false)} onClick={() => set({ zoom: true })}>Punch in on taps</button><button type="button" className={chip(cfg.zoom === false)} onClick={() => set({ zoom: false })}>Hold still</button></div></div>
-            {cfg.frame !== 'full' && <div><span className={label}>Feel</span><div className="flex gap-2"><button type="button" className={chip(cfg.alive !== false)} onClick={() => set({ alive: true })}>Handheld</button><button type="button" className={chip(cfg.alive === false)} onClick={() => set({ alive: false })}>Still</button></div></div>}
-            <div><span className={label}>Frame</span><div className="flex gap-2"><button type="button" className={chip(cfg.frame !== 'full')} onClick={() => set({ frame: 'phone' })}>Phone mockup</button><button type="button" className={chip(cfg.frame === 'full')} onClick={() => set({ frame: 'full' })}>Full screen</button></div></div>
             <div><span className={label}>Size in frame</span>
               <div className="flex flex-wrap gap-2">
                 {[0.7, 0.8, 0.9, 1, 1.15, 1.3].map((z) => (
@@ -1954,35 +1935,10 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
 
 // ── the phone mockup ─────────────────────────────────────────────────
 // The run plays in an iframe the size of an iPhone 15, so every vw/vh and
-// fixed layer inside it measures the phone, not the browser window. The
-// builder's settings go across by postMessage (a photo can be too big for
-// storage).
-const EMBED_READY = 'celebrait-demo-embed-ready';
-const EMBED_CFG = 'celebrait-demo-embed-cfg';
-/** Inside the mockup's iframe: the colour of the card on screen, or none. */
-export function tellGlow(color: string | null) { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_GLOW, color }, window.location.origin); }
-const glowCache = new Map<string, string>();
-/** A card's average colour, lifted a little so it reads as light, not mud. */
-export async function cardGlow(url: string): Promise<string> {
-  const hit = glowCache.get(url); if (hit) return hit;
-  const ok = await loadImage(url); if (!ok) return 'rgb(122,118,232)';
-  const im = new Image(); im.crossOrigin = 'anonymous'; im.src = url; await im.decode().catch(() => undefined);
-  const c = document.createElement('canvas'); c.width = 12; c.height = 12;
-  const ctx = c.getContext('2d')!; ctx.drawImage(im, 0, 0, 12, 12);
-  let r = 0, g = 0, b = 0, n = 0;
-  try { const d = ctx.getImageData(0, 0, 12, 12).data; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } } catch { return 'rgb(122,118,232)'; }
-  r /= n; g /= n; b /= n;
-  const mean = (r + g + b) / 3; const sat = 1.5; const lift = 40;
-  const f = (v: number) => Math.min(255, Math.round(mean + (v - mean) * sat + lift));
-  const out = `rgb(${f(r)},${f(g)},${f(b)})`; glowCache.set(url, out); return out;
-}
-/** Inside the mockup's iframe: tell the page a tap landed. */
-export function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
-
 /** The photo route, resolving a replayed card first when there is one.
  *  The run must not start until the card is in hand — its brief is what
  *  the director types. */
-function PhotoRoute({ cfg, embedded }: { cfg: DemoConfig; embedded?: boolean }) {
+function PhotoRoute({ cfg, ground = true }: { cfg: DemoConfig; ground?: boolean }) {
   const id = cfg.replayCardId;
   const [card, setCard] = useState<ReplayCard | null>(null);
   const [err, setErr] = useState('');
@@ -1999,35 +1955,7 @@ function PhotoRoute({ cfg, embedded }: { cfg: DemoConfig; embedded?: boolean }) 
       </div>
     );
   }
-  return <PhotoRun cfg={cfg} replay={card ?? undefined} embedded={embedded} />;
-}
-
-function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
-  const onMessage = useCallback((e: MessageEvent, frame: HTMLIFrameElement | null) => {
-    if (e.data?.type !== EMBED_READY) return;
-    frame?.contentWindow?.postMessage({ type: EMBED_CFG, cfg }, window.location.origin);
-  }, [cfg]);
-  return <PhoneMockup src="/demo?embed=1" alive={cfg.alive !== false} zoom={cfg.scale ?? 1} onMessage={onMessage} />;
-}
-
-function EmbeddedRun() {
-  const [cfg, setCfg] = useState<DemoConfig | null>(null);
-  useEffect(() => {
-    // Keep asking until the page answers (it may still be mounting); the
-    // first answer wins and the asking stops.
-    const ask = () => window.parent?.postMessage({ type: EMBED_READY }, window.location.origin);
-    const t = window.setInterval(ask, 300);
-    const onMsg = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin || e.data?.type !== EMBED_CFG) return;
-      window.clearInterval(t);
-      setCfg((prev) => prev ?? (e.data.cfg as DemoConfig));
-    };
-    window.addEventListener('message', onMsg);
-    ask();
-    return () => { window.removeEventListener('message', onMsg); window.clearInterval(t); };
-  }, []);
-  if (!cfg) return <div className="fixed inset-0 bg-keeper-paper" />;
-  return cfg.route === 'photo' ? <PhotoRoute cfg={cfg} embedded /> : <DemoRun cfg={cfg} embedded />;
+  return <PhotoRun cfg={cfg} replay={card ?? undefined} ground={ground} />;
 }
 
 export default function DemoPage() {
@@ -2079,19 +2007,27 @@ export default function DemoPage() {
     document.documentElement.classList.add('demo-cursor-on');
     return () => { m.remove(); st.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
   }, []);
-  if (q.get('embed') === '1') return <EmbeddedRun />;
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
-  if (cfg.frame === 'phone' && !fromLink && !replayId) return <PhoneFrame cfg={cfg} />;
-  const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} /> : <DemoRun cfg={cfg} />;
   const s = cfg.scale ?? 1;
+  const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} ground={s === 1} /> : <DemoRun cfg={cfg} ground={s === 1} />;
   if (s === 1) return run;
   // A transform makes this the containing block for the run's own
   // `fixed inset-0` root, so the run still lays out at full viewport
-  // size and is scaled as one piece. Paper behind, so pulling back
-  // letterboxes in the site's own colour rather than white.
+  // size and is scaled as one piece.
+  //
+  // THE GROUND IS NOT PART OF THAT PIECE. It used to be, because the
+  // run renders its own — and a `fixed inset-0` layer inside a
+  // transformed ancestor is fixed to the ANCESTOR, so pulling back to
+  // fit a social crop shrank the background along with the UI and left
+  // a band of bare paper round the outside (Aidan 2026-09-24: "there's
+  // a border of white … this whole thing needs to be filled so I can
+  // screen record"). So it is hoisted out here, unscaled, filling the
+  // recorded frame edge to edge whatever the scale is; the run is told
+  // not to draw its own.
   return (
     <div className="fixed inset-0 overflow-hidden bg-keeper-paper">
+      <DemoBackdrop />
       <div className="absolute inset-0" style={{ transform: `scale(${s})`, transformOrigin: 'center center' }}>{run}</div>
     </div>
   );
