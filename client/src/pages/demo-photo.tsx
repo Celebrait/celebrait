@@ -49,7 +49,7 @@ import {
   BEATS, CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
   cardGlow, clearRings, find, findDemo, mark, preparePhoto, ring,
-  setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll,
+  setZoomRoot, sleep, tap, tellGlow, tellTap, typeHook, typeInto, warm, warmAll, zoomAt, zoomHome,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -224,7 +224,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
   const frontRef = useRef(''); frontRef.current = frontText;
 
   useEffect(() => {
-    setZoomRoot(rootRef.current, cfg.mode === 'auto' && cfg.zoom !== false);
+    setZoomRoot(rootRef.current, cfg.zoom !== false); // manual runs punch in on the user's own taps
     return () => setZoomRoot(null, false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -430,8 +430,11 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     let n = cfg.countdown;
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('who'); } }, 1000);
     if (cfg.mode === 'manual') {
-      const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
-      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); };
+      const onDown = (e: PointerEvent) => { ring(e.clientX, e.clientY); zoomAt(e.clientX, e.clientY); };
+      // Held a beat past the tap so a quick press still reads as a
+      // camera move, then home. A tap that changes the screen homes
+      // instantly instead — see the phase effect below.
+      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); window.setTimeout(zoomHome, 240); };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
@@ -443,7 +446,7 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
     const t = window.setTimeout(() => { direct().catch(fail); }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { clearRings(); }, [phase]);
+  useEffect(() => { clearRings(); zoomHome(); }, [phase]);
 
   // Group mode puts more than one person in, so don't name just one.
   const waitLine = drawingInside

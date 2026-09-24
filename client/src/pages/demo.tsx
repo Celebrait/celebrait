@@ -307,6 +307,40 @@ export async function zoomTo(el: HTMLElement, scale = 1.16) {
   root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
   await sleep(ZOOM_MS);
 }
+/** Punch in KEEPING A SCREEN POINT FIXED — for a run a human is
+ *  tapping (Aidan 2026-09-24: "I want it on when I tap"). The director's
+ *  zoomTo centres the element it is about to hit, which is safe because
+ *  it then calls .click() itself. Under a real finger that would be a
+ *  bug: moving the element out from under the pointer means mouseup
+ *  lands somewhere else and the click never reaches the button. Holding
+ *  the tapped point still means whatever is under the finger stays
+ *  under the finger. */
+/** Punch in for a run a HUMAN is tapping (Aidan 2026-09-24: "I want it
+ *  on when I tap"), anchored on the finger's own point.
+ *
+ *  The director's zoomTo CENTRES what it is about to hit, which is safe
+ *  only because it then calls .click() itself. Under a real finger that
+ *  is a bug: move the element and mouseup lands somewhere else, so the
+ *  click never reaches the button. Anchoring means whatever is under
+ *  the finger stays under the finger.
+ *
+ *  Centring-when-it-fits and blending toward it were both tried and are
+ *  worse, not better: on a row of side-by-side tiles, "centred on the
+ *  right-hand tile" shoves the heading and the other tile further out of
+ *  frame than simply holding the press point does. Kept deliberately
+ *  dumb. */
+export function zoomAt(x: number, y: number, scale = 1.12) {
+  const root = zoomRoot; if (!root || !zoomOn) return;
+  const rr = root.getBoundingClientRect();
+  const s = Math.max(1, scale);
+  const px = x - rr.left, py = y - rr.top;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const tx = clamp(px - px * s, rr.width * (1 - s), 0);
+  const ty = clamp(py - py * s, rr.height * (1 - s), 0);
+  root.style.transformOrigin = '0 0';
+  root.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+}
+
 export async function zoomOut(wait = true) {
   const root = zoomRoot; if (!root || !zoomOn) return;
   root.style.transform = 'none';
@@ -760,7 +794,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     zoomRoot = rootRef.current;
-    zoomOn = cfg.mode === 'auto' && cfg.zoom !== false;
+    zoomOn = cfg.zoom !== false; // manual runs punch in on the user's own taps
     return () => { zoomRoot = null; zoomOn = false; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // The clock: from the first question on screen to the moment it's posted
@@ -1061,8 +1095,11 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
     const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); } }, 1000);
     if (cfg.mode === 'manual') {
       // Aidan drives. His taps get the ring; the hook types itself then steps aside.
-      const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
-      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); };
+      const onDown = (e: PointerEvent) => { ring(e.clientX, e.clientY); zoomAt(e.clientX, e.clientY); };
+      // Held a beat past the tap so a quick press still reads as a
+      // camera move, then home. A tap that changes the screen homes
+      // instantly instead — see the phase effect below.
+      const onClick = () => { tellTap(); window.setTimeout(clearRings, 140); window.setTimeout(zoomHome, 240); };
       window.addEventListener('pointerdown', onDown, true);
       window.addEventListener('click', onClick, true);
       const t = window.setTimeout(() => {
@@ -1077,7 +1114,7 @@ export function DemoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?:
     return () => { window.clearTimeout(t); window.clearInterval(tick); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { clearRings(); }, [phase]);
+  useEffect(() => { clearRings(); zoomHome(); }, [phase]);
   // The run saves itself at "It's on the way" — the assets behind a
   // produced social video (see /admin/demo-runs). Fire and forget.
   const savedRef = useRef(false);
