@@ -168,22 +168,85 @@ async function pollDraft(id: number, done: Set<string>, timeoutMs: number, onTic
  *  "30s per orbit at 2.0 / 60fps", so 8 ≈ 7.5s. Keep the two in step. */
 const FULL_TURN_MS = 7500;
 
+// ── replaying a card that already exists ────────────────────────────
+//
+// A finished card carries everything a run needs: who it was for, the
+// scene sentence, the words, both images and the photo it was built
+// from. So a "saved run" needs no new table and no save step — the card
+// IS the run, and every card ever made is replayable, including the
+// ones made before this existed.
+
+export interface ReplayCard {
+  id: number;
+  name: string; occasion: string; photoMode: PhotoMode;
+  scene: string; frontText: string;
+  dear: string; message: string; from: string;
+  photoUrl: string | null; frontUrl: string; insideUrl: string | null;
+}
+
+/** Pull a finished card into the shape a run plays from. Uses only
+ *  endpoints that already exist: the draft for the words and images,
+ *  the photo library for the source photo (resolved the way the rest of
+ *  the client resolves one — see studio/input-editors.tsx). */
+export async function loadReplayCard(id: number): Promise<ReplayCard> {
+  const d = await api('GET', `/api/studio/drafts/${id}`);
+  const st = (d?.state ?? {}) as CardDraftState;
+  if (!d?.frontImageUrl) throw new Error(`Card ${id} has no front image — pick a finished one`);
+
+  let photoUrl: string | null = null;
+  const photoId = st.photos?.photoIds?.[0];
+  if (photoId != null) {
+    const lib = (await api('GET', '/api/user/photos').catch(() => null)) as
+      Array<{ id: number; storagePath?: string | null; croppedStoragePath?: string | null }> | null;
+    const row = lib?.find((x) => x.id === photoId);
+    const path = row?.croppedStoragePath ?? row?.storagePath;
+    if (path) photoUrl = `/images/${path}`;
+  }
+
+  const w = st.inside?.write ?? {};
+  return {
+    id,
+    name: st.recipient?.name?.trim() || 'Them',
+    occasion: st.recipient?.occasion?.trim() || 'Birthday',
+    photoMode: st.photos?.mode ?? 'one_person',
+    scene: st.scene?.description?.trim() ?? '',
+    frontText: st.front?.text?.trim() ?? '',
+    dear: w.salutation ?? '', message: w.message ?? '', from: w.signoff ?? '',
+    photoUrl, frontUrl: d.frontImageUrl, insideUrl: d.insideImageUrl ?? null,
+  };
+}
+
 type Phase =
   | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front' | 'inside'
   | 'generating' | 'card' | 'sent';
 
 // ── the run ──────────────────────────────────────────────────────────
 
-export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?: boolean }) {
-  const preset = useMemo<PhotoPreset>(
-    () => DEMO_PHOTO_PRESETS[cfg.photoPreset ?? ''] ?? DEMO_PHOTO_PRESETS['sarah-anniversary'],
-    [cfg.photoPreset],
-  );
+export function PhotoRun({ cfg, replay, embedded = false }: { cfg: DemoConfig; replay?: ReplayCard; embedded?: boolean }) {
+  // Replaying: the brief IS the finished card's own, so the director
+  // types the real name, the real scene sentence and the real words,
+  // and the card that lands is the one those words actually produced.
+  const preset = useMemo<PhotoPreset>(() => {
+    const base = DEMO_PHOTO_PRESETS[cfg.photoPreset ?? ''] ?? DEMO_PHOTO_PRESETS['sarah-anniversary'];
+    if (!replay) return base;
+    return {
+      ...base,
+      name: replay.name, occasion: replay.occasion, photoMode: replay.photoMode,
+      scene: replay.scene || base.scene, front: replay.frontText,
+      dear: replay.dear, message: replay.message, from: replay.from,
+      photo: replay.photoUrl ?? base.photo,
+      hookLine: cfg.hookLine?.trim() || `One photo of *${replay.name}*. One sentence. Watch what we do with it.`,
+    };
+  }, [cfg.photoPreset, cfg.hookLine, replay]);
   const beats = BEATS[cfg.speed];
   const hook = cfg.hook;
   const showClock = cfg.timer !== false;
   // The builder can rewrite the opening line; the preset's is the default.
   const hookLine = cfg.hookLine?.trim() || preset.hookLine;
+  /** The whole point of a replay: the 80-second wait stops dictating the
+   *  cut. 'real' keeps it honest, 'short' is a beat, 'none' cuts
+   *  straight to the card. */
+  const replayWaitMs = cfg.waits === 'none' ? 0 : cfg.waits === 'short' ? 2200 : 78_000;
 
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'who');
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
@@ -285,6 +348,9 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
 
   const usePhoto = async (dataUrl: string) => {
     setPhotoData(dataUrl);
+    // Replaying: nothing is uploaded and no draft is created. The photo
+    // on screen is the one the finished card was actually built from.
+    if (replay) { setPhase('scene'); mark('scene (replay)', 'scene'); return; }
     // Straight on to the scene — no "analysing" screen (Aidan
     // 2026-09-23). The upload and the likeness check still happen, they
     // just happen behind the next question instead of behind a spinner,
@@ -327,8 +393,22 @@ export function PhotoRun({ cfg, embedded = false }: { cfg: DemoConfig; embedded?
    *  front-first and then chaining the inside behaves the same on every
    *  environment, which matters more than saving a round trip. */
   const generateCard = async () => {
-    const id = await ensureDraft();
     setPhase('generating'); mark('generating', 'generating');
+    // Replaying: the card already exists. Wait however long the cut
+    // wants, then show it. No /generate, no /generate-inside, nothing
+    // charged and no daily-cap spend.
+    if (replay) {
+      // The line still turns over from drawing to writing partway, so a
+      // replayed wait reads exactly like a real one.
+      const flip = replayWaitMs > 1200 ? window.setTimeout(() => setDrawingInside(true), replayWaitMs * 0.62) : 0;
+      await Promise.all([sleep(replayWaitMs), warmAll([replay.frontUrl, replay.insideUrl])]);
+      window.clearTimeout(flip);
+      setFrontUrl(replay.frontUrl);
+      setInsideUrl(replay.insideUrl);
+      setPhase('card'); mark('card (replay)', 'card');
+      return;
+    }
+    const id = await ensureDraft();
     const w = wordsRef.current;
     // PATCH replaces the WHOLE state (the route is a deliberate
     // overwrite, not patch semantics), so read what's there and merge —

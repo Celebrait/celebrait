@@ -30,7 +30,7 @@ import { expectedBy, formatDayMonth } from '@shared/pricing';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { PhoneMockup, EMBED_TAP, EMBED_GLOW } from '@/components/phone-mockup';
-import { PhotoRun, DEMO_PHOTO_PRESETS } from '@/pages/demo-photo';
+import { PhotoRun, DEMO_PHOTO_PRESETS, loadReplayCard, type ReplayCard } from '@/pages/demo-photo';
 
 // ── versions ─────────────────────────────────────────────────────────
 
@@ -105,6 +105,12 @@ export interface DemoConfig extends DemoPreset {
   route?: 'cards' | 'photo';
   /** Photo-route only: which saved photo brief the run plays. */
   photoPreset?: string;
+  /** Photo-route only: replay a card that has ALREADY been made, instead
+   *  of making one. Every real run leaves a finished card behind — the
+   *  recipient, the scene, the words and both images — so the card IS
+   *  the saved run, and no generation, upload or draft is needed to
+   *  play it back. Costs nothing and works on every card ever made. */
+  replayCardId?: number;
   speed: Speed; hook: boolean;
   /** Seconds before the run starts — time to hit record. */
   countdown: number;
@@ -139,7 +145,7 @@ export interface DemoConfig extends DemoPreset {
   replay?: ReplayRun;
   clip?: ClipKey;
   /** Replay waits: as long as the original run took, or short. */
-  waits?: 'real' | 'short';
+  waits?: 'real' | 'short' | 'none';
 }
 export const BEATS: Record<Speed, { hold: number; type: number; settle: number; walk: number; look: number }> = {
   // 'settle' is the pause AFTER a screen/element is in view and BEFORE the
@@ -1379,6 +1385,18 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const [source, setSource] = useState<'new' | 'replay'>('new');
   const [runs, setRuns] = useState<ReplayRun[] | null>(null);
   const [runsErr, setRunsErr] = useState('');
+  // Photo route: replay a card that already exists. Every finished card
+  // is a saved run, so this lists real cards rather than demo records.
+  const [cards, setCards] = useState<Array<{ id: number; frontImageUrl: string | null; recipientName: string | null; occasion: string | null; createdAt?: string }> | null>(null);
+  const [cardsErr, setCardsErr] = useState('');
+  useEffect(() => {
+    if (!cfg.replayCardId && cards !== null) return;
+    if (cards !== null) return;
+    fetch('/api/user/cards', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((list) => setCards((Array.isArray(list) ? list : []).filter((c: { frontImageUrl?: string | null }) => !!c.frontImageUrl).slice(0, 24)))
+      .catch(() => setCardsErr('Could not load your cards.'));
+  }, [cards, cfg.replayCardId]);
   useEffect(() => {
     if (source !== 'replay' || runs) return;
     fetch('/api/admin/demo-runs', { credentials: 'include' })
@@ -1443,6 +1461,53 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               ))}
             </div>
             <p className="mt-2 text-[12px] text-keeper-meta">{DEMO_PHOTO_PRESETS[cfg.photoPreset ?? '']?.scene ?? ''}</p>
+          </div>
+        )}
+
+        {isPhoto && (
+          <div className="mt-5"><span className={label}>Start from</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip(!cfg.replayCardId)} onClick={() => set({ replayCardId: undefined })}>Make a new one</button>
+              <button type="button" className={chip(!!cfg.replayCardId)}
+                onClick={() => set({ replayCardId: cfg.replayCardId ?? cards?.[0]?.id })}>Replay a card</button>
+            </div>
+            <p className="mt-1.5 text-[12px] text-keeper-meta">
+              {cfg.replayCardId
+                ? 'Plays a card you\u2019ve already made. Nothing is generated and nothing is charged, so the wait is yours to set.'
+                : 'Makes a real card. Costs a generation and takes a couple of minutes.'}
+            </p>
+
+            {cfg.replayCardId && (
+              <div className="mt-4 space-y-4">
+                {cardsErr && <p className="text-[13px] text-accent-red-dark">{cardsErr}</p>}
+                {!cards && !cardsErr && <p className="text-[13px] text-keeper-meta">Loading your cards\u2026</p>}
+                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No finished cards yet. Make one first and it becomes replayable.</p>}
+                {cards && cards.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {cards.map((c) => {
+                      const on = cfg.replayCardId === c.id;
+                      return (
+                        <button key={c.id} type="button" onClick={() => set({ replayCardId: c.id })}
+                          className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${on ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
+                          <img src={c.frontImageUrl ?? ''} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" loading="lazy" />
+                          <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">
+                            {c.recipientName ?? `Card ${c.id}`}
+                            <span className="block text-keeper-meta">{c.occasion ?? ''}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div><span className={label}>The wait</span>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" className={chip((cfg.waits ?? 'real') === 'real')} onClick={() => set({ waits: 'real' })}>As long as it really took</button>
+                    <button type="button" className={chip(cfg.waits === 'short')} onClick={() => set({ waits: 'short' })}>A beat</button>
+                    <button type="button" className={chip(cfg.waits === 'none')} onClick={() => set({ waits: 'none' })}>Straight to the card</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1619,6 +1684,29 @@ export async function cardGlow(url: string): Promise<string> {
 /** Inside the mockup's iframe: tell the page a tap landed. */
 export function tellTap() { if (typeof window !== 'undefined' && window.parent !== window) window.parent.postMessage({ type: EMBED_TAP }, window.location.origin); }
 
+/** The photo route, resolving a replayed card first when there is one.
+ *  The run must not start until the card is in hand — its brief is what
+ *  the director types. */
+function PhotoRoute({ cfg, embedded }: { cfg: DemoConfig; embedded?: boolean }) {
+  const id = cfg.replayCardId;
+  const [card, setCard] = useState<ReplayCard | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    if (!id) return;
+    let off = false;
+    loadReplayCard(id).then((c) => { if (!off) setCard(c); }).catch((e) => { if (!off) setErr(e?.message ?? 'Could not load that card.'); });
+    return () => { off = true; };
+  }, [id]);
+  if (id && !card) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-keeper-paper px-8 text-center text-[14px] text-keeper-body">
+        {err || `Loading card ${id}\u2026`}
+      </div>
+    );
+  }
+  return <PhotoRun cfg={cfg} replay={card ?? undefined} embedded={embedded} />;
+}
+
 function PhoneFrame({ cfg }: { cfg: DemoConfig }) {
   const onMessage = useCallback((e: MessageEvent, frame: HTMLIFrameElement | null) => {
     if (e.data?.type !== EMBED_READY) return;
@@ -1644,7 +1732,7 @@ function EmbeddedRun() {
     return () => { window.removeEventListener('message', onMsg); window.clearInterval(t); };
   }, []);
   if (!cfg) return <div className="fixed inset-0 bg-keeper-paper" />;
-  return cfg.route === 'photo' ? <PhotoRun cfg={cfg} embedded /> : <DemoRun cfg={cfg} embedded />;
+  return cfg.route === 'photo' ? <PhotoRoute cfg={cfg} embedded /> : <DemoRun cfg={cfg} embedded />;
 }
 
 export default function DemoPage() {
@@ -1653,10 +1741,14 @@ export default function DemoPage() {
   // `?route=photo&photo=<key>` films the photo door instead of the
   // three-card one — a different product, so a different run.
   const fromLink = useMemo<DemoConfig | null>(() => {
+    const card = Number(q.get('card'));
+    const replayCardId = Number.isFinite(card) && card > 0 ? card : undefined;
+    const w = q.get('waits');
+    const waits = w === 'none' || w === 'short' || w === 'real' ? w : undefined;
     const z = Number(q.get('scale'));
     const common = { speed: (q.get('speed') === 'fast' ? 'fast' : 'normal') as Speed, hook: q.get('hook') === 'typed', countdown: 0, mode: 'auto' as const, scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
     const photoKey = q.get('photo');
-    if (q.get('route') === 'photo' || photoKey) {
+    if (q.get('route') === 'photo' || photoKey || replayCardId) {
       const key = photoKey && DEMO_PHOTO_PRESETS[photoKey] ? photoKey : Object.keys(DEMO_PHOTO_PRESETS)[0];
       const p = DEMO_PHOTO_PRESETS[key];
       // A DemoConfig carries the three-card fields whether or not this
@@ -1665,7 +1757,7 @@ export default function DemoPage() {
       // must come from the PHOTO preset, or the hook introduces somebody
       // who never appears (caught 2026-09-22: Sarah's run opened with
       // "Watch us make a card for Mum … lives in her garden").
-      return { ...DEMO_PRESETS['mum-70-garden'], ...common, route: 'photo', photoPreset: key, hookLine: p.hookLine, who: p.name, name: p.name, occasion: p.occasion };
+      return { ...DEMO_PRESETS['mum-70-garden'], ...common, route: 'photo', photoPreset: key, hookLine: p.hookLine, who: p.name, name: p.name, occasion: p.occasion, replayCardId, waits };
     }
     const p = DEMO_PRESETS[q.get('preset') ?? ''];
     return p ? { ...p, ...common } : null;
@@ -1696,7 +1788,7 @@ export default function DemoPage() {
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
   if (cfg.frame === 'phone' && !fromLink && !replayId) return <PhoneFrame cfg={cfg} />;
-  const run = cfg.route === 'photo' ? <PhotoRun cfg={cfg} /> : <DemoRun cfg={cfg} />;
+  const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} /> : <DemoRun cfg={cfg} />;
   const s = cfg.scale ?? 1;
   if (s === 1) return run;
   // A transform makes this the containing block for the run's own
