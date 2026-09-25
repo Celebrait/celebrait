@@ -97,9 +97,16 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
           )}
         </header>
 
-        {/* Phones: words, card, sign-up. Desktop: card left; words over
-            the sign-up on the right. */}
-        <div className="grid flex-1 content-center gap-y-6 py-8 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0 lg:py-10">
+        {/* PHONES: words, sign-up, THEN the card. The card used to come
+            second and it is tall enough that the form — the only thing
+            this page is for — sat a full screen below the fold, unseen
+            unless you scrolled for it (Aidan 2026-09-25). The card is
+            still the proof, so it keeps its size; it just stops standing
+            between the reader and the box they came to fill in.
+            DESKTOP is unchanged: every cell is placed explicitly, so DOM
+            order does not reach it — card left, words over the sign-up
+            on the right. */}
+        <div className="grid flex-1 content-center gap-y-5 py-6 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0 lg:py-10">
           {/* Intro */}
           <div className="lg:col-start-2 lg:row-start-1 lg:self-end">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand-muted px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-dark">
@@ -109,43 +116,9 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
               <span className="bg-gradient-to-r from-[#7a76e8] via-[#5c57d4] to-[#211D19] bg-clip-text pb-1 text-transparent">Unbinnable</span>
               <br />greetings cards.
             </h1>
-            <p className="mt-4 max-w-[440px] text-[16.5px] leading-relaxed text-keeper-body sm:text-[17px]">
+            <p className="mt-3.5 max-w-[440px] text-[16.5px] leading-relaxed text-keeper-body sm:text-[17px]">
               Celebrait creates personalised greetings cards that are so good they’ll probably never end up in the bin. We’re launching some time soon so add your details below and we’ll let you know when we do!
             </p>
-          </div>
-
-          {/* On desktop the card's left edge lines up with the logo; it
-              opens to the left and may run off screen. The canvas bleeds
-              far past the square and only the card takes the pointer.
-              The photo it was made from sits ABOVE the card, left — the
-              open spread sweeps across the whole square, so anything
-              placed over the square gets covered (Aidan 2026-09-22:
-              "top left of the card and no overlap"). */}
-          <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
-            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[74%]' : 'w-full max-w-[440px] lg:-translate-x-[2%]'}`}>
-              <motion.figure
-                initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -4 }}
-                transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="pointer-events-none relative z-10 mb-1 w-[30%] min-w-[88px] self-start">
-                <div className="rounded-md border-[5px] border-white bg-white shadow-[0_14px_32px_-14px_rgba(33,29,25,0.45)]">
-                  <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
-                </div>
-                <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
-              </motion.figure>
-              <div className="pointer-events-none relative aspect-square w-full">
-                <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
-                  initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-                  <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
-                    backLogo backCaption="Unbinnable greetings cards · launching soon"
-                    enableRotate enableZoom={false}
-                    closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
-                </motion.div>
-              </div>
-              <div className={`flex h-[64px] justify-center ${narrow ? 'mt-4 -mx-[20%]' : 'mt-2'}`}>
-                <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
-              </div>
-            </div>
           </div>
 
           {/* Sign-up */}
@@ -185,6 +158,40 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             )}
             {passErr && <p className="mt-2 px-1 text-[13px] font-medium text-accent-red-dark">{passErr}</p>}
           </div>
+          {/* On desktop the card's left edge lines up with the logo; it
+              opens to the left and may run off screen. The canvas bleeds
+              far past the square and only the card takes the pointer.
+              The photo it was made from sits ABOVE the card, left — the
+              open spread sweeps across the whole square, so anything
+              placed over the square gets covered (Aidan 2026-09-22:
+              "top left of the card and no overlap"). */}
+          <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
+            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[74%]' : 'w-full max-w-[440px] lg:-translate-x-[2%]'}`}>
+              <motion.figure
+                initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -4 }}
+                transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="pointer-events-none relative z-10 mb-1 w-[30%] min-w-[88px] self-start lg:ml-[6%]">
+                <div className="rounded-md border-[5px] border-white bg-white shadow-[0_14px_32px_-14px_rgba(33,29,25,0.45)]">
+                  <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
+                </div>
+                <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
+              </motion.figure>
+              <div className="pointer-events-none relative aspect-square w-full lg:-mt-7">
+                <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
+                  initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
+                  <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
+                    backLogo backCaption="Unbinnable greetings cards · launching soon"
+                    enableRotate enableZoom={false}
+                    closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
+                </motion.div>
+              </div>
+              <div className={`flex h-[52px] justify-center ${narrow ? 'mt-2 -mx-[20%]' : 'mt-2'}`}>
+                <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12px] text-keeper-meta">
