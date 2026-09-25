@@ -24,7 +24,7 @@ const HERO_SOURCE = '/hero-source-photo.webp';
 
 // ── the page ─────────────────────────────────────────────────────────
 
-const field = 'h-12 w-full rounded-full border border-keeper-hair bg-white/95 px-5 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
+const field = 'h-12 min-w-0 rounded-full border border-keeper-hair bg-white/95 px-5 text-[15px] text-keeper-ink placeholder:text-keeper-meta focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { hasPassword?: boolean; onUnlocked?: () => void }) {
   // Phones place the card so its open spread stays on screen.
@@ -142,8 +142,8 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             ) : (
               <form onSubmit={join} className="mt-8 max-w-[430px]">
                 <div className="flex gap-2.5">
-                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={`${field} w-[38%]`} />
-                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={`${field} flex-1`} />
+                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={`${field} basis-[38%]`} />
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={`${field} grow`} />
                 </div>
                 {/* Sized to its words, not to the column. A full-width
                     slab of lime was the loudest thing on a page that is
@@ -162,7 +162,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
 
             {hasPassword && passOpen && (
               <form onSubmit={unlock} className="mt-6 flex max-w-[430px] gap-2 border-t border-keeper-hair pt-6">
-                <input value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Password" aria-label="Early-access password" autoFocus className={field} />
+                <input value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Password" aria-label="Early-access password" autoFocus className={`${field} w-full`} />
                 <button type="submit" disabled={passBusy || !pass.trim()} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full border border-brand bg-brand-muted px-5 text-[15px] font-semibold text-brand-dark transition-colors hover:bg-brand-light disabled:opacity-50">
                   {passBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Let me in'}
                 </button>
