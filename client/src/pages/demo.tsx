@@ -1563,73 +1563,70 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
 }) {
   const [painted, setPainted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showCard, setShowCard] = useState(false);
   const [showLine, setShowLine] = useState(true);
+  const [showCard, setShowCard] = useState(false);
   const [ready, setReady] = useState(false);
   const parsed = useMemo(() => (line ? parseHook(line, []) : null), [line]);
 
-  // THE LINE GOES FIRST, alone and centred, then the card, then the
-  // button just behind it (Aidan 2026-09-25). The order was the other
-  // way round and the words were a caption on a picture; this way they
-  // are a promise, and the card is what answers them.
+  // ONE THING AT A TIME (Aidan 2026-09-25: "the line should never be
+  // there — fade from central text to new screen, load card, show
+  // button"). The line writes centred and alone, holds a beat, and
+  // clears the screen completely. Only once it has GONE — onExitComplete,
+  // not a timer racing it — does the card mount and load. The button
+  // follows the card.
+  //
+  // The card therefore starts loading late, which is the cost of the
+  // handover being clean; the spinner covers it.
   useEffect(() => { if (!parsed) setShowCard(true); }, [parsed]);
   useEffect(() => {
     if (!painted) return;
-    // The line has said its piece by the time the card is up, and two
-    // things competing under one card is a weaker frame than the card
-    // alone (Aidan 2026-09-25: "no need to show the text once card is
-    // revealed"). It goes as the card settles; the button takes its
-    // place.
-    const out = window.setTimeout(() => setShowLine(false), 260);
-    const t = window.setTimeout(() => setReady(true), 420); // "just after" the card
-    return () => { window.clearTimeout(out); window.clearTimeout(t); };
+    const t = window.setTimeout(() => setReady(true), 420);
+    return () => window.clearTimeout(t);
   }, [painted]);
+
+  const lineDone = () => { window.setTimeout(() => setShowLine(false), 700); }; // a beat to read it
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-5">
-      <AnimatePresence initial={false}>
-        {showCard && (
-          <motion.div key="card" layout
-            initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, scale: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
-            className="relative aspect-square w-[min(84%,42vh,400px)] shrink-0">
-            {!painted && (
-              <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={1.6} />
-              </div>
-            )}
-            <motion.div className="absolute inset-x-[-60%] inset-y-[-16%]"
-              initial={false} animate={{ opacity: painted ? 1 : 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
-              {/* restYaw 0: any resting turn swings the card's painted
-                  centroid off the middle of the frame, which reads as
-                  "not central" however well the box is centred. */}
-              <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
-                open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
-                enableRotate enableZoom={false}
-                backLogo backCaption="celebrait.co.uk"
-                closedAngle={-0.26} restYaw={0} framingMargin={1.4} minDistance={1.05} maxDistance={8} className="h-full w-full" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} onExitComplete={() => setShowCard(true)}>
         {parsed && showLine && (
-          <motion.div key="line" layout
-            initial={false} exit={{ opacity: 0, y: -6 }}
-            transition={{ opacity: { duration: 0.34, ease: 'easeOut' }, y: { duration: 0.34, ease: 'easeOut' }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
-            className="shrink-0">
-            <OpenerLine line={parsed} onDone={() => setShowCard(true)} />
+          <motion.div key="line" initial={false} exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.38, ease: 'easeOut' }} className="shrink-0">
+            <OpenerLine line={parsed} onDone={lineDone} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.div layout initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
-        transition={{ opacity: { duration: 0.4, ease: 'easeOut' }, y: { duration: 0.4, ease: 'easeOut' }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
-        className="shrink-0">
-        <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse`}
-          disabled={!ready} onClick={onStart}>{label}</button>
-      </motion.div>
+      {showCard && (
+        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="relative aspect-square w-[min(84%,42vh,400px)] shrink-0">
+          {!painted && (
+            <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+              <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={1.6} />
+            </div>
+          )}
+          <motion.div className="absolute inset-x-[-60%] inset-y-[-16%]"
+            initial={false} animate={{ opacity: painted ? 1 : 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
+            {/* restYaw 0: any resting turn swings the card's painted
+                centroid off the middle of the frame, which reads as
+                "not central" however well the box is centred. */}
+            <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
+              open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
+              enableRotate enableZoom={false}
+              backLogo backCaption="celebrait.co.uk"
+              closedAngle={-0.26} restYaw={0} framingMargin={1.4} minDistance={1.05} maxDistance={8} className="h-full w-full" />
+          </motion.div>
+        </motion.div>
+      )}
+
+      {showCard && (
+        <motion.div initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }} className="shrink-0">
+          <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse`}
+            disabled={!ready} onClick={onStart}>{label}</button>
+        </motion.div>
+      )}
     </div>
   );
 }
