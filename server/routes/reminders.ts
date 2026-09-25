@@ -18,7 +18,7 @@
 // occasion's date to verify the cron + email pipeline E2E.
 
 import type { Express, Request, Response } from 'express';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import {
@@ -26,6 +26,11 @@ import {
   recipientOccasions,
   users,
 } from '@shared/schema';
+import {
+  FIXED_DATE_OCCASIONS,
+  isFixedDateOccasion,
+  nextFixedOccasionDate,
+} from '@shared/fixed-occasions';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { runReminderDispatch } from '../reminders/dispatcher';
 
@@ -82,7 +87,12 @@ export function registerRemindersRoutes(app: Express): void {
         .where(
           and(
             eq(recipientOccasions.userId, userId),
-            sql`${recipientOccasions.date} IS NOT NULL`,
+            // Include occasions with a stored date OR a fixed-date type
+            // (Christmas etc. store no date — we resolve it dynamically).
+            or(
+              sql`${recipientOccasions.date} IS NOT NULL`,
+              inArray(recipientOccasions.occasion, Array.from(FIXED_DATE_OCCASIONS)),
+            ),
           ),
         );
 
@@ -90,13 +100,18 @@ export function registerRemindersRoutes(app: Express): void {
       const upcoming: UpcomingReminder[] = [];
 
       for (const r of rows) {
-        const occasionDate = parseDateUTC(r.occasion.date as string);
-        const next = computeNextOccurrence(
-          occasionDate,
-          r.occasion.yearSpecific,
-          today,
-        );
-        if (!next) continue; // year-specific past
+        // Fixed-date occasions resolve their date from the calendar (no
+        // stored date); everything else rolls its stored month/day.
+        const next = isFixedDateOccasion(r.occasion.occasion)
+          ? nextFixedOccasionDate(r.occasion.occasion, today)
+          : r.occasion.date
+            ? computeNextOccurrence(
+                parseDateUTC(r.occasion.date as string),
+                r.occasion.yearSpecific,
+                today,
+              )
+            : null;
+        if (!next) continue; // year-specific past, or no resolvable date
 
         const daysUntil = Math.round(
           (next.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),

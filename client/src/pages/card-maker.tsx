@@ -12,21 +12,27 @@
 // Both render under StudioLayout so the sidebar + header stay. The
 // FAB is auto-hidden on these routes by StudioLayout's HIDE_FAB_ON.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useReducer } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2, Sparkle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Sparkle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { useCardMaker } from '@/hooks/use-card-maker';
+import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import { Stepper } from '@/components/studio/stepper';
 import {
   RecipientStep,
   isRecipientStepReady,
 } from '@/components/studio/steps/recipient-step';
 import { SceneStep, isSceneStepReady } from '@/components/studio/steps/scene-step';
-import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
+// StyleStep parked for Celebrait Premium tier — V1 locks to the
+// "warm illustrated" default which is what we render today. The file
+// stays in the repo for revival under Premium. See next_celebrait_premium.md
+// + the CARD_MAKER_STEPS removal note in shared/models/card-draft.ts.
+// import { StyleStep, isStyleStepReady } from '@/components/studio/steps/style-step';
 import { FrontStep, isFrontStepReady } from '@/components/studio/steps/front-step';
 import { PhotoStep, isPhotoStepReady } from '@/components/studio/steps/photo-step';
 import { InsideStep, isInsideStepReady } from '@/components/studio/steps/inside-step';
@@ -55,6 +61,7 @@ export function NewCardPage() {
   // (no artificial delay) while a slow path (Neon cold start, etc.) gets
   // the full branded treatment.
   const [showBrandedWait, setShowBrandedWait] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +72,15 @@ export function NewCardPage() {
     }, 400);
     (async () => {
       try {
-        const res = await apiRequest('POST', '/api/studio/drafts');
+        // Prefill from a reminder deep-link
+        // (/studio/new-card?recipient=…&occasion=…) so "Start Mum's card"
+        // opens a draft that already knows who it's for (audit 2026-07-02).
+        const qp = new URLSearchParams(window.location.search);
+        const recipientName = qp.get('recipient')?.trim() || undefined;
+        const occasion = qp.get('occasion')?.trim() || undefined;
+        const seedBody =
+          recipientName || occasion ? { recipientName, occasion } : undefined;
+        const res = await apiRequest('POST', '/api/studio/drafts', seedBody);
         const { id } = (await res.json()) as { id: number };
         if (!cancelled) setLocation(`/studio/card/${id}/edit`);
       } catch (err: any) {
@@ -82,7 +97,7 @@ export function NewCardPage() {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't start a new card.</p>
-        <p className="text-xs text-stone-500 mb-6">{error}</p>
+        <p className="text-xs text-keeper-meta mb-6">{error}</p>
         <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
       </div>
     );
@@ -98,18 +113,39 @@ export function NewCardPage() {
   }
 
   // Slow-path (Neon cold start etc.): branded "booting the studio" state.
-  // Gentle pulse + copy that says "we haven't stalled."
+  // The whole block fades in (no abrupt pop at the 400ms mark) and the
+  // mark BREATHES on a smooth easeInOut loop — replaced the old
+  // `animate-ping`, whose hard per-cycle reset read as a glitchy blink
+  // (Kevin 2026-07-11). On-brand violet; amber sparkle retired.
   return (
-    <div className="max-w-md mx-auto text-center py-24" data-testid="new-card-branded-wait">
-      <div className="relative inline-flex items-center justify-center mb-5">
-        <span className="absolute inline-flex w-20 h-20 rounded-full bg-brand-muted animate-ping opacity-60" />
-        <span className="relative inline-flex w-16 h-16 rounded-full bg-brand-muted border-2 border-brand items-center justify-center">
-          <Sparkle className="w-7 h-7 text-accent-amber" />
+    <motion.div
+      className="max-w-md mx-auto text-center py-24"
+      data-testid="new-card-branded-wait"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+    >
+      <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center">
+        {/* Soft breathing halo — a calm scale+fade loop, no hard reset. */}
+        {!reduced && (
+          <motion.span
+            className="absolute h-16 w-16 rounded-full bg-brand-light"
+            animate={{ scale: [1, 1.28, 1], opacity: [0.5, 0.12, 0.5] }}
+            transition={{ duration: 2.6, ease: 'easeInOut', repeat: Infinity }}
+          />
+        )}
+        <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-brand/25 bg-brand-muted">
+          <motion.span
+            animate={reduced ? undefined : { scale: [1, 1.1, 1], opacity: [0.85, 1, 0.85] }}
+            transition={{ duration: 2.6, ease: 'easeInOut', repeat: Infinity }}
+          >
+            <Sparkle className="h-7 w-7 text-brand" />
+          </motion.span>
         </span>
       </div>
-      <p className="text-base font-semibold text-ink mb-1">Warming up the Studio…</p>
-      <p className="text-xs text-stone-500">This usually takes a second or two.</p>
-    </div>
+      <p className="mb-1 text-base font-semibold text-keeper-ink">Warming up the Studio…</p>
+      <p className="text-xs text-keeper-meta">This usually takes a second or two.</p>
+    </motion.div>
   );
 }
 
@@ -150,15 +186,31 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     scheduleSave,
     flushSave,
     startGeneration,
+    startInsideGeneration,
+    finalizeCard,
     isStartingGeneration,
     attempts,
     isRegenerating,
+    regenError,
     regenerate,
     selectAttempt,
     failure,
     currentStep,
     totalSteps,
   } = useCardMaker({ cardId });
+
+  // When a card reveals as completed IN THE MAKER, mark its "ready"
+  // notification seen so the 30s cross-app poll doesn't fire a redundant
+  // "your card is ready" toast for the card the user is already looking
+  // at. Fires once per cardId (server-side mark is idempotent anyway).
+  const markCardSeen = useMarkCardSeen();
+  const seenFiredRef = useRef(false);
+  useEffect(() => {
+    if (status === 'completed' && !seenFiredRef.current) {
+      seenFiredRef.current = true;
+      markCardSeen(cardId);
+    }
+  }, [status, cardId, markCardSeen]);
 
   // Hooks must run every render — keep them above the isLoading /
   // loadError early returns. stateRef backs the delayed re-check in
@@ -234,7 +286,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 
   // Chip click from the INITIAL-gen failure panel → open dialog,
   // initial mode.
-  const handleOpenFixDialog = (editor: 'scene' | 'photo' | 'style') => {
+  const handleOpenFixDialog = (editor: 'scene' | 'photo') => {
     setFixDialogEditor(editor);
     setFixDialogContext({ mode: 'initial' });
     setFixDialogOpen(true);
@@ -243,7 +295,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // Chip click from a REGEN failure panel → open dialog, regen mode,
   // remember which side failed so the retry fires the right regen.
   const handleOpenFixDialogRegen = (
-    editor: 'scene' | 'photo' | 'style',
+    editor: 'scene' | 'photo',
     side: CardSide,
   ) => {
     setFixDialogEditor(editor);
@@ -270,6 +322,27 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return acc;
   }, {} as Record<StepId, number>);
 
+  // ── Focused edit overlay (Kevin 2026-07-08) ────────────────────────
+  // Review's Edit links used to setStep(n) — which PERSISTS the step,
+  // collapsing "furthest reached" and forcing the user to Next their
+  // way back through every step. Now an edit from Review opens the
+  // target step as an OVERLAY: the draft stays parked on Review, the
+  // user changes the one thing, and "Done — back to review" returns
+  // in a single tap. Local state only — a refresh lands back on
+  // Review, which is exactly right.
+  const [editingStep, setEditingStep] = useState<number | null>(null);
+  const jumpToStepForEdit = (idx: number) => {
+    if (currentStep === stepIndexById.review && idx !== stepIndexById.review) {
+      setEditingStep(idx);
+    } else {
+      setStep(idx);
+    }
+  };
+  const finishEditing = async () => {
+    await flushSave();
+    setEditingStep(null);
+  };
+
   // The saving indicator only renders if a save has been in flight long
   // enough to be worth signalling — fast saves stay invisible. Below
   // ~600ms we'd just flash "Saving…" then "Saved" for a beat, which
@@ -288,6 +361,32 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return () => window.clearTimeout(t);
   }, [isSaving]);
 
+
+  // Photo rows for the photo-step gate. Shares the react-query cache
+  // with PhotoStep's polled query, so this adds no extra fetching.
+  //
+  // HOOKS ONLY here — this block MUST stay above the isLoading/loadError
+  // early returns. The first cut sat below them; on the isLoading render
+  // the hooks never ran, on the next render they did, and React threw
+  // "Rendered more hooks than during the previous render" and
+  // error-boundaried the whole card maker.
+  const { data: photoRows } = useQuery<
+    Array<{ id: number; analyzedAt: unknown; createdAt: unknown; likeness?: any }>
+  >({ queryKey: ['/api/user/photos'] });
+
+  // Fail-open backstop for the analysis gate: if a stuck analysis stops
+  // the polled data changing, nothing re-renders at the 30s boundary —
+  // force one tick just past it. Armed from the same raw inputs the gate
+  // reads (not canAdvance, which is derived after the early returns).
+  const [, forceTick] = useReducer((x: number) => x + 1, 0);
+  const photoIdCount = state.photos?.photoIds?.length ?? 0;
+  useEffect(() => {
+    if (currentStep === 1 && photoIdCount > 0) {
+      const t = setTimeout(forceTick, 31_000);
+      return () => clearTimeout(t);
+    }
+  }, [currentStep, photoIdCount]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -300,13 +399,16 @@ function CardMakerInner({ cardId }: { cardId: number }) {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't load this card.</p>
-        <p className="text-xs text-stone-500 mb-6">{loadError}</p>
+        <p className="text-xs text-keeper-meta mb-6">{loadError}</p>
         <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
       </div>
     );
   }
 
-  const currentStepId = CARD_MAKER_STEPS[currentStep]?.id;
+  // While the edit overlay is open, the PANEL shows the overlay step;
+  // the draft's persisted step stays parked on Review.
+  const displayStep = editingStep ?? currentStep;
+  const currentStepId = CARD_MAKER_STEPS[displayStep]?.id;
   // Conversational headline per step — name-woven where possible. The
   // stepper below keeps short-noun labels for scannable navigation;
   // the h1 carries the voice.
@@ -314,13 +416,36 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   const isFirst = currentStep === 0;
   const isLast = currentStep === totalSteps - 1;
 
+  // ── Inside step skipped in the linear walk (2026-07-07) ────────────
+  // The inside message is now written AFTER the front reveal (the
+  // InsideComposeStage in review-step.tsx), so Next from Front jumps
+  // straight to Review and Back from Review returns to Front. The
+  // InsideStep panel + its index stay fully functional for direct
+  // jumps (the Buy dialog's "add a message" recovery path) —
+  // deliberately NOT re-indexing CARD_MAKER_STEPS (two prod bugs
+  // last time).
+  const handleNext = () => {
+    if (currentStep === stepIndexById.front) {
+      setStep(stepIndexById.review);
+    } else {
+      goNext();
+    }
+  };
+  const handleBack = () => {
+    if (currentStep === stepIndexById.review) {
+      setStep(stepIndexById.front);
+    } else {
+      goBack();
+    }
+  };
+
   // "Furthest reached" = the max of currentStep and whatever was stored
   // on the draft. Lets the user click back to any earlier step but not
   // skip forward past where they've been.
   const furthestStep = Math.max(currentStep, state.step ?? 0);
 
   // Gate the Next button on the current step being complete.
-  const canAdvance = isStepReady(currentStep, state);
+  const canAdvance = isStepReady(currentStep, state, photoRows);
 
   // Auto-advance on steps that have a clear "done" signal (Recipient
   // picks + name, Style pick/custom confirm). The trigger fires from
@@ -349,9 +474,20 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   // stay in sync. Failed is included because its "That one didn't land"
   // screen is its own full-page visual — stacking the step h1 above it
   // is just two competing headlines.
+  // Gate on the Review step by ID, not a hardcoded index — the literal
+  // `=== 5` silently broke once already when the Style step was removed
+  // (isRevealMode stuck false, so the h1 / stepper / panel frame stopped
+  // hiding during the reveal; fixed 2026-05-19). stepIndexById.review
+  // tracks the step list automatically.
   const isRevealMode =
-    currentStep === 6 &&
+    currentStep === stepIndexById.review &&
+    editingStep === null &&
     (status === 'generating' ||
+      status === 'generating-front' ||
+      status === 'front-ready' ||
+      status === 'generating-inside' ||
+      status === 'inside-ready' ||
+      status === 'inside-failed' ||
       status === 'completed' ||
       status === 'failed' ||
       isStartingGeneration);
@@ -362,7 +498,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
   return (
     <div>
       {/* ── Top bar: optional Saving indicator + Close ─────────── */}
-      <div className="flex items-center justify-end gap-3 mb-3 text-xs text-stone-500">
+      <div className="flex items-center justify-end gap-3 mb-3 text-xs text-keeper-meta">
         {!isRevealMode && showSaving && (
           <span className="flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -372,7 +508,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         <button
           type="button"
           onClick={() => setLocation('/studio')}
-          className="text-stone-400 hover:text-stone-700 underline underline-offset-2"
+          className="text-keeper-meta hover:text-keeper-body underline underline-offset-2"
           data-testid="link-start-over"
         >
           Close
@@ -382,13 +518,41 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       {/* ── Stepper (global nav) — hidden during the reveal so the
           user isn't tempted to mid-render-rewind, and so nothing
           competes with the card itself. */}
-      {!isRevealMode && (
+      {!isRevealMode && editingStep === null && (
         <div className="mb-6 sm:mb-8">
           <Stepper
             currentStep={currentStep}
             furthestStep={furthestStep}
             onStepClick={setStep}
           />
+        </div>
+      )}
+      {/* Edit-overlay context banner — makes it unmistakable that this
+          is a focused edit of ONE thing (e.g. the front text), not the
+          normal linear flow, and offers the quick way back (which
+          saves). The primary "Save & back to review" lives in the nav
+          below. (Kevin 2026-07-09: signpost the edit better, inc. CTA.) */}
+      {editingStep !== null && (
+        <div className="mb-6 sm:mb-8 flex items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand-muted/40 px-4 py-3">
+          <span className="flex min-w-0 items-center gap-2 text-sm text-keeper-ink">
+            <Pencil className="w-4 h-4 shrink-0 text-brand" strokeWidth={1.75} />
+            <span className="truncate">
+              <span className="font-semibold">Editing</span>
+              <span className="text-keeper-meta">
+                {' · '}
+                {CARD_MAKER_STEPS[editingStep]?.label ?? 'this step'}
+              </span>
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => void finishEditing()}
+            className="inline-flex shrink-0 items-center gap-1 text-xs text-keeper-meta hover:text-keeper-ink transition-colors"
+            data-testid="btn-edit-overlay-breadcrumb"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Review
+          </button>
         </div>
       )}
 
@@ -399,7 +563,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         className={
           isRevealMode
             ? 'min-h-[380px]'
-            : 'bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 min-h-[380px]'
+            : 'bg-white border border-keeper-hair rounded-2xl p-6 sm:p-10 min-h-[380px]'
         }
       >
         {/* Fade-up transition between steps. Outer panel stays put so
@@ -409,7 +573,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
             swap (0 duration, no transform). */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={currentStep}
+            key={displayStep}
             initial={
               prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
             }
@@ -427,7 +591,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 (Review step, Generate pressed) — the 3D card is the
                 subject, we don't want text above it. */}
             {!isRevealMode && (
-              <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-semibold text-stone-900 mb-5 sm:mb-6">
+              <h1 className="max-w-2xl mx-auto text-xl sm:text-2xl font-display font-bold tracking-[-0.015em] text-keeper-ink mb-5 sm:mb-6">
                 {stepHeadline}
               </h1>
             )}
@@ -437,26 +601,29 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 them" moment happens before the blank scene textarea. Front text
                 (index 4) was added 2026-04-19 so the user sees + can edit the
                 headline that's always been rendered on the card front. */}
-            {currentStep === 0 && (
+            {displayStep === 0 && (
               <RecipientStep
                 state={state}
                 onChange={update}
                 onAdvance={() => handleAutoAdvance(0)}
               />
             )}
-            {currentStep === 1 && <PhotoStep state={state} onChange={update} />}
-            {currentStep === 2 && (
-              <SceneStep state={state} onChange={update} cardId={cardId} />
-            )}
-            {currentStep === 3 && (
-              <StyleStep
+            {displayStep === 1 && (
+              <PhotoStep
                 state={state}
                 onChange={update}
-                onAdvance={() => handleAutoAdvance(3)}
+                editIntent={editingStep !== null}
               />
             )}
-            {currentStep === 4 && <FrontStep state={state} onChange={update} />}
-            {currentStep === 5 && (
+            {displayStep === 2 && (
+              <SceneStep state={state} onChange={update} cardId={cardId} />
+            )}
+            {/* Step 3 is FRONT TEXT in V1 (Style step removed — parked for
+                Celebrait Premium; see CARD_MAKER_STEPS comment in
+                shared/models/card-draft.ts). All step indices below
+                shifted down by one accordingly. */}
+            {displayStep === 3 && <FrontStep state={state} onChange={update} />}
+            {displayStep === 4 && (
               <InsideStep
                 cardId={cardId}
                 state={state}
@@ -465,13 +632,15 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 flushSave={flushSave}
               />
             )}
-            {currentStep === 6 && (
+            {displayStep === 5 && (
               <ReviewStep
                 cardId={cardId}
                 state={state}
                 status={status}
                 stepIndexById={stepIndexById}
-                onJumpToStep={setStep}
+                scheduleSave={scheduleSave}
+                flushSave={flushSave}
+                onJumpToStep={jumpToStepForEdit}
                 onJumpToStepFromFailure={handleOpenFixDialog}
                 onJumpToStepFromRegenFailure={handleOpenFixDialogRegen}
                 onChange={update}
@@ -510,8 +679,11 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                 generatedInsideUrl={insideImageUrl}
                 attempts={attempts}
                 isRegenerating={isRegenerating}
+                regenError={regenError}
                 onRegenerate={regenerate}
                 onSelectAttempt={selectAttempt}
+                onStartInsideGeneration={startInsideGeneration}
+                onFinalize={finalizeCard}
                 failure={failure}
               />
             )}
@@ -525,22 +697,38 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           to do with Back. Hide the whole nav on the Review step
           except when the user is still on the review summary and
           might want to go back to the Inside step. */}
-      {!isLast && (
+      {/* Edit-overlay nav: one action, back to Review. Gated on the
+          step being complete so a half-cleared field can't return to a
+          Review that would then fail generation. */}
+      {editingStep !== null && (
+        <div className="flex items-center justify-end mt-6">
+          <Button
+            onClick={() => void finishEditing()}
+            disabled={!isStepReady(editingStep, state)}
+            className="bg-go hover:bg-go-hover text-go-foreground disabled:opacity-50"
+            data-testid="btn-edit-overlay-done"
+          >
+            Save &amp; back to review
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
+      {editingStep === null && !isLast && (
         <div className="flex items-center justify-between mt-6">
           <Button
             variant="ghost"
-            onClick={goBack}
+            onClick={handleBack}
             disabled={isFirst}
-            className="text-stone-600"
+            className="text-keeper-body"
             data-testid="btn-card-maker-back"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
           <Button
-            onClick={goNext}
+            onClick={handleNext}
             disabled={!canAdvance}
-            className="bg-brand hover:bg-brand-dark text-brand-foreground disabled:opacity-50"
+            className="bg-go hover:bg-go-hover text-go-foreground disabled:opacity-50"
             data-testid="btn-card-maker-next"
           >
             Next
@@ -548,12 +736,12 @@ function CardMakerInner({ cardId }: { cardId: number }) {
           </Button>
         </div>
       )}
-      {isLast && (status === null || status === 'draft') && (
+      {editingStep === null && isLast && (status === null || status === 'draft') && (
         <div className="flex items-center justify-start mt-6">
           <Button
             variant="ghost"
-            onClick={goBack}
-            className="text-stone-600"
+            onClick={handleBack}
+            className="text-keeper-body"
             data-testid="btn-card-maker-back"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
@@ -589,15 +777,18 @@ function CardMakerInner({ cardId }: { cardId: number }) {
 // Per-step readiness gate. Steps that haven't been built yet default
 // to "ready" (true) so the Next button works through the whole flow;
 // as each step arrives it gains its own isXStepReady check here.
-// Step indexes follow CARD_MAKER_STEPS:
-//   0 recipient, 1 photo, 2 scene, 3 style, 4 front, 5 inside, 6 review
-function isStepReady(stepIndex: number, state: CardDraftState): boolean {
+// Step indexes follow CARD_MAKER_STEPS (V1 — Style step removed):
+//   0 recipient, 1 photo, 2 scene, 3 front, 4 inside, 5 review
+function isStepReady(
+  stepIndex: number,
+  state: CardDraftState,
+  photoRows?: Array<{ id: number; analyzedAt: unknown; createdAt: unknown; likeness?: any }>,
+): boolean {
   if (stepIndex === 0) return isRecipientStepReady(state);
-  if (stepIndex === 1) return isPhotoStepReady(state);
+  if (stepIndex === 1) return isPhotoStepReady(state, photoRows);
   if (stepIndex === 2) return isSceneStepReady(state);
-  if (stepIndex === 3) return isStyleStepReady(state);
-  if (stepIndex === 4) return isFrontStepReady(state);
-  if (stepIndex === 5) return isInsideStepReady(state);
+  if (stepIndex === 3) return isFrontStepReady(state);
+  if (stepIndex === 4) return isInsideStepReady(state);
   return true;
 }
 
@@ -624,14 +815,21 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
     case 'photo':
       return 'Upload Photo(s)';
     case 'scene':
-      return `Set the scene for the front of ${ownedCard}`;
-    case 'style':
-      return `Set the style for the front of ${ownedCard}`;
+      // Pick-first since 2026-08-13: three scenes are waiting when the
+      // step opens, so "Describe…" would misname the job.
+      return `Let's set the scene for ${ownedCard}`;
     case 'front':
       return `What should it say on the front of ${ownedCard}?`;
     case 'inside':
       return `What should it say inside ${ownedCard}?`;
     case 'review':
+      // Reroll (Start-again clone): NO hardcoded number — the take
+      // number + the whole family live in the Review body's TakesStrip
+      // (it has the family query; this h1 only has `state`). The old
+      // "take two" was wrong from take 3 onward (Kevin 2026-07-09).
+      if (state.rerollOfCardId) {
+        return name ? `${name}'s card — another take` : 'Another take';
+      }
       return name
         ? `${name}'s card — take one last look`
         : 'Take one last look';

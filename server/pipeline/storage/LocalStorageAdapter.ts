@@ -14,7 +14,10 @@ import {
   getImageUrl,
   getStoredImage,
   storePngWithSharp,
+  publicImageUrl,
+  cardImageBaseName,
 } from '../../image-storage';
+import { isR2Enabled, r2Get } from '../../r2-storage';
 
 /**
  * Save a generated image to the canonical filename. Returns the
@@ -24,11 +27,12 @@ import {
 export async function savePngFiles(
   imageUrl: string,
   cardId: number,
-  prefix: 'front' | 'inside'
+  prefix: 'front' | 'inside',
+  imageKey?: string | null,
 ): Promise<string> {
   try {
-    await storeImageFromBase64(imageUrl, cardId, prefix);
-    return getImageUrl(cardId, prefix);
+    await storeImageFromBase64(imageUrl, cardId, prefix, imageKey);
+    return getImageUrl(cardId, prefix, imageKey);
   } catch (err) {
     console.error(`[BG_GEN] PNG save failed for ${prefix}, using base64 fallback:`, err);
     return imageUrl;
@@ -51,12 +55,17 @@ export function attemptDisplayFilename(
   cardId: number,
   side: 'front' | 'inside',
   attemptId: number,
+  imageKey?: string | null,
 ): string {
-  return `card_${cardId}_${side}_a${attemptId}.png`;
+  return `${cardImageBaseName(cardId, imageKey)}_${side}_a${attemptId}.png`;
 }
 
-function canonicalDisplayFilename(cardId: number, side: 'front' | 'inside'): string {
-  return `card_${cardId}_${side}.png`;
+function canonicalDisplayFilename(
+  cardId: number,
+  side: 'front' | 'inside',
+  imageKey?: string | null,
+): string {
+  return `${cardImageBaseName(cardId, imageKey)}_${side}.png`;
 }
 
 /**
@@ -73,9 +82,10 @@ export async function savePngFilesForAttempt(
   cardId: number,
   side: 'front' | 'inside',
   attemptId: number,
+  imageKey?: string | null,
 ): Promise<{ url: string; attemptFilename: string }> {
-  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const canonical = canonicalDisplayFilename(cardId, side);
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId, imageKey);
+  const canonical = canonicalDisplayFilename(cardId, side, imageKey);
 
   try {
     // Per-attempt files are the source of truth (they survive
@@ -86,7 +96,7 @@ export async function savePngFilesForAttempt(
       storeImageToCustomFilename(imageUrl, attemptFilename),
       storeImageToCustomFilename(imageUrl, canonical),
     ]);
-    return { url: `/images/${attemptFilename}`, attemptFilename };
+    return { url: publicImageUrl(attemptFilename), attemptFilename };
   } catch (err) {
     console.error(
       `[BG_GEN] Per-attempt PNG save failed for ${side} a${attemptId}, falling back to base64:`,
@@ -105,9 +115,10 @@ export async function promoteAttemptToCanonical(
   cardId: number,
   side: 'front' | 'inside',
   attemptId: number,
+  imageKey?: string | null,
 ): Promise<boolean> {
-  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const canonical = canonicalDisplayFilename(cardId, side);
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId, imageKey);
+  const canonical = canonicalDisplayFilename(cardId, side, imageKey);
   return copyStoredFile(attemptFilename, canonical);
 }
 
@@ -123,9 +134,10 @@ export async function snapshotCanonicalToAttempt(
   cardId: number,
   side: 'front' | 'inside',
   attemptId: number,
+  imageKey?: string | null,
 ): Promise<string | null> {
-  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId);
-  const canonical = canonicalDisplayFilename(cardId, side);
+  const attemptFilename = attemptDisplayFilename(cardId, side, attemptId, imageKey);
+  const canonical = canonicalDisplayFilename(cardId, side, imageKey);
   const ok = await copyStoredFile(canonical, attemptFilename);
   return ok ? attemptFilename : null;
 }
@@ -136,6 +148,20 @@ export async function snapshotCanonicalToAttempt(
  * Otherwise returns the input unchanged (already a data URL).
  */
 export async function loadStoredImageAsBase64(storedUrl: string): Promise<string> {
+  // Already a data URL — nothing to load.
+  if (storedUrl.startsWith('data:')) return storedUrl;
+
+  if (isR2Enabled()) {
+    // Resolve to the object key. Callers pass either a bare key/filename,
+    // a legacy `/images/<key>` path, or the R2 public URL itself.
+    let key = storedUrl;
+    if (key.startsWith('/images/')) key = key.slice('/images/'.length);
+    else if (/^https?:/i.test(key)) key = key.split('/').pop() ?? key;
+    const buf = await r2Get(key);
+    if (!buf) throw new Error(`R2 image not found: ${key}`);
+    return `data:image/png;base64,${buf.toString('base64')}`;
+  }
+
   if (storedUrl.startsWith('/images/')) {
     const fs = await import('fs');
     const path = await import('path');
@@ -150,29 +176,38 @@ export async function loadStoredImageAsBase64(storedUrl: string): Promise<string
  * Generate 3000×3000 Lanczos3 print-resolution upscales of stored card images.
  * Non-fatal: logs errors but does not throw, so main generation always succeeds.
  */
-export async function generatePrintResolutionFiles(cardId: number): Promise<void> {
+export async function generatePrintResolutionFiles(cardId: number, imageKey?: string | null): Promise<void> {
+  // Print-resolution upscaling (sharp → 3000×3000) is memory-heavy and can
+  // OOM a small instance (Render free = 512MB), crashing the whole process
+  // mid-request → a 502 on whatever triggered it (select-attempt, regen,
+  // finalize). It's only needed for real print FULFILMENT, so disable it
+  // where that never happens (the test server) via DISABLE_PRINT_RES=1.
+  if (process.env.DISABLE_PRINT_RES === '1') {
+    console.log(`[STORAGE] print-res skipped for card ${cardId} (DISABLE_PRINT_RES=1)`);
+    return;
+  }
   try {
     const sharp = (await import('sharp')).default;
 
-    const frontBuffer = await getStoredImage(cardId, 'front');
+    const frontBuffer = await getStoredImage(cardId, 'front', imageKey);
     if (frontBuffer) {
       const frontPrintBuffer = await sharp(frontBuffer)
         .resize(3000, 3000, { kernel: sharp.kernel.lanczos3, fit: 'inside', withoutEnlargement: false })
         .png({ compressionLevel: 6 })
         .toBuffer();
       const frontPrintBase64 = `data:image/png;base64,${frontPrintBuffer.toString('base64')}`;
-      await storePngWithSharp(frontPrintBase64, cardId, 'front_print');
+      await storePngWithSharp(frontPrintBase64, cardId, 'front_print', imageKey);
       console.log(`[BG_GEN] Print-resolution front image saved for card ${cardId} (${frontPrintBuffer.length} bytes)`);
     }
 
-    const insideBuffer = await getStoredImage(cardId, 'inside');
+    const insideBuffer = await getStoredImage(cardId, 'inside', imageKey);
     if (insideBuffer) {
       const insidePrintBuffer = await sharp(insideBuffer)
         .resize(3000, 3000, { kernel: sharp.kernel.lanczos3, fit: 'inside', withoutEnlargement: false })
         .png({ compressionLevel: 6 })
         .toBuffer();
       const insidePrintBase64 = `data:image/png;base64,${insidePrintBuffer.toString('base64')}`;
-      await storePngWithSharp(insidePrintBase64, cardId, 'inside_print');
+      await storePngWithSharp(insidePrintBase64, cardId, 'inside_print', imageKey);
       console.log(`[BG_GEN] Print-resolution inside image saved for card ${cardId} (${insidePrintBuffer.length} bytes)`);
     }
   } catch (printErr: any) {

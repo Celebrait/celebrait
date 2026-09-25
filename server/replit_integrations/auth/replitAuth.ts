@@ -22,7 +22,12 @@ import connectPg from "connect-pg-simple";
 // ─── Session middleware ──────────────────────────────────────────────────────
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  // 30 days + rolling (below): greeting cards are an OCCASIONAL buy, so a
+  // 1-week fixed window meant returning users re-OTP'd constantly. Rolling
+  // extends the window on every visit, so anyone active within 30 days
+  // stays signed in and only genuinely-lapsed users re-auth (Kevin
+  // 2026-07-09). Passwordless stays low-friction for return visits.
+  const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   const isProd = process.env.NODE_ENV === "production";
 
   // Session store strategy:
@@ -56,11 +61,22 @@ export function getSession() {
   // production environment") — that's the intended signal in dev and
   // would be a red flag if it ever shows up in prod logs.
 
+  // Never let the repo-published dev fallback sign production cookies —
+  // a missing/typo'd SESSION_SECRET on Render must fail the boot, not
+  // silently downgrade session security (audit 2026-07-27; the central
+  // launch-guard also checks this — this throw is the local backstop).
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
   return session({
     secret: process.env.SESSION_SECRET || "celebrait-dev-session-secret",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    // Re-issue the cookie (reset maxAge) on each response so an active
+    // user's 30-day window keeps sliding forward — they stay signed in.
+    rolling: true,
     cookie: {
       httpOnly: true,
       // Secure cookies require HTTPS — fine in prod, breaks on localhost.

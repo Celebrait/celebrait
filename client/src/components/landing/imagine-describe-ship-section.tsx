@@ -1,7 +1,8 @@
 // client/src/components/landing/imagine-describe-ship-section.tsx
 //
-// "Imagine it. Describe it. Send it." — autoplay demo of the
-// Studio's brainstorm chat, ending on a 3D card reveal.
+// "Imagine it. Describe it. Send it." — autoplay demo of the Studio's
+// brainstorm chat. CHAT ONLY: the section shows the conversation and
+// nothing else.
 //
 // Hard clone of the real drawer UI from
 // `client/src/components/studio/brainstorm-chat-drawer.tsx`:
@@ -12,43 +13,33 @@
 //   • Typing indicator (3 bouncing dots in a bubble)
 //   • Disabled input bar at the bottom mirroring the real one
 //
-// History (2026-05-06):
-//   1. Original: autoplay timer-driven loop.
-//   2. Pivoted to scroll-driven (sticky inner, scrubbed by scroll
-//      progress). Got into knots over scroll-jacking, sticky
-//      release, section collapse, gap-above-card.
-//   3. Reverted to autoplay (Kevin call: "this scroll to animate
-//      is more effort than its worth, should we revert back to
-//      the gif only? And have the 3d card viewer mocked on the
-//      screen as the reveal?"). Section is now normal flow,
-//      intersection-observer triggers the timeline once, chat
-//      plays through to summary, then phone fades out and the
-//      3D card fades in. Card stays at rest forever after.
+// History:
+//   1. Autoplay timer loop → 2. scroll-driven (scroll-jacking knots) →
+//   3. back to autoplay, chat playing through to a summary, then a
+//      phone-fade into a 3D card reveal with its own CTA.
+//   4. 2026-07-16 (Kevin): the card reveal is GONE. "Just displaying the
+//      chat here quickly, different versions… no need to let the user see
+//      a card." So: no reveal, no choice panel, no Card3DViewer, no CTA —
+//      the phone now cycles through several short conversations on a loop.
+//      The card is the payoff of other sections; this one sells the
+//      *process*, and showing a card here spent that beat twice.
 //
-// Timeline (autoplay, fires once when section enters view):
-//   • Snapshots 0..14 advance on their original `durationMs`
-//     (≈13.7s total — same script as before).
-//   • After snapshot 14's dwell: 'press' (Sounds great pulses)
-//     for 700ms, then 'phone-fade' (700ms), then 'spinner'
-//     (1500ms), then 'card' — final state, holds forever.
-//
-// TODO Kevin: swap brainstormCardFront/Inside imports below
-// to the custom card art he's preparing for this section.
+// The old script was set in Plettenberg Bay — South Africa, from the
+// pre-UK-pivot era. V1 is UK-only, so every scene here is now British.
+// See next_digital_card_strategy / the UK-only founder call 2026-05-27.
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Link } from 'wouter';
+import { useEffect, useRef, useState } from 'react';
 import {
   motion,
   AnimatePresence,
-  cubicBezier,
   useReducedMotion,
+  useInView,
 } from 'framer-motion';
 import {
   Battery,
   Check,
   ChevronLeft,
   Lightbulb,
-  Loader2,
   Pencil,
   RefreshCw,
   Send,
@@ -57,19 +48,6 @@ import {
   Sparkles,
   Wifi,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { GestureHints } from '@/components/gesture-hints';
-
-// TODO Kevin: swap to brainstorm-card-front/inside.png once the
-// custom card art is rendered. Until then, points at the hero
-// card 120 placeholders so the section renders end-to-end.
-import brainstormCardFront from '@/assets/hero-card-front.png';
-import brainstormCardInside from '@/assets/hero-card-inside.png';
-
-const Card3DViewer = lazy(() =>
-  import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),
-);
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -101,157 +79,150 @@ interface ScriptSnapshot {
 
 /* ─── Scripted brainstorm playback ──────────────────────────────── */
 
-// Stable message ids so React keeps stable keys across snapshots (no
-// re-mount, no re-animation of older bubbles). New ids enter the
-// list as the conversation progresses.
-const M = {
-  AI_OPEN: { id: 1, role: 'ai' as const, content: "Hi — where does Mum's birthday scene take place?" },
-  USER_LOCATION: { id: 2, role: 'user' as const, content: 'Plettenberg Bay.' },
-  AI_SPECIFICS: { id: 3, role: 'ai' as const, content: 'Lovely. Which part — beach, cliffs, or somewhere quieter?' },
-  AI_SUGGESTIONS: {
-    id: 4,
-    role: 'ai' as const,
-    content: 'Here are a few Plett-flavoured ideas —',
-    suggestions: [
-      'The cliffs at golden hour',
-      'The lagoon at low tide',
-      'The little café in the village',
-    ],
-  },
-  USER_PICK: { id: 5, role: 'user' as const, content: 'The cliffs at golden hour.' },
-  AI_ACTIVITY: { id: 6, role: 'ai' as const, content: "Got it. What's she doing there?" },
-  USER_ACTIVITY: { id: 7, role: 'user' as const, content: 'Watching the sunset with her labrador.' },
-  AI_CLOTHING: { id: 8, role: 'ai' as const, content: "And what's she wearing?" },
-  AI_SUMMARY: {
-    id: 9,
-    role: 'ai' as const,
-    content:
-      "Got it — here's the scene: Mum at the Plett cliffs at golden hour, watching the sun go down with her labrador beside her.",
-  },
+// A conversation is authored as a flat list of turns; buildScript()
+// expands it into the cumulative snapshots the screen renders (typing
+// beat → message → next). The old hand-authored snapshots restated the
+// whole message list on every frame — ~120 lines for ONE conversation,
+// with every copy edit needing to be made in a dozen places. That's why
+// there was only ever one.
+type Turn =
+  | { role: 'ai'; text: string; suggestions?: string[]; actions?: ActionsKind }
+  | { role: 'user'; text: string };
+
+interface Conversation {
+  id: string;
+  turns: Turn[];
+}
+
+// Pacing. Kevin 2026-07-16: "just displaying the chat here quickly" — so
+// these are tighter than the old ~13.7s single run. Each conversation
+// now plays in ~7s, and there are three of them on a loop.
+const T = {
+  typing: 420, // AI "thinking" beat before each of its lines
+  ai: 900, // dwell on a plain AI line
+  aiIdeas: 1500, // longer — three suggestion chips to read
+  user: 520, // dwell on a user reply
+  summary: 2400, // hold the finished scene before the next conversation
 };
 
-const SCRIPT: ScriptSnapshot[] = [
-  // 1. AI typing the opener
-  { durationMs: 650, messages: [], typing: true },
-  // 2. AI: opening "where" question (initial_scene → no buttons)
-  { durationMs: 1000, messages: [M.AI_OPEN], actions: 'none' },
-  // 3. User replies
-  { durationMs: 500, messages: [M.AI_OPEN, M.USER_LOCATION] },
-  // 4. AI typing
-  { durationMs: 550, messages: [M.AI_OPEN, M.USER_LOCATION], typing: true },
-  // 5. AI: scene_specifics question + [Ideas / Skip]
+/** Expand a conversation into the cumulative snapshots the screen plays.
+ *  `baseId` keeps message ids unique ACROSS conversations: reusing 1,2,3
+ *  would let React key the next conversation's bubbles onto the last
+ *  one's and morph them mid-swap instead of replacing them. */
+function buildScript(turns: Turn[], baseId: number): ScriptSnapshot[] {
+  const snaps: ScriptSnapshot[] = [];
+  const acc: BubbleMsg[] = [];
+  let n = 0;
+  turns.forEach((turn, i) => {
+    const isLast = i === turns.length - 1;
+    if (turn.role === 'ai') {
+      // AI always "thinks" before it speaks.
+      snaps.push({ durationMs: T.typing, messages: [...acc], typing: true });
+      acc.push({
+        id: baseId + ++n,
+        role: 'ai',
+        content: turn.text,
+        ...(turn.suggestions ? { suggestions: turn.suggestions } : {}),
+      });
+      snaps.push({
+        durationMs: isLast ? T.summary : turn.suggestions ? T.aiIdeas : T.ai,
+        messages: [...acc],
+        ...(turn.actions ? { actions: turn.actions } : {}),
+      });
+    } else {
+      acc.push({ id: baseId + ++n, role: 'user', content: turn.text });
+      snaps.push({ durationMs: T.user, messages: [...acc] });
+    }
+  });
+  return snaps;
+}
+
+// Three British scenes (V1 is UK-only). Deliberately short: the point is
+// the RHYTHM of the thing — ask → answer → ideas → pick → done — not the
+// transcript. Each lands a different relationship (dad / mate / nan) and
+// a different corner of the country, so the loop reads as range rather
+// than repetition.
+const CONVERSATIONS: Conversation[] = [
   {
-    durationMs: 1100,
-    messages: [M.AI_OPEN, M.USER_LOCATION, M.AI_SPECIFICS],
-    actions: 'ideas-skip',
-  },
-  // 6. User clicks "Give me ideas" → AI typing
-  {
-    durationMs: 550,
-    messages: [M.AI_OPEN, M.USER_LOCATION, M.AI_SPECIFICS],
-    typing: true,
-    actions: 'ideas-skip',
-  },
-  // 7. AI: 3 suggestions + [More ideas / Skip]
-  {
-    durationMs: 1600,
-    messages: [M.AI_OPEN, M.USER_LOCATION, M.AI_SUGGESTIONS],
-    actions: 'suggestions',
-  },
-  // 8. User picks "The cliffs at golden hour"
-  {
-    durationMs: 550,
-    messages: [M.AI_OPEN, M.USER_LOCATION, M.AI_SUGGESTIONS, M.USER_PICK],
-  },
-  // 9. AI typing
-  {
-    durationMs: 550,
-    messages: [M.AI_OPEN, M.USER_LOCATION, M.AI_SUGGESTIONS, M.USER_PICK],
-    typing: true,
-  },
-  // 10. AI: activity question + [Ideas / Skip]
-  {
-    durationMs: 1000,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
+    id: 'dad-dales',
+    turns: [
+      { role: 'ai', text: "Hi — where does Dad's 60th take place?" },
+      { role: 'user', text: 'The Yorkshire Dales.' },
+      {
+        role: 'ai',
+        text: 'Lovely. A few Dales-flavoured ideas —',
+        suggestions: [
+          'Halfway up Pen-y-ghent',
+          'On a drystone wall at sunrise',
+          'Outside the village pub',
+        ],
+        actions: 'suggestions',
+      },
+      { role: 'user', text: 'Halfway up Pen-y-ghent.' },
+      { role: 'ai', text: "Got it. What's he doing up there?", actions: 'ideas-skip' },
+      { role: 'user', text: 'Raising a flask of tea like a trophy.' },
+      {
+        role: 'ai',
+        text: "Here's the scene: Dad halfway up Pen-y-ghent, flask of tea raised like a trophy, the Dales rolling out behind him.",
+        actions: 'summary',
+      },
     ],
-    actions: 'ideas-skip',
   },
-  // 11. User: types activity reply
   {
-    durationMs: 650,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
-      M.USER_ACTIVITY,
+    id: 'mate-brighton',
+    turns: [
+      { role: 'ai', text: 'Hi — where does this one happen?' },
+      { role: 'user', text: 'Brighton beach.' },
+      {
+        role: 'ai',
+        text: 'Nice. A few Brighton-flavoured ideas —',
+        suggestions: [
+          'Chips on the pebbles',
+          'On the pier at golden hour',
+          'In the sea. In November.',
+        ],
+        actions: 'suggestions',
+      },
+      { role: 'user', text: 'Chips on the pebbles.' },
+      { role: 'ai', text: "Ha. And what's he up to?", actions: 'ideas-skip' },
+      { role: 'user', text: 'Defending them from a seagull. Losing.' },
+      {
+        role: 'ai',
+        text: "Here's the scene: your best mate on Brighton beach, chips held aloft, one seagull mid-swoop. He is losing.",
+        actions: 'summary',
+      },
     ],
   },
-  // 12. AI typing
   {
-    durationMs: 550,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
-      M.USER_ACTIVITY,
+    id: 'nan-blackpool',
+    turns: [
+      { role: 'ai', text: "Hi — where's Nan's 80th set?" },
+      { role: 'user', text: 'Blackpool. Obviously.' },
+      {
+        role: 'ai',
+        text: 'A few Blackpool-flavoured ideas —',
+        suggestions: [
+          'The Tower Ballroom',
+          'Under the illuminations',
+          'Front seat of the tram',
+        ],
+        actions: 'suggestions',
+      },
+      { role: 'user', text: 'The Tower Ballroom.' },
+      { role: 'ai', text: "Perfect. And what's she doing?", actions: 'ideas-skip' },
+      { role: 'user', text: 'Leading the dance. Obviously.' },
+      {
+        role: 'ai',
+        text: "Here's the scene: Nan mid-twirl at the Blackpool Tower Ballroom, leading the dance, the whole floor watching.",
+        actions: 'summary',
+      },
     ],
-    typing: true,
   },
-  // 13. AI: clothing question + [Ideas / Skip]
-  {
-    durationMs: 900,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
-      M.USER_ACTIVITY,
-      M.AI_CLOTHING,
-    ],
-    actions: 'ideas-skip',
-  },
-  // 14. User clicks Skip → AI typing
-  {
-    durationMs: 550,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
-      M.USER_ACTIVITY,
-      M.AI_CLOTHING,
-    ],
-    typing: true,
-  },
-  // 15. AI: summary scene + [Sounds great / Edit / Start over]
-  {
-    durationMs: 3000,
-    messages: [
-      M.AI_OPEN,
-      M.USER_LOCATION,
-      M.AI_SUGGESTIONS,
-      M.USER_PICK,
-      M.AI_ACTIVITY,
-      M.USER_ACTIVITY,
-      M.AI_CLOTHING,
-      M.AI_SUMMARY,
-    ],
-    actions: 'summary',
-  },
-  // 16. Reset frame — empty chat for ~400ms before looping
-  { durationMs: 400, messages: [] },
 ];
+
+const SCRIPTS: ScriptSnapshot[][] = CONVERSATIONS.map((c, i) =>
+  buildScript(c.turns, i * 100),
+);
 
 /* ─── Phone frame ───────────────────────────────────────────────── */
 
@@ -415,21 +386,7 @@ function ActionRow({ kind }: { kind: ActionsKind }) {
 
 /* ─── Brainstorm screen ─────────────────────────────────────────── */
 
-function BrainstormScreen({
-  snapshot,
-  showChoice,
-  onViewChatAgain,
-  onViewCard,
-}: {
-  snapshot: ScriptSnapshot;
-  /** When true, overlay the chat with a centred two-button choice
-   *  panel (Kevin call 2026-05-06: "have a button on the phone in
-   *  the centre on its own which says view chat again or view
-   *  greetings card"). */
-  showChoice?: boolean;
-  onViewChatAgain?: () => void;
-  onViewCard?: () => void;
-}) {
+function BrainstormScreen({ snapshot }: { snapshot: ScriptSnapshot }) {
   const lastAiIndex = (() => {
     for (let i = snapshot.messages.length - 1; i >= 0; i--) {
       if (snapshot.messages[i].role === 'ai') return i;
@@ -474,40 +431,6 @@ function BrainstormScreen({
           </div>
         ))}
         <AnimatePresence>{snapshot.typing && <TypingDots />}</AnimatePresence>
-
-        {/* Choice panel — overlays the chat surface when chat ends.
-            Two centred stacked buttons. Crossfade in/out. */}
-        <AnimatePresence>
-          {showChoice && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 bg-stone-50/95 backdrop-blur-[2px]"
-            >
-              <p className="text-[10px] uppercase tracking-[0.16em] text-ink-soft font-semibold mb-1">
-                What's next?
-              </p>
-              <button
-                type="button"
-                onClick={onViewCard}
-                className="w-full max-w-[200px] inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-cta-foreground bg-cta hover:bg-cta-hover px-3 py-2 rounded-full shadow-sm transition-colors duration-200"
-              >
-                <Sparkles className="w-3 h-3" strokeWidth={2.5} />
-                View greetings card
-              </button>
-              <button
-                type="button"
-                onClick={onViewChatAgain}
-                className="w-full max-w-[200px] inline-flex items-center justify-center gap-1.5 text-[12px] font-medium text-ink-soft bg-white border border-stone-200 hover:border-brand/40 hover:text-ink px-3 py-2 rounded-full transition-colors duration-200"
-              >
-                <RefreshCw className="w-3 h-3" strokeWidth={2} />
-                View chat again
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Disabled input bar (mirrors the real drawer's footer) */}
@@ -527,313 +450,120 @@ function BrainstormScreen({
 
 /* ─── Section ───────────────────────────────────────────────────── */
 
-// Drop the trailing reset/empty frame — scroll-driven doesn't loop,
-// so we just hold on the last (summary) snapshot before the card
-// reveal begins.
-const SCROLL_SCRIPT = SCRIPT.slice(0, -1);
-
-// Premium ease-out curve. Same family as Apple's keynote-style
-// "easeOutQuart" decel — softens every transform so the reveal
-// reads as graceful, not linear.
-const REVEAL_EASE = cubicBezier(0.22, 1, 0.36, 1);
-
-// Three phases: chat → choice → card.
-//
-// Kevin call 2026-05-06: "I think the best way to execute this is
-// to finish the ai chat, then have a button on the phone in the
-// centre on its own which says view chat again or view greetings
-// card — give the user the option otherwise it's way too much
-// going on."
-//
-// 'chat'   — autoplay snapshot timeline. ~13.7s of scripted chat.
-// 'choice' — phone screen swaps to a centred two-button panel:
-//            "View greetings card" (primary) / "View chat again"
-//            (secondary). Sits forever until the user clicks one.
-// 'card'   — phone fades out, 3D card fades in. Final state.
-type RevealPhase = 'chat' | 'choice' | 'card';
-
 export function ImagineDescribeShipSection() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const showAuthedTreatment = !isLoading && isAuthenticated;
   const reduced = useReducedMotion() ?? false;
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Snapshot index for the chat playback. Advances on each
-  // snapshot's `durationMs` while revealPhase==='chat'. Chat
-  // starts immediately on mount — simpler + more reliable than
-  // gating on IntersectionObserver/useInView, which were giving
-  // us trouble (the snapshot timer never started). Section is
-  // below the hero so users will scroll into it naturally; if
-  // they're slow scrollers they'll see whatever state the chat
-  // is in when they arrive.
+  // Playback is gated on the section being on screen. Note this is NOT
+  // `once: true` any more: the old timeline ran once and stopped on a
+  // card, so it only ever needed starting. This one loops, so it also
+  // needs STOPPING — otherwise three conversations keep cycling timers
+  // forever while the viewer is ten sections away. `amount: 0.2` because
+  // the section is tall; demanding more would never trip on a laptop.
+  const inView = useInView(sectionRef, { amount: 0.2 });
+
+  // Which conversation, and how far through it.
+  const [convIdx, setConvIdx] = useState(0);
   const [snapIdx, setSnapIdx] = useState(0);
-  const [revealPhase, setRevealPhase] = useState<RevealPhase>('chat');
 
-  // Card is interactive AFTER reveal — same pattern as the hero
-  // (tap to toggle open/close). Default closed at rest.
-  const [cardManualOpen, setCardManualOpen] = useState(false);
+  const script = SCRIPTS[convIdx];
 
-  // Snapshot timer — advances chat snapshots on their durationMs.
-  // When the last chat snapshot's dwell finishes, transitions
-  // revealPhase → 'choice'. The user then clicks one of the two
-  // panel buttons to either replay the chat or view the card.
+  // Advance the snapshot; at the end of a conversation, roll on to the
+  // next one and start it over. Pauses off-screen and resumes where it
+  // left off.
   useEffect(() => {
-    if (revealPhase !== 'chat') return;
+    if (reduced || !inView) return;
 
-    if (reduced) {
-      // Reduced motion: jump straight to the card.
-      setSnapIdx(SCROLL_SCRIPT.length - 1);
-      setRevealPhase('card');
-      return;
-    }
+    const isLast = snapIdx >= script.length - 1;
+    const dwell = script[snapIdx].durationMs;
 
-    const dwell = SCROLL_SCRIPT[snapIdx].durationMs;
-
-    if (snapIdx < SCROLL_SCRIPT.length - 1) {
-      const t = window.setTimeout(() => setSnapIdx((i) => i + 1), dwell);
-      return () => window.clearTimeout(t);
-    }
-
-    // Last chat snapshot — wait its dwell, then surface the choice
-    // panel. Pre-empt the action row at the bottom of the snapshot
-    // by overlaying the panel on top of the chat surface.
-    const t = window.setTimeout(() => setRevealPhase('choice'), dwell);
+    const t = window.setTimeout(() => {
+      if (isLast) {
+        setConvIdx((c) => (c + 1) % SCRIPTS.length);
+        setSnapIdx(0);
+      } else {
+        setSnapIdx((i) => i + 1);
+      }
+    }, dwell);
     return () => window.clearTimeout(t);
-  }, [snapIdx, revealPhase, reduced]);
+  }, [snapIdx, convIdx, script, reduced, inView]);
 
-  // Choice handlers — wired to the two buttons inside the phone
-  // when revealPhase === 'choice'.
-  const handleViewChatAgain = () => {
-    setSnapIdx(0);
-    setRevealPhase('chat');
-  };
-  const handleViewCard = () => {
-    setRevealPhase('card');
-  };
-
-  // Visual state derived from revealPhase. Pure opacity fades.
-  // Phone stays visible during chat AND choice (the choice panel
-  // overlays the chat surface inside the phone). Card fades in
-  // only when the user explicitly picks "View greetings card".
-  const phoneVisible = revealPhase === 'chat' || revealPhase === 'choice';
-  const cardVisible = revealPhase === 'card';
-  const showChoicePanel = revealPhase === 'choice';
-
-  const snapshot = SCROLL_SCRIPT[snapIdx];
+  // Reduced motion: no typing, no cycling — just show one finished
+  // conversation. There's nothing to miss, so it resolves on mount.
+  const snapshot = reduced ? script[script.length - 1] : script[snapIdx];
 
   return (
     <section
       ref={sectionRef}
-      className="relative bg-surface-card py-16 md:py-20 lg:py-24"
+      className="snap-center relative py-16 md:py-20 lg:py-24"
     >
-      {/* Single inner column — normal flow, no sticky, no fixed
-          height. Headline at top, stage below (phone → card via
-          autoplay). lg:min-h-[85vh] keeps the section feeling
-          substantial on big screens. */}
-      <div className="w-full max-w-7xl mx-auto px-6 md:px-10 lg:min-h-[85vh] flex flex-col flex-1 min-h-0">
-          {/* Headline + subline. Headline pulled in from xl:text-6xl
-              to xl:text-5xl 2026-05-06 to give the phone (which is
-              ~675px tall on lg) more vertical room below it on common
-              laptop heights. */}
-          <div className="text-center max-w-3xl mx-auto shrink-0">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-5xl font-semibold text-ink tracking-tight leading-[1.05] lg:whitespace-nowrap">
-              <span className="block md:inline">Imagine it.</span>{' '}
-              <span className="block md:inline">Describe it.</span>{' '}
-              <span className="block md:inline">Send it.</span>
-            </h2>
-            <p className="mt-5 md:mt-6 text-base md:text-lg text-ink-soft leading-relaxed max-w-[48ch] mx-auto">
-              Let your imagination run free. Or{' '}
-              <span className="relative inline-block font-medium text-ink whitespace-nowrap">
-                brainstorm with AI
-                <motion.span
-                  aria-hidden
-                  className="absolute left-0 right-0 -bottom-0.5 h-[3px] origin-left rounded-full"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, #5c57d4 0%, #7a76e8 35%, #a78bfa 50%, #7a76e8 65%, #5c57d4 100%)',
-                    backgroundSize: '220% 100%',
-                  }}
-                  initial={
-                    reduced
-                      ? { scaleX: 1, backgroundPosition: '0% 0%' }
-                      : { scaleX: 0, backgroundPosition: '0% 0%' }
-                  }
-                  animate={
-                    reduced
-                      ? { scaleX: 1 }
-                      : {
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-10 flex flex-col">
+        {/* Headline + subline */}
+        <div className="text-center max-w-3xl mx-auto shrink-0">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-5xl font-semibold text-ink tracking-tight leading-[1.05] lg:whitespace-nowrap">
+            <span className="block md:inline">Imagine it.</span>{' '}
+            <span className="block md:inline">Describe it.</span>{' '}
+            <span className="block md:inline">Send it.</span>
+          </h2>
+          <p className="mt-5 md:mt-6 text-base md:text-lg text-ink-soft leading-relaxed max-w-[48ch] mx-auto">
+            Let your imagination run free. Or{' '}
+            <span className="relative inline-block font-medium text-ink whitespace-nowrap">
+              brainstorm with AI
+              <motion.span
+                aria-hidden
+                className="absolute left-0 right-0 -bottom-0.5 h-[3px] origin-left rounded-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, #5c57d4 0%, #7a76e8 35%, #a78bfa 50%, #7a76e8 65%, #5c57d4 100%)',
+                  backgroundSize: '220% 100%',
+                }}
+                initial={
+                  reduced
+                    ? { scaleX: 1, backgroundPosition: '0% 0%' }
+                    : { scaleX: 0, backgroundPosition: '0% 0%' }
+                }
+                animate={
+                  reduced
+                    ? { scaleX: 1 }
+                    : inView
+                      ? {
                           scaleX: 1,
                           backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
                         }
-                  }
-                  transition={
-                    reduced
-                      ? undefined
-                      : {
-                          scaleX: { duration: 1, delay: 0.9, ease: 'easeOut' },
-                          backgroundPosition: {
-                            duration: 6,
-                            delay: 2,
-                            repeat: Infinity,
-                            ease: 'linear',
-                          },
-                        }
-                  }
-                />
-              </span>{' '}
-              to craft the perfect scene.
-            </p>
-          </div>
-
-          {/* Stage — phone (during chat) → card+hints+CTA (after
-              autoplay reveal). Both children are absolute inside
-              the stage so they swap in place via opacity. Stage
-              has explicit min-height to fit the phone at every
-              breakpoint (~675px tall on lg) without crushing it. */}
-          <div className="relative flex-1 min-h-[680px] md:min-h-[700px] lg:min-h-[720px] mt-6 md:mt-8 lg:mt-10">
-            {/* PHONE — visible during chat AND choice. The choice
-                panel overlays the chat surface inside the phone
-                screen (rendered by BrainstormScreen). Phone fades
-                out only when revealPhase becomes 'card'.
-                pointer-events-none flips when phone is faded out so
-                its (invisible) hit area doesn't intercept clicks
-                meant for the card. */}
-            <motion.div
-              animate={{ opacity: phoneVisible ? 1 : 0 }}
-              transition={{ duration: 0.6, ease: REVEAL_EASE }}
-              className={`absolute inset-0 flex items-center justify-center ${
-                phoneVisible ? '' : 'pointer-events-none'
-              }`}
-            >
-              <PhoneFrame>
-                <BrainstormScreen
-                  snapshot={snapshot}
-                  showChoice={showChoicePanel}
-                  onViewChatAgain={handleViewChatAgain}
-                  onViewCard={handleViewCard}
-                />
-              </PhoneFrame>
-            </motion.div>
-
-            {/* CARD STACK — fades in when the user clicks "View
-                greetings card". Mirrors the hero's card area
-                exactly: same slot breakpoints, same bleed wrapper,
-                GestureHints below, auth-aware CTA below that.
-
-                `visibility: hidden` (not just `pointer-events-none`)
-                when not visible — visibility cascades to descendants
-                and disables hit-testing entirely, so Card3DViewer's
-                internal hit-zone div (which explicitly sets
-                pointer-events: auto for tap-to-open) cannot
-                intercept clicks on the choice panel below. With
-                visibility-hidden we can keep Card3DViewer mounted
-                AT ALL TIMES — pre-loaded, ready to fade in
-                instantly, no Suspense flash on click (Kevin call
-                2026-05-06: "the transition to the card is not
-                super smooth").
-
-                justify-start + pt: card stack now sits near the
-                top of the stage (close to the headline) instead of
-                vertically centred — matches the hero's headline →
-                card flow (Kevin: "shift up the card with the hints
-                and CTA so it more aligns like the 3d card render
-                does to the hero headline"). */}
-            <motion.div
-              animate={{ opacity: cardVisible ? 1 : 0 }}
-              transition={{ duration: 0.6, ease: REVEAL_EASE }}
-              style={{ visibility: cardVisible ? 'visible' : 'hidden' }}
-              className="absolute inset-0 flex flex-col items-center justify-start pt-2 md:pt-4 lg:pt-6"
-            >
-              {/* Card slot — exact hero breakpoints */}
-              <div className="relative w-full max-w-[340px] md:max-w-[340px] lg:max-w-[350px] lg+:max-w-[380px] xl:max-w-[400px] aspect-square mx-auto overflow-visible">
-                {/* Bleed wrapper — IDENTICAL negative-vw/vh extents
-                    to the hero (Kevin call 2026-05-06: "the reveal
-                    of the card is poor — it's clunky and small").
-                    Earlier this section used top/bottom -10vh which
-                    shrank the canvas dramatically, rendering the
-                    card at roughly half the hero's visible size.
-                    Sticky inner has overflow-hidden so the bleed
-                    can extend visually past the headline / CTA
-                    without any pointer-event conflicts (this wrapper
-                    is pointer-events-none anyway). */}
-                <div
-                  className="absolute top-[-30vh] bottom-[-30vh] left-[-25vw] right-[-25vw] lg+:left-[-35vw] lg+:right-[-35vw] xl:left-[-40vw] xl:right-[-40vw] z-[10] pointer-events-none"
-                  style={{
-                    filter:
-                      'drop-shadow(0 28px 40px rgba(15,23,42,0.12))',
-                  }}
-                >
-                  {/* Card3DViewer is ALWAYS mounted — pre-loaded so
-                      the click-to-card transition is instant + no
-                      Suspense flash. The parent card-stack uses
-                      `visibility: hidden` when not visible, which
-                      cascades and disables hit-testing for ALL
-                      descendants regardless of their pointer-events
-                      setting. So even though Card3DViewer's hit zone
-                      sets `pointer-events: auto` internally, it
-                      cannot intercept clicks on the choice panel
-                      below until the card is genuinely revealed. */}
-                  <Suspense fallback={<CardLoader />}>
-                    <Card3DViewer
-                      frontImageUrl={brainstormCardFront}
-                      insideImageUrl={brainstormCardInside}
-                      backCredit="Made with Celebrait"
-                      framingMargin={2.4}
-                      minDistance={2.2}
-                      enableZoom={false}
-                      enableRotate
-                      closedAngle={0}
-                      open={cardManualOpen}
-                      onOpenChange={setCardManualOpen}
-                      hitZoneInsetPercent={30}
-                      openHitZoneInsetPercent={10}
-                      className="w-full h-full"
-                    />
-                  </Suspense>
-                </div>
-              </div>
-
-              {/* Gesture hints — spacing copied from the hero
-                  (Kevin call 2026-05-06: "review the spacing between
-                  the hints and the CTA — copy the hero as that's
-                  spot on"). mt-12/14, min-h-[64px] to match. */}
-              <div className="relative mt-12 md:mt-14 z-[20] min-h-[64px]">
-                <GestureHints open={cardManualOpen} hideZoomHint />
-              </div>
-
-              {/* CTA stack — spacing copied from hero too: mt-2 md:mt-6,
-                  gap-4 between button + caption, -mt-2 on caption. */}
-              <div className="relative z-[20] mt-2 md:mt-6 flex flex-col items-center gap-4">
-                {showAuthedTreatment ? (
-                  <Link href="/studio">
-                    <Button className="bg-brand hover:bg-brand-dark text-brand-foreground h-12 px-8 text-base font-medium">
-                      Open my studio
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link href="/login?redirect=/studio/new-card">
-                    <Button className="bg-brand hover:bg-brand-dark text-brand-foreground h-12 px-8 text-base font-medium">
-                      Make my first card
-                    </Button>
-                  </Link>
-                )}
-                <p className="-mt-2 text-[13px] text-ink-soft">
-                  Free to start. No card needed.
-                </p>
-              </div>
-            </motion.div>
-          </div>
+                      : // Hold un-drawn until the section scrolls into
+                        // view, or it draws + sweeps before anyone's there.
+                        { scaleX: 0 }
+                }
+                transition={
+                  reduced
+                    ? undefined
+                    : {
+                        scaleX: { duration: 1, delay: 0.9, ease: 'easeOut' },
+                        backgroundPosition: {
+                          duration: 6,
+                          delay: 2,
+                          repeat: Infinity,
+                          ease: 'linear',
+                        },
+                      }
+                }
+              />
+            </span>{' '}
+            to craft the perfect scene.
+          </p>
         </div>
+
+        {/* Stage — just the phone now. The stage used to be a swap
+            surface (phone fading out, 3D card fading in), which is why it
+            carried an absolute-positioned pair and a min-height big
+            enough for both. With the card gone it's a single centred
+            child in normal flow. */}
+        <div className="mt-6 md:mt-8 lg:mt-10 flex justify-center">
+          <PhoneFrame>
+            <BrainstormScreen snapshot={snapshot} />
+          </PhoneFrame>
+        </div>
+      </div>
     </section>
-  );
-}
-
-/* ─── Card loader (Suspense fallback) ────────────────────────────── */
-
-function CardLoader() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-brand animate-spin" strokeWidth={1.75} />
-    </div>
   );
 }

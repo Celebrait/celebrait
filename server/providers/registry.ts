@@ -21,6 +21,19 @@ const providers = new Map<string, ImageProvider>();
 // into Studio production until Kevin updates prompt_active.
 providers.set(OPENAI_VARIANTS.v1_5.id, new OpenAIImageProvider(OPENAI_VARIANTS.v1_5));
 providers.set(OPENAI_VARIANTS.v2.id, new OpenAIImageProvider(OPENAI_VARIANTS.v2));
+// gpt-image-2 via the Responses API GENERATE path — same model, but a
+// reference photo is passed as context to compose a NEW image rather than
+// edit the source. Lab-only A/B lever to test whether generate-mode frees
+// the expression/pose that edit-mode's forced high-fidelity copies (Kevin
+// 2026-07-17). Select "openai-2-gen" in the Prompt Lab to compare vs "openai-2".
+providers.set(OPENAI_VARIANTS.v2_gen.id, new OpenAIImageProvider(OPENAI_VARIANTS.v2_gen));
+// gpt-image-2.5 (2026-09-08): Flare (OpenAI's new default, ~half the
+// latency of gpt-image-2) and Sunburst (premium; keeps reference-photo
+// subjects intact — the cameo's failure mode). Same endpoints and rate
+// card as gpt-image-2; cost is priced per call from `usage`. Lab-only
+// until proven against gpt-image-2 in the Prompt Lab / occasion builder.
+providers.set(OPENAI_VARIANTS.v2_5_flare.id, new OpenAIImageProvider(OPENAI_VARIANTS.v2_5_flare));
+providers.set(OPENAI_VARIANTS.v2_5_sunburst.id, new OpenAIImageProvider(OPENAI_VARIANTS.v2_5_sunburst));
 // Three Gemini model variants exposed side-by-side for A/B testing in
 // the Prompt Lab. The default `gemini` ID maps to Pro for backwards
 // compatibility with existing prompt_active rows and test-refine.
