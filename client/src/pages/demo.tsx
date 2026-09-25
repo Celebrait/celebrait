@@ -1564,6 +1564,7 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
   const [painted, setPainted] = useState(false);
   const [open, setOpen] = useState(false);
   const [showCard, setShowCard] = useState(false);
+  const [showLine, setShowLine] = useState(true);
   const [ready, setReady] = useState(false);
   const parsed = useMemo(() => (line ? parseHook(line, []) : null), [line]);
 
@@ -1574,8 +1575,14 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
   useEffect(() => { if (!parsed) setShowCard(true); }, [parsed]);
   useEffect(() => {
     if (!painted) return;
+    // The line has said its piece by the time the card is up, and two
+    // things competing under one card is a weaker frame than the card
+    // alone (Aidan 2026-09-25: "no need to show the text once card is
+    // revealed"). It goes as the card settles; the button takes its
+    // place.
+    const out = window.setTimeout(() => setShowLine(false), 260);
     const t = window.setTimeout(() => setReady(true), 420); // "just after" the card
-    return () => window.clearTimeout(t);
+    return () => { window.clearTimeout(out); window.clearTimeout(t); };
   }, [painted]);
 
   return (
@@ -1606,11 +1613,16 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
         )}
       </AnimatePresence>
 
-      {parsed && (
-        <motion.div layout transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="shrink-0">
-          <OpenerLine line={parsed} onDone={() => setShowCard(true)} />
-        </motion.div>
-      )}
+      <AnimatePresence initial={false}>
+        {parsed && showLine && (
+          <motion.div key="line" layout
+            initial={false} exit={{ opacity: 0, y: -6 }}
+            transition={{ opacity: { duration: 0.34, ease: 'easeOut' }, y: { duration: 0.34, ease: 'easeOut' }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
+            className="shrink-0">
+            <OpenerLine line={parsed} onDone={() => setShowCard(true)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div layout initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
         transition={{ opacity: { duration: 0.4, ease: 'easeOut' }, y: { duration: 0.4, ease: 'easeOut' }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
