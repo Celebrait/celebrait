@@ -8,13 +8,19 @@
 // Created at boot by ensureLaunchColumns (CREATE TABLE IF NOT EXISTS),
 // so prod needs no manual push.
 
-import { pgTable, serial, text, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 
 export const demoRuns = pgTable("demo_runs", {
   id: serial("id").primaryKey(),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   /** "Mum, 70 · Birthday" — what the list shows. */
   label: text("label"),
+  /** APPROVED FOR RE-USE (Aidan 2026-09-25: "only use what we generate
+   *  in there and approve as re-usable"). A run saves itself the moment
+   *  it finishes, which makes the table a record of everything — takes
+   *  that went wrong included. The replay pickers only offer runs that
+   *  have been looked at and ticked on /admin/demo-runs. */
+  approved: boolean("approved").notNull().default(false),
   /** Which door made it: 'cards' (three options) or 'photo' (photo
    *  first). Each replay picker only offers its own. Null on the four
    *  runs saved before the column existed. */

@@ -24,6 +24,9 @@ export async function ensureLaunchColumns(): Promise<void> {
     // 2026-09-25: which door a saved run came from, so each replay
     // picker only offers runs its own screens can play.
     await db.execute(sql`alter table demo_runs add column if not exists route text`);
+    // 2026-09-25: a run is only offered for replay once it has been
+    // ticked as re-usable on /admin/demo-runs.
+    await db.execute(sql`alter table demo_runs add column if not exists approved boolean not null default false`);
     // 2026-09-16: back-office switches (the pre-launch site lock).
     await db.execute(sql`create table if not exists site_settings (
       key text primary key, value jsonb not null, updated_at timestamptz not null default now()

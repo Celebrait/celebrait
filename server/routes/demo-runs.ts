@@ -20,7 +20,7 @@
 // and a second identical object in R2 for every run.
 
 import type { Express, Request, Response } from 'express';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../db';
@@ -107,10 +107,18 @@ export function registerDemoRunRoutes(app: Express): void {
   app.get('/api/admin/demo-runs', async (req: Request, res: Response) => {
     if (!(await requireAdmin(req, res))) return;
     try {
+      // The admin page wants everything; a replay picker wants only the
+      // runs from its own door that have been ticked as re-usable.
       const want = req.query.route === 'photo' ? 'photo' : req.query.route === 'cards' ? 'cards' : null;
-      const rows = want
-        ? await db.select().from(demoRuns).where(eq(demoRuns.route, want)).orderBy(desc(demoRuns.id)).limit(60)
-        : await db.select().from(demoRuns).orderBy(desc(demoRuns.id)).limit(60);
+      const onlyApproved = req.query.approved === '1';
+      const filters = [
+        want ? eq(demoRuns.route, want) : null,
+        onlyApproved ? eq(demoRuns.approved, true) : null,
+      ].filter(Boolean);
+      const q = db.select().from(demoRuns);
+      const rows = filters.length
+        ? await q.where(and(...(filters as any))).orderBy(desc(demoRuns.id)).limit(60)
+        : await q.orderBy(desc(demoRuns.id)).limit(60);
       res.json({ runs: rows.map(withUrls) });
     } catch (err) {
       console.error('[DEMO] list failed:', err);
@@ -125,6 +133,18 @@ export function registerDemoRunRoutes(app: Express): void {
     const [row] = await db.select().from(demoRuns).where(eq(demoRuns.id, id));
     if (!row) return res.status(404).json({ message: 'No such run' });
     res.json({ run: withUrls(row) });
+  });
+
+  /** Tick a run as re-usable, or untick it. */
+  app.patch('/api/admin/demo-runs/:id', async (req: Request, res: Response) => {
+    if (!(await requireAdmin(req, res))) return;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'Bad id' });
+    const approved = req.body?.approved;
+    if (typeof approved !== 'boolean') return res.status(400).json({ message: 'approved must be true or false' });
+    const [row] = await db.update(demoRuns).set({ approved }).where(eq(demoRuns.id, id)).returning({ id: demoRuns.id, approved: demoRuns.approved });
+    if (!row) return res.status(404).json({ message: 'No such run' });
+    res.json({ ok: true, ...row });
   });
 
   app.delete('/api/admin/demo-runs/:id', async (req: Request, res: Response) => {

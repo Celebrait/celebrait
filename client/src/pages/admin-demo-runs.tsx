@@ -6,11 +6,12 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Check } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface Run {
   id: number; created_at: string; label: string | null; mode: string | null;
+  route: string | null; approved: boolean;
   brief: Record<string, unknown> | null; hook_line: string | null;
   concepts: Array<{ front_text?: string; inside_text?: string }> | null;
   frontUrls: string[]; picked_index: number | null;
@@ -25,6 +26,41 @@ export default function AdminDemoRunsPage() {
   const load = () => apiRequest('GET', '/api/admin/demo-runs').then((r) => r.json()).then((j) => setRuns(j.runs ?? [])).finally(() => setBusy(false));
   useEffect(() => { void load(); }, []);
   const remove = async (id: number) => { if (!confirm(`Delete run ${id}?`)) return; await apiRequest('DELETE', `/api/admin/demo-runs/${id}`); void load(); };
+  /** Only ticked runs are offered to the replay pickers. */
+  const approve = async (id: number, approved: boolean) => {
+    await apiRequest('PATCH', `/api/admin/demo-runs/${id}`, { approved });
+    setRuns((rs) => rs.map((r) => (r.id === id ? { ...r, approved } : r)));
+  };
+
+  // ── wiping the card library ──────────────────────────────────────
+  // One-by-one through the ordinary owner-scoped delete rather than a
+  // bulk endpoint, so every card goes out the same door as a single
+  // delete: ownership checked, images purged, and a card with a PAID
+  // order refused with a 409 rather than quietly destroying a financial
+  // record we are required to keep. Those are reported, not skipped
+  // silently (Aidan 2026-09-25: "we don't need all those cards on prod
+  // so let's wipe clean").
+  const [wipe, setWipe] = useState<{ typed: string; busy: boolean; done: string } | null>(null);
+  const runWipe = async () => {
+    setWipe((w) => (w ? { ...w, busy: true, done: 'Counting…' } : w));
+    const list = await apiRequest('GET', '/api/user/cards').then((r) => r.json()).catch(() => []);
+    const all: Array<{ id: number }> = Array.isArray(list) ? list : [];
+    let gone = 0; const kept: number[] = []; const failed: number[] = [];
+    for (let i = 0; i < all.length; i += 1) {
+      const c = all[i];
+      setWipe((w) => (w ? { ...w, done: `Deleting ${i + 1} of ${all.length}…` } : w));
+      try {
+        const res = await apiRequest('DELETE', `/api/studio/cards/${c.id}`);
+        if (res.status === 409) kept.push(c.id);
+        else if (!res.ok) failed.push(c.id);
+        else gone += 1;
+      } catch { failed.push(c.id); }
+    }
+    const parts = [`${gone} deleted`];
+    if (kept.length) parts.push(`${kept.length} kept (paid orders): ${kept.join(', ')}`);
+    if (failed.length) parts.push(`${failed.length} failed: ${failed.join(', ')}`);
+    setWipe({ typed: '', busy: false, done: parts.join(' · ') });
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -37,6 +73,30 @@ export default function AdminDemoRunsPage() {
       </div>
       {busy && <p className="mt-8 text-sm text-keeper-meta">Loading…</p>}
       {!busy && runs.length === 0 && <p className="mt-8 text-sm text-keeper-meta">Nothing yet — finish a run on /demo and it lands here.</p>}
+      <section className="mt-6 rounded-2xl border border-brand/40 bg-brand-muted/40 p-5">
+        <h2 className="font-display text-[15px] font-bold text-keeper-ink">Empty the card library</h2>
+        <p className="mt-1 text-[13px] text-keeper-body">
+          Deletes every card on this account and purges their images. Cards with a paid order are refused and listed
+          — those are financial records we have to keep. The demo does not read the card library any more, so this is
+          housekeeping, not a fix. <strong>It cannot be undone.</strong>
+        </p>
+        {!wipe && <button type="button" onClick={() => setWipe({ typed: '', busy: false, done: '' })}
+          className="mt-3 rounded-full border border-keeper-hair bg-white px-4 py-2 text-[13px] font-semibold text-keeper-ink">Start…</button>}
+        {wipe && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input value={wipe.typed} onChange={(e) => setWipe({ ...wipe, typed: e.target.value })}
+              placeholder="Type DELETE to confirm" aria-label="Type DELETE to confirm" disabled={wipe.busy}
+              className="h-10 w-56 rounded-full border border-keeper-hair bg-white px-4 text-[14px] text-keeper-ink" />
+            <button type="button" disabled={wipe.typed !== 'DELETE' || wipe.busy} onClick={() => void runWipe()}
+              className="rounded-full bg-keeper-ink px-4 py-2 text-[13px] font-semibold text-keeper-paper disabled:opacity-40">
+              {wipe.busy ? 'Working…' : 'Delete every card'}
+            </button>
+            <button type="button" disabled={wipe.busy} onClick={() => setWipe(null)} className="text-[13px] text-keeper-meta underline">Cancel</button>
+            {wipe.done && <p className="w-full text-[13px] text-keeper-body">{wipe.done}</p>}
+          </div>
+        )}
+      </section>
+
       <div className="mt-6 space-y-6">
         {runs.map((r) => {
           const b = (r.brief ?? {}) as Record<string, string>;
@@ -46,7 +106,11 @@ export default function AdminDemoRunsPage() {
                 <h2 className="font-display text-lg font-bold text-keeper-ink">#{r.id} · {r.label ?? 'Untitled run'}</h2>
                 <div className="flex items-center gap-3 text-xs text-keeper-meta">
                   <span>{new Date(r.created_at).toLocaleString('en-GB')}</span>
-                  <span className="rounded-full border border-keeper-hair px-2 py-0.5">{r.mode ?? 'auto'}</span>
+                  <span className="rounded-full border border-keeper-hair px-2 py-0.5">{r.route ?? 'cards'}</span>
+                  <button type="button" onClick={() => approve(r.id, !r.approved)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-medium transition-colors ${r.approved ? 'border-brand bg-brand-muted text-brand-dark' : 'border-keeper-hair text-keeper-meta hover:border-brand/60'}`}>
+                    {r.approved && <Check className="h-3 w-3" strokeWidth={3} />}{r.approved ? 'Re-usable' : 'Mark re-usable'}
+                  </button>
                   <button type="button" onClick={() => remove(r.id)} className="text-stone-400 hover:text-accent-red-dark" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>

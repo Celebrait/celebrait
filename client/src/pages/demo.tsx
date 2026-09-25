@@ -1199,7 +1199,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const [cardsErr, setCardsErr] = useState('');
   useEffect(() => {
     if (cards !== null) return;
-    fetch('/api/admin/demo-runs?route=photo', { credentials: 'include' })
+    fetch('/api/admin/demo-runs?route=photo&approved=1', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j) => setCards((j.runs ?? []).map((r: any) => ({
         id: r.id,
@@ -1212,7 +1212,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   }, [cards]);
   useEffect(() => {
     if (source !== 'replay' || runs) return;
-    fetch('/api/admin/demo-runs?route=cards', { credentials: 'include' })
+    fetch('/api/admin/demo-runs?route=cards&approved=1', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j) => setRuns((j.runs ?? []).map(toReplay).filter(playable)))
       .catch(() => setRunsErr('Could not load saved runs.'));
@@ -1272,7 +1272,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               <div className="mt-4 space-y-4">
                 {cardsErr && <p className="text-[13px] text-accent-red-dark">{cardsErr}</p>}
                 {!cards && !cardsErr && <p className="text-[13px] text-keeper-meta">Loading your saved runs\u2026</p>}
-                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No saved runs yet. Make one on this route and it saves itself at &ldquo;It&rsquo;s on the way&rdquo;.</p>}
+                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No approved runs yet. Finish one on this route, then tick it as re-usable on <a href="/admin/demo-runs" className="text-brand underline">/admin/demo-runs</a>.</p>}
                 {cards && cards.length > 0 && (
                   <div className="grid grid-cols-3 gap-2.5">
                     {cards.map((c) => {
@@ -1328,7 +1328,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
           <div className="mt-5 space-y-5">
             {runsErr && <p className="text-[13px] text-accent-red-dark">{runsErr}</p>}
             {!runs && !runsErr && <p className="text-[13px] text-keeper-meta">Loading saved runs…</p>}
-            {runs && runs.length === 0 && <p className="text-[13px] text-keeper-meta">No saved runs yet. Every run that reaches “It’s on the way” is saved.</p>}
+            {runs && runs.length === 0 && <p className="text-[13px] text-keeper-meta">No approved runs yet. Every run that reaches “It’s on the way” is saved; tick one as re-usable on /admin/demo-runs and it shows here.</p>}
             {runs && runs.length > 0 && (
               <div className="grid grid-cols-3 gap-2.5">
                 {runs.map((r) => {
