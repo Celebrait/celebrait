@@ -40,7 +40,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
-import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
@@ -275,6 +274,9 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   const [frontUrl, setFrontUrl] = useState<string | null>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  /** The opener's own card — separate from the reveal's, so opening one
+   *  never leaves the other open. */
+  const [openerOpen, setOpenerOpen] = useState(false);
   const [cardPainted, setCardPainted] = useState(false);
   /** Which half is drawing — the wait line changes, the screen doesn't. */
   const [drawingInside, setDrawingInside] = useState(false);
@@ -556,12 +558,24 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
             looks dropped. */}
         {phase === 'opener' && replay?.frontUrl && (
           <motion.section key="opener" {...SCREEN}
-            className={`absolute inset-0 flex flex-col items-center px-6 ${hook ? 'justify-end pb-[10vh]' : 'justify-center'}`}>
-            <button type="button" data-demo="opener" aria-label="Start the build"
-              onClick={() => { setPhase('who'); mark('who: open', 'who'); }}
-              className={`shrink-0 transition-transform active:scale-[0.98] ${hook ? 'w-[min(58vw,34vh,260px)]' : 'w-[min(72vw,42vh,320px)]'}`}>
-              <AjarTile imageUrl={replay.frontUrl} alt="" eager openDeg={22} />
-            </button>
+            className={`absolute inset-0 flex flex-col items-center justify-center px-6 ${hook ? 'pt-[26vh]' : ''}`}>
+            {/* The REAL card, inside included, not a flat tile (Aidan
+                2026-09-25). Tap it open, turn it, see the inside — the
+                thing being promised is a card, so the opener hands them
+                a card. That takes the tap, which is why starting the
+                build is its own control underneath rather than a tap on
+                the card as it was when this was a picture. */}
+            <div className="relative aspect-square w-[min(84vw,46vh,380px)] shrink-0">
+              <div className="absolute inset-x-[-60%] inset-y-[-16%]">
+                <Card3DViewer frontImageUrl={replay.frontUrl} insideImageUrl={replay.insideUrl ?? undefined}
+                  open={openerOpen} onOpenChange={setOpenerOpen}
+                  enableRotate enableZoom={false}
+                  backLogo backCaption="celebrait.co.uk"
+                  closedAngle={-0.3} restYaw={-0.12} framingMargin={1.8} minDistance={1.2} maxDistance={8} className="h-full w-full" />
+              </div>
+            </div>
+            <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse mt-4 shrink-0`}
+              onClick={() => { setPhase('who'); mark('who: open', 'who'); }}>Watch it get made</button>
           </motion.section>
         )}
 

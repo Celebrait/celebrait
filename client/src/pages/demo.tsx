@@ -751,6 +751,8 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  /** The opener's own card, kept apart from the reveal's. */
+  const [openerOpen, setOpenerOpen] = useState(false);
   // The card screen stays invisible until the viewer's first frame.
   const [cardPainted, setCardPainted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -1033,12 +1035,18 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
               the viewer has not seen. Matches the photo route's opener. */}
       {phase === 'opener' && openerFront && (
         <motion.section key="opener" {...SCREEN}
-          className={`absolute inset-0 flex flex-col items-center px-6 ${hook ? 'justify-end pb-[10vh]' : 'justify-center'}`}>
-          <button type="button" data-demo="opener" aria-label="Start the build"
-            onClick={() => { setPhase('brief'); mark('brief: open', 'brief'); }}
-            className={`shrink-0 transition-transform active:scale-[0.98] ${hook ? 'w-[min(58vw,34vh,260px)]' : 'w-[min(72vw,42vh,320px)]'}`}>
-            <AjarTile imageUrl={openerFront} alt="" eager openDeg={22} />
-          </button>
+          className={`absolute inset-0 flex flex-col items-center justify-center px-6 ${hook ? 'pt-[26vh]' : ''}`}>
+          <div className="relative aspect-square w-[min(84vw,46vh,380px)] shrink-0">
+            <div className="absolute inset-x-[-60%] inset-y-[-16%]">
+              <Card3DViewer frontImageUrl={openerFront} insideImageUrl={replay?.insideUrl ?? undefined}
+                open={openerOpen} onOpenChange={setOpenerOpen}
+                enableRotate enableZoom={false}
+                backLogo backCaption="celebrait.co.uk"
+                closedAngle={-0.3} restYaw={-0.12} framingMargin={1.8} minDistance={1.2} maxDistance={8} className="h-full w-full" />
+            </div>
+          </div>
+          <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse mt-4 shrink-0`}
+            onClick={() => { setPhase('brief'); mark('brief: open', 'brief'); }}>Watch it get made</button>
         </motion.section>
       )}
 
