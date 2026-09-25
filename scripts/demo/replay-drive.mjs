@@ -68,6 +68,14 @@ const waitFor = async (key, where, timeout = 20000) => {
 };
 const tap = async (key, where) => {
   const el = await waitFor(key, where);
+  // Wait for ENABLED, not just visible: the opener's button is disabled
+  // until its card has painted and its line has typed, and clicking a
+  // disabled button does nothing at all — which reads as a stall.
+  const start = Date.now();
+  while (await el.isDisabled().catch(() => false)) {
+    if (Date.now() - start > 20000) await die(where, `[data-demo="${key}"] never became enabled`);
+    await page.waitForTimeout(120);
+  }
   await el.click({ force: true });          // awaited — an un-awaited click races the next step
   await page.waitForTimeout(420);
 };

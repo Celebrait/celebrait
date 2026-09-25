@@ -47,7 +47,7 @@ import {
   CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
   clearRings, mark, preparePhoto, ring,
-  DemoBackdrop, sleep, typeHook, warm, warmAll,
+  DemoBackdrop, DemoOpener, sleep, typeHook, warm, warmAll,
   type DemoConfig,
 } from '@/pages/demo';
 
@@ -256,7 +256,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : firstPhase);
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
   const [count, setCount] = useState(cfg.countdown);
-  const [hookOn, setHookOn] = useState(cfg.hook);
+  const [hookOn, setHookOn] = useState(cfg.hook && !openerOn);
 
   // What the person on screen fills in.
   const [name, setName] = useState('');
@@ -274,9 +274,6 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   const [frontUrl, setFrontUrl] = useState<string | null>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
-  /** The opener's own card — separate from the reveal's, so opening one
-   *  never leaves the other open. */
-  const [openerOpen, setOpenerOpen] = useState(false);
   const [cardPainted, setCardPainted] = useState(false);
   /** Which half is drawing — the wait line changes, the screen doesn't. */
   const [drawingInside, setDrawingInside] = useState(false);
@@ -467,7 +464,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
     window.addEventListener('pointerdown', onDown, true);
     window.addEventListener('click', onUp, true);
     const t = window.setTimeout(() => {
-      if (!cfg.hook) return;
+      if (!cfg.hook || openerOn) return;   // the opener types its own line
       void typeHook(hookLine, [preset.name]).then(() => setHookOn(false));
     }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
     return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onUp, true); };
@@ -518,7 +515,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
           The logo went with it — not relevant on a demo. */}
       {ground && <DemoBackdrop />}
     <div ref={rootRef} className="keeper-serif fixed inset-0 overflow-hidden">
-      {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
+      {hook && !openerOn && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         <div className="pointer-events-none absolute left-1/2 top-[11vh] z-10 flex -translate-x-1/2 flex-col items-center rounded-2xl border border-keeper-hair bg-white px-4 py-1.5 shadow-[0_4px_16px_-8px_rgba(33,29,25,.18)]" aria-label="Time taken to get here">
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Time taken to get here</span>
@@ -557,25 +554,9 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
             because a card alone at the bottom of an empty frame just
             looks dropped. */}
         {phase === 'opener' && replay?.frontUrl && (
-          <motion.section key="opener" {...SCREEN}
-            className={`absolute inset-0 flex flex-col items-center justify-center px-6 ${hook ? 'pt-[26vh]' : ''}`}>
-            {/* The REAL card, inside included, not a flat tile (Aidan
-                2026-09-25). Tap it open, turn it, see the inside — the
-                thing being promised is a card, so the opener hands them
-                a card. That takes the tap, which is why starting the
-                build is its own control underneath rather than a tap on
-                the card as it was when this was a picture. */}
-            <div className="relative aspect-square w-[min(84vw,46vh,380px)] shrink-0">
-              <div className="absolute inset-x-[-60%] inset-y-[-16%]">
-                <Card3DViewer frontImageUrl={replay.frontUrl} insideImageUrl={replay.insideUrl ?? undefined}
-                  open={openerOpen} onOpenChange={setOpenerOpen}
-                  enableRotate enableZoom={false}
-                  backLogo backCaption="celebrait.co.uk"
-                  closedAngle={-0.3} restYaw={-0.12} framingMargin={1.8} minDistance={1.2} maxDistance={8} className="h-full w-full" />
-              </div>
-            </div>
-            <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse mt-4 shrink-0`}
-              onClick={() => { setPhase('who'); mark('who: open', 'who'); }}>Watch it get made</button>
+          <motion.section key="opener" {...SCREEN} className="absolute inset-0">
+            <DemoOpener frontUrl={replay.frontUrl} insideUrl={replay.insideUrl} line={hook ? hookLine : null}
+              label="Watch it get made" onStart={() => { setPhase('who'); mark('who: open', 'who'); }} />
           </motion.section>
         )}
 

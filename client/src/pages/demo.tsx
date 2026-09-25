@@ -292,6 +292,12 @@ export const CSS = `
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
   .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: left; max-width: 100%; }
   .demo-hook .who { background: linear-gradient(90deg, #7a76e8 0%, #211D19 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* The same treatment as the overlay hook, for a line that sits ON a
+     screen — the opener types its sentence under the card rather than
+     across the whole frame. */
+  .demo-line { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(19px, 5.2vw, 24px); line-height: 1.22; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: center; }
+  .demo-line .who { background: linear-gradient(90deg, #7a76e8 0%, #211D19 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .demo-line .caret { display: inline-block; width: .07em; height: .92em; background: #7a76e8; margin-left: .06em; vertical-align: -.1em; animation: demo-caret 900ms steps(2) infinite; }
   .demo-hook .caret { display: inline-block; width: .08em; height: .95em; background: #7a76e8; margin-left: .08em; vertical-align: -.1em; animation: demo-caret 900ms steps(2) infinite; }
   @keyframes demo-caret { 50% { opacity: 0 } }
   .demo-hook.out { opacity: 0; pointer-events: none; }
@@ -737,7 +743,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const [count, setCount] = useState(cfg.countdown);
   // While the hook types, the question panel waits out of sight (the hook
   // overlay is see-through so the backdrop icons show).
-  const [hookOn, setHookOn] = useState(cfg.hook);
+  const [hookOn, setHookOn] = useState(cfg.hook && !openerOn);
   // Who, the occasion and the age are set in the builder and said in the
   // typed hook, so the filmed brief opens on the vibe (Aidan 2026-09-16).
   const [brief, setBrief] = useState<Brief>(() => briefFromConfig(cfg));
@@ -751,8 +757,6 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
-  /** The opener's own card, kept apart from the reveal's. */
-  const [openerOpen, setOpenerOpen] = useState(false);
   // The card screen stays invisible until the viewer's first frame.
   const [cardPainted, setCardPainted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -935,7 +939,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     window.addEventListener('click', onUp, true);
     const t = window.setTimeout(() => {
       const go = () => { if (clip !== 'full') enterClip().catch(fail); };
-      if (!cfg.hook) { go(); return; }
+      if (!cfg.hook || openerOn) { go(); return; }   // the opener types its own line
       void typeHook(cfg.hookLine, [cfg.who, cfg.name]).then(() => { setHookOn(false); go(); });
     }, cfg.countdown * 1000 + (cfg.countdown > 0 ? 1600 : 900));
     return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onUp, true); };
@@ -1003,7 +1007,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
           The logo went with it — not relevant on a demo. */}
       {ground && <DemoBackdrop />}
     <div ref={rootRef} className="keeper-serif fixed inset-0 overflow-hidden">
-      {hook && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
+      {hook && !openerOn && <div className="demo-hook" aria-hidden="true"><p><span className="caret" /></p></div>}
       {showClock && clockFrom != null && (
         // Centred under the logo: clear of the like/share rail (right) and the
         // caption (bottom) on Reels and TikTok.
@@ -1034,19 +1038,9 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
               reveal, and spending it here leaves the reveal with nothing
               the viewer has not seen. Matches the photo route's opener. */}
       {phase === 'opener' && openerFront && (
-        <motion.section key="opener" {...SCREEN}
-          className={`absolute inset-0 flex flex-col items-center justify-center px-6 ${hook ? 'pt-[26vh]' : ''}`}>
-          <div className="relative aspect-square w-[min(84vw,46vh,380px)] shrink-0">
-            <div className="absolute inset-x-[-60%] inset-y-[-16%]">
-              <Card3DViewer frontImageUrl={openerFront} insideImageUrl={replay?.insideUrl ?? undefined}
-                open={openerOpen} onOpenChange={setOpenerOpen}
-                enableRotate enableZoom={false}
-                backLogo backCaption="celebrait.co.uk"
-                closedAngle={-0.3} restYaw={-0.12} framingMargin={1.8} minDistance={1.2} maxDistance={8} className="h-full w-full" />
-            </div>
-          </div>
-          <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse mt-4 shrink-0`}
-            onClick={() => { setPhase('brief'); mark('brief: open', 'brief'); }}>Watch it get made</button>
+        <motion.section key="opener" {...SCREEN} className="absolute inset-0">
+          <DemoOpener frontUrl={openerFront} insideUrl={replay?.insideUrl} line={hook ? cfg.hookLine : null}
+            label="Watch it get made" onStart={() => { setPhase('brief'); mark('brief: open', 'brief'); }} />
         </motion.section>
       )}
 
@@ -1487,6 +1481,136 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
 
 // ── the phone mockup ─────────────────────────────────────────────────
 // The run plays in an iframe the size of an iPhone 15, so every vw/vh and
+/** THE OPENER — the finished card, before a single question is asked.
+ *
+ *  Sequence, because Aidan asked for one (2026-09-25: "card needs to
+ *  come in nicely like a loading spinner … with the button appearing
+ *  post text"): a spinner holds the space while the 3D textures load,
+ *  the card eases in the moment it has actually painted its first frame,
+ *  the line types itself underneath, and only then does the button
+ *  arrive. Nothing pops.
+ *
+ *  The line types as ONE sentence, not the overlay hook's sentence-by-
+ *  sentence beats — on this screen it is a caption under a card, not a
+ *  title card of its own.
+ *
+ *  Sizes are % and vh, never vw: the run is staged inside a 9:16 column,
+ *  and vw is viewport-relative, so on a desktop it would blow straight
+ *  through the column's edges. */
+/** The opener's line is a CAPTION under a card, so it types briskly.
+ *  typingDelay() is tuned for the full-bleed hook, where a title card
+ *  holds the whole screen and can afford half a second on a full stop —
+ *  borrowing it here spent 4.4s on one short sentence. */
+function captionDelay(text: string, i: number): number {
+  const ch = text[i];
+  const jitter = 0.8 + ((Math.sin((i + 1) * 12.9898) * 43758.5453) % 1 + 1) % 1 * 0.4;
+  let d = 26 * jitter;
+  if (ch === '.' || ch === '!' || ch === '?') d += 170;
+  else if (ch === ',' || ch === ';' || ch === '—') d += 80;
+  else if (ch === ' ') d += 20;
+  return d;
+}
+
+/** The line types in its OWN component, below the card in the tree.
+ *  Held in the parent, every keystroke re-rendered DemoOpener and with
+ *  it the Card3DViewer — a three.js canvas — so one 36-character
+ *  sentence cost 36 WebGL re-renders and took 3.5s to type instead of
+ *  ~1.2s. State belongs as deep as the thing that changes. */
+function OpenerLine({ line, onDone }: { line: HookLine; onDone: () => void }) {
+  const [typed, setTyped] = useState(0);
+  const started = useRef(false);
+  const doneRef = useRef(onDone); doneRef.current = onDone;
+
+  /** When each character is due, as ms from the first one. */
+  const schedule = useMemo(() => {
+    const out: number[] = []; let t = 0;
+    for (let i = 0; i < line.text.length; i += 1) { t += captionDelay(line.text, i); out.push(t); }
+    return out;
+  }, [line]);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    // DRIVEN BY THE CLOCK, not by one setTimeout per character. A
+    // three.js canvas and a field of animated motifs keep the main
+    // thread busy enough that a 30ms timer lands nearer 90ms, so
+    // chaining one timer per character typed a 36-character line in
+    // 3.3s however small the delay asked for. Reading the elapsed time
+    // each frame and catching up makes the duration what it says it is.
+    let raf = 0; const t0 = performance.now() + 420; // let the card land first
+    const frame = () => {
+      const elapsed = performance.now() - t0;
+      if (elapsed >= 0) {
+        let n = 0;
+        while (n < schedule.length && schedule[n] <= elapsed) n += 1;
+        setTyped(n);
+        if (n >= schedule.length) { window.setTimeout(() => doneRef.current(), 300); return; }
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [schedule]);
+
+  return (
+    <p className="demo-line min-h-[2.6em] max-w-[22ch] shrink-0" aria-label={line.text}
+      dangerouslySetInnerHTML={{ __html: typed > 0 ? hookHtml(line, typed) : '' }} />
+  );
+}
+
+export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
+  frontUrl: string; insideUrl?: string | null; line?: string | null; label: string; onStart: () => void;
+}) {
+  const [painted, setPainted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [ready, setReady] = useState(false);
+  const parsed = useMemo(() => (line ? parseHook(line, []) : null), [line]);
+
+  useEffect(() => {
+    if (!painted || parsed) return;
+    const t = window.setTimeout(() => setReady(true), 380);
+    return () => window.clearTimeout(t);
+  }, [painted, parsed]);
+
+  // The CARD is centred in the frame on its own, and the line and the
+  // button are laid over the space beneath it. Stacking all three in one
+  // centred column instead pushes the card above centre by half the
+  // height of whatever is under it, and by exactly how much depends on
+  // how long the typed sentence happens to be (Aidan 2026-09-25: "CARD
+  // BIGGER - centralised").
+  return (
+    <div className="absolute inset-0">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative aspect-square w-[min(94%,50vh,470px)] shrink-0">
+          {!painted && (
+            <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+              <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={1.6} />
+            </div>
+          )}
+          <motion.div className="absolute inset-x-[-60%] inset-y-[-16%]"
+            initial={false} animate={{ opacity: painted ? 1 : 0, scale: painted ? 1 : 0.94 }}
+            transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
+            <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
+              open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
+              enableRotate enableZoom={false}
+              backLogo backCaption="celebrait.co.uk"
+              closedAngle={-0.3} restYaw={-0.12} framingMargin={1.32} minDistance={1.05} maxDistance={8} className="h-full w-full" />
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-[7vh] flex flex-col items-center gap-4 px-5">
+        {parsed && painted && <OpenerLine line={parsed} onDone={() => setReady(true)} />}
+        <motion.div initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }} className="pointer-events-auto shrink-0">
+          <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse`}
+            disabled={!ready} onClick={onStart}>{label}</button>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 /** The photo route, resolving a replayed card first when there is one.
  *  The run must not start until the card is in hand — its brief is what
  *  the director types. */
@@ -1565,25 +1689,31 @@ export default function DemoPage() {
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
   if (!cfg) return <DemoSetup onRun={setCfg} />;
   const s = cfg.scale ?? 1;
-  const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} ground={s === 1} /> : <DemoRun cfg={cfg} ground={s === 1} />;
-  if (s === 1) return run;
-  // A transform makes this the containing block for the run's own
-  // `fixed inset-0` root, so the run still lays out at full viewport
-  // size and is scaled as one piece.
+  const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} ground={false} /> : <DemoRun cfg={cfg} ground={false} />;
+  // THE STAGE — a 9:16 column, always, on every screen.
   //
-  // THE GROUND IS NOT PART OF THAT PIECE. It used to be, because the
-  // run renders its own — and a `fixed inset-0` layer inside a
-  // transformed ancestor is fixed to the ANCESTOR, so pulling back to
-  // fit a social crop shrank the background along with the UI and left
-  // a band of bare paper round the outside (Aidan 2026-09-24: "there's
-  // a border of white … this whole thing needs to be filled so I can
-  // screen record"). So it is hoisted out here, unscaled, filling the
-  // recorded frame edge to edge whatever the scale is; the run is told
-  // not to draw its own.
+  // This is filmed for vertical social, so a desktop browser showing a
+  // 1440-wide run is the wrong shape to record (Aidan 2026-09-25: "even
+  // desktop view should be mobile … we should have the screen size
+  // rendered on a desktop"). Not a phone mockup — that went, and it is
+  // not coming back — just the right aspect ratio: 56.25vh is 9:16 of
+  // the viewport height, capped at the real width so a phone is
+  // unaffected. The surround is a tint of the hairline token so the
+  // edges of the recording are visible to frame against, while the
+  // column itself stays clean paper.
+  //
+  // Both the transform here and the -translate-x-1/2 make this element
+  // the containing block for every `fixed inset-0` layer inside it —
+  // the run's root AND the ground. That is deliberate: the ground has
+  // to fill the recorded column edge to edge at any scale, which is why
+  // it is drawn here rather than inside the run (Aidan 2026-09-24:
+  // "there's a border of white … this whole thing needs to be filled").
   return (
-    <div className="fixed inset-0 overflow-hidden bg-keeper-paper">
-      <DemoBackdrop />
-      <div className="absolute inset-0" style={{ transform: `scale(${s})`, transformOrigin: 'center center' }}>{run}</div>
+    <div className="fixed inset-0 overflow-hidden bg-keeper-hair/45">
+      <div className="absolute inset-y-0 left-1/2 w-[min(100vw,56.25vh)] -translate-x-1/2 overflow-hidden">
+        <DemoBackdrop />
+        <div className="absolute inset-0" style={{ transform: `scale(${s})`, transformOrigin: 'center center' }}>{run}</div>
+      </div>
     </div>
   );
 }
