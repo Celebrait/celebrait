@@ -1537,7 +1537,7 @@ function OpenerLine({ line, onDone }: { line: HookLine; onDone: () => void }) {
     // chaining one timer per character typed a 36-character line in
     // 3.3s however small the delay asked for. Reading the elapsed time
     // each frame and catching up makes the duration what it says it is.
-    let raf = 0; const t0 = performance.now() + 420; // let the card land first
+    let raf = 0; const t0 = performance.now() + 260; // a breath, then it writes
     const frame = () => {
       const elapsed = performance.now() - t0;
       if (elapsed >= 0) {
@@ -1563,50 +1563,61 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
 }) {
   const [painted, setPainted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showCard, setShowCard] = useState(false);
   const [ready, setReady] = useState(false);
   const parsed = useMemo(() => (line ? parseHook(line, []) : null), [line]);
 
+  // THE LINE GOES FIRST, alone and centred, then the card, then the
+  // button just behind it (Aidan 2026-09-25). The order was the other
+  // way round and the words were a caption on a picture; this way they
+  // are a promise, and the card is what answers them.
+  useEffect(() => { if (!parsed) setShowCard(true); }, [parsed]);
   useEffect(() => {
-    if (!painted || parsed) return;
-    const t = window.setTimeout(() => setReady(true), 380);
+    if (!painted) return;
+    const t = window.setTimeout(() => setReady(true), 420); // "just after" the card
     return () => window.clearTimeout(t);
-  }, [painted, parsed]);
+  }, [painted]);
 
-  // The CARD is centred in the frame on its own, and the line and the
-  // button are laid over the space beneath it. Stacking all three in one
-  // centred column instead pushes the card above centre by half the
-  // height of whatever is under it, and by exactly how much depends on
-  // how long the typed sentence happens to be (Aidan 2026-09-25: "CARD
-  // BIGGER - centralised").
   return (
-    <div className="absolute inset-0">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative aspect-square w-[min(94%,50vh,470px)] shrink-0">
-          {!painted && (
-            <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-              <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={1.6} />
-            </div>
-          )}
-          <motion.div className="absolute inset-x-[-60%] inset-y-[-16%]"
-            initial={false} animate={{ opacity: painted ? 1 : 0, scale: painted ? 1 : 0.94 }}
-            transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
-            <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
-              open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
-              enableRotate enableZoom={false}
-              backLogo backCaption="celebrait.co.uk"
-              closedAngle={-0.3} restYaw={-0.12} framingMargin={1.32} minDistance={1.05} maxDistance={8} className="h-full w-full" />
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-5">
+      <AnimatePresence initial={false}>
+        {showCard && (
+          <motion.div key="card" layout
+            initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, scale: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
+            className="relative aspect-square w-[min(84%,42vh,400px)] shrink-0">
+            {!painted && (
+              <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <Loader2 className="h-7 w-7 animate-spin text-brand" strokeWidth={1.6} />
+              </div>
+            )}
+            <motion.div className="absolute inset-x-[-60%] inset-y-[-16%]"
+              initial={false} animate={{ opacity: painted ? 1 : 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
+              {/* restYaw 0: any resting turn swings the card's painted
+                  centroid off the middle of the frame, which reads as
+                  "not central" however well the box is centred. */}
+              <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
+                open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
+                enableRotate enableZoom={false}
+                backLogo backCaption="celebrait.co.uk"
+                closedAngle={-0.26} restYaw={0} framingMargin={1.4} minDistance={1.05} maxDistance={8} className="h-full w-full" />
+            </motion.div>
           </motion.div>
-        </div>
-      </div>
+        )}
+      </AnimatePresence>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[7vh] flex flex-col items-center gap-4 px-5">
-        {parsed && painted && <OpenerLine line={parsed} onDone={() => setReady(true)} />}
-        <motion.div initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }} className="pointer-events-auto shrink-0">
-          <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse`}
-            disabled={!ready} onClick={onStart}>{label}</button>
+      {parsed && (
+        <motion.div layout transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="shrink-0">
+          <OpenerLine line={parsed} onDone={() => setShowCard(true)} />
         </motion.div>
-      </div>
+      )}
+
+      <motion.div layout initial={false} animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 8 }}
+        transition={{ opacity: { duration: 0.4, ease: 'easeOut' }, y: { duration: 0.4, ease: 'easeOut' }, layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }}
+        className="shrink-0">
+        <button type="button" data-demo="opener" className={`${PRIMARY} demo-pulse`}
+          disabled={!ready} onClick={onStart}>{label}</button>
+      </motion.div>
     </div>
   );
 }
