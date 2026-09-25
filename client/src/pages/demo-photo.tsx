@@ -40,6 +40,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Camera, Sparkles, Send, Loader2, User, Users } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
+import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
@@ -215,7 +216,15 @@ export async function loadReplayCard(id: number): Promise<ReplayCard> {
 }
 
 type Phase =
-  | 'countdown' | 'who' | 'mode' | 'photo' | 'scene' | 'front' | 'inside'
+  // 'opener' leads with the FINISHED card before a single question is
+  // asked (Aidan 2026-09-25). Replay only, for the obvious reason that
+  // there is no finished card until a run has made one — and replay
+  // already has it in hand at mount, so the opener costs nothing.
+  //
+  // Flat and ajar here, not the 3D turn: the turn is the reveal's beat
+  // and spending it in the first two seconds leaves the reveal with
+  // nothing the viewer has not already seen.
+  | 'countdown' | 'opener' | 'who' | 'mode' | 'photo' | 'scene' | 'front' | 'inside'
   | 'generating' | 'card' | 'sent';
 
 // ── the run ──────────────────────────────────────────────────────────
@@ -245,7 +254,10 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
    *  straight to the card. */
   const replayWaitMs = cfg.waits === 'none' ? 0 : cfg.waits === 'short' ? 2200 : 78_000;
 
-  const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : 'who');
+  /** Lead with the card. Needs a replayed card to lead WITH. */
+  const openerOn = cfg.opener === true && !!replay?.frontUrl;
+  const firstPhase: Phase = openerOn ? 'opener' : 'who';
+  const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : firstPhase);
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
   const [count, setCount] = useState(cfg.countdown);
   const [hookOn, setHookOn] = useState(cfg.hook);
@@ -430,7 +442,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase('who'); mark('who: open', 'who'); } }, 1000);
+    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); } }, 1000);
     // Aidan drives, always. His taps get the ring; the hook types
     // itself and then steps aside.
     const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
@@ -491,6 +503,24 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
           <motion.section key="countdown" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
             <p className="font-display text-[88px] font-bold leading-none text-keeper-ink">{count}</p>
             <p className="text-[14px] text-keeper-meta">Start your screen recording</p>
+          </motion.section>
+        )}
+
+        {/* 0b · the hook: here is the card, now watch it get made */}
+        {/* The hook types from 36vh down the LEFT, so a centred card sat
+            straight under it — dark ink across a dark photograph, which is
+            unreadable both ways. With a hook the card drops to the lower
+            third and the words get clean paper; without one it centres,
+            because a card alone at the bottom of an empty frame just
+            looks dropped. */}
+        {phase === 'opener' && replay?.frontUrl && (
+          <motion.section key="opener" {...SCREEN}
+            className={`absolute inset-0 flex flex-col items-center px-6 ${hook ? 'justify-end pb-[10vh]' : 'justify-center'}`}>
+            <button type="button" data-demo="opener" aria-label="Start the build"
+              onClick={() => { setPhase('who'); mark('who: open', 'who'); }}
+              className={`shrink-0 transition-transform active:scale-[0.98] ${hook ? 'w-[min(58vw,34vh,260px)]' : 'w-[min(72vw,42vh,320px)]'}`}>
+              <AjarTile imageUrl={replay.frontUrl} alt="" eager openDeg={22} />
+            </button>
           </motion.section>
         )}
 

@@ -138,6 +138,11 @@ export interface DemoConfig extends DemoPreset {
   /** Play a saved run instead of generating. */
   replay?: ReplayRun;
   clip?: ClipKey;
+  /** Lead with the finished card, then go back and build it (Aidan
+   *  2026-09-25). Replay only — there is nothing to lead with otherwise.
+   *  Photo route for now; the three-card route's own opener would be the
+   *  `guess` clip, which already exists. */
+  opener?: boolean;
   /** Replay waits: as long as the original run took, or short. */
   waits?: 'real' | 'short' | 'none';
 }
@@ -276,7 +281,13 @@ export const CSS = `
   /* Manual runs: no pointer on screen at all (Aidan 2026-09-16). */
   /* The first letter lands at one fixed point and the text only grows
      downward from there — no re-centring as lines wrap (Aidan 2026-09-16). */
-  .demo-hook { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: flex-start; padding: 36vh 8vw 8vw;
+  /* NEVER EATS A TAP. It is decoration over a full-screen layer, and it
+     only picked up pointer-events:none once it had finished typing and
+     gained .out — which was harmless while a director drove the run and
+     waited the hook out, and became a dead screen the moment Aidan drove
+     it himself (2026-09-25). A tap during the hook now lands on what is
+     underneath, so a take can cut the opener short. */
+  .demo-hook { pointer-events: none; position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: flex-start; padding: 36vh 8vw 8vw;
     background: transparent; transition: opacity 600ms ease; }
   /* Left-aligned, Fraunces Bold, the recipient in violet → ink (Aidan 2026-09-15). */
   .demo-hook p { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: clamp(30px, 9.5vw, 56px); line-height: 1.08; letter-spacing: -0.01em; color: #211D19; margin: 0; text-align: left; max-width: 100%; }
@@ -1390,6 +1401,13 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               {cfg.photo && <button type="button" className={QUIET} onClick={() => set({ photo: undefined })}>Remove</button>}
             </div>
           </div>}
+          {isPhoto && !!cfg.replayCardId && <div><span className={label}>Opening</span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={chip(cfg.opener === true)} onClick={() => set({ opener: true })}>Card first</button>
+              <button type="button" className={chip(cfg.opener !== true)} onClick={() => set({ opener: false })}>Straight into the build</button>
+            </div>
+            <p className="mt-1.5 text-[12px] text-keeper-meta">Hold the finished card, type the hook over it, then tap to go back and build it. The clock still starts at the first question.</p>
+          </div>}
           <div><span className={label}>Opening line</span>
             <div className="flex flex-wrap gap-2"><button type="button" className={chip(cfg.hook)} onClick={() => set({ hook: true })}>Typed hook</button><button type="button" className={chip(!cfg.hook)} onClick={() => set({ hook: false })}>Straight in</button></div>
             {cfg.hook && <textarea value={cfg.hookLine} onChange={(e) => set({ hookLine: e.target.value.slice(0, 140) })} rows={2} className="mt-2 w-full rounded-2xl border border-keeper-hair bg-white/90 px-4 py-3 text-[15px] text-keeper-ink focus:outline-none focus:border-brand" />}
@@ -1449,7 +1467,7 @@ export default function DemoPage() {
     const w = q.get('waits');
     const waits = w === 'none' || w === 'short' || w === 'real' ? w : undefined;
     const z = Number(q.get('scale'));
-    const common = { hook: q.get('hook') === 'typed', countdown: 0, scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
+    const common = { hook: q.get('hook') === 'typed', countdown: 0, opener: q.get('opener') === 'card', scale: Number.isFinite(z) && z > 0 ? Math.min(2, Math.max(0.4, z)) : 1 };
     const photoKey = q.get('photo');
     if (q.get('route') === 'photo' || photoKey || replayCardId) {
       const key = photoKey && DEMO_PHOTO_PRESETS[photoKey] ? photoKey : Object.keys(DEMO_PHOTO_PRESETS)[0];
