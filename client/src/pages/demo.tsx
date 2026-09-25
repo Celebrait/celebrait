@@ -929,6 +929,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
     void fetch('/api/admin/demo-runs', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        route: 'cards',
         label: `${who}, ${brief.age || cfg.age} · ${occasionLabelFor(brief)}`,
         brief, hookLine: cfg.hook ? cfg.hookLine : undefined, concepts, fronts, pickedIndex: picked,
         photo: photoUrl ?? undefined, cameo: cameoUrl ?? undefined, inside: insideUrl ?? undefined,
@@ -1191,25 +1192,27 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
   const [source, setSource] = useState<'new' | 'replay'>('new');
   const [runs, setRuns] = useState<ReplayRun[] | null>(null);
   const [runsErr, setRunsErr] = useState('');
-  // Photo route: replay a card that already exists. Every finished card
-  // is a saved run, so this lists real cards rather than demo records.
-  const [cards, setCards] = useState<Array<{ id: number; frontImageUrl: string | null; recipientName: string | null; occasion: string | null; isReplayable?: boolean; createdAt?: string }> | null>(null);
+  // Photo route: replay a run THIS VIEW made (Aidan 2026-09-25). It used
+  // to list every finished card in the account, which meant dozens of
+  // cards made elsewhere, most of them shaped nothing like a take.
+  const [cards, setCards] = useState<Array<{ id: number; frontImageUrl: string | null; recipientName: string | null; occasion: string | null; createdAt?: string }> | null>(null);
   const [cardsErr, setCardsErr] = useState('');
   useEffect(() => {
-    if (!cfg.replayCardId && cards !== null) return;
     if (cards !== null) return;
-    fetch('/api/user/cards', { credentials: 'include' })
+    fetch('/api/admin/demo-runs?route=photo', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      // Only cards this route can actually play: made through the
-      // photo door, with a scene, a photo and both sides drawn. Listing
-      // everything offered dozens of three-card cards that would replay
-      // as an empty sentence over the wrong face (Aidan 2026-09-24).
-      .then((list) => setCards((Array.isArray(list) ? list : []).filter((c: { isReplayable?: boolean }) => c.isReplayable === true).slice(0, 12)))
-      .catch(() => setCardsErr('Could not load your cards.'));
-  }, [cards, cfg.replayCardId]);
+      .then((j) => setCards((j.runs ?? []).map((r: any) => ({
+        id: r.id,
+        frontImageUrl: r.frontUrls?.[0] ?? null,
+        recipientName: (r.brief?.name ?? '') || null,
+        occasion: (r.brief?.occasion ?? '') || null,
+        createdAt: r.created_at,
+      })).filter((c: { frontImageUrl: string | null }) => !!c.frontImageUrl).slice(0, 12)))
+      .catch(() => setCardsErr('Could not load your saved runs.'));
+  }, [cards]);
   useEffect(() => {
     if (source !== 'replay' || runs) return;
-    fetch('/api/admin/demo-runs', { credentials: 'include' })
+    fetch('/api/admin/demo-runs?route=cards', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j) => setRuns((j.runs ?? []).map(toReplay).filter(playable)))
       .catch(() => setRunsErr('Could not load saved runs.'));
@@ -1257,19 +1260,19 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(!cfg.replayCardId)} onClick={() => set({ replayCardId: undefined })}>Make a new one</button>
               <button type="button" className={chip(!!cfg.replayCardId)}
-                onClick={() => set({ replayCardId: cfg.replayCardId ?? cards?.[0]?.id })}>Replay a card</button>
+                onClick={() => set({ replayCardId: cfg.replayCardId ?? cards?.[0]?.id })}>Replay a saved run</button>
             </div>
             <p className="mt-1.5 text-[12px] text-keeper-meta">
               {cfg.replayCardId
-                ? 'Plays a card you\u2019ve already made. Nothing is generated and nothing is charged, so the wait is yours to set.'
+                ? 'Plays a run this page has already made. Nothing is generated and nothing is charged, so the wait is yours to set.'
                 : 'Makes a real card. Costs a generation and takes a couple of minutes.'}
             </p>
 
             {cfg.replayCardId && (
               <div className="mt-4 space-y-4">
                 {cardsErr && <p className="text-[13px] text-accent-red-dark">{cardsErr}</p>}
-                {!cards && !cardsErr && <p className="text-[13px] text-keeper-meta">Loading your cards\u2026</p>}
-                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No photo cards finished yet. Make one on this route and it becomes replayable.</p>}
+                {!cards && !cardsErr && <p className="text-[13px] text-keeper-meta">Loading your saved runs\u2026</p>}
+                {cards && cards.length === 0 && <p className="text-[13px] text-keeper-meta">No saved runs yet. Make one on this route and it saves itself at &ldquo;It&rsquo;s on the way&rdquo;.</p>}
                 {cards && cards.length > 0 && (
                   <div className="grid grid-cols-3 gap-2.5">
                     {cards.map((c) => {
@@ -1279,7 +1282,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
                           className={`overflow-hidden rounded-xl border-2 bg-white text-left transition-colors ${on ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}>
                           <img src={c.frontImageUrl ?? ''} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" loading="lazy" />
                           <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">
-                            {c.recipientName ?? `Card ${c.id}`}
+                            {c.recipientName ?? `Run ${c.id}`}
                             <span className="block text-keeper-meta">{c.occasion ?? ''}</span>
                           </span>
                         </button>
@@ -1462,7 +1465,10 @@ export default function DemoPage() {
   // `?route=photo&photo=<key>` films the photo door instead of the
   // three-card one — a different product, so a different run.
   const fromLink = useMemo<DemoConfig | null>(() => {
-    const card = Number(q.get('card'));
+    // ?run= is the saved demo run to play. ?card= is the old spelling of
+    // the same thing and still works — it pointed at a studio card until
+    // the photo route started saving its own runs (2026-09-25).
+    const card = Number(q.get('run') ?? q.get('card'));
     const replayCardId = Number.isFinite(card) && card > 0 ? card : undefined;
     const w = q.get('waits');
     const waits = w === 'none' || w === 'short' || w === 'real' ? w : undefined;

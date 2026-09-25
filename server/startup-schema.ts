@@ -21,6 +21,9 @@ export async function ensureLaunchColumns(): Promise<void> {
       label text, mode text, brief jsonb, hook_line text, concepts jsonb, front_paths jsonb,
       picked_index integer, photo_path text, cameo_path text, inside_path text, words jsonb, beats jsonb
     )`);
+    // 2026-09-25: which door a saved run came from, so each replay
+    // picker only offers runs its own screens can play.
+    await db.execute(sql`alter table demo_runs add column if not exists route text`);
     // 2026-09-16: back-office switches (the pre-launch site lock).
     await db.execute(sql`create table if not exists site_settings (
       key text primary key, value jsonb not null, updated_at timestamptz not null default now()

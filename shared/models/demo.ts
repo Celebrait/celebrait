@@ -15,7 +15,12 @@ export const demoRuns = pgTable("demo_runs", {
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   /** "Mum, 70 · Birthday" — what the list shows. */
   label: text("label"),
-  /** 'auto' (the director) or 'manual' (Aidan tapped through it). */
+  /** Which door made it: 'cards' (three options) or 'photo' (photo
+   *  first). Each replay picker only offers its own. Null on the four
+   *  runs saved before the column existed. */
+  route: text("route"),
+  /** Historic: 'auto' (the director) or 'manual'. The director was
+   *  removed on 2026-09-24, so every new run is hand-driven. */
   mode: text("mode"),
   /** The Brief as answered: who/gender/occasion/age/vibe/thing/cant/name/front. */
   brief: jsonb("brief"),

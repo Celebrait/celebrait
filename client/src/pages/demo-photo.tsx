@@ -188,30 +188,27 @@ export interface ReplayCard {
  *  the photo library for the source photo (resolved the way the rest of
  *  the client resolves one — see studio/input-editors.tsx). */
 export async function loadReplayCard(id: number): Promise<ReplayCard> {
-  const d = await api('GET', `/api/studio/drafts/${id}`);
-  const st = (d?.state ?? {}) as CardDraftState;
-  if (!d?.frontImageUrl) throw new Error(`Card ${id} has no front image — pick a finished one`);
-
-  let photoUrl: string | null = null;
-  const photoId = st.photos?.photoIds?.[0];
-  if (photoId != null) {
-    const lib = (await api('GET', '/api/user/photos').catch(() => null)) as
-      Array<{ id: number; storagePath?: string | null; croppedStoragePath?: string | null }> | null;
-    const row = lib?.find((x) => x.id === photoId);
-    const path = row?.croppedStoragePath ?? row?.storagePath;
-    if (path) photoUrl = `/images/${path}`;
-  }
-
-  const w = st.inside?.write ?? {};
+  // A SAVED DEMO RUN, not an arbitrary card from the library (Aidan
+  // 2026-09-25: "runs that are purely generated in this demo view").
+  // The old loader read any studio draft, which meant the picker offered
+  // every card in the account — most of them never made on this route
+  // and half of them missing the inside the reveal needs.
+  const j = await api('GET', `/api/admin/demo-runs/${id}`);
+  const r = j?.run;
+  if (!r) throw new Error(`No saved run ${id}`);
+  const front = r.frontUrls?.[r.picked_index ?? 0] ?? r.frontUrls?.[0];
+  if (!front) throw new Error(`Run ${id} has no front image`);
+  const brief = (r.brief ?? {}) as Record<string, string>;
+  const w = (r.words ?? {}) as Record<string, string>;
   return {
     id,
-    name: st.recipient?.name?.trim() || 'Them',
-    occasion: st.recipient?.occasion?.trim() || 'Birthday',
-    photoMode: st.photos?.mode ?? 'one_person',
-    scene: st.scene?.description?.trim() ?? '',
-    frontText: st.front?.text?.trim() ?? '',
-    dear: w.salutation ?? '', message: w.message ?? '', from: w.signoff ?? '',
-    photoUrl, frontUrl: d.frontImageUrl, insideUrl: d.insideImageUrl ?? null,
+    name: (brief.name ?? '').trim() || 'Them',
+    occasion: (brief.occasion ?? '').trim() || 'Birthday',
+    photoMode: (brief.photoMode as ReplayCard['photoMode']) ?? 'one_person',
+    scene: (brief.scene ?? '').trim(),
+    frontText: (brief.frontText ?? '').trim(),
+    dear: w.dear ?? '', message: w.message ?? '', from: w.from ?? '',
+    photoUrl: r.photoUrl ?? null, frontUrl: front, insideUrl: r.insideUrl ?? null,
   };
 }
 
@@ -456,6 +453,32 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
     return () => { window.clearTimeout(t); window.clearInterval(tick); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('click', onUp, true); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { clearRings(); }, [phase]);
+
+  // The run saves itself at "It's on the way", exactly as the three-card
+  // route does — so the photo door builds its own library of replayable
+  // runs instead of borrowing whatever happens to be in the card list
+  // (Aidan 2026-09-25). A replay is not itself a new run, so it never
+  // re-saves. Fire and forget: a failed save must never break a take.
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (phase !== 'sent' || savedRef.current || replay || !frontUrl) return;
+    savedRef.current = true;
+    const ev = window.__demo?.events ?? []; const t0 = ev[0]?.t ?? Date.now();
+    void fetch('/api/admin/demo-runs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        route: 'photo',
+        label: `${who} · ${preset.occasion}`,
+        brief: { name: who, occasion: preset.occasion, photoMode, scene, frontText },
+        hookLine: cfg.hook ? hookLine : undefined,
+        fronts: [frontUrl],
+        photo: photoData ?? undefined,
+        inside: insideUrl ?? undefined,
+        words: { dear, message, from },
+        beats: ev.map((e) => ({ name: e.name, t: e.t - t0 })),
+      }),
+    }).then((r) => { if (!r.ok) console.warn('[DEMO] save failed', r.status); }).catch((e) => console.warn('[DEMO] save failed', e));
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Group mode puts more than one person in, so don't name just one.
   const waitLine = drawingInside
