@@ -178,22 +178,31 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
               whole square and would cover anything laid over it. */}
           <div className="lg:col-span-6">
             <figure className={`relative mx-auto flex flex-col ${narrow ? 'w-[82%]' : 'w-full max-w-[520px]'}`}>
-              <div className="mb-3 flex items-end gap-3 self-start lg:ml-[4%]">
-                <motion.div
-                  initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -3.5 }}
-                  transition={{ delay: 0.45, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-none w-[96px] shrink-0 sm:w-[108px]">
-                  <div className="rounded-[3px] border-[5px] border-white bg-white shadow-[0_14px_30px_-16px_rgba(33,29,25,0.5)]">
-                    <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full object-cover" style={{ objectPosition: '30% 50%' }} />
-                  </div>
-                </motion.div>
-                <figcaption className="pb-1.5">
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Started as this</span>
-                  <span className="mt-1 block h-px w-10 bg-keeper-hair" />
-                </figcaption>
-              </div>
+              <div className="relative aspect-square w-full">
+                {/* The snapshot sits ON the card's top corner, with its
+                    label set vertically down the spine (Aidan 2026-09-25:
+                    "photo top corner with the words along the left side
+                    vertical, overlap slightly"). This supersedes the
+                    2026-09-22 "no overlap" call — it was made when the
+                    photo was a loose polaroid floating over the square;
+                    pinned to the corner it reads as one composed object.
+                    Worth knowing: the open spread sweeps the whole square,
+                    so it passes behind the photo when the card opens.
+                    pointer-events-none throughout, so the card still takes
+                    every tap and drag underneath. */}
+                <div className="pointer-events-none absolute left-[-3%] top-[-1%] z-20 flex w-[31%] min-w-[100px] items-stretch gap-2 lg:left-[-8%] lg:top-[-2%]">
+                  <span className="shrink-0 self-stretch text-[10px] font-semibold uppercase tracking-[0.2em] text-keeper-meta"
+                    style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Started as this</span>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -3.5 }}
+                    transition={{ delay: 0.45, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="min-w-0 flex-1">
+                    <div className="rounded-[3px] border-[5px] border-white bg-white shadow-[0_16px_34px_-16px_rgba(33,29,25,0.55)]">
+                      <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full object-cover" style={{ objectPosition: '30% 50%' }} />
+                    </div>
+                  </motion.div>
+                </div>
 
-              <div className="pointer-events-none relative aspect-square w-full lg:-mt-6">
                 <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
                   initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
