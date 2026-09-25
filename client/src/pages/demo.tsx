@@ -901,8 +901,16 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   useEffect(() => {
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
+    // NO COUNTDOWN MEANS NO TIMER — see the note on the photo route. A
+    // zero countdown still armed a one-second interval that reset the
+    // phase, which throws a human back a screen if they tap inside that
+    // second (2026-09-25).
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); } }, 1000);
+    const open = () => { setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); };
+    const tick = n > 0
+      ? window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); open(); } }, 1000)
+      : 0;
+    if (n <= 0) open();
     // Aidan drives, always. His taps get the ring; the hook types
     // itself and then steps aside, and a clip jumps to its own first
     // screen once it has.

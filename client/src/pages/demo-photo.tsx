@@ -445,8 +445,19 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   useEffect(() => {
     if (started.current) return; started.current = true;
     window.__demo = { state: 'idle', events: [] };
+    // NO COUNTDOWN MEANS NO TIMER. It used to run either way: with
+    // cfg.countdown at 0 the interval still fired once a second later and
+    // setPhase(firstPhase) — which was invisible while a director drove
+    // the run and waited that second out, and throws a HUMAN back to the
+    // first screen if they tap Next inside the first second (found
+    // 2026-09-25 driving a replay). It also cost every zero-countdown run
+    // a dead second at the top.
     let n = cfg.countdown;
-    const tick = window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); } }, 1000);
+    const open = () => { setPhase(firstPhase); mark(`${firstPhase}: open`, firstPhase); };
+    const tick = n > 0
+      ? window.setInterval(() => { n -= 1; setCount(n); if (n <= 0) { window.clearInterval(tick); open(); } }, 1000)
+      : 0;
+    if (n <= 0) open();
     // Aidan drives, always. His taps get the ring; the hook types
     // itself and then steps aside.
     const onDown = (e: PointerEvent) => ring(e.clientX, e.clientY);
