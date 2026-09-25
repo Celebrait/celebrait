@@ -1091,9 +1091,16 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
         <motion.section key="card" initial={{ opacity: 0, y: 16 }} animate={cardPainted ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }} exit={SCREEN.exit} transition={SCREEN.transition}
           className={`absolute inset-0 flex flex-col justify-center ${showClock ? 'pt-[14vh]' : ''}`}>
           <div data-demo="card" className="relative h-[min(56vh,104vw)] w-full shrink-0">
+            {/* backLogo: white board with the mark centred on the back.
+                Without it the viewer falls back to backCredit, which sets
+                the words "Made with Celebrait" in small type instead —
+                the photo route has had the logo since 2026-09-23 and this
+                one was missed (Aidan 2026-09-25: "the rear of my 3d card
+                on the demo needs to be white and have my branding"). */}
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
               onFirstFrame={() => setCardPainted(true)}
               enableRotate enableZoom={false}
+              backLogo backCaption="celebrait.co.uk"
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
           <div className={`mt-4 shrink-0 px-5 ${clip === 'open' ? 'invisible' : ''}`}>

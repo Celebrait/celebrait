@@ -700,7 +700,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
             <div data-demo="card" className="relative h-[min(60vh,110vw)] w-full shrink-0">
               <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
                 onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
-                backLogo
+                backLogo backCaption="celebrait.co.uk"
                 autoRotate={!cardOpen} autoRotateSpeed={8}
                 closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
             </div>
