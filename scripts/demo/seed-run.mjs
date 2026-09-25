@@ -19,6 +19,9 @@ if (wantCards) {
   const list = (await api(p, 'GET', '/api/user/cards')).body;
   const finished = (Array.isArray(list) ? list : []).filter((c) => c.frontImageUrl).slice(0, 3);
   if (finished.length < 3) { console.error(`only ${finished.length} finished cards — need 3`); process.exit(1); }
+  // A fourth, distinct image stands in for "the same card with them in
+  // it", so a wrong pick is obvious rather than invisible.
+  const cameoSource = (Array.isArray(list) ? list : []).filter((c) => c.frontImageUrl)[3] ?? null;
   const made = await api(p, 'POST', '/api/admin/demo-runs', {
     route: 'cards',
     label: `${finished[0].recipientName ?? 'Them'} · three cards (seed)`,
@@ -26,6 +29,10 @@ if (wantCards) {
     concepts: finished.map((c) => ({ front_text: c.recipientName ?? '', inside_text: 'With love.' })),
     fronts: finished.map((c) => c.frontImageUrl),
     pickedIndex: 1,
+    // A real three-card run that used a photo ends on the CAMEO, not on
+    // the picked front — so seed one, or anything that leads with the
+    // final card cannot be tested.
+    cameo: cameoSource?.frontImageUrl ?? undefined,
     inside: finished[0].insideImageUrl ?? undefined,
     words: { dear: 'Dear Mum,', message: 'Happy birthday.', from: 'Love, Aidan' },
   });

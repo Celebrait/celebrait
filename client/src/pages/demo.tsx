@@ -721,7 +721,14 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
    *  build it (Aidan 2026-09-25). Replay only — nothing to lead with on
    *  a fresh run — and whole runs only: a clip already IS an alternate
    *  opening, and stacking one in front of it would mean two. */
-  const openerFront = replay ? (replay.frontUrls?.[pi] ?? replay.frontUrls?.[0] ?? null) : null;
+  // THE CAMEO IS THE FINAL CARD. frontUrls[pi] is the card as it was
+  // BEFORE the person was put into it, so leading with that shows the
+  // wrong one — the empty scene — and then the reveal produces a card
+  // the opener never promised (Aidan 2026-09-25: "it wasn't the final
+  // card with mum in photo, it was the one without her"). The reveal
+  // picks chosenFront the same way, and so does the replay picker's own
+  // thumbnail one line below.
+  const openerFront = replay ? (replay.cameoUrl ?? replay.frontUrls?.[pi] ?? replay.frontUrls?.[0] ?? null) : null;
   const openerOn = cfg.opener === true && clip === 'full' && !!openerFront;
   const firstPhase: Phase = openerOn ? 'opener' : clip === 'full' ? 'brief' : 'intro';
   const showClock = cfg.timer !== false && clip === 'full';
