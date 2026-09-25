@@ -367,6 +367,13 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
   const landPhoto = () => { const src = pickerPhoto; setPickerOpen(false); if (src) void usePhoto(src).catch(fail); };
   const openPicker = async () => {
     if (photoData || pickerOpen) return;
+    // A saved run whose photo never made it into the store leaves
+    // preset.photo undefined, and this used to fetch(undefined), throw
+    // into a floating promise and dead-end the screen with nothing on
+    // it — the tap just did nothing, mid-take, with no way to tell why
+    // (found 2026-09-25 while driving a replay end to end). Say so
+    // instead: the banner is already there for engine failures.
+    if (!preset.photo) throw new Error('This run has no photo saved — pick a different one.');
     const prepared = pickerPhoto ?? await preparePhoto(await fetch(preset.photo).then((r) => r.blob()));
     setPickerPhoto(prepared); setPickerOpen(true);
   };
@@ -610,7 +617,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
             <h1 className={H1}>{photoMode === 'group' ? `Upload ${who}’s photo, everyone in it` : `Upload ${who}’s photo`}</h1>
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void preparePhoto(f).then((d) => usePhoto(d)).catch(fail); e.target.value = ''; }} />
-            <button type="button" data-demo="add-photo" onClick={() => { void openPicker(); }}
+            <button type="button" data-demo="add-photo" onClick={() => { openPicker().catch(fail); }}
               className="mt-6 flex aspect-[4/5] w-[min(70vw,40vh,260px)] shrink-0 items-center justify-center self-center overflow-hidden rounded-2xl border-2 border-dashed border-keeper-hair bg-white">
               <span className="flex flex-col items-center gap-2 text-keeper-meta"><Camera className="h-7 w-7" strokeWidth={1.5} /><span className="text-[14px] font-medium">Add a photo</span></span>
             </button>
