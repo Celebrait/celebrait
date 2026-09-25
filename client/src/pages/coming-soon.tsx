@@ -13,7 +13,6 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
-import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import celebraitLogo from '@/assets/celebrait.webp';
 
 // The same card as the photo lander's hero (Aidan 2026-09-17), with the
@@ -85,46 +84,55 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
   };
 
   return (
-    <div className="keeper-serif relative min-h-screen overflow-x-hidden">
-      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
-      <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-5 pb-8 pt-6 sm:px-8">
-        <header className="flex items-center justify-between">
-          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto sm:h-8" />
+    <div className="keeper-serif relative min-h-screen overflow-x-hidden bg-keeper-paper">
+      {/* THE GROUND. Paper and one violet bloom, nothing else.
+          The shared CelebrationBackdrop's pastel cake/ring/present/heart
+          used to sit here, and on a page whose whole job is to look
+          worth waiting for, 3D clipart is the cheapest thing on screen —
+          it also parked a large present directly behind the opt-in line.
+          The bloom does the same job (the frame has a light source, the
+          corners have weight) without putting a picture of a cake next
+          to the words. */}
+      <div className="pointer-events-none fixed inset-0 -z-10"
+        style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 58%, #F3F0E9 100%)' }} />
+      <div className="pointer-events-none fixed inset-0 -z-10"
+        style={{ background: 'radial-gradient(ellipse 70% 48% at 76% 8%, rgba(122,118,232,0.11), transparent 66%), radial-gradient(ellipse 58% 44% at 4% 96%, rgba(122,118,232,0.07), transparent 70%)' }} />
+
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1160px] flex-col px-6 sm:px-10">
+        {/* Two hairlines, top and bottom, are the only structure the page
+            needs — and they give everything a left edge to sit on. The
+            old layout had the words floating with no relationship to the
+            logo above them. */}
+        <header className="flex items-center justify-between py-6">
+          <img src={celebraitLogo} alt="Celebrait" className="h-7 w-auto sm:h-[30px]" />
           {hasPassword && !passOpen && (
-            <button type="button" onClick={() => setPassOpen(true)} className="text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink">
+            <button type="button" onClick={() => setPassOpen(true)}
+              className="text-[13px] font-medium text-keeper-meta underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-ink">
               Have a password?
             </button>
           )}
         </header>
+        <div className="h-px w-full bg-keeper-hair" />
 
-        {/* PHONES: words, sign-up, THEN the card. The card used to come
-            second and it is tall enough that the form — the only thing
-            this page is for — sat a full screen below the fold, unseen
-            unless you scrolled for it (Aidan 2026-09-25). The card is
-            still the proof, so it keeps its size; it just stops standing
-            between the reader and the box they came to fill in.
-            DESKTOP is unchanged: every cell is placed explicitly, so DOM
-            order does not reach it — card left, words over the sign-up
-            on the right. */}
-        <div className="grid flex-1 content-center gap-y-5 py-6 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0 lg:py-10">
-          {/* Intro */}
-          <div className="lg:col-start-2 lg:row-start-1 lg:self-end">
-            <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand-muted px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-dark">
+        <div className="grid flex-1 items-center gap-y-14 py-10 lg:grid-cols-12 lg:gap-x-12 lg:py-14">
+          {/* ── the words, and the one thing to do ─────────────────── */}
+          <div className="lg:col-span-6">
+            <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cta" /> Early access
             </span>
-            <h1 className="mt-4 font-display text-[44px] font-bold leading-[0.98] tracking-[-0.025em] text-keeper-ink sm:text-[60px] lg:text-[54px] xl:text-[64px]">
-              <span className="bg-gradient-to-r from-[#7a76e8] via-[#5c57d4] to-[#211D19] bg-clip-text pb-1 text-transparent">Unbinnable</span>
-              <br />greetings cards.
+            {/* One weight, one colour, tight. The gradient across
+                "Unbinnable" was doing the work a good face should do on
+                its own, and it fought the violet eyebrow above it. */}
+            <h1 className="mt-5 font-display text-[clamp(40px,8.4vw,58px)] font-bold leading-[0.96] tracking-[-0.03em] text-keeper-ink lg:text-[clamp(40px,3.9vw,54px)]">
+              Unbinnable<br />greetings cards.
             </h1>
-            <p className="mt-3.5 max-w-[440px] text-[16.5px] leading-relaxed text-keeper-body sm:text-[17px]">
+            <p className="mt-5 max-w-[38ch] text-[16px] leading-[1.6] text-keeper-body">
               Celebrait creates personalised greetings cards that are so good they’ll probably never end up in the bin. We’re launching some time soon so add your details below and we’ll let you know when we do!
             </p>
-          </div>
 
-          {/* Sign-up */}
-          <div className="lg:col-start-2 lg:row-start-2 lg:self-start lg:pt-7">
             {joined ? (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex max-w-[460px] items-center gap-3 rounded-2xl border border-brand/40 bg-brand-muted px-5 py-4">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-8 flex max-w-[430px] items-center gap-3 rounded-2xl border border-brand/40 bg-brand-muted px-5 py-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cta text-cta-foreground"><Check className="h-5 w-5" strokeWidth={3} /></span>
                 <span>
                   <span className="block font-semibold text-keeper-ink">You’re on the list{name.trim() ? `, ${name.trim()}` : ''}.</span>
@@ -132,16 +140,20 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                 </span>
               </motion.div>
             ) : (
-              <form onSubmit={join} className="max-w-[460px] space-y-3">
-                <div className="grid grid-cols-[0.8fr_1.2fr] gap-2.5">
-                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={field} />
-                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={field} />
+              <form onSubmit={join} className="mt-8 max-w-[430px]">
+                <div className="flex gap-2.5">
+                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={`${field} w-[38%]`} />
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={`${field} flex-1`} />
                 </div>
-                <button type="submit" disabled={busy} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-cta px-6 text-[15px] font-semibold text-cta-foreground shadow-sm transition-colors hover:bg-cta-hover disabled:opacity-60">
+                {/* Sized to its words, not to the column. A full-width
+                    slab of lime was the loudest thing on a page that is
+                    meant to read as an invitation. */}
+                <button type="submit" disabled={busy}
+                  className="mt-3 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-cta px-7 text-[15px] font-semibold text-cta-foreground shadow-[0_10px_24px_-12px_rgba(95,217,74,0.9)] transition-colors hover:bg-cta-hover disabled:opacity-60">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Get early access <ArrowRight className="h-4 w-4" /></>}
                 </button>
-                {err && <p className="px-1 text-[13px] font-medium text-accent-red-dark">{err}</p>}
-                <label className="flex cursor-pointer items-start gap-2 px-1 text-[12.5px] leading-snug text-keeper-meta">
+                {err && <p className="mt-2 px-1 text-[13px] font-medium text-accent-red-dark">{err}</p>}
+                <label className="mt-4 flex cursor-pointer items-start gap-2 text-[12.5px] leading-snug text-keeper-meta">
                   <input type="checkbox" checked={optIn} onChange={(e) => setOptIn(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[#7a76e8]" />
                   <span>Send me the odd card idea after launch too. We only email you about opening otherwise. <Link href="/privacy-policy" className="underline underline-offset-2 hover:text-keeper-ink">Privacy</Link>.</span>
                 </label>
@@ -149,7 +161,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             )}
 
             {hasPassword && passOpen && (
-              <form onSubmit={unlock} className="mt-5 flex max-w-[460px] gap-2 border-t border-keeper-hair pt-5">
+              <form onSubmit={unlock} className="mt-6 flex max-w-[430px] gap-2 border-t border-keeper-hair pt-6">
                 <input value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Password" aria-label="Early-access password" autoFocus className={field} />
                 <button type="submit" disabled={passBusy || !pass.trim()} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full border border-brand bg-brand-muted px-5 text-[15px] font-semibold text-brand-dark transition-colors hover:bg-brand-light disabled:opacity-50">
                   {passBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Let me in'}
@@ -158,25 +170,30 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             )}
             {passErr && <p className="mt-2 px-1 text-[13px] font-medium text-accent-red-dark">{passErr}</p>}
           </div>
-          {/* On desktop the card's left edge lines up with the logo; it
-              opens to the left and may run off screen. The canvas bleeds
-              far past the square and only the card takes the pointer.
-              The photo it was made from sits ABOVE the card, left — the
-              open spread sweeps across the whole square, so anything
-              placed over the square gets covered (Aidan 2026-09-22:
-              "top left of the card and no overlap"). */}
-          <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center">
-            <div className={`relative flex flex-col ${narrow ? 'mx-auto w-[74%]' : 'w-full max-w-[440px] lg:-translate-x-[2%]'}`}>
-              <motion.figure
-                initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -4 }}
-                transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="pointer-events-none relative z-10 mb-1 w-[30%] min-w-[88px] self-start lg:ml-[6%]">
-                <div className="rounded-md border-[5px] border-white bg-white shadow-[0_14px_32px_-14px_rgba(33,29,25,0.45)]">
-                  <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full rounded-sm object-cover" style={{ objectPosition: '30% 50%' }} />
-                </div>
-                <figcaption className="mt-1.5 text-center text-[11px] font-medium text-keeper-meta">started as this</figcaption>
-              </motion.figure>
-              <div className="pointer-events-none relative aspect-square w-full lg:-mt-7">
+
+          {/* ── the proof: one photograph became one card ───────────── */}
+          {/* Labelled as a before and an after, because that IS the
+              product and it was previously an 11px caption under a
+              stranded polaroid. No overlap — the open spread sweeps the
+              whole square and would cover anything laid over it. */}
+          <div className="lg:col-span-6">
+            <figure className={`relative mx-auto flex flex-col ${narrow ? 'w-[82%]' : 'w-full max-w-[520px]'}`}>
+              <div className="mb-3 flex items-end gap-3 self-start lg:ml-[4%]">
+                <motion.div
+                  initial={{ opacity: 0, y: 12, rotate: 0 }} animate={{ opacity: 1, y: 0, rotate: -3.5 }}
+                  transition={{ delay: 0.45, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="pointer-events-none w-[96px] shrink-0 sm:w-[108px]">
+                  <div className="rounded-[3px] border-[5px] border-white bg-white shadow-[0_14px_30px_-16px_rgba(33,29,25,0.5)]">
+                    <img src={HERO_SOURCE} alt="The everyday photo this card was made from" className="block aspect-[4/5] w-full object-cover" style={{ objectPosition: '30% 50%' }} />
+                  </div>
+                </motion.div>
+                <figcaption className="pb-1.5">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-keeper-meta">Started as this</span>
+                  <span className="mt-1 block h-px w-10 bg-keeper-hair" />
+                </figcaption>
+              </div>
+
+              <div className="pointer-events-none relative aspect-square w-full lg:-mt-6">
                 <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
                   initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
@@ -186,19 +203,22 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                     closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
                 </motion.div>
               </div>
-              <div className={`flex h-[52px] justify-center ${narrow ? 'mt-2 -mx-[20%]' : 'mt-2'}`}>
+
+              <div className={`flex h-[48px] justify-center ${narrow ? '-mx-[20%] mt-1' : 'mt-1'}`}>
                 <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
               </div>
-            </div>
+            </figure>
           </div>
-
         </div>
 
-        <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12px] text-keeper-meta">
+        <div className="h-px w-full bg-keeper-hair" />
+        <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-5 text-[12px] text-keeper-meta">
           <span>© {new Date().getFullYear()} Celebrait</span>
-          <Link href="/privacy-policy" className="hover:text-keeper-ink">Privacy</Link>
-          <Link href="/terms-of-service" className="hover:text-keeper-ink">Terms</Link>
-          <Link href="/contact" className="hover:text-keeper-ink">Contact</Link>
+          <span className="flex flex-wrap gap-x-4">
+            <Link href="/privacy-policy" className="hover:text-keeper-ink">Privacy</Link>
+            <Link href="/terms-of-service" className="hover:text-keeper-ink">Terms</Link>
+            <Link href="/contact" className="hover:text-keeper-ink">Contact</Link>
+          </span>
         </footer>
       </main>
     </div>
