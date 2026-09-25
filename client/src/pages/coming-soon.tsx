@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { GestureHints } from '@/components/gesture-hints';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import celebraitLogo from '@/assets/celebrait.webp';
 
 // The same card as the photo lander's hero (Aidan 2026-09-17), with the
@@ -84,20 +85,13 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
   };
 
   return (
-    <div className="keeper-serif relative min-h-screen overflow-x-hidden bg-keeper-paper">
-      {/* THE GROUND. Paper and one violet bloom, nothing else.
-          The shared CelebrationBackdrop's pastel cake/ring/present/heart
-          used to sit here, and on a page whose whole job is to look
-          worth waiting for, 3D clipart is the cheapest thing on screen —
-          it also parked a large present directly behind the opt-in line.
-          The bloom does the same job (the frame has a light source, the
-          corners have weight) without putting a picture of a cake next
-          to the words. */}
-      <div className="pointer-events-none fixed inset-0 -z-10"
-        style={{ background: 'linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 58%, #F3F0E9 100%)' }} />
-      <div className="pointer-events-none fixed inset-0 -z-10"
-        style={{ background: 'radial-gradient(ellipse 70% 48% at 76% 8%, rgba(122,118,232,0.11), transparent 66%), radial-gradient(ellipse 58% 44% at 4% 96%, rgba(122,118,232,0.07), transparent 70%)' }} />
-
+    <div className="keeper-serif relative min-h-screen overflow-x-hidden">
+      {/* NO background on this element. CelebrationBackdrop paints the
+          ground and the floating icons on a fixed -z-10 layer, so an
+          opaque background here sits on top of them and the icons
+          vanish — which is exactly what happened when this page was
+          reworked. */}
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1160px] flex-col px-6 sm:px-10">
         {/* Two hairlines, top and bottom, are the only structure the page
             needs — and they give everything a left edge to sit on. The
@@ -120,11 +114,9 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cta" /> Early access
             </span>
-            {/* One weight, one colour, tight. The gradient across
-                "Unbinnable" was doing the work a good face should do on
-                its own, and it fought the violet eyebrow above it. */}
             <h1 className="mt-5 font-display text-[clamp(40px,8.4vw,58px)] font-bold leading-[0.96] tracking-[-0.03em] text-keeper-ink lg:text-[clamp(40px,3.9vw,54px)]">
-              Unbinnable<br />greetings cards.
+              <span className="bg-gradient-to-r from-[#7a76e8] via-[#5c57d4] to-[#211D19] bg-clip-text pb-1 text-transparent">Unbinnable</span>
+              <br />greetings cards.
             </h1>
             <p className="mt-5 max-w-[38ch] text-[16px] leading-[1.6] text-keeper-body">
               Celebrait creates personalised greetings cards that are so good they’ll probably never end up in the bin. We’re launching some time soon so add your details below and we’ll let you know when we do!
