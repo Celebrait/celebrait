@@ -601,7 +601,7 @@ export function PostFlight({ src }: { src: string }) {
   );
 }
 
-type Phase = 'countdown' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'sent' | 'intro' | 'guess';
+type Phase = 'countdown' | 'opener' | 'brief' | 'generating' | 'results' | 'photo' | 'photo-generating' | 'photo-result' | 'inside' | 'inside-generating' | 'card' | 'sent' | 'intro' | 'guess';
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -717,7 +717,13 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
   const replay = cfg.replay;
   const clip: ClipKey = replay ? (cfg.clip ?? 'full') : 'full';
   const pi = replay?.pickedIndex ?? 0;
-  const firstPhase: Phase = clip === 'full' ? 'brief' : 'intro';
+  /** Lead with the card this run actually produced, then go back and
+   *  build it (Aidan 2026-09-25). Replay only — nothing to lead with on
+   *  a fresh run — and whole runs only: a clip already IS an alternate
+   *  opening, and stacking one in front of it would mean two. */
+  const openerFront = replay ? (replay.frontUrls?.[pi] ?? replay.frontUrls?.[0] ?? null) : null;
+  const openerOn = cfg.opener === true && clip === 'full' && !!openerFront;
+  const firstPhase: Phase = openerOn ? 'opener' : clip === 'full' ? 'brief' : 'intro';
   const showClock = cfg.timer !== false && clip === 'full';
   const [phase, setPhase] = useState<Phase>(cfg.countdown > 0 ? 'countdown' : firstPhase);
   const phaseRef = useRef<Phase>(phase); phaseRef.current = phase;
@@ -1011,6 +1017,21 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
         <motion.section key="countdown" {...SCREEN} className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
           <p className="font-display text-[88px] font-bold leading-none text-keeper-ink">{count}</p>
           <p className="text-[14px] text-keeper-meta">Start your screen recording</p>
+        </motion.section>
+      )}
+
+      {/* 0b · the hook: here is the card, now watch it get made. Flat and
+              ajar rather than the 3D turn — the turn belongs to the
+              reveal, and spending it here leaves the reveal with nothing
+              the viewer has not seen. Matches the photo route's opener. */}
+      {phase === 'opener' && openerFront && (
+        <motion.section key="opener" {...SCREEN}
+          className={`absolute inset-0 flex flex-col items-center px-6 ${hook ? 'justify-end pb-[10vh]' : 'justify-center'}`}>
+          <button type="button" data-demo="opener" aria-label="Start the build"
+            onClick={() => { setPhase('brief'); mark('brief: open', 'brief'); }}
+            className={`shrink-0 transition-transform active:scale-[0.98] ${hook ? 'w-[min(58vw,34vh,260px)]' : 'w-[min(72vw,42vh,320px)]'}`}>
+            <AjarTile imageUrl={openerFront} alt="" eager openDeg={22} />
+          </button>
         </motion.section>
       )}
 
@@ -1419,7 +1440,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
               {cfg.photo && <button type="button" className={QUIET} onClick={() => set({ photo: undefined })}>Remove</button>}
             </div>
           </div>}
-          {isPhoto && !!cfg.replayCardId && <div><span className={label}>Opening</span>
+          {((isPhoto && !!cfg.replayCardId) || (!isPhoto && isReplay && (cfg.clip ?? 'full') === 'full')) && <div><span className={label}>Opening</span>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={chip(cfg.opener === true)} onClick={() => set({ opener: true })}>Card first</button>
               <button type="button" className={chip(cfg.opener !== true)} onClick={() => set({ opener: false })}>Straight into the build</button>
@@ -1515,7 +1536,7 @@ export default function DemoPage() {
       .then((j) => {
         const run = toReplay(j.run);
         const clipKey = (CLIPS.find((c) => c.key === q.get('clip'))?.key ?? 'full') as ClipKey;
-        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], hook: q.get('hook') === 'typed', countdown: 0, waits: q.get('waits') === 'short' ? 'short' : 'real' };
+        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], hook: q.get('hook') === 'typed', countdown: 0, opener: q.get('opener') === 'card', waits: q.get('waits') === 'short' ? 'short' : 'real' };
         setCfg(configFromRun(run, base, clipKey));
       })
       .catch(() => setLinkErr('Could not load that saved run.'));
