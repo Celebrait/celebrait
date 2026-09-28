@@ -14,7 +14,13 @@ import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
-import { deriveCardTitle } from '@/lib/studio-card-buckets';
+import { ThumbImg } from '@/components/thumb-img';
+import {
+  deriveCardTitle,
+  isDraftStatus,
+  isGeneratedStatus,
+  isGeneratingStatus,
+} from '@/lib/studio-card-buckets';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,24 +36,28 @@ import type { CardGridItem } from '@shared/schema';
 
 interface CardThumbnailProps {
   card: CardGridItem;
+  /** Family size when this tile is the COVER of a take-family with
+   *  more than one member (see collapseFamilies). Renders an "N takes"
+   *  badge bottom-left; the card view's takes rail does the switching. */
+  takesCount?: number;
 }
 
 // Title derivation lives in @/lib/studio-card-buckets so the dashboard
 // + grid + drafts/ready/sent surfaces all read identically. Was
 // duplicated here pre-2026-04-26 — leaked "Mum's birthday" / "Mum's
 // thankyou" because this copy didn't get the suffix + label fixes.
-export function CardThumbnail({ card }: CardThumbnailProps) {
+export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
   const title = deriveCardTitle(card);
-  const isGenerating = card.status === 'generating';
-  const isDraft = card.status === 'draft';
-  // "Ready to send" = generated card with no paid order against it.
+  // Use the shared bucket logic so front-first lifecycle statuses
+  // (generating-front/front-ready/…) read correctly — inline
+  // status==='generating' checks missed them, so a half-generated card
+  // showed a green "Ready to send" chip (audit 2026-07-02).
+  const isGenerating = isGeneratingStatus(card.status);
+  const isUnfinished = isDraftStatus(card.status);
+  // "Ready to send" = fully generated card with no paid order against it.
   // Small chip on the tile nudges the user to go buy it; click still
   // goes to the viewer where the Buy CTA lives.
-  const isReadyToSend =
-    !isDraft &&
-    !isGenerating &&
-    card.status !== 'failed' &&
-    !card.hasPaidOrder;
+  const isReadyToSend = isGeneratedStatus(card.status) && !card.hasPaidOrder;
   // "Just finished" — completed card the sender hasn't yet opened or
   // dismissed the toast for. Layered on TOP of the Ready/Sent split so
   // a freshly-finished unpaid card shows the violet "Just finished"
@@ -70,16 +80,15 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
   // so it's clearly a different state.
   const isOrphanedCompleted =
     !hasImage &&
-    !isGenerating &&
-    !isDraft &&
+    !isUnfinished &&
     (card.status === 'completed' ||
       card.status === 'ready' ||
       card.status === 'paid' ||
       card.status === 'purchased');
   const effectiveStatus = isOrphanedCompleted ? 'archived' : card.status;
-  // Drafts click back into the maker to resume; finished cards go to
-  // their detail/preview page (not built yet — Sprint 4).
-  const href = isDraft ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
+  // Unfinished cards (draft + any front-first in-progress status) click
+  // back into the maker to resume; finished cards go to their detail page.
+  const href = isUnfinished ? `/studio/card/${card.id}/edit` : `/studio/card/${card.id}`;
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -87,7 +96,7 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
-      toast({ title: 'Card deleted' });
+      toast({ title: 'Card deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -104,15 +113,14 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
     <>
       <div className="aspect-square bg-stone-100 relative overflow-hidden">
         {hasImage ? (
-          <img
+          <ThumbImg
             src={card.frontImageUrl!}
             alt={title}
-            loading="lazy"
-            onError={() => setImageFailed(true)}
+            onFinalError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           />
         ) : isGenerating ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-500">
+          <div className="w-full h-full flex flex-col items-center justify-center text-keeper-meta">
             <Loader2 className="w-8 h-8 animate-spin text-brand mb-2" />
             <p className="text-xs">Generating…</p>
           </div>
@@ -120,7 +128,7 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
           // Orphaned "completed" card with no viewable image. Keep the
           // explicit ImageOff treatment here so the user understands
           // this is a broken state, not a draft they can edit.
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+          <div className="w-full h-full flex flex-col items-center justify-center text-keeper-meta">
             <ImageOff className="w-8 h-8 mb-1" />
             <p className="text-xs">Image unavailable</p>
           </div>
@@ -166,9 +174,17 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
             Just finished
           </div>
         )}
+        {typeof takesCount === 'number' && takesCount > 1 && (
+          <div
+            className="absolute bottom-2 left-2 inline-flex items-center gap-1 bg-white/90 text-keeper-body text-[10px] font-semibold rounded-full px-2.5 py-1 shadow-sm border border-keeper-hair"
+            data-testid={`chip-takes-${card.id}`}
+          >
+            {takesCount} takes
+          </div>
+        )}
       </div>
       <div className="p-3">
-        <p className="text-sm font-medium text-stone-900 truncate">{title}</p>
+        <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
       </div>
     </>
   );
@@ -183,8 +199,8 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
               // visible enough to draw the eye, not so loud it overwhelms
               // the rest of the grid. Fades to normal once notifiedAt
               // is stamped (user opens it or dismisses the toast).
-              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(122,118,232,0.35)] hover:border-brand-dark'
-            : 'border-stone-200 hover:border-brand'
+              'border-brand ring-2 ring-brand/20 shadow-[0_4px_20px_-4px_rgba(92,87,212,0.3)] hover:border-brand-dark'
+            : 'border-keeper-hair hover:border-brand'
         }`}
         data-testid={`card-tile-${card.id}`}
         data-just-finished={isJustFinished ? 'true' : undefined}
@@ -212,7 +228,7 @@ export function CardThumbnail({ card }: CardThumbnailProps) {
         // taps trigger the (invisible) delete instead of the Link
         // beneath. Kevin caught this 2026-04-27 — "cards only open
         // when clicked on the right".
-        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-stone-600 hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
+        className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur text-keeper-body hover:text-red-600 hover:bg-white shadow-sm opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto transition-opacity disabled:opacity-50"
         aria-label={`Delete ${title}`}
         data-testid={`btn-delete-card-${card.id}`}
       >

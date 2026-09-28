@@ -21,6 +21,15 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        // `font-display` — Fraunces serif, on TEST for landing headlines.
+        display: ['Fraunces', 'Georgia', 'Cambria', 'serif'],
+        // `font-body` — Figtree humanist sans, warmer pairing with Fraunces
+        // than Inter (which was declared but never actually loaded). On
+        // TRIAL in the /keeper proof section before any site-wide swap of
+        // the base Inter body font. See panel opinion 2026-07-15.
+        body: ['Figtree', 'Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         // ── Celebrait brand palette ──────────────────────────────────
         // Warm violet primary, green CTAs, stone neutrals.
@@ -34,10 +43,29 @@ export default {
           foreground: '#ffffff',  // text on brand buttons
         },
         cta: {
-          DEFAULT: '#5fd94a',     // bright lime — primary action ("go")
+          // Bright lime — the "go" colour. Reverted from the emerald back to
+          // Kevin's original #5fd94a 2026-07-11. Drives BOTH the
+          // super-important "go" buttons and the green readiness accents.
+          // One token → cascades to every green surface (buttons, tints,
+          // badges, /keeper CTAs, the auth doorway).
+          DEFAULT: '#5fd94a',     // bright lime — go actions + readiness accent
           hover: '#4ac437',       // slightly deeper — hover
-          light: '#e0f8db',       // pale green — success backgrounds
+          light: '#e0f8db',       // pale green — readiness backgrounds / badge bg
+          dark: '#166534',        // forest — deep-green TEXT on the light tint (badges)
           foreground: '#ffffff',
+        },
+        // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────
+        // Split out of `cta` so we can A/B the primary-button colour
+        // (ink vs violet vs green) WITHOUT disturbing green where it
+        // earns its place as a status accent (Ready column, ready dots).
+        // CSS-var backed → flip live via the Dev-tools "Button colour"
+        // switcher (sets data-go on <html>); default is ink (index.css).
+        // Once the treatment is decided, bake the winner into index.css
+        // and retire the switcher.
+        go: {
+          DEFAULT: 'var(--go)',
+          hover: 'var(--go-hover)',
+          foreground: 'var(--go-fg)',
         },
         // Accent palette — semantic usage rules (see UX_STUDIO_TONE.md):
         //   coral = emotion / recipient moments (hearts, personal moments)
@@ -52,27 +80,63 @@ export default {
           // semantics, killing the whole custom accent palette).
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          // ⚠️ LEGACY LANDING ONLY — coral + amber below. The STUDIO (Keeper
+          // skin) retired the rainbow: use violet (brand), green (cta), or
+          // ember (accent-red) instead. Do NOT use coral/amber on any studio
+          // surface. These stay only because the OLD landing sections + a few
+          // /keeper-shared sections (faq, imagine-describe-ship) still use
+          // them; slated for removal when /keeper replaces / and those get
+          // re-skinned. See next_studio_keeper_skin + next_lp_keeper_blueprint.
           coral: '#ff9ec7',      // soft coral — emotion, warmth
           'coral-dark': '#ec4899', // saturated coral — hover / emphasis
           'coral-light': '#ffe4ef', // pale coral wash — backgrounds
           amber: '#fbbf24',      // sunny amber — celebration, success
           'amber-dark': '#f59e0b', // deeper amber — hover
           'amber-light': '#fef3c7', // pale amber wash
-          // Warm dusty red — designed to live next to cream + amber
-          // without screaming SaaS error. Brick / terracotta family.
-          // Reference points: Hermès orange-red, Aesop earth tones,
-          // Rifle Paper Co botanical reds. Use sparingly: warning /
-          // failure / "wait, look at this" moments only. Never for
-          // destructive ("delete") confirmation — that's a different
-          // visual job and would dilute this signal.
-          red: '#b94a44',        // dusty red — primary warning
-          'red-dark': '#8f3530', // deep oxblood — text/icon glyph
-          'red-light': '#fbece9', // pale rose-cream wash — backgrounds
+          // Ember — refined warm terracotta for warnings/failures under
+          // the Keeper palette (2026-07-09, replaced the muddy dusty-brick
+          // #b94a44 Kevin rejected). Cleaner + brighter, reads warm-but-
+          // intentional on paper. Sits as the ONE warm accent in an
+          // otherwise paper/ink/violet/green system. Use sparingly:
+          // warning / failure / "wait, look at this" only. NEVER for
+          // destructive ("delete") confirmation — that keeps the separate
+          // system danger-red, so this ember doesn't dilute that signal.
+          red: '#c15b43',        // ember terracotta — primary warning
+          'red-dark': '#a6432e', // deep clay — text/icon glyph
+          'red-light': '#f6e7e1', // pale ember wash — backgrounds
+        },
+        // THE KEEPER landing palette (locked 2026-07-04, judge's pick from
+        // the LP panel — see next_lp_keeper_blueprint.md). Gallery
+        // neutrals + ONE marigold accent; kills the pinky-Replit read and
+        // flatters skin tones on a face-led page. Landing-scope for now;
+        // candidate for brand-wide adoption after Kevin sees it live.
+        keeper: {
+          paper: '#FAF8F4',      // warm paper white — page ground
+          ink: '#211D19',        // warm near-black — headlines + the one dark band
+          // Primary body copy. Warm charcoal, a deliberate rung below `ink`
+          // so headline→body hierarchy survives. ~9:1 on paper (clears AA).
+          // Replaces `stone` for BODY text — stone failed AA at 4.47:1 and
+          // read washed-out. On TRIAL in /keeper proof; roll site-wide next.
+          body: '#3A342E',       // warm charcoal — primary body text
+          stone: '#7A7267',      // warm secondary text (⚠ AA-marginal — demote to ≥14px meta only)
+          meta: '#645C53',       // AA-safe secondary/meta grey (5.6:1) — captions, labels, fine print
+          hair: '#E5DFD4',       // hairline borders
+          // Accent = the EXISTING brand violet (Kevin killed the judge's
+          // marigold on sight, 2026-07-04 — "wtf is that gold"; it also
+          // fought the violet header = two accent families on one screen).
+          // ONE accent site-wide: the violet the logo/studio already own.
+          // Class names keep the gold- prefix until the palette pass renames.
+          gold: '#5c57d4',       // accent — eyebrows, persona word, links (= brand.dark for paper contrast)
+          'gold-deep': '#4a45c0',// hover / pressed
+          'gold-wash': '#EDECFA',// pale wash — chips, tags
         },
         surface: {
           DEFAULT: '#fafaf9',     // stone-50 — page background (warm)
           card: '#ffffff',        // card backgrounds
           muted: '#f5f5f4',       // stone-100 — subtle differentiation
+          // ⚠️ LEGACY LANDING ONLY — studio uses keeper-paper. `surface-cream`
+          // survives only in the OLD landing sections + parked style-step;
+          // remove when /keeper replaces /. Don't use on studio surfaces.
           cream: '#fef7ed',       // warm cream — step backgrounds, frames
         },
         ink: {

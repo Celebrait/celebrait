@@ -110,7 +110,7 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-keeper-body">
         Pick how the front should look — or describe your own style.
       </p>
 
@@ -153,10 +153,10 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
           <customMode.icon className="w-4.5 h-4.5" strokeWidth={1.75} />
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold text-ink">
+          <span className="block text-sm font-semibold text-keeper-ink">
             Describe your own style
           </span>
-          <span className="block text-xs text-stone-500 mt-0.5">
+          <span className="block text-xs text-keeper-meta mt-0.5">
             Watercolour, 60s poster, vaporwave — your call.
           </span>
         </span>
@@ -174,7 +174,7 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
               <p className="text-[11px] font-semibold text-accent-coral-dark uppercase tracking-wider mb-1">
                 Your custom style
               </p>
-              <p className="text-sm text-ink break-words">
+              <p className="text-sm text-keeper-ink break-words">
                 {state.style.custom}
               </p>
             </div>
@@ -245,7 +245,7 @@ function StyleExampleDialog({
     <Dialog open={!!effectiveMode} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-ink">{btn?.label}</DialogTitle>
+          <DialogTitle className="text-keeper-ink">{btn?.label}</DialogTitle>
           <DialogDescription>{btn?.blurb}</DialogDescription>
         </DialogHeader>
 
@@ -259,9 +259,9 @@ function StyleExampleDialog({
                 onError={() => setImageMissing(true)}
               />
             ) : (
-              <div className="text-center px-6 py-12 text-stone-500">
+              <div className="text-center px-6 py-12 text-keeper-meta">
                 <ImageOff className="w-10 h-10 mx-auto mb-3 text-accent-coral-dark/50" />
-                <p className="text-sm font-medium text-ink">
+                <p className="text-sm font-medium text-keeper-ink">
                   Sample coming soon
                 </p>
                 <p className="text-xs mt-1">
@@ -321,7 +321,7 @@ function PrimaryStyleCard({
       className={`rounded-2xl border-2 transition-all overflow-hidden ${
         active
           ? 'border-brand shadow-md ring-2 ring-brand/20'
-          : 'border-stone-200 hover:border-brand/60 hover:shadow-sm bg-white'
+          : 'border-keeper-hair hover:border-brand/60 hover:shadow-sm bg-white'
       }`}
       data-testid={`style-${btn.mode}`}
     >
@@ -348,7 +348,7 @@ function PrimaryStyleCard({
       ) : (
         <div className="relative aspect-[4/3] w-full bg-surface-cream flex flex-col items-center justify-center gap-1.5 text-accent-coral-dark">
           <Icon className="w-10 h-10" strokeWidth={1.5} />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-keeper-meta">
             Sample coming soon
           </span>
           {active && (
@@ -363,8 +363,8 @@ function PrimaryStyleCard({
         onClick={onPick}
         className="block w-full text-left p-4"
       >
-        <div className="text-base font-semibold text-ink mb-1">{btn.label}</div>
-        <p className="text-xs text-stone-500">{btn.blurb}</p>
+        <div className="text-base font-semibold text-keeper-ink mb-1">{btn.label}</div>
+        <p className="text-xs text-keeper-meta">{btn.blurb}</p>
       </button>
     </div>
   );
@@ -398,7 +398,7 @@ function CustomStyleDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-ink">Describe your style</DialogTitle>
+          <DialogTitle className="text-keeper-ink">Describe your style</DialogTitle>
           <DialogDescription>
             Tell us how the front should look. The more specific — medium,
             era, feel — the closer we'll land.
@@ -407,7 +407,7 @@ function CustomStyleDialog({
 
         <div className="space-y-4 py-2">
           <div>
-            <Label htmlFor="custom-style-text" className="text-sm text-ink">
+            <Label htmlFor="custom-style-text" className="text-sm text-keeper-ink">
               Your style description
             </Label>
             <Textarea
@@ -423,9 +423,9 @@ function CustomStyleDialog({
             <p
               className={`text-[11px] mt-1 ${
                 trimmed.length === 0
-                  ? 'text-stone-400'
+                  ? 'text-keeper-meta'
                   : valid
-                    ? 'text-stone-500'
+                    ? 'text-keeper-meta'
                     : 'text-accent-coral-dark'
               }`}
             >
@@ -440,15 +440,15 @@ function CustomStyleDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div className="bg-cta-light/40 rounded-lg p-3 border border-cta/30">
               <p className="font-semibold text-cta-hover mb-1">Good examples</p>
-              <ul className="space-y-1 text-stone-700">
+              <ul className="space-y-1 text-keeper-body">
                 <li>"Watercolour with soft pastel washes, warm beige"</li>
                 <li>"1960s Saul Bass poster, flat shapes, mustard + teal"</li>
                 <li>"Pixar 3D animation, warm cinematic lighting"</li>
               </ul>
             </div>
-            <div className="bg-stone-50 rounded-lg p-3 border border-stone-200">
-              <p className="font-semibold text-stone-500 mb-1">Too vague</p>
-              <ul className="space-y-1 text-stone-600">
+            <div className="bg-stone-50 rounded-lg p-3 border border-keeper-hair">
+              <p className="font-semibold text-keeper-meta mb-1">Too vague</p>
+              <ul className="space-y-1 text-keeper-body">
                 <li>"Cool", "Modern", "Nice"</li>
                 <li>"Like that one Disney movie"</li>
                 <li>"Something pretty"</li>
