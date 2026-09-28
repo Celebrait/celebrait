@@ -39,6 +39,7 @@
 
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '../db';
+import { activitySince } from '../activity';
 import { cards, cardAttempts, studioOrders } from '@shared/schema';
 import { inFlightCards } from '../generation-registry';
 import { submitPrintOrder } from '../routes/studio-checkout';
@@ -209,12 +210,37 @@ export async function purgeUntouchedDrafts(): Promise<number> {
   return res.rowCount ?? 0;
 }
 
+/** IDLE SITES DO NOT SWEEP.
+ *
+ *  The pass runs three queries, and it ran every ten minutes forever —
+ *  144 times a day on a site nobody has visited yet. Neon suspends a
+ *  compute after five minutes idle and bills for the time it is up, so
+ *  that timer alone was enough to keep the database awake more or less
+ *  permanently: $36 of compute in a month with no customers
+ *  (2026-09-28).
+ *
+ *  Skipping when nothing has happened is safe rather than merely cheap,
+ *  because everything this sweep looks for is DOWNSTREAM of a request —
+ *  a generation can only go stale if someone started one, an order can
+ *  only strand if someone paid, a draft can only be abandoned if someone
+ *  made it. No request since the last pass means there is nothing new to
+ *  find, so the pass would query three tables to learn nothing.
+ *
+ *  The cadence is unchanged when the site IS being used, so nothing gets
+ *  slower for a real customer. */
 export function scheduleStaleSweeps(): void {
-  setTimeout(() => {
+  let lastPassAt = 0;
+  const pass = () => {
+    if (!activitySince(lastPassAt)) return;  // nobody has been here since the last one
+    lastPassAt = Date.now();
     void runSweeps();
-    setInterval(() => void runSweeps(), SWEEP_INTERVAL_MS);
+  };
+  setTimeout(() => {
+    lastPassAt = Date.now();
+    void runSweeps();
+    setInterval(pass, SWEEP_INTERVAL_MS);
   }, FIRST_SWEEP_DELAY_MS);
   console.log(
-    `[STALE-SWEEP] scheduled — first pass in ${FIRST_SWEEP_DELAY_MS / 60000} min, then every ${SWEEP_INTERVAL_MS / 60000} min`,
+    `[STALE-SWEEP] scheduled — first pass in ${FIRST_SWEEP_DELAY_MS / 60000} min, then every ${SWEEP_INTERVAL_MS / 60000} min when the site has been used`,
   );
 }

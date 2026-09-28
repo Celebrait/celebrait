@@ -18,6 +18,7 @@
 // table honest without maintaining a bot-detection arms race.
 
 import { createHash } from 'crypto';
+import { touchActivity } from './activity';
 import type { Express, Request } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
@@ -117,9 +118,26 @@ function isRepeat(req: Request): boolean {
   return false;
 }
 
+/** Refreshed LAZILY, on traffic, not on a timer. The old ten-minute
+ *  interval queried `users` forever whether or not anyone was on the
+ *  site, and on Neon that is enough on its own to stop the compute ever
+ *  suspending (see server/activity.ts). An idle site now makes no
+ *  queries at all; a busy one re-reads the admin list once an hour,
+ *  which is far more often than it changes. */
+const ADMIN_REFRESH_MS = 60 * 60 * 1000;
+let adminIdsAt = 0;
+
 export function registerVisitLogging(app: Express): void {
-  void refreshAdminIds();
-  setInterval(() => void refreshAdminIds(), 10 * 60 * 1000);
+  void refreshAdminIds().then(() => { adminIdsAt = Date.now(); });
+
+  app.use((req, _res, next) => {
+    touchActivity();
+    if (Date.now() - adminIdsAt > ADMIN_REFRESH_MS) {
+      adminIdsAt = Date.now(); // claim it first so concurrent requests don't stampede
+      void refreshAdminIds();
+    }
+    next();
+  });
 
   app.use((req, _res, next) => {
     try {
