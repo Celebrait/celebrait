@@ -672,46 +672,84 @@ export async function copyStoredFile(
 }
 
 /**
+ * The prefix that owns every sibling of one stored card image:
+ * `maker_<key>_front.png` → `maker_<key>_` (also catches the .webp and
+ * `_t.webp` siblings and the inside). Null for anything that isn't a
+ * card image name (reference photos under photos/<userId>/, legacy
+ * '/images/…' paths are unwrapped first) so we never sweep a prefix we
+ * don't own.
+ */
+function cardImagePrefix(storedPath: string | null | undefined): string | null {
+  if (!storedPath) return null;
+  const name = storedPath.replace(/^\/images\//, '');
+  if (name.includes('/')) return null;
+  const m = /^(.+_)(?:front|inside|print)(?:_a\d+)?\.(?:png|webp|jpe?g)$/i.exec(name);
+  if (!m || m[1].length <= 6) return null;
+  // Only the two families minted PER CARD. A rack card's frontImagePath
+  // is the catalogue template's own file (shop.ts: `frontImagePath:
+  // tpl.image_path`) — sweeping that prefix would delete the stock image
+  // every rack card and the catalogue share. Never.
+  return /^(maker|card)_/.test(m[1]) ? m[1] : null;
+}
+
+/**
  * Delete EVERY stored image belonging to a card — the canonical
  * front/inside/print files AND all per-attempt regen files
  * (`card_<id>_front_aN.png`, etc.) — from wherever they actually live
  * (R2 when enabled, otherwise local disk + print/temp dirs).
  *
  * Keys/filenames are matched on the `card_<id>_` prefix; the trailing
- * underscore keeps card 2 from also matching card 20/234.
+ * underscore keeps card 2 from also matching card 20/234. Maker cards
+ * (three-card route) store under `maker_<token>_*` instead, so the
+ * row's own front/inside paths are passed in and their prefix is swept
+ * too (audit 2026-10-06: maker deletes left every image behind).
  *
  * This is the storage half of "right to erasure": when a card is
  * deleted, its images must not linger in the bucket. Best-effort — a
  * missing file or storage hiccup must never block the DB delete — so it
  * swallows errors and returns the count removed.
  */
-export async function deleteCardImages(cardId: number): Promise<number> {
-  const prefix = `card_${cardId}_`;
-  try {
-    if (isR2Enabled()) {
-      return await r2DeleteByPrefix(prefix);
-    }
-    let removed = 0;
-    const dirs = [IMAGES_DIR, TEMP_DIR, path.join(process.cwd(), 'print_files')];
-    for (const dir of dirs) {
-      let files: string[];
-      try {
-        files = await fs.readdir(dir);
-      } catch {
-        continue; // dir may not exist in this environment
+export async function deleteCardImages(
+  cardId: number,
+  storedPaths: Array<string | null | undefined> = [],
+): Promise<number> {
+  const all = new Set<string>([`card_${cardId}_`]);
+  for (const p of storedPaths) {
+    const pre = cardImagePrefix(p);
+    if (pre) all.add(pre);
+  }
+  // `card_12_<key>_` is already covered by `card_12_` — don't sweep twice.
+  const candidates = Array.from(all);
+  const prefixes = candidates.filter(
+    (p) => !candidates.some((q) => q !== p && p.startsWith(q)),
+  );
+  let removed = 0;
+  for (const prefix of prefixes) {
+    try {
+      if (isR2Enabled()) {
+        removed += await r2DeleteByPrefix(prefix);
+        continue;
       }
-      for (const file of files) {
-        if (file.startsWith(prefix)) {
-          await fs.unlink(path.join(dir, file)).catch(() => {});
-          removed++;
+      const dirs = [IMAGES_DIR, TEMP_DIR, path.join(process.cwd(), 'print_files')];
+      for (const dir of dirs) {
+        let files: string[];
+        try {
+          files = await fs.readdir(dir);
+        } catch {
+          continue; // dir may not exist in this environment
+        }
+        for (const file of files) {
+          if (file.startsWith(prefix)) {
+            await fs.unlink(path.join(dir, file)).catch(() => {});
+            removed++;
+          }
         }
       }
+    } catch (err) {
+      console.error(`[STORAGE] deleteCardImages(${cardId}) prefix ${prefix} failed:`, err);
     }
-    return removed;
-  } catch (err) {
-    console.error(`[STORAGE] deleteCardImages(${cardId}) failed:`, err);
-    return 0;
   }
+  return removed;
 }
 
 // hasUnwatermarkedFiles removed 2026-05-12 along with the rest of the

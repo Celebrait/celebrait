@@ -134,6 +134,11 @@ app.use((req, res, next) => {
   const CARD_QR_DESTINATION =
     "/?utm_source=card&utm_medium=print&utm_campaign=card_back";
   app.get("/c", (_req, res) => res.redirect(302, CARD_QR_DESTINATION));
+  // /door2 was the three-card doorway's experiment URL; /create is the
+  // canonical one the gate links to. 301 so search engines consolidate.
+  app.get("/door2", (req, res) =>
+    res.redirect(301, req.originalUrl.replace(/^\/door2/, "/create")),
+  );
 
   const server = await registerRoutes(app);
   // One-off data passes ride boot: idempotent, guarded, loud.

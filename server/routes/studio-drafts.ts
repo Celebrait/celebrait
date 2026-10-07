@@ -1273,7 +1273,13 @@ export function registerStudioDraftRoutes(app: Express): void {
       // Grab the card first so we can enforce ownership before any
       // deletion side effect.
       const rows = await db
-        .select({ id: cards.id, userId: cards.userId })
+        .select({
+          id: cards.id,
+          userId: cards.userId,
+          source: cards.source,
+          frontImagePath: cards.frontImagePath,
+          insideImagePath: cards.insideImagePath,
+        })
         .from(cards)
         .where(eq(cards.id, id))
         .limit(1);
@@ -1312,7 +1318,11 @@ export function registerStudioDraftRoutes(app: Express): void {
       // the storage half of "right to erasure": a deleted card must not
       // leave its artwork/photos sitting in the bucket. Best-effort — a
       // storage hiccup must not block the DB delete.
-      const removed = await deleteCardImages(id);
+      // Maker cards live under `maker_<token>_*`, so hand over the row's
+      // own paths — the `card_<id>_` prefix alone misses them.
+      // Rack cards point at the SHARED template image — never pass those.
+      const ownPaths = row.source === 'maker' ? [row.frontImagePath, row.insideImagePath] : [];
+      const removed = await deleteCardImages(id, ownPaths);
 
       // Then remove the card and everything that hangs off it, atomically.
       // `orders` has a FK to cards (no cascade), so it must go before the
