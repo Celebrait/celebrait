@@ -35,7 +35,11 @@ const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable' };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
-  if (cache && Date.now() - cache.at < 15_000) return cache.value;
+  // Ten minutes, not fifteen seconds: every SPA load fetches this (bots
+  // that run JS included) and each cache miss wakes the Neon compute for
+  // a 5-minute minimum. An admin flip clears the cache in-process below,
+  // so the long TTL costs the admin nothing (single instance on Render).
+  if (cache && Date.now() - cache.at < 10 * 60_000) return cache.value;
   let value = DEFAULT;
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);

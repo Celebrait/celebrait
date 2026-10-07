@@ -54,6 +54,16 @@ export function getSession() {
       createTableIfMissing: false,
       ttl: sessionTtl,
       tableName: "sessions",
+      // NEON BILL (2026-10-07). connect-pg-simple prunes expired sessions
+      // on a timer whose default is every 15 minutes — a DELETE against
+      // production whether or not anyone has visited in a week. Neon
+      // suspends after 5 idle minutes and bills a 5-minute minimum per
+      // wake, so this one default kept the compute awake roughly half of
+      // every day with zero visitors (30.9 CU-hrs in the first week of
+      // October, same pace as September). Once a day is plenty: the
+      // table is small and a stale row is just an expired cookie nobody
+      // can present. See server/activity.ts for the same principle.
+      pruneSessionInterval: 24 * 60 * 60,
     });
   }
   // dev: leave `store` undefined → express-session uses MemoryStore.

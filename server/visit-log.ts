@@ -130,11 +130,18 @@ let adminIdsAt = 0;
 export function registerVisitLogging(app: Express): void {
   void refreshAdminIds().then(() => { adminIdsAt = Date.now(); });
 
+  // Only a request that CHANGES something counts as activity for the
+  // background sweeps. Everything the sweeper looks for starts with a
+  // write (a generation, a draft, an order), and the first week of
+  // October showed why GETs must not count: crawlers, uptime pings and
+  // a health check are enough "traffic" to run a sweep every ten minutes
+  // on a site nobody has visited — each one a 5-minute Neon wake
+  // (2026-10-07). The admin-id refresh moved below, into the branch that
+  // is about to write a visit row anyway, so it never wakes the
+  // database on its own.
   app.use((req, _res, next) => {
-    touchActivity();
-    if (Date.now() - adminIdsAt > ADMIN_REFRESH_MS) {
-      adminIdsAt = Date.now(); // claim it first so concurrent requests don't stampede
-      void refreshAdminIds();
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS' && req.path.startsWith('/api/')) {
+      touchActivity();
     }
     next();
   });
@@ -149,6 +156,12 @@ export function registerVisitLogging(app: Express): void {
           (typeof selfId === 'string' && adminIds.has(selfId)) ||
           isRepeat(req);
         if (ua && !BOT_RE.test(ua) && !skip) {
+          // The database is about to be woken for the insert — piggyback
+          // the hourly admin-list refresh on the same wake.
+          if (Date.now() - adminIdsAt > ADMIN_REFRESH_MS) {
+            adminIdsAt = Date.now(); // claim it first so concurrent requests don't stampede
+            void refreshAdminIds();
+          }
           // Fire-and-forget: a logging failure must never touch the
           // request, and the request must never wait for the insert.
           void db
