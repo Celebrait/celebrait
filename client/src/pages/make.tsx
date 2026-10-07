@@ -13,6 +13,7 @@
 // titles always ink; lucide at 1.75.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation } from 'wouter';
 import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -269,7 +270,7 @@ export default function MakePage() {
       }
     } catch (e: any) {
       if (e?.status === 429 || e?.status === 503) { setFailMsg(e.message); setPhase('capped'); }
-      else { setFailCode((e?.code as FailCode) ?? 'unknown'); setFailMsg(e?.message ?? 'That didn’t work'); setPhase('failed'); }
+      else { setFailCode((e?.code as FailCode) ?? 'unknown'); setFailMsg(friendlyError(e, 'That didn’t work')); setPhase('failed'); }
     }
   };
   const renderCell = async (i: number, c: Concept, safer = false): Promise<boolean> => {
@@ -349,7 +350,7 @@ export default function MakePage() {
           setCameoQa(qa?.result ?? null);
         } catch { setCameoQa(null); /* fail open — no verdict, no warning */ }
       })();
-    } catch (e: any) { setCameoError(e?.message ?? 'That didn’t work — try another photo, or carry on without.'); }
+    } catch (e: any) { setCameoError(friendlyError(e, 'That didn’t work — try another photo, or carry on without.')); }
     finally { setCameoBusy(false); }
   };
 
@@ -362,7 +363,7 @@ export default function MakePage() {
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
       setInsideUrl(ir.imageUrl); setPhase('done');
-    } catch (e: any) { setFailMsg(e?.message ?? 'The inside didn’t render — try again'); }
+    } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render — try again')); }
     finally { setInsideBusy(false); }
   };
 
@@ -647,7 +648,7 @@ export default function MakePage() {
                 setSaving('buy'); setSaveError('');
                 saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideMode === 'own' ? [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n') : [dear.trim(), cells[picked].concept.inside_text ?? '', from.trim()].filter(Boolean).join('\n\n'))
                   .then((s) => navigate(`/buy/${s.cardId}`))
-                  .catch((e: any) => { setSaveError(e?.message ?? 'That didn’t save — try again'); setSaving(''); });
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save — try again')); setSaving(''); });
               }}>
               {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it — {gbp(cardPriceGBP('maker'))}
             </button>
@@ -663,11 +664,11 @@ export default function MakePage() {
                     if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
                     else { setSaving(''); openAuth(`/make?claim=${s.cardId}`); }
                   })
-                  .catch((e: any) => { setSaveError(e?.message ?? 'That didn’t save — try again'); setSaving(''); });
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save — try again')); setSaving(''); });
               }}>
               {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Keep it — sign in'}
             </button>
-            <button type="button" onClick={() => navigate('/door2')} className={textLink}>Make another</button>
+            <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
           <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved — it’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>

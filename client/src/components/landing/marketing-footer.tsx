@@ -8,12 +8,10 @@
 //     watermark signature, with the copyright strip laid over it.
 // Dark keeper-ink surface with a soft marigold glow up top.
 
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Instagram, ArrowRight } from 'lucide-react';
 import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
-import { useAuthModal } from '@/components/auth/auth-modal';
-import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 
 interface FooterLink {
   label: string;
@@ -26,10 +24,13 @@ const COMPANY: FooterLink[] = [
   { label: 'Blog', href: '/blog' },
 ];
 
+// Anchors must exist on the page they name: `/` is the gate (only
+// #doors), so these point at the photo LP's sections and pricing's
+// delivery block (audit 2026-10-06).
 const HELP: FooterLink[] = [
-  { label: 'How it works', href: '/#how-it-works' },
-  { label: 'FAQ', href: '/#faq' },
-  { label: 'Delivery', href: '/#delivery' },
+  { label: 'How it works', href: '/photo#proof' },
+  { label: 'FAQ', href: '/photo#faq' },
+  { label: 'Delivery', href: '/pricing#delivery' },
 ];
 
 const LEGAL: FooterLink[] = [
@@ -39,42 +40,43 @@ const LEGAL: FooterLink[] = [
 
 type FooterCtaMode = 'default' | 'gate';
 
-// Auth-aware closing CTA — links straight to the maker when signed in,
-// otherwise pops the auth modal with the maker as the post-login target.
+// Door-aware closing CTA. On the three-card side (/create, /make, /door*)
+// it stays in that flow — /make asks the brief itself; on the photo side
+// it goes to the public photo maker, or straight to the studio when
+// signed in. It used to open the photo offer modal from every page and
+// promise "it's free" under priced cards (audit 2026-10-06): making is
+// free, the card isn't, so the label is just "Make a card".
+const THREE_CARD_DOOR = /^\/(create|make|door2?)(?:\/|$)/;
+
 function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { openAuth } = useAuthModal();
-  // Signed out, starting a card leads with the free-card offer
-  // rather than a bare sign-in prompt. Same gate either way.
-  const claimFreeCard = useClaimFreeCard();
+  const [path] = useLocation();
   const authed = !isLoading && isAuthenticated;
   const cls =
     'group inline-flex items-center gap-2 rounded-full bg-keeper-paper px-8 py-4 text-base font-semibold text-keeper-ink shadow-lg shadow-black/20 transition-all hover:-translate-y-0.5 hover:bg-white';
-  const label = (
-    <>
-      Make a card — it's free
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-    </>
-  );
+  const arrow = <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />;
   // On the gate (/) the two doors above are the answer — the band must
   // not promise "free" under two priced doors, nor pick a route for them.
+  // A real link (not scrollIntoView) so it also works from /pricing,
+  // where there is no #doors.
   if (mode === 'gate') {
     return (
-      <button type="button" className={cls}
-        onClick={() => document.getElementById('doors')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+      <Link href="/#doors" className={cls}>
         Pick your route
-        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-      </button>
+        {arrow}
+      </Link>
     );
   }
-  return authed ? (
-    <Link href="/studio/new-card" className={cls}>
-      {label}
+  const href = THREE_CARD_DOOR.test(path)
+    ? '/make'
+    : authed
+      ? '/studio/new-card'
+      : '/photo/make';
+  return (
+    <Link href={href} className={cls} data-testid="footer-cta">
+      Make a card
+      {arrow}
     </Link>
-  ) : (
-    <button type="button" onClick={() => claimFreeCard()} className={cls}>
-      {label}
-    </button>
   );
 }
 

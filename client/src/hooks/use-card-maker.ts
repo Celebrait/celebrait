@@ -10,6 +10,7 @@
 // else saves on blur / step change.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 import {
@@ -211,7 +212,7 @@ export function useCardMaker({ cardId }: UseCardMakerOptions): UseCardMakerResul
         }
       } catch (err: any) {
         if (!aborted) {
-          setLoadError(err?.message ?? 'Could not load draft');
+          setLoadError(friendlyError(err, 'Could not load draft'));
           setIsLoading(false);
         }
       }

@@ -11,6 +11,7 @@
 // where the Buy CTA lives.
 
 import { useQuery } from '@tanstack/react-query';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { Wand2, Package } from 'lucide-react';
 import { CardGrid, CardGridSkeleton } from '@/components/studio/card-grid';
@@ -29,7 +30,7 @@ export default function StudioReady() {
       {isLoading ? (
         <CardGridSkeleton />
       ) : error ? (
-        <ErrorState message={error instanceof Error ? error.message : 'Please try again.'} />
+        <ErrorState message={friendlyError(error, 'Please try again.')} />
       ) : (
         <ReadyGrid ready={bucketCards(data ?? []).ready} />
       )}

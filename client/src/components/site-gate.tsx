@@ -38,8 +38,16 @@ export function SiteGate({ children }: { children: ReactNode }) {
 
   if (OPEN.some((re) => re.test(location))) return <>{children}</>;
   if (!data && !isError) return <div className="min-h-screen bg-keeper-paper" />;
-  // If the check itself fails, stay closed: the lock is the point.
-  if (isError || (data && data.locked && !data.allowed)) {
+  // If the check itself fails, fail OPEN like the server middleware does
+  // (server/routes/site-lock.ts `catch { return next(); }`): a transient
+  // 5xx on /api/site-lock once turned the whole open site into "launching
+  // soon" for a customer (audit 2026-10-06). The APIs stay gated
+  // server-side regardless, so nothing costly leaks through.
+  if (isError) {
+    console.warn('[site-gate] lock check failed — showing the site');
+    return <>{children}</>;
+  }
+  if (data && data.locked && !data.allowed) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-keeper-paper" />}>
         <ComingSoonPage hasPassword={data?.hasPassword ?? true} onUnlocked={() => { void refetch(); }} />

@@ -36,7 +36,7 @@ const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 /** The drifting wall — the rack's cards, interleaved across occasions,
  *  duplicated once so the loop is seamless. */
 export default function DoorwayBPage() {
-  useSeo('/door2');
+  useSeo('/create'); // /door2 is a redirect; /create is the canonical URL
   const [, navigate] = useLocation();
   // The brief lives in the URL as it's answered (refresh/back/share all
   // keep it); the hand-off to /make carries it with go=1.

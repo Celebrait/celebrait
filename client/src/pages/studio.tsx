@@ -22,6 +22,7 @@
 // /studio/drafts, /studio/ready, /studio/sent.
 
 import { useEffect, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useQuery } from '@tanstack/react-query';
 import { WorldSection } from '@/components/studio/world-section';
 import { Link } from 'wouter';
@@ -71,7 +72,7 @@ export default function StudioHome() {
         <div className="max-w-md mx-auto text-center py-12">
           <p className="text-sm text-accent-red-dark mb-2">Couldn't load your cards.</p>
           <p className="text-xs text-keeper-meta">
-            {error instanceof Error ? error.message : 'Please try again.'}
+            {friendlyError(error, 'Please try again.')}
           </p>
         </div>
       </>

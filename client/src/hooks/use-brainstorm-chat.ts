@@ -15,6 +15,7 @@
 // Studio page is open; navigating away loses it. Good enough for v1.
 
 import { useCallback, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { apiRequest } from '@/lib/queryClient';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 
@@ -222,7 +223,7 @@ export function useBrainstormChat({
           setProposedScene(null);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Something went wrong.';
+        const message = friendlyError(err, 'Something went wrong.');
         setError(message);
       } finally {
         setIsLoading(false);

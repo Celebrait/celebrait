@@ -33,6 +33,7 @@
 //   • Tone chips for narrowing. The chosen style IS the narrowing.
 
 import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import {
   Sparkles,
   Loader2,
@@ -168,7 +169,7 @@ export function InsideTextHelperDrawer({
       setResult(data.result);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Something went wrong.';
+        friendlyError(err, 'Something went wrong.');
       setError(message);
     } finally {
       setIsLoading(false);

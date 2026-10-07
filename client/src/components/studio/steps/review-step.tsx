@@ -18,6 +18,7 @@
 //   - failed       → error + retry button (flips status back to draft)
 
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { friendlyError } from '@/lib/friendly-error';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'wouter';
@@ -846,16 +847,12 @@ function FrontFirstStage({
       <p className="text-sm text-keeper-body">
         Your front is safe — let's just try the inside again.
       </p>
-      {failure && (failure.kind || failure.message) && (
-        <div className="mx-auto max-w-sm rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 text-left text-xs text-keeper-body">
-          <p className="font-semibold uppercase tracking-wide text-keeper-meta">
-            {failure.kind ?? 'error'}
-          </p>
-          {failure.message && <p className="mt-1 break-words">{failure.message}</p>}
-          {failure.modelExplanation && (
-            <p className="mt-1 break-words text-keeper-meta">{failure.modelExplanation}</p>
-          )}
-        </div>
+      {/* Only a customer-safe sentence here. The raw kind / message /
+          modelExplanation box used to surface the image vendor's own
+          boilerplate (naming the vendor) on a "we" surface (audit
+          2026-10-06). Internals go to the server log, not the customer. */}
+      {failure?.message && friendlyError(failure.message, '') && (
+        <p className="mx-auto max-w-sm text-xs text-keeper-meta">{friendlyError(failure.message, '')}</p>
       )}
       <button
         onClick={() =>
@@ -864,7 +861,7 @@ function FrontFirstStage({
             // the button a silent no-op (audit 2026-07-27).
             toast({
               title: "Couldn't start the inside",
-              description: err?.message ?? 'Try again in a moment.',
+              description: friendlyError(err, 'Try again in a moment.'),
               variant: 'destructive',
             }),
           )
@@ -956,7 +953,7 @@ export function StartAgainButton({
     } catch (err: any) {
       toast({
         title: "Couldn't start again",
-        description: err?.message ?? 'Please try again.',
+        description: friendlyError(err, 'Please try again.'),
         variant: 'destructive',
       });
       setBusy(false);
@@ -1225,7 +1222,7 @@ function FrontFirstReview({
               // (audit 2026-07-27).
               approveToast({
                 title: "That didn't go through",
-                description: err?.message ?? 'Try again in a moment.',
+                description: friendlyError(err, 'Try again in a moment.'),
                 variant: 'destructive',
               });
             } finally {
@@ -1307,7 +1304,7 @@ function InsideComposeStage({
       // 2026-07-27). The server's messages are already friendly.
       toast({
         title: "Couldn't update the inside",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     } finally {
@@ -2054,7 +2051,7 @@ function FailedView({
     onError: (err: Error) => {
       toast({
         title: 'Retry failed',
-        description: err.message,
+        description: friendlyError(err),
         variant: 'destructive',
       });
     },

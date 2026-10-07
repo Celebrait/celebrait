@@ -5,10 +5,11 @@
 // pages (celebration backdrop + KeeperHeader + glass card + footer).
 
 import { useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Loader2, Mail, CheckCircle2 } from 'lucide-react';
-import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { MarketingFooter } from '@/components/landing/marketing-footer';
+// Lock-aware: wordmark + legal links while the site is locked, full chrome otherwise.
+import { LegalHeader, LegalFooter } from '@/components/landing/legal-chrome';
 import { apiRequest } from '@/lib/queryClient';
 
 // Must match the server enum in server/routes/contact.ts.
@@ -57,7 +58,7 @@ export default function ContactPage() {
       }
       setStatus('sent');
     } catch (err: any) {
-      setError(err?.message ?? 'Something went wrong.');
+      setError(friendlyError(err, 'Something went wrong.'));
       setStatus('error');
     }
   };
@@ -71,7 +72,7 @@ export default function ContactPage() {
         background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)"
         permanentFade
       />
-      <KeeperHeader />
+      <LegalHeader />
       <main className="relative pt-32">
         <div className="container mx-auto max-w-xl px-4 pb-24">
           <div className="rounded-3xl border border-keeper-hair bg-white/85 p-8 shadow-[0_20px_60px_-24px_rgba(33,29,25,0.22)] backdrop-blur-sm lg:p-10">
@@ -212,7 +213,7 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-      <MarketingFooter />
+      <LegalFooter />
     </div>
   );
 }

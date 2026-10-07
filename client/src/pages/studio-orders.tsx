@@ -11,6 +11,7 @@
 // through as generic "Processing".
 
 import { useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { CardArtImg } from '@/components/studio/card-art-img';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
@@ -45,7 +46,7 @@ export default function StudioOrders() {
       {isLoading ? (
         <OrdersSkeleton />
       ) : error ? (
-        <ErrorState message={error instanceof Error ? error.message : 'Please try again.'} />
+        <ErrorState message={friendlyError(error, 'Please try again.')} />
       ) : (data?.length ?? 0) === 0 ? (
         <OrdersEmpty />
       ) : (
@@ -326,7 +327,7 @@ function DevAdvanceButton({ order }: { order: StudioOrderListItem }) {
     } catch (err: any) {
       toast({
         title: 'Dev advance failed',
-        description: err?.message ?? 'Check the server logs.',
+        description: friendlyError(err, 'Check the server logs.'),
         variant: 'destructive',
       });
     } finally {

@@ -148,7 +148,8 @@ export default function PricingPage() {
                   ))}
                 </ul>
               </div>
-              <div>
+              {/* Footer "Delivery" + the ticker's honesty line land here. */}
+              <div id="delivery" className="scroll-mt-32">
                 <p className={EYEBROW}>Delivery, honestly</p>
                 <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-keeper-body">
                   <p>

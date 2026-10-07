@@ -18,6 +18,7 @@
 // OAuth env vars are set and stays hidden when they aren't.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useLocation } from 'wouter';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
@@ -204,7 +205,7 @@ export function AuthForm({
     } catch (err: any) {
       toast({
         title: 'Could not send code',
-        description: err?.message ?? 'Please try again.',
+        description: friendlyError(err, 'Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -234,7 +235,7 @@ export function AuthForm({
     } catch (err: any) {
       toast({
         title: 'Invalid code',
-        description: err?.message ?? 'Please try again.',
+        description: friendlyError(err, 'Please try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -268,7 +269,7 @@ export function AuthForm({
     } catch (err: any) {
       toast({
         title: "Couldn't finish setting up",
-        description: err?.message ?? 'Please try again.',
+        description: friendlyError(err, 'Please try again.'),
         variant: 'destructive',
       });
     } finally {

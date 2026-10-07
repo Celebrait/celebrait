@@ -8,6 +8,7 @@
 // their detail page (which is still a Sprint 4 placeholder).
 
 import { useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { ImageOff, Loader2, Trash2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -95,13 +96,18 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
       await apiRequest('DELETE', `/api/studio/cards/${card.id}`);
     },
     onSuccess: () => {
+      // Drop it from the cache straight away so the row is gone before
+      // the refetch lands (no ghost row to click).
+      queryClient.setQueryData<Array<{ id: number }>>(['/api/user/cards'], (old) =>
+        old?.filter((c) => c.id !== card.id),
+      );
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
       toast({ title: 'Card deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
         title: "Couldn't delete",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },

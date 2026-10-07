@@ -15,6 +15,7 @@
 // never pretends an order happened.
 
 import { useEffect, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useParams, useLocation } from 'wouter';
 import { CarouselToggle } from '@/components/catalogue/carousel-toggle';
 import { rackTokenKey } from '@/pages/buy';
@@ -84,7 +85,7 @@ export default function CardProductPage() {
       sessionStorage.setItem(rackTokenKey(j.cardId), j.cardToken);
       navigate(`/buy/${j.cardId}`);
     } catch (e: any) {
-      setBuyError(e?.message ?? 'That didn’t work — try again');
+      setBuyError(friendlyError(e, 'That didn’t work — try again'));
       setBuying(false);
     }
   };

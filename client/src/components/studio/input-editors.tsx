@@ -19,6 +19,7 @@
 // photo fast"; users can re-edit later via the maker if needed.
 
 import { useRef } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -117,7 +118,7 @@ export function PhotoEditor({
     onError: (err: Error) => {
       toast({
         title: 'Upload failed',
-        description: err.message,
+        description: friendlyError(err),
         variant: 'destructive',
       });
     },

@@ -17,6 +17,7 @@
 // (The 'free account needed to generate' line was dropped 2026-09-10.)
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useSearch } from 'wouter';
 import { ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
@@ -184,7 +185,7 @@ export default function PhotoMakerPage() {
     } catch (err: any) {
       transferring.current = false;
       setTransfer(null);
-      setTransferError(err?.message ?? "Couldn't bring your card into the studio.");
+      setTransferError(friendlyError(err, "Couldn't bring your card into the studio."));
     }
   };
 

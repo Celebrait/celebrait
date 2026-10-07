@@ -11,6 +11,7 @@
 // Per-row "Skip this year" + "Edit" actions.
 
 import { useMemo } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -106,7 +107,7 @@ export default function StudioRemindersPage() {
     onError: (err: any) => {
       toast({
         title: "Couldn't skip",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -124,7 +125,7 @@ export default function StudioRemindersPage() {
     onError: (err: any) => {
       toast({
         title: "Couldn't undo",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },

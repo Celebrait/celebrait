@@ -13,6 +13,7 @@
 // FAB is auto-hidden on these routes by StudioLayout's HIDE_FAB_ON.
 
 import { useEffect, useRef, useState, useReducer } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useLocation, useRoute } from 'wouter';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, Pencil, Sparkle } from 'lucide-react';
@@ -82,9 +83,12 @@ export function NewCardPage() {
           recipientName || occasion ? { recipientName, occasion } : undefined;
         const res = await apiRequest('POST', '/api/studio/drafts', seedBody);
         const { id } = (await res.json()) as { id: number };
-        if (!cancelled) setLocation(`/studio/card/${id}/edit`);
+        // replace, not push: Back from the maker must return to where
+        // the user came from, not to this route (which would mint another
+        // empty draft every press — audit 2026-10-06).
+        if (!cancelled) setLocation(`/studio/card/${id}/edit`, { replace: true });
       } catch (err: any) {
-        if (!cancelled) setError(err?.message ?? 'Could not start a new card.');
+        if (!cancelled) setError(friendlyError(err, 'Could not start a new card.'));
       }
     })();
     return () => {
@@ -668,7 +672,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
                     } else {
                       toast({
                         title: "Couldn't start making your card",
-                        description: err.message,
+                        description: friendlyError(err),
                         variant: 'destructive',
                       });
                     }

@@ -133,6 +133,11 @@ const AdminSitePage = lazy(() => import("@/pages/admin-site"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const BuyPage = lazy(() => import("@/pages/buy"));
+// A component (not inline JSX) so the query is read when the route
+// renders, not when App last rendered.
+function Door2Redirect() {
+  return <Redirect to={`/create${window.location.search}`} replace />;
+}
 const OrderStatusPage = lazy(() => import("@/pages/order-status"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
 const CardProductPage = lazy(() => import("@/pages/card-product"));
@@ -329,7 +334,9 @@ function Router() {
           {/* Guest commerce (Door 1) — deliberately OUTSIDE RequireAuth:
               the rack sells with no account, ownership is token-based. */}
           <Route path="/door" component={DoorwayPage} />
-          <Route path="/door2" component={DoorwayBPage} />
+          {/* Legacy alias → /create (brief kept in the query). The server
+              301s it too; this catches in-app navigations. */}
+          <Route path="/door2" component={Door2Redirect} />
           <Route path="/make" component={MakePage} />
           {/* THE DEMO: /make driving itself for social recordings. Admin
               only — every load spends a set of generations. */}

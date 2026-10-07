@@ -15,6 +15,7 @@
 // + Buy (if unpaid) / Share (if paid digital) / Close actions.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { friendlyError } from '@/lib/friendly-error';
 import { Redirect, useLocation, useParams } from 'wouter';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Share2, RefreshCw, Printer, Star } from 'lucide-react';
@@ -718,7 +719,7 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
     } catch (err: any) {
       toast({
         title: "Couldn't copy the link",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     } finally {
@@ -836,7 +837,7 @@ function AdminCarouselButton({ cardId }: { cardId: number }) {
       setDone(true);
       toast({ title: 'On the homepage carousel', description: 'A copy of the front now drifts on the gate. Manage it in the occasion studio.' });
     } catch (e: any) {
-      toast({ title: "Couldn't add it", description: e?.message ?? '', variant: 'destructive' });
+      toast({ title: "Couldn't add it", description: friendlyError(e), variant: 'destructive' });
     } finally { setBusy(false); }
   };
   return (

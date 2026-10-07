@@ -32,6 +32,7 @@
 // separation is easier to iterate on right now.
 
 import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import {
   Sparkles,
   Loader2,
@@ -154,7 +155,7 @@ export function InsideTextComposerDrawer({
       setResult(data.result);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Something went wrong.';
+        friendlyError(err, 'Something went wrong.');
       setError(message);
     } finally {
       setIsLoading(false);

@@ -107,6 +107,7 @@ const HIDE_FAB_ON: RegExp[] = [
   /^\/studio\/new-card(?:\/|$)/,
   /^\/studio\/card\/[^/]+\/edit$/,
   /^\/studio\/card\/[^/]+$/, // viewer — Buy is the primary action
+  /^\/studio\/card\/[^/]+\/give$/, // pay bar — FAB covered "Continue to payment" on phones
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {

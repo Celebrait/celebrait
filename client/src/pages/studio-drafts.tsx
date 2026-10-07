@@ -24,6 +24,7 @@
 //     de-emphasised by being lower in the list, not by chrome.
 
 import { useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'wouter';
 import {
@@ -67,7 +68,7 @@ export default function StudioDrafts() {
       {isLoading ? (
         <DraftListSkeleton />
       ) : error ? (
-        <ErrorState message={error instanceof Error ? error.message : 'Please try again.'} />
+        <ErrorState message={friendlyError(error, 'Please try again.')} />
       ) : (
         <DraftList drafts={bucketCards(data ?? []).drafts} />
       )}
@@ -158,19 +159,25 @@ function DraftListRow({ card }: { card: CardGridItem }) {
       await apiRequest('DELETE', `/api/studio/cards/${card.id}`);
     },
     onSuccess: () => {
+      // Drop it from the cache straight away so the row is gone before
+      // the refetch lands (no ghost row to click).
+      queryClient.setQueryData<Array<{ id: number }>>(['/api/user/cards'], (old) =>
+        old?.filter((c) => c.id !== card.id),
+      );
       queryClient.invalidateQueries({ queryKey: ['/api/user/cards'] });
       toast({ title: 'Draft deleted', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
         title: "Couldn't delete",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
   });
 
   return (
+    <>
     <div
       // role + tabIndex + onKeyDown make the whole row keyboard-
       // activatable. Using a div instead of <Link> because the trash
@@ -293,7 +300,11 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             </span>
           ) : null}
         </div>
+    </div>
 
+      {/* Outside the row: the dialog is portalled, but React clicks still
+          bubble through the tree, so Confirm inside the row fired goEdit
+          and opened the maker of the card just deleted (audit 2026-10-06). */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -317,7 +328,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
 

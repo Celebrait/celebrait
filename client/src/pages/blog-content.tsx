@@ -111,11 +111,13 @@ function Cta({ line }: { line: string }) {
       <p className="mt-2 text-sm text-keeper-meta">
         Free to make. You only pay if you print &amp; post: from £4.99 + postage.
       </p>
+      {/* Public photo maker — /studio/new-card sat behind the auth wall,
+          so signed-out readers (the blog's whole audience) hit a login. */}
       <Link
-        href="/studio/new-card"
+        href="/photo/make"
         className="mt-4 inline-flex items-center justify-center rounded-full bg-go px-6 py-3 text-[15px] font-semibold text-go-foreground transition-colors hover:bg-go-hover"
       >
-        Make a card — it's free
+        Make a card
       </Link>
     </div>
   );

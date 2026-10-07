@@ -1,5 +1,31 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/**
+ * A non-2xx response as a thrown error. `.message` keeps the shapes the
+ * app has always had (the server's `message`, or "404: <body>" for plain
+ * text), so `err.message` call sites still work; `.status` is the new,
+ * reliable bit — the retry policy below and `friendlyError()` read it
+ * rather than parsing the string.
+ */
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/** HTTP status off any thrown error (ApiError, a hydrated error, or a
+ *  legacy "404: …" message). undefined when it isn't an HTTP failure. */
+export function getErrorStatus(err: unknown): number | undefined {
+  if (!err || typeof err !== 'object') return undefined;
+  const s = (err as { status?: unknown }).status;
+  if (typeof s === 'number') return s;
+  const m = /^(\d{3}):\s/.exec((err as { message?: unknown }).message as string ?? '');
+  return m ? Number(m[1]) : undefined;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = await res.text();
@@ -16,13 +42,14 @@ async function throwIfResNotOk(res: Response) {
       // Structured error — preserve all fields (kind, code,
       // modelExplanation, suggestions, etc.) on the Error object so
       // the calling mutation's onError handler can read them.
-      const error = new Error(errorData.message || res.statusText);
+      const error = new ApiError(res.status, errorData.message || res.statusText);
       Object.assign(error, errorData);
+      error.status = res.status; // never let a body field shadow the real status
       throw error;
     }
 
     // Plain text fallback.
-    throw new Error(`${res.status}: ${text || res.statusText}`);
+    throw new ApiError(res.status, `${res.status}: ${text || res.statusText}`);
   }
 }
 
@@ -68,7 +95,15 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5, // 5 minutes instead of Infinity
       gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
-      retry: (failureCount) => failureCount < 3,
+      // Never retry a 4xx: a 401/404 is deterministic, and retrying it
+      // with backoff left broken share links and stale card ids showing
+      // a spinner for 7–12 s before any message (audit 2026-10-06).
+      // Network drops and 5xx still get three goes.
+      retry: (failureCount, error) => {
+        const status = getErrorStatus(error);
+        if (status !== undefined && status >= 400 && status < 500) return false;
+        return failureCount < 3;
+      },
     },
     mutations: {
       retry: false,

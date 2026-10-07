@@ -23,6 +23,7 @@
 // signed-in extras (free-card credit, comp codes, draft state).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useParams, Link } from 'wouter';
 import { Loader2, Lock, ShieldCheck, Truck } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -163,7 +164,7 @@ export default function BuyPage() {
       if (j?.orderId) { window.location.href = `/order/${j.orderId}`; return; }
       throw new Error('Unexpected response — try again');
     } catch (e: any) {
-      setError(e?.message ?? 'That didn’t work — try again');
+      setError(friendlyError(e, 'That didn’t work — try again'));
       setBusy(false);
     }
   };

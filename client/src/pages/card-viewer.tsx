@@ -13,6 +13,7 @@
 //     draft endpoint.
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -405,7 +406,7 @@ function MakeYourOwnPanel({
     } catch (err: any) {
       toast({
         title: "Couldn't save that",
-        description: err?.message ?? 'Please try again.',
+        description: friendlyError(err, 'Please try again.'),
         variant: 'destructive',
       });
     } finally {

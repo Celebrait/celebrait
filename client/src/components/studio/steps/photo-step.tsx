@@ -31,6 +31,7 @@
 // now; multi-select from library is a follow-up.
 
 import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useQuery } from '@tanstack/react-query';
 import {
   Upload,
@@ -661,7 +662,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       toast({
         title: 'Could not read file',
         description:
-          err instanceof Error ? err.message : 'One of the files failed to open.',
+          friendlyError(err, 'One of the files failed to open.'),
         variant: 'destructive',
       });
       return;
@@ -833,7 +834,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         cancelledUploadsRef.current.delete(tempId);
         toast({
           title: 'Upload failed',
-          description: err?.message ?? 'Try a different photo.',
+          description: friendlyError(err, 'Try a different photo.'),
           variant: 'destructive',
         });
       } finally {

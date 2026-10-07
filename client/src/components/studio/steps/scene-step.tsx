@@ -42,6 +42,7 @@
 // that in practice just told an engaged user no.
 
 import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useTypewriter } from '@/hooks/use-typewriter';
@@ -219,8 +220,7 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
     onError: (err: any) => {
       toast({
         title: "Couldn't get suggestions",
-        description:
-          err?.message ?? 'Write your own below, or talk it through with us.',
+        description: friendlyError(err, 'Write your own below, or talk it through with us.'),
         variant: 'destructive',
       });
     },

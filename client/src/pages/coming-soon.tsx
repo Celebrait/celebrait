@@ -8,6 +8,7 @@
 // drifting wall of the cards picked for the main site.
 
 import { useEffect, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
@@ -68,7 +69,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? 'Please try again.');
       setJoined(true);
     } catch (x) {
-      setErr(x instanceof Error ? x.message : 'Please try again.');
+      setErr(friendlyError(x, 'Please try again.'));
     } finally { setBusy(false); }
   };
 
@@ -80,7 +81,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? 'That’s not the password.');
       onUnlocked?.();
     } catch (x) {
-      setPassErr(x instanceof Error ? x.message : 'That’s not the password.');
+      setPassErr(friendlyError(x, 'That’s not the password.'));
     } finally { setPassBusy(false); }
   };
 
@@ -110,7 +111,10 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
 
         <div className="grid flex-1 items-center gap-y-14 py-10 lg:grid-cols-12 lg:gap-x-12 lg:py-14">
           {/* ── the words, and the one thing to do ─────────────────── */}
-          <div className="lg:col-span-6">
+          {/* min-w-0: a grid track is min-content-sized by default, and the
+              inputs' intrinsic `size` made this column 394px inside a 342px
+              box at 390 wide (launch audit 2026-10-06). */}
+          <div className="min-w-0 lg:col-span-6">
             <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cta" /> Early access
             </span>
@@ -134,8 +138,8 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
             ) : (
               <form onSubmit={join} className="mt-8 max-w-[430px]">
                 <div className="flex gap-2.5">
-                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" className={`${field} basis-[38%]`} />
-                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" className={`${field} grow`} />
+                  <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="First name" autoComplete="given-name" aria-label="First name" size={1} className={`${field} basis-[38%]`} />
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="Email" autoComplete="email" aria-label="Email address" size={1} className={`${field} grow`} />
                 </div>
                 {/* Sized to its words, not to the column. A full-width
                     slab of lime was the loudest thing on a page that is
@@ -154,7 +158,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
 
             {hasPassword && passOpen && (
               <form onSubmit={unlock} className="mt-6 flex max-w-[430px] gap-2 border-t border-keeper-hair pt-6">
-                <input value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Password" aria-label="Early-access password" autoFocus className={`${field} w-full`} />
+                <input value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Password" aria-label="Early-access password" autoFocus size={1} className={`${field} w-full`} />
                 <button type="submit" disabled={passBusy || !pass.trim()} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full border border-brand bg-brand-muted px-5 text-[15px] font-semibold text-brand-dark transition-colors hover:bg-brand-light disabled:opacity-50">
                   {passBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Let me in'}
                 </button>
@@ -168,7 +172,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
               product and it was previously an 11px caption under a
               stranded polaroid. No overlap — the open spread sweeps the
               whole square and would cover anything laid over it. */}
-          <div className="lg:col-span-6">
+          <div className="min-w-0 lg:col-span-6">
             <figure className={`relative mx-auto flex flex-col ${narrow ? 'w-[82%]' : 'w-full max-w-[520px]'}`}>
               <div className="relative aspect-square w-full">
                 {/* The snapshot sits ON the card's top corner, with its
@@ -181,7 +185,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                     Worth knowing: the open spread sweeps the whole square,
                     so it passes behind the photo when the card opens.
                     pointer-events-none throughout, so the card still takes
-                    every tap and drag underneath. */}
+                    every tap underneath. */}
                 <div className="pointer-events-none absolute left-[-3%] top-[-1%] z-20 flex w-[31%] min-w-[100px] items-stretch gap-2 lg:left-[-8%] lg:top-[-2%]">
                   <span className="shrink-0 self-stretch text-[10px] font-semibold uppercase tracking-[0.2em] text-keeper-meta"
                     style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>Started as this</span>
@@ -200,13 +204,13 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                   transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
                   <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
                     backLogo backCaption="Unbinnable greetings cards · launching soon"
-                    enableRotate enableZoom={false}
+                    enableZoom={false}
                     closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
                 </motion.div>
               </div>
 
               <div className={`flex h-[48px] justify-center ${narrow ? '-mx-[20%] mt-1' : 'mt-1'}`}>
-                <GestureHints open={open} mountDelayMs={1200} hideZoomHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
+                <GestureHints open={open} mountDelayMs={1200} hideZoomHint hideRotateHint openLabel={open ? 'Tap to close' : 'Tap to open'} />
               </div>
             </figure>
           </div>

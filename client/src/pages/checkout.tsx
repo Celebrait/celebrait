@@ -16,6 +16,7 @@
 // Stripe is a provider swap, not a rebuild (see next_payment_gateway.md).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -137,7 +138,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const cardId = params ? parseInt(params.cardId, 10) : NaN;
 
-  const { data: card, isLoading } = useQuery<CardSummary>({
+  const { data: card, isLoading, isError: cardMissing } = useQuery<CardSummary>({
     queryKey: [`/api/studio/drafts/${cardId}`],
     enabled: Number.isFinite(cardId),
     // Always refetch on mount: the Giving Moment saves the delivery choice
@@ -389,7 +390,7 @@ export default function CheckoutPage() {
         description:
           err?.name === 'AbortError'
             ? 'That took too long — check your connection and try again. You have not been charged.'
-            : err?.message ?? 'Something went wrong.',
+            : friendlyError(err, 'Something went wrong.'),
         variant: 'destructive',
       });
     } finally {
@@ -411,6 +412,19 @@ export default function CheckoutPage() {
       <CheckoutLayout backHref={backHref}>
         <Centered>
           <Loader2 className="w-6 h-6 animate-spin text-brand" />
+        </Centered>
+      </CheckoutLayout>
+    );
+  }
+  // A card that doesn't exist (or isn't theirs) is not "not ready yet" —
+  // that message sent people back to an editor for a card that was never
+  // there (audit 2026-10-06, P1).
+  if (cardMissing || (!isLoading && !card)) {
+    return (
+      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+        <Centered>
+          <p className="text-sm text-keeper-body mb-4">We couldn't find that card. It may have been deleted, or the link may be wrong.</p>
+          <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
         </Centered>
       </CheckoutLayout>
     );

@@ -1,13 +1,13 @@
-import { KeeperHeader } from "@/components/landing/keeper-header";
 import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
-import { MarketingFooter } from "@/components/landing/marketing-footer";
+// Lock-aware: wordmark + legal links while the site is locked, full chrome otherwise.
+import { LegalHeader, LegalFooter } from "@/components/landing/legal-chrome";
 import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, TERMS_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 
 export default function TermsOfService() {
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
-      <KeeperHeader />
+      <LegalHeader />
       <main className="relative pt-32">
 
       <div className="container mx-auto px-4 pb-20 max-w-4xl">
@@ -595,7 +595,7 @@ export default function TermsOfService() {
       </div>
 
       </main>
-      <MarketingFooter />
+      <LegalFooter />
     </div>
   );
 }

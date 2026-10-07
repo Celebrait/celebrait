@@ -14,6 +14,7 @@
 // without having explicitly added anyone. Manual add still works.
 
 import { useMemo, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -87,7 +88,7 @@ export default function StudioAddressBookPage() {
     onError: (err: any) => {
       toast({
         title: "Couldn't remove",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -155,7 +156,7 @@ export default function StudioAddressBookPage() {
               Couldn't load your address book
             </p>
             <p className="text-xs text-accent-red-dark mt-0.5">
-              {error instanceof Error ? error.message : 'Give it a moment and try again.'}
+              {friendlyError(error, 'Give it a moment and try again.')}
             </p>
           </div>
         </div>

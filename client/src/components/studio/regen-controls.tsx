@@ -44,6 +44,7 @@
 //     server just updates which attempt is "selected"; nothing deleted.
 
 import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, PenLine } from 'lucide-react';
@@ -403,7 +404,7 @@ export function RegenEditMode({
       else if (attempt?.side === 'inside') setOptimisticInsideUrl(null);
       toast({
         title: "Couldn't switch version",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     }
