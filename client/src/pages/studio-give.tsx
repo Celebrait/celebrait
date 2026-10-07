@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 import { useRoute, Redirect } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import {
   Dialog,
   DialogContent,
@@ -94,6 +94,14 @@ export default function StudioGivePage() {
     await apiRequest('PATCH', `/api/studio/drafts/${cardId}`, {
       state: merged,
     });
+    // Write the choice straight into the cached card as well, so the
+    // checkout page's first render already carries it. Without this the
+    // cache held the previous visit's delivery until a refetch landed —
+    // see the note on the ship-to effect in checkout.tsx.
+    queryClient.setQueryData<{ state?: CardDraftState } | undefined>(
+      [`/api/studio/drafts/${cardId}`],
+      (old) => (old ? { ...old, state: merged } : old),
+    );
   };
 
   return (

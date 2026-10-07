@@ -287,6 +287,19 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           });
         }
 
+        // THE DRAFT'S DESTINATION WINS. The Giving Moment writes the
+        // customer's choice onto the draft before checkout even mounts,
+        // so if the client posts something different it is the client
+        // that is stale, not the draft (2026-10-06: a cached-card race
+        // had checkout submitting the previous visit's choice). Silently
+        // correct rather than reject — rejecting would strand a real
+        // customer behind a bug they cannot see.
+        const chosen = state?.delivery?.destination;
+        if ((chosen === 'sender' || chosen === 'recipient') && body.shipTo && body.shipTo !== chosen) {
+          console.warn(`[CHECKOUT] shipTo ${body.shipTo} disagrees with draft ${chosen} on card ${cardId} — using the draft`);
+          body.shipTo = chosen;
+        }
+
         // Free-first-card credit (Moments rewards): derived fresh at every
         // checkout-create — ≥3 key dates and not yet redeemed. When it
         // applies, the card is £0 and postage is forced to Standard (the

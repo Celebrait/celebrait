@@ -170,15 +170,22 @@ export default function CheckoutPage() {
     delivery?.destination ?? (insideIsBlank ? 'sender' : null);
   const isResolved = !!resolvedFormat && !!resolvedDestination;
 
-  // One-shot init: when the card lands, sync the local ship-to state to
-  // the resolved Giving Moment choice. The destination is decided upstream
-  // (in the Giving Moment) and shown read-only here — not re-asked.
-  const initAppliedRef = useRef(false);
+  // The ship-to state FOLLOWS the draft's resolved destination, every
+  // time it changes — not once. This used to be a one-shot init guarded
+  // by a ref, and that posted cards to the wrong address (audit
+  // 2026-10-06, reproduced twice): react-query hands back the CACHED
+  // card on first render, the one-shot copied that card's OLD
+  // destination into state and set the ref, and when the fresh fetch
+  // arrived a moment later with the choice just made on the Giving
+  // Moment, the ref said "already done". Pick "Straight to Mum",
+  // checkout said "To you first" — and submitted it.
+  //
+  // The destination is decided upstream and shown read-only here, so
+  // following it is always right; the fallback radio only ever shows
+  // when it is unresolved, and then this effect does nothing.
   useEffect(() => {
-    if (initAppliedRef.current || !card) return;
     if (resolvedDestination) setShipTo(resolvedDestination);
-    initAppliedRef.current = true;
-  }, [card, resolvedFormat, resolvedDestination]);
+  }, [resolvedDestination]);
 
   // Print-led V1: the printed card is the only product (it includes a
   // free digital link). There is no format choice — `choice` is always
@@ -309,7 +316,9 @@ export default function CheckoutPage() {
       };
       if (compCode.trim()) payload.compCode = compCode.trim();
       if (includesPrint) {
-        payload.shipTo = shipTo;
+        // Submit what the draft says when it says something — never a
+        // local copy that could have fallen behind it.
+        payload.shipTo = resolvedDestination ?? shipTo;
         payload.envelopeSticker = addSticker && shipTo === 'recipient';
         payload.shippingTier = effectiveTier;
         if (needBy) payload.needByDate = needBy;
