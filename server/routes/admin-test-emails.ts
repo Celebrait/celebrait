@@ -280,6 +280,9 @@ async function dispatchTemplate(
         scheduledSendAt: body.scheduledSendAt
           ? new Date(body.scheduledSendAt)
           : null,
+        // Preview the guest variant with { "isGuest": true } in the body.
+        isGuest: body.isGuest === true,
+        shareUrl: body.shareUrl ?? null,
       });
     }
     case 'sender-card-opened': {

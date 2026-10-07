@@ -1406,10 +1406,13 @@ async function fireOrderPaidEmails(
   // 2026-07-02). The sender gets the share link via their own order
   // confirmation instead (View your card & share link).
   let digitalSentToRecipient = false;
-  if (order.includesDigital && card.viewToken) {
+  const shareUrl =
+    order.includesDigital && card.viewToken
+      ? `${publicAppOrigin()}/c/${encodeURIComponent(card.viewToken)}`
+      : null;
+  if (shareUrl) {
     const recipientEmail = order.recipientEmail?.trim();
     if (recipientEmail) {
-      const shareUrl = `${publicAppOrigin()}/c/${encodeURIComponent(card.viewToken)}`;
       const sent = await sendRecipientCardArrivedEmail({
         recipientEmail,
         recipientName: recipientNameOnCard,
@@ -1447,6 +1450,9 @@ async function fireOrderPaidEmails(
     // card-ready / shipped / delivered emails.
     cardImageUrl: resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl),
     insideImageUrl: resolveStoredImageUrl(card.insideImagePath, card.insideImageUrl),
+    // Guest (rack) buyers have no studio — the receipt links /order/:id.
+    isGuest: !order.userId,
+    shareUrl,
   });
   console.log(
     `[STUDIO-CHECKOUT] sender confirmation ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,
@@ -1624,7 +1630,10 @@ export async function applyFulfillmentUpdate(
         senderName,
         recipientName,
         trackingNumber: fresh.trackingNumber || 'Pending',
-        trackingUrl: fresh.trackingUrl || `${publicAppOrigin()}/studio/orders`,
+        // No tracking link yet → the order page the buyer can actually open.
+        trackingUrl:
+          fresh.trackingUrl ||
+          (order.userId ? `${publicAppOrigin()}/studio/orders` : `${publicAppOrigin()}/order/${order.id}`),
         courier: tier.carrier,
         etaWindow: tier.shippingEstimate,
         cardImageUrl,
@@ -1640,6 +1649,7 @@ export async function applyFulfillmentUpdate(
         recipientName,
         cardImageUrl,
         insideImageUrl,
+        isGuest: !order.userId,
       });
       console.log(
         `[FULFILMENT] delivered email ${sent ? 'sent' : 'failed'} → ${order.customerEmail} (order ${order.id})`,

@@ -99,11 +99,19 @@ export type AddressBookEntry = typeof addressBookEntries.$inferSelect;
 export type InsertAddressBookEntry = typeof addressBookEntries.$inferInsert;
 
 export const insertAddressBookEntrySchema = createInsertSchema(addressBookEntries, {
-  name: z.string().trim().min(1, 'Name is required').max(80, 'Name is too long'),
-  relationship: z.string().trim().max(40).optional().nullable(),
-  email: z.string().email('Enter a valid email').optional().nullable().or(z.literal('')),
-  phone: z.string().trim().max(40).optional().nullable(),
-  notes: z.string().trim().max(500).optional().nullable(),
+  name: z.string().trim().min(1, 'Name is required').max(80, 'Name is too long (80 characters max)'),
+  relationship: z.string().trim().max(40, 'Relationship is too long (40 characters max)').optional().nullable(),
+  email: z.string().trim().email('Enter a valid email').optional().nullable().or(z.literal('')),
+  // Loose on purpose (international formats) — just a sanity bound on
+  // length so a pasted paragraph can't land in the phone column.
+  phone: z
+    .string()
+    .trim()
+    .max(40, 'Phone number is too long (40 characters max)')
+    .refine((v) => v === '' || /^[+\d][\d\s().-]{5,}$/.test(v), 'Enter a valid phone number')
+    .optional()
+    .nullable(),
+  notes: z.string().trim().max(500, 'Notes are too long (500 characters max)').optional().nullable(),
 }).omit({
   id: true,
   userId: true,
@@ -243,12 +251,12 @@ export type ReminderLogRow = typeof reminderLog.$inferSelect;
 export type InsertReminderLog = typeof reminderLog.$inferInsert;
 
 export const insertRecipientOccasionSchema = createInsertSchema(recipientOccasions, {
-  occasion: z.string().trim().min(1, 'Occasion is required').max(40),
+  occasion: z.string().trim().min(1, 'Occasion is required').max(40, 'Occasion is too long (40 characters max)'),
   // date arrives as 'YYYY-MM-DD' string; Drizzle's date column accepts
   // string. Allow null for "I don't know the date yet".
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD').nullable().optional(),
-  notes: z.string().trim().max(200).optional().nullable(),
-  suppressedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD').nullable().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date (YYYY-MM-DD)').nullable().optional(),
+  notes: z.string().trim().max(200, 'Occasion note is too long (200 characters max)').optional().nullable(),
+  suppressedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date (YYYY-MM-DD)').nullable().optional(),
 }).omit({
   id: true,
   userId: true,

@@ -15,7 +15,8 @@
 // we route to the existing entry's edit page rather than refusing to
 // save.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { FIXED_DATE_OCCASIONS } from '@shared/fixed-occasions';
@@ -90,6 +91,59 @@ const OCCASION_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'sympathy', label: 'Sympathy' },
   { value: 'other', label: 'Other' },
 ];
+
+// ─────────────────────────────────────────────────────────────────────
+// Field-level validation (launch audit 2026-10-06). Mirrors the server
+// schema so a bad field is named NEXT TO the field before anything is
+// sent — the old flow was one "Invalid input" toast after a partial save.
+// Keys: 'name' | 'email' | 'phone' | `occ-${index}-date`.
+// ─────────────────────────────────────────────────────────────────────
+
+type FieldErrors = Record<string, string>;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Loose: digits/spaces/()/-/+ and at least 6 significant characters.
+const PHONE_RE = /^[+\d][\d\s().-]{5,}$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validateForm(input: {
+  name: string;
+  email: string;
+  phone: string;
+  occasions: OccasionFormState[];
+}): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!input.name.trim()) errors.name = 'Name is required';
+  const email = input.email.trim();
+  if (email && !EMAIL_RE.test(email)) errors.email = 'Enter a valid email';
+  const phone = input.phone.trim();
+  if (phone && phone.length > 40) errors.phone = 'Phone number is too long (40 characters max)';
+  else if (phone && !PHONE_RE.test(phone)) errors.phone = 'Enter a valid phone number';
+  input.occasions.forEach((o, i) => {
+    // Fixed-date occasions carry no date; blank means "don't know yet".
+    if (FIXED_DATE_OCCASIONS.has(o.occasion) || !o.date) return;
+    const d = new Date(`${o.date}T00:00:00Z`);
+    if (!ISO_DATE_RE.test(o.date) || Number.isNaN(d.getTime())) {
+      errors[`occ-${i}-date`] = 'Enter a full date (YYYY-MM-DD)';
+    }
+  });
+  return errors;
+}
+
+/** Map the server's zod `errors` (flatten().fieldErrors) onto our keys so
+ *  a rule we don't mirror client-side still lands next to its field. */
+function serverFieldErrors(err: any): FieldErrors {
+  const out: FieldErrors = {};
+  const errors = err?.errors;
+  if (!errors || typeof errors !== 'object') return out;
+  for (const [key, msgs] of Object.entries(errors as Record<string, unknown>)) {
+    const msg = Array.isArray(msgs) ? msgs[0] : null;
+    if (typeof msg !== 'string') continue;
+    if (key === 'name' || key === 'email' || key === 'phone') out[key] = msg;
+    else if (key === 'date') out['occ-0-date'] = msg; // single-occasion endpoints
+  }
+  return out;
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Occasion-aware date semantics.
@@ -205,6 +259,12 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
   const [notes, setNotes] = useState('');
   const [occasionRows, setOccasionRows] = useState<OccasionFormState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // Synchronous double-submit guard — state alone lags a fast double-tap
+  // (audit saw 3 POSTs from 3 clicks).
+  const submittingRef = useRef(false);
+  const clearError = (key: string) =>
+    setFieldErrors((prev) => (prev[key] ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)) : prev));
 
   // ── Load existing entry on edit ────────────────────────────────
   const { data: existing, isLoading: isLoadingExisting } = useQuery<EntryWithOccasions>({
@@ -263,9 +323,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
     },
     onError: async (err: any) => {
       // 409 = duplicate name; route to existing entry's edit page.
-      const status = err?.status ?? err?.response?.status;
-      const existingId = err?.body?.existingId ?? err?.response?.data?.existingId;
-      if (status === 409 && existingId) {
+      // apiRequest spreads the JSON body onto the Error itself, so the
+      // id is `err.existingId` (the old `err.body` path was always undefined).
+      const existingId = err?.existingId ?? err?.body?.existingId;
+      if (existingId) {
         toast({
           title: `You already have a ${name.trim()} saved`,
           description: 'Opening their entry so you can update it.',
@@ -273,9 +334,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         setLocation(`/studio/people/address-book/${existingId}/edit`);
         return;
       }
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors(err) }));
       toast({
         title: "Couldn't save",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -363,9 +425,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       setLocation('/studio/people/address-book');
     },
     onError: (err: any) => {
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors(err) }));
       toast({
         title: "Couldn't save",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -393,11 +456,16 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
   };
 
   const handleSubmit = async () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast({ title: 'Pop in a name first.', variant: 'destructive' });
+    if (submittingRef.current) return;
+    const errors = validateForm({ name, email, phone, occasions: occasionRows });
+    setFieldErrors(errors);
+    const firstKey = Object.keys(errors)[0];
+    if (firstKey) {
+      // Put the cursor on the first problem — the message sits under it.
+      document.getElementById(firstKey)?.focus();
       return;
     }
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       if (mode === 'edit') {
@@ -405,7 +473,11 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       } else {
         await createMutation.mutateAsync();
       }
+    } catch {
+      /* onError has already toasted + marked the field — don't rethrow
+         into an unhandled rejection (Vite overlay in dev). */
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -455,14 +527,15 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Name + relationship */}
         <FormSection title="Who are they?">
           <div className="space-y-3">
-            <Field label="Name" required htmlFor="name">
+            <Field label="Name" required htmlFor="name" error={fieldErrors.name}>
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); clearError('name'); }}
                 placeholder="Mum, Dad, Auntie Sue…"
                 maxLength={80}
                 autoFocus={mode === 'new'}
+                aria-invalid={!!fieldErrors.name}
                 data-testid="input-ab-name"
               />
             </Field>
@@ -513,7 +586,8 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
                   key={row.id ?? `new-${idx}`}
                   row={row}
                   index={idx}
-                  onChange={(patch) => updateOccasion(idx, patch)}
+                  dateError={fieldErrors[`occ-${idx}-date`]}
+                  onChange={(patch) => { updateOccasion(idx, patch); clearError(`occ-${idx}-date`); }}
                   onRemove={() => removeOccasion(idx)}
                 />
               ))}
@@ -537,24 +611,26 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           subtitle="Email is where we send their card's digital link. Phone is just for your records."
         >
           <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Email" optional htmlFor="email">
+            <Field label="Email" optional htmlFor="email" error={fieldErrors.email}>
               <Input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); clearError('email'); }}
                 placeholder="them@example.com"
+                aria-invalid={!!fieldErrors.email}
                 data-testid="input-ab-email"
               />
             </Field>
-            <Field label="Phone" optional htmlFor="phone">
+            <Field label="Phone" optional htmlFor="phone" error={fieldErrors.phone}>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
                 placeholder="+44…"
                 maxLength={40}
+                aria-invalid={!!fieldErrors.phone}
                 data-testid="input-ab-phone"
               />
             </Field>
@@ -665,7 +741,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           type="button"
           size="lg"
           onClick={handleSubmit}
-          disabled={isSubmitting || !name.trim()}
+          disabled={isSubmitting || createMutation.isPending || updateMutation.isPending || !name.trim()}
           className="bg-go hover:bg-go-hover text-white sm:w-auto"
           data-testid="btn-ab-save"
         >
@@ -808,6 +884,7 @@ function Field({
   htmlFor,
   required,
   hint,
+  error,
   children,
 }: {
   label: string;
@@ -817,6 +894,8 @@ function Field({
    *  see the section comment above. */
   optional?: boolean;
   hint?: string;
+  /** Validation message — shown under the input in ember, replaces the hint. */
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -826,7 +905,18 @@ function Field({
         {required && <span className="text-red-500">*</span>}
       </Label>
       <div className="mt-1.5">{children}</div>
-      {hint && <p className="text-[11px] text-keeper-meta mt-1">{hint}</p>}
+      {error ? (
+        <p
+          id={`${htmlFor}-error`}
+          role="alert"
+          className="text-[11px] text-accent-red-dark mt-1"
+          data-testid={`error-${htmlFor}`}
+        >
+          {error}
+        </p>
+      ) : (
+        hint && <p className="text-[11px] text-keeper-meta mt-1">{hint}</p>
+      )}
     </div>
   );
 }
@@ -838,11 +928,14 @@ function Field({
 function OccasionRow({
   row,
   index,
+  dateError,
   onChange,
   onRemove,
 }: {
   row: OccasionFormState;
   index: number;
+  /** Validation message for this row's date field. */
+  dateError?: string;
   onChange: (patch: Partial<OccasionFormState>) => void;
   onRemove: () => void;
 }) {
@@ -896,12 +989,14 @@ function OccasionRow({
                 label={dateLabel}
                 htmlFor={`occ-${index}-date`}
                 hint={!row.date ? dateHint : undefined}
+                error={dateError}
               >
                 <Input
                   id={`occ-${index}-date`}
                   type="date"
                   value={row.date}
                   onChange={(e) => onChange({ date: e.target.value })}
+                  aria-invalid={!!dateError}
                   data-testid={`input-occasion-date-${index}`}
                 />
               </Field>

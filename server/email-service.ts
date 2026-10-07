@@ -31,6 +31,7 @@ import nodemailer from 'nodemailer';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
+import { CONTROLLER, legalValue } from '@shared/legal';
 
 // ── Preview capture (admin email tester) ──────────────────────────────
 // Lets `/admin/emails` render any template's HTML without sending it
@@ -152,7 +153,8 @@ async function writeDevEmailSink(params: EmailParams): Promise<void> {
     const file = path.join(DEV_EMAIL_SINK_DIR, `${Date.now()}_${slug}.html`);
     const header = `<!-- to: ${params.to} | subject: ${params.subject} -->\n`;
     const body =
-      params.html ?? `<pre>${params.text ?? '(no HTML or text body)'}</pre>`;
+      // pre-wrap: plain-text alerts shouldn't fake a phone overflow in the sink.
+      params.html ?? `<pre style="white-space: pre-wrap;">${params.text ?? '(no HTML or text body)'}</pre>`;
     await fsp.writeFile(file, header + body);
     console.log(
       `[EMAIL] dev sink → ${path.relative(process.cwd(), file)} (to: ${params.to})`,
@@ -321,6 +323,21 @@ const EMAIL_SERIF = "'Fraunces', Georgia, 'Times New Roman', serif";
 // are blocked. NB: relies on PUBLIC_APP_ORIGIN pointing at a live origin.
 const EMAIL_LOGO_URL = `${PUBLIC_ORIGIN}/email-logo.png`;
 
+/** Trader line for the footer — entity + postal address (UK distance-
+ *  selling rules want the trader identifiable on every receipt). Reads
+ *  the shared legal constants with an env override (LEGAL_ENTITY_NAME /
+ *  MAIL_POSTAL_ADDRESS) so Phase 0 can flip it on Render. Renders
+ *  NOTHING while the values are still placeholders — never "[TBC]" at a
+ *  customer. Read per call so an env change doesn't need a restart. */
+function traderLine(): string {
+  const entity = legalValue(process.env.LEGAL_ENTITY_NAME, CONTROLLER.legalName);
+  const address = legalValue(process.env.MAIL_POSTAL_ADDRESS, CONTROLLER.address);
+  if (!entity && !address) return '';
+  const parts = [entity, address].filter((s): s is string => !!s).map(escape);
+  if (entity && CONTROLLER.companyNumber) parts.push(`Company No. ${escape(CONTROLLER.companyNumber)}`);
+  return `<div style="margin-top: 10px; line-height: 1.6;">${parts.join(' &middot; ')}</div>`;
+}
+
 function chassis(opts: {
   preheader: string;
   bodyHtml: string;
@@ -345,7 +362,7 @@ function chassis(opts: {
   const headingHtml = opts.heading
     ? `
         <tr>
-          <td style="padding: 30px 40px 0 40px;">
+          <td class="em-pad" style="padding: 30px 40px 0 40px;">
             <h1 style="margin: 0; font-family: ${EMAIL_SERIF}; font-size: 22px; font-weight: 700; color: ${EMAIL_INK}; letter-spacing: -0.015em; line-height: 1.3;">
               ${escape(opts.heading)}
             </h1>
@@ -356,14 +373,14 @@ function chassis(opts: {
   const heroRow = opts.heroHtml
     ? `
         <tr>
-          <td style="padding: 24px 40px 0 40px;" align="center">
+          <td class="em-pad" style="padding: 24px 40px 0 40px;" align="center">
             ${opts.heroHtml}
           </td>
         </tr>`
     : heroImages.length
     ? `
         <tr>
-          <td style="padding: 24px 40px 0 40px;" align="center">
+          <td class="em-pad" style="padding: 24px 40px 0 40px;" align="center">
             ${heroImages
               .map(
                 (img, i) => `
@@ -383,8 +400,8 @@ function chassis(opts: {
   const ctaHtml = opts.cta
     ? `
         <tr>
-          <td style="padding: 24px 40px 8px 40px;" align="center">
-            <a href="${escape(opts.cta.href)}" style="display: inline-block; background: ${EMAIL_BRAND}; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
+          <td class="em-pad" style="padding: 24px 40px 8px 40px;" align="center">
+            <a href="${escape(opts.cta.href)}" class="em-cta" style="display: inline-block; background: ${EMAIL_BRAND}; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px;">
               ${escape(opts.cta.label)} &rarr;
             </a>
           </td>
@@ -393,7 +410,7 @@ function chassis(opts: {
   const postCtaBlock = opts.postCtaHtml
     ? `
         <tr>
-          <td style="padding: 16px 40px 0 40px; color: ${EMAIL_STONE}; font-size: 14px; line-height: 1.6;">
+          <td class="em-pad" style="padding: 16px 40px 0 40px; color: ${EMAIL_STONE}; font-size: 14px; line-height: 1.6;">
             ${opts.postCtaHtml}
           </td>
         </tr>`
@@ -404,33 +421,45 @@ function chassis(opts: {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          /* Phone pass (launch audit 2026-10-06): the card was a fixed 520px
+             table → 568px scroll width at 375px. Fluid outer table +
+             tighter gutters + full-width CTA under 480px; desktop unchanged. */
+          @media only screen and (max-width: 480px) {
+            .em-outer { padding: 20px 12px !important; }
+            .em-pad { padding-left: 20px !important; padding-right: 20px !important; }
+            .em-cta { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; }
+          }
+        </style>
       </head>
       <body style="margin: 0; padding: 0; background: ${EMAIL_PAPER}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
         <span style="display: none !important; visibility: hidden; opacity: 0; color: transparent; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; overflow: hidden;">${escape(opts.preheader)}</span>
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: ${EMAIL_PAPER};">
           <tr>
-            <td align="center" style="padding: 48px 24px;">
-              <table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0" style="max-width: 520px; background: #ffffff; border-radius: 16px; border: 1px solid ${EMAIL_HAIR};">
+            <td align="center" class="em-outer" style="padding: 48px 24px;">
+              <!--[if mso]><table role="presentation" width="520" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 520px; background: #ffffff; border-radius: 16px; border: 1px solid ${EMAIL_HAIR};">
                 <tr>
-                  <td style="padding: 26px 40px 22px 40px; text-align: center; border-bottom: 1px solid ${EMAIL_HAIR_SOFT};">
+                  <td class="em-pad" style="padding: 26px 40px 22px 40px; text-align: center; border-bottom: 1px solid ${EMAIL_HAIR_SOFT};">
                     <img src="${EMAIL_LOGO_URL}" alt="Celebrait" width="150" style="display: inline-block; width: 150px; max-width: 60%; height: auto;">
                   </td>
                 </tr>
                 ${headingHtml}
                 ${heroRow}
                 <tr>
-                  <td style="padding: ${opts.heading || heroImages.length || opts.heroHtml ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
+                  <td class="em-pad" style="padding: ${opts.heading || heroImages.length || opts.heroHtml ? '18' : '30'}px 40px 8px 40px; color: ${EMAIL_BODY}; font-size: 16px; line-height: 1.7;">
                     ${opts.bodyHtml}
                   </td>
                 </tr>
                 ${ctaHtml}
                 ${postCtaBlock}
                 <tr>
-                  <td style="padding: 30px 40px 34px 40px; margin-top: 8px; color: ${EMAIL_STONE}; font-size: 13px; border-top: 1px solid ${EMAIL_HAIR_SOFT};">
-                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}&mdash; Celebrait
+                  <td class="em-pad" style="padding: 30px 40px 34px 40px; margin-top: 8px; color: ${EMAIL_STONE}; font-size: 13px; border-top: 1px solid ${EMAIL_HAIR_SOFT};">
+                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}&mdash; Celebrait${traderLine()}
                   </td>
                 </tr>
               </table>
+              <!--[if mso]></td></tr></table><![endif]-->
             </td>
           </tr>
         </table>
@@ -1060,6 +1089,13 @@ export async function sendSenderOrderConfirmedEmail(params: {
    *  case (PR3). When non-null, the digital line says "will be sent
    *  on {date} at 8am" instead of "sent just now". */
   scheduledSendAt?: Date | null;
+  /** Guest (rack) buyer — no account, so /studio/* is a login wall for
+   *  them. The CTA goes to the public /order/:id page instead (launch
+   *  audit 2026-10-06, commerce P1). */
+  isGuest?: boolean;
+  /** The card's private share link — printed inline for a guest digital
+   *  order, since they can't reach it on the studio card page. */
+  shareUrl?: string | null;
 }): Promise<boolean> {
   const {
     senderEmail,
@@ -1077,6 +1113,8 @@ export async function sendSenderOrderConfirmedEmail(params: {
     cardImageUrl,
     insideImageUrl,
     scheduledSendAt,
+    isGuest = false,
+    shareUrl,
   } = params;
 
   const forWhom = recipientName ? ` to ${escape(recipientName)}` : '';
@@ -1121,6 +1159,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
   const preheader = digitalSentToRecipient && !scheduledSendAt
     ? "We've just emailed it to them. We'll let you know when they open it."
     : `Order #${orderId}.`;
+  const guestShare = isGuest && includesDigital && shareUrl ? shareUrl : null;
 
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
@@ -1137,12 +1176,15 @@ export async function sendSenderOrderConfirmedEmail(params: {
     <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
       Order: <span style="font-family: monospace;">${escape(orderId)}</span>
     </p>
+    ${guestShare ? `<p style="margin: 12px 0 0; color: ${EMAIL_STONE}; font-size: 14px; word-break: break-all;">Share link: <a href="${escape(guestShare)}" style="color: ${EMAIL_BRAND};">${escape(guestShare)}</a></p>` : ''}
   `;
 
-  const ctaHref = includesDigital
-    ? `${PUBLIC_ORIGIN}/studio/card/${cardId}`
-    : `${PUBLIC_ORIGIN}/studio/orders`;
-  const ctaLabel = includesDigital ? 'View your card & share link' : 'View your order';
+  const ctaHref = isGuest
+    ? `${PUBLIC_ORIGIN}/order/${encodeURIComponent(orderId)}`
+    : includesDigital
+      ? `${PUBLIC_ORIGIN}/studio/card/${cardId}`
+      : `${PUBLIC_ORIGIN}/studio/orders`;
+  const ctaLabel = includesDigital && !isGuest ? 'View your card & share link' : 'View your order';
   const html = chassis({
     preheader,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
@@ -1175,7 +1217,7 @@ ${textItems.join('\n')}
 
 Total: ${amount}
 Order: ${orderId}
-
+${guestShare ? `Share link: ${guestShare}\n` : ''}
 ${ctaLabel}: ${ctaHref}
 
 — Celebrait`;
@@ -1362,8 +1404,12 @@ export async function sendSenderPrintDeliveredEmail(params: {
   recipientName: string | null;
   cardImageUrl?: string | null;
   insideImageUrl?: string | null;
+  /** Guest buyer — /studio is a login wall, so "Make another" goes to
+   *  the front door instead. */
+  isGuest?: boolean;
 }): Promise<boolean> {
-  const { senderEmail, senderName, recipientName, cardImageUrl, insideImageUrl } = params;
+  const { senderEmail, senderName, recipientName, cardImageUrl, insideImageUrl, isGuest = false } = params;
+  const makeAnotherHref = isGuest ? `${PUBLIC_ORIGIN}/` : `${PUBLIC_ORIGIN}/studio`;
 
   const who = recipientName ? escape(recipientName) : 'Your recipient';
   const subject = recipientName
@@ -1389,7 +1435,7 @@ export async function sendSenderPrintDeliveredEmail(params: {
     heading,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
-    cta: { label: 'Make another', href: `${PUBLIC_ORIGIN}/studio` },
+    cta: { label: 'Make another', href: makeAnotherHref },
   });
 
   const text = `Hi ${senderName},
@@ -1400,7 +1446,7 @@ The best part is when they open it.
 
 Someone else coming up? Your cards stay in your gallery — copy one to get a head start.
 
-Make another: ${PUBLIC_ORIGIN}/studio
+Make another: ${makeAnotherHref}
 
 — Celebrait`;
 
