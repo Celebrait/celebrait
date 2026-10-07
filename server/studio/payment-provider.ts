@@ -49,6 +49,12 @@ export interface PaymentStatus {
    *  event; undefined otherwise. Stored so reporting reflects real revenue
    *  when a promo code was applied. */
   amountPaid?: number;
+  /** On a refund event: pence refunded so far, and whether the charge is
+   *  now fully refunded. Stripe's charge.refunded fires for PARTIAL
+   *  refunds too — without these the handler marked the whole order
+   *  refunded and emailed the full order amount (audit 2026-10-06). */
+  amountRefunded?: number;
+  fullyRefunded?: boolean;
   /** Our order id, echoed back from the gateway's metadata (Stripe: set
    *  on the Checkout Session at create time). Fallback matcher for the
    *  webhook when the paymentReference lookup misses — e.g. the

@@ -32,10 +32,12 @@ import {
 import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
+import { touchCheckout } from '../activity';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
   sendRefundEmail,
+  sendSenderOrderProblemEmail,
   sendSenderPrintShippedEmail,
   sendSenderPrintDeliveredEmail,
   sendAdminAlertEmail,
@@ -443,6 +445,9 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             );
         }
 
+        // The reconcile sweep must keep running while this order settles,
+        // even if the buyer never comes back from Stripe (no traffic).
+        touchCheckout();
         const inserted = await db
           .insert(studioOrders)
           .values({
@@ -872,15 +877,44 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           );
         } else if (order.paymentStatus === 'refunded') {
           // Idempotent — a re-delivered webhook must not double-email.
+        } else if (status.fullyRefunded === false) {
+          // A PARTIAL refund. The order is still paid and very likely
+          // still printing — flipping it to 'refunded' and emailing the
+          // full amount told the customer their £9.94 was back when £2.95
+          // was (audit 2026-10-06). Record it, tell them the real figure,
+          // and leave the status alone.
+          const pence = status.amountRefunded ?? 0;
+          console.warn(`[STRIPE-WEBHOOK] PARTIAL refund of ${pence}p on order ${order.id} (total ${order.totalAmount}p) — status unchanged`);
+          void sendAdminAlertEmail(`Partial refund on order ${order.id}`, [
+            `${pence}p of ${order.totalAmount}p refunded via Stripe.`,
+            `Fulfilment is ${order.fulfillmentStatus}; the order stays paid.`,
+          ]);
+          const sent = await sendRefundEmail({
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            amount: pence,
+            currency: order.currency,
+            orderId: order.id,
+          });
+          console.log(`[STRIPE-WEBHOOK] partial refund email ${sent ? 'sent' : 'failed'} for order ${order.id}`);
         } else {
           await db
             .update(studioOrders)
             .set({ paymentStatus: 'refunded', updatedAt: new Date() })
             .where(eq(studioOrders.id, order.id));
+          // A full refund on an order that is already at the printer
+          // needs a human to pull it — there is no cancel call on the
+          // print provider yet, so the alert is the mechanism.
+          if (order.includesPrint && ['pending', 'submitted'].includes(order.fulfillmentStatus ?? '')) {
+            void sendAdminAlertEmail(`Refunded order ${order.id} may still PRINT`, [
+              `Fully refunded via Stripe while fulfilment is ${order.fulfillmentStatus}.`,
+              order.providerOrderId ? `Cancel Prodigi order ${order.providerOrderId} by hand.` : 'Not yet submitted — the sweeper will not re-drive a refunded order, but check.',
+            ]);
+          }
           const sent = await sendRefundEmail({
             customerEmail: order.customerEmail,
             customerName: order.customerName,
-            amount: order.totalAmount,
+            amount: status.amountRefunded ?? order.totalAmount,
             currency: order.currency,
             orderId: order.id,
           });
@@ -1240,10 +1274,17 @@ export async function submitPrintOrder(
   }
 
   const state = (card.conversationData as CardDraftState | null) ?? null;
+  // Envelope name. What the buyer TYPED wins (the rack checkout asks
+  // "whose name goes on the envelope?"; the studio checkout asks when
+  // posting to the recipient). Falling back to the card's recipient was
+  // the only path until 2026-10-06 — and that field is "Mum", which is
+  // not a postal name. Last resort is the buyer's own name.
+  const typedName = (shippingAddress as ShippingAddress | null)?.name?.trim();
   const recipientName =
-    shipTo === 'recipient'
+    typedName ||
+    (shipTo === 'recipient'
       ? state?.recipient?.name?.trim() || order.customerName
-      : order.customerName;
+      : order.customerName);
 
   // Sender's first name (captured at signup) → back-of-card signed credit.
   // Best-effort: a missing name just falls back to the wordmark.
@@ -1452,16 +1493,34 @@ export async function applyFulfillmentUpdate(
 
   // Failure is terminal — record it unless we've already delivered.
   if (next === 'failed') {
-    await db
+    const flipped = await db
       .update(studioOrders)
       .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
       .where(
         and(
           eq(studioOrders.id, order.id),
           ne(studioOrders.fulfillmentStatus, 'delivered'),
+          ne(studioOrders.fulfillmentStatus, 'failed'),
         ),
-      );
+      )
+      .returning({ id: studioOrders.id });
     console.log(`[FULFILMENT] order ${order.id} → failed`);
+    // A paid order the printer has dropped is money taken for nothing —
+    // somebody has to act, and the customer must not find out by waiting.
+    // The extra `ne failed` guard above makes this fire exactly once per
+    // order however many times the poller re-reads the same status.
+    if (flipped.length && order.paymentStatus === 'paid') {
+      void sendAdminAlertEmail(`Print order FAILED — ${order.id}`, [
+        `Prodigi reported the order failed/cancelled (provider order ${order.providerOrderId ?? 'n/a'}).`,
+        `Customer ${order.customerEmail} paid ${order.totalAmount}p and has been told we're on it.`,
+        'Reprint (re-submit from admin) or refund via Stripe within one working day.',
+      ]);
+      void sendSenderOrderProblemEmail({
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        orderId: order.id,
+      });
+    }
     return;
   }
 

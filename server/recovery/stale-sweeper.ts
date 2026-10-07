@@ -37,12 +37,13 @@
 //     providerOrderId, so this can never double-submit). Alert the
 //     operator if a re-drive fails again.
 
-import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { activitySince } from '../activity';
+import { activitySince, checkoutSettling } from '../activity';
 import { cards, cardAttempts, studioOrders } from '@shared/schema';
 import { inFlightCards } from '../generation-registry';
-import { submitPrintOrder } from '../routes/studio-checkout';
+import { markOrderPaidAndDispatch, submitPrintOrder } from '../routes/studio-checkout';
+import { getPaymentProvider } from '../studio/payment-provider';
 import { sendAdminAlertEmail } from '../email-service';
 
 const GENERATING_STATUSES = ['generating', 'generating-front', 'generating-inside'];
@@ -128,6 +129,48 @@ export async function sweepStaleGenerations(): Promise<{
   return { cardsSwept, attemptsSwept };
 }
 
+/** THE WEBHOOK SAFETY NET. "Paid" is flipped by the Stripe webhook or by
+ *  the customer landing on the success page. If the webhook isn't
+ *  registered on prod — or its secret is wrong, or Stripe can't reach us
+ *  — a buyer who pays and closes the tab has money taken and an order
+ *  stuck 'pending' forever, and until 2026-10-06 nothing ever looked
+ *  (audit, P0). This asks Stripe directly for every pending Stripe order
+ *  old enough that a webhook would have landed and young enough to still
+ *  matter, and settles it through the same idempotent path the webhook
+ *  uses. Zero network calls when there is nothing pending. */
+const PAYMENT_RECONCILE_MIN_AGE_MS = 10 * 60 * 1000;
+const PAYMENT_RECONCILE_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+export async function sweepUnreconciledPayments(): Promise<number> {
+  const provider = getPaymentProvider();
+  if (provider.name !== 'stripe') return 0;
+  const now = Date.now();
+  const pending = await db
+    .select({ id: studioOrders.id, paymentReference: studioOrders.paymentReference })
+    .from(studioOrders)
+    .where(
+      and(
+        eq(studioOrders.paymentStatus, 'pending'),
+        eq(studioOrders.paymentProvider, 'stripe'),
+        isNotNull(studioOrders.paymentReference),
+        lt(studioOrders.createdAt, new Date(now - PAYMENT_RECONCILE_MIN_AGE_MS)),
+        gt(studioOrders.createdAt, new Date(now - PAYMENT_RECONCILE_MAX_AGE_MS)),
+      ),
+    );
+  let reconciled = 0;
+  for (const order of pending) {
+    try {
+      const st = await provider.getStatus(order.paymentReference!);
+      if (st.status !== 'paid') continue;
+      console.warn(`[STALE-SWEEP] order ${order.id} is PAID at Stripe but pending here — no webhook landed. Settling.`);
+      await markOrderPaidAndDispatch(order.id, st.amountPaid);
+      reconciled += 1;
+    } catch (err: any) {
+      console.error(`[STALE-SWEEP] payment reconcile failed for order ${order.id}:`, err?.message ?? err);
+    }
+  }
+  return reconciled;
+}
+
 export async function sweepStrandedPaidOrders(): Promise<number> {
   const cutoff = new Date(Date.now() - ORDER_STALE_MS);
   const stranded = await db
@@ -166,11 +209,12 @@ export async function sweepStrandedPaidOrders(): Promise<number> {
 async function runSweeps(): Promise<void> {
   try {
     const gen = await sweepStaleGenerations();
+    const paid = await sweepUnreconciledPayments();
     const orders = await sweepStrandedPaidOrders();
     const emptied = await purgeUntouchedDrafts();
-    if (gen.cardsSwept || gen.attemptsSwept || orders || emptied) {
+    if (gen.cardsSwept || gen.attemptsSwept || paid || orders || emptied) {
       console.log(
-        `[STALE-SWEEP] pass done: ${gen.cardsSwept} card(s), ${gen.attemptsSwept} attempt(s), ${orders} order re-drive(s), ${emptied} empty draft(s) purged`,
+        `[STALE-SWEEP] pass done: ${gen.cardsSwept} card(s), ${gen.attemptsSwept} attempt(s), ${paid} payment(s) reconciled, ${orders} order re-drive(s), ${emptied} empty draft(s) purged`,
       );
       // Orphaned cards after a deploy are expected; a stranded PAID order
       // is not — sweepStrandedPaidOrders already alerts per-failure via
@@ -231,7 +275,7 @@ export async function purgeUntouchedDrafts(): Promise<number> {
 export function scheduleStaleSweeps(): void {
   let lastPassAt = 0;
   const pass = () => {
-    if (!activitySince(lastPassAt)) return;  // nobody has been here since the last one
+    if (!activitySince(lastPassAt) && !checkoutSettling()) return;  // nobody here since the last one, and no checkout still settling
     lastPassAt = Date.now();
     void runSweeps();
   };

@@ -32,3 +32,14 @@ export function activitySince(since: number): boolean {
 export function lastActivityAt(): number {
   return lastRequestAt;
 }
+
+// A CHECKOUT IS NOT ORDINARY TRAFFIC. The buyer leaves for Stripe, pays,
+// and may never come back — and if the webhook is missing on prod, the
+// only thing that will ever notice is a sweep. That sweep must not be
+// starved by the idle gate above, so a checkout leaves a longer mark:
+// the sweeper keeps running while any checkout is young enough to still
+// be settling, traffic or no traffic.
+const CHECKOUT_SETTLING_MS = 48 * 60 * 60 * 1000;
+let lastCheckoutAt = 0;
+export function touchCheckout(): void { lastCheckoutAt = Date.now(); }
+export function checkoutSettling(): boolean { return Date.now() - lastCheckoutAt < CHECKOUT_SETTLING_MS; }

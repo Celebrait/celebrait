@@ -895,6 +895,59 @@ Try again: ${retryUrl}
   }
 }
 
+// ── Sender: "There's a problem with your order" ──────────────────────
+// Sent when the print provider reports the order failed or cancelled
+// AFTER payment. Until 2026-10-06 that state was recorded silently —
+// the customer had paid and would simply never receive anything
+// (audit, P0). Honest, specific, and it says what happens next: we
+// sort it, they don't have to chase.
+export async function sendSenderOrderProblemEmail(params: {
+  customerEmail: string;
+  customerName: string | null;
+  orderId: string;
+}): Promise<boolean> {
+  const { customerEmail, customerName, orderId } = params;
+  const greeting = customerName ? `Hi ${escape(customerName.split(' ')[0])},` : 'Hi there,';
+  const orderUrl = `${PUBLIC_ORIGIN}/order/${encodeURIComponent(orderId)}`;
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      Our printer has told us there's a problem with your card order, so it
+      hasn't gone out. We're sorry — this is rare, and it's ours to fix.
+    </p>
+    <p style="margin: 0 0 16px;">
+      We're looking into it now. Within one working day we'll either have it
+      reprinted and on its way, or refund you in full — and we'll email you
+      either way. You don't need to do anything.
+    </p>
+    <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
+      Order: <span style="font-family: monospace;">${escape(orderId)}</span>
+    </p>
+  `;
+  const html = chassis({
+    preheader: "Our printer flagged a problem. We're on it — reprint or full refund within a working day.",
+    heading: "There's a problem with your order",
+    bodyHtml: body,
+    cta: { label: 'View your order', href: orderUrl },
+  });
+  const text = `${greeting}
+
+Our printer has told us there's a problem with your card order, so it hasn't gone out. We're sorry — this is rare, and it's ours to fix.
+
+We're looking into it now. Within one working day we'll either have it reprinted and on its way, or refund you in full — and we'll email you either way. You don't need to do anything.
+
+Your order: ${orderUrl}
+Order: ${orderId}
+
+— Celebrait`;
+  return sendEmail({
+    to: customerEmail,
+    subject: "There's a problem with your card order — we're on it",
+    html,
+    text,
+  });
+}
+
 // ── Recipient: "A card has arrived for you" ──────────────────────────
 // Sent the moment a sender's digital order is marked paid. This is
 // the recipient's FIRST contact with the Celebrait brand — warm but

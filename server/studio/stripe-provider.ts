@@ -210,7 +210,13 @@ export const stripePaymentProvider: PaymentProvider = {
             /* session lookup best-effort — fall back to the PI */
           }
         }
-        return { paymentReference: ref, status: "refunded" };
+        return {
+          paymentReference: ref,
+          status: "refunded",
+          amountRefunded: charge.amount_refunded ?? undefined,
+          // Stripe sets charge.refunded only when the FULL amount is back.
+          fullyRefunded: charge.refunded === true,
+        };
       }
       default:
         // Unhandled event — report pending against the event id so the
