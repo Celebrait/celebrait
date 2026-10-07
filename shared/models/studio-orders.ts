@@ -178,6 +178,11 @@ export type StudioOrderListItem = {
 };
 
 export const shippingAddressSchema = z.object({
+  /** Who the envelope is addressed to. Optional because the studio
+   *  checkout derives it from the card; the rack checkout ASKS for it —
+   *  and until 2026-10-06 zod silently stripped the answer, so the
+   *  person typed a name that never reached the order or the envelope. */
+  name: z.string().trim().max(80).optional(),
   line1: z.string().min(1),
   line2: z.string().optional(),
   city: z.string().min(1),

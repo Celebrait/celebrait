@@ -24,7 +24,8 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../db';
 import { cards, cardTemplates, orderItems, studioOrders } from '@shared/schema';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
+import { getFreeCardStatus } from '../studio/free-card';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
 import { markOrderPaidAndDispatch } from './studio-checkout';
@@ -163,6 +164,19 @@ export function registerShopRoutes(app: Express): void {
       const owns = sessionUser && card.userId === sessionUser;
       const holdsToken = card.userId === null && card.imageKey && token === card.imageKey;
       if (!owns && !holdsToken) return res.status(403).json({ message: 'Not your card' });
+      // The checkout POST applies the first-order credit (half price) for
+      // a signed-in owner of a made-for-them card. Until 2026-10-06 this
+      // summary always quoted the full price, so /buy showed £5.99 and
+      // billed £2.99 (audit). Mirror the SAME rule the checkout uses.
+      const listPrice = cardPriceGBP(card.source);
+      let price = listPrice;
+      if (owns && card.source !== 'rack') {
+        try {
+          if ((await getFreeCardStatus(sessionUser)).eligible) price = firstOrderPriceGBP(card.source);
+        } catch (err) {
+          console.warn('[SHOP] free-card status lookup failed — quoting list price:', err);
+        }
+      }
       res.json({
         card: {
           id: card.id,
@@ -170,7 +184,9 @@ export function registerShopRoutes(app: Express): void {
           status: card.status,
           frontImageUrl: card.frontImagePath ? publicImageUrl(card.frontImagePath) : null,
           insideImageUrl: card.insideImagePath ? publicImageUrl(card.insideImagePath) : null,
-          price: cardPriceGBP(card.source),
+          price,
+          /** Undiscounted price — differs from `price` only when the first-order credit applies. */
+          listPrice,
           insideMode: (card.conversationData as RackCardState | null)?.insideMode ?? null,
           // Who it's for — the buy page prefills the envelope name and
           // weaves it into the delivery copy (both rack and maker states

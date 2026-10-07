@@ -41,6 +41,8 @@ interface ShopCard {
   frontImageUrl: string | null;
   insideImageUrl: string | null;
   price: number;
+  /** Full price; when it differs from `price` the first-order credit is on. */
+  listPrice?: number;
   insideMode: 'ours' | 'own' | 'blank' | null;
   recipientName: string | null;
 }
@@ -201,7 +203,18 @@ export default function BuyPage() {
           <p className="font-medium text-keeper-ink">{card.recipientName ? `${card.recipientName}'s card` : 'Your card'}</p>
           <p className="mt-0.5 text-xs text-keeper-meta">280gsm gloss, kraft envelope · free digital link</p>
           <div className="mt-3 space-y-1 text-keeper-body">
-            <p className="flex justify-between"><span>Card</span><span>{gbp(totals.print)}</span></p>
+            <p className="flex justify-between">
+              <span>Card</span>
+              <span>
+                {card.listPrice != null && card.listPrice > totals.print && (
+                  <span className="mr-1.5 text-keeper-meta line-through">{gbp(card.listPrice)}</span>
+                )}
+                {gbp(totals.print)}
+              </span>
+            </p>
+            {card.listPrice != null && card.listPrice > totals.print && (
+              <p className="-mt-0.5 text-xs text-brand-dark">Half price — your first card</p>
+            )}
             <p className="flex justify-between"><span>Postage · {tier.carrier}</span><span>{gbp(totals.ship)}</span></p>
           </div>
         </div>

@@ -225,6 +225,10 @@ export default function CheckoutPage() {
     document.title = 'Checkout — Celebrait';
     return () => { document.title = prev; };
   }, []);
+  // Name on the envelope when posting straight to them. The card's
+  // recipient field is "Mum" — not a postal name — and until 2026-10-06
+  // that is literally what went on the label.
+  const [envelopeName, setEnvelopeName] = useState('');
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
@@ -293,7 +297,8 @@ export default function CheckoutPage() {
   };
 
   const addressComplete =
-    line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5;
+    line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5 &&
+    (shipTo !== 'recipient' || envelopeName.trim().length > 0);
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
   // Print orders must have a resolved delivery destination (chosen in the
@@ -323,6 +328,7 @@ export default function CheckoutPage() {
         payload.shippingTier = effectiveTier;
         if (needBy) payload.needByDate = needBy;
         payload.shippingAddress = {
+          name: shipTo === 'recipient' ? envelopeName.trim() : customerName.trim(),
           line1: line1.trim(),
           line2: line2.trim() || undefined,
           city: city.trim(),
@@ -654,6 +660,11 @@ export default function CheckoutPage() {
                     from abroad is fine — just have the card sent straight
                     to them at their UK address.
                   </p>
+                  {shipTo === 'recipient' && (
+                    <Field label="Their full name, for the envelope">
+                      <Input value={envelopeName} onChange={(e) => setEnvelopeName(e.target.value)} autoComplete="shipping name" placeholder="e.g. Margaret Hughes" />
+                    </Field>
+                  )}
                   <Field label="Address line 1">
                     <Input value={line1} onChange={(e) => setLine1(e.target.value)} autoComplete="shipping address-line1" />
                   </Field>
