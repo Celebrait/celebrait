@@ -58,6 +58,9 @@ import { GestureHints } from '@/components/gesture-hints';
 // The shared kit: display face, hero headline scale, the one primary
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
 import { DISPLAY, H1, BTN_PRIMARY, BTN_PRIMARY_LG } from '@/pages/doorway';
+import { cardPriceGBP, firstOrderPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
+// Pence → "£6.99". The same one-liner the three-card doorway keeps locally.
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
 // the JS bundle instead of after it. On prod that parallel start is
@@ -962,8 +965,8 @@ function HeroSection() {
             </div>
             <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
               The result? A close to perfect greetings card they'll{' '}
-              <span className="font-medium text-keeper-ink">probably keep</span> from just
-              £4.99. From photo to print-ready in 7–10 minutes*
+              <span className="font-medium text-keeper-ink">probably keep</span> for
+              £6.99. From photo to print-ready in 7–10 minutes*
             </p>
             {/* The wink — the asterisk is the joke, so keep it quiet and
                 right under the claim it qualifies. */}
@@ -1639,29 +1642,30 @@ function PriceSection() {
     <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <Rise>
-          {/* Leads with the offer, not the list price — the free first card
-              is the reason to start, and £6.99 is what it's worth. CAP Code
-              on "free": the postage you can't avoid has to sit with the
-              claim, not in smallprint, and the one-per-account condition
-              has to be stated. Hence both on the line under the number.
-              No "limited time" — there's no end date and we don't intend
-              to set one, and a perpetual urgency claim is the kind the ASA
-              upholds against. This wording is true indefinitely. */}
+          {/* THE OFFER HERE IS THE ONE CHECKOUT APPLIES. This block sold a
+              FREE first card ("just pay £2.95 postage") until 2026-10-06,
+              two screens below three banners stating the real offer — and
+              checkout only ever applies firstOrderPriceGBP, which is 50%.
+              A visitor promised free and charged £3.49 is a complaint and
+              an ASA-upholdable claim. The numbers come from shared/pricing
+              now, so this line cannot drift from the bill again.
+              Still no "limited time" — there is no end date, and a
+              perpetual urgency claim is the kind the ASA upholds against. */}
           <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-keeper-meta">
-            First card on us
+            Half price on your first card
           </p>
           <div className="mt-2 flex items-baseline justify-center gap-4">
             <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
-              Free
+              {gbp(firstOrderPriceGBP('photo'))}
             </span>
             <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
               <span className="sr-only">Normally </span>
-              <s>£6.99</s>
+              <s>{gbp(cardPriceGBP('photo'))}</s>
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            You just pay standard postage, £2.95. One per account;
-            after that, cards are from £4.99 plus postage. Make and preview as
+            Plus {gbp(UK_SHIPPING_STANDARD_GBP)} standard postage. One per account;
+            after that, photo cards are {gbp(cardPriceGBP('photo'))} plus postage. Make and preview as
             many as you like for free — you only pay when you post one.
             Our cards are one-off prints — please allow at least a week from order to arrival.
           </p>

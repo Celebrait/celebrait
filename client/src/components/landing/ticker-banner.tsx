@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react';
 import { Gift, Truck } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
+import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -32,6 +33,16 @@ export const CLAIM_PARAM = 'claim';
  *  event; elsewhere it's a trip home carrying the flag. Every signed-out
  *  "start a card" CTA should use this, so the offer is what greets them
  *  (Aidan 2026-08-06: "just want everyone presented with this"). */
+/** Which door's price the offer should quote. The header (and so this
+ *  ticker) is shared by both landing pages, and the line was hardcoded to
+ *  the three-card price — so on /photo it promised £5.99→£2.99 for a card
+ *  that is £6.99→£3.49 at checkout (audit 2026-10-06). The number must be
+ *  the number this door will actually charge. */
+function doorFor(path: string): 'photo' | 'maker' {
+  return path.startsWith('/photo') ? 'photo' : 'maker';
+}
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+
 export function useClaimFreeCard() {
   const [location, setLocation] = useLocation();
   return () => {
@@ -50,6 +61,8 @@ export function useClaimFreeCard() {
 const HOLD_MS = 8000;
 
 export function TickerBanner() {
+  const [tickerPath] = useLocation();
+  const door = doorFor(tickerPath);
   const claimTap = useClaimFreeCard();
   // 0 = the offer, 1 = the honest lead line.
   const [slot, setSlot] = useState(0);
@@ -82,7 +95,7 @@ export function TickerBanner() {
         </span>
         <span className="hidden sm:inline">
           Tell us 3 dates that matter and your first card is{' '}
-          <span className="line-through opacity-70">£5.99</span> <b className="text-accent-coral">£2.99</b>.
+          <span className="line-through opacity-70">{gbp(cardPriceGBP(door))}</span> <b className="text-accent-coral">{gbp(firstOrderPriceGBP(door))}</b>.
           Claim it ›
         </span>
       </button>

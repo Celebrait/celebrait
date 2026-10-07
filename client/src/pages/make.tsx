@@ -132,7 +132,21 @@ export default function MakePage() {
   const [briefFurthest, setBriefFurthest] = useState(0);
   const [briefQuestions, setBriefQuestions] = useState<QuestionKey[]>(['who', 'occasion', 'age', 'vibe', 'interest', 'name']);
   const [briefJump, setBriefJump] = useState<number | null>(null);
-  useEffect(() => { if (autoGo.current) { autoGo.current = false; void generate(); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!autoGo.current) return;
+    autoGo.current = false;
+    // CONSUME THE TOKEN. go=1 is a one-shot instruction from the doorway,
+    // and it used to live on in the address bar — so a reload, a
+    // back/forward, a bookmark or a shared link re-fired a full set
+    // (concepts + three renders) every time, at real cost, with no
+    // confirmation (audit 2026-10-06). Strip it the moment it fires; the
+    // brief stays in the URL, so Back and refresh land on the questions,
+    // not on another bill.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('go');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    void generate();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ageNum = ageOf(brief);
   const isKid = isKidBrief(brief);
