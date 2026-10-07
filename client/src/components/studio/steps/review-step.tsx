@@ -932,8 +932,27 @@ export function StartAgainButton({
         `/api/studio/drafts/${cardId}/duplicate`,
         {},
       );
-      const { id } = (await res.json()) as { id: number };
-      setLocation(`/studio/card/${id}/edit`);
+      const data = (await res.json()) as
+        | { id: number }
+        | { kind: 'maker'; brief: { who?: string; gender?: string | null; age?: string | number | null; interest?: string; dislike?: string; recipientName?: string; tone?: string; occasion?: string } };
+      if ('kind' in data && data.kind === 'maker') {
+        // A three-card card re-deals from its brief. The maker reads its
+        // brief from the URL (readBriefFromSearch), so hand it the keys
+        // it expects — and NO go=1: it lands on the questions, one tap
+        // from three fresh fronts, rather than spending on arrival.
+        const b = data.brief; const q = new URLSearchParams();
+        if (b.who) q.set('who', String(b.who));
+        if (b.gender) q.set('gender', String(b.gender));
+        if (b.occasion) q.set('occasion', String(b.occasion));
+        if (b.age != null && b.age !== '') q.set('age', String(b.age));
+        if (b.tone && b.tone !== 'mix') q.set('vibe', String(b.tone));
+        if (b.interest) q.set('thing', String(b.interest));
+        if (b.dislike) q.set('cant', String(b.dislike));
+        if (b.recipientName) q.set('name', String(b.recipientName));
+        setLocation(`/make?${q.toString()}`);
+        return;
+      }
+      setLocation(`/studio/card/${(data as { id: number }).id}/edit`);
     } catch (err: any) {
       toast({
         title: "Couldn't start again",

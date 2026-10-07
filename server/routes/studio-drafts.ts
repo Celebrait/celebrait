@@ -204,6 +204,7 @@ export function registerStudioDraftRoutes(app: Express): void {
         const rows = await db
           .select({
             userId: cards.userId,
+            source: cards.source,
             conversationData: cards.conversationData,
             sceneType: cards.sceneType,
             cardType: cards.cardType,
@@ -215,6 +216,19 @@ export function registerStudioDraftRoutes(app: Express): void {
         const row = rows[0];
         if (!row) return res.status(404).json({ message: 'Card not found' });
         if (row.userId !== userId) return res.status(403).json({ message: 'Not your card' });
+
+        // A THREE-CARD (maker) CARD DOES NOT CLONE. Its state is a
+        // MakerDraftState — a brief and a chosen concept — not the photo
+        // journey's six steps, and cloning it here minted a photo-route
+        // draft with no photo, no scene and the photo price, parked on a
+        // Review step that could never generate (audit 2026-10-06, found
+        // by two lanes). The brief was saved for exactly this moment:
+        // hand it back and let the client re-deal three new fronts.
+        if (row.source === 'maker') {
+          const maker = (row.conversationData ?? {}) as { brief?: Record<string, unknown> };
+          if (!maker.brief) return res.status(409).json({ message: 'This card has no saved brief to start again from.' });
+          return res.json({ kind: 'maker', brief: maker.brief });
+        }
 
         const state = (row.conversationData ?? {}) as CardDraftState;
         // Land the clone on Review — inputs pre-filled and editable via
