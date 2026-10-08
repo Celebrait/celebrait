@@ -4,7 +4,8 @@ import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
-import { injectSeoAsync } from "./seo-inject";
+import { injectSeoAsync, htmlStatusForPath } from "./seo-inject";
+import { robotsForPath } from "@shared/seo";
 
 const viteLogger = createLogger();
 
@@ -64,10 +65,13 @@ export async function setupVite(app: Express, server: Server) {
       // Same SEO/OG rewriting as prod (serveStatic below) — without this,
       // dev serves base metadata on every path, so share-link previews
       // and canonicals can't be verified locally with curl.
+      const pathOnly = url.split("?")[0];
+      const robots = robotsForPath(pathOnly);
+      if (robots) res.set("X-Robots-Tag", robots);
       res
-        .status(200)
+        .status(htmlStatusForPath(pathOnly))
         .set({ "Content-Type": "text/html" })
-        .end(await injectSeoAsync(page, url.split("?")[0]));
+        .end(await injectSeoAsync(page, pathOnly));
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -119,9 +123,14 @@ export function serveStatic(app: Express) {
   );
   app.use("*", async (req, res) => {
     res.set("Cache-Control", "no-cache");
+    // 404 for paths no route serves (soft-404 fix) + X-Robots-Tag for
+    // private pages — both decided by shared/seo.ts, same as the meta.
+    const pathOnly = req.originalUrl.split("?")[0];
+    const robots = robotsForPath(pathOnly);
+    if (robots) res.set("X-Robots-Tag", robots);
     res
-      .status(200)
+      .status(htmlStatusForPath(pathOnly))
       .set({ "Content-Type": "text/html" })
-      .end(await injectSeoAsync(indexTemplate, req.originalUrl.split("?")[0]));
+      .end(await injectSeoAsync(indexTemplate, pathOnly));
   });
 }

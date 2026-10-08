@@ -139,6 +139,12 @@ app.use((req, res, next) => {
   app.get("/door2", (req, res) =>
     res.redirect(301, req.originalUrl.replace(/^\/door2/, "/create")),
   );
+  // Retired experiments (launch audit Phase 3): /door carried a stale
+  // "first one's on us" offer; /hero-poc was the scroll-hero stage.
+  app.get("/door", (req, res) =>
+    res.redirect(301, req.originalUrl.replace(/^\/door/, "/create")),
+  );
+  app.get("/hero-poc", (_req, res) => res.redirect(301, "/"));
 
   const server = await registerRoutes(app);
   // One-off data passes ride boot: idempotent, guarded, loud.

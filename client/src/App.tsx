@@ -98,7 +98,6 @@ const CardMakerPage = lazy(() =>
 const CardViewerPage = lazy(() => import("@/pages/card-viewer"));
 
 // Hero scroll-dolly PROOF OF CONCEPT — isolated, not linked.
-const HeroScrollPocPage = lazy(() => import("@/pages/hero-scroll-poc"));
 
 // Checkout
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
@@ -121,7 +120,6 @@ const AdminCardTemplatesPage = lazy(() => import("@/pages/admin-card-templates")
 const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio"));
 const AdminEnginePage = lazy(() => import("@/pages/admin-engine"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
-const DoorwayPage = lazy(() => import("@/pages/doorway"));
 const DoorwayBPage = lazy(() => import("@/pages/doorway-b"));
 const GatePage = lazy(() => import("@/pages/gate"));
 const MakePage = lazy(() => import("@/pages/make"));
@@ -135,8 +133,15 @@ const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const BuyPage = lazy(() => import("@/pages/buy"));
 // A component (not inline JSX) so the query is read when the route
 // renders, not when App last rendered.
-function Door2Redirect() {
+// Retired experiment URLs (launch audit Phase 3): /door and /door2 were
+// the three-card doorway's trials, /hero-poc the scroll hero. The pages
+// live in git; the server 301s these too — this catches in-app
+// navigations. Stale offers on them ("first one's on us") are why.
+function CreateRedirect() {
   return <Redirect to={`/create${window.location.search}`} replace />;
+}
+function HomeRedirect() {
+  return <Redirect to="/" replace />;
 }
 const OrderStatusPage = lazy(() => import("@/pages/order-status"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
@@ -192,7 +197,7 @@ function Router() {
           <Route path="/create" component={DoorwayBPage} />
           {/* Legacy /keeper alias → same page, so old links still resolve. */}
           <Route path="/keeper" component={LandingKeeper} />
-          <Route path="/hero-poc" component={HeroScrollPocPage} />
+          <Route path="/hero-poc" component={HomeRedirect} />
           <Route path="/card-capture" component={CardCapturePage} />
           <Route path="/login" component={LoginPage} />
           {/* F&F research walk-through — keyed link, no login; the
@@ -333,10 +338,8 @@ function Router() {
               match `/checkout/success` as `:cardId='success'`. */}
           {/* Guest commerce (Door 1) — deliberately OUTSIDE RequireAuth:
               the rack sells with no account, ownership is token-based. */}
-          <Route path="/door" component={DoorwayPage} />
-          {/* Legacy alias → /create (brief kept in the query). The server
-              301s it too; this catches in-app navigations. */}
-          <Route path="/door2" component={Door2Redirect} />
+          <Route path="/door" component={CreateRedirect} />
+          <Route path="/door2" component={CreateRedirect} />
           <Route path="/make" component={MakePage} />
           {/* THE DEMO: /make driving itself for social recordings. Admin
               only — every load spends a set of generations. */}

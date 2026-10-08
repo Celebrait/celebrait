@@ -53,12 +53,6 @@ export const PAGE_SEO: PageSeo[] = [
       'Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and posted first class from £4.99.',
   },
   {
-    path: '/door',
-    title: 'Cards Made For One Person | Celebrait',
-    description:
-      'A card made for them: tell us who and we write and illustrate three originals in a few minutes. Or a scene made around them, from one photo. Printed on 280gsm card and posted first class from £4.99.',
-  },
-  {
     path: '/make',
     title: 'Making their card… | Celebrait',
     description: 'Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and posted first class.',
@@ -158,6 +152,46 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
     title: `${title} — Personalised & Made For Them | Celebrait`,
     description: `Real ${title.toLowerCase()} to send as-is or make theirs — or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £4.99.`,
   };
+}
+
+// ── Robots: what must never be indexed ──────────────────────────────
+// Mounted and reachable, but private by design or a design reference —
+// robots.txt only stops the CRAWL (a URL can still be listed from
+// links); these get a real noindex (meta + X-Robots-Tag) too.
+// (launch audit 2026-10-06, Phase 3)
+const NOINDEX_PATHS: RegExp[] = [
+  /^\/keeper$/, // design reference, duplicate of /photo
+  /^\/c\//, // share links — a private moment between two people
+  /^\/card\/\d+\/view(\/|$)/, // legacy long share form
+  /^\/order\//, // private by uuid
+];
+
+// Mirror of the router (client/src/App.tsx): every prefix a real route
+// serves. The server's HTML fallback 404s anything else so unknown URLs
+// stop being soft-404s (200 + not-found UI). Dynamic ids are matched
+// loosely — a missing card/blog post is the CLIENT's not-found, still
+// 200. ADD HERE WHEN ADDING A ROUTE, or the new page 404s for crawlers.
+const KNOWN_ROUTES: RegExp[] = [
+  /^\/$/,
+  /^\/(photo|create|keeper|card-capture|login|research|pricing|privacy-policy|terms-of-service|contact|blog|og|make|demo|door|door2|hero-poc)(\/|$)/,
+  /^\/(studio|admin|checkout)(\/|$)/,
+  /^\/card\/[^/]+(\/|$)/,
+  /^\/cards\/[^/]+(\/|$)/,
+  /^\/c\/[^/]+\/?$/,
+  /^\/buy\/[^/]+\/?$/,
+  /^\/order\/[^/]+\/?$/,
+];
+
+export function isKnownRoutePath(path: string): boolean {
+  return KNOWN_ROUTES.some((re) => re.test(path));
+}
+
+/** The robots directive for a path, or null when it may be indexed.
+ *  Used by the server (meta + X-Robots-Tag) and the client hook. */
+export function robotsForPath(path: string): string | null {
+  if (NOINDEX_PATHS.some((re) => re.test(path))) return 'noindex,nofollow';
+  if (!isKnownRoutePath(path)) return 'noindex';
+  return null;
 }
 
 export function seoForPath(rawPath: string): PageSeo | null {

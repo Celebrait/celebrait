@@ -1,11 +1,17 @@
 // The catch-all 404 — most often reached by a RECIPIENT with a broken
 // or truncated share link (WhatsApp/iMessage clipping), so it must be a
 // warm brand moment with a way home, never dev-speak (audit 2026-07-27).
+import { useEffect } from "react";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Compass } from "lucide-react";
+import { setRobotsMeta } from "@/lib/use-seo";
 
 export default function NotFound() {
+  // Soft-404 guard: the SPA can only answer 200 for a bad id under a
+  // known prefix, so at least tell crawlers not to index it. The useSeo
+  // hook re-reconciles this on the next navigation.
+  useEffect(() => { setRobotsMeta("noindex"); }, []);
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-keeper-paper px-4">
       <Card className="w-full max-w-md">

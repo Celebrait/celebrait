@@ -23,7 +23,7 @@
 // (name=/property=/rel=) so reordering lines in index.html can't break
 // it silently.
 
-import { seoForPath, SITE_ORIGIN } from '@shared/seo';
+import { seoForPath, robotsForPath, isKnownRoutePath, SITE_ORIGIN } from '@shared/seo';
 import type { PageSeo } from '@shared/seo';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
@@ -60,6 +60,28 @@ function isShareLinkPath(p: string): boolean {
  *  looked up per request. Anything else falls through to the sync
  *  registry. Never throws: a DB blip serves base metadata. */
 export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
+  return withRobotsMeta(await injectSeoInner(templateHtml, requestPath), requestPath);
+}
+
+/** HTTP status for the SPA shell: 404 for a path no route serves, so
+ *  unknown URLs stop being soft-404s. Same index.html either way. */
+export function htmlStatusForPath(requestPath: string): number {
+  return isKnownRoutePath(requestPath) ? 200 : 404;
+}
+
+/** `<meta name="robots">` for private / unknown paths — crawlers that
+ *  don't run JS still see it. Paired with the X-Robots-Tag header set
+ *  where the shell is served (server/vite.ts). */
+function withRobotsMeta(html: string, requestPath: string): string {
+  const robots = robotsForPath(requestPath);
+  if (!robots) return html;
+  return html.replace(
+    /(<meta name="description"[^>]*>)/,
+    `$1\n    <meta name="robots" content="${robots}" />`,
+  );
+}
+
+async function injectSeoInner(templateHtml: string, requestPath: string): Promise<string> {
   const m = requestPath.match(/^\/card\/(\d+)$/);
   if (m) {
     try {

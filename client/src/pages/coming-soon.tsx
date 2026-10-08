@@ -7,12 +7,21 @@
 // 'early-access') and a quiet "got the password?" door. Below: the
 // drifting wall of the cards picked for the main site.
 
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
-import { Card3DViewer } from '@/components/card-3d-viewer';
+// LAZY: a static import here shipped three.js + @react-three (1.2MB) to
+// every pre-launch visitor before the first paint (launch audit
+// 2026-10-06). The first paint is the flat card (HeroCardPoster, same
+// webp the texture loads); the 3D card hydrates in when the chunk lands.
+// Card3DViewer keeps its own inner <Suspense> inside the Canvas, so a
+// suspending texture can't escape to the route boundary and blank the
+// page (see the comments in card-3d-viewer.tsx before touching this).
+const Card3DViewer = lazy(() =>
+  import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),
+);
 import { GestureHints } from '@/components/gesture-hints';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import celebraitLogo from '@/assets/celebrait.webp';
@@ -23,6 +32,22 @@ const HERO_FRONT = '/hero-card-front.webp';
 const HERO_INSIDE = '/hero-card-inside.webp';
 // …and the everyday photo it was made from (before → after).
 const HERO_SOURCE = '/hero-source-photo.webp';
+
+// Flat stand-in for the 3D card while its chunk downloads: the same
+// front, at the size and spot the rendered card settles into. Same URL
+// + crossOrigin as the WebGL texture fetch so the two share one cache
+// entry (a no-CORS <img> load would poison the texture fetch).
+function HeroCardPoster() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <img src={HERO_FRONT} alt="" crossOrigin="anonymous" decoding="async"
+        // @ts-expect-error — `fetchpriority` not yet in React's typing
+        fetchpriority="high"
+        className="w-[71%] aspect-square rounded-[4px] object-cover shadow-[0_24px_48px_-20px_rgba(33,29,25,0.5)]"
+        style={{ transform: 'rotate(-2deg)' }} />
+    </div>
+  );
+}
 
 // ── the page ─────────────────────────────────────────────────────────
 
@@ -199,14 +224,18 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
                   </motion.div>
                 </div>
 
-                <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
-                  initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-                  <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
-                    backLogo backCaption="Unbinnable greetings cards · launching soon"
-                    enableZoom={false}
-                    closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
-                </motion.div>
+                {/* The poster sits in the square itself (not the bleed
+                    wrapper) so it lands where the 3D card will. */}
+                <Suspense fallback={<HeroCardPoster />}>
+                  <motion.div className="pointer-events-none absolute inset-x-[-105%] inset-y-[-24%]"
+                    initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
+                    <Card3DViewer frontImageUrl={HERO_FRONT} insideImageUrl={HERO_INSIDE} open={open} onOpenChange={setOpen}
+                      backLogo backCaption="Unbinnable greetings cards · launching soon"
+                      enableZoom={false}
+                      closedAngle={-0.28} restYaw={-0.12} framingMargin={framing} minDistance={1.1} className="h-full w-full" />
+                  </motion.div>
+                </Suspense>
               </div>
 
               <div className={`flex h-[48px] justify-center ${narrow ? '-mx-[20%] mt-1' : 'mt-1'}`}>
