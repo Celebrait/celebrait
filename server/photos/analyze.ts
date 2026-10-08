@@ -46,6 +46,7 @@ import { photos } from '@shared/schema';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
 import { LLM_SLOTS } from '@shared/schema';
+import { likenessCacheKey, getCachedLikeness, putCachedLikeness } from './likeness-cache';
 
 const ANALYSIS_MODEL = 'gemini-2.5-flash';
 
@@ -432,13 +433,23 @@ export async function analyzePhoto(args: {
     // actually see. Height read from the bytes because the caller only
     // has the ORIGINAL's dimensions, not the crop's.
     const cropMeta = await sharpMeta(imageBytes);
+    // Same bytes already judged (the guest maker's assess call before
+    // sign-up, or a retried upload)? Reuse that verdict — the traffic
+    // light the customer saw is the one the studio shows, and the model
+    // isn't rolled twice. See photos/likeness-cache.ts.
+    const cacheKey = likenessCacheKey(imageBytes);
+    const cachedLikeness = getCachedLikeness(cacheKey);
     const [vision, likeness] = await Promise.all([
       runPhotoVision({ imageBytes, mimeType }),
-      assessPhotoLikeness({ imageBytes, mimeType, imageHeight: cropMeta?.height }),
+      cachedLikeness
+        ? Promise.resolve({ result: cachedLikeness, raw: '', model: ANALYSIS_MODEL, durationMs: 0, promptTokens: 0, outputTokens: 0, noApiKey: true as const })
+        : assessPhotoLikeness({ imageBytes, mimeType, imageHeight: cropMeta?.height }),
     ]);
+    if (!cachedLikeness) putCachedLikeness(cacheKey, likeness.result);
 
     // Persist + cost-log the likeness pass independently of the summary
-    // pass: either can fail without taking the other down.
+    // pass: either can fail without taking the other down. (A cache hit
+    // reports noApiKey so no cost is logged — nothing was spent.)
     if (likeness.result) {
       await db
         .update(photos)

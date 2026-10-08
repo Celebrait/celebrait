@@ -20,6 +20,7 @@ import { storage } from '../storage';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { CropBounds } from '@shared/models/photos';
 import { analyzePhoto, assessPhotoLikeness } from '../photos/analyze';
+import { likenessCacheKey, getCachedLikeness, putCachedLikeness } from '../photos/likeness-cache';
 import { requireGuestMaker } from './admin-card-lab';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
@@ -95,17 +96,35 @@ export function registerPhotoRoutes(app: Express): void {
       if (!width || !height) return res.status(400).json({ message: 'Could not determine image dimensions' });
       const validCrop = cropBounds ? validateCropBounds(cropBounds, width, height) : null;
       if (cropBounds && !validCrop) return res.status(400).json({ message: 'cropBounds is invalid or falls outside the image' });
-      // Judge the crop, as the upload path does; cap the long edge so a
-      // 15 MB original doesn't ride into the vision call.
+      // Judge the crop, as the upload path does. Byte-for-byte the SAME
+      // derivative the upload route stores (extract → JPEG q92, no
+      // resize) whenever the crop already fits 1600px — our client always
+      // sends ≤1600px — so the likeness cache below carries a guest's
+      // verdict through to the studio after sign-up (launch audit
+      // 2026-10-06: the two paths used to judge different bytes and
+      // could show different traffic lights for one photo). The resize
+      // only kicks in for an oversized direct API post.
       let pipeline = sharp(decoded.buffer);
       if (validCrop) pipeline = pipeline.extract({ left: validCrop.x, top: validCrop.y, width: validCrop.width, height: validCrop.height });
-      const bytes = await pipeline.resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+      const judgedW = validCrop ? validCrop.width : width;
+      const judgedH = validCrop ? validCrop.height : height;
+      if (Math.max(judgedW, judgedH) > 1600) pipeline = pipeline.resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true });
+      const bytes = await pipeline.jpeg({ quality: 92 }).toBuffer();
       const judged = await sharp(bytes).metadata();
+      // Identical bytes → identical verdict, and no second model call.
+      const cacheKey = likenessCacheKey(bytes);
+      const cached = getCachedLikeness(cacheKey);
+      if (cached) {
+        res.setHeader('X-Likeness-Cache', 'hit');
+        return res.json({ likeness: cached, analyzedAt: new Date().toISOString(), width, height });
+      }
+      res.setHeader('X-Likeness-Cache', 'miss');
       // Likeness ONLY — the traffic light. The visual-summary pass
       // (person count + description) feeds the parked inside-text
       // helper and admin screens, nothing a guest sees; the full
       // analysis runs on the real upload after sign-up. One call, not two.
       const likeness = await assessPhotoLikeness({ imageBytes: bytes, mimeType: 'image/jpeg', imageHeight: judged.height });
+      putCachedLikeness(cacheKey, likeness.result);
       if (!likeness.noApiKey) {
         void logGeneration({
           cardId: null, slot: LLM_SLOTS.PHOTO_ANALYSIS, templateId: null, templateVersion: null,

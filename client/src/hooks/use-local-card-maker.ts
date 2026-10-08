@@ -16,6 +16,11 @@ import { useCallback, useRef, useState } from 'react';
 import { EMPTY_CARD_DRAFT, type CardDraftState } from '@shared/schema';
 
 export const LOCAL_DRAFT_KEY = 'celebrait:photo-maker:v1';
+// Furthest step ever reached, kept beside the draft. Launch audit
+// 2026-10-06: deriving it from the CURRENT step meant "Edit" from the
+// gate collapsed it, disabling every forward chip until the user had
+// Next-ed back through each step.
+const FURTHEST_KEY = 'celebrait:photo-maker:furthest:v1';
 
 function read(): CardDraftState {
   try {
@@ -30,8 +35,17 @@ function read(): CardDraftState {
 function write(s: CardDraftState) {
   try { window.sessionStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(s)); } catch { /* private mode */ }
 }
+function readFurthest(): number {
+  try { return Math.max(0, Number(window.sessionStorage.getItem(FURTHEST_KEY)) || 0); } catch { return 0; }
+}
+function writeFurthest(n: number) {
+  try { window.sessionStorage.setItem(FURTHEST_KEY, String(n)); } catch { /* private mode */ }
+}
 export function clearLocalDraft() {
-  try { window.sessionStorage.removeItem(LOCAL_DRAFT_KEY); } catch { /* ignore */ }
+  try {
+    window.sessionStorage.removeItem(LOCAL_DRAFT_KEY);
+    window.sessionStorage.removeItem(FURTHEST_KEY);
+  } catch { /* ignore */ }
 }
 
 export function useLocalCardMaker(totalSteps: number, seed?: Partial<CardDraftState>) {
@@ -40,6 +54,8 @@ export function useLocalCardMaker(totalSteps: number, seed?: Partial<CardDraftSt
     return seed && s === EMPTY_CARD_DRAFT ? { ...s, ...seed } : s;
   });
   const stateRef = useRef(state);
+  // Never below the step the draft was restored on.
+  const [furthest, setFurthest] = useState<number>(() => Math.max(readFurthest(), state.step ?? 0));
 
   const update = useCallback((patch: Partial<CardDraftState>) => {
     setState((prev) => {
@@ -51,7 +67,13 @@ export function useLocalCardMaker(totalSteps: number, seed?: Partial<CardDraftSt
   }, []);
 
   const setStep = useCallback((step: number) => {
-    update({ step: Math.max(0, Math.min(totalSteps - 1, step)) });
+    const clamped = Math.max(0, Math.min(totalSteps - 1, step));
+    update({ step: clamped });
+    setFurthest((f) => {
+      const n = Math.max(f, clamped);
+      if (n !== f) writeFurthest(n);
+      return n;
+    });
   }, [update, totalSteps]);
   const goNext = useCallback(() => setStep((stateRef.current.step ?? 0) + 1), [setStep]);
   const goBack = useCallback(() => setStep((stateRef.current.step ?? 0) - 1), [setStep]);
@@ -59,9 +81,10 @@ export function useLocalCardMaker(totalSteps: number, seed?: Partial<CardDraftSt
   const reset = useCallback(() => {
     stateRef.current = EMPTY_CARD_DRAFT;
     setState(EMPTY_CARD_DRAFT);
+    setFurthest(0);
     clearLocalDraft();
   }, []);
 
   const currentStep = Math.max(0, Math.min(totalSteps - 1, state.step ?? 0));
-  return { state, stateRef, update, setStep, goNext, goBack, reset, currentStep };
+  return { state, stateRef, update, setStep, goNext, goBack, reset, currentStep, furthest };
 }

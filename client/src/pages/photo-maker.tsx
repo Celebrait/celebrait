@@ -98,9 +98,8 @@ export default function PhotoMakerPage() {
     return name || occasion ? { recipient: { name: name ?? '', occasion: occasion ?? '' } } : undefined;
   }, []);
   const m = useLocalCardMaker(PUBLIC_STEPS.length, seed as Partial<CardDraftState> | undefined);
-  const { state, update, setStep, goNext, goBack, currentStep } = m;
+  const { state, update, setStep, goNext, goBack, currentStep, furthest } = m;
   const photos = useGuestPhotos();
-  const furthest = Math.max(currentStep, state.step ?? 0);
 
   const ready = (i: number) =>
     i === 0 ? isRecipientStepReady(state)
