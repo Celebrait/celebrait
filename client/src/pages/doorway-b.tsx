@@ -28,6 +28,7 @@ import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY_LG } from '@/pa
 import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -112,6 +113,11 @@ export default function DoorwayBPage() {
                 <BriefQuestions skin="landing" compact brief={brief} onChange={setBrief}
                   initialStep={!brief.who ? 0 : !brief.occasion ? 1 : 2}
                   onDone={(b) => navigate(`/make?${briefToSearch(b)}&go=1`)} />
+                {/* The hand-off (go=1) skips /make's brief panel, so this
+                    is the last screen before the three are drawn: the same
+                    honest line the photo route shows before its spend
+                    (launch audit 2026-10-06, parity). */}
+                <LeadTimeNotice className="mt-5 max-w-xl" />
               </div>
             )}
 

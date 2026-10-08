@@ -19,6 +19,9 @@ import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CropDialog } from '@/components/studio/crop-dialog';
+import { PhotoConsentLine, PhotoTips, readPhotoConsent, rememberPhotoConsent } from '@/components/photo-consent-tips';
+import { likenessNoteForSet, ANALYSIS_GATE_MS, type PhotoSetNote } from '@/lib/photo-likeness';
+import { toast } from '@/hooks/use-toast';
 import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
@@ -59,6 +62,8 @@ async function makePost(path: string, body: unknown): Promise<any> {
   return r.json();
 }
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+/** The inside renderer's ceiling on the joined message (render-inside's schema). */
+const INSIDE_MAX = 300;
 
 // The questions live in components/brief-questions.tsx (shared with the
 // doorway hero, where they run one at a time under the headline). The
@@ -102,6 +107,37 @@ const cardTile = 'group block rounded-2xl border bg-white/80 overflow-hidden sha
 const QUESTION_LABEL: Record<QuestionKey, string> = {
   who: 'Who', occasion: 'Occasion', age: 'Age', vibe: 'Vibe', interest: 'Interest', dislike: 'Avoid', name: 'Name',
 };
+
+/** The photo route's verdict box (studio/steps/photo-step.tsx), for the
+ *  one cameo crop: green confirms, amber advises, red holds the render
+ *  until the photo is swapped or the person overrides — friction, not a
+ *  wall (the only-photo-of-a-late-relative case is real). */
+function CameoVerdict({ note, className = '', onSwap, onOverride }: { note: PhotoSetNote; className?: string; onSwap?: () => void; onOverride?: () => void }) {
+  if (note.tone === 'good') {
+    return (
+      <div className={`rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3.5 ${className}`} data-testid="cameo-quality-good">
+        <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-600" strokeWidth={3} /><p className="text-[13px] font-bold text-keeper-ink">{note.headline}</p></div>
+        <p className="mt-1 text-[11.5px] leading-snug text-keeper-body">{note.detail}</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-2xl border-2 px-4 py-4 ${note.tone === 'block' ? 'border-red-400 bg-red-50' : 'border-amber-400 bg-amber-50'} ${className}`} data-testid="cameo-quality-note">
+      <p className="text-[14px] font-bold text-keeper-ink">{note.headline}</p>
+      <p className="mt-1 text-[12px] leading-snug text-keeper-body">{note.detail}</p>
+      {onSwap && (
+        <button type="button" onClick={onSwap} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors" data-testid="btn-photo-note-fix">
+          <Camera className="h-4 w-4" strokeWidth={2.5} /> Use a different photo
+        </button>
+      )}
+      {note.tone === 'block' && onOverride && (
+        <button type="button" onClick={onOverride} className="mt-2 block text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body" data-testid="btn-quality-override">
+          I understand — use this photo anyway
+        </button>
+      )}
+    </div>
+  );
+}
 
 function MakeShell({ children }: { step?: number; children: ReactNode }) {
   return (
@@ -213,8 +249,20 @@ export default function MakePage() {
   const [cameoBusy, setCameoBusy] = useState(false);
   const [cameoKept, setCameoKept] = useState(false);
   const [cameoError, setCameoError] = useState('');
-  const [insideMode, setInsideMode] = useState<'ours' | 'own'>('ours');
   const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
+  // The suggestion is EDITABLE in place (audit 2026-10-06): the textarea
+  // opens pre-filled with our line, so a one-word tweak is a tweak, not a
+  // retype. "Ours" simply means the text still matches what we wrote.
+  const suggestion = picked !== null ? (cells[picked]?.concept.inside_text ?? '').trim() : '';
+  const insideMode: 'ours' | 'own' = suggestion && message.trim() === suggestion ? 'ours' : 'own';
+  // The cameo photo's scaffold, shared with the photo route: consent once,
+  // tips, and the likeness verdict BEFORE the render is paid for.
+  const [photoConsent, setPhotoConsent] = useState<boolean>(readPhotoConsent);
+  const [cameoChecking, setCameoChecking] = useState(false);
+  const [cameoNote, setCameoNote] = useState<PhotoSetNote | null>(null);
+  /** A crop held back by a red verdict — swapped, or used anyway. */
+  const [cameoHeld, setCameoHeld] = useState<string | null>(null);
+  const cameoFileRef = useRef<HTMLInputElement>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [insideBusy, setInsideBusy] = useState(false);
 
@@ -353,12 +401,35 @@ export default function MakePage() {
     } catch (e: any) { setCameoError(friendlyError(e, 'That didn’t work — try another photo, or carry on without.')); }
     finally { setCameoBusy(false); }
   };
+  /** The photo route's traffic light, on the crop we're about to draw
+   *  from (stateless /api/photos/assess, guest-capped like the rest).
+   *  Heavy blur holds the render; anything else is advisory. Fails OPEN
+   *  after the studio's 30s — a check that's down must never strand a
+   *  customer — and says so once, as the public photo maker does. */
+  const assessCameo = async (photo: string): Promise<PhotoSetNote | null> => {
+    try {
+      const r = await fetch('/api/photos/assess', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: photo }), signal: AbortSignal.timeout(ANALYSIS_GATE_MS) });
+      const j = r.ok ? await r.json() : null;
+      if (!j?.likeness) throw new Error('no verdict');
+      return likenessNoteForSet([{ likeness: j.likeness }], 'one_person');
+    } catch {
+      toast({ title: "We couldn't check that photo this time", description: 'You can carry on — we look at it properly when we draw. A clear, front-on face works best.' });
+      return null;
+    }
+  };
+  const checkThenRender = async (photo: string) => {
+    setCameoChecking(true); setCameoNote(null); setCameoHeld(null); setCameoError('');
+    const note = await assessCameo(photo);
+    setCameoChecking(false); setCameoNote(note);
+    if (note?.tone === 'block') { setCameoHeld(photo); return; }
+    await renderCameo(photo);
+  };
 
   const renderInside = async () => {
     if (picked === null) return;
     const c = cells[picked].concept; setInsideBusy(true); setFailMsg('');
     try {
-      const core = insideMode === 'ours' ? (c.inside_text ?? '') : message.trim();
+      const core = message.trim();
       const joined = [dear.trim(), core, from.trim()].filter(Boolean).join('\n\n');
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
@@ -486,7 +557,7 @@ export default function MakePage() {
           <div className="mt-8 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
             {cells.map((c, i) => (
               <button key={i} type="button" disabled={!c.imageUrl}
-                onClick={() => { setPicked(i); setInsideMode(c.concept.inside_text ? 'ours' : 'own'); setCameoUrl(null); setCameoKept(false); setCameoError(''); setPhase('cameo'); }}
+                onClick={() => { setPicked(i); if (picked !== i || !message.trim()) setMessage(c.concept.inside_text ?? ''); setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null); setPhase('cameo'); }}
                 className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-keeper-gold disabled:cursor-default"
                 aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
                 {c.imageUrl
@@ -559,20 +630,40 @@ export default function MakePage() {
           <button type="button" onClick={() => setPhase('results')} className="inline-flex items-center gap-1 text-sm text-keeper-body hover:text-keeper-ink mb-5"><ArrowLeft className="w-4 h-4" /> Back to the three</button>
           <div className="grid gap-6 sm:grid-cols-[minmax(0,240px)_1fr] sm:items-start">
             <div className="rounded-xl overflow-hidden bg-stone-100 border border-keeper-hair">{c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="w-full aspect-square object-cover" />}</div>
-            {cameoBusy ? (
+            {cameoBusy || cameoChecking ? (
               <div className="text-center sm:text-left py-6" aria-live="polite">
                 <Loader2 className="w-7 h-7 text-brand animate-spin mx-auto sm:mx-0" />
-                <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
-                <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName} — drawn from your photo, in the card's own hand. About half a minute.</p>
+                {cameoChecking ? (
+                  <>
+                    <p className="mt-3 text-base font-semibold text-keeper-ink">Analysing your photo…</p>
+                    <p className="mt-1 text-sm text-keeper-meta">A few seconds — we’re checking it’ll give a strong likeness before we draw.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
+                    <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName} — drawn from your photo, in the card's own hand. About half a minute.</p>
+                    {cameoNote && <CameoVerdict note={cameoNote} className="mt-4 text-left" />}
+                  </>
+                )}
               </div>
             ) : (
               <div>
                 <h1 className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
                 <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence — the idea, the words, the style — but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
+                {/* The photo route's scaffold in the same order — tips,
+                    then the one-time consent that gates the picker
+                    (components/photo-consent-tips.tsx). */}
+                <PhotoTips mode="cameo" className="mt-4" />
+                {!photoConsent && <PhotoConsentLine className="mt-3" onConsent={() => { setPhotoConsent(true); rememberPhotoConsent(); }} />}
+                {cameoHeld && cameoNote && (
+                  <CameoVerdict note={cameoNote} className="mt-4"
+                    onSwap={() => cameoFileRef.current?.click()}
+                    onOverride={() => { const p = cameoHeld; setCameoHeld(null); setCameoNote(null); if (p) void renderCameo(p); }} />
+                )}
                 {cameoError && <p className="mt-3 text-sm text-accent-red-dark">{cameoError}</p>}
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <label className={`${primary} cursor-pointer`}><Camera className="w-4 h-4" strokeWidth={1.75} /> Add a photo
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void readCameoFile(f).then(setCameoSrc); e.target.value = ''; }} /></label>
+                  <label className={`${primary} ${photoConsent ? 'cursor-pointer' : 'opacity-40 pointer-events-none'}`} aria-disabled={!photoConsent} data-testid="cameo-add-photo"><Camera className="w-4 h-4" strokeWidth={1.75} /> Add a photo
+                    <input ref={cameoFileRef} type="file" accept="image/*" className="hidden" disabled={!photoConsent} onChange={(e) => { const f = e.target.files?.[0]; if (f) void readCameoFile(f).then(setCameoSrc); e.target.value = ''; }} /></label>
                   <Button variant="outline" className="h-10 px-5" onClick={() => setPhase('signoff')}>Skip — keep it as it is</Button>
                 </div>
                 <p className={helper}>We never keep your photo — only the finished card.</p>
@@ -580,7 +671,7 @@ export default function MakePage() {
             )}
           </div>
           <CropDialog src={cameoSrc} autoFace={false} onCancel={() => setCameoSrc(null)}
-            onConfirm={(bounds) => { const src = cameoSrc; setCameoSrc(null); if (!src) return; void cropToDataUrl(src, bounds).then(renderCameo).catch(() => setCameoError('That photo wouldn’t crop — try another one.')); }} />
+            onConfirm={(bounds) => { const src = cameoSrc; setCameoSrc(null); if (!src) return; void cropToDataUrl(src, bounds).then(checkThenRender).catch(() => setCameoError('That photo wouldn’t crop — try another one.')); }} />
         </div>
       </MakeShell>
     );
@@ -588,7 +679,9 @@ export default function MakePage() {
 
   // ── step 3b: the inside ───────────────────────────────────────────
   if (phase === 'signoff' && picked !== null) {
-    const c = cells[picked];
+    // The renderer's ceiling applies to the JOINED inside (open + message + sign).
+    const joinedLen = [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n').length;
+    const over = joinedLen > INSIDE_MAX;
     return (
       <MakeShell step={step}>
         <div className={panel}>
@@ -605,23 +698,31 @@ export default function MakePage() {
               <div>
                 <h1 className={`${h1} mb-1`}>Now the inside of {forWho} card</h1>
                 <p className="text-sm text-keeper-body mb-5">Every card gets a designed inside to match its front.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {c.concept.inside_text && <button type="button" onClick={() => setInsideMode('ours')} className={tile(insideMode === 'ours')}><span className="text-sm font-medium text-keeper-ink">Use the message we wrote</span>{insideMode === 'ours' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>}
-                  <button type="button" onClick={() => setInsideMode('own')} className={tile(insideMode === 'own')}><span className="text-sm font-medium text-keeper-ink">Write my own</span>{insideMode === 'own' && <span className="ml-auto w-5 h-5 rounded-full bg-brand text-brand-foreground flex items-center justify-center shrink-0 shadow-sm"><Check className="w-3 h-3" strokeWidth={3} /></span>}</button>
-                </div>
                 {/* In the card's own order — open, message, sign (Aidan
                     2026-09-09: "dear and from above the message we wrote,
-                    and make the message we wrote glow"). */}
+                    and make the message we wrote glow"). One textarea,
+                    pre-filled with our line: it glows while it's still
+                    ours, and a tweak is a tweak (audit 2026-10-06). */}
                 <div className="mt-4 space-y-3">
                   <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open — e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
-                  {insideMode === 'ours' && c.concept.inside_text && (
-                    <div className="rounded-xl border border-brand/40 bg-brand-muted px-4 py-3.5 text-[15px] leading-snug text-keeper-ink shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]">“{c.concept.inside_text}”</div>
-                  )}
-                  {insideMode === 'own' && <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Your message…" autoFocus className="min-h-[120px] w-full rounded-xl border border-brand-light bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20" />}
+                  <div>
+                    <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={INSIDE_MAX} placeholder="Your message…" aria-label="The message inside" data-testid="inside-message"
+                      className={`min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 ${insideMode === 'ours' ? 'border-brand/40 bg-brand-muted shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]' : 'border-brand-light'}`} />
+                    <p className="mt-1.5 text-[12.5px] text-keeper-meta" data-testid="inside-mode-line">
+                      {insideMode === 'ours' ? (
+                        <>The message we wrote — change a word, or <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">start from blank</button>.</>
+                      ) : suggestion ? (
+                        <>Your words. <button type="button" onClick={() => setMessage(suggestion)} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-use-ours">Use the message we wrote</button>{message.trim() ? <> · <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">Start from blank</button></> : null}</>
+                      ) : (
+                        <>Your words — set in the card's own style.</>
+                      )}
+                    </p>
+                  </div>
                   <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — e.g. Love, Aidan x" className={input} />
                 </div>
+                {over && <p className="mt-3 text-sm text-accent-red-dark">Keep the whole inside under {INSIDE_MAX} characters — it’s {joinedLen} at the moment.</p>}
                 {failMsg && <p className="mt-3 text-sm text-accent-red-dark">{failMsg}</p>}
-                <div className="mt-6"><button type="button" onClick={() => void renderInside()} disabled={insideMode === 'own' && !message.trim()} className={commit}><Sparkles className="w-4 h-4" strokeWidth={1.75} /> Design the inside</button></div>
+                <div className="mt-6"><button type="button" onClick={() => void renderInside()} disabled={!message.trim() || over} className={commit}><Sparkles className="w-4 h-4" strokeWidth={1.75} /> Design the inside</button></div>
               </div>
             )}
           </div>
@@ -646,7 +747,7 @@ export default function MakePage() {
               onClick={() => {
                 if (!chosenFront) return;
                 setSaving('buy'); setSaveError('');
-                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideMode === 'own' ? [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n') : [dear.trim(), cells[picked].concept.inside_text ?? '', from.trim()].filter(Boolean).join('\n\n'))
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
                   .then((s) => navigate(`/buy/${s.cardId}`))
                   .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save — try again')); setSaving(''); });
               }}>
@@ -657,7 +758,7 @@ export default function MakePage() {
               onClick={() => {
                 if (!chosenFront) return;
                 setSaving('keep'); setSaveError('');
-                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideMode === 'own' ? [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n') : [dear.trim(), cells[picked].concept.inside_text ?? '', from.trim()].filter(Boolean).join('\n\n'))
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
                   .then((s) => {
                     // Signed in: the row is already theirs. Guest: sign in,
                     // then come back to claim it by token.
