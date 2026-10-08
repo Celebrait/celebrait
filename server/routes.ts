@@ -40,6 +40,7 @@ import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerResearchRoutes } from "./routes/research";
 import { registerDemoRunRoutes } from "./routes/demo-runs";
 import { registerSiteLock } from "./routes/site-lock";
+import { registerLaunchCheck } from "./routes/launch-check";
 import { registerShopRoutes } from "./routes/shop";
 import { registerMakeRoutes } from "./routes/make";
 import { registerThumbRoutes } from "./routes/thumbs";
@@ -76,6 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // The pre-launch lock (2026-09-16) — ahead of every API it closes.
   registerSiteLock(app);
+  registerLaunchCheck(app);
 
   // Import isAuthenticated middleware for user-specific routes
   const { isAuthenticated } = await import("./replit_integrations/auth/replitAuth");

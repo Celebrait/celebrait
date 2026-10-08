@@ -7,10 +7,55 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Loader2, Lock, LockOpen } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, Lock, LockOpen, XCircle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Lock { locked: boolean; password: string }
+interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string }
+interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
+
+/** The launch-readiness panel: Render's env list, read by code, shown as
+ *  rows. Red = a real customer would be let down; grey = only a human can
+ *  tell. Aidan is hands-off on dev, so this is the one page to open. */
+function LaunchReadiness() {
+  const { data, isLoading } = useQuery<LaunchReport>({
+    queryKey: ['/api/admin/launch-check'],
+    queryFn: async () => { const r = await fetch('/api/admin/launch-check', { credentials: 'include' }); if (!r.ok) throw new Error('load'); return r.json(); },
+  });
+  if (isLoading || !data) return null;
+  const groups = Array.from(new Set(data.checks.map((c) => c.group)));
+  const ready = data.blocking === 0;
+  return (
+    <section className={`mt-8 rounded-2xl border p-5 ${ready ? 'border-emerald-300 bg-emerald-50' : 'border-brand/40 bg-brand-muted'}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-xl font-bold text-keeper-ink">Launch readiness</h2>
+        <p className="text-[13px] text-keeper-body">
+          {ready ? 'Every automatic check passes.' : `${data.blocking} thing${data.blocking === 1 ? '' : 's'} would let a customer down.`}
+          {data.manual > 0 && ` ${data.manual} need a human to confirm.`}
+          {data.env !== 'production' && ' (You are looking at a dev server — expect red here.)'}
+        </p>
+      </div>
+      {groups.map((g) => (
+        <div key={g} className="mt-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-keeper-meta">{g}</p>
+          <ul className="mt-1.5 divide-y divide-keeper-hair rounded-xl border border-keeper-hair bg-white">
+            {data.checks.filter((c) => c.group === g).map((c) => (
+              <li key={c.id} className="flex gap-3 px-4 py-3">
+                {c.ok === true ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  : c.ok === false ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent-red-dark" />
+                  : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-keeper-meta" />}
+                <div className="min-w-0">
+                  <p className={`text-[14px] font-medium ${c.ok === false ? 'text-keeper-ink' : 'text-keeper-ink'}`}>{c.label}</p>
+                  <p className="mt-0.5 break-words text-[12.5px] leading-relaxed text-keeper-body">{c.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 export default function AdminSitePage() {
   const qc = useQueryClient();
@@ -55,6 +100,8 @@ export default function AdminSitePage() {
           {data.locked ? 'Open the site' : 'Lock the site'}
         </button>
       </div>
+
+      <LaunchReadiness />
 
       <div className="mt-6 rounded-2xl border border-keeper-hair bg-white p-5">
         <label htmlFor="site-pass" className="block font-semibold text-keeper-ink">Early-access password</label>
