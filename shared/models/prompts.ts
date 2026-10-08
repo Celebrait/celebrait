@@ -247,6 +247,18 @@ export const generationLog = pgTable(
     // Structured error kind on failure: 'safety' | 'server' | 'timeout' |
     // 'provider_unavailable' | other. Null on success.
     errorCode: text("error_code"),
+    // 2026-10-08: which step of a multi-call pipeline this row is — the
+    // concept engine makes 3–7 LLM calls per set under one slot
+    // ('card_lab') and the audit could not tell archetype from writer
+    // from sense, nor see latency (durationMs was hard-coded 0).
+    // 'archetype' | 'writer' | 'writer-repair' | 'sense' | 'sense-repair'.
+    // Null for single-call slots. Added via startup-schema.ts, not a
+    // migration.
+    stage: text("stage"),
+    // The floors that fired on THIS round's output, as a JSON array of
+    // strings — set on writer rows only, so the next audit can read
+    // which floors fire instead of grepping console.warn.
+    violations: text("violations"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [

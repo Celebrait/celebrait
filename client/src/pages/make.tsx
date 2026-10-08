@@ -304,8 +304,16 @@ export default function MakePage() {
         occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
         // Free composition ALWAYS (Aidan 2026-09-03: "no 50/50 roll") —
         // unset, the engine coin-flips dealt-vs-free formats per set.
-        pipeline: 'celebrait', characters: 'objects', insideMode: 'auto', freeStyle: true, freeComposition: true, age: ageNum,
-        interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: true,
+        // ⚠️ memory:false IS THE LOCKED DECISION (Aidan 2026-08-19, schema
+        // comment on `memory` + UX_GUIDED_MAKER.md §2): cross-run memory
+        // is a rack-building tool; a customer is a fresh pair of eyes and
+        // must not be steered off a subject's best material because a
+        // stranger's run used it. This page sent true until 2026-10-08.
+        // characters / insideMode / freeStyle dropped the same day: the
+        // v2 pipeline never reads them (freeStyle feeds only the classic
+        // system prompt; the other two print their schema defaults).
+        pipeline: 'celebrait', freeComposition: true, age: ageNum,
+        interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: false,
       });
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back — try again');

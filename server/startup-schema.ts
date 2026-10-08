@@ -39,6 +39,13 @@ export async function ensureLaunchColumns(): Promise<void> {
       recipient_name text, occasion_date text, created_at timestamp default now()
     )`);
     await db.execute(sql`alter table marketing_leads add column if not exists occasion_type text`);
+    // 2026-10-08: the concept engine's ledger rows gain a per-call stage
+    // ('archetype' | 'writer' | 'writer-repair' | 'sense' | 'sense-repair')
+    // and the floors that fired on that round (JSON array). Until now
+    // every v2 call logged as one undifferentiated slot with duration 0,
+    // so the launch audit could see neither latency nor which floors fire.
+    await db.execute(sql`alter table generation_log add column if not exists stage text`);
+    await db.execute(sql`alter table generation_log add column if not exists violations text`);
   } catch (err) {
     console.warn('[SCHEMA] launch column check failed:', (err as Error)?.message ?? err);
   }

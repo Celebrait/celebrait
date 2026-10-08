@@ -91,6 +91,33 @@ function conceptParams(maxTokens: number, temperature: number) {
   return { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
 }
 
+/** The ARCHETYPE and SENSE calls are helpers — short JSON, no craft —
+ *  and were spending at the writer's rate on every round (2026-10-08
+ *  audit: 45–70 s sets, 3–5 helper calls each). They take the writer's
+ *  model by default but can be dialled on their own, prompt text
+ *  untouched, for an A/B that is one restart:
+ *    CONCEPT_HELPER_MODEL=gpt-5.4-mini   # a cheaper model on helpers only
+ *    CONCEPT_HELPER_EFFORT=low           # reasoning_effort on helpers only
+ *  Read per call, not at boot, so a harness can flip them in-process.
+ *  (The gpt-5.5 alias rejected reasoning_effort in 2026-08; gpt-5.4
+ *  accepts it — measured 2026-10-08.) */
+export function helperParams(maxTokens: number, temperature: number, role: 'archetype' | 'sense' = 'sense') {
+  // Judge pass 2026-10-08 (18 sets, three judges on identical cards): the
+  // SENSE referee disagrees with itself ~30% card-level between two
+  // gpt-5.4 configs, and gpt-5.4-mini sat inside that noise (72% vs 69%)
+  // — so it never cleared a 90% gate, and the verdicts gate repairs, so
+  // sense stays on the full model unless CONCEPT_HELPER_MODEL says
+  // otherwise. The ARCHETYPE is a brief + three territories; mini's read
+  // as specific as gpt-5.4's side by side and took 4 s instead of 15, so
+  // it defaults to mini (CONCEPT_ARCHETYPE_MODEL overrides).
+  const model = role === 'archetype'
+    ? (process.env.CONCEPT_ARCHETYPE_MODEL?.trim() || process.env.CONCEPT_HELPER_MODEL?.trim() || 'gpt-5.4-mini')
+    : (process.env.CONCEPT_HELPER_MODEL?.trim() || CONCEPT_MODEL);
+  const effort = process.env.CONCEPT_HELPER_EFFORT?.trim() as 'low' | 'medium' | 'high' | '' | undefined;
+  if (model.startsWith('gpt-4')) return { model, max_tokens: maxTokens, temperature };
+  return { model, max_completion_tokens: maxTokens * 4, ...(effort ? { reasoning_effort: effort } : {}) };
+}
+
 export async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   const otpUserId = (req as any).session?.otpUserId;
   if (typeof otpUserId !== 'string' || otpUserId.length === 0) {
@@ -649,7 +676,7 @@ export function statedAge(occasion: string | undefined): number | null {
 
 /** The birthday occasion brief, composed per request. Replaces the
  *  static birthday profile whenever the occasion classifies as one. */
-const MIX_TONE_BRIEF = `TONE — ONE OF EACH. This set is a RANGE, not a register: each slot below names its own tone, and the three must be unmistakably different asks side by side. The funny card makes them laugh out loud — the joke is its product. The warm card makes them feel something — fond, noticing, specific, no mickey-taking, no age jokes. The rude card makes them swear — it alone carries real masked swearing, and its joke survives with the swearing removed. ⚠️ THE FAILURE IS BLUR: a warm card with a smirk, a funny card that is really just kind, a rude card whose only rudeness is the swear word. A buyer choosing between these three should feel three different cards, not one card at three volumes.`;
+const MIX_TONE_BRIEF = `TONE — ONE OF EACH. This set is a RANGE, not a register: each slot below names its own tone, and the three must be unmistakably different asks side by side. The funny card makes them laugh out loud — the joke is its product. The warm card makes them feel something — fond, noticing, specific, no mickey-taking, no age jokes. The rude card makes them swear — it alone carries real masked swearing, and its joke survives with the swearing removed. ⚠️ FOR A MUM, DAD, NAN OR GRANDAD-GRADE RECIPIENT the rude card swears in printed British milds — bloody, bollocks, arse, sod — never a masked word: one-of-each is a range, not Rude. ⚠️ THE FAILURE IS BLUR: a warm card with a smirk, a funny card that is really just kind, a rude card whose only rudeness is the swear word. A buyer choosing between these three should feel three different cards, not one card at three volumes.`;
 
 export function birthdayProfile(tone: BirthdayTone, age: number | null): OccasionProfile {
   return {
@@ -1529,19 +1556,28 @@ ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: th
 ` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
 }
 
-export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null, layBuyer = true): Promise<string[]> {
+export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null, layBuyer = true,
+  /** Instrumentation only (2026-10-08): which round this is, and a hook
+   *  the caller uses to total the set's wall-clock and spend. */
+  opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void }): Promise<string[]> {
   try {
+    const t0 = Date.now();
+    const p = helperParams(700, 0.2);
     const r = await client.chat.completions.create({
-      ...conceptParams(700, 0.2),
+      ...p,
       messages: [
         { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer) },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
     });
-    // The sense referee runs up to three times a set — it was spending unlogged.
+    // The sense referee runs up to twice a set — it was spending unlogged,
+    // then logged with duration 0 and no stage. Real ms, real model.
+    const ms = Date.now() - t0;
+    const cents = chatUsageCents(p.model, r.usage);
+    opts?.onMetered?.({ ms, cents, model: p.model });
     void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-      provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: chatUsageCents(CONCEPT_MODEL, r.usage), durationMs: 0, success: true });
+      provider: 'openai', model: p.model, quality: null, costCents: cents, durationMs: ms, success: true, stage: opts?.stage ?? 'sense' });
     const parsed = JSON.parse(r.choices[0]?.message?.content ?? '{}');
     const out: string[] = [];
     (Array.isArray(parsed.cards) ? parsed.cards : []).forEach((c: any, i: number) => {
@@ -1569,7 +1605,12 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       const r = slots[i]?.register;
       if (r === 'short' && words > 8) v.push(`length: card ${i + 1} is the SHORT card — max 8 words, it has ${words}`);
       if (r === 'mid' && words > 14) v.push(`length: card ${i + 1} is the MID card — max 14 words, it has ${words}`);
-      if (r === 'long' && (words < 15 || words > 40)) v.push(`length: card ${i + 1} is the LONG read-aloud card — 20-35 words that build and land, it has ${words}`);
+      // 2026-10-08: LONG capped at 18. The 20-35 band put a 32-36-word
+      // essay in every set (observed: the tea-gone-warm fishing card, the
+      // old-man-noise gym card, the crossword setter card) while the good
+      // fronts in the same sets ran 4-9 words. A six-inch front is read
+      // at a glance, never aloud.
+      if (r === 'long' && (words < 10 || words > 18)) v.push(`length: card ${i + 1} is the LONG card — 12-18 words, one built sentence that lands, it has ${words}`);
     });
   }
   const arts = cards.map((c) => String(c.art_direction ?? ''));
@@ -1609,7 +1650,20 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   }
   // ONE-OF-EACH floors: the rude slot alone carries the swearing.
   if (opts?.rudeSlot !== undefined) {
-    if (!V2_SWEAR.test(fronts[opts.rudeSlot] ?? '')) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing`);
+    // 2026-10-08: FAMILY-GRADE ONE-OF-EACH SWEARS IN PRINTED MILDS. A buyer
+    // who picked "one of each" for Nan did not pick Rude — observed: a
+    // masked f-word on an 80-year-old grandmother's card ("annoyingly
+    // f***ing right most days"). For mum/dad/nan/grandad-grade recipients
+    // the rude slot runs on bloody / bollocks / arse / sod / daft, and a
+    // masked f/s/c word anywhere on that card is a violation. The RUDE
+    // tone itself is untouched: a buyer who chose Rude gets rude.
+    const FAMILY_GRADE = new Set(['mum', 'mother', 'stepmum', 'step-mum', 'mother-in-law', 'dad', 'father', 'stepdad', 'step-dad', 'father-in-law', 'nan', 'nana', 'nanny', 'gran', 'granny', 'grandma', 'grandmother', 'grandad', 'granddad', 'grandpa', 'gramps', 'grandfather', 'aunt', 'auntie', 'aunty', 'uncle']);
+    const familyMild = b.tone === 'mix' && FAMILY_GRADE.has(b.who.trim().toLowerCase());
+    const MILD_OK = /\b(bloody|bollocks?|arsed?|sod(ding)?|daft|bugger(ing)?|damn(ed)?|hell|crap(py)?|knob(head)?s?|shite|pissed?|git)\b/i;
+    const rf = fronts[opts.rudeSlot] ?? '';
+    if (!(V2_SWEAR.test(rf) || (familyMild && MILD_OK.test(rf)))) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing${familyMild ? ` — for a ${b.who} that means a mild printed word (bloody, bollocks, arse, sod, daft), never a masked one` : ''}`);
+    const masked = familyMild ? `${cards[opts.rudeSlot]?.front_text ?? ''} ${cards[opts.rudeSlot]?.inside_text ?? ''}`.match(/\b[fsc]\*{2,}[a-z'’]*/i) : null;
+    if (masked) v.push(`mix-family: card ${opts.rudeSlot + 1} carries "${masked[0]}" on a one-of-each set for a ${b.who} — the buyer chose a range, not Rude; the rude card for a family-grade recipient swears in printed milds (bloody, bollocks, arse, sod, daft) and never a masked word`);
   }
   // A world setting, not a constant: birthday rude is banter about the
   // person (two sweary fronts); christmas rude is the market's
@@ -1653,6 +1707,15 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const SWEAR_TAG = /(?:^|[.!?]\s+)f\*{2,}[a-z'’]*\s+[a-z'’]+[.!?]?\s*$/i;
     fronts.forEach((f, i) => {
       if (SWEAR_TAG.test(f)) v.push(`swear-tag: card ${i + 1} ends on a bolted intensifier sentence ("F***ing [word].") — the formula has now shipped on two different subjects, which makes it a template, not a joke. The swearing must do work INSIDE the joke's own sentence; rewrite the line so removing the swear changes the meaning, not just the volume`);
+    });
+    // 2026-10-08: THE TAG MOVED. Same bolt, new coat — a swear parked after
+    // a comma, dash or colon at the END of the line (observed: "At this
+    // age, even your pull day sounds suggestive, bollocks."). A vocative
+    // ("Happy birthday, you absolute bitch") is not this shape and passes.
+    const SWEAR_TRAIL = /(?:[.!?,;:]|[—–]|\s-)\s*(?:[fsc]\*{2,}[a-z'’]*(?:\s+[a-z'’]+)?|bloody|bollocks|arse|bastard|wanker|prick|twat|bellend|knobhead|bugger|sod|crap|shite|piss)(?:\s+(?:hell|me|off|it|sake|though))?\s*[.!?…]*\s*$/i;
+    fronts.forEach((f, i) => {
+      const hit = f.match(SWEAR_TRAIL);
+      if (hit) v.push(`swear-trail: card ${i + 1} parks "${hit[0].trim()}" at the end of the line after a comma or dash — a swear bolted on as a tag does no work inside the joke; put it inside the sentence that carries the joke, or drop it`);
     });
   }
   // ⚠️ THE MASKING LAW IS CODE NOW (2026-08-31). Two cards reached the
@@ -2003,7 +2066,7 @@ export function v2SystemPrompt(visual: 'celebrait' | 'open' | 'charm', slots: Ar
 ${occasionBrief}
 
 THE THREE SLOTS — one card each, exactly as assigned:
-${slots.map((s, i) => `${i + 1}. ${s.tone ? `TONE=${s.tone.toUpperCase()}, ` : ''}angle=${s.angle}, ${s.format ? `format=${s.format}, ` : ''}length=${s.register === 'long' ? 'LONG (20-35 words, built to be read aloud, in whatever shape the thought wants — flowing sentences or short beats — with the last few words landing the turn. The stacked-fragment stack is one shape among several and it is currently overused)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, PRESENCE: ${s.ground}` : ''}${s.cast ? `, CAST CARD: this card brings the Christmas cast — Santa, an elf, a reindeer, a snowman — INTO THEIR WORLD, met by their thing (Santa doing what they do is the shape); played straight for children, with a wink for adults` : ''}${s.rudeMech ? `, RUDE ENGINE — ${RUDE_MECHS[s.rudeMech]}` : ''}`).join('\n')}
+${slots.map((s, i) => `${i + 1}. ${s.tone ? `TONE=${s.tone.toUpperCase()}, ` : ''}angle=${s.angle}, ${s.format ? `format=${s.format}, ` : ''}length=${s.register === 'long' ? 'LONG (12-18 words — one built sentence, never an essay: a six-inch front is read at a glance, not aloud, and the last few words land the turn)' : s.register === 'mid' ? 'MID (up to 14 words)' : 'SHORT (up to 8 words, hits like a poster)'}${s.territory ? `, BUILD IT FROM: ${s.territory}` : ''}${s.ground ? `, PRESENCE: ${s.ground}` : ''}${s.cast ? `, CAST CARD: this card brings the Christmas cast — Santa, an elf, a reindeer, a snowman — INTO THEIR WORLD, met by their thing (Santa doing what they do is the shape); played straight for children, with a wink for adults` : ''}${s.rudeMech ? `, RUDE ENGINE — ${RUDE_MECHS[s.rudeMech]}` : ''}`).join('\n')}
 ⚠️ PRESENCE tells you that card's VOLUME, and the three differ on purpose — a set that all projects is a shelf that shouts:
 · whisper — a pale, light-filled ground with real empty space; type SMALL and quiet, a caption or an aside, never the artwork; marks fine and delicate. The picture speaks, the words murmur.
 · mid — a true colour at easy depth, type present but not dominant.
@@ -2347,7 +2410,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         { title: 'Code floors (regex/deterministic, named violations, one repair round)', kind: 'rules',
           note: 'These run in v2Verify after every writer round. Standing violations ship VISIBLY in the yellow box, never silently.',
           text: [
-            'length — each card obeys its dealt register (short ≤8 words, mid ≤14, long 20–35)',
+            'length — each card obeys its dealt register (short ≤8 words, mid ≤14, long 12–18)',
             'rude-slot / rude-floor / rude-register — swearing lands where the deal says (mix\'s rude card and the christmas hero MUST carry a real masked swear; birthday rude wants two sweary fronts; christmas grades down from one filthy hero)',
             'unmasked-swear — f/s/c words are ALWAYS masked (first letter + asterisks), every tone',
             'swear-tag — a standalone "F***ing [word]." sentence bolted after a claim is a template, not a joke',
@@ -2668,10 +2731,18 @@ export function registerAdminCardLabRoutes(app: Express): void {
         name: body.frontWord?.trim() || undefined,
         insideName: body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? body.recipientName.trim() : undefined,
         generic: fullyGeneric };
+      // THE SET'S METER (law 10: instrument before arguing). Every ms is
+      // wall-clock around a provider call; one structured line per set
+      // at the end, and each ledger row carries its own stage + ms.
+      const setId = Math.random().toString(36).slice(2, 8);
+      const setT0 = Date.now();
+      const meter = { archetype: 0, writer: [] as number[], sense: [] as number[], cents: 0, rounds: 0, perRound: [] as string[][] };
       try {
         // 1. ARCHETYPE + referee vocabulary in one call.
+        const archT0 = Date.now();
+        const archP = helperParams(900, 0.5, 'archetype');
         const archRes = await openai.chat.completions.create({
-          ...conceptParams(900, 0.5),
+          ...archP,
           messages: [
             { role: 'system', content: archetypeSystemPrompt() },
             { role: 'user', content: `${briefLines.slice(0, 8).join('\n')}${
@@ -2681,8 +2752,13 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ],
           response_format: { type: 'json_object' },
         });
-        void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-          provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: chatUsageCents(CONCEPT_MODEL, archRes.usage), durationMs: 0, success: true });
+        meter.archetype = Date.now() - archT0;
+        {
+          const archCents = chatUsageCents(archP.model, archRes.usage);
+          meter.cents += archCents;
+          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+            provider: 'openai', model: archP.model, quality: null, costCents: archCents, durationMs: meter.archetype, success: true, stage: 'archetype' });
+        }
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
         if (restingSeamText) briefLines.push(restingSeamText);
         if (groundRestText) briefLines.push(groundRestText);
@@ -2872,7 +2948,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // in the yellow box?" Because the engine saw more than it had
         // turns to fix. Early-exits when clean, so the common case
         // still costs one or two calls.
-        for (let round = 0; round < 3; round++) {
+        // BACK TO ONE repair round (2026-10-08 audit): 5/5 prod sets
+        // needed ≥2 rounds and 3/5 reached round 3, at 45–70 s against
+        // the 90 s client ceiling and the 100 s Cloudflare cap. The
+        // third round was buying a few fewer yellow-box lines at the
+        // price of the deadline. Standing violations still ship
+        // VISIBLY below; the ledger now records which floors they were.
+        for (let round = 0; round < 2; round++) {
+          const genT0 = Date.now();
           const gen = await openai.chat.completions.create({
             ...conceptParams(2200, 0.7),
             messages: round === 0
@@ -2882,10 +2965,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
                  { role: 'user', content: `Your set broke these floors:\n${violations.map((x) => '- ' + x).join('\n')}\nFix ONLY what is named, keep everything good, return the complete corrected JSON.` }],
             response_format: { type: 'json_object' },
           });
-          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-            provider: 'openai', model: CONCEPT_MODEL, quality: null,
-            costCents: chatUsageCents(CONCEPT_MODEL, gen.usage),
-            durationMs: 0, success: true });
+          const genMs = Date.now() - genT0;
+          const genCents = chatUsageCents(CONCEPT_MODEL, gen.usage);
+          meter.writer.push(genMs); meter.cents += genCents; meter.rounds = round + 1;
           concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
             // Free-comp writers ramble in the metadata fields; every
             // downstream schema caps format/angle at 160, so the clamp
@@ -2899,11 +2981,22 @@ export function registerAdminCardLabRoutes(app: Express): void {
             occasionKey: occKey });
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
-          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true));
+          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
+            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; } }));
           violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
+          meter.perRound.push(violations);
+          // The writer row is logged AFTER the referees so it carries this
+          // round's violations — the ledger answers "which floors fire"
+          // without anyone grepping a console.
+          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+            provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: genCents, durationMs: genMs, success: true,
+            stage: round === 0 ? 'writer' : 'writer-repair', violations });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
         }
+        const totalMs = Date.now() - setT0;
+        const helper = helperParams(0, 0);
+        console.log(`[CONCEPTS] set ${setId} rounds=${meter.rounds} total=${totalMs}ms archetype=${meter.archetype}ms writer=[${meter.writer.join(',')}]ms sense=[${meter.sense.join(',')}]ms cost=${meter.cents.toFixed(2)}c model=${CONCEPT_MODEL} helper=${helper.model}${'reasoning_effort' in helper ? '/' + helper.reasoning_effort : ''} violations=${JSON.stringify(meter.perRound).slice(0, 1500)}`);
 
         void db.insert(cardGenerations).values(concepts.map((c) => ({
           build_commit: (process.env.RENDER_GIT_COMMIT ?? 'local').slice(0, 8),
@@ -2928,10 +3021,25 @@ export function registerAdminCardLabRoutes(app: Express): void {
             territory: slots[i].territory, presence: slots[i].ground, tone: slots[i].tone,
             cast: slots[i].cast || undefined, engine: slots[i].rudeMech,
           } : undefined }));
-        return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, violations, compMode: freeComp ? 'free' : 'dealt',
-          ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText } });
+        return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, territories, violations, compMode: freeComp ? 'free' : 'dealt',
+          ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText },
+          // The meter rides the response too, so a harness measures the
+          // thing the customer waited for without parsing server logs.
+          meter: { setId, rounds: meter.rounds, totalMs, archetypeMs: meter.archetype, writerMs: meter.writer, senseMs: meter.sense, cents: Math.round(meter.cents * 100) / 100, perRound: meter.perRound } });
       } catch (err) {
-        console.error('[CARD-LAB:v2] pipeline failed, falling back to classic:', err);
+        // ⚠️ NO DOUBLE PIPELINE FOR CUSTOMERS (2026-10-08). Falling into
+        // classic after a v2 throw meant ~5 more calls and ~50 s more on
+        // a request already 30–60 s old — past the 90 s client ceiling
+        // and the 100 s Cloudflare cap, at double cost, for a set in a
+        // register the customer never chose. /api/make and /api/research
+        // now fail fast and honestly (the client already says "give it
+        // another go"). The ADMIN door keeps the classic fallback: the
+        // studio builder exposes pipeline as a toggle, and a lab run
+        // losing its set to a transient error is worse than a classic
+        // set the lab can see is classic.
+        const adminDoor = (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/');
+        console.error(`[CONCEPTS] set ${setId} FAILED after ${Date.now() - setT0}ms — ${adminDoor ? 'admin door, falling back to classic' : '502, no classic fallback'}:`, err);
+        if (!adminDoor) return res.status(502).json({ message: 'That one didn’t come together — give it another go', code: 'server' });
       }
     }
 
