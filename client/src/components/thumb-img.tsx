@@ -47,11 +47,13 @@ export function ThumbImg({ src, onFinalError, ...rest }: ThumbImgProps) {
       crossOrigin="anonymous"
       loading={rest.loading ?? 'lazy'}
       decoding={rest.decoding ?? 'async'}
-      onError={() => setRung((r) => {
-        if (r < ladder.length - 1) return r + 1;
-        onFinalError?.();
-        return r;
-      })}
+      // Decide from the rendered rung, not inside the updater — calling
+      // the parent's setState from an updater fired "Cannot update a
+      // component while rendering a different component" (audit 2026-10-06).
+      onError={() => {
+        if (rung < ladder.length - 1) setRung(rung + 1);
+        else onFinalError?.();
+      }}
     />
   );
 }

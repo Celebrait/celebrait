@@ -30,6 +30,8 @@ import { StartAgainButton } from '@/components/studio/steps/review-step';
 import { familyKey } from '@/lib/studio-card-buckets';
 import type { CardGridItem } from '@shared/schema';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
+import { occasionLabelMid } from '@/lib/occasion-label';
+import { CardKindChip } from '@/components/studio/card-kind-chip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
@@ -39,6 +41,8 @@ import type { CardDraftState, CardSide } from '@shared/schema';
 type CardViewData = {
   id: number;
   status: string | null;
+  /** Which door made it — 'photo' | 'maker' | 'rack'. Drives the kind chip. */
+  source?: string | null;
   frontImageUrl: string | null;
   insideImageUrl: string | null;
   createdAt: string | null;
@@ -395,15 +399,19 @@ function LoadedView({
           this z-index the canvas covers the back button and kills
           pointer events. */}
       <div className="relative z-20 flex items-start justify-between gap-4 mb-4">
-        <button
-          type="button"
-          onClick={() => setLocation(backHref)}
-          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink transition-colors"
-          data-testid="btn-card-view-back"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to studio
-        </button>
+        <div className="flex flex-col items-start gap-1.5">
+          <button
+            type="button"
+            onClick={() => setLocation(backHref)}
+            className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink transition-colors"
+            data-testid="btn-card-view-back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to studio
+          </button>
+          {/* Which kind this is — the one place the two products meet. */}
+          <CardKindChip source={card.source} />
+        </div>
         {/* Print-files toggle — swaps the stage between the 3D card and the
             flat print-ready spreads. Took the old status chip's spot
             (Kevin 2026-07-11); readiness is carried by the Send button /
@@ -780,7 +788,7 @@ function deriveTitle(state: CardDraftState): string {
   // was leaking through as "Mum's thankyou card".
   const occasionLabel =
     occasion && occasion !== 'other' ? getOccasionLabel(occasion) : '';
-  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
+  if (name && occasionLabel) return `${name}'s ${occasionLabelMid(occasion)} card`;
   if (name) return `Card for ${name}`;
   if (occasionLabel) return `${occasionLabel} card`;
   return 'Your card';

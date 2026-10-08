@@ -16,6 +16,7 @@ import { CardArtImg } from '@/components/studio/card-art-img';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
+import { occasionLabelMid } from '@/lib/occasion-label';
 import {
   Wand2,
   Truck,
@@ -461,7 +462,7 @@ function deriveTitle(order: StudioOrderListItem): string {
   // Use getOccasionLabel so 'thankyou' \u2192 'Thank you', 'valentines'
   // \u2192 "Valentine's Day" etc. — raw keys were leaking through.
   const occasionLabel = occasion ? getOccasionLabel(occasion) : '';
-  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
+  if (name && occasionLabel) return `${name}'s ${occasionLabelMid(occasion)} card`;
   if (name) return `Card for ${name}`;
   if (occasionLabel) return `${occasionLabel} card`;
   return 'Celebrait card';

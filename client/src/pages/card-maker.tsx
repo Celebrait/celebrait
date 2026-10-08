@@ -48,7 +48,7 @@ import {
   type CardSide,
   type StepId,
 } from '@shared/schema';
-import { getOccasionLabel } from '@/components/studio/scene-presets';
+import { occasionLabelMid } from '@/lib/occasion-label';
 
 // ── Entry: POST a new draft, then redirect to the edit URL ───────────
 // Keeping the "create draft" side-effect on the /studio/new-card route
@@ -808,7 +808,7 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
   // we drop the label and fall back to just "card" to avoid awkward copy.
   const occasionLabel =
     occasionKey && occasionKey !== 'other'
-      ? getOccasionLabel(occasionKey).toLowerCase()
+      ? occasionLabelMid(occasionKey)
       : '';
   const cardNoun = occasionLabel ? `${occasionLabel} card` : 'card';
   const ownedCard = name ? `${name}'s ${cardNoun}` : `the ${cardNoun}`;

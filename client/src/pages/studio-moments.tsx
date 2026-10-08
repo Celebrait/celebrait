@@ -87,7 +87,11 @@ export default function StudioMomentsPage() {
   const nationals = nextNationalMoments(new Date());
   // Hide a national when the user already tracks a same-named occasion
   // for someone (their "Mother's Day" for Mum outranks the generic one).
-  const trackedLabels = new Set(upcoming.map((r) => r.occasion.toLowerCase()));
+  // Slug AND label — 'mothers_day' never matched "Mother's Day", so the
+  // national row sat next to the person's own (audit 2026-10-06).
+  const trackedLabels = new Set(
+    upcoming.flatMap((r) => [r.occasion.toLowerCase(), occasionLabel(r.occasion).toLowerCase()]),
+  );
   const visibleNationals = nationals.filter(
     (n) => !trackedLabels.has(n.label.toLowerCase()),
   );

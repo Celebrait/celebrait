@@ -537,7 +537,7 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-keeper-ink">
-                Chat with AI to craft the perfect scene
+                Chat with us to find the perfect scene
               </span>
               {showPathGuide && (
                 <span className="mt-0.5 block text-xs leading-snug text-keeper-meta">

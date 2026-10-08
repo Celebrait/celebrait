@@ -10,8 +10,9 @@
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { sendEmail } from '../email-service';
+import { SUPPORT_EMAIL } from '@shared/legal';
 
-const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? 'greetings@celebrait.co.uk';
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? SUPPORT_EMAIL;
 
 const REASONS = [
   'Order or delivery',

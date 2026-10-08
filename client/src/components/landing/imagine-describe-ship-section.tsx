@@ -508,7 +508,7 @@ export function ImagineDescribeShipSection() {
           <p className="mt-5 md:mt-6 text-base md:text-lg text-ink-soft leading-relaxed max-w-[48ch] mx-auto">
             Let your imagination run free. Or{' '}
             <span className="relative inline-block font-medium text-ink whitespace-nowrap">
-              brainstorm with AI
+              brainstorm with us
               <motion.span
                 aria-hidden
                 className="absolute left-0 right-0 -bottom-0.5 h-[3px] origin-left rounded-full"

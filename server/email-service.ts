@@ -31,7 +31,7 @@ import nodemailer from 'nodemailer';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
-import { CONTROLLER, legalValue } from '@shared/legal';
+import { CONTROLLER, SUPPORT_EMAIL, legalValue } from '@shared/legal';
 
 // ── Preview capture (admin email tester) ──────────────────────────────
 // Lets `/admin/emails` render any template's HTML without sending it
@@ -106,7 +106,7 @@ if (brevoApiKey) {
 // Domain defaults are UK — Celebrait launches UK-only (V1, founder
 // direction 2026-05-27). Both can be overridden via env for staging
 // or future SA support. See next_checkout_shipping_robust.md.
-const FROM_EMAIL = process.env.MAIL_FROM_EMAIL ?? 'greetings@celebrait.co.uk';
+const FROM_EMAIL = process.env.MAIL_FROM_EMAIL ?? SUPPORT_EMAIL;
 const FROM_NAME = process.env.MAIL_FROM_NAME ?? 'Celebrait';
 const PUBLIC_ORIGIN = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
 

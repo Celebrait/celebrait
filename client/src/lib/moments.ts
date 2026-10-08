@@ -96,11 +96,10 @@ export function personGradient(name: string): string {
   return palettes[h % palettes.length];
 }
 
-/** Occasions are stored lowercase; display them like a person wrote
- *  them. */
-export function occasionLabel(o: string): string {
-  return o.charAt(0).toUpperCase() + o.slice(1);
-}
+// Occasion display lives in lib/occasion-label (one helper for every
+// surface). Re-exported so existing imports keep working. The old
+// first-letter-only version put "Mothers_day" on three studio screens.
+export { occasionLabel, occasionLabelMid } from './occasion-label';
 
 /** Days until the next 25 December — the date-aware rotating line. */
 export function daysToChristmas(): number {

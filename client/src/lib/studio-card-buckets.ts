@@ -27,6 +27,7 @@
 // logic pure-boolean so the buckets can evolve without an API change.
 
 import { getOccasionLabel } from '@/components/studio/scene-presets';
+import { occasionLabelMid } from '@/lib/occasion-label';
 import type { CardGridItem } from '@shared/schema';
 
 const DRAFT_STATUSES = new Set([
@@ -146,7 +147,8 @@ export function deriveCardTitle(card: CardGridItem): string {
   const name = card.recipientName?.trim() || null;
   const occasion = card.occasion?.trim() || null;
   const occasionLabel = occasion ? getOccasionLabel(occasion) : '';
-  if (name && occasionLabel) return `${name}'s ${occasionLabel.toLowerCase()} card`;
+  // Mid-sentence form keeps proper nouns ("Mum's Mother's Day card").
+  if (name && occasionLabel) return `${name}'s ${occasionLabelMid(occasion)} card`;
   if (name) return `For ${name}`;
   if (occasionLabel) return `${occasionLabel} card`;
   return 'Untitled card';

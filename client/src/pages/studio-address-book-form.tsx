@@ -52,6 +52,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { OCCASION_PRESETS } from '@/components/studio/scene-presets';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 import type {
   AddressBookEntry,
   RecipientOccasionRow,
@@ -851,10 +852,10 @@ function PrivacyFooter() {
                   Under UK GDPR you can ask us to export or delete
                   everything we hold about you — email{' '}
                   <a
-                    href="mailto:privacy@celebrait.co.uk"
+                    href={`mailto:${SUPPORT_EMAIL}`}
                     className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink"
                   >
-                    privacy@celebrait.co.uk
+                    {SUPPORT_EMAIL}
                   </a>{' '}
                   and we'll handle it within 30 days.
                 </p>

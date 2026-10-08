@@ -215,6 +215,10 @@ export type CardGridItem = {
   recipientName: string | null;
   occasion: string | null;
   frontImageUrl: string | null;
+  /** Which door made the card — 'photo' (studio maker), 'maker'
+   *  (three-card route) or 'rack' (off the shelf). Drives the kind chip
+   *  on studio lists so a customer can tell their two kinds apart. */
+  source: string | null;
   /** Take-family id (the family's original card id) when this card
    *  was made via Start-again — null for standalone cards. Use
    *  familyKey() in studio-card-buckets, not this field directly. */

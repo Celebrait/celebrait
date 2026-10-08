@@ -11,6 +11,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 // Lock-aware: wordmark + legal links while the site is locked, full chrome otherwise.
 import { LegalHeader, LegalFooter } from '@/components/landing/legal-chrome';
 import { apiRequest } from '@/lib/queryClient';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 
 // Must match the server enum in server/routes/contact.ts.
 const REASONS = [
@@ -22,9 +23,9 @@ const REASONS = [
   'Something else',
 ];
 
-// The public support address the form emails. Kept in sync with the
-// server's CONTACT_EMAIL for the "or email us directly" fallback.
-const CONTACT_EMAIL = 'greetings@celebrait.co.uk';
+// The public support address the form emails — the ONE inbox, shared
+// with the server's CONTACT_EMAIL default and the legal pages.
+const CONTACT_EMAIL = SUPPORT_EMAIL;
 
 export default function ContactPage() {
   const [form, setForm] = useState({

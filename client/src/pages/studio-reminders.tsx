@@ -35,6 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { occasionLabelMid } from '@/lib/occasion-label';
 import type { AddressBookEntry } from '@shared/schema';
 
 interface UpcomingReminder {
@@ -255,7 +256,7 @@ function NoDatesState() {
         Add a date to someone — we'll remember.
       </h2>
       <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
-        Open someone in your address book and pop in their birthday or anniversary. We'll nudge you 3 weeks, 1 week, and 3 days before — quietly, without being pushy.
+        Open someone in your address book and pop in their birthday or anniversary. We'll nudge you three weeks, ten days and a week before — the last one's the last safe day to order.
       </p>
       <Button
         asChild
@@ -401,22 +402,8 @@ function formatDistance(daysUntil: number): string {
   return `in ${weeks} weeks`;
 }
 
-/** Mirror of the server's humaniseOccasion. Kept lowercase except
- *  proper nouns; CSS will capitalize for display. */
+/** Lowercase except proper nouns; CSS capitalizes for display. Now the
+ *  shared helper so every surface agrees (was a private switch). */
 function humaniseOccasion(occasion: string): string {
-  const lower = occasion.toLowerCase().trim();
-  switch (lower) {
-    case 'mothers_day':
-      return "Mother's Day";
-    case 'fathers_day':
-      return "Father's Day";
-    case 'valentines':
-      return "Valentine's Day";
-    case 'thankyou':
-      return 'thank you';
-    case 'baby':
-      return 'new baby';
-    default:
-      return lower;
-  }
+  return occasionLabelMid(occasion);
 }

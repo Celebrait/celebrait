@@ -11,6 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 
 interface FaqEntry {
   q: string;
@@ -111,7 +112,7 @@ export function FaqSection() {
         <p className="text-center text-sm text-ink-soft mt-12">
           Still wondering?{' '}
           <a
-            href="mailto:hello@celebrait.co.uk"
+            href={`mailto:${SUPPORT_EMAIL}`}
             className="text-brand hover:text-brand-dark font-medium"
           >
             Drop us a line

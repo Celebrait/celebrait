@@ -48,6 +48,8 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { bucketCards, deriveCardTitle } from '@/lib/studio-card-buckets';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { ThumbImg } from '@/components/thumb-img';
+import { CardKindChip } from '@/components/studio/card-kind-chip';
 import { CARD_MAKER_STEPS } from '@shared/schema';
 import type { CardGridItem } from '@shared/schema';
 
@@ -214,10 +216,13 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             }`}
           >
             {card.frontImageUrl ? (
-              <img
+              // ThumbImg, not a bare <img>: this list was pulling 11 MB of
+              // full print PNGs into 40px tiles (speed audit 2026-10-06).
+              <ThumbImg
                 src={card.frontImageUrl}
-                crossOrigin="anonymous"
                 alt={title}
+                width={48}
+                height={48}
                 className="w-full h-full object-cover rounded-xl"
               />
             ) : (
@@ -230,6 +235,7 @@ function DraftListRow({ card }: { card: CardGridItem }) {
             <p className="text-sm sm:text-base font-semibold text-keeper-ink truncate">
               {title}
             </p>
+            <CardKindChip source={card.source} className="mt-1" />
             {metaLine && (
               <p className="text-[11px] sm:text-xs text-keeper-meta truncate mt-0.5">
                 {metaLine}
@@ -440,6 +446,11 @@ function DraftsEmpty() {
         <Wand2 className="w-4 h-4" />
         Start a card
       </Link>
+      <p className="mt-3 text-xs text-keeper-meta">
+        <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="drafts-empty-questions">
+          Answer a few questions instead
+        </Link>
+      </p>
     </div>
   );
 }

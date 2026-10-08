@@ -63,6 +63,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 
 export type GenerationErrorKind =
   | 'safety'
@@ -185,7 +186,7 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
       lead: 'Still happening?',
       // Support mailbox, NOT ip@ — that's the IP/takedown address
       // (audit 2026-07-27).
-      email: 'greetings@celebrait.co.uk',
+      email: SUPPORT_EMAIL,
     },
     isPanelKind: true,
   },

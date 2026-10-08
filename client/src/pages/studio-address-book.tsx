@@ -49,6 +49,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
+import { occasionLabel } from '@/lib/occasion-label';
 import {
   isFixedDateOccasion,
   nextFixedOccasionDate,
@@ -425,7 +426,9 @@ function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
       data-testid={`occasion-chip-${occasion.id}`}
     >
       <Icon className="w-3 h-3" strokeWidth={1.75} />
-      <span className="capitalize">{occasion.occasion}</span>
+      {/* Through the label helper, not CSS capitalize — the raw slug read
+          "Mothers_day" and a custom "new home" became "New Home". */}
+      <span>{occasionLabel(occasion.occasion)}</span>
       {dateLabel && <span className="text-keeper-meta">· {dateLabel}</span>}
       {!dateLabel && <span className="text-accent-red-dark">· add the date</span>}
     </span>

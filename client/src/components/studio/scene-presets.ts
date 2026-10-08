@@ -14,6 +14,8 @@
 // The occasion key matches the select options in the Recipient step
 // (lowercase). An 'other' fallback covers anything unusual.
 
+import { occasionLabel } from '@/lib/occasion-label';
+
 export interface OccasionPresets {
   occasion: string;
   label: string;
@@ -399,5 +401,7 @@ export const OCCASION_OPTIONS = [
 
 export function getOccasionLabel(occasion: string | undefined): string {
   if (!occasion) return '';
-  return OCCASION_PRESETS[occasion]?.label ?? occasion;
+  // Fall through to the shared helper, never the raw slug — 'mothers_day'
+  // has no scene preset and was reaching the screen as "Mothers_day".
+  return OCCASION_PRESETS[occasion]?.label ?? occasionLabel(occasion);
 }

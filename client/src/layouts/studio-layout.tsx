@@ -34,6 +34,7 @@ import {
   Truck,
   Printer,
   Plus,
+  MessageSquareText,
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -128,6 +129,18 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           New card
+        </Link>
+        {/* Secondary door: the three-card route (/create asks the questions
+            in place). Until now a signed-in person who liked that route had
+            to leave the studio and find /create again (audit 2026-10-06). */}
+        <Link
+          href="/create"
+          onClick={onNavigate}
+          className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-keeper-meta hover:text-brand-dark underline underline-offset-4 decoration-stone-300"
+          data-testid="nav-new-card-questions"
+        >
+          <MessageSquareText className="w-3.5 h-3.5" />
+          Answer a few questions instead
         </Link>
       </div>
 

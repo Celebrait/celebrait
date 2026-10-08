@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { StatusBadge } from './status-badge';
+import { CardKindChip } from './card-kind-chip';
 import type { CardGridItem } from '@shared/schema';
 
 interface CardThumbnailProps {
@@ -191,6 +192,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
       </div>
       <div className="p-3">
         <p className="text-sm font-medium text-keeper-ink truncate">{title}</p>
+        <CardKindChip source={card.source} className="mt-1.5" />
       </div>
     </>
   );

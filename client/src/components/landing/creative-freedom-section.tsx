@@ -228,7 +228,7 @@ export function CreativeFreedomSection() {
           </div>
           <div className="lg:col-span-5">
             <h3 className="text-2xl md:text-3xl font-semibold text-ink tracking-tight">
-              Brainstorm with the AI.
+              Brainstorm it with us.
             </h3>
             <p className="text-base text-ink-soft mt-4 leading-relaxed">
               Stuck? Riff with us. Chat through the scene, the mood, the small

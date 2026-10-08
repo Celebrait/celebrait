@@ -13,8 +13,8 @@
 //     (Aidan 2026-09-23: "there is no registered entity atm just
 //     testing", so these are deliberately still unset.)
 //   • icoNumber — register at ico.org.uk (data-protection fee) and add it.
-//   • Confirm the two contact mailboxes actually exist and are monitored;
-//     the documents promise responses to them.
+//   • Confirm SUPPORT_EMAIL actually exists and is monitored; the
+//     documents, the contact page and the FAQ all promise replies to it.
 //   • Have a UK solicitor review both documents. These are careful,
 //     accurate drafts written to match what the product actually does —
 //     they are not a substitute for legal advice.
@@ -48,13 +48,19 @@ const RAW = {
   icoNumber: "[ICO registration number — see note]",
 } as const;
 
+/** THE one public inbox (launch audit 2026-10-06: contact, FAQ and the
+ *  legal pages each promised a different mailbox — greetings@ / hello@ /
+ *  privacy@ — and only greetings@ is the configured sender). Every
+ *  support address a customer sees comes from here. */
+export const SUPPORT_EMAIL = "greetings@celebrait.co.uk";
+
 export const CONTROLLER = {
   /** Consumer-facing brand. */
   tradingAs: "Celebrait",
-  /** Mailbox for privacy / data-protection requests. */
-  privacyEmail: "privacy@celebrait.co.uk",
+  /** Mailbox for privacy / data-protection requests — same inbox. */
+  privacyEmail: SUPPORT_EMAIL,
   /** Mailbox for general / legal / support enquiries. */
-  contactEmail: "hello@celebrait.co.uk",
+  contactEmail: SUPPORT_EMAIL,
   website: "https://celebrait.co.uk",
   /** Governing-law jurisdiction. */
   jurisdiction: "England and Wales",

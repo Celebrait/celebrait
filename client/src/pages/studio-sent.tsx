@@ -76,6 +76,11 @@ function SentEmpty() {
         <Wand2 className="w-4 h-4" />
         Start your first card
       </Link>
+      <p className="mt-3 text-xs text-keeper-meta">
+        <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="sent-empty-questions">
+          Answer a few questions instead
+        </Link>
+      </p>
     </div>
   );
 }

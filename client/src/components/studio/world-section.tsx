@@ -18,6 +18,7 @@ import {
   fmtMomentDate,
   countdownLabel,
   occasionLabel,
+  occasionLabelMid,
   occasionFacts,
 } from '@/lib/moments';
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
@@ -104,14 +105,18 @@ export function WorldSection({
   // stops (visual audit 2026-08-04: fewer, bigger — the whole line then
   // fits a phone without scrolling). Occasions is the archive.
   const nationals = nextNationalMoments(new Date());
-  const tracked = new Set(upcoming.map((r) => r.occasion.toLowerCase()));
+  // Compare on the LABEL too — stored slug 'mothers_day' never matched
+  // the national "Mother's Day", so both showed (audit 2026-10-06).
+  const tracked = new Set(
+    upcoming.flatMap((r) => [r.occasion.toLowerCase(), occasionLabel(r.occasion).toLowerCase()]),
+  );
   const timeline: TimelineStop[] = [
     ...upcoming.map((r) => ({
       kind: 'mine' as const,
       id: String(r.occasionId),
       date: r.occurrenceDate,
       month: MONTH_ABBR[new Date(r.occurrenceDate).getMonth()],
-      label: `${r.recipientName}'s ${occasionLabel(r.occasion).toLowerCase()}`,
+      label: `${r.recipientName}'s ${occasionLabelMid(r.occasion)}`,
       chip: chipLabel(r.daysUntil),
     })),
     ...nationals
@@ -137,7 +142,7 @@ export function WorldSection({
       <h1 className="mt-1 font-display text-3xl sm:text-4xl font-semibold tracking-[-0.015em] text-keeper-ink text-balance">
         {next ? (
           <>
-            {next.recipientName}’s {occasionLabel(next.occasion)} is{' '}
+            {next.recipientName}’s {occasionLabelMid(next.occasion)} is{' '}
             <span className="text-brand">
               {next.daysUntil === 0
                 ? 'today'

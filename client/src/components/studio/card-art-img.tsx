@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { ImageOff } from 'lucide-react';
+import { ThumbImg } from '@/components/thumb-img';
 
 export function CardArtImg({
   src,
@@ -46,6 +47,19 @@ export function CardArtImg({
           <span className="text-[10px] font-medium">Artwork unavailable</span>
         )}
       </div>
+    );
+  }
+
+  // Tile-sized uses climb the thumb ladder (~512px webp) instead of
+  // pulling the full print PNG into a 40px box (audit 2026-10-06).
+  if (compact) {
+    return (
+      <ThumbImg
+        src={src}
+        alt={alt}
+        onFinalError={() => setFailed(true)}
+        className={className}
+      />
     );
   }
 
