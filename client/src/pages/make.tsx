@@ -40,14 +40,26 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 // Ceilings per call (2026-09-08: a stalled upstream render held the page
 // on "Drawing the fronts" for minutes). A timeout throws like any other
 // failure — a cell shows "didn't come out", the rest still land.
-const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 60_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000, 'cameo-check': 20_000 };
-async function makePost(path: string, body: unknown): Promise<any> {
+// ⚠️ Nothing here may exceed 100 s: Cloudflare sits in front of Render and
+// cuts any origin request at 100 s with a 524, so a longer ceiling would
+// only change which error the customer sees. Concepts measured 27 s on
+// prod for a plain brief (2026-10-08) — a 60 s ceiling was one slow
+// writer turn away from "That one took too long", which Aidan hit
+// repeatedly. 90 s, plus ONE silent retry on a timeout for the text call
+// (idempotent, pennies), keeps the deal alive without exceeding the cap.
+const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 90_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000, 'cameo-check': 20_000 };
+const SILENT_RETRY_ON_TIMEOUT = new Set(['concepts']);
+async function makePost(path: string, body: unknown, attempt = 0): Promise<any> {
   const ceiling = MAKE_TIMEOUT_MS[path.split('/')[0]] ?? 60_000;
   let r: Response;
   try {
     r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ceiling) });
   } catch (e: any) {
     const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    if (timedOut && attempt === 0 && SILENT_RETRY_ON_TIMEOUT.has(path.split('/')[0])) {
+      console.warn(`[make] ${path} hit the ${ceiling / 1000}s ceiling — retrying once`);
+      return makePost(path, body, 1);
+    }
     const err = new Error(timedOut ? 'That took too long — give it another go' : 'Lost the connection — give it another go') as Error & { code?: FailCode };
     err.code = timedOut ? 'timeout' : 'server';
     throw err;
