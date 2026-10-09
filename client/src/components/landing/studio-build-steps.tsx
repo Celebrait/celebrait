@@ -125,7 +125,7 @@ function PhotoCard({ active, reduced }: { active: boolean; reduced: boolean }) {
         })}
       </div>
       <p className="mt-4 h-5 text-center text-[13px] font-semibold text-ink">
-        {sel > 0 ? `Sarah — ${sel} selected` : ''}
+        {sel > 0 ? `Sarah: ${sel} selected` : ''}
       </p>
     </div>
   );

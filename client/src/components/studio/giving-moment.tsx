@@ -176,7 +176,7 @@ export function GivingMoment({
           How would you like to give it?
         </h2>
         <p className="text-sm text-keeper-meta leading-relaxed">
-          Your printed card{recipientName ? ` for ${recipientName}` : ''} —{' '}
+          Your printed card{recipientName ? ` for ${recipientName}` : ''}:{' '}
           {formatGBP(CARD_BASE)} inc. postage, with a free digital link to
           share.
         </p>
@@ -255,7 +255,7 @@ export function GivingMoment({
         ) : (
           <div className="space-y-2.5">
             <p className="text-sm text-keeper-ink font-medium">
-              No rush — it stays safe in your Drafts.
+              No rush. It stays safe in your Drafts.
             </p>
             <p className="text-[12px] text-keeper-meta leading-relaxed">
               When's the big day{recipientName ? ` for ${recipientName}` : ''}?

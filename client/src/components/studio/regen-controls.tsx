@@ -461,7 +461,7 @@ export function RegenEditMode({
           away rather than a wall of text pushing the card down). */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[12px] text-stone-500 leading-snug">
-          Small, specific changes work best — swap a detail, shift the
+          Small, specific changes work best: swap a detail, shift the
           mood, fix the words. Your photo &amp; likeness stay put. Want a
           different scene entirely? That's a new card, not a tweak.
         </p>
@@ -533,7 +533,7 @@ export function RegenEditMode({
           />
           {lockedSide === 'front' ? (
             <p className="mt-1.5 text-center text-[11px] text-stone-400">
-              Front — signed off ✓
+              Front signed off ✓
             </p>
           ) : (
             <VersionRail
@@ -555,7 +555,7 @@ export function RegenEditMode({
             />
             {lockedSide === 'inside' ? (
               <p className="mt-1.5 text-center text-[11px] text-stone-400">
-                Inside — signed off ✓
+                Inside signed off ✓
               </p>
             ) : (
               <VersionRail
@@ -616,8 +616,8 @@ export function RegenEditMode({
                   </p>
                   <p className="text-xs text-stone-600 mt-0.5">
                     {totalAttempts > 1
-                      ? 'Like it? Use it as your card. Or keep tweaking — earlier versions are still saved below each side.'
-                      : 'Like it? Use it as your card. Or keep tweaking — every try is saved so you can compare.'}
+                      ? 'Like it? Use it as your card. Or keep tweaking. Earlier versions are still saved below each side.'
+                      : 'Like it? Use it as your card. Or keep tweaking. Every try is saved so you can compare.'}
                   </p>
                 </div>
               </div>
@@ -649,7 +649,7 @@ export function RegenEditMode({
                   className="text-[11px] italic text-stone-500 text-center mt-4"
                   data-testid="regen-soft-cap-deciding"
                 >
-                  Sometimes the first one was the one — flip back through the
+                  Sometimes the first one was the one. Flip back through the
                   versions before trying again.
                 </p>
               )}
@@ -723,7 +723,7 @@ export function RegenEditMode({
                   className="text-[11px] italic text-stone-500 text-center mb-4"
                   data-testid="regen-soft-cap"
                 >
-                  Sometimes the first one was the one — flip back through the
+                  Sometimes the first one was the one. Flip back through the
                   versions before trying again.
                 </p>
               )}
@@ -740,7 +740,7 @@ export function RegenEditMode({
                     You've taken this design as far as tweaks go.
                   </p>
                   <p className="mt-1 text-xs text-stone-600">
-                    Pick your favourite from the versions above — or if none
+                    Pick your favourite from the versions above, or if none
                     of them are the one,{' '}
                     <Link
                       href="/studio/new-card"
@@ -906,7 +906,7 @@ function SideCappedPanel({ side }: { side: 'Front' | 'Inside' }) {
       data-testid={`regen-capped-${side.toLowerCase()}`}
     >
       <p className="text-xs font-medium text-stone-600">
-        {side} — tweak limit reached
+        {side}: tweak limit reached
       </p>
       <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">
         This side's been through every version it has in it. Flip back

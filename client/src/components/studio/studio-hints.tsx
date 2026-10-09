@@ -48,12 +48,12 @@ const HINTS: HintDef[] = [
   {
     id: 'free-card',
     title: 'A gift to start',
-    body: 'Add three dates that matter — birthdays, anniversaries, any day — and your first card is free.',
+    body: 'Add three dates that matter, like birthdays or anniversaries, and your first card is free.',
   },
   {
     id: 'moments',
     title: 'Your year, watched',
-    body: 'Every date you add lives in Occasions. We nudge you before each one — no more last-minute scrambles.',
+    body: 'Every date you add lives in Occasions. We nudge you before each one, so no more last-minute scrambles.',
   },
   {
     id: 'new-card',

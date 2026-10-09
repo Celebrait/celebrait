@@ -364,7 +364,7 @@ export function AuthForm({
           </Button>
           {slowHint && isSendingOtp && (
             <p className="text-[11px] text-keeper-meta text-center">
-              Waking things up — this can take a few seconds…
+              Waking things up. This can take a few seconds…
             </p>
           )}
         </>
@@ -408,7 +408,7 @@ export function AuthForm({
           </Button>
           {slowHint && isVerifyingOtp && (
             <p className="text-[11px] text-keeper-meta text-center">
-              Hang on — this can take a few seconds…
+              Hang on, this can take a few seconds…
             </p>
           )}
           {/* Outlook junks our code (SCL:5, CAT:SPM) even though SPF, DKIM
@@ -417,7 +417,7 @@ export function AuthForm({
               someone is already hunting for the email, rather than let them
               conclude it never sent. */}
           <p className="text-center text-[11px] leading-snug text-keeper-meta">
-            Can't see it? Check your junk or spam folder — it sometimes
+            Can't see it? Check your junk or spam folder. It sometimes
             lands there.
           </p>
           <button
@@ -506,7 +506,7 @@ export function AuthForm({
             </div>
             <p className="mt-2 text-[11px] leading-snug text-keeper-meta/80">
               Either way, we'll email you about your orders and the dates you
-              ask us to watch — that's the service. Unsubscribe from anything,
+              ask us to watch. That's the service. Unsubscribe from anything,
               anytime.
             </p>
           </div>

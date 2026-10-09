@@ -115,8 +115,8 @@ export function daysToChristmas(): number {
 export function occasionFacts(): string[] {
   return [
     `Christmas is in ${daysToChristmas()} days. The best cards get made in slippers, not in a panic.`,
-    'Mothering Sunday moves with Easter every year — we track it so you never have to.',
+    'Mothering Sunday moves with Easter every year. We track it so you never have to.',
     'The average Brit forgets three birthdays a year. Not you. Not any more.',
-    "A kept card outlives a text by years — mantelpieces don't have notification settings.",
+    "A kept card outlives a text by years. Mantelpieces don't have notification settings.",
   ];
 }

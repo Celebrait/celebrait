@@ -85,7 +85,7 @@ function PageHeader() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">In progress</h1>
         <p className="text-sm text-keeper-body mt-1">
-          Pick up where you left off — drafts save automatically.
+          Pick up where you left off. Drafts save automatically.
         </p>
       </div>
       <Link

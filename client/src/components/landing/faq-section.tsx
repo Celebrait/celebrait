@@ -32,39 +32,39 @@ interface FaqEntry {
 const photoFaqs = (rack: boolean): FaqEntry[] => [
   {
     q: 'How does Celebrait work?',
-    a: "You describe what you want — recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes — about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
+    a: "You describe what you want: recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes, about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
   },
   {
     q: 'Whose words go inside the card?',
-    a: "Yours. Always. We just style them in the same look as the front. Or leave the inside blank for handwriting — we'll lay out a beautiful blank page either way.",
+    a: "Yours. Always. We just style them in the same look as the front. Or leave the inside blank for handwriting. We'll lay out a beautiful blank page either way.",
   },
   {
     q: "What if I don't like the card we generate?",
-    a: "Start again with the same details for a brand-new take — free, as many times as you need before you buy. Every draft is kept, so you can compare and send the one you love.",
+    a: "Start again with the same details for a brand-new take. It's free, as many times as you need before you buy. Every draft is kept, so you can compare and send the one you love.",
   },
   {
     q: 'Can I print and post the card?',
-    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${gbp(cardPriceGBP(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${gbp(cardPriceGBP('rack'))} off the shelf, ` : ''}${gbp(cardPriceGBP('maker'))} made for them, ${gbp(cardPriceGBP('photo'))} from your photo), with a free digital version included. Our cards are one-off prints — please allow at least a week from order to arrival.`,
+    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${gbp(cardPriceGBP(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${gbp(cardPriceGBP('rack'))} off the shelf, ` : ''}${gbp(cardPriceGBP('maker'))} made for them, ${gbp(cardPriceGBP('photo'))} from your photo), with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`,
   },
   {
     q: 'How fast is delivery?',
-    a: 'Our cards are one-off prints — please allow at least a week from order to arrival. Right now they\'re printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
+    a: 'Our cards are one-off prints. Please allow at least a week from order to arrival. Right now they\'re printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
   },
   {
     q: 'What paper do you print on?',
-    a: '280gsm gloss-coated art card, printed on an HP Indigo press for crisp, vivid colour. Sustainably sourced, vegan-friendly, plastic-free and recyclable — right down to the packaging.',
+    a: '280gsm gloss-coated art card, printed on an HP Indigo press for crisp, vivid colour. Sustainably sourced, vegan-friendly, plastic-free and recyclable, right down to the packaging.',
   },
   {
     q: 'Where do you ship to?',
-    a: "United Kingdom today. We're working on the rest of Europe, South Africa, and the US — sign up and we'll let you know when your country is live.",
+    a: "United Kingdom today. We're working on the rest of Europe, South Africa, and the US. Sign up and we'll let you know when your country is live.",
   },
   {
     q: 'How do reminders work?',
-    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you three weeks, ten days and a week ahead — the last one is the last safe day to order, because every card is printed to order by our partner printer, then posted. Too late for this one? Add the date now and next year we'll remind you in good time.",
+    a: "Add the people who matter to your address book once, with their birthdays, anniversaries and any other occasions. We'll email you three weeks, ten days and a week ahead. The last one is the last safe day to order, because every card is printed to order by our partner printer, then posted. Too late for this one? Add the date now and next year we'll remind you in good time.",
   },
   {
     q: 'Does my card come with a digital version?',
-    a: "Yes — every printed Celebrait includes a free private link to share too. Recipients open it in any browser (no app, no signup), watch the envelope animate open, and can replay it forever.",
+    a: "Yes. Every printed Celebrait includes a free private link to share too. Recipients open it in any browser (no app, no signup), watch the envelope animate open, and can replay it forever.",
   },
   {
     q: 'Is my photo private?',
@@ -79,11 +79,11 @@ const photoFaqs = (rack: boolean): FaqEntry[] => [
 const MAKER_FAQS: FaqEntry[] = [
   {
     q: 'How does it work?',
-    a: "Six quick questions — who it's for, the occasion, what they're like. From your answers we write and draw three cards, in under a minute. Pick the one that's them. Keep our words inside, change them, or leave it blank to handwrite. Then it's printed and posted, or shared as a free digital link.",
+    a: "Six quick questions: who it's for, the occasion, what they're like. From your answers we write and draw three cards, in under a minute. Pick the one that's them. Keep our words inside, change them, or leave it blank to handwrite. Then it's printed and posted, or shared as a free digital link.",
   },
   {
     q: "What if I don't like any of the three?",
-    a: "Deal again — another three is free. Change a detail first if something was off (the occasion, the in-joke, the tone) and the next three will follow it. There's nothing to pay until you print one.",
+    a: "Deal again. Another three is free. Change a detail first if something was off (the occasion, the in-joke, the tone) and the next three will follow it. There's nothing to pay until you print one.",
   },
   {
     q: 'Can I put their photo in?',
@@ -91,11 +91,11 @@ const MAKER_FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I change the message inside?',
-    a: "Yes. Ours is a starting point — change a word, rewrite the lot, or start from blank. Or leave the inside blank and we'll post the card to you to handwrite.",
+    a: "Yes. Ours is a starting point: change a word, rewrite the lot, or start from blank. Or leave the inside blank and we'll post the card to you to handwrite.",
   },
   {
     q: 'What does it cost?',
-    a: `${gbp(cardPriceGBP('maker'))} a card, plus ${gbp(UK_SHIPPING_STANDARD_GBP)} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price — ${gbp(firstOrderPriceGBP('maker'))}. Making and previewing is free; you only pay when you print one.`,
+    a: `${gbp(cardPriceGBP('maker'))} a card, plus ${gbp(UK_SHIPPING_STANDARD_GBP)} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${gbp(firstOrderPriceGBP('maker'))}. Making and previewing is free; you only pay when you print one.`,
   },
   {
     q: 'How long does delivery take?',

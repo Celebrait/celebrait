@@ -39,7 +39,7 @@ export function CardArtImg({
           'flex h-full w-full flex-col items-center justify-center gap-1 bg-stone-100 text-stone-400'
         }
         role="img"
-        aria-label={`${alt} — artwork unavailable`}
+        aria-label={`${alt} (artwork unavailable)`}
         data-testid="card-art-fallback"
       >
         <ImageOff className={compact ? 'h-4 w-4' : 'h-6 w-6'} strokeWidth={1.5} />

@@ -172,12 +172,12 @@ function serverFieldErrors(err: any): FieldErrors {
 /** Human-readable date-the-fixed-occasion-falls-on, shown as a tiny
  *  helper line where the date input would have been. UK dates. */
 const FIXED_DATE_NOTES: Record<string, string> = {
-  christmas: '25 December — we know.',
-  valentines: '14 February — we know.',
+  christmas: '25 December. We know.',
+  valentines: '14 February. We know.',
   // UK Mother's Day = Mothering Sunday (4th Sunday of Lent, in March) —
   // NOT the US "2nd Sunday of May". (audit 2026-07-02.)
-  mothers_day: 'Mothering Sunday (in March) — we know.',
-  fathers_day: 'Third Sunday of June — we know.',
+  mothers_day: 'Mothering Sunday (in March). We know.',
+  fathers_day: 'Third Sunday of June. We know.',
 };
 
 /** Field label for the date input, occasion-aware. The reminder
@@ -212,7 +212,7 @@ function dateHintForOccasion(occasion: string): string {
     case 'anniversary':
     case 'wedding':
     case 'engagement':
-      return "We'll remind you each year — and know which anniversary it is.";
+      return "We'll remind you each year, and know which anniversary it is.";
     default:
       return "We need this to remind you in time";
   }
@@ -420,7 +420,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       // form has the name in scope, may as well land warmer.
       const savedName = name.trim();
       toast({
-        title: savedName ? `Saved — ${savedName}'s all set` : 'Saved',
+        title: savedName ? `Saved. ${savedName}'s all set` : 'Saved',
         variant: 'success',
       });
       setLocation('/studio/people/address-book');
@@ -567,7 +567,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
             <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl px-4 py-6 text-center">
               <Cake className="w-5 h-5 text-keeper-meta mx-auto mb-2" />
               <p className="text-sm text-keeper-body mb-3">
-                Pop in a birthday or anniversary — we'll nudge you in good time.
+                Pop in a birthday or anniversary and we'll nudge you in good time.
               </p>
               <Button
                 type="button"
@@ -708,7 +708,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Notes */}
         <FormSection
           title="Notes"
-          subtitle="Just for you — gift ideas, in-jokes, things to remember."
+          subtitle="Just for you: gift ideas, in-jokes, things to remember."
         >
           <Textarea
             value={notes}
@@ -799,7 +799,7 @@ function PrivacyFooter() {
     <div className="mt-6 flex items-start gap-2.5 text-xs text-keeper-meta leading-relaxed px-1">
       <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-keeper-meta" aria-hidden />
       <p>
-        Stored privately — only you can see it. Remove anyone any time from
+        Stored privately. Only you can see it. Remove anyone any time from
         the address book menu.{' '}
         <Dialog>
           <DialogTrigger asChild>
@@ -824,7 +824,7 @@ function PrivacyFooter() {
               <div>
                 <p className="font-medium text-keeper-ink mb-1">What we keep</p>
                 <p>
-                  Just what you type — names, relationships, occasion
+                  Just what you type: names, relationships, occasion
                   dates, contact details, and your private notes. Nothing
                   is shared with anyone else.
                 </p>
@@ -834,7 +834,7 @@ function PrivacyFooter() {
                 <p>
                   We use it to send <em>you</em> reminders before each
                   occasion, and to pre-fill the recipient step when you
-                  start a new card. That's it — no marketing to your
+                  start a new card. That's it. No marketing to your
                   contacts, no third-party sharing, no resale.
                 </p>
               </div>
@@ -850,7 +850,7 @@ function PrivacyFooter() {
                 <p className="font-medium text-keeper-ink mb-1">Your rights</p>
                 <p>
                   Under UK GDPR you can ask us to export or delete
-                  everything we hold about you — email{' '}
+                  everything we hold about you. Email{' '}
                   <a
                     href={`mailto:${SUPPORT_EMAIL}`}
                     className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink"
@@ -1022,7 +1022,7 @@ function OccasionRow({
                 htmlFor={`occ-${index}-yearspec`}
                 className="text-xs text-keeper-body font-normal cursor-pointer"
               >
-                Just this once — a specific year (their 60th, a wedding date)
+                Just this once, for a specific year (their 60th, a wedding date)
               </Label>
             </div>
           )}

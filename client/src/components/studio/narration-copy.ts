@@ -137,7 +137,7 @@ export function buildPersonalBeats(state: CardDraftState): NarrationBeat[] {
     id: 'style',
     label: 'Style',
     parts: styleAdj
-      ? [plain('Bringing it to life — '), em(styleAdj), plain('.')]
+      ? [plain('Bringing it to life: '), em(styleAdj), plain('.')]
       : [plain('Tuning palette and texture.')],
   };
 
@@ -155,7 +155,7 @@ export function buildPersonalBeats(state: CardDraftState): NarrationBeat[] {
   // ── Beat 6: inside — mode + message aware ─────────────────────────
   let insideParts: BeatPart[];
   if (insideMode === 'blank') {
-    insideParts = [plain('Leaving the inside blank — for your own pen.')];
+    insideParts = [plain('Leaving the inside blank, for your own pen.')];
   } else if (insideMessage) {
     insideParts = hasName
       ? [plain('Writing your words for '), name(theName), plain(' to read.')]

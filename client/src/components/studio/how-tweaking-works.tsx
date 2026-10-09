@@ -67,7 +67,7 @@ export function HowTweakingWorks() {
             You're refining{' '}
             <span className="font-medium text-keeper-ink">this design</span>, not
             starting over. Our engine keeps the same composition and likeness
-            and only applies the change you describe — so the more{' '}
+            and only applies the change you describe, so the more{' '}
             <span className="font-medium text-keeper-ink">specific</span> you are, the
             more accurate it gets.
           </p>
@@ -120,9 +120,9 @@ export function HowTweakingWorks() {
             </div>
             <ul className="space-y-1.5">
               {[
-                'Expressions — “make them laughing”, “a softer smile”',
+                'Expressions: “make them laughing”, “a softer smile”',
                 'Actions & what’s happening in the scene',
-                'Details in the image — objects, background, colours, season',
+                'Details in the image: objects, background, colours, season',
                 'The text on the front',
                 'The message inside the card',
               ].map((item) => (
@@ -154,7 +154,7 @@ export function HowTweakingWorks() {
                 <span className="font-medium text-keeper-ink">
                   You can’t change the photo or who’s in it here.
                 </span>{' '}
-                The face stays the person you uploaded — tweaks adjust the
+                The face stays the person you uploaded. Tweaks adjust the
                 scene around them, not the likeness itself.
               </p>
             </div>

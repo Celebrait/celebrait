@@ -185,7 +185,7 @@ export function GenerationWaitStage({
           card animation so it's the first thing read. */}
       <p className="max-w-[420px] text-center text-[13px] leading-relaxed text-keeper-meta">
         This usually takes{' '}
-        <span className="font-medium text-keeper-ink">60–90 seconds</span> —
+        <span className="font-medium text-keeper-ink">60–90 seconds</span>, so
         hang tight. You can close this if you like: your card will be waiting
         in your Studio whenever you come back.
       </p>
@@ -249,7 +249,7 @@ export function GenerationWaitStage({
             >
               {stepLabel}
               {showSlowHint && (
-                <span className="text-keeper-meta"> — almost there</span>
+                <span className="text-keeper-meta">, almost there</span>
               )}
             </motion.p>
           </AnimatePresence>

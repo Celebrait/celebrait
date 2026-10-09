@@ -142,7 +142,7 @@ export default function CardViewerPage() {
               This card link isn't working
             </p>
             <p className="text-sm text-keeper-body mb-4 max-w-xs text-center">
-              It may not have copied across in full — ask whoever sent it to
+              It may not have copied across in full. Ask whoever sent it to
               share the link again.
             </p>
             <Button onClick={() => setLocation('/')}>Make your own card</Button>
@@ -424,7 +424,7 @@ function MakeYourOwnPanel({
         Someone made this just for you.
       </p>
       <p className="mx-auto mt-2 max-w-[40ch] text-sm leading-relaxed text-keeper-body">
-        Now put someone you love in the picture — upload a photo, describe
+        Now put someone you love in the picture. Upload a photo, describe
         the scene, and we make the card. Free to make.
       </p>
 
@@ -439,7 +439,7 @@ function MakeYourOwnPanel({
           data-testid="btn-viewer-create"
         >
           <Sparkles className="mr-2 h-4 w-4" />
-          Make one of your own — free
+          Make one of your own, free
         </Link>
       ) : (
         <button
@@ -449,7 +449,7 @@ function MakeYourOwnPanel({
           data-testid="btn-viewer-create"
         >
           <Sparkles className="mr-2 h-4 w-4" />
-          Make one of your own — your first is on us
+          Make one of your own. Your first is on us
         </button>
       )}
 
@@ -470,7 +470,7 @@ function MakeYourOwnPanel({
       <div className="mt-6 border-t border-stone-100 pt-5">
         {sent ? (
           <p className="text-sm font-medium text-cta-hover" data-testid="lead-captured">
-            Done — the link's in your inbox for whenever you're ready. ✨
+            Done. The link's in your inbox for whenever you're ready. ✨
           </p>
         ) : (
           <>
@@ -514,7 +514,7 @@ function MakeYourOwnPanel({
                 data-testid="check-lead-optin"
               />
               <span className="text-[11.5px] leading-snug text-keeper-meta">
-                Keep me posted now and then — new features and ideas.
+                Keep me posted now and then with new features and ideas.
                 Unsubscribe anytime.
               </span>
             </label>

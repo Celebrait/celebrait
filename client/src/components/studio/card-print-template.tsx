@@ -119,7 +119,7 @@ export function CardPrintStrip({
         <span className="w-11 text-center">3 Inside</span>
         <span className="w-11 text-center">4 Inside</span>
       </div>
-      <p className="mt-1.5 text-[11px] text-keeper-meta">Print file — how it's produced</p>
+      <p className="mt-1.5 text-[11px] text-keeper-meta">Print file: how it's produced</p>
     </div>
   );
 }

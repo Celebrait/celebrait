@@ -342,7 +342,7 @@ function DevAdvanceButton({ order }: { order: StudioOrderListItem }) {
       onClick={advance}
       disabled={busy}
       className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 border border-dashed border-violet-300 rounded-full px-3 py-1.5 transition-colors disabled:opacity-50"
-      title="Dev only — simulate the next Prodigi status"
+      title="Dev only: simulate the next Prodigi status"
       data-testid={`order-dev-advance-${order.id}`}
     >
       <FlaskConical className="w-3.5 h-3.5" />

@@ -50,7 +50,7 @@ const WAIT_MESSAGES = [
   'Re-drawing the scene…',
   'Bringing it to life…',
   'Adding the final details…',
-  'Still working — hang tight…',
+  'Still working, hang tight…',
 ];
 
 interface CardThumbProps {

@@ -67,7 +67,7 @@ export default function OrderStatusPage() {
         const j = await r.json();
         if (stop) return;
         setOrder(j.order); setItems(j.items ?? []); setState('ok');
-        document.title = 'Your order — Celebrait';
+        document.title = 'Your order | Celebrait';
         // Poll while payment settles (max ~1 min) — the API reconciles
         // with Stripe on each read, so this closes the webhook race.
         if (j.order.paymentStatus !== 'paid' && polls.current < 12) {
@@ -98,7 +98,7 @@ export default function OrderStatusPage() {
         <KeeperHeader />
         <div className="mx-auto max-w-lg px-6 pb-24 pt-40 text-center">
           <h1 className="font-display text-2xl font-bold text-keeper-ink">We couldn't find that order</h1>
-          <p className="mt-3 text-sm text-keeper-meta">Check the link in your confirmation email — it has the full order reference.</p>
+          <p className="mt-3 text-sm text-keeper-meta">Check the link in your confirmation email. It has the full order reference.</p>
         </div>
       </div>
     );
@@ -117,7 +117,7 @@ export default function OrderStatusPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-keeper-gold">Order confirmed</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-keeper-ink">It's on its way to the printer.</h1>
             <p className="mt-3 text-sm text-keeper-body">
-              A receipt has gone to {order.customerEmail ?? 'your email'}. A one-off print, posted Royal Mail 24, tracked — expect it by{' '}
+              A receipt has gone to {order.customerEmail ?? 'your email'}. A one-off print, posted Royal Mail 24, tracked. Expect it by{' '}
               <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(order.createdAt))}</span>
               {order.needByDate && parseISODate(order.needByDate) ? ` (you need it by ${formatDayMonth(parseISODate(order.needByDate)!)})` : ''}.
             </p>
@@ -128,7 +128,7 @@ export default function OrderStatusPage() {
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Confirming payment
             </p>
             <h1 className="mt-2 font-display text-3xl font-bold text-keeper-ink">One moment…</h1>
-            <p className="mt-3 text-sm text-keeper-body">We're confirming your payment with the bank — this usually takes a few seconds.</p>
+            <p className="mt-3 text-sm text-keeper-body">We're confirming your payment with the bank. This usually takes a few seconds.</p>
           </>
         )}
 
@@ -146,7 +146,7 @@ export default function OrderStatusPage() {
                   <p className={`text-sm font-medium ${done ? 'text-keeper-ink' : 'text-keeper-meta'}`}>{s.label}</p>
                   {s.key === 'shipped' && order.trackingUrl && (
                     <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-xs text-keeper-gold hover:underline">
-                      Track it{order.trackingNumber ? ` — ${order.trackingNumber}` : ''}
+                      Track it{order.trackingNumber ? ` (${order.trackingNumber})` : ''}
                     </a>
                   )}
                 </div>
@@ -170,7 +170,7 @@ export default function OrderStatusPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-keeper-meta">
-          Keep this page's link — it's your order reference ({order.id.slice(0, 8)}).
+          Keep this page's link. It's your order reference ({order.id.slice(0, 8)}).
         </p>
         <p className="mt-6 text-center">
           {rack

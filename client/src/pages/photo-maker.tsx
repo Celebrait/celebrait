@@ -157,7 +157,7 @@ export default function PhotoMakerPage() {
         idMap.set(gid, p.id);
       }
       const photoIds = (st.photos?.photoIds ?? []).map((g) => idMap.get(g)).filter((x): x is number => typeof x === 'number');
-      if (photoIds.length === 0) throw new Error("Your photo didn't make it across — please add it again.");
+      if (photoIds.length === 0) throw new Error("Your photo didn't make it across. Please add it again.");
 
       const reviewIdx = CARD_MAKER_STEPS.findIndex((s) => s.id === 'review');
       const next: CardDraftState = {
@@ -302,11 +302,11 @@ function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, on
 }) {
   const occ = state.recipient?.occasion?.trim();
   const rows: Array<[string, ReactNode, number]> = [
-    ['For', `${state.recipient?.name?.trim() || '—'}${occ ? ` · ${getOccasionLabel(occ)}` : ''}`, 0],
+    ['For', `${state.recipient?.name?.trim() || '–'}${occ ? ` · ${getOccasionLabel(occ)}` : ''}`, 0],
     ['Photo', photos.length ? (
       <span className="flex gap-2">{photos.map((p, i) => <img key={p.id} src={photoThumbSrc(p)} alt={p.label ?? `Photo ${i + 1}`} className="h-14 w-14 rounded-lg object-cover" />)}</span>
-    ) : '—', 1],
-    ['Scene', state.scene?.description?.trim() || '—', 2],
+    ) : '–', 1],
+    ['Scene', state.scene?.description?.trim() || '–', 2],
     // No text + not 'none' = the generator writes the front line itself
     // (background-generator falls back to an occasion default).
     ['Front', state.front?.mode === 'none' ? 'No words on the front' : (state.front?.text?.trim() || "We'll pick the words"), 3],
@@ -329,7 +329,7 @@ function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, on
         </p>
         <p className="mt-1 text-[14px] leading-relaxed text-keeper-body">
           {authed
-            ? 'Your card is saved to your studio and drawn there — a few minutes on our bigger image model.'
+            ? 'Your card is saved to your studio and drawn there, a few minutes on our bigger image model.'
             : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
           {' '}Nothing to pay until you print ({gbp(cardPriceGBP('photo'))}).
         </p>
@@ -342,7 +342,7 @@ function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, on
         >
           <Sparkles className="mr-1.5 h-4 w-4" /> {authed ? 'Generate' : 'Sign up to generate'}
         </Button>
-        {!allReady && <p className="mt-2 text-[12.5px] text-keeper-meta">Something's missing above — tap Edit to fill it in.</p>}
+        {!allReady && <p className="mt-2 text-[12.5px] text-keeper-meta">Something's missing above. Tap Edit to fill it in.</p>}
       </div>
     </div>
   );

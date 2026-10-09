@@ -121,17 +121,17 @@ const PRINT_FEATURES: PrintFeature[] = [
   {
     icon: Sparkles,
     title: 'Premium 280gsm gloss card',
-    body: 'Gloss-coated art card, HP Indigo digital print — crisp, vivid colour.',
+    body: 'Gloss-coated art card, HP Indigo digital print. Crisp, vivid colour.',
   },
   {
     icon: Package,
     title: 'One-off prints, made just for them',
-    body: 'Every card is printed once, after you order it — no shelf, no stock. Up to three working days in the print lab.',
+    body: 'Every card is printed once, after you order it. No shelf, no stock. Up to three working days in the print lab.',
   },
   {
     icon: Truck,
-    title: 'Then posted — allow at least a week',
-    body: 'Royal Mail 24 for £2.95, usually the next working day. Please allow at least a week from order to arrival — tell us the date at checkout and we\'ll say if it\'ll make it.',
+    title: 'Then posted: allow at least a week',
+    body: 'Royal Mail 24 for £2.95, usually the next working day. Please allow at least a week from order to arrival. Tell us the date at checkout and we\'ll say if it\'ll make it.',
   },
   {
     icon: Globe,
@@ -154,7 +154,7 @@ export function SendItYourWaySection() {
             and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A premium 280gsm gloss card, posted anywhere in the UK — and every
+            A premium 280gsm gloss card, posted anywhere in the UK, and every
             one comes with a free private link to share too.
           </p>
         </div>
@@ -172,7 +172,7 @@ export function SendItYourWaySection() {
               A link to share, too.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed">
-              Recipients open the card in any browser — no app, no signup.
+              Recipients open the card in any browser. No app, no signup.
               Watch the envelope, open the card, replay it forever. Free with
               every Celebrait.
             </p>
@@ -190,7 +190,7 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              From £4.99 plus postage — HP Indigo printed on 280gsm gloss card,
+              From £4.99 plus postage. HP Indigo printed on 280gsm gloss card,
               posted in a kraft envelope.
             </p>
 

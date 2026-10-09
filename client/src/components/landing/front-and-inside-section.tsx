@@ -92,7 +92,7 @@ export function FrontAndInsideSection() {
             Every detail, illustrated.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            Words on the front aren't slapped on — they're painted in. The
+            Words on the front aren't slapped on. They're painted in. The
             inside is yours: type a message and we'll style it to match the
             front, or leave it blank for handwriting.
           </p>
@@ -104,7 +104,7 @@ export function FrontAndInsideSection() {
             Icon={Type}
             label="The front"
             title="Words painted into the scene."
-            body="Names, ages, occasions — rendered in the same style as the illustration. Looks designed, not generated."
+            body="Names, ages, occasions, rendered in the same style as the illustration. Looks designed, not generated."
             overlay={{
               top: '24px',
               left: '24px',

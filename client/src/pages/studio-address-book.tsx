@@ -84,7 +84,7 @@ export default function StudioAddressBookPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
-      toast({ title: 'Gone — you can always add them back.', variant: 'success' });
+      toast({ title: 'Gone. You can always add them back.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -193,7 +193,7 @@ export default function StudioAddressBookPage() {
             <AlertDialogTitle>Remove this person?</AlertDialogTitle>
             <AlertDialogDescription>
               They'll come out of your address book. Cards you've already
-              made stay in your gallery — this just stops the reminders
+              made stay in your gallery. This just stops the reminders
               and the typeahead.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -237,7 +237,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </h2>
       <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
         Make a card and they'll land here automatically. Or add someone
-        now — handy when a birthday's creeping up.
+        now, handy when a birthday's creeping up.
       </p>
       <Button
         type="button"

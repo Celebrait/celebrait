@@ -91,7 +91,7 @@ export function TickerBanner() {
         {/* Coral trial (Aidan 2026-09-04): the warm accent on the OFFER only. */}
         <Gift className="h-3.5 w-3.5 shrink-0 text-accent-coral" aria-hidden="true" />
         <span className="sm:hidden">
-          Add 3 dates that matter — <b className="text-accent-coral">50% off</b> your first card. Claim it ›
+          Add 3 dates that matter for <b className="text-accent-coral">50% off</b> your first card. Claim it ›
         </span>
         <span className="hidden sm:inline">
           Tell us 3 dates that matter and your first card is{' '}
@@ -109,7 +109,7 @@ export function TickerBanner() {
       >
         <Truck className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden="true" />
         <span className="sm:hidden">
-          One-off prints — please <b>allow at least a week</b> from order to arrival ›
+          One-off prints. Please <b>allow at least a week</b> from order to arrival ›
         </span>
         <span className="hidden sm:inline">
           Our cards are one-off prints. Please <b>allow at least a week</b> from order to arrival ›

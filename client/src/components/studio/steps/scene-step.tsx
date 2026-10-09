@@ -479,9 +479,9 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
               acknowledgement once they've typed. */}
           <p className="text-[11px] text-keeper-meta">
             {brief.trim().length === 0
-              ? "Even one word helps — we'll turn it into three scenes. Or just hit the button and we'll start you off."
+              ? "Even one word helps. We'll turn it into three scenes. Or just hit the button and we'll start you off."
               : brief.trim().length < 12
-                ? "Good start — add another detail or two and they'll sound more like them."
+                ? "Good start. Add another detail or two and they'll sound more like them."
                 : "That's plenty to work with."}
           </p>
         </div>
@@ -569,7 +569,7 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
               Your scene
             </Label>
             <span className="text-[11px] text-keeper-meta">
-              edit freely — this exact text guides the artwork
+              edit freely, this exact text guides the artwork
             </span>
           </div>
           <Textarea
@@ -619,7 +619,7 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
               {firstName ? `Three scenes for ${firstName}` : 'Three scenes'}
             </DialogTitle>
             <DialogDescription className="text-left">
-              Tap one to make it yours — every word stays editable before
+              Tap one to make it yours. Every word stays editable before
               we draw anything.
             </DialogDescription>
           </DialogHeader>

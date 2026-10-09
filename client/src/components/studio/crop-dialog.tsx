@@ -296,7 +296,7 @@ export function CropDialog({
               ? "We couldn't open that photo. Pick a different one and we'll try again."
               : !imageReady
                 ? slowLoad
-                  ? 'Still opening this one — big photos from a phone can take a few seconds.'
+                  ? 'Still opening this one. Big photos from a phone can take a few seconds.'
                   : 'Opening your photo…'
                 : autoFace
               ? detectingFace
@@ -320,7 +320,7 @@ export function CropDialog({
               />
               {slowLoad && (
                 <p className="text-[13px] leading-snug text-keeper-meta">
-                  Still working — this one's a big file.
+                  Still working. This one's a big file.
                 </p>
               )}
             </div>

@@ -93,7 +93,7 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
     if (age < 13) tail = 'A big number when you’re that size.';
     else if (age < 18) tail = 'So: nothing that reads as a kid’s card.';
     else if (age === 18 || age === 21) tail = 'The proper one.';
-    else if (age % 10 === 0) tail = 'A big one — the card should know it.';
+    else if (age % 10 === 0) tail = 'A big one. The card should know it.';
     else if (age >= 80) tail = 'That earns some respect on the front.';
     else tail = 'Not a round number, so the card has to earn its own laugh.';
     beats.push({ id: 'age', parts: [plain(isBirthday ? `Turning ${age}. ` : `${age} years old. `), plain(tail)] });
@@ -107,14 +107,14 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
 
   // The thing they can't stand — a joke waiting to happen.
   if (cant) {
-    beats.push({ id: 'cant', parts: [plain('And '), quote(trim(cant)), plain(' — noted. That might land a joke on one of them.')] });
+    beats.push({ id: 'cant', parts: [plain('And '), quote(trim(cant)), plain(', noted. That might land a joke on one of them.')] });
   }
 
   // The vibe.
   const vibe: Record<Brief['vibe'], BeatPart[]> = {
     funny: [plain('Aiming for the laugh, not the eye-roll.')],
     warm: [plain('Warm, not soppy. There’s a line, and we’re staying on the right side of it.')],
-    rude: [plain('Cheeky — the kind you’d still put on the mantelpiece.')],
+    rude: [plain('Cheeky, but the kind you’d still put on the mantelpiece.')],
     mix: [plain('One funny, one warm, one a bit cheeky. You’ll choose.')],
   };
   beats.push({ id: 'vibe', parts: vibe[brief.vibe] });
@@ -137,7 +137,7 @@ export function drawingBeats({ brief }: MakeNarrationInput, concepts: ConceptLin
   const pal = concepts.map((c) => c.palette?.trim()).find((p) => p && p.length <= 48);
   if (pal) beats.push({ id: 'pal', parts: [plain('Colours: '), em(pal.toLowerCase()), plain('.')] });
   else if (thing) beats.push({ id: 'pal', parts: [plain('Colours from the world of '), quote(trim(thing, 32)), plain('.')] });
-  beats.push({ id: 'letters', parts: [plain('Getting the lettering to sit right — it’s half the joke.')] });
+  beats.push({ id: 'letters', parts: [plain('Getting the lettering to sit right. It’s half the joke.')] });
   beats.push({ id: 'front', parts: hasName ? [plain('Making sure '), nm(), plain(`${whoPhrase(brief).endsWith('s') ? '’' : '’s'} front is one you’d actually pick up.`)] : [plain('Making sure each front is one you’d actually pick up.')] });
   // The photo comes after the pick on this route — say so while they wait.
   beats.push({ id: 'photo', parts: [plain('Once you’ve picked, a photo puts '), nm(), plain(' right in it. Optional. Worth it.')] });
@@ -157,7 +157,7 @@ export function slowLine(elapsedS: number): string | null {
   // Promise on the wait screen is 30–45 s (2026-10-09, measured ~32 s for
   // the words + the draws on prod) — so "longer than usual" starts at 55.
   if (elapsedS < 55) return null;
-  if (elapsedS < 90) return 'Taking a touch longer than usual. Still drawing — nothing’s stuck.';
+  if (elapsedS < 90) return 'Taking a touch longer than usual. Still drawing, nothing’s stuck.';
   return 'Slower than normal today. We’ll keep at it a little longer, then tell you straight if it isn’t happening.';
 }
 

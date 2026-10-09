@@ -191,7 +191,7 @@ export function FixAndRetryDialog({
         {/* Also using strip */}
         <div className="px-6 pb-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-keeper-meta font-semibold mb-2">
-            Also using — could one of these be it?
+            Also using: could one of these be it?
           </p>
           <div className="grid grid-cols-2 gap-2">
             {(['scene', 'photo'] as FixAndRetryEditor[])

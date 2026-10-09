@@ -598,7 +598,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       if (!ACCEPTED_TYPES.includes(file.type)) {
         toast({
           title: `Skipped: ${file.name}`,
-          description: "We can't read that format — try JPEG, PNG, WebP or HEIC.",
+          description: "We can't read that format. Try JPEG, PNG, WebP or HEIC.",
           variant: 'destructive',
         });
         continue;
@@ -606,7 +606,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
       if (file.size > CLIENT_MAX_BYTES) {
         toast({
           title: `${file.name} is too large`,
-          description: 'Photos need to be under 15 MB — shrink it and try again.',
+          description: 'Photos need to be under 15 MB. Shrink it and try again.',
           variant: 'destructive',
         });
         continue;
@@ -632,7 +632,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         title: 'Already at the limit',
         description:
           mode === 'group'
-            ? 'Group mode is one photo — remove the current one to swap.'
+            ? 'Group mode is one photo. Remove the current one to swap.'
             : `You can have up to ${MAX_PHOTOS.one_person} photos on a card.`,
       });
       return;
@@ -641,7 +641,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     if (valid.length > remaining) {
       toast({
         title: `Adding the first ${remaining}`,
-        description: `You're at the ${MAX_PHOTOS[mode]}-photo limit for this card — the rest were skipped.`,
+        description: `You're at the ${MAX_PHOTOS[mode]}-photo limit for this card, so the rest were skipped.`,
       });
     }
 
@@ -975,7 +975,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
             ? `${recipientName}, ready.`
             : 'Ready.'
           : recipientName
-            ? `${recipientName} — ${totalCount} photos locked in.`
+            ? `${recipientName}: ${totalCount} photos locked in.`
             : `${totalCount} photos locked in.`;
 
     const canAdd = mode === 'one_person' && totalCount < MAX_PHOTOS.one_person;
@@ -1021,8 +1021,8 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
           : totalCount === 1
             ? null // the stronger nudge panel (below) takes over at 1 photo
             : remainingSlots > 0
-              ? `One more angle if you've got it — that's the sweet spot.`
-              : `That's the sweet spot — three angles is plenty.`;
+              ? `One more angle if you've got it. That's the sweet spot.`
+              : `That's the sweet spot. Three angles is plenty.`;
 
     return (
       <div
@@ -1143,7 +1143,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                   </p>
                 </div>
                 <p className="mt-1 text-[11px] leading-snug text-keeper-meta">
-                  A few seconds — we’re checking it’ll give a strong likeness.
+                  A few seconds. We’re checking it’ll give a strong likeness.
                   Next unlocks when it’s done.
                 </p>
               </div>
@@ -1220,7 +1220,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                     className="mt-2 block w-full text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body"
                     data-testid="btn-quality-override"
                   >
-                    I understand — use this photo anyway
+                    I understand, use this photo anyway
                   </button>
                 )}
               </div>
@@ -1406,8 +1406,8 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
     <div className="max-w-2xl mx-auto">
       <p className="text-xs text-keeper-meta mb-4">
         {recipientName
-          ? `We'll use this to put ${recipientName} in the card — a clear photo of their face works best.`
-          : "We'll use this to put them in the card — a clear photo of their face works best."}
+          ? `We'll use this to put ${recipientName} in the card. A clear photo of their face works best.`
+          : "We'll use this to put them in the card. A clear photo of their face works best."}
       </p>
 
       {/* Mode decision — card tiles, not a pill. The pair is the first
@@ -1496,9 +1496,9 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
         </p>
         <p className="text-xs text-keeper-body max-w-[240px]">
           {mode === 'one_person'
-            ? `Two or three angles of the same person work best — up to ${MAX_PHOTOS.one_person}.`
+            ? `Two or three angles of the same person work best, up to ${MAX_PHOTOS.one_person}.`
             : MAX_PHOTOS.group > 1
-              ? `Everyone already together. Two or three angles work best — up to ${MAX_PHOTOS.group}.`
+              ? `Everyone already together. Two or three angles work best, up to ${MAX_PHOTOS.group}.`
               : 'Everyone already together.'}
         </p>
       </button>
@@ -1570,7 +1570,7 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   Anyone visible in your photo can end up on the front. If someone else is
-                  in shot, crop them out — you&rsquo;ll get the chance on the next screen.
+                  in shot, crop them out. You&rsquo;ll get the chance on the next screen.
                 </p>
               </div>
             </div>
@@ -1585,9 +1585,9 @@ export function PhotoStep({ state, onChange, editIntent = false }: PhotoStepProp
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   {mode === 'one_person'
-                    ? `Pick two or three of the same person — a straight-on shot and a
+                    ? `Pick two or three of the same person. A straight-on shot and a
                        different angle beats one photo every time. Up to ${MAX_PHOTOS.one_person}.`
-                    : `Pick two or three of the same people if you have them — different
+                    : `Pick two or three of the same people if you have them. Different
                        angles or lighting give us far more to work with.`}
                 </p>
               </div>
@@ -1799,11 +1799,11 @@ function PhotoTips({ mode }: { mode: PhotoMode }) {
       ? [
           'One photo with everyone in it',
           'Faces clearly visible and facing the camera',
-          'Even lighting — avoid heavy shadows or backlight',
+          'Even lighting, no heavy shadows or backlight',
         ]
       : [
           'A clear, front-on photo of their face',
-          'Even lighting — avoid heavy shadows or backlight',
+          'Even lighting, no heavy shadows or backlight',
           'A few different angles help the likeness',
         ];
   return (

@@ -242,7 +242,7 @@ export function CreativeFreedomSection() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent-coral-dark shrink-0" />
-                Add inside jokes, pets, places — they're the magic
+                Add inside jokes, pets, places. They're the magic
               </li>
               <li className="flex items-start gap-3">
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent-coral-dark shrink-0" />
@@ -259,7 +259,7 @@ export function CreativeFreedomSection() {
               House styles, or your own.
             </h3>
             <p className="text-base text-ink-soft mt-4 leading-relaxed">
-              Pick a curated style from our house, or describe your own — pencil
+              Pick a curated style from our house, or describe your own: pencil
               sketch, comic strip, oil painting on canvas, whatever fits the
               recipient. The look is yours.
             </p>

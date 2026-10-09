@@ -48,7 +48,7 @@ const HANDOVER: Array<{
     title: 'Or to you first',
     body: 'Posted to you with a spare envelope, ready to hand over in person.',
     img: '/handover-blank.webp',
-    alt: 'An open Celebrait card — blank inside with a decorative floral border, ready to handwrite.',
+    alt: 'An open Celebrait card, blank inside with a decorative floral border, ready to handwrite.',
   },
 ];
 
@@ -67,7 +67,7 @@ export function HandoverSection() {
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             A soppy essay, a heartfelt message, a snappy one-liner. Tell them
             how you feel and we'll add it to the inside (styled to match the
-            front). Rather write it yourself with good old ink? All good —
+            front). Rather write it yourself with good old ink? All good,
             it'll still look the part.
           </p>
           {/* The two destinations, stacked. The icon badge is the hierarchy
@@ -114,7 +114,7 @@ export function HandoverSection() {
                 sticker. This is the same art at web size: 28KB, −96%. */}
             <img
               src="/envelope-seal-web.webp"
-              alt="Celebrait envelope seal — only open on your special day"
+              alt="Celebrait envelope seal: only open on your special day"
               loading="lazy"
               decoding="async"
               width={480}

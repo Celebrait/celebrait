@@ -152,8 +152,8 @@ export function useStudioNotifications() {
       if (!focused && hasUnread) {
         document.title =
           unreadCount === 1
-            ? '✨ Something’s waiting — Celebrait'
-            : `✨ ${unreadCount} waiting — Celebrait`;
+            ? '✨ Something’s waiting | Celebrait'
+            : `✨ ${unreadCount} waiting | Celebrait`;
       } else if (focused) {
         document.title = originalTitle;
       }

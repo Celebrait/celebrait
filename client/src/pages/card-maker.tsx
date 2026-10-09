@@ -832,10 +832,10 @@ function getStepHeadline(stepId: StepId, state: CardDraftState): string {
       // (it has the family query; this h1 only has `state`). The old
       // "take two" was wrong from take 3 onward (Kevin 2026-07-09).
       if (state.rerollOfCardId) {
-        return name ? `${name}'s card — another take` : 'Another take';
+        return name ? `${name}'s card, another take` : 'Another take';
       }
       return name
-        ? `${name}'s card — take one last look`
+        ? `${name}'s card. Take one last look`
         : 'Take one last look';
   }
 }

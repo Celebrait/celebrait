@@ -10,11 +10,11 @@
 
 import { getErrorStatus } from './queryClient';
 
-export const NETWORK_COPY = "We couldn't reach Celebrait — check your connection and try again.";
-export const OUR_SIDE_COPY = "Something went wrong on our side. Try again in a moment — you haven't been charged.";
+export const NETWORK_COPY = "We couldn't reach Celebrait. Check your connection and try again.";
+export const OUR_SIDE_COPY = "Something went wrong on our side. Try again in a moment. You haven't been charged.";
 const SIGN_IN_COPY = 'Please sign in again.';
 const NOT_FOUND_COPY = "We couldn't find that.";
-const SLOW_DOWN_COPY = 'Slow down a little — try again in a minute.';
+const SLOW_DOWN_COPY = 'Slow down a little and try again in a minute.';
 const DEFAULT_FALLBACK = 'Something went wrong. Try again in a moment.';
 
 // Browser fetch failures: Chrome / Firefox / Safari wording, plus aborts.

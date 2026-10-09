@@ -108,7 +108,7 @@ export default function CheckoutSuccessPage() {
             This is taking longer than usual
           </p>
           <p className="text-xs text-keeper-meta mb-6 max-w-xs leading-relaxed">
-            Your payment may still be going through — we'll email your receipt
+            Your payment may still be going through. We'll email your receipt
             as soon as it confirms. You can also find it under Orders.
           </p>
           <Button onClick={() => setLocation('/studio/orders')}>
@@ -133,7 +133,7 @@ export default function CheckoutSuccessPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink">
-                Thanks — we've got it
+                Thanks, we've got it
               </h1>
               <p className="text-sm text-keeper-body mt-1">
                 {formatGBP(data.order.totalAmount)} paid. You'll get a confirmation by email.
@@ -146,7 +146,7 @@ export default function CheckoutSuccessPage() {
               <div className="flex items-center gap-2 text-sm text-keeper-body">
                 <Package className="w-4 h-4 text-keeper-meta" />
                 <span>
-                  A one-off print, posted tracked — expect it by{' '}
+                  A one-off print, posted tracked. Expect it by{' '}
                   <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(data.order.createdAt ?? Date.now()))}</span>. Track it in{' '}
                   <Link
                     href="/studio/orders"

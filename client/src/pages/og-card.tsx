@@ -248,7 +248,7 @@ export default function OgCard() {
 
       {!bare && (
         <p className="text-[13px] font-medium text-neutral-600">
-          1200 × 630 — screenshot the framed card above (or open /og?bare=1 at a 1200×630 viewport for a pixel-exact export)
+          1200 × 630. Screenshot the framed card above (or open /og?bare=1 at a 1200×630 viewport for a pixel-exact export)
         </p>
       )}
     </div>

@@ -111,7 +111,7 @@ export function InsideSection() {
           <CardPair
             first={keeperCardClosed}
             second={keeperCardOpen}
-            alt="A Celebrait card held open on a table — the inside message and the front"
+            alt="A Celebrait card held open on a table, showing the inside message and the front"
           />
         </Rise>
       </div>

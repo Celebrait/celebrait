@@ -59,7 +59,7 @@ export default function CardsOccasionPage() {
             {title.replace(' Cards', '')} <span className="text-keeper-gold">cards</span>
           </h1>
           <p className="mt-3 text-lg leading-relaxed text-keeper-body">
-            Every card here was made for a real person's brief — not a warehouse.
+            Every card here was made for a real person's brief, not a warehouse.
             Send one as it is, or make it theirs.
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function CardsOccasionPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cta">The Celebrait signature</p>
             <h2 className="mt-3 font-display text-2xl font-bold text-keeper-paper sm:text-3xl">Or put them in the picture</h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-keeper-paper/70">
-              The one they keep forever — made from their photo, in any scene you can describe.
+              The one they keep forever, made from their photo, in any scene you can describe.
             </p>
             <Link href="/" className="mt-6 inline-block rounded-full bg-keeper-paper px-6 py-3 text-sm font-semibold text-keeper-ink transition-colors hover:bg-white">
               See how it works

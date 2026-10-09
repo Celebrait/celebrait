@@ -236,7 +236,7 @@ export function RecipientStep({ state, onChange, onAdvance }: RecipientStepProps
       {/* Leading sub-copy — rhythm parity with the other steps (Scene,
           Style, Front, Review all open with a one-line framing note). */}
       <p className="text-sm text-keeper-body">
-        A name and a reason — that's all we need to start.
+        A name and a reason. That's all we need to start.
       </p>
 
       {/* Name */}

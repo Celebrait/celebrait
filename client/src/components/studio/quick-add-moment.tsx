@@ -163,7 +163,7 @@ export function QuickAddMoment({
               <Check className="h-6 w-6 text-go" strokeWidth={3} />
             </div>
             <p className="font-display text-lg font-semibold text-keeper-ink">
-              {name.trim()}’s {displayOccasion} — watched.
+              {name.trim()}’s {displayOccasion}. Watched.
             </p>
             <p className="text-[13px] text-keeper-meta">We’ll never let you miss it.</p>
           </div>
@@ -171,7 +171,7 @@ export function QuickAddMoment({
           <>
             <DialogTitle className="font-display">Add someone’s day</DialogTitle>
             <DialogDescription className="text-[13px]">
-              Fifteen seconds now — never a missed moment again.
+              Fifteen seconds now, never a missed moment again.
             </DialogDescription>
 
             <div className="space-y-4 pt-1">
@@ -233,7 +233,7 @@ export function QuickAddMoment({
               {isFixed ? (
                 /* Fixed-date occasions need nothing — say so, warmly. */
                 <p className="text-[12px] text-keeper-meta">
-                  No date needed — the calendar knows when{' '}
+                  No date needed. The calendar knows when{' '}
                   {displayOccasion || 'it'} is. We'll watch it every year.
                 </p>
               ) : (
@@ -280,7 +280,7 @@ export function QuickAddMoment({
                   </div>
                   {storedOccasion === 'birthday' && (
                     <p className="mt-1.5 text-[11.5px] text-keeper-meta">
-                      Year's optional — the real one helps us spot the
+                      Year's optional. The real one helps us spot the
                       milestone birthdays.
                     </p>
                   )}

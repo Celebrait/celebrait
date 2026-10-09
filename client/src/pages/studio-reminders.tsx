@@ -103,7 +103,7 @@ export default function StudioRemindersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
-      toast({ title: 'Skipping this year — we\'ll be back next year.', variant: 'success' });
+      toast({ title: 'Skipping this year. We\'ll be back next year.', variant: 'success' });
     },
     onError: (err: any) => {
       toast({
@@ -253,10 +253,10 @@ function NoDatesState() {
         <CalendarDays className="w-6 h-6" strokeWidth={1.75} />
       </div>
       <h2 className="text-xl sm:text-2xl font-display font-bold tracking-[-0.01em] text-keeper-ink mb-2">
-        Add a date to someone — we'll remember.
+        Add a date to someone and we'll remember.
       </h2>
       <p className="text-sm sm:text-base text-keeper-body leading-relaxed max-w-md mx-auto mb-7">
-        Open someone in your address book and pop in their birthday or anniversary. We'll nudge you three weeks, ten days and a week before — the last one's the last safe day to order.
+        Open someone in your address book and pop in their birthday or anniversary. We'll nudge you three weeks, ten days and a week before. The last one's the last safe day to order.
       </p>
       <Button
         asChild
@@ -332,7 +332,7 @@ function ReminderRow({
               digital link. Only when not already suppressed. */}
           {!reminder.suppressed && reminder.daysUntil <= 7 && reminder.daysUntil >= 0 && (
             <p className="text-[11px] text-accent-red-dark bg-accent-red-light border border-accent-red/30 rounded-md px-2 py-1 mt-2 inline-block">
-              {reminder.daysUntil === 7 ? 'Last safe day to order — one-off prints need a week.' : 'Under a week — the post may miss it; the digital link lands instantly.'}
+              {reminder.daysUntil === 7 ? 'Last safe day to order. One-off prints need a week.' : 'Under a week. The post may miss it, but the digital link lands instantly.'}
             </p>
           )}
         </div>

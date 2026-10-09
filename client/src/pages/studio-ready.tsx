@@ -81,7 +81,7 @@ function ReadyEmpty() {
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No cards waiting</p>
       <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
-        Cards that are finished but not yet sent will show here — ready
+        Cards that are finished but not yet sent will show here, ready
         for you to print and post.
       </p>
       <Link

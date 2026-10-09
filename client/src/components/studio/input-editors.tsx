@@ -50,12 +50,12 @@ export function SceneEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={5}
-        placeholder="Describe the scene — who's in it, where, the vibe."
+        placeholder="Describe the scene: who's in it, where, the vibe."
         className="bg-white border-keeper-hair focus-visible:border-brand focus-visible:ring-brand/30 resize-none"
         data-testid={testIdPrefix}
       />
       <p className="text-[11px] text-keeper-meta mt-2 leading-relaxed">
-        Tip: avoid named celebrities or copyrighted characters — describe the
+        Tip: avoid named celebrities or copyrighted characters. Describe the
         vibe instead (e.g. "a brave island princess" not "Moana").
       </p>
     </div>
@@ -202,7 +202,7 @@ export function PhotoEditor({
 
       {photos.length === 0 && !uploadMutation.isPending && (
         <p className="text-[11px] text-keeper-meta mt-2">
-          No photos saved yet — upload one to get started.
+          No photos saved yet. Upload one to get started.
         </p>
       )}
 

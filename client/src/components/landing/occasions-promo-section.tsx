@@ -67,13 +67,13 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
             Never miss another one.
           </h2>
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            Tell us the days that matter — birthdays, anniversaries, the lot.
+            Tell us the days that matter: birthdays, anniversaries, the lot.
             We watch them all year and nudge you in good time, so the card's
             made in slippers, not in a panic. And for telling us three?{' '}
             <strong className="text-keeper-ink">
               50% off your first card
-            </strong>{' '}
-            — <span className="line-through">{gbp(cardPriceGBP(door))}</span> <b>{gbp(firstOrderPriceGBP(door))}</b>, plus
+            </strong>:{' '}
+            <span className="line-through">{gbp(cardPriceGBP(door))}</span> <b>{gbp(firstOrderPriceGBP(door))}</b>, plus
             postage.
           </p>
 
@@ -99,7 +99,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
           onClick={claim}
           onKeyDown={(e) => e.key === 'Enter' && claim()}
           className="cursor-pointer rounded-[28px] border border-keeper-hair bg-[#FAF8F4] p-4 shadow-[0_30px_70px_-30px_rgba(33,29,25,.35)] transition-transform hover:scale-[1.01] sm:p-5"
-          aria-label="See your studio home — claim your free card"
+          aria-label="See your studio home and claim your free card"
           data-testid="occasions-promo-demo"
         >
           {/* Framing label — logged out, the UI's second-person copy
@@ -128,7 +128,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
                 </div>
                 <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
                   <b className="text-keeper-ink">50% off your first card.</b> 1
-                  more date — any day that matters — and it's half price.
+                  more date, any day that matters, and it's half price.
                 </p>
               </div>
               <span className="shrink-0 self-start rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground sm:self-auto">
@@ -204,7 +204,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
 
           <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11.5px] text-keeper-meta">
             <Gift className="h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2} />
-            This is the home you get — with your people on it.
+            This is the home you get, with your people on it.
           </p>
         </div>
       </div>

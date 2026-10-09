@@ -145,11 +145,11 @@ export default function StudioMomentsPage() {
             {unlocked ? (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  Unlocked — 50% off your first card
+                  Unlocked: 50% off your first card
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   <span className="line-through text-keeper-meta">£5.99</span>{' '}
-                  <span className="font-semibold text-go">£2.99</span> — plus
+                  <span className="font-semibold text-go">£2.99</span> plus
                   postage. It’s waiting whenever a moment comes round.
                 </p>
                 <Link href="/make">
@@ -169,8 +169,8 @@ export default function StudioMomentsPage() {
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   Add {3 - ringFilled} more key{' '}
-                  {3 - ringFilled === 1 ? 'date' : 'dates'} — a birthday, an
-                  anniversary, any day that matters — and your first card is
+                  {3 - ringFilled === 1 ? 'date' : 'dates'} (a birthday, an
+                  anniversary, any day that matters) and your first card is
                   half price. We’ll watch every date you add, forever.
                 </p>
               </>
@@ -190,7 +190,7 @@ export default function StudioMomentsPage() {
 
         {!loading && upcoming.length === 0 && (people?.length ?? 0) === 0 && (
           <p className="text-sm leading-relaxed text-keeper-body">
-            No dates of your own yet — the ones below are on every calendar.
+            No dates of your own yet. The ones below are on every calendar.
             Add the people they belong to and this page starts working for
             you.
           </p>
@@ -218,7 +218,7 @@ export default function StudioMomentsPage() {
                 </p>
                 <p className="text-[12.5px] text-keeper-meta">
                   {fmtMomentDate(r.occurrenceDate)}
-                  {!near && ' — we’ll nudge you in plenty of time'}
+                  {!near && '. We’ll nudge you in plenty of time'}
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">

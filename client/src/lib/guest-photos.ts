@@ -245,7 +245,7 @@ export async function guestUpload(input: GuestPhotoBlob): Promise<Photo> {
     if (!checked) {
       toast({
         title: "We couldn't check that photo this time",
-        description: 'You can carry on — we look at it properly when we draw. A clear, front-on face works best.',
+        description: 'You can carry on. We look at it properly when we draw. A clear, front-on face works best.',
       });
     }
     const cur = records.find((x) => x.id === id);

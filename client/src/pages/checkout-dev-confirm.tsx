@@ -54,7 +54,7 @@ export default function CheckoutDevConfirmPage() {
         <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 space-y-5">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-stone-500 mb-2">
-              Dev stub — no real payment
+              Dev stub, no real payment
             </p>
             <h1 className="text-xl sm:text-2xl font-semibold text-keeper-ink">Confirm payment</h1>
             <p className="text-sm text-stone-600 mt-1">

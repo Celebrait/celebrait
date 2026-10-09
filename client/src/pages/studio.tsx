@@ -133,7 +133,7 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
             Finishing {title}
           </p>
           <p className="text-sm text-keeper-body mt-0.5">
-            Come back whenever — your draft is saved.
+            Come back whenever. Your draft is saved.
           </p>
         </div>
         <Link

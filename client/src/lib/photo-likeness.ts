@@ -75,11 +75,11 @@ export function likenessNoteForSet(
     if (best === 'strong') {
       return {
         tone: 'good',
-        headline: plural ? 'Great photos — likeness looks strong' : 'Great photo — likeness looks strong',
+        headline: plural ? 'Great photos. Likeness looks strong' : 'Great photo. Likeness looks strong',
         detail:
           mode === 'one_person' && !plural
             ? 'This will work well. A second angle can sharpen it further, but you’re good to go.'
-            : 'Clear faces, good light — exactly what we need. You’re good to go.',
+            : 'Clear faces, good light. Exactly what we need. You’re good to go.',
       };
     }
     // Best is "usable". A tick next to a hefty caveat reads
@@ -107,7 +107,7 @@ export function likenessNoteForSet(
         headline: 'This photo can work, but something’s in the way',
         detail:
           (usableReason ? `${usableReason} ` : '') +
-          'A shot with the face and hair fully visible would land better. Your call — you can continue with this one.',
+          'A shot with the face and hair fully visible would land better. Your call. You can continue with this one.',
       };
     }
     return {
@@ -115,7 +115,7 @@ export function likenessNoteForSet(
       headline: plural ? 'These photos should work' : 'This photo should work',
       detail:
         (usableReason ? `One small thing: ${usableReason} ` : '') +
-        'Good to go — likeness should come through.',
+        'Good to go. Likeness should come through.',
     };
   }
 
@@ -137,7 +137,7 @@ export function likenessNoteForSet(
         ? 'These photos only show their faces from the side'
         : 'This photo only shows their face from the side',
       detail:
-        'The card may well come out side-on too — we redraw the view we’re given, and a front-on happy face would be half-invented. If you’re happy with a side-on card, carry on. For their full face, ' +
+        'The card may well come out side-on too. We redraw the view we’re given, and a front-on happy face would be half-invented. If you’re happy with a side-on card, carry on. For their full face, ' +
         (mode === 'group'
           ? 'use a shot where everyone’s looking at the camera.'
           : 'add a photo where they’re looking at the camera.'),
@@ -157,7 +157,7 @@ export function likenessNoteForSet(
       headline: 'This photo is too blurred to work from',
       detail:
         (reason ? `${reason} ` : '') +
-        'A blurred face gives us nothing to rebuild from — the card would get a guess, not them. Please use a sharper photo.',
+        'A blurred face gives us nothing to rebuild from. The card would get a guess, not them. Please use a sharper photo.',
     };
   }
 
@@ -175,9 +175,9 @@ export function likenessNoteForSet(
   if (cause === 'occlusion' && sunglasses) {
     return {
       tone: 'warn',
-      headline: 'Sunglasses on — the card may keep them on',
+      headline: 'Sunglasses on. The card may keep them on',
       detail:
-        'We can’t see their eyes, so the card will likely come out wearing the sunglasses too — or with eyes we’ve had to guess. If shades-on is the look, carry on. For their full face, use a photo without them.',
+        'We can’t see their eyes, so the card will likely come out wearing the sunglasses too, or with eyes we’ve had to guess. If shades-on is the look, carry on. For their full face, use a photo without them.',
     };
   }
 
@@ -189,8 +189,8 @@ export function likenessNoteForSet(
           : cause === 'expression'
             ? 'That expression bends the features we build a new face from, so a happy version becomes guesswork. A relaxed or naturally smiling photo works much better.'
             : (mode === 'group'
-                ? 'Swap it for a clearer shot — everyone facing the camera, in decent light.'
-                : 'Use a clearer photo — front-on, good light.');
+                ? 'Swap it for a clearer shot: everyone facing the camera, in decent light.'
+                : 'Use a clearer photo: front-on, good light.');
 
   return {
     tone: 'warn',
@@ -200,7 +200,7 @@ export function likenessNoteForSet(
         : plural
           ? 'These photos will hurt the likeness'
           : 'This photo isn’t enough on its own',
-    detail: (reason ? `${reason} ` : '') + fix + ' You can continue anyway — your call.',
+    detail: (reason ? `${reason} ` : '') + fix + ' You can continue anyway. Your call.',
   };
 }
 

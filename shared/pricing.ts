@@ -63,7 +63,7 @@ export const PRICING_TIERS: PricingTier[] = [
     id: 'printed',
     name: 'Printed & posted',
     tagline: 'For them',
-    blurb: 'The real thing in the post — with a free digital link to share too.',
+    blurb: 'The real thing in the post, with a free digital link to share too.',
     // ⚠️ THE "FROM" PRICE, NOT THE ONLY PRICE (2026-08-27). Cards are
     // priced by door — £4.99 off the shelf, £5.99 made for them, £6.99
     // from your photo (CARD_PRICES_GBP). This tier exists for the
@@ -76,7 +76,7 @@ export const PRICING_TIERS: PricingTier[] = [
       '280gsm gloss-coated art card, HP Indigo print',
       'Posted in a kraft envelope, tracked',
       'Sustainably sourced, plastic-free & recyclable',
-      'Free digital link included — 3D opening view, share anywhere',
+      'Free digital link included: 3D opening view, share anywhere',
       'See when they open it',
       'Print-resolution file to keep',
     ],

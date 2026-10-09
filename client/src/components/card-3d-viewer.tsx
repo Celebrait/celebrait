@@ -177,7 +177,7 @@ function FlatCardFallback({
       )}
       {showCaption && (
       <p style={{ fontSize: 12, color: '#78716c', margin: 0 }}>
-        3D view couldn't load — showing the card flat.{' '}
+        3D view couldn't load. Showing the card flat.{' '}
         <button
           type="button"
           onClick={onRetry}

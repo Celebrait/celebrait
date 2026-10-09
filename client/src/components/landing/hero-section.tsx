@@ -103,7 +103,7 @@ function PhotoCollage({ reduced }: { reduced: boolean }) {
           <UploadCloud className="w-4 h-4 text-brand" strokeWidth={2} />
         </div>
         <p className="text-sm md:text-base font-semibold text-ink-soft tracking-tight">
-          Upload a group shot — or individuals
+          Upload a group shot, or individuals
         </p>
       </div>
 
@@ -245,7 +245,7 @@ const FRONT_TEXTS = [
 ];
 
 const INSIDE_TEXTS = [
-  "Happy 10th anniversary, Sarah.\nPack a bag — we're going to New York baby!\nLove you so much x",
+  "Happy 10th anniversary, Sarah.\nPack a bag, we're going to New York baby!\nLove you so much x",
 ];
 
 /** Studio-input panel — used for all three typing windows on the

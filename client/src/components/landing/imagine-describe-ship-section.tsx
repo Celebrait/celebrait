@@ -146,11 +146,11 @@ const CONVERSATIONS: Conversation[] = [
   {
     id: 'dad-dales',
     turns: [
-      { role: 'ai', text: "Hi — where does Dad's 60th take place?" },
+      { role: 'ai', text: "Hi. Where does Dad's 60th take place?" },
       { role: 'user', text: 'The Yorkshire Dales.' },
       {
         role: 'ai',
-        text: 'Lovely. A few Dales-flavoured ideas —',
+        text: 'Lovely. A few Dales-flavoured ideas:',
         suggestions: [
           'Halfway up Pen-y-ghent',
           'On a drystone wall at sunrise',
@@ -171,11 +171,11 @@ const CONVERSATIONS: Conversation[] = [
   {
     id: 'mate-brighton',
     turns: [
-      { role: 'ai', text: 'Hi — where does this one happen?' },
+      { role: 'ai', text: 'Hi. Where does this one happen?' },
       { role: 'user', text: 'Brighton beach.' },
       {
         role: 'ai',
-        text: 'Nice. A few Brighton-flavoured ideas —',
+        text: 'Nice. A few Brighton-flavoured ideas:',
         suggestions: [
           'Chips on the pebbles',
           'On the pier at golden hour',
@@ -196,11 +196,11 @@ const CONVERSATIONS: Conversation[] = [
   {
     id: 'nan-blackpool',
     turns: [
-      { role: 'ai', text: "Hi — where's Nan's 80th set?" },
+      { role: 'ai', text: "Hi. Where's Nan's 80th set?" },
       { role: 'user', text: 'Blackpool. Obviously.' },
       {
         role: 'ai',
-        text: 'A few Blackpool-flavoured ideas —',
+        text: 'A few Blackpool-flavoured ideas:',
         suggestions: [
           'The Tower Ballroom',
           'Under the illuminations',

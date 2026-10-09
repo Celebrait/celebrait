@@ -155,8 +155,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     title: 'Slow down a sec',
     description: (ctx) =>
       ctx === 'regen'
-        ? 'We’ve hit a rate limit on this provider. Wait 30 seconds and try again — your card’s still here.'
-        : 'We’ve hit a rate limit on this provider. Wait 30 seconds and try again — your draft is saved.',
+        ? 'We’ve hit a rate limit on this provider. Wait 30 seconds and try again. Your card’s still here.'
+        : 'We’ve hit a rate limit on this provider. Wait 30 seconds and try again. Your draft is saved.',
     chips: [],
     isPanelKind: true,
   },
@@ -167,8 +167,8 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     title: 'The drawing engine’s busy',
     description: (ctx) =>
       ctx === 'regen'
-        ? 'The image model is overloaded right now. Try again in a minute — your card’s still here.'
-        : 'The image model is overloaded right now. Try again in a minute — your draft is saved.',
+        ? 'The image model is overloaded right now. Try again in a minute. Your card’s still here.'
+        : 'The image model is overloaded right now. Try again in a minute. Your draft is saved.',
     chips: [],
     isPanelKind: true,
   },
@@ -180,7 +180,7 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     // doesn't help.
     title: 'Something’s misconfigured',
     description: (_ctx) =>
-      'We hit an authentication issue with the image provider. The team’s been notified — your draft is saved. Try again in a few minutes.',
+      'We hit an authentication issue with the image provider. The team’s been notified and your draft is saved. Try again in a few minutes.',
     chips: [],
     contactLine: {
       lead: 'Still happening?',
@@ -197,7 +197,7 @@ const KIND_CONFIG: Record<GenerationErrorKind, KindConfig> = {
     description: (ctx) =>
       ctx === 'regen'
         ? 'Something didn’t go to plan, but your card’s still here. Try again, or tweak an input first.'
-        : 'Something didn’t go to plan. Your draft is all saved — try again, or tweak an input first.',
+        : 'Something didn’t go to plan. Your draft is all saved. Try again, or tweak an input first.',
     chips: [
       { stepId: 'scene', label: 'Edit scene' },
       { stepId: 'photo', label: 'Change photo' },

@@ -46,19 +46,19 @@ const MODE_BUTTONS: ModeButton[] = [
   {
     mode: 'animated',
     label: 'Animated',
-    blurb: 'An illustrated front — warm and a little whimsical.',
+    blurb: 'An illustrated front, warm and a little whimsical.',
     icon: PenLine,
   },
   {
     mode: 'realistic',
     label: 'Realistic',
-    blurb: 'A photoreal front — cinematic and true-to-life.',
+    blurb: 'A photoreal front, cinematic and true-to-life.',
     icon: Camera,
   },
   {
     mode: 'custom',
     label: 'Custom',
-    blurb: "Describe the look for the front — we'll follow it closely.",
+    blurb: "Describe the look for the front and we'll follow it closely.",
     icon: Sparkles,
   },
 ];
@@ -111,7 +111,7 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <p className="text-sm text-keeper-body">
-        Pick how the front should look — or describe your own style.
+        Pick how the front should look, or describe your own style.
       </p>
 
       {/* Primary styles — big featured cards. Top region shows the
@@ -157,7 +157,7 @@ export function StyleStep({ state, onChange, onAdvance }: StyleStepProps) {
             Describe your own style
           </span>
           <span className="block text-xs text-keeper-meta mt-0.5">
-            Watercolour, 60s poster, vaporwave — your call.
+            Watercolour, 60s poster, vaporwave. Your call.
           </span>
         </span>
         {currentMode === 'custom' && (
@@ -400,8 +400,8 @@ function CustomStyleDialog({
         <DialogHeader>
           <DialogTitle className="text-keeper-ink">Describe your style</DialogTitle>
           <DialogDescription>
-            Tell us how the front should look. The more specific — medium,
-            era, feel — the closer we'll land.
+            Tell us how the front should look. The more specific (medium,
+            era, feel), the closer we'll land.
           </DialogDescription>
         </DialogHeader>
 
@@ -430,7 +430,7 @@ function CustomStyleDialog({
               }`}
             >
               {trimmed.length === 0
-                ? `A few words — at least ${CUSTOM_MIN_CHARS} characters.`
+                ? `A few words, at least ${CUSTOM_MIN_CHARS} characters.`
                 : valid
                   ? `${trimmed.length} characters`
                   : `${CUSTOM_MIN_CHARS - trimmed.length} more to go.`}

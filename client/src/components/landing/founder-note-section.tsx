@@ -19,7 +19,7 @@ export function FounderNoteSection() {
           drawer for years. So we built one.
         </p>
         <p className="text-sm text-ink-soft mt-8 italic">
-          — Aidan & the Celebrait team
+          Aidan & the Celebrait team
         </p>
       </div>
     </section>

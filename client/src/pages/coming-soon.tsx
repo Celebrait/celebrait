@@ -80,7 +80,7 @@ export default function ComingSoonPage({ hasPassword = true, onUnlocked }: { has
   const [passBusy, setPassBusy] = useState(false);
 
   useEffect(() => {
-    document.title = 'Celebrait — unbinnable greetings cards, launching soon';
+    document.title = 'Celebrait | unbinnable greetings cards, launching soon';
   }, []);
 
   const join = async (e: React.FormEvent) => {

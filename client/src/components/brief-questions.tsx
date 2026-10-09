@@ -40,9 +40,9 @@ export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'Al
 /** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
 const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
   funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
-  warm: { label: 'Warm', sub: 'heartfelt — the kind they keep' },
+  warm: { label: 'Warm', sub: 'heartfelt, the kind they keep' },
   rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes — you choose after' },
+  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes, you choose after' },
 };
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
@@ -304,7 +304,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
       <div className="flex-1">
         {question === 'who' && (
           <>
-            <p className={s.h1}>{skin === 'landing' ? "Start here — who's it for?" : "Right — who's the card for?"}</p>
+            <p className={s.h1}>{skin === 'landing' ? "Start here. Who's it for?" : "Right, who's the card for?"}</p>
             {skin === 'studio' && !minimal && <p className={`${s.sub} mb-4`}>Three original cards, written and drawn for one person.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {RECIPIENTS.map((r) => (
@@ -343,8 +343,8 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           <>
             <p className={s.h1}>How old {whoPhrase(brief) !== 'them' ? `is ${whoPhrase(brief)}` : 'are they'}{brief.occasion === 'birthday' ? ' turning' : ''}?{optionalTag}</p>
             {!minimal && (brief.occasion === 'birthday'
-              ? <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
-              : <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card — the jokes, the references, the look — and under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>)}
+              ? <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card: the jokes, the references, the look. A big one (18, 21, 30, 40…) becomes the star of the front. Roughly is fine. Skip it and we keep the card age-free.</p>
+              : <p className={s.sub}>This one matters more than it looks. The age sets the tone of the whole card: the jokes, the references, the look. Under 18 keeps it kid-safe. Roughly is fine. Skip it and we keep the card age-free.</p>)}
             <Input value={brief.age} onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })} inputMode="numeric" placeholder={ph('Their age')} aria-label="Their age" className={`${s.input} mt-5 h-14 text-center text-2xl max-w-[220px]`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
           </>
         )}
@@ -352,7 +352,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'vibe' && (
           <>
             <p className={s.h1}>What's the vibe?</p>
-            {!minimal && <p className={s.sub}>You'll see three cards either way — this sets what they lean towards.</p>}
+            {!minimal && <p className={s.sub}>You'll see three cards either way. This sets what they lean towards.</p>}
             <div className="space-y-2.5 mt-4">
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
@@ -362,7 +362,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 return (
                   <button key={t} type="button" disabled={off} onClick={() => { touch('vibe'); set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(shown('vibe', brief.vibe === t))} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
                     {minimal
-                      ? <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' — not under 18' : ''}</span>
+                      ? <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' (not under 18)' : ''}</span>
                       : <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>}
                     {shown('vibe', brief.vibe === t) && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
@@ -375,7 +375,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
         {question === 'interest' && (
           <>
             <p className={s.h1}>What's {whoPossessive(brief)} thing?</p>
-            {!minimal && <p className={s.sub}>The one thing you'd bring up first about them — a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>}
+            {!minimal && <p className={s.sub}>The one thing you'd bring up first about them: a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>}
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
             <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={minimal ? undefined : placeholder} aria-label="Their thing" rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
@@ -396,7 +396,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 or nothing. One card leads with it; the engine gets the
                 literal word via frontWordOf(). */}
             <p className={s.h1}>What goes on the front?{optionalTag}</p>
-            {!minimal && <p className={s.sub}>One of your three cards leads with it — sometimes as the artwork itself.</p>}
+            {!minimal && <p className={s.sub}>One of your three cards leads with it, sometimes as the artwork itself.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {NAME_LIKE.has(brief.who.trim()) && (
                 <button type="button" className={s.chip(shown('front', brief.front === 'role'))} onClick={() => { touch('front'); set({ front: 'role' }); }}>{brief.who.trim()}</button>
@@ -409,7 +409,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder={ph('Their first name')} aria-label="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
                 {/* Not in the filmed demo — red copy under the name reads as
                     an error on video (Aidan 2026-09-17). Real buyers keep it. */}
-                {!minimal && brief.name.trim() && <p className={s.warn}>It’ll be printed exactly as you type it — worth a double-check.</p>}
+                {!minimal && brief.name.trim() && <p className={s.warn}>It’ll be printed exactly as you type it, so worth a double-check.</p>}
               </>
             )}
             {!minimal && <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>}
@@ -424,7 +424,7 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             <DialogDescription className="text-[14px] leading-relaxed text-keeper-body">
               {minimal
                 ? 'Tell us one thing they can’t stand.'
-                : 'Tell us something they can’t stand — the rival team, mornings, oat milk, slow walkers — and we’ll build one of the three around it. Making light of the thing they hate, never of them.'}
+                : 'Tell us something they can’t stand, like the rival team, mornings, oat milk or slow walkers, and we’ll build one of the three around it. Making light of the thing they hate, never of them.'}
             </DialogDescription>
           </DialogHeader>
           <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={minimal ? undefined : 'The rival team / mornings / slow walkers'} aria-label="Something they can't stand" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />

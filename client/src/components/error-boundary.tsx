@@ -111,7 +111,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-surface-card">
           <p className="text-lg font-semibold text-ink">Something went wrong</p>
           <p className="text-sm text-stone-600 max-w-sm leading-relaxed">
-            A hiccup on our end — your work is saved. Reloading usually sorts it.
+            A hiccup on our end. Your work is saved, and reloading usually sorts it.
           </p>
           <button
             type="button"

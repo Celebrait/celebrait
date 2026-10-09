@@ -92,7 +92,7 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
     return (
       <div className="py-24 text-center">
         <h2 className="font-display text-2xl font-bold text-keeper-ink">Nothing on this shelf yet</h2>
-        <p className="mt-3 text-keeper-body">We're stocking it — but we can make theirs right now, from one thing they love.</p>
+        <p className="mt-3 text-keeper-body">We're stocking it, but we can make theirs right now, from one thing they love.</p>
         <Link href="/make" className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper transition-colors hover:bg-black">Make their card</Link>
       </div>
     );
@@ -111,7 +111,7 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
       <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-keeper-hair bg-white/70 p-5 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm sm:flex-row sm:items-center sm:p-6">
         <div>
           <p className="font-display text-lg font-bold text-keeper-ink">Nothing quite them?</p>
-          <p className="mt-0.5 text-sm text-keeper-body">Tell us one thing they love — we'll make three just for them, in minutes.</p>
+          <p className="mt-0.5 text-sm text-keeper-body">Tell us one thing they love and we'll make three just for them, in minutes.</p>
         </div>
         <Link href="/make" className="flex shrink-0 items-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors hover:bg-black">
           <Sparkles className="h-4 w-4 text-cta" /> Make their card
@@ -147,7 +147,7 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
             ))}
             <input value={query}
               onChange={(e) => { const v = e.target.value.slice(0, 40); setQuery(v); setAgeFilter(/^\d{1,3}$/.test(v.trim()) ? parseInt(v.trim()) : null); }}
-              placeholder="Search — ibiza, 6, fishing…"
+              placeholder="Search: ibiza, 6, fishing…"
               className="h-8 w-44 rounded-full border border-keeper-hair bg-white/70 px-3 text-sm text-keeper-body outline-none placeholder:text-keeper-meta focus:border-keeper-gold" />
           </div>
         </div>

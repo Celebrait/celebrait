@@ -37,7 +37,7 @@ export default function TermsOfService() {
               </h2>
               <p className="text-keeper-body leading-relaxed mb-3">
                 This summary is for convenience only and is not part of the
-                legal terms below — but here's the gist:
+                legal terms below, but here's the gist:
               </p>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
@@ -47,13 +47,13 @@ export default function TermsOfService() {
                 </li>
                 <li>
                   You keep ownership of the photos and words you provide. You
-                  promise you're allowed to use them — especially photos of other
+                  promise you're allowed to use them, especially photos of other
                   people.
                 </li>
                 <li>
                   You preview and approve your card before you pay. Because each
                   card is personalised to you, there's no general right to change
-                  your mind once we start making it — but your legal rights if a
+                  your mind once we start making it, but your legal rights if a
                   card is faulty, damaged or not as described are fully protected.
                 </li>
                 <li>
@@ -122,7 +122,7 @@ export default function TermsOfService() {
               </h2>
               <p className="text-keeper-body leading-relaxed mb-4">
                 You sign in using your email address and a one-time code we send
-                you — there is no password to remember. You are responsible for:
+                you, so there is no password to remember. You are responsible for:
               </p>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>keeping access to your email account secure;</li>
@@ -147,7 +147,7 @@ export default function TermsOfService() {
                 {CONTROLLER.tradingAs} lets you describe an occasion, add a
                 message, and optionally upload photos, and then uses artificial
                 intelligence to generate greeting-card artwork. You can preview
-                and refine your card, and — if you choose — order it as a digital
+                and refine your card, and, if you choose, order it as a digital
                 card (delivered by email or link) and/or a printed card sent by
                 post. We may also offer optional features such as saved contacts
                 and occasion reminders.
@@ -172,10 +172,10 @@ export default function TermsOfService() {
                 material you provide. <strong>You keep ownership of Your
                 Content.</strong> You grant us a non-exclusive, worldwide,
                 royalty-free licence to host, store, reproduce, adapt and process
-                Your Content <em>only</em> as needed to operate the Service —
+                Your Content <em>only</em> as needed to operate the Service,
                 including sending it to the third-party AI and, where you order a
                 printed card, print-and-delivery providers described in our
-                Privacy Policy — so that we can create, preview, and deliver your
+                Privacy Policy, so that we can create, preview, and deliver your
                 card. This licence ends when Your Content is deleted, except for
                 copies we must keep by law or that remain in routine backups for a
                 limited period.
@@ -220,7 +220,7 @@ export default function TermsOfService() {
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>is unlawful, or promotes or facilitates unlawful activity;</li>
                 <li>
-                  infringes intellectual property rights — for example,
+                  infringes intellectual property rights, for example by
                   recreating a well-known character, brand, logo, or a
                   living person's likeness without the right to do so;
                 </li>
@@ -264,8 +264,8 @@ export default function TermsOfService() {
               </h3>
               <p className="text-keeper-body leading-relaxed mb-4">
                 When you have paid for a card, we grant you a licence to use that
-                finished card — the generated artwork together with your message
-                — for your own personal, non-commercial purposes (such as sending
+                finished card (the generated artwork together with your message)
+                for your own personal, non-commercial purposes (such as sending
                 it, keeping it, or printing it). Because it is created partly by
                 AI, the extent of any copyright in AI-generated artwork can be
                 uncertain; we do not claim to guarantee that the artwork is
@@ -277,9 +277,9 @@ export default function TermsOfService() {
                 7.2 Our intellectual property
               </h3>
               <p className="text-keeper-body leading-relaxed">
-                The Service itself — including the {CONTROLLER.tradingAs} name and
+                The Service itself, including the {CONTROLLER.tradingAs} name and
                 branding, the website, software, designs, templates and the
-                prompts and systems behind the AI generation — belongs to us or
+                prompts and systems behind the AI generation, belongs to us or
                 our licensors and is protected by law. You may not copy, resell,
                 reverse-engineer, or exploit any part of the Service except as
                 these Terms allow.
@@ -355,7 +355,7 @@ export default function TermsOfService() {
                 quality, and fit for purpose. If a card arrives faulty, damaged,
                 misprinted, materially different from what you approved, or a
                 digital card fails to deliver or display, you are entitled to a
-                remedy — normally a free replacement or a refund. Please contact
+                remedy, normally a free replacement or a refund. Please contact
                 us at {CONTROLLER.contactEmail} within a reasonable time (and, for
                 a damaged printed card, ideally within 14 days of delivery) with
                 your order details and a photo where relevant, and we will put it
@@ -365,8 +365,8 @@ export default function TermsOfService() {
                 9.4 Failed generations
               </h3>
               <p className="text-keeper-body leading-relaxed">
-                You are never charged for simply generating or previewing a card —
-                you only pay when you order. If a technical failure on our side
+                You are never charged for simply generating or previewing a card.
+                You only pay when you order. If a technical failure on our side
                 prevents us from delivering a card you have paid for, we will
                 re-attempt it or refund you.
               </p>
@@ -456,7 +456,7 @@ export default function TermsOfService() {
                   photos and permissions);
                 </li>
                 <li>
-                  we are not liable for business losses — the Service is provided
+                  we are not liable for business losses, as the Service is provided
                   for personal, non-commercial use; and
                 </li>
                 <li>
@@ -478,8 +478,8 @@ export default function TermsOfService() {
                 14. Your responsibility to us
               </h2>
               <p className="text-keeper-body leading-relaxed">
-                If you use the Service in breach of these Terms — for example by
-                uploading content you did not have the right to use — you agree to
+                If you use the Service in breach of these Terms, for example by
+                uploading content you did not have the right to use, you agree to
                 be responsible for reasonable losses, claims and costs we suffer as
                 a direct result. This does not apply to the extent the loss was
                 our fault, and nothing in this section requires you to pay more
@@ -514,7 +514,7 @@ export default function TermsOfService() {
                 16. Changes to these Terms
               </h2>
               <p className="text-keeper-body leading-relaxed">
-                We may update these Terms from time to time — for example to
+                We may update these Terms from time to time, for example to
                 reflect new features or changes in the law. The version that
                 applies to an order is the one in force when you place it. If we
                 make a significant change, we will update the date above and,

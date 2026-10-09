@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
                   We collect the details you give us to make and deliver your
-                  cards — your email, the words you write, any photos you
+                  cards: your email, the words you write, any photos you
                   upload, and (if you order a printed or digital card) delivery
                   and payment details.
                 </li>
@@ -53,8 +53,8 @@ export default function PrivacyPolicy() {
                   The only cookie we set is the one that keeps you signed in.
                 </li>
                 <li>
-                  You can access, correct or delete your data at any time —
-                  deleting a card erases its images and details from our storage.
+                  You can access, correct or delete your data at any time.
+                  Deleting a card erases its images and details from our storage.
                 </li>
               </ul>
             </section>
@@ -95,26 +95,26 @@ export default function PrivacyPolicy() {
               </h3>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
-                  <strong>Account details</strong> — your email address (used to
+                  <strong>Account details</strong>: your email address (used to
                   sign in via a one-time code) and, optionally, your first and
                   last name.
                 </li>
                 <li>
-                  <strong>Card content</strong> — the recipient's name and the
+                  <strong>Card content</strong>: the recipient's name and the
                   occasion, the message and text you write, and the scene you
                   describe.
                 </li>
                 <li>
-                  <strong>Photos</strong> — any images you upload to feature on a
+                  <strong>Photos</strong>: any images you upload to feature on a
                   card, together with the filename and any crop you choose.
                 </li>
                 <li>
-                  <strong>Address book</strong> (optional) — if you save people
+                  <strong>Address book</strong> (optional): if you save people
                   to remember, the name, relationship, occasion dates, and any
                   email, phone number, postal address or notes you add for them.
                 </li>
                 <li>
-                  <strong>Order &amp; delivery details</strong> — when you buy a
+                  <strong>Order &amp; delivery details</strong>: when you buy a
                   printed or digital card: your name, email and phone; the
                   recipient's name, and their email or postal address for
                   delivery; and any gift message.
@@ -126,16 +126,16 @@ export default function PrivacyPolicy() {
               </h3>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
-                  <strong>Generated card images</strong> — the front and inside
+                  <strong>Generated card images</strong>: the front and inside
                   artwork the AI produces from your inputs.
                 </li>
                 <li>
-                  <strong>Photo analysis</strong> — after you upload a photo, an
+                  <strong>Photo analysis</strong>: after you upload a photo, an
                   AI service produces a short, non-identifying description of it
                   (for example, how many people appear) to help create your card.
                 </li>
                 <li>
-                  <strong>Sign-in &amp; usage records</strong> — one-time login
+                  <strong>Sign-in &amp; usage records</strong>: one-time login
                   codes (deleted shortly after use), your session, and technical
                   records of card generations we keep to run the service, monitor
                   cost and prevent abuse.
@@ -148,7 +148,7 @@ export default function PrivacyPolicy() {
               <p className="text-keeper-body leading-relaxed">
                 When you pay, your card payment is processed by our payment
                 provider (Stripe) on their own secure systems. We do not receive
-                or store your full card number — only a reference to the
+                or store your full card number, only a reference to the
                 transaction and its status.
               </p>
             </section>
@@ -162,8 +162,8 @@ export default function PrivacyPolicy() {
                 Celebrait is an AI card maker. To create your card, the photos
                 you upload and the text you provide (including the recipient's
                 name and your message) are sent to trusted third-party AI
-                providers — <strong>OpenAI</strong> and{" "}
-                <strong>Google</strong> — which generate the artwork and, in the
+                providers, <strong>OpenAI</strong> and{" "}
+                <strong>Google</strong>, which generate the artwork and, in the
                 case of Google, produce the short photo description mentioned
                 above. We only send what is needed to make the card; we do not
                 send your email address, the recipient's contact details, or your
@@ -343,9 +343,9 @@ export default function PrivacyPolicy() {
                 Some of our providers are based outside the UK, including in the
                 United States. Where your information is transferred outside the
                 UK, we rely on appropriate safeguards recognised under UK data
-                protection law — such as the UK's adequacy regulations, the UK
+                protection law, such as the UK's adequacy regulations, the UK
                 International Data Transfer Agreement, or the UK Addendum to the
-                EU Standard Contractual Clauses — so that your information
+                EU Standard Contractual Clauses, so that your information
                 continues to be protected. You can ask us for more detail using
                 the contact below.
               </p>
@@ -358,23 +358,23 @@ export default function PrivacyPolicy() {
               </h2>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
-                  <strong>Sign-in codes</strong> — deleted within minutes of
+                  <strong>Sign-in codes</strong>: deleted within minutes of
                   being issued or used.
                 </li>
                 <li>
-                  <strong>Cards, photos and drafts</strong> — kept while your
+                  <strong>Cards, photos and drafts</strong>: kept while your
                   account is active so you can view and reorder them. When you
                   delete a card, its images and details are removed from our
                   storage. When you close your account, we delete your cards,
                   photos and address book.
                 </li>
                 <li>
-                  <strong>Order and payment records</strong> — retained for as
+                  <strong>Order and payment records</strong>: retained for as
                   long as required to meet our legal and accounting obligations
                   (generally up to six years).
                 </li>
                 <li>
-                  <strong>Operational records</strong> — technical logs used to
+                  <strong>Operational records</strong>: technical logs used to
                   run and secure the service are kept only as long as needed for
                   those purposes.
                 </li>
@@ -418,7 +418,7 @@ export default function PrivacyPolicy() {
                 >
                   ico.org.uk
                 </a>{" "}
-                or on 0303 123 1113 — though we'd appreciate the chance to help
+                or on 0303 123 1113, though we'd appreciate the chance to help
                 first.
               </p>
             </section>

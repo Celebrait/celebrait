@@ -65,10 +65,10 @@ export function PhotoConsentLine({ onConsent, className = '' }: { onConsent: () 
 export function PhotoTips({ mode, className = '' }: { mode: 'one_person' | 'group' | 'cameo'; className?: string }) {
   const tips =
     mode === 'group'
-      ? ['One photo with everyone in it', 'Faces clearly visible and facing the camera', 'Even lighting — avoid heavy shadows or backlight']
+      ? ['One photo with everyone in it', 'Faces clearly visible and facing the camera', 'Even lighting, no heavy shadows or backlight']
       : mode === 'cameo'
-        ? ['A clear, front-on photo of their face', 'Even lighting — avoid heavy shadows or backlight', 'Crop in close — we draw from the crop you choose']
-        : ['A clear, front-on photo of their face', 'Even lighting — avoid heavy shadows or backlight', 'A few different angles help the likeness'];
+        ? ['A clear, front-on photo of their face', 'Even lighting, no heavy shadows or backlight', 'Crop in close. We draw from the crop you choose']
+        : ['A clear, front-on photo of their face', 'Even lighting, no heavy shadows or backlight', 'A few different angles help the likeness'];
   return (
     <div className={`rounded-xl border border-keeper-hair bg-stone-50 px-4 py-3 ${className}`} data-testid="photo-tips">
       <div className="flex items-center gap-1.5 mb-2">

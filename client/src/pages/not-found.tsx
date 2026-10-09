@@ -24,7 +24,7 @@ export default function NotFound() {
           </h1>
           <p className="text-sm text-keeper-body mb-6">
             If someone sent you a card link, it may not have copied across in
-            full — ask them to share it again.
+            full. Ask them to share it again.
           </p>
           <Link
             href="/"

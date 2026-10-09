@@ -71,7 +71,7 @@ export default function CardProductPage() {
   const buy = async () => {
     if (!card || buying) return;
     if (insideMode === 'own' && !ownMsg.trim()) {
-      setBuyError('Write your message first — or choose one of the other options.');
+      setBuyError('Write your message first, or choose one of the other options.');
       return;
     }
     setBuying(true); setBuyError('');
@@ -87,11 +87,11 @@ export default function CardProductPage() {
         }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j?.message ?? 'That didn’t work — try again');
+      if (!r.ok) throw new Error(j?.message ?? 'That didn’t work. Try again');
       sessionStorage.setItem(rackTokenKey(j.cardId), j.cardToken);
       navigate(`/buy/${j.cardId}`);
     } catch (e: any) {
-      setBuyError(friendlyError(e, 'That didn’t work — try again'));
+      setBuyError(friendlyError(e, 'That didn’t work. Try again'));
       setBuying(false);
     }
   };
@@ -99,7 +99,7 @@ export default function CardProductPage() {
   useEffect(() => {
     fetch(`/api/catalogue/card/${params.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => { setCard(j.card); setState('ok'); if (!j.card.inside_text) setInsideMode('own'); document.title = `${j.card.interest ? `${String(j.card.interest).replace(/\b\w/g, (c: string) => c.toUpperCase())} ` : ''}${j.card.occasion.replace(/\b\w/g, (c: string) => c.toUpperCase())} Card — “${j.card.front_text.slice(0, 48)}” | Celebrait`; })
+      .then((j) => { setCard(j.card); setState('ok'); if (!j.card.inside_text) setInsideMode('own'); document.title = `${j.card.interest ? `${String(j.card.interest).replace(/\b\w/g, (c: string) => c.toUpperCase())} ` : ''}${j.card.occasion.replace(/\b\w/g, (c: string) => c.toUpperCase())} Card: “${j.card.front_text.slice(0, 48)}” | Celebrait`; })
       .catch(() => setState('missing'));
   }, [params.id]);
 
@@ -160,7 +160,7 @@ export default function CardProductPage() {
                   className="absolute inset-[3%] origin-left overflow-hidden rounded-r-lg rounded-l-sm bg-white [transform:rotateY(-18deg)]"
                   style={{ boxShadow: '4px 8px 24px rgba(33,29,25,0.16), 16px 28px 60px -20px rgba(33,29,25,0.35)' }}
                 >
-                  <img src={card.imageUrl} alt={`${card.interest ? `${card.interest} ` : ''}${card.occasion} card — ${card.front_text}`} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  <img src={card.imageUrl} alt={`${card.interest ? `${card.interest} ` : ''}${card.occasion} card: ${card.front_text}`} crossOrigin="anonymous" className="h-full w-full object-cover" />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10" />
                 </div>
               </div>
@@ -179,7 +179,7 @@ export default function CardProductPage() {
             {/* Admin only: put this card on the doorway carousel. */}
             <div className="mt-2"><CarouselToggle templateId={card.id} tags={card.aisle_tags ?? []} variant="button" /></div>
             {card.interest && (
-              <p className="mt-2 text-sm text-keeper-meta">Made for someone who loves <span className="font-medium text-keeper-body">{card.interest}</span> — yours to send as-is.</p>
+              <p className="mt-2 text-sm text-keeper-meta">Made for someone who loves <span className="font-medium text-keeper-body">{card.interest}</span>, yours to send as-is.</p>
             )}
 
             {!rack ? (
@@ -202,7 +202,7 @@ export default function CardProductPage() {
                   <input type="radio" name="inside" className="sr-only" checked={insideMode === 'ours'} onChange={() => setInsideMode('ours')} />
                   <span className="text-xs font-semibold uppercase tracking-wide text-keeper-gold">This card's message</span>
                   <p className="mt-1.5 font-display text-[15px] leading-snug text-keeper-ink">“{card.inside_text}”</p>
-                  <p className="mt-1 text-[11px] text-keeper-meta">Written for this card — set inside in its own style.</p>
+                  <p className="mt-1 text-[11px] text-keeper-meta">Written for this card, set inside in its own style.</p>
                 </label>
               )}
 
@@ -218,7 +218,7 @@ export default function CardProductPage() {
               <label className={`mt-2.5 block cursor-pointer rounded-xl border p-3.5 transition-colors ${insideMode === 'blank' ? 'border-keeper-gold bg-keeper-gold-wash/60' : 'border-keeper-hair bg-white'}`}>
                 <input type="radio" name="inside" className="sr-only" checked={insideMode === 'blank'} onChange={() => setInsideMode('blank')} />
                 <span className="text-xs font-semibold uppercase tracking-wide text-keeper-meta">Leave it blank</span>
-                <span className="ml-2 text-xs text-keeper-meta">— you'll write it by hand when it arrives</span>
+                <span className="ml-2 text-xs text-keeper-meta">You'll write it by hand when it arrives</span>
               </label>
 
               {insideMode !== 'blank' && (
@@ -235,17 +235,17 @@ export default function CardProductPage() {
               className="mt-6 w-full rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-60">
               {buying
                 ? (insideMode === 'own' ? 'Setting your words inside…' : 'Getting your card ready…')
-                : `Buy this card — ${gbp(RACK_PRICE)}`}
+                : `Buy this card for ${gbp(RACK_PRICE)}`}
             </button>
             {buyError && (
               <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{buyError}</p>
             )}
-            <p className="mt-3 text-center text-xs text-keeper-meta">No account needed to buy a card — only our card builder asks you to sign up.</p>
+            <p className="mt-3 text-center text-xs text-keeper-meta">No account needed to buy a card. Only our card builder asks you to sign up.</p>
             </>)}
 
             <ul className="mt-7 space-y-2.5 text-sm text-keeper-body">
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Printed on 280gsm gloss card, kraft envelope</li>
-              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> One-off print, posted Royal Mail 24 UK-wide — allow at least a week</li>
+              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> One-off print, posted Royal Mail 24 UK-wide. Allow at least a week</li>
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Send it to them directly, or to yourself to hand over</li>
             </ul>
           </div>

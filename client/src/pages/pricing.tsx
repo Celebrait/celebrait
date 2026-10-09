@@ -72,7 +72,7 @@ const INCLUDED = [
   '280gsm gloss-coated art card, HP Indigo print',
   'Posted in a kraft envelope, tracked',
   'Straight to them, or to you first to hand over',
-  'A free digital link — the card opens in 3D on any screen',
+  'A free digital link, so the card opens in 3D on any screen',
   'Sustainably sourced, plastic-free and recyclable',
   'Make and preview for free; pay only when you post one',
 ];

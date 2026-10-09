@@ -26,7 +26,7 @@ export function FinalCtaBand() {
         </h2>
         <p className="text-base md:text-lg text-white/80 mt-6 max-w-xl mx-auto leading-relaxed">
           {showAuthedTreatment
-            ? 'Your studio, your people, your reminders — all waiting.'
+            ? 'Your studio, your people, your reminders, all waiting.'
             : 'Free to start. Premium to print. Always for the people who matter.'}
         </p>
 

@@ -136,7 +136,7 @@ export function WelcomeMoment() {
           Welcome to your studio
         </h2>
         <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-keeper-body">
-          Make a card they’ll keep — pick a moment, add a photo, and we’ll
+          Make a card they’ll keep: pick a moment, add a photo, and we’ll
           bring it to life. Start whenever you’re ready.
         </p>
 

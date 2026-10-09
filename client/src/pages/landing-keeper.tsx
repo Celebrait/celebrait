@@ -226,14 +226,14 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
   const cls = large ? BTN_PRIMARY_LG : BTN_PRIMARY;
   return authed ? (
     <Link href="/studio/new-card" className={cls} data-testid="keeper-cta">
-      Make a card — it's free
+      Make a card. It's free
     </Link>
   ) : (
     /* Signed out → the PUBLIC photo maker (2026-09-04): start with the
        photo now, sign up at Generate. The 3-dates offer still lives on
        the ticker + the claim flow. */
     <Link href="/photo/make" className={cls} data-testid="keeper-cta">
-      Make a card — free to start
+      Make a card, free to start
     </Link>
   );
 }
@@ -243,7 +243,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
 const TRUST_CHIPS = [
   { icon: RefreshCw, label: "Don't love it? A fresh take is free" },
   { icon: Mail, label: '280gsm · kraft envelope · printed in the UK' },
-  { icon: Truck, label: 'Straight to them — or to you to hand over' },
+  { icon: Truck, label: 'Straight to them, or to you to hand over' },
 ] as const;
 
 export function TrustChips({ center = false }: { center?: boolean }) {
@@ -909,10 +909,10 @@ const MUM_EXAMPLE: ProofExample = {
   scene: 'Gazing at the Northern Lights',
   frontText: 'Happy 60th, Mum',
   insideMessage:
-    'Sixty years and you still light up every room. Happy birthday, Mum — all my love.',
+    'Sixty years and you still light up every room. Happy birthday, Mum, all my love.',
   cardFront: proofCardFront,
   cardInside: proofCardInside,
-  cardAlt: 'The finished card front — Mum under the Northern Lights',
+  cardAlt: 'The finished card front: Mum under the Northern Lights',
 };
 
 // Example 2 — REAL as of 2026-07-16. Text below is transcribed from the
@@ -928,7 +928,7 @@ const BIG_BEN_EXAMPLE: ProofExample = {
     "Not sure why we're abseiling off Big Ben but it's funny AF. Love you always, Lulu x",
   cardFront: bigBenCardFront,
   cardInside: bigBenCardInside,
-  cardAlt: 'The finished card front — Rach and Lulu abseiling off Big Ben',
+  cardAlt: 'The finished card front: Rach and Lulu abseiling off Big Ben',
 };
 
 // Example 3 — REAL as of 2026-07-17. Transcribed from the card, not written
@@ -945,7 +945,7 @@ const TIMES_SQUARE_EXAMPLE: ProofExample = {
     'Wishing you all the joy in the world today on your sweet 16th. Love, Mum and Dad x',
   cardFront: timesSqCardFront,
   cardInside: timesSqCardInside,
-  cardAlt: 'The finished card front — Sarah going viral in Times Square',
+  cardAlt: 'The finished card front: Sarah going viral in Times Square',
 };
 
 // Example 4 — the couple who used to headline the hero. When the hero
@@ -960,11 +960,11 @@ const NEW_YORK_EXAMPLE: ProofExample = {
   scene: 'On a rooftop in New York at sunset',
   frontText: 'Happy Anniversary Baby!',
   insideMessage:
-    "Happy 10th anniversary, Sarah. Pack a bag — we're going to New York baby! Love you so much x",
+    "Happy 10th anniversary, Sarah. Pack a bag, we're going to New York baby! Love you so much x",
   cardFront: heroCardFront,
   cardInside: heroCardInside,
   cardAlt:
-    'The finished card front — the couple toasting on a New York rooftop at sunset',
+    'The finished card front: the couple toasting on a New York rooftop at sunset',
 };
 
 // All four are REAL worked examples: navigating changes the card, not just
@@ -1323,7 +1323,7 @@ function ObjectSection() {
             <li>✓ Printed in the UK</li>
           </ul>
           <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-meta">
-            Our cards are one-off prints, made just for them — please allow at
+            Our cards are one-off prints, made just for them, so please allow at
             least a week from order to arrival. Posted Royal Mail 24, tracked,
             for £2.95.
           </p>
@@ -1371,8 +1371,8 @@ function PriceSection() {
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
             Plus {gbp(UK_SHIPPING_STANDARD_GBP)} standard postage. One per account;
             after that, photo cards are {gbp(cardPriceGBP('photo'))} plus postage. Make and preview as
-            many as you like for free — you only pay when you post one.
-            Our cards are one-off prints — please allow at least a week from order to arrival.
+            many as you like for free. You only pay when you post one.
+            Our cards are one-off prints, so please allow at least a week from order to arrival.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
@@ -1477,8 +1477,8 @@ function OccasionCaptureSection() {
             >
               <p className="text-[15px] font-semibold text-keeper-ink">
                 {sent === 'dated'
-                  ? "Done — we'll nudge you in good time. ✨"
-                  : "Done — the link's in your inbox. ✨"}
+                  ? "Done. We'll nudge you in good time. ✨"
+                  : "Done. The link's in your inbox. ✨"}
               </p>
               <p className="mt-1 text-[12.5px] text-keeper-meta">
                 {sent === 'dated'
@@ -1570,7 +1570,7 @@ function OccasionCaptureSection() {
                     data-testid="input-occasion-date"
                   />
                   <p className="text-[11.5px] leading-snug text-keeper-meta">
-                    Add the date and we'll email you in good time — no forgetting,
+                    Add the date and we'll email you in good time. No forgetting,
                     no last-minute panic.
                   </p>
                 </div>
@@ -1594,7 +1594,7 @@ function OccasionCaptureSection() {
                   data-testid="check-occasion-optin"
                 />
                 <span className="text-[11.5px] leading-snug text-keeper-meta">
-                  Keep me posted now and then — new features and ideas.
+                  Keep me posted now and then with new features and ideas.
                   Unsubscribe anytime.
                 </span>
               </label>

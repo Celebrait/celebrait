@@ -228,7 +228,7 @@ export function ExampleCardDialog({
             {modalDescription}
           </p>
           <p className="text-[11px] text-keeper-meta">
-            An example of our house style — yours will be your own.
+            An example of our house style. Yours will be your own.
           </p>
         </div>
       </DialogContent>

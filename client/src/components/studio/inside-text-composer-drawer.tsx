@@ -226,7 +226,7 @@ export function InsideTextComposerDrawer({
           </div>
           <SheetDescription className="text-sm text-ink-soft">
             Grounded in your card's scene and occasion. Edit any field
-            after — this is a starting point, not a finish line.
+            after. This is a starting point, not a finish line.
           </SheetDescription>
           {contextStrip && <ContextStrip strip={contextStrip} />}
         </SheetHeader>
@@ -299,7 +299,7 @@ export function InsideTextComposerDrawer({
               data-testid="btn-composer-accept"
             >
               <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-              Use this — fill all three boxes
+              Use this and fill all three boxes
             </Button>
             <div className="flex gap-2">
               <Button
@@ -400,7 +400,7 @@ function ComposerInputs({
           data-testid="composer-brief"
         />
         <p className="text-[11px] text-stone-500 mt-1.5">
-          Skip if you'd like — we'll work from your card's scene and occasion alone.
+          Skip if you'd like. We'll work from your card's scene and occasion alone.
         </p>
       </div>
 

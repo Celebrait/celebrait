@@ -456,18 +456,18 @@ function LoadedView({
           >
             <figure className="w-full max-w-[360px] space-y-2">
               <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
-                Front — outer spread
+                Front: outer spread
               </figcaption>
               <CardOuterSpread frontUrl={card.frontImageUrl ?? null} />
             </figure>
             <figure className="w-full max-w-[360px] space-y-2">
               <figcaption className="text-center text-[11px] font-medium uppercase tracking-[0.16em] text-keeper-meta">
-                Inside — inner spread
+                Inside: inner spread
               </figcaption>
               <CardInnerSpread insideUrl={card.insideImageUrl ?? null} />
             </figure>
             <p className="text-center text-[11px] text-keeper-meta">
-              How your card prints — folded, front and inside.
+              How your card prints: folded, front and inside.
             </p>
           </div>
         ) : (
@@ -745,7 +745,7 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
         data-testid="btn-free-share"
       >
         <Share2 className="h-3.5 w-3.5" />
-        {copied ? 'Link copied — paste it anywhere' : 'Or copy a digital preview link — free'}
+        {copied ? 'Link copied. Paste it anywhere' : 'Or copy a digital preview link, free'}
       </button>
       <p className="mt-1 text-[11px] text-keeper-meta">
         They'll see the card on any screen. The real thing still wants a
@@ -769,7 +769,7 @@ function FreeShareBlock({ cardId }: { cardId: number }) {
 function TitleSROnly({ title }: { title: string }) {
   useEffect(() => {
     const prev = document.title;
-    document.title = `${title} — Celebrait`;
+    document.title = `${title} | Celebrait`;
     return () => {
       document.title = prev;
     };

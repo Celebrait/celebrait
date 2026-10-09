@@ -285,8 +285,8 @@ export function ReviewStep({
     <div className="max-w-2xl mx-auto space-y-6">
       <p className="text-sm text-keeper-body leading-relaxed">
         {isReroll
-          ? 'Same details, clean slate. Sharpen anything below — the scene wording moves the needle most — or roll straight away. Every roll paints a brand-new card, and every take you make is kept.'
-          : 'Everything below is still a draft. Tap any section to change it — nothing gets sent until you say so.'}
+          ? 'Same details, clean slate. Sharpen anything below (the scene wording moves the needle most) or roll straight away. Every roll paints a brand-new card, and every take you make is kept.'
+          : 'Everything below is still a draft. Tap any section to change it. Nothing gets sent until you say so.'}
       </p>
 
       {isReroll && <TakesStrip currentCardId={cardId} familyId={familyId} />}
@@ -317,8 +317,8 @@ export function ReviewStep({
         </Button>
         <p className="text-[11px] text-keeper-meta text-center mt-2 leading-relaxed">
           {isReroll
-            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your earlier takes stay in your drafts — nothing here overwrites them.`
-            : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free — your card saves as you go.`}
+            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your earlier takes stay in your drafts. Nothing here overwrites them.`
+            : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free. Your card saves as you go.`}
         </p>
       </div>
 
@@ -331,7 +331,7 @@ export function ReviewStep({
           </DialogTitle>
           <p className="pt-1 text-sm text-keeper-body leading-relaxed">
             You haven't written a headline for the front. We'll add{' '}
-            <strong className="text-keeper-ink">“{defaultFrontText}”</strong> —
+            <strong className="text-keeper-ink">“{defaultFrontText}”</strong>,
             or the front can stay text-free, just the scene.
           </p>
           <div className="flex flex-col gap-2 pt-4">
@@ -415,7 +415,7 @@ function TakesStrip({
           Your takes
         </p>
         <p className="text-[11px] text-keeper-meta">
-          Every take is saved — flip back any time.
+          Every take is saved. Flip back any time.
         </p>
       </div>
       <div className="flex flex-wrap items-start gap-3">
@@ -552,7 +552,7 @@ function SummaryPanel({
             <div className="text-sm text-keeper-ink font-medium">{frontText}</div>
             {frontTextIsDefault && (
               <div className="text-xs text-keeper-meta mt-0.5">
-                Default — tap Edit to change.
+                Default. Tap Edit to change.
               </div>
             )}
           </>
@@ -581,8 +581,8 @@ function SummaryPanel({
         <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
           <div className="text-sm text-keeper-body">
             {insideMode === 'blank'
-              ? "Your blank inside carries over — you'll confirm it after the front."
-              : "Your inside message carries over — you'll confirm it after the front."}
+              ? "Your blank inside carries over. You'll confirm it after the front."
+              : "Your inside message carries over. You'll confirm it after the front."}
           </div>
         </SummaryRow>
       ) : insideMode === 'blank' ? (
@@ -619,7 +619,7 @@ function SummaryPanel({
       ) : (
         <SummaryRow icon={FileText} label="Inside" testId="summary-inside">
           <div className="text-sm text-keeper-body">
-            You'll write the inside once you've seen the front — so you
+            You'll write the inside once you've seen the front, so you
             know exactly what you're writing in.
           </div>
         </SummaryRow>
@@ -733,7 +733,7 @@ function _legacyBuildNarration(state: CardDraftState): {
   // Beat 3 — scene. User's own words read beautifully back to them.
   if (scene) {
     const trimmed = scene.length > 90 ? scene.slice(0, 88).trim() + '…' : scene;
-    preFront.push(`Setting the scene — ${trimmed.toLowerCase()}.`);
+    preFront.push(`Setting the scene: ${trimmed.toLowerCase()}.`);
   } else {
     preFront.push('Setting the scene.');
   }
@@ -845,7 +845,7 @@ function FrontFirstStage({
     <div className="max-w-md mx-auto py-16 text-center space-y-5">
       <p className="text-lg font-display font-bold tracking-[-0.015em] text-keeper-ink">The inside didn't come out</p>
       <p className="text-sm text-keeper-body">
-        Your front is safe — let's just try the inside again.
+        Your front is safe. Let's just try the inside again.
       </p>
       {/* Only a customer-safe sentence here. The raw kind / message /
           modelExplanation box used to surface the image vendor's own
@@ -1005,7 +1005,7 @@ export function StartAgainButton({
               or leave it as it is.
             </ExplainRow>
             <ExplainRow icon={Sparkles}>
-              Each version comes out a little different — you might get an
+              Each version comes out a little different, so you might get an
               even better one.
             </ExplainRow>
             <ExplainRow icon={FileText}>
@@ -1320,7 +1320,7 @@ function InsideComposeStage({
         <img src={frontUrl} alt="Your card front" crossOrigin="anonymous" className="h-full w-full object-cover" />
       </div>
       <p className="max-w-[200px] text-left text-[11.5px] leading-snug text-keeper-meta">
-        {subject ? `The front of ${subject} — locked in.` : 'Your front — locked in.'}
+        {subject ? `The front of ${subject}, locked in.` : 'Your front, locked in.'}
       </p>
     </div>
   );
@@ -1344,7 +1344,7 @@ function InsideComposeStage({
             {blank ? 'Your inside' : 'Your inside message'}
           </p>
           <p className="mt-0.5 text-sm text-keeper-meta">
-            Carried over from your last take — still right for this front?
+            Carried over from your last take. Still right for this front?
           </p>
         </div>
         {frontThumb}
@@ -1354,7 +1354,7 @@ function InsideComposeStage({
         >
           {blank ? (
             <p className="text-sm text-keeper-body">
-              Blank centre with a decorative border — we'll post it to you to
+              Blank centre with a decorative border. We'll post it to you to
               handwrite inside.
             </p>
           ) : (
@@ -1378,7 +1378,7 @@ function InsideComposeStage({
               ? 'One sec…'
               : blank
                 ? 'Finish the card →'
-                : 'Looks good — make the inside →'}
+                : 'Looks good. Make the inside →'}
           </button>
           <button
             onClick={() => {
@@ -1424,7 +1424,7 @@ function InsideComposeStage({
           <p className="text-[13px] leading-relaxed text-keeper-body">
             You're changing{' '}
             <span className="font-semibold text-keeper-ink">the words only</span>. The scene
-            and style stay exactly as they are — if you want a different design, start the
+            and style stay exactly as they are. If you want a different design, start the
             card again.
           </p>
           <p className="mt-2 text-[12.5px] leading-relaxed text-keeper-meta">
@@ -1466,7 +1466,7 @@ function InsideComposeStage({
         </button>
         {!ready && (
           <p className="text-[11.5px] text-keeper-meta">
-            Write your message — or choose to leave it blank — to carry on.
+            Write your message, or choose to leave it blank, to carry on.
           </p>
         )}
         {backButton}
@@ -1742,7 +1742,7 @@ function RevealView({
         heroUrl={frontUrl}
         printVisual={<CardOuterSpread frontUrl={frontUrl} />}
         approveLabel={
-          isReroll ? 'Looks good — confirm the inside →' : 'Looks good — now the inside →'
+          isReroll ? 'Looks good. Confirm the inside →' : 'Looks good. Now the inside →'
         }
         onApprove={async () => setInsideComposing(true)}
         secondary={<StartAgainButton cardId={cardId} pill />}
@@ -1766,7 +1766,7 @@ function RevealView({
         printLabel="Inside"
         frontReference={<CardOuterSpread frontUrl={frontUrl} />}
         frontReferenceLabel="Front · approved"
-        approveLabel="Looks good — assemble the card →"
+        approveLabel="Looks good. Assemble the card →"
         onApprove={onFinalize}
         stackActions
         secondary={

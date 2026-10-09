@@ -141,7 +141,7 @@ function InsideForkPicker({
           icon={PenLine}
           title="We print your message"
           body="Type it now and we set your words into the design, matched to the front."
-          hint="Best if it's posting straight to them — arrives ready to read."
+          hint="Best if it's posting straight to them. Arrives ready to read."
           onClick={onWrite}
           testid="inside-fork-write"
           highlighted
@@ -198,7 +198,7 @@ function InsideForkPicker({
         onOpenChange={setBlankExampleOpen}
         eyebrow="Handwrite Example"
         modalTitle="Blank inside example"
-        modalDescription="We design a decorative border to match your front and leave the centre clear — you fill it in your own hand when the card arrives. (The styling echoes the house look shown here.)"
+        modalDescription="We design a decorative border to match your front and leave the centre clear. You fill it in your own hand when the card arrives. (The styling echoes the house look shown here.)"
         show="inside"
       />
     </div>
@@ -287,7 +287,7 @@ function LeaveBlankCard({ onPick }: { onPick: () => void }) {
           Leave blank instead
         </div>
         <p className="text-xs text-keeper-meta mt-0.5">
-          We'll design a decorative border only — you handwrite the
+          We'll design a decorative border only. You handwrite the
           message after it arrives.
         </p>
       </div>
@@ -316,7 +316,7 @@ function BlankPanel({ onUndo }: { onUndo: () => void }) {
             message after it arrives.
           </p>
           <p className="text-[11px] text-keeper-meta mt-2 italic">
-            Best for printed cards — there's no message for a digital
+            Best for printed cards. There's no message for a digital
             recipient to read.
           </p>
         </div>

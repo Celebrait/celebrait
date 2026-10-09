@@ -91,7 +91,7 @@ export default function BuyPage() {
     fetch(`/api/shop/cards/${cardId}${token ? `?token=${encodeURIComponent(token)}` : ''}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((j) => {
-        setCard(j.card); setState('ok'); document.title = 'Checkout — Celebrait';
+        setCard(j.card); setState('ok'); document.title = 'Checkout | Celebrait';
         // The card already knows who it's for — don't make them type it.
         if (j.card?.recipientName) setRecipientName((cur) => cur || j.card.recipientName);
       })
@@ -119,11 +119,11 @@ export default function BuyPage() {
 
   const errors = {
     name: name.trim() ? '' : 'Your name, for the receipt.',
-    email: EMAIL.test(email.trim()) ? '' : 'A valid email — the receipt and tracking go here.',
+    email: EMAIL.test(email.trim()) ? '' : 'A valid email. The receipt and tracking go here.',
     recipientName: shipTo === 'recipient' && !recipientName.trim() ? 'Whose name goes on the envelope?' : '',
     line1: line1.trim() ? '' : 'The first line of the address.',
     city: city.trim() ? '' : 'Town or city.',
-    postcode: UK_POSTCODE.test(postcode.trim()) ? '' : postcode.trim() ? 'That doesn’t look like a UK postcode.' : 'A UK postcode — we post within the UK only.',
+    postcode: UK_POSTCODE.test(postcode.trim()) ? '' : postcode.trim() ? 'That doesn’t look like a UK postcode.' : 'A UK postcode. We post within the UK only.',
   };
   const firstError = Object.values(errors).find(Boolean) ?? '';
   const valid = !firstError;
@@ -157,16 +157,16 @@ export default function BuyPage() {
         }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j?.message ?? 'That didn’t work — try again');
+      if (!r.ok) throw new Error(j?.message ?? 'That didn’t work. Try again');
       if (j?.payment?.mode === 'redirect' && j.payment.redirectUrl) {
         window.location.href = j.payment.redirectUrl;
         return;
       }
       // Stub/zero-total paths land straight on the order page.
       if (j?.orderId) { window.location.href = `/order/${j.orderId}`; return; }
-      throw new Error('Unexpected response — try again');
+      throw new Error('Unexpected response. Try again');
     } catch (e: any) {
-      setError(friendlyError(e, 'That didn’t work — try again'));
+      setError(friendlyError(e, 'That didn’t work. Try again'));
       setBusy(false);
     }
   };
@@ -187,7 +187,7 @@ export default function BuyPage() {
         <KeeperHeader />
         <div className="mx-auto max-w-lg px-6 pb-24 pt-40 text-center">
           <h1 className="font-display text-2xl font-bold text-keeper-ink">We couldn't find that card</h1>
-          <p className="mt-3 text-sm text-keeper-meta">The link may have expired with your session — pick the card again and it'll be waiting.</p>
+          <p className="mt-3 text-sm text-keeper-meta">The link may have expired with your session. Pick the card again and it'll be waiting.</p>
           <Link href={rack ? '/cards/birthday' : '/create'} className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">{rack ? 'Back to the cards' : 'Make a card'}</Link>
         </div>
       </div>
@@ -216,7 +216,7 @@ export default function BuyPage() {
               </span>
             </p>
             {card.listPrice != null && card.listPrice > totals.print && (
-              <p className="-mt-0.5 text-xs text-brand-dark">Half price — your first card</p>
+              <p className="-mt-0.5 text-xs text-brand-dark">Half price on your first card</p>
             )}
             <p className="flex justify-between"><span>Postage · {tier.carrier}</span><span>{gbp(totals.ship)}</span></p>
           </div>
@@ -239,7 +239,7 @@ export default function BuyPage() {
           <h1 className="font-display text-2xl font-bold text-keeper-ink sm:text-3xl">Checkout</h1>
           <p className="inline-flex items-center gap-1.5 text-xs text-keeper-meta"><Lock className="h-3.5 w-3.5" /> Secure</p>
         </div>
-        {cancelled && <p className="mt-3 rounded-lg border border-keeper-hair bg-white/80 px-3 py-2 text-sm text-keeper-body">Payment was cancelled and nothing was charged — your card is still here whenever you're ready.</p>}
+        {cancelled && <p className="mt-3 rounded-lg border border-keeper-hair bg-white/80 px-3 py-2 text-sm text-keeper-body">Payment was cancelled and nothing was charged. Your card is still here whenever you're ready.</p>}
 
         {/* Phones: the order first, so the total is never a surprise. */}
         <div className="mt-6 md:hidden">{summary}</div>
@@ -264,7 +264,7 @@ export default function BuyPage() {
                   {show('name') && <p className="mt-1 text-xs text-accent-red-dark">{errors.name}</p>}
                 </div>
                 <div>
-                  <label htmlFor="buy-email" className={label}>Email <span className="font-normal text-keeper-meta">— for the receipt and tracking</span></label>
+                  <label htmlFor="buy-email" className={label}>Email <span className="font-normal text-keeper-meta">for the receipt and tracking</span></label>
                   <input id="buy-email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="email" autoCapitalize="off" spellCheck={false} className={show('email') ? fieldBad : fieldOk} data-testid="buy-email" />
                   {show('email') && <p className="mt-1 text-xs text-accent-red-dark">{errors.email}</p>}
                 </div>
@@ -283,11 +283,11 @@ export default function BuyPage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-3 rounded-md bg-keeper-paper px-3 py-2 text-[12px] leading-relaxed text-keeper-meta">We post to UK addresses only for now. Buying from abroad is fine — have it sent straight to them.</p>
+              <p className="mt-3 rounded-md bg-keeper-paper px-3 py-2 text-[12px] leading-relaxed text-keeper-meta">We post to UK addresses only for now. Buying from abroad is fine. Have it sent straight to them.</p>
               <div className="mt-3 grid gap-3">
                 {shipTo === 'recipient' && (
                   <div>
-                    <label htmlFor="buy-recipient" className={label}>Their name <span className="font-normal text-keeper-meta">— on the envelope</span></label>
+                    <label htmlFor="buy-recipient" className={label}>Their name <span className="font-normal text-keeper-meta">on the envelope</span></label>
                     <input id="buy-recipient" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} autoComplete="off" className={show('recipientName') ? fieldBad : fieldOk} data-testid="buy-recipient" />
                     {show('recipientName') && <p className="mt-1 text-xs text-accent-red-dark">{errors.recipientName}</p>}
                   </div>
@@ -322,7 +322,7 @@ export default function BuyPage() {
               <PayBlock busy={busy} total={totals.total} onPay={pay} />
             </div>
             <p className="text-center text-xs leading-relaxed text-keeper-meta md:hidden">
-              No account needed. Personalised cards can't be cancelled once printing begins — see our <a href="/terms-of-service" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-keeper-ink">Terms</a>.
+              No account needed. Personalised cards can't be cancelled once printing begins. See our <a href="/terms-of-service" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-keeper-ink">Terms</a>.
             </p>
           </div>
 
@@ -359,7 +359,7 @@ function PayBlock({ busy, total, onPay, compact = false }: { busy: boolean; tota
       ) : (
         <p className="text-center text-xs leading-relaxed text-keeper-meta">
           Secure payment by Stripe · no account needed.{' '}
-          By paying you agree to our <a href="/terms-of-service" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-keeper-ink">Terms</a> — personalised cards can't be cancelled once printing begins.
+          By paying you agree to our <a href="/terms-of-service" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-keeper-ink">Terms</a>. Personalised cards can't be cancelled once printing begins.
         </p>
       )}
     </div>

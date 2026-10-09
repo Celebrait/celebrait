@@ -46,13 +46,13 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
     path: '/photo/make',
     title: 'Make a card from a photo | Celebrait',
     description:
-      'Upload one clear photo, set the scene, and we draw them into it. Free to start — sign up when you’re ready to generate.',
+      'Upload one clear photo, set the scene, and we draw them into it. Free to start. Sign up when you’re ready to generate.',
   },
   {
     path: '/photo',
-    title: 'Personalised Greetings Cards — Put Them In The Picture | Celebrait',
+    title: 'Personalised Greetings Cards: Put Them In The Picture | Celebrait',
     description:
-      `Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
+      `Turn a photo into a personalised greetings card. They become the artwork, in any scene you can describe, printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/create',
@@ -67,15 +67,15 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
   },
   {
     path: '/pricing',
-    title: `Pricing — Personalised Greetings Cards from ${fromGBP(rackEnabled)} | Celebrait`,
+    title: `Pricing: Personalised Greetings Cards from ${fromGBP(rackEnabled)} | Celebrait`,
     description:
-      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus £2.95 postage — ${rackEnabled ? '£4.99 off the shelf, ' : ''}£5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
+      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus £2.95 postage: ${rackEnabled ? '£4.99 off the shelf, ' : ''}£5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
   },
   {
     path: '/contact',
     title: 'Contact Us | Celebrait',
     description:
-      "Questions about your personalised card, an order, or anything else? Get in touch with the Celebrait team — we're a small UK business and a real human replies.",
+      "Questions about your personalised card, an order, or anything else? Get in touch with the Celebrait team. We're a small UK business and a real human replies.",
   },
   {
     path: '/privacy-policy',
@@ -91,7 +91,7 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
   },
   {
     path: '/blog',
-    title: 'The Celebrait Blog — Card Ideas & Guides | Celebrait',
+    title: 'The Celebrait Blog: Card Ideas & Guides | Celebrait',
     description:
       'Ideas, guides and honest answers about personalised photo cards: how to turn a photo into a greeting card, AI card questions, and inspiration for every occasion.',
   },
@@ -114,7 +114,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
     title: 'How to Turn a Photo Into a Greeting Card (UK Guide) | Celebrait',
     heading: 'How to turn a photo into a greeting card',
     description:
-      'Turn any phone photo into a printed greeting card where they ARE the artwork — not a photo slapped on a template. Step-by-step guide, from snapshot to doormat.',
+      'Turn any phone photo into a printed greeting card where they ARE the artwork, not a photo slapped on a template. Step-by-step guide, from snapshot to doormat.',
     published: '2026-07-29',
     readMinutes: 4,
   },
@@ -157,8 +157,8 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
     : `${cap(aisle.replace(/-/g, ' '))} ${occ} Cards`;
   return {
     path,
-    title: `${title} — Personalised & Made For Them | Celebrait`,
-    description: `Real ${title.toLowerCase()} to send as-is or make theirs — or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £4.99.`,
+    title: `${title}: Personalised & Made For Them | Celebrait`,
+    description: `Real ${title.toLowerCase()} to send as-is or make theirs, or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £4.99.`,
   };
 }
 

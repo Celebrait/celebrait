@@ -80,11 +80,11 @@ export default function ContactPage() {
             {status === 'sent' ? (
               <div className="py-8 text-center">
                 <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-go" strokeWidth={1.5} />
-                <h1 className="text-2xl font-bold text-keeper-ink">Thanks — message sent</h1>
+                <h1 className="text-2xl font-bold text-keeper-ink">Thanks, message sent</h1>
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-keeper-body">
                   We&rsquo;ve got it and will reply to{' '}
                   <span className="font-medium text-keeper-ink">{form.email}</span> as soon as we
-                  can — usually within a day.
+                  can, usually within a day.
                 </p>
               </div>
             ) : (

@@ -139,7 +139,7 @@ export const OCCASION_PRESETS: Record<string, OccasionPresets> = {
           'First dance under a canopy of fairy lights, guests watching from the side',
           'Cutting the wedding cake together, laughing at each other',
           'Clinking champagne glasses at the head of a candlelit banquet table',
-          'Speeches moment — raising a toast with the wedding party beside them',
+          'Raising a toast at the speeches, the wedding party beside them',
         ],
       },
       {
@@ -157,7 +157,7 @@ export const OCCASION_PRESETS: Record<string, OccasionPresets> = {
     label: 'Engagement',
     placeholders: [
       'One down on a clifftop at sunset, ring in hand',
-      'Reaction moment — hands over mouth in happy shock',
+      'The reaction, hands over mouth in happy shock',
       'Showing off the ring to cheering friends and family',
       'Popping champagne on a candlelit balcony',
     ],
@@ -263,7 +263,7 @@ export const OCCASION_PRESETS: Record<string, OccasionPresets> = {
         scenes: [
           'Pulling crackers at a candlelit Christmas dinner table',
           'Carving the turkey at the head of the table, family applauding',
-          'Dessert moment — flaming Christmas pudding carried into a dim room',
+          'A flaming Christmas pudding carried into a dim room for dessert',
         ],
       },
       {
@@ -364,8 +364,8 @@ export const OCCASION_PRESETS: Record<string, OccasionPresets> = {
     occasion: 'other',
     label: 'Something else',
     placeholders: [
-      'Tell us the moment — who, where, what\'s happening',
-      'The more specific the better — lighting, mood, setting',
+      'Tell us the moment: who, where, what\'s happening',
+      'The more specific the better: lighting, mood, setting',
       'Describe it like a photograph you wish you had',
       'What would make this unmistakably about them?',
     ],

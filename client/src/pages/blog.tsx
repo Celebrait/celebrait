@@ -27,7 +27,7 @@ export default function BlogPage() {
           Ideas, guides &amp; honest answers.
         </h1>
         <p className="mt-4 max-w-xl text-[17px] leading-[1.7] text-keeper-body">
-          Everything about cards where the person you love is the artwork —
+          Everything about cards where the person you love is the artwork:
           how it works, what to write, and scenes worth stealing.
         </p>
 

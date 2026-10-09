@@ -189,7 +189,7 @@ export function FreeCardInvite() {
     authStep === 'email'
       ? {
           heading: 'Claim 50% off your first card.',
-          sub: "Pop your email in — we'll send a 6-digit code. No passwords, ever.",
+          sub: "Pop your email in and we'll send a 6-digit code. No passwords, ever.",
         }
       : authStep === 'code'
         ? { heading: 'Check your email.', sub: 'We sent you a 6-digit code.' }
@@ -239,7 +239,7 @@ export function FreeCardInvite() {
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
                       Then three dates that matter, and your first card is{' '}
-                      <span className="line-through">£5.99</span> <b>£2.99</b> —
+                      <span className="line-through">£5.99</span> <b>£2.99</b>,
                       half price.
                     </p>
                   )}
@@ -286,9 +286,9 @@ export function FreeCardInvite() {
                   </h2>
                   {intent === 'asked' ? (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
-                      You'll need an account to make a card either way — so
-                      start here. Tell us <b>three dates that matter</b> — a
-                      birthday, an anniversary, any day — and your first card
+                      You'll need an account to make a card either way, so
+                      start here. Tell us <b>three dates that matter</b> (a
+                      birthday, an anniversary, any day) and your first card
                       is half price.{' '}
                       <span className="text-stone-400 line-through">£5.99</span>{' '}
                       <b>£2.99</b>, plus postage.
@@ -296,14 +296,14 @@ export function FreeCardInvite() {
                   ) : (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       The right moment probably hasn't come round yet. So start the
-                      other way: tell us <b>three dates that matter</b> — a birthday,
-                      an anniversary, any day — and your first card is half price.{' '}
+                      other way: tell us <b>three dates that matter</b> (a birthday,
+                      an anniversary, any day) and your first card is half price.{' '}
                       <span className="text-stone-400 line-through">£5.99</span>{' '}
                       <b>£2.99</b>, plus postage. It waits for the moment.
                     </p>
                   )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
-                    We'll watch every date and nudge you in good time — and we
+                    We'll watch every date and nudge you in good time, and we
                     never contact the people you add.
                   </p>
 
@@ -315,8 +315,8 @@ export function FreeCardInvite() {
                       data-testid="free-card-invite-claim"
                     >
                       {intent === 'asked'
-                        ? 'Let’s go — takes a minute'
-                        : 'Claim it — takes a minute'}
+                        ? 'Let’s go, takes a minute'
+                        : 'Claim it, takes a minute'}
                     </button>
                     <button
                       type="button"

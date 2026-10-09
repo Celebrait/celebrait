@@ -39,13 +39,13 @@ const set = (v: string): string | null => {
 
 const RAW = {
   /** Registered legal entity (the party the user contracts with). */
-  legalName: "[Legal entity name — e.g. Celebrait Ltd]",
+  legalName: "[Legal entity name, e.g. Celebrait Ltd]",
   /** Registered / principal business address. */
   address: "[Registered / business address, United Kingdom]",
   /** Companies House number, if a limited company (else leave blank). */
   companyNumber: "[Companies House number, if applicable]",
   /** ICO data-protection registration number. */
-  icoNumber: "[ICO registration number — see note]",
+  icoNumber: "[ICO registration number, see note]",
 } as const;
 
 /** THE one public inbox (launch audit 2026-10-06: contact, FAQ and the

@@ -223,7 +223,7 @@ export default function CheckoutPage() {
   const [needBy, setNeedBy] = useState('');
   useEffect(() => {
     const prev = document.title;
-    document.title = 'Checkout — Celebrait';
+    document.title = 'Checkout | Celebrait';
     return () => { document.title = prev; };
   }, []);
   // Name on the envelope when posting straight to them. The card's
@@ -389,7 +389,7 @@ export default function CheckoutPage() {
         title: "Couldn't start checkout",
         description:
           err?.name === 'AbortError'
-            ? 'That took too long — check your connection and try again. You have not been charged.'
+            ? 'That took too long. Check your connection and try again. You have not been charged.'
             : friendlyError(err, 'Something went wrong.'),
         variant: 'destructive',
       });
@@ -513,7 +513,7 @@ export default function CheckoutPage() {
                   Printed &amp; posted
                 </h2>
                 <p className="text-sm text-keeper-body leading-relaxed">
-                  A premium 280gsm gloss card, posted in the UK — with a free
+                  A premium 280gsm gloss card, posted in the UK, with a free
                   digital link to share too.
                 </p>
                 {freeCardApplied ? (
@@ -523,7 +523,7 @@ export default function CheckoutPage() {
                     </span>
                     {formatGBP(totals.total)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
-                      inc. postage — 50% off your first card
+                      inc. postage, 50% off your first card
                     </span>
                   </p>
                 ) : (
@@ -581,7 +581,7 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-xs text-keeper-meta mt-0.5 leading-relaxed max-w-[42ch]">
                           {shipTo === 'recipient'
-                            ? 'Addressed and posted straight to them, tracked — no extra charge.'
+                            ? 'Addressed and posted straight to them, tracked, at no extra charge.'
                             : 'Posted to you, ready to hand over in person.'}
                         </p>
                       </div>
@@ -599,7 +599,7 @@ export default function CheckoutPage() {
                   <Section title="How would you like to send it?">
                     <p className="text-sm text-keeper-body leading-relaxed">
                       Choose whether we post it straight to them, or send it to
-                      you to hand over — it only takes a second.
+                      you to hand over. It only takes a second.
                     </p>
                     <Button
                       onClick={() => setLocation(`/studio/card/${cardId}/give`)}
@@ -654,7 +654,7 @@ export default function CheckoutPage() {
                         </span>
                         <span className="mt-0.5 block text-xs text-keeper-meta leading-relaxed">
                           A round “only open on your special day” seal on the
-                          outside of the envelope — a little moment before they
+                          outside of the envelope, a little moment before they
                           even open it.
                         </span>
                       </span>
@@ -671,7 +671,7 @@ export default function CheckoutPage() {
                       address, so route them to "straight to them". */}
                   <p className="rounded-md bg-stone-50 px-3 py-2 text-[11.5px] leading-relaxed text-keeper-meta">
                     We deliver to <b>UK addresses only</b> for now. Buying
-                    from abroad is fine — just have the card sent straight
+                    from abroad is fine. Just have the card sent straight
                     to them at their UK address.
                   </p>
                   {shipTo === 'recipient' && (
@@ -726,7 +726,7 @@ export default function CheckoutPage() {
                 label="Printed card"
                 sub={
                   freeCardApplied
-                    ? 'Your first card — on us'
+                    ? 'Your first card, on us'
                     : 'Square, 280gsm gloss art card'
                 }
                 amount={totals.printAmount}
@@ -736,7 +736,7 @@ export default function CheckoutPage() {
               <LineItem
                 icon={<Sparkles className="w-4 h-4 text-brand" />}
                 label="Digital link"
-                sub="Instant 3D share link — free"
+                sub="Instant 3D share link, free"
                 amount={totals.digitalAmount}
               />
               <LineItem
@@ -818,9 +818,9 @@ export default function CheckoutPage() {
                       ? 'Choose where the card should be delivered first.'
                       : includesPrint && !addressComplete
                         ? postcode.trim().length > 0 && postcode.trim().length < 5
-                          ? 'That postcode looks too short — we can only deliver to UK addresses.'
+                          ? 'That postcode looks too short. We can only deliver to UK addresses.'
                           : 'Complete the delivery address to continue.'
-                        : 'Almost there — check the details above.'}
+                        : 'Almost there. Check the details above.'}
                 </p>
               )}
               <Button
@@ -837,7 +837,7 @@ export default function CheckoutPage() {
                 ) : totals.total === 0 ? (
                   // Fully comped (code + free card) — "Pay £0.00" reads
                   // like a trick; say what actually happens.
-                  'Send it — nothing to pay'
+                  'Send it. Nothing to pay'
                 ) : (
                   `Pay ${formatGBP(totals.total)}`
                 )}
@@ -846,7 +846,7 @@ export default function CheckoutPage() {
                   tell how NOT to buy now and come back later. The card was
                   always safe — nothing SAID so at the moment of doubt. */}
               <p className="text-center text-[11.5px] leading-relaxed text-keeper-meta">
-                Not ready to send it? No rush — it's saved in{' '}
+                Not ready to send it? No rush. It's saved in{' '}
                 <Link href="/studio/drafts" className="underline underline-offset-2 hover:text-keeper-ink">
                   your Drafts
                 </Link>{' '}
@@ -874,7 +874,7 @@ export default function CheckoutPage() {
                 >
                   Terms
                 </a>
-                {' '}— personalised cards can't be cancelled once printing
+                . Personalised cards can't be cancelled once printing
                 begins.
               </p>
               {/* Dev-only notice — never ships to the deployed site

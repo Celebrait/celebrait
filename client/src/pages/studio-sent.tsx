@@ -42,7 +42,7 @@ function PageHeader() {
       <div>
         <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Sent</h1>
         <p className="text-sm text-keeper-body mt-1">
-          Every card you've made — keep them as keepsakes, or reorder in a tap.
+          Every card you've made. Keep them as keepsakes, or reorder in a tap.
         </p>
       </div>
       <Link
@@ -65,7 +65,7 @@ function SentEmpty() {
       </div>
       <p className="text-base font-semibold text-keeper-ink mb-1">No sent cards yet</p>
       <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
-        Cards you've finished and ordered will appear here — ready to
+        Cards you've finished and ordered will appear here, ready to
         share again, reorder, or keep as a keepsake.
       </p>
       <Link

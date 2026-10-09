@@ -84,7 +84,7 @@ function SkipFrontTextCard({ onPick }: { onPick: () => void }) {
           Skip the front text
         </div>
         <p className="text-xs text-keeper-meta mt-0.5">
-          No headline — the scene speaks for itself.
+          No headline. The scene speaks for itself.
         </p>
       </div>
     </button>
@@ -107,7 +107,7 @@ function NoTextPanel({ onUndo }: { onUndo: () => void }) {
             We'll leave the front text-free
           </p>
           <p className="text-xs text-keeper-body mt-0.5">
-            The scene stands alone — no headline, no greeting overlaid
+            The scene stands alone: no headline, no greeting overlaid
             on the image.
           </p>
         </div>

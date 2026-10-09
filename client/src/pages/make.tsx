@@ -61,13 +61,13 @@ async function makePost(path: string, body: unknown, attempt = 0): Promise<any> 
       console.warn(`[make] ${path} hit the ${ceiling / 1000}s ceiling — retrying once`);
       return makePost(path, body, 1);
     }
-    const err = new Error(timedOut ? 'That took too long — give it another go' : 'Lost the connection — give it another go') as Error & { code?: FailCode };
+    const err = new Error(timedOut ? 'That took too long. Give it another go' : 'Lost the connection. Give it another go') as Error & { code?: FailCode };
     err.code = timedOut ? 'timeout' : 'server';
     throw err;
   }
   if (!r.ok) {
     const j = await r.json().catch(() => null);
-    const err = new Error(j?.message ?? 'That didn’t work — give it another go') as Error & { status?: number; code?: FailCode };
+    const err = new Error(j?.message ?? 'That didn’t work. Give it another go') as Error & { status?: number; code?: FailCode };
     err.status = r.status;
     err.code = (j?.code as FailCode | undefined) ?? (r.status === 429 ? 'rate' : r.status >= 500 ? 'server' : 'unknown');
     throw err;
@@ -88,7 +88,7 @@ interface Concept { angle: string; format?: string; front_text: string; inside_t
  *  own ceiling. Same words on both routes (Aidan 2026-09-08). */
 type FailCode = 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown';
 const FAIL_COPY: Record<FailCode, { title: string; tile: string; retry: string }> = {
-  safety:  { title: 'The safety filter caught this one', tile: 'The safety filter caught this one — usually a name or a brand in the brief.', retry: 'Try a safer take' },
+  safety:  { title: 'The safety filter caught this one', tile: 'The safety filter caught this one, usually a name or a brand in the brief.', retry: 'Try a safer take' },
   rate:    { title: 'Slow down a sec', tile: 'We’ve hit a rate limit on the drawing engine. Give it 30 seconds.', retry: 'Try again' },
   server:  { title: 'The drawing engine’s busy', tile: 'The image model is overloaded right now. Try again in a minute.', retry: 'Try again' },
   auth:    { title: 'Something’s misconfigured', tile: 'We hit a problem with the image provider. The team’s been notified.', retry: 'Try again' },
@@ -145,7 +145,7 @@ function CameoVerdict({ note, className = '', onSwap, onOverride }: { note: Phot
       )}
       {note.tone === 'block' && onOverride && (
         <button type="button" onClick={onOverride} className="mt-2 block text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body" data-testid="btn-quality-override">
-          I understand — use this photo anyway
+          I understand, use this photo anyway
         </button>
       )}
     </div>
@@ -318,7 +318,7 @@ export default function MakePage() {
         interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: false,
       });
       const concepts: Concept[] = j.concepts ?? [];
-      if (!concepts.length) throw new Error('Nothing came back — try again');
+      if (!concepts.length) throw new Error('Nothing came back. Try again');
       // All three fronts finish before anything is shown (Aidan
       // 2026-09-03: words-first "isn't so clean"; reaffirmed 2026-09-08
       // over cards-as-they-land: "just show the 3 finished cards, but
@@ -380,7 +380,7 @@ export default function MakePage() {
       } else {
         await renderCell(i, cell.concept, true);
       }
-    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'Still no luck — pick another, or re-deal.' } : x))); }
+    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'Still no luck. Pick another, or re-deal.' } : x))); }
     finally { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, retrying: false } : x))); }
   };
 
@@ -420,7 +420,7 @@ export default function MakePage() {
           setCameoQa(qa?.result ?? null);
         } catch { setCameoQa(null); /* fail open — no verdict, no warning */ }
       })();
-    } catch (e: any) { setCameoError(friendlyError(e, 'That didn’t work — try another photo, or carry on without.')); }
+    } catch (e: any) { setCameoError(friendlyError(e, 'That didn’t work. Try another photo, or carry on without.')); }
     finally { setCameoBusy(false); }
   };
   /** The photo route's traffic light, on the crop we're about to draw
@@ -435,7 +435,7 @@ export default function MakePage() {
       if (!j?.likeness) throw new Error('no verdict');
       return likenessNoteForSet([{ likeness: j.likeness }], 'one_person');
     } catch {
-      toast({ title: "We couldn't check that photo this time", description: 'You can carry on — we look at it properly when we draw. A clear, front-on face works best.' });
+      toast({ title: "We couldn't check that photo this time", description: 'You can carry on. We look at it properly when we draw. A clear, front-on face works best.' });
       return null;
     }
   };
@@ -456,7 +456,7 @@ export default function MakePage() {
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
       setInsideUrl(ir.imageUrl); setPhase('done');
-    } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render — try again')); }
+    } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render. Try again')); }
     finally { setInsideBusy(false); }
   };
 
@@ -544,12 +544,12 @@ export default function MakePage() {
     // the questions use, then three new cards on those details.
     if (askVibe) {
       const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
-      const SUB: Record<Vibe, string> = { mix: 'three cards, three vibes — you choose after', funny: 'a good laugh, kindly meant', warm: 'heartfelt — the kind they keep', rude: 'proper swearing, tastefully starred out' };
+      const SUB: Record<Vibe, string> = { mix: 'three cards, three vibes, you choose after', funny: 'a good laugh, kindly meant', warm: 'heartfelt, the kind they keep', rude: 'proper swearing, tastefully starred out' };
       return (
         <MakeShell step={step}>
           <div className={panel}>
             <h1 className={`${h1} mb-1`}>Three new cards for {whoName}. What's the vibe?</h1>
-            <p className="text-sm text-keeper-body mb-5">Same details — this just sets what they lean towards.</p>
+            <p className="text-sm text-keeper-body mb-5">Same details. This just sets what they lean towards.</p>
             <div className="space-y-2.5">
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
@@ -615,7 +615,7 @@ export default function MakePage() {
         <MakeShell step={step}>
           <div className={panel}>
             <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
-            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours — pick the one that's more them.</p>
+            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours. Pick the one that's more them.</p>
             {/* We checked our own work and we don't rate it. Say so
                 before they choose, not after it's printed. */}
             {cameoQa && cameoQa.verdict !== 'good' && (
@@ -624,7 +624,7 @@ export default function MakePage() {
                   {cameoQa.verdict === 'bad' ? "We don't think that one came out right." : 'That one might not have come out right.'}
                 </p>
                 <p className="mt-1 text-[13px] leading-relaxed text-keeper-body">
-                  {cameoQa.issue ? `${cameoQa.issue} ` : ''}Have another go with the same photo, or send the original — it's a good card either way.
+                  {cameoQa.issue ? `${cameoQa.issue} ` : ''}Have another go with the same photo, or send the original. It's a good card either way.
                 </p>
                 <button type="button" disabled={cameoBusy || !cameoPhoto}
                   onClick={() => { if (cameoPhoto) { setCameoUrl(null); void renderCameo(cameoPhoto); } }}
@@ -658,12 +658,12 @@ export default function MakePage() {
                 {cameoChecking ? (
                   <>
                     <p className="mt-3 text-base font-semibold text-keeper-ink">Analysing your photo…</p>
-                    <p className="mt-1 text-sm text-keeper-meta">A few seconds — we’re checking it’ll give a strong likeness before we draw.</p>
+                    <p className="mt-1 text-sm text-keeper-meta">A few seconds. We’re checking it’ll give a strong likeness before we draw.</p>
                   </>
                 ) : (
                   <>
                     <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
-                    <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName} — drawn from your photo, in the card's own hand. About half a minute.</p>
+                    <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName}, drawn from your photo, in the card's own hand. About half a minute.</p>
                     {cameoNote && <CameoVerdict note={cameoNote} className="mt-4 text-left" />}
                   </>
                 )}
@@ -671,7 +671,7 @@ export default function MakePage() {
             ) : (
               <div>
                 <h1 className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
-                <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence — the idea, the words, the style — but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
+                <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence (the idea, the words, the style) but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
                 {/* The photo route's scaffold in the same order — tips,
                     then the one-time consent that gates the picker
                     (components/photo-consent-tips.tsx). */}
@@ -686,14 +686,14 @@ export default function MakePage() {
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <label className={`${primary} ${photoConsent ? 'cursor-pointer' : 'opacity-40 pointer-events-none'}`} aria-disabled={!photoConsent} data-testid="cameo-add-photo"><Camera className="w-4 h-4" strokeWidth={1.75} /> Add a photo
                     <input ref={cameoFileRef} type="file" accept="image/*" className="hidden" disabled={!photoConsent} onChange={(e) => { const f = e.target.files?.[0]; if (f) void readCameoFile(f).then(setCameoSrc); e.target.value = ''; }} /></label>
-                  <Button variant="outline" className="h-10 px-5" onClick={() => setPhase('signoff')}>Skip — keep it as it is</Button>
+                  <Button variant="outline" className="h-10 px-5" onClick={() => setPhase('signoff')}>Skip, keep it as it is</Button>
                 </div>
-                <p className={helper}>We never keep your photo — only the finished card.</p>
+                <p className={helper}>We never keep your photo, only the finished card.</p>
               </div>
             )}
           </div>
           <CropDialog src={cameoSrc} autoFace={false} onCancel={() => setCameoSrc(null)}
-            onConfirm={(bounds) => { const src = cameoSrc; setCameoSrc(null); if (!src) return; void cropToDataUrl(src, bounds).then(checkThenRender).catch(() => setCameoError('That photo wouldn’t crop — try another one.')); }} />
+            onConfirm={(bounds) => { const src = cameoSrc; setCameoSrc(null); if (!src) return; void cropToDataUrl(src, bounds).then(checkThenRender).catch(() => setCameoError('That photo wouldn’t crop. Try another one.')); }} />
         </div>
       </MakeShell>
     );
@@ -726,23 +726,23 @@ export default function MakePage() {
                     pre-filled with our line: it glows while it's still
                     ours, and a tweak is a tweak (audit 2026-10-06). */}
                 <div className="mt-4 space-y-3">
-                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open — e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
+                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open, e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
                   <div>
                     <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={INSIDE_MAX} placeholder="Your message…" aria-label="The message inside" data-testid="inside-message"
                       className={`min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 ${insideMode === 'ours' ? 'border-brand/40 bg-brand-muted shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]' : 'border-brand-light'}`} />
                     <p className="mt-1.5 text-[12.5px] text-keeper-meta" data-testid="inside-mode-line">
                       {insideMode === 'ours' ? (
-                        <>The message we wrote — change a word, or <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">start from blank</button>.</>
+                        <>The message we wrote. Change a word, or <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">start from blank</button>.</>
                       ) : suggestion ? (
                         <>Your words. <button type="button" onClick={() => setMessage(suggestion)} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-use-ours">Use the message we wrote</button>{message.trim() ? <> · <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">Start from blank</button></> : null}</>
                       ) : (
-                        <>Your words — set in the card's own style.</>
+                        <>Your words, set in the card's own style.</>
                       )}
                     </p>
                   </div>
-                  <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign — e.g. Love, Aidan x" className={input} />
+                  <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign, e.g. Love, Aidan x" className={input} />
                 </div>
-                {over && <p className="mt-3 text-sm text-accent-red-dark">Keep the whole inside under {INSIDE_MAX} characters — it’s {joinedLen} at the moment.</p>}
+                {over && <p className="mt-3 text-sm text-accent-red-dark">Keep the whole inside under {INSIDE_MAX} characters. It’s {joinedLen} at the moment.</p>}
                 {failMsg && <p className="mt-3 text-sm text-accent-red-dark">{failMsg}</p>}
                 <div className="mt-6"><button type="button" onClick={() => void renderInside()} disabled={!message.trim() || over} className={commit}><Sparkles className="w-4 h-4" strokeWidth={1.75} /> Design the inside</button></div>
               </div>
@@ -758,7 +758,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <h1 className={`${h1} mb-1`}>There it is — {forWho} card.</h1>
+          <h1 className={`${h1} mb-1`}>There it is: {forWho} card.</h1>
           <p className="text-sm text-keeper-body">280gsm, kraft envelope, posted Royal Mail 24. {HONEST_LEAD_LINE}</p>
           <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
@@ -771,9 +771,9 @@ export default function MakePage() {
                 setSaving('buy'); setSaveError('');
                 saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
                   .then((s) => navigate(`/buy/${s.cardId}`))
-                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save — try again')); setSaving(''); });
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
-              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it — {gbp(cardPriceGBP('maker'))}
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it for {gbp(cardPriceGBP('maker'))}
             </button>
             <button type="button" disabled={!!saving || !chosenFront}
               className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"
@@ -787,14 +787,14 @@ export default function MakePage() {
                     if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
                     else { setSaving(''); openAuth(`/make?claim=${s.cardId}`); }
                   })
-                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save — try again')); setSaving(''); });
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
-              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Keep it — sign in'}
+              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Sign in to keep it'}
             </button>
             <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
-          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved — it’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
+          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
         </div>
       </MakeShell>
     );
