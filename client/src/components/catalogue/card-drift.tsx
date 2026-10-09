@@ -12,6 +12,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
+// Tile width (Aidan 2026-10-09: "bigger cards, especially on mobile"):
+// 240 px on a phone shows one card and a half — a card, not a thumbnail;
+// 150 px read as stamps. Desktop 260.
 import type { CatalogueCard } from '@/components/catalogue/rack-wall';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
@@ -80,7 +83,7 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
   if (!cards.length) {
     return (
       <div className={`flex gap-4 overflow-hidden ${className}`}>
-        {Array.from({ length: 8 }, (_, i) => <div key={i} className="aspect-square w-[150px] shrink-0 animate-pulse rounded-lg bg-keeper-hair/50 sm:w-[190px]" />)}
+        {Array.from({ length: 8 }, (_, i) => <div key={i} className="aspect-square w-[240px] shrink-0 animate-pulse rounded-lg bg-keeper-hair/50 sm:w-[220px] md:w-[260px]" />)}
       </div>
     );
   }
@@ -98,11 +101,11 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
       <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
           peek ? (
-            <button key={`${c.id}-${i}`} type="button" onClick={() => setPeeking(c)} className="group block w-[150px] shrink-0 text-left sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined} aria-label={`Open “${c.front_text}”`}>
+            <button key={`${c.id}-${i}`} type="button" onClick={() => setPeeking(c)} className="group block w-[240px] shrink-0 text-left sm:w-[220px] md:w-[260px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined} aria-label={`Open “${c.front_text}”`}>
               <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
             </button>
           ) : (
-          <Link key={`${c.id}-${i}`} href={c.published === false ? '/photo' : `/card/${c.id}`} className="group block w-[150px] shrink-0 sm:w-[190px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
+          <Link key={`${c.id}-${i}`} href={c.published === false ? '/photo' : `/card/${c.id}`} className="group block w-[240px] shrink-0 sm:w-[220px] md:w-[260px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined}>
             <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
           </Link>
           )
