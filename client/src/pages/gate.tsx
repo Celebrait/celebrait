@@ -203,6 +203,19 @@ export default function GatePage() {
             </div>
           </div>
 
+          {/* Above the fold there was no action — only the header's "Make a
+              card" (Aidan 2026-10-09). The two doors are still the choice,
+              so this row IS the two doors, early: the quickest first, the
+              photo route beside it. */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link href="/make" className={BTN_PRIMARY}>
+              Tell us about them <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href={photoHref} className={`inline-flex items-center justify-center gap-2 rounded-full border border-keeper-ink/20 bg-white/80 px-5 py-3 text-[15px] font-semibold text-keeper-ink transition-colors hover:border-keeper-ink`}>
+              Start with a photo
+            </Link>
+          </div>
+
           {/* The carousel sits straight under the headline (Aidan
               2026-09-22) — the hand-picked rack, drifting, tap to open. */}
           {picks.cards.length > 0 && (
