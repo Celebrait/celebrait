@@ -524,7 +524,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={`${panel} flex flex-col items-center justify-center text-center`}>
-          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">just over a minute</span>. We write three cards for {whoName} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">30–45 seconds</span>. We write three cards for {whoName} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
           <div className="relative mt-8 aspect-square w-28 overflow-hidden rounded-xl bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 sm:w-32">
             <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>

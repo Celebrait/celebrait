@@ -154,8 +154,10 @@ export function landedLine(landed: number, total = 3): string | null {
 
 /** Honest words for a wait that has outrun the usual. */
 export function slowLine(elapsedS: number): string | null {
-  if (elapsedS < 75) return null;
-  if (elapsedS < 110) return 'Taking a touch longer than usual. Still drawing — nothing’s stuck.';
+  // Promise on the wait screen is 30–45 s (2026-10-09, measured ~32 s for
+  // the words + the draws on prod) — so "longer than usual" starts at 55.
+  if (elapsedS < 55) return null;
+  if (elapsedS < 90) return 'Taking a touch longer than usual. Still drawing — nothing’s stuck.';
   return 'Slower than normal today. We’ll keep at it a little longer, then tell you straight if it isn’t happening.';
 }
 
