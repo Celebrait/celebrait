@@ -1,0 +1,36 @@
+# celebrait.co.uk
+# Public marketing pages are crawlable; everything operational, personal
+# or internal is not. Note Disallow is a CRAWL instruction, not access
+# control — the real protection on /studio, /admin and /checkout is the
+# auth gate. This just keeps them out of search results.
+
+User-agent: *
+
+# Signed-in product surfaces (auth-gated; nothing to index)
+Disallow: /studio
+Disallow: /admin
+Disallow: /checkout
+Disallow: /login
+
+# Recipient card links — these are private, token-gated moments between
+# two people. They must never appear in a search result. (/c/ is the
+# short share form; both also carry noindex.)
+Disallow: /card/
+Disallow: /c/
+
+# Orders are private by uuid
+Disallow: /order/
+
+# Design reference only — an alias of /photo, noindexed as well
+Disallow: /keeper
+
+# Internal tooling + asset stages (unlisted, not for humans arriving cold)
+# (/hero-poc and /door now 301 home / to /create, so they're not listed —
+# a Disallow would stop crawlers from seeing the redirect.)
+Disallow: /card-capture
+Disallow: /og
+
+# API surface
+Disallow: /api/
+
+Sitemap: https://www.celebrait.co.uk/sitemap.xml

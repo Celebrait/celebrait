@@ -24,17 +24,79 @@ export type FrontMode = 'write' | 'none';
 // reliable. See front_scene variant templates for the prompt differences.
 export type PhotoMode = 'one_person' | 'group';
 
+/** ── THE MAKER'S DRAFT STATE (UX_THREE_DOORS.md §4b) ────────────────
+ *  Deliberately a SIBLING of CardDraftState, not an extension of it.
+ *  CardDraftState is the photo journey's memory — its `step` indexes a
+ *  fixed six-screen list and `isReadyToGenerateFront()` hard-requires a
+ *  photo — so bolting maker fields on would either break the photo
+ *  flow's gates or bloat it into a union of optionals nobody can read.
+ *
+ *  A maker draft only exists AFTER the three cards have rendered (the
+ *  money boundary): the five questions are cheap and re-typable, so
+ *  nothing is written until real spend has happened and a real decision
+ *  is pending. Resume is therefore always "you made three, pick one".
+ *
+ *  `cards.source === 'maker'` says to parse conversationData as this. */
+export interface MakerDraftState {
+  version: 1;
+  source: 'maker';
+  /** What they typed — kept so "start again with these details" can
+   *  re-run the brief without re-asking, exactly as the studio's
+   *  re-roll does. */
+  brief: {
+    who: string;
+    gender?: 'him' | 'her';
+    age?: number | null;
+    interest?: string;
+    dislike?: string;
+    recipientName?: string;
+    tone: 'funny' | 'warm' | 'rude' | 'mix';
+    occasion: string;
+  };
+  /** A NAMED state, never an index into another flow's screen list. */
+  resumeAt: 'pick' | 'inside' | 'done';
+  /** Which of the three front attempts they chose (mirrors
+   *  cards.selectedFrontAttemptId; kept here so the brief and the
+   *  choice travel together). */
+  pickedAttemptId?: number;
+  /** How the inside was settled — mirrors the maker's three-way choice. */
+  insideMode?: 'ours' | 'own' | 'blank';
+}
+
 export interface CardDraftState {
   /** Schema version. Bumps force-migrate older drafts on read. */
   version: 1;
   /** Last step the user was on (0-indexed). Used for resume. */
   step: number;
+  /** Set when this draft was created by "Start again with these
+   *  details" (POST /drafts/:id/duplicate, 2026-07-08) — the id of the
+   *  card it was cloned from. Drives the Review step's "take two"
+   *  framing + the reference link back to the first take. Absent on
+   *  organically-created drafts. */
+  rerollOfCardId?: number;
+  /** The take-FAMILY this card belongs to: the id of the family's
+   *  original card, propagated through every Start-again clone (a
+   *  clone of a clone keeps the same family id). Groups takes in the
+   *  dashboard + powers the takes rail on the card view. Absent =
+   *  the card is its own family. */
+  rerollFamilyId?: number;
   recipient?: {
     name?: string;
     occasion?: string;
   };
   scene?: {
     description?: string;
+    /** How this description was produced (analytics — Aidan 2026-08-04:
+     *  "would be great to see how scenes are described, manual or using
+     *  scene suggestion / brainstorm"). '*_edited' means they adopted a
+     *  helper's text and then changed it, which is the most interesting
+     *  signal of all: the helper started them off but didn't finish. */
+    source?:
+      | 'manual'
+      | 'suggestion'
+      | 'suggestion_edited'
+      | 'brainstorm'
+      | 'brainstorm_edited';
   };
   style?: {
     mode?: StyleMode;
@@ -59,6 +121,13 @@ export interface CardDraftState {
      *  the current mode. Gates advancing to the next step until the
      *  user resolves it, so we never silently render a mismatched card. */
     pendingModeReview?: 'too-many' | 'too-few';
+    /** User explicitly chose to continue past a BLOCKING photo-quality
+     *  verdict (heavy blur — see lib/photo-likeness). Deliberate act,
+     *  not a default: the red state holds Next until they either swap
+     *  the photo or set this. Dropped automatically whenever the photos
+     *  patch is rebuilt without it (i.e. any photo change re-arms the
+     *  block), which is the behaviour we want. */
+    qualityOverride?: boolean;
   };
   front?: {
     /** Whether the user wants a front headline at all.
@@ -73,8 +142,47 @@ export interface CardDraftState {
      *  mode === 'none'. */
     text?: string;
   };
+  /** The Giving Moment choice — format + destination — captured on the
+   *  dedicated post-reveal screen (see next_delivery_destination_usp.md).
+   *  Written by the Giving Moment, read by checkout. Absent until the
+   *  user reaches and completes that screen.
+   *
+   *  (An earlier `intent` sub-field, from a reverted 2026-05-18 Step-1
+   *  experiment, has been replaced by this shape.) */
+  delivery?: {
+    /** Product format. Values mirror checkout's ?product= param
+     *  ('print' not 'printed') so the handoff needs no mapping. */
+    format?: 'digital' | 'print' | 'both';
+    /** Where it goes:
+     *   'recipient' → posted / emailed straight to the recipient.
+     *   'sender'    → posted / sent to the sender — to hand over in
+     *                 person, or (when inside.mode is 'blank') to
+     *                 handwrite first then give.
+     *  The hand-over vs handwrite nuance is derivable from inside.mode,
+     *  so it is NOT stored separately here. */
+    destination?: 'recipient' | 'sender';
+    /** Optional short "from…" note printed on the envelope insert for
+     *  direct-to-recipient orders. */
+    fromLine?: string;
+  };
   inside?: {
     mode?: InsideMode;
+    /** UX path declaration — added 2026-05-17 with the macro composer.
+     *  Independent of `mode` (which is write vs blank).
+     *    - 'self'    → user chose to write themselves. The 3-input form
+     *                  is shown directly with per-field rewriter chips.
+     *    - 'helped'  → user chose AI composition. A composer drawer is
+     *                  the entry point; once a result is accepted the
+     *                  same 3-input form is shown pre-filled, fully
+     *                  editable. Re-opening "Try another version" stays
+     *                  on the helped path.
+     *    - undefined → pre-question is shown so the user picks. Default
+     *                  state for any draft created before this field
+     *                  existed OR any fresh draft.
+     *  Persisting the choice avoids re-asking on every step revisit.
+     *  Cleared by a small "Change approach" link on either path that
+     *  surfaces the pre-question again. */
+    path?: 'self' | 'helped';
     /** Only present when mode='write'. All three fields are optional —
      *  only `message` gates readiness (salutation + signoff are decoration).
      *  Concatenated into the v1 `insideText` prompt variable at generate time. */
@@ -91,25 +199,33 @@ export const EMPTY_CARD_DRAFT: CardDraftState = {
   step: 0,
 };
 
-/** The seven customer-facing steps, in order. Photo moved to step 2 (was
+/** The six customer-facing steps, in order. Photo moved to step 2 (was
  *  step 4) so users see their photo acknowledged early in the flow —
  *  the emotional click of "we've got Mum" happens before the blank
- *  scene description, not after. Analysis of the photo is deferred to
- *  a later sprint; this sprint just does upload + crop + confirmation.
+ *  scene description, not after.
  *
- *  Front text step (added 2026-04-19) sits between Style and Inside so
+ *  Front text step (added 2026-04-19) sits between Scene and Inside so
  *  the two sides of the card — front headline and interior message —
- *  are decided in order. Server has always supported cardText; the
- *  Studio now lets the user see and override the auto-derived default
- *  instead of it silently rendering. */
+ *  are decided in order.
+ *
+ *  Style step REMOVED 2026-05-17 — V1 locks to the "warm illustrated"
+ *  default which lands consistently and is what Kevin signed off as
+ *  the launch render. Choose-your-style (realistic / custom freeform)
+ *  is parked under Celebrait Premium — see next_celebrait_premium.md.
+ *  The style-step.tsx file is preserved in the repo for revival.
+ *  Schema fields state.style.mode / state.style.custom also stay in
+ *  card-draft.ts so server defaults + future Premium revival are
+ *  unchanged. */
 export const CARD_MAKER_STEPS = [
   { id: 'recipient', label: 'Recipient' },
   { id: 'photo', label: 'Photo' },
   { id: 'scene', label: 'Scene' },
-  { id: 'style', label: 'Style' },
   { id: 'front', label: 'Front text' },
   { id: 'inside', label: 'Inside text' },
-  { id: 'review', label: 'Review & Purchase' },
+  // 'send', not 'purchase' — the chip is visible from step 1 and framed
+  // the whole creative flow as a transaction (audit 2026-07-27); it also
+  // clashed with the reveal CTA "Send this card".
+  { id: 'review', label: 'Review & send' },
 ] as const;
 
 export type StepId = (typeof CARD_MAKER_STEPS)[number]['id'];

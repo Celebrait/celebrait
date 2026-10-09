@@ -1,0 +1,284 @@
+// client/src/pages/admin-card-bench.tsx
+//
+// THE BENCH — run a fixed set of briefs through the whole card engine and
+// lay every result on one page.
+//
+// Built because a day of prompt changes, each verified on its own, tells
+// you nothing about whether the engine as a whole moved forwards. Aidan,
+// fairly: "not sure if we've regressed after so many changes". The only
+// honest answer is a fixed set of briefs, run before and after, compared
+// with your eyes.
+//
+// Deliberately client-orchestrated: it calls the same /concepts and
+// /render endpoints the Lab does, one card at a time, so there is no
+// long-running server request to time out and you can watch it fill in.
+// It also means the bench exercises the REAL path — judge, ban list and
+// retries all fire exactly as they do for a customer.
+//
+// Briefs are editable. The defaults are guesses at the awkward cases; the
+// subjects customers actually type will be better ones.
+
+import { useState, useEffect } from 'react';
+import { Loader2, Play, Download, Star, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+/** One per line: who | occasion | interest. Chosen to cover what has
+ *  actually broken before — a hobby with kit, a subject that owns a
+ *  colour, a franchise (exercises the IP rules), a gentle recipient, and
+ *  a subject with no obvious objects. */
+const DEFAULT_BRIEFS = [
+  'Dad | Birthday | fishing',
+  'Brother | Birthday | Manchester United',
+  'Sister | Birthday | Harry Potter',
+  'Nan | Birthday | her garden',
+  'Best mate | Birthday | making cocktails',
+].join('\n');
+
+interface Concept {
+  angle: string;
+  /** The chosen style — see the studio's note. */
+  direction?: string;
+  format?: string;
+  front_text: string;
+  inside_text?: string;
+  art_direction: string;
+  palette?: string;
+  typeface?: string;
+}
+interface Cell {
+  briefLabel: string;
+  /** The brief that produced it — needed to save a keeper with the same
+   *  occasion/recipient/interest the studio would have recorded. */
+  brief: { who: string; occasion: string; interest: string };
+  concept: Concept;
+  imageUrl?: string;
+  error?: string;
+  saved?: boolean;
+  saving?: boolean;
+}
+
+function parseBriefs(text: string) {
+  return text.split('\n').map((l) => l.trim()).filter(Boolean).map((line) => {
+    const [who = 'Dad', occasion = 'Birthday', interest = ''] = line.split('|').map((s) => s.trim());
+    return { who, occasion, interest, label: `${interest} — for ${who}, ${occasion}` };
+  }).filter((b) => b.interest);
+}
+
+export default function AdminCardBenchPage() {
+  const { toast } = useToast();
+  const [briefText, setBriefText] = useState(DEFAULT_BRIEFS);
+  const [rude, setRude] = useState(false);
+  /** Same ladder as the studio — the bench was hardcoded to objects, so
+   *  a sweep could never test animals or figures. */
+  const [characters, setCharacters] = useState<'objects' | 'animals' | 'figures'>('objects');
+  /** Free style hands the medium choice to the model instead of using
+   *  the house look — see freeStyleDna(). Off by default: the house
+   *  style is still the brand. */
+  const [freeStyle, setFreeStyle] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [cells, setCells] = useState<Cell[]>([]);
+  const [spendUsd, setSpendUsd] = useState(0);
+  const [build, setBuild] = useState<{ commit: string; deployedAt: string } | null>(null);
+  const [ranAt, setRanAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiRequest('GET', '/api/admin/card-lab/build')
+      .then((r) => r.json()).then(setBuild)
+      .catch(() => { /* stamp is a nicety, never a blocker */ });
+  }, []);
+
+  const run = async () => {
+    const briefs = parseBriefs(briefText);
+    if (!briefs.length) {
+      toast({ title: 'No briefs', description: 'One per line: who | occasion | interest' });
+      return;
+    }
+    setRunning(true);
+    setCells([]);
+    setSpendUsd(0);
+    setRanAt(new Date().toLocaleString('en-GB'));
+
+    try {
+      for (const b of briefs) {
+        setProgress(`Writing ${b.interest}…`);
+        const cr = await apiRequest('POST', '/api/admin/card-lab/concepts', {
+          who: b.who, occasion: b.occasion, interest: b.interest,
+          insideMode: 'auto', cheeky: rude, characters, freeStyle,
+        });
+        const { concepts = [] } = (await cr.json()) as { concepts?: Concept[] };
+
+        // Show the words immediately — they are most of the value, and
+        // waiting 25s per render before seeing anything is miserable.
+        setCells((prev) => [...prev, ...concepts.map((c) => ({ briefLabel: b.label, brief: b, concept: c }))]);
+
+        await Promise.all(concepts.map(async (c) => {
+          try {
+            const rr = await apiRequest('POST', '/api/admin/card-lab/render', {
+              front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
+              typeface: c.typeface, format: c.format ?? 'hero', characters, freeStyle, quality: 'low',
+            });
+            const rj = await rr.json();
+            setCells((prev) => prev.map((cell) =>
+              cell.concept === c ? { ...cell, imageUrl: rj.imageUrl } : cell));
+            const n = parseFloat(String(rj.costUsd ?? '').replace('$', ''));
+            if (!Number.isNaN(n)) setSpendUsd((v) => v + n);
+          } catch (e: any) {
+            setCells((prev) => prev.map((cell) =>
+              cell.concept === c ? { ...cell, error: e?.message ?? 'render failed' } : cell));
+          }
+        }));
+      }
+      setProgress('');
+    } catch (e: any) {
+      toast({ title: 'Bench failed', description: e?.message ?? '', variant: 'destructive' });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  /** A sweep turns up keepers as often as a focused session does, and
+   *  they used to die with the page. Same endpoint the studio uses, so
+   *  they land in the same rack. */
+  const keep = async (i: number) => {
+    const cell = cells[i];
+    if (!cell?.imageUrl || cell.saved || cell.saving) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: true } : x)));
+    try {
+      await apiRequest('POST', '/api/admin/card-templates', {
+        occasion: cell.brief.occasion, recipient: cell.brief.who, interest: cell.brief.interest,
+        angle: cell.concept.angle, front_text: cell.concept.front_text,
+        inside_text: cell.concept.inside_text, palette: cell.concept.palette,
+        typeface: cell.concept.typeface, format: cell.concept.format,
+        art_direction: cell.concept.art_direction, imageUrl: cell.imageUrl,
+      });
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saved: true, saving: false } : x)));
+    } catch (e: any) {
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, saving: false } : x)));
+      toast({ title: 'Could not save', description: e?.message ?? '', variant: 'destructive' });
+    }
+  };
+
+  /** Save the sheet so it can sit next to the next one. The whole point
+   *  is before-and-after, which needs a file you can keep. */
+  const download = () => {
+    const esc = (s: string) => String(s ?? '').replace(/[&<>"]/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const html = `<!doctype html><meta charset="utf-8"><title>Card bench ${esc(build?.commit ?? '')}</title>
+<style>body{font:15px/1.5 -apple-system,sans-serif;margin:0;padding:32px;background:#faf9f7;color:#3A342E}
+h1{font-size:20px;margin:0 0 4px}.sub{color:#7A7267;margin:0 0 24px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+figure{margin:0;background:#fff;border:1px solid #e8e4de;border-radius:10px;overflow:hidden}
+img{width:100%;display:block}figcaption{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.angle{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6b5bd2}
+.meta{font-size:11px;color:#8a8279}</style>
+<h1>Card bench${rude ? ' — rude mode' : ''}</h1>
+<p class="sub">build ${esc(build?.commit ?? 'unknown')} · ${esc(ranAt ?? '')} · $${spendUsd.toFixed(3)}</p>
+<div class="grid">${cells.map((c) => `<figure>
+${c.imageUrl ? `<img src="${c.imageUrl}" crossorigin="anonymous">` : '<div style="aspect-ratio:1"></div>'}
+<figcaption><span class="angle">${esc(c.concept.angle)}</span>
+<strong>&ldquo;${esc(c.concept.front_text)}&rdquo;</strong>
+<span class="meta">${esc(c.briefLabel)}</span>
+<span class="meta">${esc(c.concept.direction ?? '')}</span>
+<span class="meta">${esc(c.concept.typeface ?? '')}</span>
+<span class="meta">${esc(c.concept.palette ?? '')}</span></figcaption></figure>`).join('')}</div>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bench-${build?.commit ?? 'local'}${rude ? '-rude' : ''}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-stone-900">Card bench</h1>
+          <p className="text-sm text-stone-500">
+            Same briefs every run. Save the sheet, change something, run it again, put them side by side.
+          </p>
+        </div>
+        <div className="text-right text-xs text-stone-400">
+          <p>this run <span className="font-semibold text-stone-600">${spendUsd.toFixed(3)}</span></p>
+          {build && <p className="mt-0.5">build <span className="font-mono font-semibold text-stone-600">{build.commit}</span></p>}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-stone-200 bg-white p-5 space-y-3">
+        <div>
+          <Label htmlFor="briefs" className="text-xs font-semibold text-stone-700">
+            Briefs — one per line, <span className="font-mono">who | occasion | interest</span>
+          </Label>
+          <Textarea id="briefs" rows={6} value={briefText} onChange={(e) => setBriefText(e.target.value)}
+            className="mt-1.5 font-mono text-xs" disabled={running} />
+          <p className="mt-1.5 text-xs text-stone-400">
+            Roughly 2p per brief. Keep the list stable between runs or the comparison means nothing.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={run} disabled={running}>
+            {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{progress || 'Running…'}</>
+                     : <><Play className="mr-2 h-4 w-4" />Run the bench</>}
+          </Button>
+          <label className="flex items-center gap-2 text-sm text-stone-600">
+            <input type="checkbox" checked={rude} onChange={(e) => setRude(e.target.checked)} disabled={running} />
+            Rude mode
+          </label>
+          <label className="flex items-center gap-2 text-sm text-stone-600">
+            <input type="checkbox" checked={freeStyle} onChange={(e) => setFreeStyle(e.target.checked)} disabled={running} />
+            Free style
+          </label>
+          <div className="flex items-center gap-1.5">
+            {([['objects', 'Objects'], ['animals', '+ Animals'], ['figures', '+ People']] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setCharacters(v)} disabled={running}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  characters === v ? 'border-brand bg-brand-muted/50 text-brand-dark'
+                                   : 'border-stone-200 bg-white text-stone-500 hover:border-brand/50'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {cells.length > 0 && !running && (
+            <Button variant="outline" onClick={download}>
+              <Download className="mr-2 h-4 w-4" />Save sheet
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {cells.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {cells.map((c, i) => (
+            <div key={i} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+              <div className="aspect-square bg-stone-50">
+                {c.imageUrl
+                  ? <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="h-full w-full object-cover" />
+                  : c.error
+                    ? <div className="flex h-full items-center justify-center p-3 text-center text-xs text-red-600">{c.error}</div>
+                    : <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-stone-300" /></div>}
+              </div>
+              <div className="space-y-1 p-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand">{c.concept.angle}</span>
+                <p className="text-[13px] font-semibold leading-snug text-stone-800">“{c.concept.front_text}”</p>
+                <p className="text-[11px] text-stone-400">{c.briefLabel}</p>
+                {c.concept.direction && <p className="text-[11px] leading-snug text-brand-dark/70">{c.concept.direction}</p>}
+                {c.concept.typeface && <p className="text-[11px] text-stone-400">{c.concept.typeface}</p>}
+                <Button size="sm" variant={c.saved ? 'outline' : 'default'} className="mt-1.5 h-8 w-full"
+                  onClick={() => keep(i)} disabled={!c.imageUrl || c.saved || c.saving}>
+                  {c.saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : c.saved ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Star className="mr-1.5 h-3.5 w-3.5" />}
+                  {c.saved ? 'Kept' : 'Keep'}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

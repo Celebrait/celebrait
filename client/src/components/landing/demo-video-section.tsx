@@ -25,12 +25,12 @@ import { Play } from 'lucide-react';
 // at 1440×900 / 2x DPR (puppeteer + headless Chrome, dev OTP login).
 // Re-snap with the same flow if the dashboard chrome changes:
 //   /tmp/snap-studio.mjs (puppeteer-core), saves to
-//   client/src/assets/studio-dashboard-poster.png.
-import studioDashboardPoster from '@/assets/studio-dashboard-poster.png';
+//   client/src/assets/studio-dashboard-poster.jpg.
+import studioDashboardPoster from '@/assets/studio-dashboard-poster.jpg';
 
 export function DemoVideoSection() {
   return (
-    <section className="relative bg-surface-card py-16 md:py-20 lg:py-24">
+    <section className="snap-center relative py-16 md:py-20 lg:py-24">
       <div className="max-w-5xl mx-auto px-6 md:px-10">
         {/* Header — eyebrow + headline only. Sub-paragraph dropped
             (Kevin call 2026-05-06). */}
@@ -54,7 +54,7 @@ export function DemoVideoSection() {
         >
           <img
             src={studioDashboardPoster}
-            alt="Preview — the Studio dashboard, where you make a card"
+            alt="Preview of the Studio dashboard, where you make a card"
             className="absolute inset-0 w-full h-full object-cover object-top"
           />
 
@@ -83,7 +83,7 @@ export function DemoVideoSection() {
               type="button"
               disabled
               className="group relative w-20 h-20 md:w-24 md:h-24 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-2xl cursor-not-allowed ring-4 ring-white/30"
-              aria-label="Demo video — coming soon"
+              aria-label="Demo video, coming soon"
             >
               <Play
                 className="w-8 h-8 md:w-10 md:h-10 ml-1"

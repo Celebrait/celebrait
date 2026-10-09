@@ -1,12 +1,17 @@
 // client/src/components/landing/marketing-footer.tsx
 //
-// Dark footer — bg-ink with stone-300 text, columns for Company /
-// Help / Legal, social row, copyright + locale tagline. The one place
-// on the lander where ink (slate-900) acts as a surface, not just text.
+// The sign-off. A bold, warm footer that doubles as the page's closing
+// moment (the old full-screen FinaleSection was retired 2026-07-22):
+//   • a closing CTA band (auth-aware "Make a card" button),
+//   • Company / Help / Legal link columns + socials,
+//   • an oversized "Celebrait" wordmark bleeding off the bottom edge as a
+//     watermark signature, with the copyright strip laid over it.
+// Dark keeper-ink surface with a soft marigold glow up top.
 
-import { Link } from 'wouter';
-import { Instagram } from 'lucide-react';
-import logoSrc from '@/assets/Logo2.png';
+import { Link, useLocation } from 'wouter';
+import { Instagram, ArrowRight } from 'lucide-react';
+import logoSrc from '@/assets/logo-mark.webp';
+import { useAuth } from '@/hooks/use-auth';
 
 interface FooterLink {
   label: string;
@@ -15,93 +20,182 @@ interface FooterLink {
 }
 
 const COMPANY: FooterLink[] = [
-  { label: 'About', href: '/about' },
+  { label: 'Contact', href: '/contact' },
   { label: 'Blog', href: '/blog' },
-  { label: 'Contact', href: 'mailto:hello@celebrait.co.uk', external: true },
 ];
 
-const HELP: FooterLink[] = [
-  { label: 'How it works', href: '/#how-it-works' },
-  { label: 'FAQ', href: '/#faq' },
-  { label: 'Delivery', href: '/#delivery' },
-];
+// Anchors must exist on the page they name: `/` is the gate (only
+// #doors), so these point at the photo LP's sections and pricing's
+// delivery block (audit 2026-10-06). FAQ is door-aware (2026-10-09):
+// /create has its own #faq with the three-card answers, so on that side
+// of the house the link stays on that side.
+function helpLinks(path: string): FooterLink[] {
+  return [
+    { label: 'How it works', href: '/photo#proof' },
+    { label: 'FAQ', href: THREE_CARD_DOOR.test(path) ? '/create#faq' : '/photo#faq' },
+    { label: 'Delivery', href: '/pricing#delivery' },
+  ];
+}
 
 const LEGAL: FooterLink[] = [
   { label: 'Terms', href: '/terms-of-service' },
   { label: 'Privacy', href: '/privacy-policy' },
 ];
 
+type FooterCtaMode = 'default' | 'gate';
+
+// Door-aware closing CTA. On the three-card side (/create, /make, /door*)
+// it stays in that flow — /make asks the brief itself; on the photo side
+// it goes to the public photo maker, or straight to the studio when
+// signed in. It used to open the photo offer modal from every page and
+// promise "it's free" under priced cards (audit 2026-10-06): making is
+// free, the card isn't, so the label is just "Make a card".
+export const THREE_CARD_DOOR = /^\/(create|make|door2?)(?:\/|$)/;
+
+/** Where "Make yours" goes while the rack is parked (2026-10-09) — the
+ *  same door logic: stay on the three-card side if that's where the
+ *  visitor is, the public photo maker elsewhere. */
+export function useMakeYoursHref(): string {
+  const [path] = useLocation();
+  return THREE_CARD_DOOR.test(path) ? '/make' : '/photo/make';
+}
+
+function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [path] = useLocation();
+  const authed = !isLoading && isAuthenticated;
+  const cls =
+    'group inline-flex items-center gap-2 rounded-full bg-keeper-paper px-8 py-4 text-base font-semibold text-keeper-ink shadow-lg shadow-black/20 transition-all hover:-translate-y-0.5 hover:bg-white';
+  const arrow = <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />;
+  // On the gate (/) the two doors above are the answer — the band must
+  // not promise "free" under two priced doors, nor pick a route for them.
+  // A real link (not scrollIntoView) so it also works from /pricing,
+  // where there is no #doors.
+  if (mode === 'gate') {
+    return (
+      <Link href="/#doors" className={cls}>
+        Pick your route
+        {arrow}
+      </Link>
+    );
+  }
+  const href = THREE_CARD_DOOR.test(path)
+    ? '/make'
+    : authed
+      ? '/studio/new-card'
+      : '/photo/make';
+  return (
+    <Link href={href} className={cls} data-testid="footer-cta">
+      Make a card
+      {arrow}
+    </Link>
+  );
+}
+
 function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
-      <h4 className="text-[11px] uppercase tracking-[0.18em] text-stone-400 font-medium mb-4">
+      <h4 className="mb-4 text-[11px] font-medium uppercase tracking-[0.18em] text-keeper-gold/80">
         {title}
       </h4>
       <ul className="space-y-2.5">
-        {links.map((link) =>
-          link.external ? (
-            <li key={link.href}>
+        {links.map((link) => (
+          <li key={link.href}>
+            {link.external ? (
               <a
                 href={link.href}
-                className="text-sm text-stone-300 hover:text-white transition-colors"
+                className="text-sm text-keeper-paper/70 transition-colors hover:text-keeper-paper"
               >
                 {link.label}
               </a>
-            </li>
-          ) : (
-            <li key={link.href}>
+            ) : (
               <Link
                 href={link.href}
-                className="text-sm text-stone-300 hover:text-white transition-colors"
+                className="text-sm text-keeper-paper/70 transition-colors hover:text-keeper-paper"
               >
                 {link.label}
               </Link>
-            </li>
-          ),
-        )}
+            )}
+          </li>
+        ))}
       </ul>
     </div>
   );
 }
 
-export function MarketingFooter() {
+export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {}) {
+  const [path] = useLocation();
   return (
-    <footer className="bg-ink text-stone-300">
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-16">
-        {/* Top row: brand + columns */}
-        <div className="grid grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr] gap-10 md:gap-8">
+    <footer className="relative isolate overflow-hidden bg-keeper-ink text-keeper-paper">
+      {/* Warm marigold glow bleeding down from the top edge. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[85%] -translate-x-1/2 rounded-[100%] bg-keeper-gold/25 blur-[110px]"
+      />
+
+      {/* Oversized "Celebrait" wordmark, pinned to the bottom and bleeding
+          off the edge as a faint watermark. Absolute + behind the content
+          (isolate + relative content), so it never disturbs the layout. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center overflow-hidden"
+      >
+        <span className="translate-y-[30%] whitespace-nowrap font-display text-[clamp(84px,21vw,360px)] font-bold leading-none tracking-[-0.04em] text-white/[0.05]">
+          Celebrait
+        </span>
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-6 md:px-10">
+        {/* Closing CTA band */}
+        <div className="flex flex-col gap-8 border-b border-white/10 py-16 md:flex-row md:items-end md:justify-between md:py-20">
+          <h2 className="max-w-[16ch] font-display text-4xl font-semibold leading-[1.03] tracking-[-0.02em] text-keeper-paper md:text-6xl">
+            Celebrait good times, come on&hellip;
+          </h2>
+          <div className="shrink-0">
+            <FooterCta mode={cta} />
+          </div>
+        </div>
+
+        {/* Link columns */}
+        <div className="grid grid-cols-2 gap-10 py-14 md:grid-cols-[1.6fr_1fr_1fr_1fr] md:gap-8">
           <div>
             <img
               src={logoSrc}
               alt="Celebrait"
-              className="h-8 mb-4"
+              className="mb-4 h-8"
               style={{ filter: 'brightness(0) invert(1)' }}
             />
-            <p className="text-sm text-stone-400 max-w-[28ch] leading-relaxed">
-              AI-illustrated greeting cards for the people who matter.
+            <p className="max-w-[34ch] text-sm leading-relaxed text-keeper-paper/60">
+              Custom greetings card with a front and inside that belong
+              together, print-ready in under ten minutes*
             </p>
+            <p className="mt-1.5 max-w-[34ch] text-[11px] leading-snug text-keeper-paper/40">
+              *Possible, but you might prefer to take longer
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <a
+                href="https://instagram.com/celebrait"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Celebrait on Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-keeper-paper/70 transition-colors hover:border-keeper-gold/60 hover:text-keeper-paper"
+              >
+                <Instagram className="h-4 w-4" strokeWidth={1.75} />
+              </a>
+            </div>
           </div>
           <FooterColumn title="Company" links={COMPANY} />
-          <FooterColumn title="Help" links={HELP} />
+          <FooterColumn title="Help" links={helpLinks(path)} />
           <FooterColumn title="Legal" links={LEGAL} />
         </div>
+      </div>
 
-        {/* Bottom strip */}
-        <div className="mt-12 pt-8 border-t border-stone-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-stone-500">
-            © {new Date().getFullYear()} Celebrait. Made in London.
-          </p>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://instagram.com/celebrait"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-stone-400 hover:text-white transition-colors"
-              aria-label="Celebrait on Instagram"
-            >
-              <Instagram className="w-4 h-4" strokeWidth={1.75} />
-            </a>
-          </div>
+      {/* Bottom strip, laid over the watermark. Extra top padding gives the
+          bleeding wordmark room to read behind it. */}
+      <div className="relative mt-24 border-t border-white/10 md:mt-32">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-keeper-paper/50 md:flex-row md:px-10">
+          <p>© {new Date().getFullYear()} Celebrait · Made in Manchester</p>
+          <p className="tracking-wide">Cards worth keeping.</p>
         </div>
       </div>
     </footer>

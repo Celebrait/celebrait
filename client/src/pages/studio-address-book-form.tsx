@@ -15,15 +15,18 @@
 // we route to the existing entry's edit page rather than refusing to
 // save.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { FIXED_DATE_OCCASIONS } from '@shared/fixed-occasions';
 import {
   ArrowLeft,
   Cake,
   Calendar,
   Loader2,
   Plus,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,9 +41,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { OCCASION_PRESETS } from '@/components/studio/scene-presets';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 import type {
   AddressBookEntry,
   RecipientOccasionRow,
@@ -82,6 +94,59 @@ const OCCASION_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────
+// Field-level validation (launch audit 2026-10-06). Mirrors the server
+// schema so a bad field is named NEXT TO the field before anything is
+// sent — the old flow was one "Invalid input" toast after a partial save.
+// Keys: 'name' | 'email' | 'phone' | `occ-${index}-date`.
+// ─────────────────────────────────────────────────────────────────────
+
+type FieldErrors = Record<string, string>;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Loose: digits/spaces/()/-/+ and at least 6 significant characters.
+const PHONE_RE = /^[+\d][\d\s().-]{5,}$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validateForm(input: {
+  name: string;
+  email: string;
+  phone: string;
+  occasions: OccasionFormState[];
+}): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!input.name.trim()) errors.name = 'Name is required';
+  const email = input.email.trim();
+  if (email && !EMAIL_RE.test(email)) errors.email = 'Enter a valid email';
+  const phone = input.phone.trim();
+  if (phone && phone.length > 40) errors.phone = 'Phone number is too long (40 characters max)';
+  else if (phone && !PHONE_RE.test(phone)) errors.phone = 'Enter a valid phone number';
+  input.occasions.forEach((o, i) => {
+    // Fixed-date occasions carry no date; blank means "don't know yet".
+    if (FIXED_DATE_OCCASIONS.has(o.occasion) || !o.date) return;
+    const d = new Date(`${o.date}T00:00:00Z`);
+    if (!ISO_DATE_RE.test(o.date) || Number.isNaN(d.getTime())) {
+      errors[`occ-${i}-date`] = 'Enter a full date (YYYY-MM-DD)';
+    }
+  });
+  return errors;
+}
+
+/** Map the server's zod `errors` (flatten().fieldErrors) onto our keys so
+ *  a rule we don't mirror client-side still lands next to its field. */
+function serverFieldErrors(err: any): FieldErrors {
+  const out: FieldErrors = {};
+  const errors = err?.errors;
+  if (!errors || typeof errors !== 'object') return out;
+  for (const [key, msgs] of Object.entries(errors as Record<string, unknown>)) {
+    const msg = Array.isArray(msgs) ? msgs[0] : null;
+    if (typeof msg !== 'string') continue;
+    if (key === 'name' || key === 'email' || key === 'phone') out[key] = msg;
+    else if (key === 'date') out['occ-0-date'] = msg; // single-occasion endpoints
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Occasion-aware date semantics.
 //
 // What the user is actually entering varies by occasion:
@@ -100,22 +165,19 @@ const OCCASION_OPTIONS: Array<{ value: string; label: string }> = [
 // Helpers below drive the form's date label + visibility per occasion.
 // ─────────────────────────────────────────────────────────────────────
 
-/** Occasions where the date is universally known (fixed calendar
- *  date). For these, the form hides the date input entirely. */
-const FIXED_DATE_OCCASIONS = new Set([
-  'christmas',
-  'valentines',
-  'mothers_day',
-  'fathers_day',
-]);
+// FIXED_DATE_OCCASIONS is the single shared source (@shared/fixed-occasions)
+// — the same set the reminder dispatcher resolves dates for. For these the
+// form hides the date input; the calendar already knows when they fall.
 
 /** Human-readable date-the-fixed-occasion-falls-on, shown as a tiny
- *  helper line where the date input would have been. */
+ *  helper line where the date input would have been. UK dates. */
 const FIXED_DATE_NOTES: Record<string, string> = {
-  christmas: '25 December — we know.',
-  valentines: '14 February — we know.',
-  mothers_day: 'Second Sunday of May (UK / SA pattern).',
-  fathers_day: 'Third Sunday of June.',
+  christmas: '25 December. We know.',
+  valentines: '14 February. We know.',
+  // UK Mother's Day = Mothering Sunday (4th Sunday of Lent, in March) —
+  // NOT the US "2nd Sunday of May". (audit 2026-07-02.)
+  mothers_day: 'Mothering Sunday (in March). We know.',
+  fathers_day: 'Third Sunday of June. We know.',
 };
 
 /** Field label for the date input, occasion-aware. The reminder
@@ -150,7 +212,7 @@ function dateHintForOccasion(occasion: string): string {
     case 'anniversary':
     case 'wedding':
     case 'engagement':
-      return "We'll remind you each year — and know which anniversary it is.";
+      return "We'll remind you each year, and know which anniversary it is.";
     default:
       return "We need this to remind you in time";
   }
@@ -198,6 +260,12 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
   const [notes, setNotes] = useState('');
   const [occasionRows, setOccasionRows] = useState<OccasionFormState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // Synchronous double-submit guard — state alone lags a fast double-tap
+  // (audit saw 3 POSTs from 3 clicks).
+  const submittingRef = useRef(false);
+  const clearError = (key: string) =>
+    setFieldErrors((prev) => (prev[key] ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)) : prev));
 
   // ── Load existing entry on edit ────────────────────────────────
   const { data: existing, isLoading: isLoadingExisting } = useQuery<EntryWithOccasions>({
@@ -247,14 +315,19 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user/address-book'] });
-      toast({ title: `${name.trim()} added` });
+      // Reminders feed is derived from occasions — must invalidate so the
+      // Studio Home "Coming up" widget picks up a freshly-added birthday
+      // on the next render. Without this, the widget shows stale cache.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
+      toast({ title: `${name.trim()} added`, variant: 'success' });
       setLocation('/studio/people/address-book');
     },
     onError: async (err: any) => {
       // 409 = duplicate name; route to existing entry's edit page.
-      const status = err?.status ?? err?.response?.status;
-      const existingId = err?.body?.existingId ?? err?.response?.data?.existingId;
-      if (status === 409 && existingId) {
+      // apiRequest spreads the JSON body onto the Error itself, so the
+      // id is `err.existingId` (the old `err.body` path was always undefined).
+      const existingId = err?.existingId ?? err?.body?.existingId;
+      if (existingId) {
         toast({
           title: `You already have a ${name.trim()} saved`,
           description: 'Opening their entry so you can update it.',
@@ -262,9 +335,10 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         setLocation(`/studio/people/address-book/${existingId}/edit`);
         return;
       }
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors(err) }));
       toast({
         title: "Couldn't save",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -338,18 +412,24 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       queryClient.invalidateQueries({
         queryKey: [`/api/user/address-book/${idFromUrl}`],
       });
+      // Reminders feed is derived from occasions — must invalidate so
+      // the Studio Home "Coming up" widget reflects edits to dates /
+      // added or removed occasions on the next render.
+      queryClient.invalidateQueries({ queryKey: ['/api/user/reminders'] });
       // Name-weave the saved-toast like the create-toast does — the
       // form has the name in scope, may as well land warmer.
       const savedName = name.trim();
       toast({
-        title: savedName ? `Saved — ${savedName}'s all set` : 'Saved',
+        title: savedName ? `Saved. ${savedName}'s all set` : 'Saved',
+        variant: 'success',
       });
       setLocation('/studio/people/address-book');
     },
     onError: (err: any) => {
+      setFieldErrors((prev) => ({ ...prev, ...serverFieldErrors(err) }));
       toast({
         title: "Couldn't save",
-        description: err?.message ?? 'Try again in a moment.',
+        description: friendlyError(err, 'Try again in a moment.'),
         variant: 'destructive',
       });
     },
@@ -377,11 +457,16 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
   };
 
   const handleSubmit = async () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      toast({ title: 'Pop in a name first.', variant: 'destructive' });
+    if (submittingRef.current) return;
+    const errors = validateForm({ name, email, phone, occasions: occasionRows });
+    setFieldErrors(errors);
+    const firstKey = Object.keys(errors)[0];
+    if (firstKey) {
+      // Put the cursor on the first problem — the message sits under it.
+      document.getElementById(firstKey)?.focus();
       return;
     }
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       if (mode === 'edit') {
@@ -389,7 +474,11 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       } else {
         await createMutation.mutateAsync();
       }
+    } catch {
+      /* onError has already toasted + marked the field — don't rethrow
+         into an unhandled rejection (Vite overlay in dev). */
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -425,13 +514,13 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
       <div className="mb-6">
         <Link
           href="/studio/people/address-book"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-ink mb-3"
+          className="inline-flex items-center gap-1.5 text-sm text-keeper-meta hover:text-keeper-ink mb-3"
           data-testid="btn-back-to-address-book"
         >
           <ArrowLeft className="w-4 h-4" />
           Address book
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">{heading}</h1>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">{heading}</h1>
       </div>
 
       {/* Form */}
@@ -439,14 +528,15 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Name + relationship */}
         <FormSection title="Who are they?">
           <div className="space-y-3">
-            <Field label="Name" required htmlFor="name">
+            <Field label="Name" required htmlFor="name" error={fieldErrors.name}>
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); clearError('name'); }}
                 placeholder="Mum, Dad, Auntie Sue…"
                 maxLength={80}
                 autoFocus={mode === 'new'}
+                aria-invalid={!!fieldErrors.name}
                 data-testid="input-ab-name"
               />
             </Field>
@@ -475,9 +565,9 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         >
           {occasionRows.length === 0 ? (
             <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl px-4 py-6 text-center">
-              <Cake className="w-5 h-5 text-stone-400 mx-auto mb-2" />
-              <p className="text-sm text-stone-600 mb-3">
-                Pop in a birthday or anniversary — we'll nudge you in good time.
+              <Cake className="w-5 h-5 text-keeper-meta mx-auto mb-2" />
+              <p className="text-sm text-keeper-body mb-3">
+                Pop in a birthday or anniversary and we'll nudge you in good time.
               </p>
               <Button
                 type="button"
@@ -497,7 +587,8 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
                   key={row.id ?? `new-${idx}`}
                   row={row}
                   index={idx}
-                  onChange={(patch) => updateOccasion(idx, patch)}
+                  dateError={fieldErrors[`occ-${idx}-date`]}
+                  onChange={(patch) => { updateOccasion(idx, patch); clearError(`occ-${idx}-date`); }}
                   onRemove={() => removeOccasion(idx)}
                 />
               ))}
@@ -518,27 +609,29 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Contact */}
         <FormSection
           title="Contact"
-          subtitle="Email lets you send digital cards. Phone is just for your records."
+          subtitle="Email is where we send their card's digital link. Phone is just for your records."
         >
           <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Email" optional htmlFor="email">
+            <Field label="Email" optional htmlFor="email" error={fieldErrors.email}>
               <Input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); clearError('email'); }}
                 placeholder="them@example.com"
+                aria-invalid={!!fieldErrors.email}
                 data-testid="input-ab-email"
               />
             </Field>
-            <Field label="Phone" optional htmlFor="phone">
+            <Field label="Phone" optional htmlFor="phone" error={fieldErrors.phone}>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+27…"
+                onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
+                placeholder="+44…"
                 maxLength={40}
+                aria-invalid={!!fieldErrors.phone}
                 data-testid="input-ab-phone"
               />
             </Field>
@@ -548,7 +641,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Postal address */}
         <FormSection
           title="Postal address"
-          subtitle="For printed cards. Leave blank if you only ever send digital."
+          subtitle="For posting their printed card."
         >
           <div className="space-y-3">
             <Field label="Address line 1" optional htmlFor="addr1">
@@ -615,7 +708,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
         {/* Notes */}
         <FormSection
           title="Notes"
-          subtitle="Just for you — gift ideas, in-jokes, things to remember."
+          subtitle="Just for you: gift ideas, in-jokes, things to remember."
         >
           <Textarea
             value={notes}
@@ -628,6 +721,12 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           />
         </FormSection>
       </div>
+
+      {/* Privacy footer — GDPR table-stakes. Sits below the form so it
+          frames the act of saving without slowing it down. The Dialog
+          carries the full "what we store" explainer for users who want
+          the detail. See next_address_book_reminders_retention.md. */}
+      <PrivacyFooter />
 
       {/* Actions */}
       <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
@@ -643,8 +742,8 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
           type="button"
           size="lg"
           onClick={handleSubmit}
-          disabled={isSubmitting || !name.trim()}
-          className="bg-brand hover:bg-brand-dark text-white sm:w-auto"
+          disabled={isSubmitting || createMutation.isPending || updateMutation.isPending || !name.trim()}
+          className="bg-go hover:bg-go-hover text-white sm:w-auto"
           data-testid="btn-ab-save"
         >
           {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -669,14 +768,102 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 sm:p-6">
+    <div className="bg-white rounded-2xl border border-keeper-hair p-5 sm:p-6">
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+        <h3 className="text-sm font-semibold text-keeper-ink">{title}</h3>
         {subtitle && (
-          <p className="text-xs text-stone-500 mt-1 leading-relaxed">{subtitle}</p>
+          <p className="text-xs text-keeper-meta mt-1 leading-relaxed">{subtitle}</p>
         )}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PrivacyFooter — small reassurance line under the form + dialog with
+// the full "what we store" detail.
+//
+// Why this matters: the form collects DOBs, addresses, phone numbers,
+// free-form notes — all personal data about people who haven't
+// consented (their friend signed them up). UK GDPR doesn't make that
+// illegal (legitimate interest covers a private address book), but it
+// does require we tell the *sender* clearly what we do with it, and
+// give them a clean way to remove anyone. The per-row Remove action
+// already exists; this footer is the visible disclosure half. See
+// next_address_book_reminders_retention.md.
+// ─────────────────────────────────────────────────────────────────────
+
+function PrivacyFooter() {
+  return (
+    <div className="mt-6 flex items-start gap-2.5 text-xs text-keeper-meta leading-relaxed px-1">
+      <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-keeper-meta" aria-hidden />
+      <p>
+        Stored privately. Only you can see it. Remove anyone any time from
+        the address book menu.{' '}
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink focus:outline-none focus:text-keeper-ink"
+              data-testid="btn-ab-privacy-detail"
+            >
+              What we store
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>What we store, in plain English</DialogTitle>
+              <DialogDescription>
+                Your address book lives in your account so we can remind
+                you about the people who matter and pre-fill cards for
+                them.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-keeper-body leading-relaxed">
+              <div>
+                <p className="font-medium text-keeper-ink mb-1">What we keep</p>
+                <p>
+                  Just what you type: names, relationships, occasion
+                  dates, contact details, and your private notes. Nothing
+                  is shared with anyone else.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-keeper-ink mb-1">What we do with it</p>
+                <p>
+                  We use it to send <em>you</em> reminders before each
+                  occasion, and to pre-fill the recipient step when you
+                  start a new card. That's it. No marketing to your
+                  contacts, no third-party sharing, no resale.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-keeper-ink mb-1">Removing someone</p>
+                <p>
+                  Hit the ⋯ menu next to anyone in the address book and
+                  choose Remove. We delete the entry, their occasions,
+                  and any reminder history attached to them.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-keeper-ink mb-1">Your rights</p>
+                <p>
+                  Under UK GDPR you can ask us to export or delete
+                  everything we hold about you. Email{' '}
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}`}
+                    className="underline underline-offset-2 text-keeper-body hover:text-keeper-ink"
+                  >
+                    {SUPPORT_EMAIL}
+                  </a>{' '}
+                  and we'll handle it within 30 days.
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </p>
     </div>
   );
 }
@@ -698,6 +885,7 @@ function Field({
   htmlFor,
   required,
   hint,
+  error,
   children,
 }: {
   label: string;
@@ -707,6 +895,8 @@ function Field({
    *  see the section comment above. */
   optional?: boolean;
   hint?: string;
+  /** Validation message — shown under the input in ember, replaces the hint. */
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -716,7 +906,18 @@ function Field({
         {required && <span className="text-red-500">*</span>}
       </Label>
       <div className="mt-1.5">{children}</div>
-      {hint && <p className="text-[11px] text-stone-500 mt-1">{hint}</p>}
+      {error ? (
+        <p
+          id={`${htmlFor}-error`}
+          role="alert"
+          className="text-[11px] text-accent-red-dark mt-1"
+          data-testid={`error-${htmlFor}`}
+        >
+          {error}
+        </p>
+      ) : (
+        hint && <p className="text-[11px] text-keeper-meta mt-1">{hint}</p>
+      )}
     </div>
   );
 }
@@ -728,11 +929,14 @@ function Field({
 function OccasionRow({
   row,
   index,
+  dateError,
   onChange,
   onRemove,
 }: {
   row: OccasionFormState;
   index: number;
+  /** Validation message for this row's date field. */
+  dateError?: string;
   onChange: (patch: Partial<OccasionFormState>) => void;
   onRemove: () => void;
 }) {
@@ -748,7 +952,7 @@ function OccasionRow({
 
   return (
     <div
-      className="border border-stone-200 rounded-xl p-3 sm:p-4"
+      className="border border-keeper-hair rounded-xl p-3 sm:p-4"
       data-testid={`occasion-row-${index}`}
     >
       <div className="flex items-start gap-3">
@@ -786,12 +990,14 @@ function OccasionRow({
                 label={dateLabel}
                 htmlFor={`occ-${index}-date`}
                 hint={!row.date ? dateHint : undefined}
+                error={dateError}
               >
                 <Input
                   id={`occ-${index}-date`}
                   type="date"
                   value={row.date}
                   onChange={(e) => onChange({ date: e.target.value })}
+                  aria-invalid={!!dateError}
                   data-testid={`input-occasion-date-${index}`}
                 />
               </Field>
@@ -800,7 +1006,7 @@ function OccasionRow({
               // when they are. Render a small helper line in the slot
               // the date field would have occupied so the layout
               // doesn't jump when the user toggles between occasions.
-              <div className="flex items-center text-[11px] text-stone-500 sm:pt-6 leading-relaxed">
+              <div className="flex items-center text-[11px] text-keeper-meta sm:pt-6 leading-relaxed">
                 <span>{fixedDateNote}</span>
               </div>
             )}
@@ -814,9 +1020,9 @@ function OccasionRow({
               />
               <Label
                 htmlFor={`occ-${index}-yearspec`}
-                className="text-xs text-stone-600 font-normal cursor-pointer"
+                className="text-xs text-keeper-body font-normal cursor-pointer"
               >
-                Just this once — a specific year (their 60th, a wedding date)
+                Just this once, for a specific year (their 60th, a wedding date)
               </Label>
             </div>
           )}
@@ -832,7 +1038,7 @@ function OccasionRow({
         <button
           type="button"
           onClick={onRemove}
-          className="w-8 h-8 rounded-full text-stone-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors"
+          className="w-8 h-8 rounded-full text-keeper-meta hover:text-red-600 hover:bg-red-50 flex items-center justify-center shrink-0 transition-colors"
           aria-label="Remove occasion"
           data-testid={`btn-remove-occasion-${index}`}
         >

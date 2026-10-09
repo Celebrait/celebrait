@@ -1,0 +1,804 @@
+// client/src/pages/make.tsx — /make, DOOR ONE'S BUILDER
+//
+// The research flow, rebuilt in the studio's own clothes: same shell,
+// same panel, same inputs, same buttons, same stepper rail (see the
+// studio recipe). Brief → wait → three cards → pick → cameo (after the
+// pick, the proven timing) → inside → done. No account to generate;
+// sign in to keep, buy lands with Phase C. Engine calls go through
+// /api/make/* behind the guest gate.
+//
+// Studio rules held: dashboard stepper, never one-question-per-screen;
+// name-weave from step 2; violet = selection/links/primary, green =
+// commit moments only (Design my three cards, Design the inside);
+// titles always ink; lucide at 1.75.
+
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
+import { Link, useLocation } from 'wouter';
+import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { CropDialog } from '@/components/studio/crop-dialog';
+import { PhotoConsentLine, PhotoTips, readPhotoConsent, rememberPhotoConsent } from '@/components/photo-consent-tips';
+import { likenessNoteForSet, ANALYSIS_GATE_MS, type PhotoSetNote } from '@/lib/photo-likeness';
+import { toast } from '@/hooks/use-toast';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { StepChips, type StepChip } from '@/components/step-chips';
+import { MakeNarration } from '@/components/make-narration';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
+import { rackTokenKey } from '@/pages/buy';
+import { AjarTile } from '@/components/catalogue/ajar-tile';
+import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
+import { useSeo } from '@/lib/use-seo';
+import { useRackEnabled } from '@/hooks/use-rack';
+import { cardPriceGBP, HONEST_LEAD_LINE } from '@shared/pricing';
+import type { CropBounds } from '@shared/models/photos';
+import { KeeperHeader } from '@/components/landing/keeper-header';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+
+// ── plumbing ─────────────────────────────────────────────────────────
+// Ceilings per call (2026-09-08: a stalled upstream render held the page
+// on "Drawing the fronts" for minutes). A timeout throws like any other
+// failure — a cell shows "didn't come out", the rest still land.
+// ⚠️ Nothing here may exceed 100 s: Cloudflare sits in front of Render and
+// cuts any origin request at 100 s with a 524, so a longer ceiling would
+// only change which error the customer sees. Concepts measured 27 s on
+// prod for a plain brief (2026-10-08) — a 60 s ceiling was one slow
+// writer turn away from "That one took too long", which Aidan hit
+// repeatedly. 90 s, plus ONE silent retry on a timeout for the text call
+// (idempotent, pennies), keeps the deal alive without exceeding the cap.
+const MAKE_TIMEOUT_MS: Record<string, number> = { concepts: 90_000, render: 100_000, 'render-inside': 100_000, 'ip-safe-art': 45_000, cards: 30_000, 'cameo-check': 20_000 };
+const SILENT_RETRY_ON_TIMEOUT = new Set(['concepts']);
+async function makePost(path: string, body: unknown, attempt = 0): Promise<any> {
+  const ceiling = MAKE_TIMEOUT_MS[path.split('/')[0]] ?? 60_000;
+  let r: Response;
+  try {
+    r = await fetch(`/api/make/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ceiling) });
+  } catch (e: any) {
+    const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    if (timedOut && attempt === 0 && SILENT_RETRY_ON_TIMEOUT.has(path.split('/')[0])) {
+      console.warn(`[make] ${path} hit the ${ceiling / 1000}s ceiling — retrying once`);
+      return makePost(path, body, 1);
+    }
+    const err = new Error(timedOut ? 'That took too long. Give it another go' : 'Lost the connection. Give it another go') as Error & { code?: FailCode };
+    err.code = timedOut ? 'timeout' : 'server';
+    throw err;
+  }
+  if (!r.ok) {
+    const j = await r.json().catch(() => null);
+    const err = new Error(j?.message ?? 'That didn’t work. Give it another go') as Error & { status?: number; code?: FailCode };
+    err.status = r.status;
+    err.code = (j?.code as FailCode | undefined) ?? (r.status === 429 ? 'rate' : r.status >= 500 ? 'server' : 'unknown');
+    throw err;
+  }
+  return r.json();
+}
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+/** The inside renderer's ceiling on the joined message (render-inside's schema). */
+const INSIDE_MAX = 300;
+
+// The questions live in components/brief-questions.tsx (shared with the
+// doorway hero, where they run one at a time under the headline). The
+// brief arrives here in the URL; `go=1` means it's finished — straight
+// into the wait.
+
+interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string }
+/** The photo route's failure kinds (generation-error-panel.tsx), plus our
+ *  own ceiling. Same words on both routes (Aidan 2026-09-08). */
+type FailCode = 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown';
+const FAIL_COPY: Record<FailCode, { title: string; tile: string; retry: string }> = {
+  safety:  { title: 'The safety filter caught this one', tile: 'The safety filter caught this one, usually a name or a brand in the brief.', retry: 'Try a safer take' },
+  rate:    { title: 'Slow down a sec', tile: 'We’ve hit a rate limit on the drawing engine. Give it 30 seconds.', retry: 'Try again' },
+  server:  { title: 'The drawing engine’s busy', tile: 'The image model is overloaded right now. Try again in a minute.', retry: 'Try again' },
+  auth:    { title: 'Something’s misconfigured', tile: 'We hit a problem with the image provider. The team’s been notified.', retry: 'Try again' },
+  timeout: { title: 'That one took too long', tile: 'That one took too long to draw.', retry: 'Have another go' },
+  unknown: { title: 'That one didn’t land', tile: 'That one didn’t come out.', retry: 'Have another go' },
+};
+interface CardCell { concept: Concept; imageUrl?: string; error?: string; code?: FailCode; retrying?: boolean }
+type Phase = 'brief' | 'generating' | 'results' | 'cameo' | 'signoff' | 'done' | 'failed' | 'capped';
+
+// ── the landing's classes (Aidan 2026-09-03: "not sure we need to flip
+// into a studio style look from the homepage — can't we just stay where
+// we are?") — the same paper, hairlines, ink pills and violet links as
+// /door2 and /cards, so the flow never changes rooms. ──────────────────
+const panel = 'rounded-2xl border border-keeper-hair bg-white/70 p-6 shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] backdrop-blur-sm sm:p-8 min-h-[380px]';
+const h1 = 'font-display text-2xl font-bold tracking-[-0.015em] text-keeper-ink sm:text-3xl';
+const optional = <span className="ml-2 align-middle text-xs font-normal text-keeper-meta">optional</span>;
+const helper = 'mt-2 text-[12.5px] text-keeper-meta';
+const input = 'h-12 rounded-full border-keeper-hair bg-white/90 px-4 text-[15px] focus-visible:border-keeper-gold focus-visible:ring-keeper-gold/20';
+const chip = (on: boolean) => `rounded-full border px-3.5 py-1.5 text-sm transition-colors ${on ? 'border-keeper-gold bg-keeper-gold-wash text-keeper-gold' : 'border-keeper-hair bg-white/70 text-keeper-body hover:border-keeper-gold'}`;
+const tile = (on: boolean) => `relative flex items-center gap-3 text-left p-3 rounded-xl border transition-colors ${on ? 'border-keeper-gold bg-keeper-gold-wash' : 'border-keeper-hair bg-white/80 hover:border-keeper-gold'}`;
+const commit = 'inline-flex items-center justify-center gap-2 rounded-full bg-keeper-ink px-5 py-2.5 text-sm font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-40 disabled:pointer-events-none';
+const primary = commit;
+const textLink = 'text-sm text-keeper-meta underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold';
+const cardTile = 'group block rounded-2xl border bg-white/80 overflow-hidden shadow-[0_12px_40px_-24px_rgba(33,29,25,0.3)] transition-all text-left';
+
+/** The landing's chrome, exactly as /door2 and /cards wear it. `step`
+ *  is kept for the callers; the stepper rail was the studio's and is gone. */
+/** Chip labels for the brief's questions. */
+const QUESTION_LABEL: Record<QuestionKey, string> = {
+  who: 'Who', occasion: 'Occasion', age: 'Age', vibe: 'Vibe', interest: 'Interest', dislike: 'Avoid', name: 'Name',
+};
+
+/** The photo route's verdict box (studio/steps/photo-step.tsx), for the
+ *  one cameo crop: green confirms, amber advises, red holds the render
+ *  until the photo is swapped or the person overrides — friction, not a
+ *  wall (the only-photo-of-a-late-relative case is real). */
+function CameoVerdict({ note, className = '', onSwap, onOverride }: { note: PhotoSetNote; className?: string; onSwap?: () => void; onOverride?: () => void }) {
+  if (note.tone === 'good') {
+    return (
+      <div className={`rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3.5 ${className}`} data-testid="cameo-quality-good">
+        <div className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-600" strokeWidth={3} /><p className="text-[13px] font-bold text-keeper-ink">{note.headline}</p></div>
+        <p className="mt-1 text-[11.5px] leading-snug text-keeper-body">{note.detail}</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-2xl border-2 px-4 py-4 ${note.tone === 'block' ? 'border-red-400 bg-red-50' : 'border-amber-400 bg-amber-50'} ${className}`} data-testid="cameo-quality-note">
+      <p className="text-[14px] font-bold text-keeper-ink">{note.headline}</p>
+      <p className="mt-1 text-[12px] leading-snug text-keeper-body">{note.detail}</p>
+      {onSwap && (
+        <button type="button" onClick={onSwap} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[13px] font-semibold text-brand-foreground hover:bg-brand-dark transition-colors" data-testid="btn-photo-note-fix">
+          <Camera className="h-4 w-4" strokeWidth={2.5} /> Use a different photo
+        </button>
+      )}
+      {note.tone === 'block' && onOverride && (
+        <button type="button" onClick={onOverride} className="mt-2 block text-[11px] text-keeper-meta underline underline-offset-2 hover:text-keeper-body" data-testid="btn-quality-override">
+          I understand, use this photo anyway
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MakeShell({ children }: { step?: number; children: ReactNode }) {
+  return (
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className="relative mx-auto max-w-6xl px-4 pb-20 pt-32 sm:px-6">
+        <div className="mx-auto max-w-3xl">{children}</div>
+      </main>
+    </div>
+  );
+}
+
+export default function MakePage() {
+  useSeo('/make');
+  const rack = useRackEnabled() === true; // the shelf escape only while the rack sells
+  useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
+  const [, navigate] = useLocation();
+  const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
+  // The doorway finishes the questions and hands over with go=1: no
+  // re-asking, straight into the wait.
+  const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
+  const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
+  const [failMsg, setFailMsg] = useState('');
+  const [failCode, setFailCode] = useState<FailCode>('unknown');
+  // Latest cells for code that runs after awaits (the all-failed check).
+  const cellsRef = useRef<CardCell[]>([]);
+  // Progress for the chip row above the questions (see the brief phase).
+  const [briefStep, setBriefStep] = useState(0);
+  const [briefFurthest, setBriefFurthest] = useState(0);
+  const [briefQuestions, setBriefQuestions] = useState<QuestionKey[]>(['who', 'occasion', 'age', 'vibe', 'interest', 'name']);
+  const [briefJump, setBriefJump] = useState<number | null>(null);
+  useEffect(() => {
+    if (!autoGo.current) return;
+    autoGo.current = false;
+    // CONSUME THE TOKEN. go=1 is a one-shot instruction from the doorway,
+    // and it used to live on in the address bar — so a reload, a
+    // back/forward, a bookmark or a shared link re-fired a full set
+    // (concepts + three renders) every time, at real cost, with no
+    // confirmation (audit 2026-10-06). Strip it the moment it fires; the
+    // brief stays in the URL, so Back and refresh land on the questions,
+    // not on another bill.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('go');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    void generate();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ageNum = ageOf(brief);
+  const isKid = isKidBrief(brief);
+  const occasionLabel = occasionLabelFor(brief);
+  // "Linda" / "Mum" / "your partner" / "them" — never a bare role used
+  // as a name ("Three cards for Partner", Aidan 2026-09-09).
+  const whoName = whoPhrase(brief);
+
+  // ── Phase C: keep and buy ──────────────────────────────────────────
+  // Nothing is written until the card is finished and wanted. Saving
+  // mints a `cards` row (source 'maker') and a token that proves a
+  // guest owns it — the rack's pattern, so /buy needs nothing new.
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { openAuth } = useAuthModal();
+  const [saved, setSaved] = useState<{ cardId: number; cardToken: string } | null>(null);
+  const [saving, setSaving] = useState<'' | 'buy' | 'keep'>('');
+  /** "Roll again" asks the vibe first, then re-deals. */
+  const [askVibe, setAskVibe] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const savedRef = useRef<{ cardId: number; cardToken: string } | null>(null);
+  const saveCard = async (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string) => {
+    if (savedRef.current) return savedRef.current;
+    const j = await makePost('cards', {
+      frontImageUrl: front, insideImageUrl: inside, cameo: cameoKept && !!cameoUrl, insideMode: mode,
+      brief: { who: brief.who.trim(), gender: brief.gender, age: ageNum, interest: brief.thing.trim() || undefined, dislike: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, tone: brief.vibe, occasion: occasionLabel },
+      concept: { front_text: c.front_text, inside_text: c.inside_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, direction: c.direction },
+      message: msg || undefined,
+    });
+    const s = { cardId: j.cardId as number, cardToken: j.cardToken as string };
+    try { sessionStorage.setItem(rackTokenKey(s.cardId), s.cardToken); } catch { /* private mode: buy still works this session */ }
+    savedRef.current = s; setSaved(s);
+    return s;
+  };
+  // "Keep it": sign in, come back here with ?claim=<id>, adopt the card
+  // by its token, then on to the studio. (The token can't ride the
+  // session — OTP verify regenerates it — so it lives in the browser.)
+  useEffect(() => {
+    const claim = new URLSearchParams(window.location.search).get('claim');
+    if (!claim || authLoading) return;
+    if (!isAuthenticated) { openAuth(`/make?claim=${claim}`); return; }
+    const token = (() => { try { return sessionStorage.getItem(rackTokenKey(claim)) ?? ''; } catch { return ''; } })();
+    fetch(`/api/make/cards/${claim}/claim`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: token }) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then(() => navigate(`/studio/card/${claim}`))
+      .catch(() => navigate('/studio'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated]);
+  const forWho = whoPossessive(brief);
+
+  const [cells, setCells] = useState<CardCell[]>([]);
+  useEffect(() => { cellsRef.current = cells; }, [cells]);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [cameoSrc, setCameoSrc] = useState<string | null>(null);
+  /** The CROPPED photo, kept so "try again" can re-run the same one and
+   *  the QA pass can compare against it. */
+  const [cameoPhoto, setCameoPhoto] = useState<string | null>(null);
+  const [cameoUrl, setCameoUrl] = useState<string | null>(null);
+  /** The cameo QA verdict (Aidan 2026-09-12: "does this tell the user we
+   *  know it might be wrong so try again vibe? Seems safest"). Advisory —
+   *  it warns and offers another go; it never blocks the choice, because
+   *  the person looking at it is the better judge than we are. */
+  const [cameoQa, setCameoQa] = useState<{ verdict: 'good' | 'check' | 'bad'; issue: string } | null>(null);
+  const [cameoBusy, setCameoBusy] = useState(false);
+  const [cameoKept, setCameoKept] = useState(false);
+  const [cameoError, setCameoError] = useState('');
+  const [dear, setDear] = useState(''); const [message, setMessage] = useState(''); const [from, setFrom] = useState('');
+  // The suggestion is EDITABLE in place (audit 2026-10-06): the textarea
+  // opens pre-filled with our line, so a one-word tweak is a tweak, not a
+  // retype. "Ours" simply means the text still matches what we wrote.
+  const suggestion = picked !== null ? (cells[picked]?.concept.inside_text ?? '').trim() : '';
+  const insideMode: 'ours' | 'own' = suggestion && message.trim() === suggestion ? 'ours' : 'own';
+  // The cameo photo's scaffold, shared with the photo route: consent once,
+  // tips, and the likeness verdict BEFORE the render is paid for.
+  const [photoConsent, setPhotoConsent] = useState<boolean>(readPhotoConsent);
+  const [cameoChecking, setCameoChecking] = useState(false);
+  const [cameoNote, setCameoNote] = useState<PhotoSetNote | null>(null);
+  /** A crop held back by a red verdict — swapped, or used anyway. */
+  const [cameoHeld, setCameoHeld] = useState<string | null>(null);
+  const cameoFileRef = useRef<HTMLInputElement>(null);
+  const [insideUrl, setInsideUrl] = useState<string | null>(null);
+  const [insideBusy, setInsideBusy] = useState(false);
+
+  // ── the wait: narration in words, driven by what's really happening
+  // (components/make-narration.tsx). `waitConcepts` flips the act from
+  // writing to drawing; `landed` counts finished fronts; the clock lets
+  // the copy admit when it's running long. ──
+  const [waitConcepts, setWaitConcepts] = useState<Concept[] | null>(null);
+  const [landed, setLanded] = useState(0);
+  const [elapsedS, setElapsedS] = useState(0);
+  const t0 = useRef(0);
+  useEffect(() => {
+    if (phase !== 'generating') return;
+    setElapsedS(0); t0.current = Date.now();
+    const p = setInterval(() => setElapsedS((Date.now() - t0.current) / 1000), 1000);
+    return () => clearInterval(p);
+  }, [phase]);
+  const narrationInput = useMemo(() => ({ brief, age: ageNum, occasionLabel }), [brief, ageNum, occasionLabel]);
+
+  // ── generation ──
+  const generate = async (tone: Vibe = brief.vibe) => {
+    setPhase('generating'); setCells([]); setPicked(null); setInsideUrl(null);
+    setCameoUrl(null); setCameoKept(false); setCameoError(''); setFailMsg('');
+    setWaitConcepts(null); setLanded(0);
+    try {
+      const j = await makePost('concepts', {
+        occasion: occasionLabel, who: brief.who.trim() || 'Anyone', gender: brief.gender ?? undefined, tone: isKid && tone === 'rude' ? 'funny' : tone,
+        // Free composition ALWAYS (Aidan 2026-09-03: "no 50/50 roll") —
+        // unset, the engine coin-flips dealt-vs-free formats per set.
+        // ⚠️ memory:false IS THE LOCKED DECISION (Aidan 2026-08-19, schema
+        // comment on `memory` + UX_GUIDED_MAKER.md §2): cross-run memory
+        // is a rack-building tool; a customer is a fresh pair of eyes and
+        // must not be steered off a subject's best material because a
+        // stranger's run used it. This page sent true until 2026-10-08.
+        // characters / insideMode / freeStyle dropped the same day: the
+        // v2 pipeline never reads them (freeStyle feeds only the classic
+        // system prompt; the other two print their schema defaults).
+        pipeline: 'celebrait', freeComposition: true, age: ageNum,
+        interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: false,
+      });
+      const concepts: Concept[] = j.concepts ?? [];
+      if (!concepts.length) throw new Error('Nothing came back. Try again');
+      // All three fronts finish before anything is shown (Aidan
+      // 2026-09-03: words-first "isn't so clean"; reaffirmed 2026-09-08
+      // over cards-as-they-land: "just show the 3 finished cards, but
+      // better signals for the user in the form of words"). The wait
+      // screen holds and narrates — the concepts flip it into the
+      // drawing act, each finished front bumps the count.
+      setCells(concepts.map((c) => ({ concept: c })));
+      setWaitConcepts(concepts);
+      const done = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
+      // One or two failures show as tiles with the reason and a retry;
+      // all three failing is the failure screen, worded by the cause.
+      if (done.some(Boolean)) setPhase('results');
+      else {
+        const codes = cellsRef.current.map((c) => c.code).filter(Boolean) as FailCode[];
+        const code = codes.find((k) => k === 'safety') ?? codes.find((k) => k === 'rate') ?? codes[0] ?? 'unknown';
+        const err = new Error(FAIL_COPY[code].tile) as Error & { code?: FailCode };
+        err.code = code;
+        throw err;
+      }
+    } catch (e: any) {
+      if (e?.status === 429 || e?.status === 503) { setFailMsg(e.message); setPhase('capped'); }
+      else { setFailCode((e?.code as FailCode) ?? 'unknown'); setFailMsg(friendlyError(e, 'That didn’t work')); setPhase('failed'); }
+    }
+  };
+  const renderCell = async (i: number, c: Concept, safer = false): Promise<boolean> => {
+    try {
+      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined, code: undefined } : x)));
+      setLanded((n) => n + 1);
+      return true;
+    } catch (e: any) {
+      const code: FailCode = e?.code ?? 'unknown';
+      // A safety refusal is deterministic — retrying the same brief just
+      // burns a call. Rewrite the art direction once and go again, before
+      // asking the user for anything.
+      if (code === 'safety' && !safer) {
+        try {
+          const fix = await makePost('ip-safe-art', { front_text: c.front_text, art_direction: c.art_direction, interest: brief.thing || undefined });
+          const concept = { ...c, art_direction: fix.art_direction };
+          setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
+          return await renderCell(i, concept, true);
+        } catch { /* fall through to the tile */ }
+      }
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: FAIL_COPY[code].tile, code } : x)));
+      return false;
+    }
+  };
+  const tryAgain = async (i: number) => {
+    const cell = cells[i]; if (!cell || cell.retrying) return;
+    setCells((prev) => prev.map((x, j) => (j === i ? { ...x, retrying: true, error: undefined } : x)));
+    try {
+      // Only a safety refusal needs a different brief; a busy engine or a
+      // timeout just needs the same card drawn again.
+      if (cell.code === 'safety') {
+        const fix = await makePost('ip-safe-art', { front_text: cell.concept.front_text, art_direction: cell.concept.art_direction, interest: brief.thing || undefined });
+        const concept = { ...cell.concept, art_direction: fix.art_direction };
+        setCells((prev) => prev.map((x, j) => (j === i ? { ...x, concept } : x)));
+        await renderCell(i, concept, true);
+      } else {
+        await renderCell(i, cell.concept, true);
+      }
+    } catch { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, error: 'Still no luck. Pick another, or re-deal.' } : x))); }
+    finally { setCells((prev) => prev.map((x, j) => (j === i ? { ...x, retrying: false } : x))); }
+  };
+
+  // ── the cameo ──
+  const readCameoFile = async (file: File): Promise<string> => {
+    const asDataUrl = () => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('read failed')); r.readAsDataURL(file); });
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as any);
+      const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      if (scale === 1 && file.size <= 1_500_000) { bmp.close(); return await asDataUrl(); }
+      const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+      cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height); bmp.close();
+      return cv.toDataURL('image/jpeg', 0.9);
+    } catch { return await asDataUrl(); }
+  };
+  const cropToDataUrl = (src: string, b: CropBounds) => new Promise<string>((res, rej) => {
+    const img = new Image();
+    img.onload = () => { const cv = document.createElement('canvas'); cv.width = b.width; cv.height = b.height; cv.getContext('2d')!.drawImage(img, b.x, b.y, b.width, b.height, 0, 0, b.width, b.height); res(cv.toDataURL('image/jpeg', 0.9)); };
+    img.onerror = () => rej(new Error('decode failed')); img.src = src;
+  });
+  const renderCameo = async (photo: string) => {
+    if (picked === null) return;
+    const c = cells[picked].concept; setCameoBusy(true); setCameoError(''); setCameoQa(null); setCameoPhoto(photo);
+    try {
+      // REDRAW, not edit (Aidan 2026-09-03, on the Man United shirt: the
+      // edit wedged him into the shirt half-photoreal; the redraw "took
+      // the existing concept and reworked it… kept the text style,
+      // colours"). The edit path stays available in the lab only.
+      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+      setCameoUrl(rj.imageUrl);
+      // QA it in the BACKGROUND — the card shows straight away and the
+      // verdict catches up. Gating the reveal on a vision call would add
+      // three seconds to a wait we've already apologised for.
+      void (async () => {
+        try {
+          const qa = await makePost('cameo-check', { cardImage: rj.imageUrl, cameoPhoto: photo });
+          setCameoQa(qa?.result ?? null);
+        } catch { setCameoQa(null); /* fail open — no verdict, no warning */ }
+      })();
+    } catch (e: any) { setCameoError(friendlyError(e, 'That didn’t work. Try another photo, or carry on without.')); }
+    finally { setCameoBusy(false); }
+  };
+  /** The photo route's traffic light, on the crop we're about to draw
+   *  from (stateless /api/photos/assess, guest-capped like the rest).
+   *  Heavy blur holds the render; anything else is advisory. Fails OPEN
+   *  after the studio's 30s — a check that's down must never strand a
+   *  customer — and says so once, as the public photo maker does. */
+  const assessCameo = async (photo: string): Promise<PhotoSetNote | null> => {
+    try {
+      const r = await fetch('/api/photos/assess', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: photo }), signal: AbortSignal.timeout(ANALYSIS_GATE_MS) });
+      const j = r.ok ? await r.json() : null;
+      if (!j?.likeness) throw new Error('no verdict');
+      return likenessNoteForSet([{ likeness: j.likeness }], 'one_person');
+    } catch {
+      toast({ title: "We couldn't check that photo this time", description: 'You can carry on. We look at it properly when we draw. A clear, front-on face works best.' });
+      return null;
+    }
+  };
+  const checkThenRender = async (photo: string) => {
+    setCameoChecking(true); setCameoNote(null); setCameoHeld(null); setCameoError('');
+    const note = await assessCameo(photo);
+    setCameoChecking(false); setCameoNote(note);
+    if (note?.tone === 'block') { setCameoHeld(photo); return; }
+    await renderCameo(photo);
+  };
+
+  const renderInside = async () => {
+    if (picked === null) return;
+    const c = cells[picked].concept; setInsideBusy(true); setFailMsg('');
+    try {
+      const core = message.trim();
+      const joined = [dear.trim(), core, from.trim()].filter(Boolean).join('\n\n');
+      const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
+      const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
+      setInsideUrl(ir.imageUrl); setPhase('done');
+    } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render. Try again')); }
+    finally { setInsideBusy(false); }
+  };
+
+  const chosenFront = picked !== null ? (cameoKept && cameoUrl ? cameoUrl : cells[picked]?.imageUrl) : undefined;
+  const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
+
+  // ── step 1: the questions — one at a time (shared with the doorway) ──
+  // The same chip row as /photo/make (Aidan 2026-09-06): one chip per
+  // question, done ones tappable, "Three cards" as the locked finale.
+  if (phase === 'brief') {
+    const chips: StepChip[] = [
+      ...briefQuestions.map((q) => ({ id: q, label: QUESTION_LABEL[q] })),
+      { id: 'cards', label: 'Three cards', locked: true },
+      // The photo comes AFTER the pick on this route, and we'd rather it
+      // did (Aidan 2026-09-08: "make them aware they can add the photo
+      // once they get the one they like… a key USP"). A locked chip
+      // keeps it in view through every question.
+      { id: 'photo', label: 'Photo · optional', locked: true },
+    ];
+    return (
+      <MakeShell step={step}>
+        <div className="mb-3 flex justify-end">
+          <Link href="/create" className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+        </div>
+        <div className="mb-6 sm:mb-8">
+          <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
+        </div>
+        <div className={panel}>
+          {/* The lead-time notice lives INSIDE the question container
+              (Aidan 2026-09-10) — one-off prints, allow a week — read
+              with the question, before twenty minutes of crafting. */}
+          <LeadTimeNotice className="mb-5 sm:mb-6" />
+          <BriefQuestions
+            skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
+            initialStep={brief.who.trim() ? 1 : 0}
+            hideDots
+            jumpTo={briefJump}
+            onStepChange={(i, qs) => { setBriefStep(i); setBriefQuestions(qs); setBriefFurthest((f) => Math.max(f, i)); }}
+          />
+        </div>
+      </MakeShell>
+    );
+  }
+
+  if (phase === 'failed' || phase === 'capped') {
+    return (
+      <MakeShell step={step}>
+        <div className={panel}>
+          <div className="text-center py-10 px-4">
+            <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4"><Sparkles className="w-6 h-6" strokeWidth={1.75} /></div>
+            <h1 className="text-base font-semibold text-keeper-ink mb-1">{phase === 'capped' ? 'We’ve made a lot of cards today.' : FAIL_COPY[failCode].title}</h1>
+            <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">{failMsg}</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {phase === 'failed' && <button type="button" onClick={() => void generate()} className={primary}>Try again</button>}
+              {phase === 'capped' && <Link href="/studio" className={primary}>Sign in to keep going</Link>}
+              <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Change the details</button>
+              {rack && <Link href={`/cards/${brief.occasion}`} className={`${textLink} self-center`}>Or take one off the shelf</Link>}
+            </div>
+          </div>
+        </div>
+      </MakeShell>
+    );
+  }
+
+  // ── step 2a: the wait ─────────────────────────────────────────────
+  if (phase === 'generating') {
+    return (
+      <MakeShell step={step}>
+        <div className={`${panel} flex flex-col items-center justify-center text-center`}>
+          <p className="max-w-[440px] text-[13px] leading-relaxed text-keeper-meta">This usually takes <span className="font-medium text-keeper-ink">30–45 seconds</span>. We write three cards for {whoName} first, then draw all three, then show you the set. Pick one, and if you've a photo handy we can put them in it.</p>
+          <div className="relative mt-8 aspect-square w-28 overflow-hidden rounded-xl bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 shadow-[0_8px_30px_-8px_rgba(124,58,237,0.35)] ring-1 ring-brand/15 sm:w-32">
+            <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
+          <div className="mt-8 w-full">
+            <MakeNarration input={narrationInput} concepts={waitConcepts} landed={landed} elapsedS={elapsedS} />
+          </div>
+        </div>
+      </MakeShell>
+    );
+  }
+
+  // ── step 2b: three cards, pick the one ────────────────────────────
+  if (phase === 'results') {
+    // Roll again asks the vibe first (Aidan 2026-09-03): the same tiles
+    // the questions use, then three new cards on those details.
+    if (askVibe) {
+      const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
+      const SUB: Record<Vibe, string> = { mix: 'three cards, three vibes, you choose after', funny: 'a good laugh, kindly meant', warm: 'heartfelt, the kind they keep', rude: 'proper swearing, tastefully starred out' };
+      return (
+        <MakeShell step={step}>
+          <div className={panel}>
+            <h1 className={`${h1} mb-1`}>Three new cards for {whoName}. What's the vibe?</h1>
+            <p className="text-sm text-keeper-body mb-5">Same details. This just sets what they lean towards.</p>
+            <div className="space-y-2.5">
+              {VIBES.map((t) => {
+                const off = t === 'rude' && isKid;
+                return (
+                  <button key={t} type="button" disabled={off} onClick={() => setBrief({ ...brief, vibe: t })} className={`${tile(brief.vibe === t)} w-full disabled:opacity-40`}>
+                    <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_LABEL[t]}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : SUB[t]}</span></span>
+                    {brief.vibe === t && <span className="ml-auto w-5 h-5 rounded-full bg-keeper-gold text-white flex items-center justify-center shrink-0"><Check className="w-3 h-3" strokeWidth={3} /></span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" onClick={() => setAskVibe(false)} className={textLink}>Back to the three</button>
+              <button type="button" onClick={() => { setAskVibe(false); void generate(brief.vibe); }} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Design three new cards</button>
+            </div>
+          </div>
+        </MakeShell>
+      );
+    }
+    return (
+      <MakeShell step={step}>
+        <div className={panel}>
+          <h1 className={`${h1} mb-1`}>Three cards for {whoName}. Pick the one.</h1>
+          <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName} in it with a photo (optional), then we design the inside with your words.</p>
+          {/* The cards as cards — the carousel's ajar tile, nothing under
+              them (the front is right there; captions only cut off). */}
+          <div className="mt-8 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
+            {cells.map((c, i) => (
+              <button key={i} type="button" disabled={!c.imageUrl}
+                onClick={() => { setPicked(i); if (picked !== i || !message.trim()) setMessage(c.concept.inside_text ?? ''); setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null); setPhase('cameo'); }}
+                className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-keeper-gold disabled:cursor-default"
+                aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
+                {c.imageUrl
+                  ? <AjarTile imageUrl={c.imageUrl} alt={c.concept.front_text} eager />
+                  : c.retrying
+                    ? <div className="relative aspect-square overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 ring-1 ring-brand/15" aria-label="Drawing this one again">
+                        <div className="absolute inset-0 animate-shimmer-sweep bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                      </div>
+                    : <div className="flex aspect-square flex-col items-center justify-center gap-2 rounded-r-[6px] rounded-l-[2px] border border-keeper-hair bg-white/70 p-4 text-center text-xs text-keeper-meta">
+                        <span>{c.error}</span>
+                        <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{FAIL_COPY[c.code ?? 'unknown'].retry}</span>
+                      </div>}
+              </button>
+            ))}
+          </div>
+          <div className="mt-10 flex flex-col items-start gap-3 border-t border-keeper-hair pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-keeper-meta">None of them quite right?</p>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => setAskVibe(true)} className={commit}><Sparkles className="h-4 w-4 text-cta" /> Roll again</button>
+              <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 px-5 py-2.5 text-sm font-medium text-keeper-ink transition-colors hover:border-keeper-gold">Change the details</button>
+            </div>
+          </div>
+        </div>
+      </MakeShell>
+    );
+  }
+
+  // ── step 3a: the cameo (after the pick) ───────────────────────────
+  if (phase === 'cameo' && picked !== null) {
+    const c = cells[picked];
+    if (cameoUrl) {
+      return (
+        <MakeShell step={step}>
+          <div className={panel}>
+            <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
+            <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours. Pick the one that's more them.</p>
+            {/* We checked our own work and we don't rate it. Say so
+                before they choose, not after it's printed. */}
+            {cameoQa && cameoQa.verdict !== 'good' && (
+              <div className="mt-5 rounded-xl border border-accent-red/30 bg-accent-red-light px-4 py-3">
+                <p className="text-sm font-semibold text-accent-red-dark">
+                  {cameoQa.verdict === 'bad' ? "We don't think that one came out right." : 'That one might not have come out right.'}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-keeper-body">
+                  {cameoQa.issue ? `${cameoQa.issue} ` : ''}Have another go with the same photo, or send the original. It's a good card either way.
+                </p>
+                <button type="button" disabled={cameoBusy || !cameoPhoto}
+                  onClick={() => { if (cameoPhoto) { setCameoUrl(null); void renderCameo(cameoPhoto); } }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3.5 py-1.5 text-[13px] font-medium text-keeper-ink transition-colors hover:border-brand disabled:opacity-50"
+                  data-testid="cameo-retry">
+                  <Sparkles className="h-3.5 w-3.5 text-cta" /> Try that photo again
+                </button>
+              </div>
+            )}
+            <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
+              {([[false, 'The original', c.imageUrl!], [true, 'With them in it', cameoUrl]] as const).map(([keep, name, url]) => (
+                <button key={name} type="button" onClick={() => { setCameoKept(keep); setPhase('signoff'); }} className={`${cardTile} border-keeper-hair hover:border-brand`}>
+                  <div className="aspect-square bg-stone-100 overflow-hidden"><img src={url} alt={name} crossOrigin="anonymous" className="w-full h-full object-cover" /></div>
+                  <p className="p-3 text-sm font-medium text-keeper-ink">{name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </MakeShell>
+      );
+    }
+    return (
+      <MakeShell step={step}>
+        <div className={panel}>
+          <button type="button" onClick={() => setPhase('results')} className="inline-flex items-center gap-1 text-sm text-keeper-body hover:text-keeper-ink mb-5"><ArrowLeft className="w-4 h-4" /> Back to the three</button>
+          <div className="grid gap-6 sm:grid-cols-[minmax(0,240px)_1fr] sm:items-start">
+            <div className="rounded-xl overflow-hidden bg-stone-100 border border-keeper-hair">{c.imageUrl && <img src={c.imageUrl} alt="" crossOrigin="anonymous" className="w-full aspect-square object-cover" />}</div>
+            {cameoBusy || cameoChecking ? (
+              <div className="text-center sm:text-left py-6" aria-live="polite">
+                <Loader2 className="w-7 h-7 text-brand animate-spin mx-auto sm:mx-0" />
+                {cameoChecking ? (
+                  <>
+                    <p className="mt-3 text-base font-semibold text-keeper-ink">Analysing your photo…</p>
+                    <p className="mt-1 text-sm text-keeper-meta">A few seconds. We’re checking it’ll give a strong likeness before we draw.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-base font-semibold text-keeper-ink">Redesigning {forWho} card with them in it…</p>
+                    <p className="mt-1 text-sm text-keeper-meta">The idea, the words and the style stay. The picture rearranges itself around {whoName}, drawn from your photo, in the card's own hand. About half a minute.</p>
+                    {cameoNote && <CameoVerdict note={cameoNote} className="mt-4 text-left" />}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                <h1 className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
+                <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence (the idea, the words, the style) but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
+                {/* The photo route's scaffold in the same order — tips,
+                    then the one-time consent that gates the picker
+                    (components/photo-consent-tips.tsx). */}
+                <PhotoTips mode="cameo" className="mt-4" />
+                {!photoConsent && <PhotoConsentLine className="mt-3" onConsent={() => { setPhotoConsent(true); rememberPhotoConsent(); }} />}
+                {cameoHeld && cameoNote && (
+                  <CameoVerdict note={cameoNote} className="mt-4"
+                    onSwap={() => cameoFileRef.current?.click()}
+                    onOverride={() => { const p = cameoHeld; setCameoHeld(null); setCameoNote(null); if (p) void renderCameo(p); }} />
+                )}
+                {cameoError && <p className="mt-3 text-sm text-accent-red-dark">{cameoError}</p>}
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <label className={`${primary} ${photoConsent ? 'cursor-pointer' : 'opacity-40 pointer-events-none'}`} aria-disabled={!photoConsent} data-testid="cameo-add-photo"><Camera className="w-4 h-4" strokeWidth={1.75} /> Add a photo
+                    <input ref={cameoFileRef} type="file" accept="image/*" className="hidden" disabled={!photoConsent} onChange={(e) => { const f = e.target.files?.[0]; if (f) void readCameoFile(f).then(setCameoSrc); e.target.value = ''; }} /></label>
+                  <Button variant="outline" className="h-10 px-5" onClick={() => setPhase('signoff')}>Skip, keep it as it is</Button>
+                </div>
+                <p className={helper}>We never keep your photo, only the finished card.</p>
+              </div>
+            )}
+          </div>
+          <CropDialog src={cameoSrc} autoFace={false} onCancel={() => setCameoSrc(null)}
+            onConfirm={(bounds) => { const src = cameoSrc; setCameoSrc(null); if (!src) return; void cropToDataUrl(src, bounds).then(checkThenRender).catch(() => setCameoError('That photo wouldn’t crop. Try another one.')); }} />
+        </div>
+      </MakeShell>
+    );
+  }
+
+  // ── step 3b: the inside ───────────────────────────────────────────
+  if (phase === 'signoff' && picked !== null) {
+    // The renderer's ceiling applies to the JOINED inside (open + message + sign).
+    const joinedLen = [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n').length;
+    const over = joinedLen > INSIDE_MAX;
+    return (
+      <MakeShell step={step}>
+        <div className={panel}>
+          <button type="button" onClick={() => setPhase('results')} className="inline-flex items-center gap-1 text-sm text-keeper-body hover:text-keeper-ink mb-5"><ArrowLeft className="w-4 h-4" /> Back to the three</button>
+          <div className="grid gap-6 sm:grid-cols-[minmax(0,240px)_1fr] sm:items-start">
+            <div className="rounded-xl overflow-hidden bg-stone-100 border border-keeper-hair">{chosenFront && <img src={chosenFront} alt="" crossOrigin="anonymous" className="w-full aspect-square object-cover" />}</div>
+            {insideBusy ? (
+              <div className="text-center sm:text-left py-6" aria-live="polite">
+                <Loader2 className="w-7 h-7 text-brand animate-spin mx-auto sm:mx-0" />
+                <p className="mt-3 text-base font-semibold text-keeper-ink">Designing the inside to match…</p>
+                <p className="mt-1 text-sm text-keeper-meta">Your words, set in the card's own style. About half a minute.</p>
+              </div>
+            ) : (
+              <div>
+                <h1 className={`${h1} mb-1`}>Now the inside of {forWho} card</h1>
+                <p className="text-sm text-keeper-body mb-5">Every card gets a designed inside to match its front.</p>
+                {/* In the card's own order — open, message, sign (Aidan
+                    2026-09-09: "dear and from above the message we wrote,
+                    and make the message we wrote glow"). One textarea,
+                    pre-filled with our line: it glows while it's still
+                    ours, and a tweak is a tweak (audit 2026-10-06). */}
+                <div className="mt-4 space-y-3">
+                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open, e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
+                  <div>
+                    <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={INSIDE_MAX} placeholder="Your message…" aria-label="The message inside" data-testid="inside-message"
+                      className={`min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 ${insideMode === 'ours' ? 'border-brand/40 bg-brand-muted shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]' : 'border-brand-light'}`} />
+                    <p className="mt-1.5 text-[12.5px] text-keeper-meta" data-testid="inside-mode-line">
+                      {insideMode === 'ours' ? (
+                        <>The message we wrote. Change a word, or <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">start from blank</button>.</>
+                      ) : suggestion ? (
+                        <>Your words. <button type="button" onClick={() => setMessage(suggestion)} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-use-ours">Use the message we wrote</button>{message.trim() ? <> · <button type="button" onClick={() => setMessage('')} className="underline underline-offset-2 hover:text-keeper-body" data-testid="inside-start-blank">Start from blank</button></> : null}</>
+                      ) : (
+                        <>Your words, set in the card's own style.</>
+                      )}
+                    </p>
+                  </div>
+                  <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign, e.g. Love, Aidan x" className={input} />
+                </div>
+                {over && <p className="mt-3 text-sm text-accent-red-dark">Keep the whole inside under {INSIDE_MAX} characters. It’s {joinedLen} at the moment.</p>}
+                {failMsg && <p className="mt-3 text-sm text-accent-red-dark">{failMsg}</p>}
+                <div className="mt-6"><button type="button" onClick={() => void renderInside()} disabled={!message.trim() || over} className={commit}><Sparkles className="w-4 h-4" strokeWidth={1.75} /> Design the inside</button></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </MakeShell>
+    );
+  }
+
+  // ── step 4: done ──────────────────────────────────────────────────
+  if (phase === 'done' && picked !== null) {
+    return (
+      <MakeShell step={step}>
+        <div className={panel}>
+          <h1 className={`${h1} mb-1`}>There it is: {forWho} card.</h1>
+          <p className="text-sm text-keeper-body">280gsm, kraft envelope, posted Royal Mail 24. {HONEST_LEAD_LINE}</p>
+          <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
+            <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
+            <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <button type="button" disabled={!!saving || !chosenFront} className={commit}
+              onClick={() => {
+                if (!chosenFront) return;
+                setSaving('buy'); setSaveError('');
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
+                  .then((s) => navigate(`/buy/${s.cardId}`))
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
+              }}>
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it for {gbp(cardPriceGBP('maker'))}
+            </button>
+            <button type="button" disabled={!!saving || !chosenFront}
+              className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"
+              onClick={() => {
+                if (!chosenFront) return;
+                setSaving('keep'); setSaveError('');
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
+                  .then((s) => {
+                    // Signed in: the row is already theirs. Guest: sign in,
+                    // then come back to claim it by token.
+                    if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
+                    else { setSaving(''); openAuth(`/make?claim=${s.cardId}`); }
+                  })
+                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
+              }}>
+              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Sign in to keep it'}
+            </button>
+            <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
+          </div>
+          {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
+          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
+        </div>
+      </MakeShell>
+    );
+  }
+
+  return null;
+}
