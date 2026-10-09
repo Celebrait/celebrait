@@ -30,6 +30,7 @@ import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
 import { markOrderPaidAndDispatch } from './studio-checkout';
 import { getPaymentProvider } from '../studio/payment-provider';
+import { rackOpen } from './site-lock';
 
 /** The rack card's stored state — the `rack` variant of the draft
  *  shapes (UX_THREE_DOORS.md §4b). No resume, no steps: a rack card is
@@ -49,6 +50,8 @@ export function registerShopRoutes(app: Express): void {
   app.post('/api/shop/templates/:id/card', async (req: Request, res: Response) => {
     const templateId = Number(req.params.id);
     if (!Number.isInteger(templateId)) return res.status(400).json({ message: 'Bad template id' });
+    // The rack is parked until there is stock (/admin/site) — nothing sells.
+    if (!(await rackOpen())) return res.status(409).json({ message: "The rack isn't open yet" });
 
     const schema = z.object({
       insideMode: z.enum(['ours', 'own', 'blank']).default('ours'),

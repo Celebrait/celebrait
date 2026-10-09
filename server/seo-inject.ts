@@ -28,6 +28,7 @@ import type { PageSeo } from '@shared/seo';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { cardTemplates } from '@shared/schema';
+import { rackOpen } from './routes/site-lock';
 
 function escapeAttr(s: string): string {
   return s
@@ -60,7 +61,13 @@ function isShareLinkPath(p: string): boolean {
  *  looked up per request. Anything else falls through to the sync
  *  registry. Never throws: a DB blip serves base metadata. */
 export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
-  return withRobotsMeta(await injectSeoInner(templateHtml, requestPath), requestPath);
+  const rack = await rackOpen();
+  return withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack);
+}
+
+/** The X-Robots-Tag for the shell response — the rack flag read once. */
+export async function robotsHeaderForPath(requestPath: string): Promise<string | null> {
+  return robotsForPath(requestPath, await rackOpen());
 }
 
 /** HTTP status for the SPA shell: 404 for a path no route serves, so
@@ -72,8 +79,8 @@ export function htmlStatusForPath(requestPath: string): number {
 /** `<meta name="robots">` for private / unknown paths — crawlers that
  *  don't run JS still see it. Paired with the X-Robots-Tag header set
  *  where the shell is served (server/vite.ts). */
-function withRobotsMeta(html: string, requestPath: string): string {
-  const robots = robotsForPath(requestPath);
+function withRobotsMeta(html: string, requestPath: string, rack: boolean): string {
+  const robots = robotsForPath(requestPath, rack);
   if (!robots) return html;
   return html.replace(
     /(<meta name="description"[^>]*>)/,
@@ -81,7 +88,7 @@ function withRobotsMeta(html: string, requestPath: string): string {
   );
 }
 
-async function injectSeoInner(templateHtml: string, requestPath: string): Promise<string> {
+async function injectSeoInner(templateHtml: string, requestPath: string, rack: boolean): Promise<string> {
   const m = requestPath.match(/^\/card\/(\d+)$/);
   if (m) {
     try {
@@ -101,10 +108,10 @@ async function injectSeoInner(templateHtml: string, requestPath: string): Promis
       console.warn('[SEO] card lookup failed (non-fatal):', err);
     }
   }
-  return injectSeo(templateHtml, requestPath);
+  return injectSeo(templateHtml, requestPath, rack);
 }
 
-export function injectSeo(templateHtml: string, requestPath: string): string {
+export function injectSeo(templateHtml: string, requestPath: string, rack = false): string {
   if (isShareLinkPath(requestPath)) {
     const t = escapeAttr(SHARE_OG.title);
     const d = escapeAttr(SHARE_OG.description);
@@ -128,7 +135,7 @@ export function injectSeo(templateHtml: string, requestPath: string): string {
     );
   }
 
-  const seo = seoForPath(requestPath);
+  const seo = seoForPath(requestPath, rack);
 
   if (!seo) {
     // Unknown/private route: base metadata but NO canonical — better no

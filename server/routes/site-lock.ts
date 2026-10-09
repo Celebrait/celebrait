@@ -9,10 +9,15 @@
 // signed-in admin. The switch and the password live in site_settings and
 // are edited at /admin/site — no deploy, no env var.
 //
-//   GET  /api/site-lock              { locked, allowed, hasPassword }
+//   GET  /api/site-lock              { locked, allowed, hasPassword, rackEnabled }
 //   POST /api/site-lock/unlock       { password } → sets the pass cookie
-//   GET  /api/admin/site-lock        { locked, password }
-//   PUT  /api/admin/site-lock        { locked?, password? }
+//   GET  /api/admin/site-lock        { locked, password, rackEnabled }
+//   PUT  /api/admin/site-lock        { locked?, password?, rackEnabled? }
+//
+// THE RACK SWITCH (Aidan 2026-10-09) rides in the same value: the stock
+// cards are not part of launch (no stock — a thin rack reads as a failed
+// shop), so `rackEnabled` parks every rack surface until there is stock.
+// Off unless an admin has saved it on. Flipped at /admin/site, no deploy.
 //
 // The client gate is the experience; the server gate below is what stops
 // a locked visitor spending generations by calling the APIs directly.
@@ -25,13 +30,13 @@ import { db } from '../db';
 import { siteSettings, users } from '@shared/schema';
 import { requireAdmin } from './admin-card-lab';
 
-interface LockValue { locked: boolean; password: string }
+interface LockValue { locked: boolean; password: string; rackEnabled: boolean }
 const KEY = 'site_lock';
 const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable' };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
@@ -44,7 +49,7 @@ export async function getSiteLock(): Promise<LockValue> {
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);
     const v = rows[0]?.value as Partial<LockValue> | undefined;
-    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password };
+    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true };
   } catch {
     // Table not there yet (first boot) — the default holds.
   }
@@ -75,14 +80,21 @@ async function isAdminSession(req: Request): Promise<boolean> {
   } catch { return false; }
 }
 
-/** Is this request through the gate? */
-export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean }> {
+/** Is the rack (stock cards, £4.99) for sale right now? */
+export async function rackOpen(): Promise<boolean> {
+  return (await getSiteLock()).rackEnabled;
+}
+
+/** Is this request through the gate? (+ the rack flag, so the SPA learns
+ *  it from the one request it already makes on every load.) */
+export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean }> {
   const lock = await getSiteLock();
   const hasPassword = lock.password.trim().length > 0;
-  if (!lock.locked) return { locked: false, allowed: true, hasPassword };
+  const rackEnabled = lock.rackEnabled;
+  if (!lock.locked) return { locked: false, allowed: true, hasPassword, rackEnabled };
   const cookie = readCookie(req, COOKIE);
-  if (hasPassword && cookie && sameToken(cookie, passToken(lock.password))) return { locked: true, allowed: true, hasPassword };
-  return { locked: true, allowed: await isAdminSession(req), hasPassword };
+  if (hasPassword && cookie && sameToken(cookie, passToken(lock.password))) return { locked: true, allowed: true, hasPassword, rackEnabled };
+  return { locked: true, allowed: await isAdminSession(req), hasPassword, rackEnabled };
 }
 
 // The APIs that make things (and cost money) — closed to locked visitors.
@@ -137,7 +149,7 @@ export function registerSiteLock(app: Express): void {
     res.json(await getSiteLock());
   });
 
-  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional() });
+  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional() });
   app.put('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     const parsed = putSchema.safeParse(req.body);

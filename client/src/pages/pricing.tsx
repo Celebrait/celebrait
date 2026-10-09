@@ -22,6 +22,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { useAuth } from '@/hooks/use-auth';
+import { useRackEnabled } from '@/hooks/use-rack';
 import { useSeo } from '@/lib/use-seo';
 import { CARD_PRICES_GBP, UK_SHIPPING_STANDARD_GBP, MAKE_TIME, type CardSource } from '@shared/pricing';
 
@@ -80,6 +81,9 @@ export default function PricingPage() {
   useSeo('/pricing');
   const { isAuthenticated, isLoading } = useAuth();
   const photoHref = !isLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
+  // The rack is parked until there is stock (/admin/site): two doors, not three.
+  const rack = useRackEnabled() === true;
+  const doors = rack ? DOORS : DOORS.filter((d) => d.source !== 'rack');
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -92,7 +96,7 @@ export default function PricingPage() {
             <h1 className={`mt-4 max-w-[20ch] text-[clamp(28px,5vw,54px)] leading-[1.06] ${DISPLAY}`}>
               One printed card.
               <br />
-              <span className="font-medium italic">Three ways to make it.</span>
+              <span className="font-medium italic">{doors.length === 3 ? 'Three' : 'Two'} ways to make it.</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Every card is printed once, just for them, and posted with a free digital link to share.
@@ -104,8 +108,8 @@ export default function PricingPage() {
             </div>
 
             {/* The ladder */}
-            <div className="mt-6 grid gap-4 md:grid-cols-3 md:gap-5">
-              {DOORS.map((d) => {
+            <div className={`mt-6 grid gap-4 md:gap-5 ${doors.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+              {doors.map((d) => {
                 const Icon = d.icon;
                 const href = d.source === 'photo' ? photoHref : d.href;
                 return (

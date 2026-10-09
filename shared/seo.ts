@@ -16,7 +16,15 @@
 // Moonpig owns. Emotion in on-page copy, search phrasing in the meta
 // layer. Titles ≤ ~60 chars (Google truncation), descriptions ≤ ~155.
 
+import { cardPriceGBP } from './pricing';
+
 export const SITE_ORIGIN = 'https://www.celebrait.co.uk';
+
+// The "from" price follows the rack switch (Aidan 2026-10-09: the rack is
+// parked until there is stock): £4.99 while stock cards sell, else the
+// made-for-them price. Both the server injector and the client hook pass
+// the live flag, so the tab title and the crawler agree.
+const fromGBP = (rackEnabled: boolean) => `£${(cardPriceGBP(rackEnabled ? 'rack' : 'maker') / 100).toFixed(2)}`;
 
 export type PageSeo = {
   /** Route path, no trailing slash (except '/'). */
@@ -27,12 +35,12 @@ export type PageSeo = {
   ogType?: 'website' | 'article';
 };
 
-export const PAGE_SEO: PageSeo[] = [
+const pageSeo = (rackEnabled: boolean): PageSeo[] => [
   {
     path: '/',
     title: 'Personalised Greetings Cards, Made For One Person | Celebrait',
     description:
-      'Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted anywhere in the UK from £4.99.',
+      `Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/photo/make',
@@ -44,13 +52,13 @@ export const PAGE_SEO: PageSeo[] = [
     path: '/photo',
     title: 'Personalised Greetings Cards — Put Them In The Picture | Celebrait',
     description:
-      'Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from £4.99.',
+      `Turn a photo into a personalised greetings card. They become the artwork — any scene you can describe — printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      'Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and posted first class from £4.99.',
+      `Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and posted first class from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/make',
@@ -59,9 +67,9 @@ export const PAGE_SEO: PageSeo[] = [
   },
   {
     path: '/pricing',
-    title: 'Pricing — Personalised Greetings Cards from £4.99 | Celebrait',
+    title: `Pricing — Personalised Greetings Cards from ${fromGBP(rackEnabled)} | Celebrait`,
     description:
-      'No subscriptions: printed cards from £4.99 plus £2.95 postage — £4.99 off the shelf, £5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.',
+      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus £2.95 postage — ${rackEnabled ? '£4.99 off the shelf, ' : ''}£5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
   },
   {
     path: '/contact',
@@ -187,17 +195,20 @@ export function isKnownRoutePath(path: string): boolean {
 }
 
 /** The robots directive for a path, or null when it may be indexed.
- *  Used by the server (meta + X-Robots-Tag) and the client hook. */
-export function robotsForPath(path: string): string | null {
+ *  Used by the server (meta + X-Robots-Tag) and the client hook.
+ *  `rackEnabled` false (the default — parked) noindexes the catalogue,
+ *  which the client redirects to /create meanwhile. */
+export function robotsForPath(path: string, rackEnabled = false): string | null {
   if (NOINDEX_PATHS.some((re) => re.test(path))) return 'noindex,nofollow';
+  if (!rackEnabled && /^\/cards(\/|$)/.test(path)) return 'noindex';
   if (!isKnownRoutePath(path)) return 'noindex';
   return null;
 }
 
-export function seoForPath(rawPath: string): PageSeo | null {
+export function seoForPath(rawPath: string, rackEnabled = false): PageSeo | null {
   const path =
     rawPath.length > 1 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
-  const page = PAGE_SEO.find((p) => p.path === path);
+  const page = pageSeo(rackEnabled).find((p) => p.path === path);
   if (page) return page;
   const cat = catalogueSeoForPath(path);
   if (cat) return cat;

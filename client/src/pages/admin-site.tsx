@@ -7,10 +7,11 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { CheckCircle2, Circle, Loader2, Lock, LockOpen, XCircle } from 'lucide-react';
+import { CheckCircle2, Circle, LayoutGrid, Loader2, Lock, LockOpen, XCircle } from 'lucide-react';
+import { cardPriceGBP } from '@shared/pricing';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface Lock { locked: boolean; password: string }
+interface Lock { locked: boolean; password: string; rackEnabled: boolean }
 interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string }
 interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
 
@@ -98,6 +99,22 @@ export default function AdminSitePage() {
         <button type="button" disabled={saving} onClick={() => save({ locked: !data.locked })}
           className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.locked ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
           {data.locked ? 'Open the site' : 'Lock the site'}
+        </button>
+      </div>
+
+      {/* THE RACK (Aidan 2026-10-09): parked until there is stock — a thin
+          rack reads as a failed shop. Same switch style as the lock. */}
+      <div className={`mt-4 flex items-center justify-between gap-4 rounded-2xl border p-5 ${data.rackEnabled ? 'border-emerald-300 bg-emerald-50' : 'border-keeper-hair bg-white'}`}>
+        <div className="flex items-center gap-3">
+          <LayoutGrid className={`h-6 w-6 ${data.rackEnabled ? 'text-emerald-600' : 'text-keeper-meta'}`} />
+          <div>
+            <p className="font-semibold text-keeper-ink">{data.rackEnabled ? 'The rack — live' : 'The rack — parked'}</p>
+            <p className="text-[13px] text-keeper-body">{data.rackEnabled ? `Live — stock cards are for sale at £${(cardPriceGBP('rack') / 100).toFixed(2)}.` : 'Parked — no stock cards anywhere on the site; the carousel shows real cards as proof.'}</p>
+          </div>
+        </div>
+        <button type="button" disabled={saving} onClick={() => save({ rackEnabled: !data.rackEnabled })}
+          className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.rackEnabled ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
+          {data.rackEnabled ? 'Park the rack' : 'Open the rack'}
         </button>
       </div>
 

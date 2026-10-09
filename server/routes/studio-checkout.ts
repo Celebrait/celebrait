@@ -33,6 +33,7 @@ import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import { touchCheckout } from '../activity';
+import { rackOpen } from './site-lock';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
@@ -247,6 +248,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 
         const card = cardRows[0];
         if (!card) return res.status(404).json({ message: 'Card not found' });
+        // The rack is parked until there is stock (/admin/site).
+        if (card.source === 'rack' && !(await rackOpen())) return res.status(409).json({ message: "The rack isn't open yet" });
         // OWNERSHIP, two ways. Signed in: the card must be yours.
         // Anonymous: the card must belong to nobody AND you must hold
         // its token (returned once when the card was created) — so ids

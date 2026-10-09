@@ -18,6 +18,8 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 import type { CatalogueCard } from '@/components/catalogue/rack-wall';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakeYoursHref } from '@/components/landing/marketing-footer';
 
 // three.js only loads when a card is actually opened.
 const Card3DViewer = lazy(() => import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })));
@@ -78,6 +80,12 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
   const loaded = given ? true : own.loaded;
   const [peeking, setPeeking] = useState<CatalogueCard | null>(null);
   const row = useMemo(() => [...cards, ...cards], [cards]);
+  // THE RACK IS PARKED until there is stock (Aidan 2026-10-09): the wall
+  // stays everywhere as PROOF — tiles open the 3D peek, never a buy page —
+  // with one quiet way onward. Unknown counts as parked (never flash the shop).
+  const rack = useRackEnabled() === true;
+  const peekMode = peek || !rack;
+  const makeHref = useMakeYoursHref();
   // Nothing picked yet → render nothing at all (the page hides the block).
   if (loaded && !cards.length) return null;
   if (!cards.length) {
@@ -88,6 +96,7 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
     );
   }
   return (
+    <>
     <div className={`door-drift-mask -mb-6 overflow-hidden ${className}`}>
       <style>{`
         @keyframes door-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -100,7 +109,7 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
           container keeps all of it (the -mb-6 lives on the container). */}
       <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
-          peek ? (
+          peekMode ? (
             <button key={`${c.id}-${i}`} type="button" onClick={() => setPeeking(c)} className="group block w-[240px] shrink-0 text-left sm:w-[220px] md:w-[260px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined} aria-label={`Open “${c.front_text}”`}>
               <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
             </button>
@@ -111,13 +120,19 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
           )
         ))}
       </div>
-      {peek && <CardPeek card={peeking} onClose={() => setPeeking(null)} cta={peekCta} />}
+      {peekMode && <CardPeek card={peeking} onClose={() => setPeeking(null)} cta={peekCta} rack={rack} makeHref={makeHref} />}
     </div>
+    {!rack && (
+      <p className="mt-2 text-[13px] text-keeper-meta">
+        <Link href={makeHref} className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Make yours →</Link>
+      </p>
+    )}
+    </>
   );
 }
 
 /** The lightbox: the card ajar, tap to open, one way onward. */
-function CardPeek({ card, onClose, cta = true }: { card: CatalogueCard | null; onClose: () => void; cta?: boolean }) {
+function CardPeek({ card, onClose, cta = true, rack, makeHref }: { card: CatalogueCard | null; onClose: () => void; cta?: boolean; rack: boolean; makeHref: string }) {
   const showcase = card?.published === false;
   return (
     <Dialog open={!!card} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -133,7 +148,9 @@ function CardPeek({ card, onClose, cta = true }: { card: CatalogueCard | null; o
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <p className="text-[12.5px] text-keeper-meta">{card.insideImageUrl ? 'Tap the card to look inside' : 'Tap the card to turn it'}</p>
-              {!cta ? null : showcase ? (
+              {!cta ? null : !rack ? (
+                <Link href={makeHref} className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">Make yours</Link>
+              ) : showcase ? (
                 <Link href="/photo/make" className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">Make one from a photo</Link>
               ) : (
                 <Link href={`/card/${card.id}`} className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground hover:bg-go-hover">See this card</Link>

@@ -31,6 +31,7 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
+import { useRackEnabled } from '@/hooks/use-rack';
 import { cardPriceGBP, HONEST_LEAD_LINE } from '@shared/pricing';
 import type { CropBounds } from '@shared/models/photos';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -165,6 +166,7 @@ function MakeShell({ children }: { step?: number; children: ReactNode }) {
 
 export default function MakePage() {
   useSeo('/make');
+  const rack = useRackEnabled() === true; // the shelf escape only while the rack sells
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
   const [, navigate] = useLocation();
   const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
@@ -511,7 +513,7 @@ export default function MakePage() {
               {phase === 'failed' && <button type="button" onClick={() => void generate()} className={primary}>Try again</button>}
               {phase === 'capped' && <Link href="/studio" className={primary}>Sign in to keep going</Link>}
               <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Change the details</button>
-              <Link href={`/cards/${brief.occasion}`} className={`${textLink} self-center`}>Or take one off the shelf</Link>
+              {rack && <Link href={`/cards/${brief.occasion}`} className={`${textLink} self-center`}>Or take one off the shelf</Link>}
             </div>
           </div>
         </div>

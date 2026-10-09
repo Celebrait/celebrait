@@ -50,7 +50,15 @@ type FooterCtaMode = 'default' | 'gate';
 // signed in. It used to open the photo offer modal from every page and
 // promise "it's free" under priced cards (audit 2026-10-06): making is
 // free, the card isn't, so the label is just "Make a card".
-const THREE_CARD_DOOR = /^\/(create|make|door2?)(?:\/|$)/;
+export const THREE_CARD_DOOR = /^\/(create|make|door2?)(?:\/|$)/;
+
+/** Where "Make yours" goes while the rack is parked (2026-10-09) — the
+ *  same door logic: stay on the three-card side if that's where the
+ *  visitor is, the public photo maker elsewhere. */
+export function useMakeYoursHref(): string {
+  const [path] = useLocation();
+  return THREE_CARD_DOOR.test(path) ? '/make' : '/photo/make';
+}
 
 function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
   const { isAuthenticated, isLoading } = useAuth();

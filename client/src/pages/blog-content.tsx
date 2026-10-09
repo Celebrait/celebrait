@@ -17,6 +17,15 @@
 // claims, no stock). All lazy-loaded with dimensions to avoid CLS.
 import { Link } from 'wouter';
 import type { ReactNode } from 'react';
+import { cardPriceGBP } from '@shared/pricing';
+import { useRackEnabled } from '@/hooks/use-rack';
+
+/** The "from" price: the rack's £4.99 only while stock cards sell
+ *  (/admin/site, 2026-10-09), else the made-for-them price. */
+function FromPrice() {
+  const rack = useRackEnabled() === true;
+  return <>£{(cardPriceGBP(rack ? 'rack' : 'maker') / 100).toFixed(2)}</>;
+}
 
 const P = ({ children }: { children: ReactNode }) => (
   <p className="mt-5 text-[17px] leading-[1.75] text-keeper-body">{children}</p>
@@ -109,7 +118,7 @@ function Cta({ line }: { line: string }) {
     <div className="mt-12 rounded-2xl border border-keeper-hair bg-white p-6 text-center shadow-sm">
       <p className="font-display text-xl font-semibold text-keeper-ink">{line}</p>
       <p className="mt-2 text-sm text-keeper-meta">
-        Free to make. You only pay if you print &amp; post: from £4.99 + postage.
+        Free to make. You only pay if you print &amp; post: from <FromPrice /> + postage.
       </p>
       {/* Public photo maker — /studio/new-card sat behind the auth wall,
           so signed-out readers (the blog's whole audience) hit a login. */}
@@ -198,7 +207,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
       <P>
         With Celebrait, designing is free and you can re-roll the artwork as
         many times as you like before buying. A printed card is{' '}
-        <Strong>from £4.99 plus postage (£2.95)</Strong>, posted anywhere in
+        <Strong>from <FromPrice /> plus postage (£2.95)</Strong>, posted anywhere in
         the UK, straight to them or to you to hand over. A free digital
         version is included with every printed card.
       </P>
@@ -378,7 +387,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
         Ben because of that one trip in 2019 is better. And{' '}
         <Strong>print it</Strong>. The entire magic of a card like this is
         that it ends up framed, on the fridge, kept. Ours are 280gsm,
-        printed to order in the UK, from £4.99 plus postage, straight to their
+        printed to order in the UK, from <FromPrice /> plus postage, straight to their
         door or yours.
       </P>
 

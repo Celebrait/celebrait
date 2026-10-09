@@ -45,6 +45,7 @@ import ScrollToTop from "@/components/scroll-to-top";
 import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SiteGate } from "@/components/site-gate";
+import { useRackEnabled } from "@/hooks/use-rack";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
@@ -142,6 +143,14 @@ function CreateRedirect() {
 }
 function HomeRedirect() {
   return <Redirect to="/" replace />;
+}
+/** The catalogue while the rack is parked (/admin/site, 2026-10-09): the
+ *  routes stay mounted so KNOWN_ROUTES stays true, the visitor lands on
+ *  /create. Unknown counts as parked. */
+function CardsOccasionRoute() {
+  const rack = useRackEnabled();
+  if (rack !== true) return <Redirect to="/create" replace />;
+  return <CardsOccasionPage />;
 }
 const OrderStatusPage = lazy(() => import("@/pages/order-status"));
 const CardsOccasionPage = lazy(() => import("@/pages/cards-occasion"));
@@ -427,10 +436,10 @@ function Router() {
             <CardProductPage />
           </Route>
           <Route path="/cards/:occasion/:aisle">
-            <CardsOccasionPage />
+            <CardsOccasionRoute />
           </Route>
           <Route path="/cards/:occasion">
-            <CardsOccasionPage />
+            <CardsOccasionRoute />
           </Route>
           {/* The guided maker preview — the customer flow rehearsed
               behind admin auth, deliberately OUTSIDE AdminLayout so it

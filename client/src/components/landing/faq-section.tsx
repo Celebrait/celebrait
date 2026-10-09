@@ -12,6 +12,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { SUPPORT_EMAIL } from '@/lib/legal';
+import { useRackEnabled } from '@/hooks/use-rack';
 import {
   cardPriceGBP,
   firstOrderPriceGBP,
@@ -27,7 +28,8 @@ interface FaqEntry {
 }
 
 // The photo door's answers (/photo).
-const PHOTO_FAQS: FaqEntry[] = [
+// A function of the rack switch: the £4.99 rung only while stock cards sell.
+const photoFaqs = (rack: boolean): FaqEntry[] => [
   {
     q: 'How does Celebrait work?',
     a: "You describe what you want — recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes — about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
@@ -42,7 +44,7 @@ const PHOTO_FAQS: FaqEntry[] = [
   },
   {
     q: 'Can I print and post the card?',
-    a: "Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From £4.99 plus postage (£4.99 off the shelf, £5.99 made for them, £6.99 from your photo), with a free digital version included. Our cards are one-off prints — please allow at least a week from order to arrival.",
+    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${gbp(cardPriceGBP(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${gbp(cardPriceGBP('rack'))} off the shelf, ` : ''}${gbp(cardPriceGBP('maker'))} made for them, ${gbp(cardPriceGBP('photo'))} from your photo), with a free digital version included. Our cards are one-off prints — please allow at least a week from order to arrival.`,
   },
   {
     q: 'How fast is delivery?',
@@ -104,7 +106,8 @@ const MAKER_FAQS: FaqEntry[] = [
 /** `door` picks the answer set: the photo door's ten (default, /photo) or
  *  the three-card door's six (/create). Same chrome either way. */
 export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
-  const FAQS = door === 'maker' ? MAKER_FAQS : PHOTO_FAQS;
+  const rack = useRackEnabled() === true;
+  const FAQS = door === 'maker' ? MAKER_FAQS : photoFaqs(rack);
   return (
     <section id="faq" className="snap-center relative scroll-mt-32 py-24 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array

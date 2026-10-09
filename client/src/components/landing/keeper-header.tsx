@@ -24,6 +24,7 @@ import { Link, useLocation } from 'wouter';
 import { Cake, Camera, ChevronDown, Menu, Sparkles, TreePine, type LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useRackEnabled } from '@/hooks/use-rack';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { TickerBanner } from '@/components/landing/ticker-banner';
@@ -83,6 +84,10 @@ export function KeeperHeader() {
   const { openAuth } = useAuthModal();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  // The rack is parked until there is stock (/admin/site) — no Stock cards
+  // menu until it's known to be open.
+  const rack = useRackEnabled();
+  const groups = rack === true ? GROUPS : GROUPS.filter((g) => g.label !== 'Stock cards');
 
   const onGate = location === '/';
   // On the makers and at checkout the visitor is already doing the thing —
@@ -115,7 +120,7 @@ export function KeeperHeader() {
 
           {/* Desktop row */}
           <nav className="hidden items-center gap-5 md:flex" aria-label="Main">
-            {GROUPS.map((g) => (
+            {groups.map((g) => (
               <DropdownMenu key={g.label} modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button type="button" className={`${navLink} ${g.matches(location) ? navActive : ''}`} data-testid={`nav-${g.label.split(' ')[0].toLowerCase()}`}>
@@ -169,7 +174,7 @@ export function KeeperHeader() {
                   <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto" />
                 </div>
                 <nav className="flex flex-1 flex-col overflow-y-auto px-4 pb-4 pt-2" aria-label="Main">
-                  {GROUPS.map((g) => (
+                  {groups.map((g) => (
                     <MobileGroup key={g.label} group={g} defaultOpen={g.matches(location)} onNavigate={() => setOpen(false)} />
                   ))}
                   <div className="mt-1 flex flex-col">

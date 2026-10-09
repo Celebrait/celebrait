@@ -30,6 +30,7 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
 import { getShippingTier, DEFAULT_SHIPPING_TIER, cardPriceGBP } from '@shared/pricing';
+import { useRackEnabled } from '@/hooks/use-rack';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -65,6 +66,7 @@ export default function BuyPage() {
 
   const [card, setCard] = useState<ShopCard | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading');
+  const rack = useRackEnabled() === true; // the rack is parked until there is stock
 
   const [needBy, setNeedBy] = useState('');
   const [email, setEmail] = useState('');
@@ -186,7 +188,7 @@ export default function BuyPage() {
         <div className="mx-auto max-w-lg px-6 pb-24 pt-40 text-center">
           <h1 className="font-display text-2xl font-bold text-keeper-ink">We couldn't find that card</h1>
           <p className="mt-3 text-sm text-keeper-meta">The link may have expired with your session — pick the card again and it'll be waiting.</p>
-          <Link href="/cards/birthday" className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">Back to the cards</Link>
+          <Link href={rack ? '/cards/birthday' : '/create'} className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">{rack ? 'Back to the cards' : 'Make a card'}</Link>
         </div>
       </div>
     );

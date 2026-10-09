@@ -8,6 +8,7 @@
 // they can't drift.
 import { useEffect } from 'react';
 import { seoForPath, robotsForPath, SITE_ORIGIN } from '@shared/seo';
+import { useRackEnabled } from '@/hooks/use-rack';
 
 /** Reconcile `<meta name="robots">` with the path: set it for private /
  *  unknown pages, remove it otherwise. Exported so the not-found page
@@ -24,9 +25,11 @@ export function setRobotsMeta(value: string | null) {
 }
 
 export function useSeo(path: string) {
+  // The "from £X" in titles/descriptions follows the rack switch.
+  const rack = useRackEnabled() === true;
   useEffect(() => {
-    setRobotsMeta(robotsForPath(path));
-    const seo = seoForPath(path);
+    setRobotsMeta(robotsForPath(path, rack));
+    const seo = seoForPath(path, rack);
     if (!seo) return;
     document.title = seo.title;
 
@@ -42,5 +45,5 @@ export function useSeo(path: string) {
       l.href = href;
       document.head.appendChild(l);
     }
-  }, [path]);
+  }, [path, rack]);
 }

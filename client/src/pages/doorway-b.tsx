@@ -27,6 +27,7 @@ import { CardDrift } from '@/components/catalogue/card-drift';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY_LG } from '@/pages/doorway';
 import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
+import { useRackEnabled } from '@/hooks/use-rack';
 import { cardPriceGBP } from '@shared/pricing';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { HandoverSection } from '@/components/landing/handover-section';
@@ -64,12 +65,16 @@ export default function DoorwayBPage() {
   // hand-picked carousel cards first, then a birthday shuffle). Only the
   // rack counts are fetched here.
   const [counts, setCounts] = useState<Record<string, number>>({});
+  // The rack is parked until there is stock (/admin/site): the carousel
+  // stays as proof, the shelf links go.
+  const rack = useRackEnabled() === true;
   useEffect(() => {
+    if (!rack) return;
     for (const o of ['christmas', 'birthday'] as const) {
       fetch(`/api/catalogue/${o}`).then((r) => (r.ok ? r.json() : null))
         .then((x: RackPayload | null) => { if (x) setCounts((c) => ({ ...c, [o]: x.count })); }).catch(() => {});
     }
-  }, []);
+  }, [rack]);
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -139,7 +144,7 @@ export default function DoorwayBPage() {
           {/* ── The wall: real cards, drifting ── */}
           <div className="mt-12 md:mt-16">
             <div className="mx-auto max-w-6xl px-6">
-              <p className={EYEBROW}>From the rack · made for real people</p>
+              <p className={EYEBROW}>{rack ? 'From the rack · made for real people' : 'Made for real people'}</p>
             </div>
             <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
               <CardDrift />
@@ -149,7 +154,7 @@ export default function DoorwayBPage() {
           {/* The carousel IS the shelf (Aidan: the full wall beneath it
               was "too much") — two links into the racks proper, which
               carry the toggle, the filters and the search. */}
-          <div className="mx-auto mt-5 max-w-6xl px-6">
+          {rack && <div className="mx-auto mt-5 max-w-6xl px-6">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-keeper-body">
               <span>Or take one off the shelf:</span>
               <Link href="/cards/christmas" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
@@ -161,7 +166,7 @@ export default function DoorwayBPage() {
               </Link>
               <span className="text-[13px] text-keeper-meta">· from {gbp(cardPriceGBP('rack'))}</span>
             </p>
-          </div>
+          </div>}
 
           <div className="mx-auto mt-8 max-w-6xl px-6"><TrustChips /></div>
         </section>

@@ -25,6 +25,8 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { cardPriceGBP, getShippingTier } from '@shared/pricing';
+import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakeYoursHref } from '@/components/landing/marketing-footer';
 
 /** Rack cards are the £4.99 door — priced from the ladder, never
  *  hardcoded, so a price change lands everywhere at once. */
@@ -57,6 +59,10 @@ export default function CardProductPage() {
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
   const [, navigate] = useLocation();
+  // The rack is parked until there is stock (/admin/site): the page stays
+  // (links already shared) but nothing is for sale — "Make yours" instead.
+  const rack = useRackEnabled() === true;
+  const makeHref = useMakeYoursHref();
 
   /** The rack's buy path (UX_THREE_DOORS.md §5, Door 1): turn the
    *  template into THIS person's card, pocket its ownership token,
@@ -112,8 +118,10 @@ export default function CardProductPage() {
         <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
         <KeeperHeader />
         <div className="mx-auto max-w-lg px-6 pb-24 pt-40 text-center">
-          <h1 className="font-display text-2xl font-bold text-keeper-ink">That card's been taken off the shelf</h1>
-          <Link href="/cards/birthday" className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">Back to the rack</Link>
+          <h1 className="font-display text-2xl font-bold text-keeper-ink">{rack ? "That card's been taken off the shelf" : "We couldn't find that card"}</h1>
+          {rack
+            ? <Link href="/cards/birthday" className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">Back to the rack</Link>
+            : <Link href={makeHref} className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">Make a card</Link>}
         </div>
         <MarketingFooter />
       </div>
@@ -129,7 +137,9 @@ export default function CardProductPage() {
         <nav className="text-xs text-keeper-meta">
           <Link href="/" className="hover:text-keeper-ink">Home</Link>
           <span className="mx-1.5">/</span>
-          <Link href={`/cards/${card.occasion}`} className="capitalize hover:text-keeper-ink">{card.occasion} cards</Link>
+          {rack
+            ? <Link href={`/cards/${card.occasion}`} className="capitalize hover:text-keeper-ink">{card.occasion} cards</Link>
+            : <span className="capitalize">{card.occasion} cards</span>}
           <span className="mx-1.5">/</span>
           <span className="text-keeper-body">This card</span>
         </nav>
@@ -172,6 +182,12 @@ export default function CardProductPage() {
               <p className="mt-2 text-sm text-keeper-meta">Made for someone who loves <span className="font-medium text-keeper-body">{card.interest}</span> — yours to send as-is.</p>
             )}
 
+            {!rack ? (
+              <div className="mt-6 rounded-2xl border border-keeper-hair bg-white/70 p-5 backdrop-blur-sm">
+                <p className="text-sm text-keeper-body">Made for a real person, like every card here. Yours starts with a few words about them.</p>
+                <Link href={makeHref} className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black">Make yours →</Link>
+              </div>
+            ) : (<>
             <div className="mt-4 flex items-baseline gap-3">
               <span className="font-display text-3xl font-bold text-keeper-ink">{gbp(RACK_PRICE)}</span>
               <span className="text-sm text-keeper-meta">+ {gbp(POSTAGE)} postage, straight to their door</span>
@@ -225,6 +241,7 @@ export default function CardProductPage() {
               <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{buyError}</p>
             )}
             <p className="mt-3 text-center text-xs text-keeper-meta">No account needed to buy a card — only our card builder asks you to sign up.</p>
+            </>)}
 
             <ul className="mt-7 space-y-2.5 text-sm text-keeper-body">
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Printed on 280gsm gloss card, kraft envelope</li>
@@ -236,7 +253,9 @@ export default function CardProductPage() {
 
         {/* Cross-sell back to the wall */}
         <div className="mt-16 border-t border-keeper-hair pt-8 text-center">
-          <Link href={`/cards/${card.occasion}`} className="text-sm font-medium text-keeper-gold hover:underline">← More {card.occasion} cards</Link>
+          {rack
+            ? <Link href={`/cards/${card.occasion}`} className="text-sm font-medium text-keeper-gold hover:underline">← More {card.occasion} cards</Link>
+            : <Link href={makeHref} className="text-sm font-medium text-keeper-gold hover:underline">Make yours →</Link>}
         </div>
       </main>
       <MarketingFooter />

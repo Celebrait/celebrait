@@ -35,6 +35,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY, H1 } from '@/pages/doorway';
 import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
+import { useRackEnabled } from '@/hooks/use-rack';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP, MAKE_TIME } from '@shared/pricing';
 
@@ -161,6 +162,8 @@ export default function GatePage() {
   const picks = useDriftCards(20, null);
   const photo = gbp(cardPriceGBP('photo'));
   const maker = gbp(cardPriceGBP('maker'));
+  // "from £X": the rack's £4.99 only while stock cards sell (/admin/site).
+  const from = useRackEnabled() === true ? gbp(cardPriceGBP('rack')) : maker;
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -203,7 +206,7 @@ export default function GatePage() {
                 the photo lander's plain chips, same family). */}
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               {[
-                { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted anywhere in the UK from <span className="font-semibold">£4.99</span></> },
+                { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted anywhere in the UK from <span className="font-semibold">{from}</span></> },
                 { icon: HandCoins, label: <>Design for free, pay only after you’ve created</> },
               ].map(({ icon: Icon, label }, n) => (
                 <span key={n} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/80 py-1.5 pl-1.5 pr-4 text-[13.5px] text-keeper-ink shadow-[0_1px_2px_rgba(33,29,25,0.04)]">

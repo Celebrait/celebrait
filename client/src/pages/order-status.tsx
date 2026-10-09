@@ -16,6 +16,7 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { expectedByCopy } from '@/components/checkout/need-by';
 import { formatDayMonth, parseISODate } from '@shared/pricing';
+import { useRackEnabled } from '@/hooks/use-rack';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -51,6 +52,7 @@ function stepIndex(status: string): number {
 
 export default function OrderStatusPage() {
   const params = useParams<{ orderId: string }>();
+  const rack = useRackEnabled() === true; // the rack is parked until there is stock
   const [order, setOrder] = useState<ShopOrder | null>(null);
   const [items, setItems] = useState<ShopOrderItem[]>([]);
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading');
@@ -171,7 +173,9 @@ export default function OrderStatusPage() {
           Keep this page's link — it's your order reference ({order.id.slice(0, 8)}).
         </p>
         <p className="mt-6 text-center">
-          <Link href="/cards/birthday" className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Browse the cards →</Link>
+          {rack
+            ? <Link href="/cards/birthday" className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Browse the cards →</Link>
+            : <Link href="/create" className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Make another →</Link>}
         </p>
       </main>
     </div>
