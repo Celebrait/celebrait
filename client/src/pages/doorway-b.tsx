@@ -29,6 +29,10 @@ import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { cardPriceGBP } from '@shared/pricing';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
+import { HandoverSection } from '@/components/landing/handover-section';
+import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
+import { InsideSection } from '@/components/landing/inside-section';
+import { FaqSection } from '@/components/landing/faq-section';
 
 const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
@@ -161,6 +165,16 @@ export default function DoorwayBPage() {
 
           <div className="mx-auto mt-8 max-w-6xl px-6"><TrustChips /></div>
         </section>
+
+        {/* Below the rack (Aidan 2026-10-09): the four door-agnostic
+            sections the photo door already carries — delivery, the dates
+            offer (at THIS door's price), the print statement — then a FAQ
+            with the three-card answers. Same components as /photo, so the
+            two doors can't drift apart. */}
+        <HandoverSection />
+        <OccasionsPromoSection door="maker" />
+        <InsideSection />
+        <FaqSection door="maker" />
       </main>
       <MarketingFooter />
     </div>

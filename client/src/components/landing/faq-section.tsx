@@ -12,13 +12,22 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { SUPPORT_EMAIL } from '@/lib/legal';
+import {
+  cardPriceGBP,
+  firstOrderPriceGBP,
+  UK_SHIPPING_STANDARD_GBP,
+  HONEST_LEAD_LINE,
+} from '@shared/pricing';
+
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 interface FaqEntry {
   q: string;
   a: string;
 }
 
-const FAQS: FaqEntry[] = [
+// The photo door's answers (/photo).
+const PHOTO_FAQS: FaqEntry[] = [
   {
     q: 'How does Celebrait work?',
     a: "You describe what you want — recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes — about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
@@ -61,9 +70,43 @@ const FAQS: FaqEntry[] = [
   },
 ];
 
-export function FaqSection() {
+// The three-card door's answers (/create, 2026-10-09). Shorter list: the
+// visitor has just seen the six questions and the rack, so these are the
+// objections left standing. Prices and the lead-time line come from
+// shared/pricing so they cannot drift from the bill or the banner.
+const MAKER_FAQS: FaqEntry[] = [
+  {
+    q: 'How does it work?',
+    a: "Six quick questions — who it's for, the occasion, what they're like. From your answers we write and draw three cards, in under a minute. Pick the one that's them. Keep our words inside, change them, or leave it blank to handwrite. Then it's printed and posted, or shared as a free digital link.",
+  },
+  {
+    q: "What if I don't like any of the three?",
+    a: "Deal again — another three is free. Change a detail first if something was off (the occasion, the in-joke, the tone) and the next three will follow it. There's nothing to pay until you print one.",
+  },
+  {
+    q: 'Can I put their photo in?',
+    a: "Yes, once you've picked a card. It's optional: one clear photo of them, and we check it's usable before we start. If it isn't, we'll say so and tell you what would work better.",
+  },
+  {
+    q: 'Can I change the message inside?',
+    a: "Yes. Ours is a starting point — change a word, rewrite the lot, or start from blank. Or leave the inside blank and we'll post the card to you to handwrite.",
+  },
+  {
+    q: 'What does it cost?',
+    a: `${gbp(cardPriceGBP('maker'))} a card, plus ${gbp(UK_SHIPPING_STANDARD_GBP)} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price — ${gbp(firstOrderPriceGBP('maker'))}. Making and previewing is free; you only pay when you print one.`,
+  },
+  {
+    q: 'How long does delivery take?',
+    a: `${HONEST_LEAD_LINE} Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (${gbp(UK_SHIPPING_STANDARD_GBP)}), usually the next working day. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
+  },
+];
+
+/** `door` picks the answer set: the photo door's ten (default, /photo) or
+ *  the three-card door's six (/create). Same chrome either way. */
+export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
+  const FAQS = door === 'maker' ? MAKER_FAQS : PHOTO_FAQS;
   return (
-    <section id="faq" className="snap-center relative py-24 md:py-32">
+    <section id="faq" className="snap-center relative scroll-mt-32 py-24 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array
           so it can never drift from what's on screen (Google requires
           schema content to match visible content). Rendered client-side;

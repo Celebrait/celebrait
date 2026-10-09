@@ -21,19 +21,30 @@ import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { daysToChristmas } from '@/lib/moments';
-import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
+import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
+import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
 
 const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
+const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-export function OccasionsPromoSection() {
+/** `door` picks the price the offer quotes (the ticker does the same):
+ *  the number must be the number THIS door will charge — the line was
+ *  hardcoded to the three-card price, so on /photo it promised
+ *  £5.99→£2.99 for a card that is £6.99→£3.49 at checkout. Mounted on
+ *  /photo (default) and, since 2026-10-09, on /create as `maker`. */
+export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   const claim = () => {
     if (user) {
       setLocation('/studio');
-    } else {
+    } else if (door === 'photo') {
+      // The invite modal is mounted on the photo landing page.
       window.dispatchEvent(new CustomEvent(CLAIM_EVENT));
+    } else {
+      // No modal on /create — same trip the ticker makes from anywhere else.
+      setLocation(`/photo?${CLAIM_PARAM}=1`);
     }
   };
 
@@ -43,7 +54,7 @@ export function OccasionsPromoSection() {
   });
 
   return (
-    <section id="occasions" className="px-6 py-24 md:py-32">
+    <section id="dates" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* ── Copy column ── */}
         <div>
@@ -62,7 +73,7 @@ export function OccasionsPromoSection() {
             <strong className="text-keeper-ink">
               50% off your first card
             </strong>{' '}
-            — <span className="line-through">£5.99</span> <b>£2.99</b>, plus
+            — <span className="line-through">{gbp(cardPriceGBP(door))}</span> <b>{gbp(firstOrderPriceGBP(door))}</b>, plus
             postage.
           </p>
 

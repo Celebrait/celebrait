@@ -27,7 +27,6 @@ import { Link } from 'wouter';
 import {
   Mail,
   RefreshCw,
-  Send,
   Truck,
   ArrowRight,
   Bell,
@@ -48,6 +47,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
+import { Rise } from '@/components/landing/rise';
+import { ShimmerWord } from '@/components/landing/shimmer-word';
+import { HandoverSection } from '@/components/landing/handover-section';
+import { InsideSection } from '@/components/landing/inside-section';
+export { ShimmerWord };
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -73,9 +77,6 @@ const heroCardInside = '/hero-card-inside.webp';
 // made in the Studio." + its 3D tiles). The hero 3D card STAYS. Flip to
 // false to bring the gallery back.
 const HIDE_GALLERY = true;
-// Panel C lifestyle shots — same scene, front card + open card — crossfaded.
-const keeperCardClosed = '/keeper-card-closed.webp';
-const keeperCardOpen = '/keeper-card-open.webp';
 // Proof section ("Greetings cards used to be boring") — the REAL worked
 // example, so the recipe and the result are the same card end to end:
 // this selfie of Mum + "Gazing at the Northern Lights" + "Happy 60th, Mum"
@@ -109,31 +110,8 @@ const Card3DViewer = lazy(() =>
 
 // ── Shared bits ──────────────────────────────────────────────────────
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-// Fraunces Bold for every display headline (Kevin 2026-07-04). Serif
-// wants gentler negative tracking than the grotesque did.
-
-function Rise({
-  children,
-  delay = 0,
-  className,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.55, delay, ease: EASE }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+// Rise (fade + 12px entrance) and EASE live in components/landing/rise.tsx
+// since 2026-10-09 — the sections shared with /create need them too.
 
 /** Auto-advance a carousel, politely. Who wins, in order:
  *
@@ -227,102 +205,9 @@ function AssetSlot({
   );
 }
 
-/** The "Unbinnable" shimmer — the one glow treatment on this page.
- *  Gradient-clipped text that runs BLACK through PURPLE and back to
- *  black, with the violet wave sweeping left-to-right every ~8s.
- *
- *  Lives here as ONE component because two headlines wear it — the hero's
- *  rotating persona ("your best mate") and the proof heading's "used" — and
- *  Kevin's call is that they must match exactly (2026-07-14). Defining the
- *  gradient twice is how they'd silently drift apart. Still under
- *  prefers-reduced-motion: the ink-to-violet gradient stays, the wave stops.
- */
-export function ShimmerWord({
-  children,
-  reduced,
-}: {
-  children: string;
-  reduced: boolean;
-}) {
-  return (
-    <motion.span
-      className="inline-block overflow-visible bg-clip-text px-1 pb-[0.12em] text-transparent"
-      style={{
-        backgroundImage:
-          'linear-gradient(90deg, #211D19 0%, #211D19 30%, #7a76e8 45%, #5c57d4 50%, #7a76e8 55%, #211D19 70%, #211D19 100%)',
-        backgroundSize: '220% 100%',
-        backgroundRepeat: 'no-repeat',
-      }}
-      initial={{ backgroundPosition: '0% 0%' }}
-      animate={reduced ? undefined : { backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
-      transition={
-        reduced
-          ? undefined
-          : {
-              duration: 4,
-              repeat: Infinity,
-              repeatDelay: 4.5,
-              ease: 'easeInOut',
-              delay: 0.8,
-              times: [0, 0.5, 1],
-            }
-      }
-    >
-      {children}
-    </motion.span>
-  );
-}
-
-/** Two lifestyle photos — the front card and the open inside — sat
- *  straight, close but NOT overlapping (Kevin 2026-07-11). Stacked and
- *  staggered off-centre at every width: first hugs left, second hugs
- *  right, so it reads casual rather than dead-centred. */
-function CardPair({
-  first,
-  second,
-  alt,
-}: {
-  first: string;
-  second: string;
-  alt: string;
-}) {
-  // Corner radius matches the 3D card's, so the photographed card and the
-  // rendered one read as the same object (Kevin 2026-07-14). The viewer
-  // rounds by CARD_CORNER/CARD_W = 0.025/1.45 ≈ 1.7% of the card's width;
-  // at the hero's ~433px on-screen card that's ~7.5px, and 1.7% of these
-  // ~490px images is ~8.4px — so 8px lands on both the absolute and the
-  // proportional match. (Was rounded-2xl = 16px: twice as round.)
-  const img =
-    'w-[92%] sm:w-[55%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5';
-  // width/height are the INTRINSIC pixels (all proof art is square
-  // 900×900), not a display size — the CSS width still governs. They
-  // exist so the browser reserves the right box before the bytes land.
-  // Without them these two auto-height images popped in one after the
-  // other and shoved the section around as they decoded: the exact
-  // "staggering, looks cheap" Kevin called out (2026-07-29).
-  return (
-    <div className="flex flex-col gap-5">
-      <img
-        src={first}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        width={900}
-        height={900}
-        className={`${img} self-start`}
-      />
-      <img
-        src={second}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        width={900}
-        height={900}
-        className={`${img} self-end`}
-      />
-    </div>
-  );
-}
+// ShimmerWord moved to components/landing/shimmer-word.tsx (2026-10-09)
+// and is re-exported below so /create and the doorway keep importing it
+// from here. CardPair went with the Inside section.
 
 // Signed out, this opens the CLAIM modal rather than the bare auth one
 // (Aidan 2026-08-06: "just want everyone presented with this").
@@ -1356,194 +1241,14 @@ function ProofSection() {
 }
 
 // ── 2b. THE INSIDE ───────────────────────────────────────────────────
-
-// ONE pair — the same card shot closed (front) and open (inside). The pair
-// IS the argument the copy makes, "a front and an inside that belong
-// together", so the two photos always travel together; but one example is
-// enough to make it (Kevin 2026-07-17 — the carousel here is gone, and with
-// it the 4 extra lifestyle shots it would have needed).
-function InsideSection() {
-  const reduced = useReducedMotion();
-
-  return (
-    <section className="px-6 py-24 md:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
-        <Rise>
-          {/* This section's job is the one thing the page never says outright:
-              the digital process ends as a PHYSICAL object (the visual beside
-              it is a real card on a table).
-              NB: this copy originally held BACK on the bin/keep beat because
-              StatementSection ("This is the unbinnable kind") landed it right
-              below. That section is gone (2026-07-17), so nothing on the page
-              carries that punch now except the hero eyebrow — if it's ever
-              wanted back, here is where it belongs.
-              NB2: the old "in the card's own hand" implied handwriting; the
-              inside is SET TYPE (see project_inside_message_is_typography). */}
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            The <ShimmerWord reduced={!!reduced}>magic's</ShimmerWord> digital. The card isn't.
-          </h2>
-          {/* NB: kraft is the ENVELOPE, not the card — the card is a 280gsm
-              gloss-coated art card (HP Indigo). See faq-section, pricing.tsx,
-              checkout.tsx, shared/pricing.ts. Don't describe the stock as
-              kraft: it's brown and uncoated, and the gloss is exactly what
-              makes the artwork print vividly. */}
-          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            It's 2026, anyone can write a prompt and conjure up an image.
-            But a custom greetings card with a front and inside that belong
-            together, pressed onto 280gsm
-            gloss and posted to someone you care about.{' '}
-            <strong className="font-semibold">
-              <ShimmerWord reduced={!!reduced}>That's Celebrait</ShimmerWord>.
-            </strong>{' '}
-            Thoughtful, funny, gloriously daft: that's you.
-          </p>
-        </Rise>
-        <Rise delay={0.1}>
-          <CardPair
-            first={keeperCardClosed}
-            second={keeperCardOpen}
-            alt="A Celebrait card held open on a table — the inside message and the front"
-          />
-        </Rise>
-      </div>
-    </section>
-  );
-}
+// "The magic's digital. The card isn't." Lives in
+// components/landing/inside-section.tsx since 2026-10-09 (shared with
+// /create), CardPair and the two lifestyle shots with it.
 
 // ── 3. THE HANDOVER ──────────────────────────────────────────────────
-//
-// Replaces the old StatementSection ("Everyone gets cards. Nobody gets
-// them. / This is the unbinnable kind.") — Kevin 2026-07-17 wanted this
-// beat made explicit and VISUAL rather than a bare aphorism.
-//
-// The two columns are PRODUCT-TRUE, not a marketing pairing. A blank
-// inside has no giving choice: it's printed and posted to the SENDER,
-// always, because you can't post someone an empty card — that's the
-// blank-card footgun deliberately designed out (see the header comment in
-// components/studio/giving-moment.tsx). Written insides are the ones that
-// get a destination choice. So "your message printed → either
-// destination" / "blank → always to you" is exactly the rule, and the
-// supporting copy says so out loud.
-//
-// This copy previously lived buried at the bottom of ObjectSection as two
-// 13px cards under a spec list — removed from there so the page doesn't
-// make the same point twice.
-const HANDOVER: Array<{
-  icon: LucideIcon;
-  tag: string;
-  title: string;
-  body: string;
-  img: string;
-  alt: string;
-}> = [
-  {
-    icon: Send,
-    tag: 'F1',
-    title: 'Straight to them',
-    body: 'Posted tracked in a kraft envelope, your message printed inside.',
-    img: '/handover-printed.webp',
-    alt: 'A finished Celebrait birthday card standing on a desk beside its kraft envelope.',
-  },
-  {
-    icon: PenLine,
-    tag: 'F2',
-    title: 'Or to you first',
-    body: 'Posted to you with a spare envelope, ready to hand over in person.',
-    img: '/handover-blank.webp',
-    alt: 'An open Celebrait card — blank inside with a decorative floral border, ready to handwrite.',
-  },
-];
-
-function HandoverSection() {
-  return (
-    // Same chassis as THE INSIDE ("The magic's digital. The card isn't.") —
-    // text left, staggered pair of shots right (Kevin 2026-07-17), so the
-    // two picture-led sections rhyme instead of each inventing a layout.
-    <section className="px-6 py-24 md:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
-        <Rise>
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            Send direct. Or receive it yourself, to hand over.
-          </h2>
-          <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            A soppy essay, a heartfelt message, a snappy one-liner. Tell them
-            how you feel and we'll add it to the inside (styled to match the
-            front). Rather write it yourself with good old ink? All good —
-            it'll still look the part.
-          </p>
-          {/* The two destinations, stacked. The icon badge is the hierarchy
-              rung between the headline and the meta copy; it wears the same
-              green pair as the carousel arrows + signpost, so green means
-              "go" everywhere on the page rather than decoration. */}
-          <div className="mt-8 space-y-6">
-            {HANDOVER.map((h) => {
-              const Icon = h.icon;
-              return (
-                <div key={h.tag} className="flex gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cta-light text-cta-dark">
-                    <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-                  </span>
-                  <div>
-                    {/* Fraunces Bold comes from `.keeper-serif h3` in
-                        index.css (the page makes EVERY heading serif) —
-                        don't add a font-weight, that rule out-specifies it. */}
-                    <h3 className="text-[18px] text-keeper-ink">{h.title}</h3>
-                    <p className="mt-1 max-w-[34ch] text-[14px] leading-relaxed text-keeper-meta">
-                      {h.body}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Rise>
-        <Rise delay={0.1}>
-          {/* Staggered pair — deliberately the SAME geometry as CardPair
-              (w-[92%] sm:w-[55%], self-start then self-end, gap-5) so this
-              reads as a sibling of the Inside section's visual. F1 = the
-              finished printed card; F2 = the open card, blank inside with
-              the decorative border. */}
-          <div className="relative flex flex-col gap-5">
-            {/* Envelope seal — the "only open on your special day" round
-                sticker that goes on the direct-to-recipient kraft envelope.
-                Signals the sealed D2R option; sits above the card cluster
-                (top-right). Static tilt + shadow read it as a real sticker. */}
-            {/* Deliberately NOT /envelope-seal.png: that file is the
-                PRODIGI PRINT asset (803×803 PNG, fetched by URL by
-                prodigi-provider.ts) and must not change. It's 804KB —
-                which we were shipping to every visitor to draw a 240px
-                sticker. This is the same art at web size: 28KB, −96%. */}
-            <img
-              src="/envelope-seal-web.webp"
-              alt="Celebrait envelope seal — only open on your special day"
-              loading="lazy"
-              decoding="async"
-              width={480}
-              height={480}
-              className="pointer-events-none absolute -top-12 right-0 z-20 w-28 rotate-[-8deg] drop-shadow-[0_16px_30px_rgba(33,29,25,0.22)] sm:w-32 md:-top-20 md:-right-10 md:w-52 lg:w-60"
-            />
-            {/* Intrinsic 1100×734 — reserves the box so the pair doesn't
-                shove the section as each one decodes (see ProofPair). */}
-            {HANDOVER.map((h, i) => (
-              <img
-                key={h.tag}
-                src={h.img}
-                alt={h.alt}
-                loading="lazy"
-                decoding="async"
-                width={1100}
-                height={734}
-                className={`w-[92%] rounded-[8px] shadow-[0_18px_42px_-22px_rgba(33,29,25,0.42)] ring-1 ring-black/5 sm:w-[55%] ${
-                  i === 0 ? 'self-start' : 'self-end'
-                }`}
-              />
-            ))}
-          </div>
-        </Rise>
-      </div>
-    </section>
-  );
-}
+// "Send direct. Or receive it yourself, to hand over." Lives in
+// components/landing/handover-section.tsx since 2026-10-09 — /create
+// carries the same section, so it had to leave this page.
 
 // ── 4. RANGE — The gallery wall (every card clickable) ──────────────
 

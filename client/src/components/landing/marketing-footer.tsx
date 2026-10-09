@@ -26,12 +26,16 @@ const COMPANY: FooterLink[] = [
 
 // Anchors must exist on the page they name: `/` is the gate (only
 // #doors), so these point at the photo LP's sections and pricing's
-// delivery block (audit 2026-10-06).
-const HELP: FooterLink[] = [
-  { label: 'How it works', href: '/photo#proof' },
-  { label: 'FAQ', href: '/photo#faq' },
-  { label: 'Delivery', href: '/pricing#delivery' },
-];
+// delivery block (audit 2026-10-06). FAQ is door-aware (2026-10-09):
+// /create has its own #faq with the three-card answers, so on that side
+// of the house the link stays on that side.
+function helpLinks(path: string): FooterLink[] {
+  return [
+    { label: 'How it works', href: '/photo#proof' },
+    { label: 'FAQ', href: THREE_CARD_DOOR.test(path) ? '/create#faq' : '/photo#faq' },
+    { label: 'Delivery', href: '/pricing#delivery' },
+  ];
+}
 
 const LEGAL: FooterLink[] = [
   { label: 'Terms', href: '/terms-of-service' },
@@ -112,6 +116,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 }
 
 export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {}) {
+  const [path] = useLocation();
   return (
     <footer className="relative isolate overflow-hidden bg-keeper-ink text-keeper-paper">
       {/* Warm marigold glow bleeding down from the top edge. */}
@@ -172,7 +177,7 @@ export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {
             </div>
           </div>
           <FooterColumn title="Company" links={COMPANY} />
-          <FooterColumn title="Help" links={HELP} />
+          <FooterColumn title="Help" links={helpLinks(path)} />
           <FooterColumn title="Legal" links={LEGAL} />
         </div>
       </div>
