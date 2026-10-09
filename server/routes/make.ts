@@ -78,7 +78,7 @@ export function registerMakeRoutes(app: Express): void {
   app.post('/api/make/cards', async (req: Request, res: Response) => {
     if (!(await saveGate(req, res))) return;
     const parsed = saveSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: 'That card didn’t come through in one piece — try again' });
+    if (!parsed.success) return res.status(400).json({ message: 'That card didn’t come through in one piece. Try again' });
     const body = parsed.data;
     try {
       const imageKey = randomUUID().replace(/-/g, '');
@@ -145,7 +145,7 @@ export function registerMakeRoutes(app: Express): void {
       });
     } catch (err) {
       console.error('[MAKE] save failed:', err);
-      res.status(500).json({ message: "We couldn't save that card — try again" });
+      res.status(500).json({ message: "We couldn't save that card. Try again" });
     }
   });
 
@@ -174,7 +174,7 @@ export function registerMakeRoutes(app: Express): void {
       res.json({ ok: true, cardId });
     } catch (err) {
       console.error('[MAKE] claim failed:', err);
-      res.status(500).json({ message: "We couldn't keep that card — try again" });
+      res.status(500).json({ message: "We couldn't keep that card. Try again" });
     }
   });
 }

@@ -34,6 +34,7 @@ import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import { openai } from '../utils/shared';
+import { stripAiDash } from '@shared/no-dash';
 import { db } from '../db';
 import { cards, photos, users, type CardDraftState } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
@@ -282,7 +283,9 @@ function parseRewrite(raw: string): RewriteResult | null {
       const lastFullStop = within.lastIndexOf('.');
       capped = lastFullStop > 30 ? within.slice(0, lastFullStop + 1) : within;
     }
-    return { text: capped, grounding };
+    // The dash law (2026-10-09): model text leaves the server without an
+    // em-dash, spaced en-dash or double hyphen. Hyphens inside words stay.
+    return { text: stripAiDash(capped), grounding };
   } catch {
     return null;
   }
@@ -471,9 +474,9 @@ function parseCompose(raw: string): ComposeResult | null {
       .filter((s: string): s is string => s.length > 0 && s.length <= 40)
       .slice(0, 4);
     return {
-      greeting: capWords(greeting, 12),
-      message: capWords(message, 150),
-      signoff: capWords(signoff, 12),
+      greeting: stripAiDash(capWords(greeting, 12)),
+      message: stripAiDash(capWords(message, 150)),
+      signoff: stripAiDash(capWords(signoff, 12)),
       grounding,
     };
   } catch {

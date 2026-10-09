@@ -58,7 +58,7 @@ export function registerResearchRoutes(app: Express): void {
       res.json({ ok: true, reused: false });
     } catch (err) {
       console.error('[RESEARCH] session mint failed:', err);
-      res.status(500).json({ message: 'Could not open the maker — try again' });
+      res.status(500).json({ message: 'Could not open the maker. Try again' });
     }
   });
 
@@ -90,7 +90,7 @@ export function registerResearchRoutes(app: Express): void {
       body = schema.parse(req.body);
     } catch (err) {
       const issue = err instanceof z.ZodError ? err.issues[0] : null;
-      return res.status(400).json({ message: issue ? `Invalid response — ${issue.path.join('.')}: ${issue.message}` : 'Invalid response' });
+      return res.status(400).json({ message: issue ? `Invalid response (${issue.path.join('.')}): ${issue.message}` : 'Invalid response' });
     }
     try {
       const cardPaths = await Promise.all(
@@ -120,7 +120,7 @@ export function registerResearchRoutes(app: Express): void {
       res.json({ ok: true, id: row.id });
     } catch (err) {
       console.error('[RESEARCH] save failed:', err);
-      res.status(500).json({ message: 'Could not save — your card is still yours though' });
+      res.status(500).json({ message: 'Could not save, but your card is still yours' });
     }
   });
 

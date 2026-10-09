@@ -61,12 +61,12 @@ function interruptedFailurePayload(failStatus: 'failed' | 'inside-failed') {
     status: failStatus,
     failureKind: 'server',
     failureMessage:
-      'The generation was interrupted mid-flight — most likely a brief service restart, not anything about your card.',
+      'The generation was interrupted mid-flight, most likely a brief service restart, not anything about your card.',
     failureModelExplanation: null,
     failureProvider: null,
     failureCode: 'generation_interrupted',
     failureSuggestions: [
-      'Hit retry — your photos and details are all saved.',
+      'Hit retry. Your photos and details are all saved.',
       'If it happens twice in a row, give it a couple of minutes first.',
     ],
     failureAt: new Date(),

@@ -697,7 +697,7 @@ export function registerStudioDraftRoutes(app: Express): void {
       if (row.status !== 'draft') {
         return res
           .status(409)
-          .json({ message: `Draft is ${row.status}, not 'draft' — nothing to start` });
+          .json({ message: `Draft is ${row.status}, not 'draft', so there's nothing to start` });
       }
 
       const state = row.conversationData as CardDraftState | null;
@@ -846,7 +846,7 @@ export function registerStudioDraftRoutes(app: Express): void {
           }
           if (existing.some((a) => a.status === 'generating')) {
             return res.status(409).json({
-              message: 'An inside is already generating — hang on a moment.',
+              message: 'An inside is already generating. Hang on a moment.',
             });
           }
           const rate = await checkDailyGenerationLimit(userId);
@@ -1309,7 +1309,7 @@ export function registerStudioDraftRoutes(app: Express): void {
       if (paidOrders.length > 0) {
         return res.status(409).json({
           message:
-            "This card has a completed order, so it can't be deleted — we keep order records for your protection. If something's wrong with the order, get in touch and we'll sort it.",
+            "This card has a completed order, so it can't be deleted. We keep order records for your protection. If something's wrong with the order, get in touch and we'll sort it.",
         });
       }
 

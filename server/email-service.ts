@@ -455,7 +455,7 @@ function chassis(opts: {
                 ${postCtaBlock}
                 <tr>
                   <td class="em-pad" style="padding: 30px 40px 34px 40px; margin-top: 8px; color: ${EMAIL_STONE}; font-size: 13px; border-top: 1px solid ${EMAIL_HAIR_SOFT};">
-                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}&mdash; Celebrait${traderLine()}
+                    ${opts.footerNote ? `<div style="margin-bottom: 14px; line-height: 1.6;">${opts.footerNote}</div>` : ''}Celebrait${traderLine()}
                   </td>
                 </tr>
               </table>
@@ -538,12 +538,12 @@ export async function sendMakeYourOwnLinkEmail(
     opts?.occasionDate
       ? `<p style="margin: 0 0 16px;">We've saved ${
           opts.recipientName ? `${escape(opts.recipientName)}'s` : 'the'
-        } date — we'll remind you in good time, with a card idea ready to go.</p>`
+        } date. We'll remind you in good time, with a card idea ready to go.</p>`
       : '';
   const body = `
     <p style="margin: 0 0 16px;">Hi,</p>
     <p style="margin: 0 0 16px;">
-      You asked us to save the link — here it is. When you're ready, make
+      You asked us to save the link. Here it is. When you're ready, make
       someone a card: upload a photo, describe the scene, and we'll put
       them in it. Then we print it and post it for you.
     </p>
@@ -553,15 +553,15 @@ export async function sendMakeYourOwnLinkEmail(
     </p>
   `;
   const html = chassis({
-    preheader: "Your link to make a card — whenever you're ready.",
+    preheader: "Your link to make a card, whenever you're ready.",
     bodyHtml: body,
     cta: { label: 'Make a card', href: startUrl },
   });
   const text =
-    `Hi,\n\nYou asked us to save the link — here it is. When you're ready, make someone a card: upload a photo, describe the scene, and we'll put them in it. Then we print it and post it for you.\n\nMake a card: ${startUrl}\n\nIt's free to make. You only pay when you send one.\n\n— Celebrait`;
+    `Hi,\n\nYou asked us to save the link. Here it is. When you're ready, make someone a card: upload a photo, describe the scene, and we'll put them in it. Then we print it and post it for you.\n\nMake a card: ${startUrl}\n\nIt's free to make. You only pay when you send one.\n\nCelebrait`;
   return sendEmail({
     to: email,
-    subject: 'Your link to make a card — whenever you\'re ready',
+    subject: 'Your link to make a card, whenever you\'re ready',
     html,
     text,
   });
@@ -607,7 +607,7 @@ export async function sendEarlyAccessConfirmEmail(params: {
     </p>
   `;
   const html = chassis({
-    preheader: "You're on the list — we'll email you the moment we open.",
+    preheader: "You're on the list. We'll email you the moment we open.",
     heading: "You're on the list.",
     heroImages: [
       {
@@ -628,7 +628,7 @@ export async function sendEarlyAccessConfirmEmail(params: {
       ? `You also said yes to the odd card idea once we're up and running. We'll keep those rare, and worth opening.\n\n`
       : '') +
     `We're not open yet. When we are, you'll get one email from us with the doors unlocked. Nothing else in between.\n\n` +
-    `— Aidan at Celebrait\n\n` +
+    `Aidan at Celebrait\n\n` +
     `You're getting this because you joined the Celebrait early-access list. To stop, reply with "Unsubscribe".`;
   return sendEmail({
     to: email,
@@ -656,8 +656,8 @@ export async function sendWelcomeEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Lovely to have you. Celebrait makes cards <strong>for one person</strong>
-      — tell us who it's for and one thing about them, and we write and
+      Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
+      Tell us who it's for and one thing about them, and we write and
       illustrate three to choose from, printed properly and posted anywhere
       in the UK.
     </p>
@@ -666,8 +666,8 @@ export async function sendWelcomeEmail(params: {
         &#127873;&nbsp; 50% off your first card
       </p>
       <p style="margin: 0; font-size: 14px;">
-        Tell us <strong>three dates that matter</strong> — birthdays,
-        anniversaries, any day worth a card — and your first one is
+        Tell us <strong>three dates that matter</strong>: birthdays,
+        anniversaries, any day worth a card. Do that and your first one is
         <span style="text-decoration: line-through;">&pound;5.99</span>
         <strong>&pound;2.99</strong>, plus postage. We'll watch every date
         you add and nudge you in good time, so nobody's day slips past
@@ -676,11 +676,11 @@ export async function sendWelcomeEmail(params: {
     </div>
     <p style="margin: 0 0 8px;">
       It takes about a minute to add a date, and there's no rush to buy a
-      thing — the half-price card waits for the right moment.
+      thing. The half-price card waits for the right moment.
     </p>
   `;
   const html = chassis({
-    preheader: "50% off your first card — three dates that matter, and it's half price.",
+    preheader: "50% off your first card. Three dates that matter, and it's half price.",
     heading: "You're in. Let's make someone's day.",
     heroImages: [
       {
@@ -690,11 +690,11 @@ export async function sendWelcomeEmail(params: {
     ],
     bodyHtml: body,
     cta: { label: 'Claim 50% off', href: studioUrl },
-    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a> — it's free to make.</p>`,
+    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person — tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted anywhere in the UK.\n\n50% OFF YOUR FIRST CARD\nTell us three dates that matter — birthdays, anniversaries, any day worth a card — and your first card is \u00a35.99 -> \u00a32.99, plus postage. We'll watch every date you add and nudge you in good time.\n\nClaim 50% off: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\n— Aidan at Celebrait`;
-  return sendEmail({ to: email, subject: 'Welcome — 50% off your first card', html, text });
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted anywhere in the UK.\n\n50% OFF YOUR FIRST CARD\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first card is \u00a35.99 -> \u00a32.99, plus postage. We'll watch every date you add and nudge you in good time.\n\nClaim 50% off: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\nAidan at Celebrait`;
+  return sendEmail({ to: email, subject: 'Welcome: 50% off your first card', html, text });
 }
 
 // ── Dates-nudge flow (marketing — opted-in accounts only) ───────────
@@ -722,7 +722,7 @@ export async function sendDatesNudgeEmail(params: {
     <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
       <div style="margin-bottom:8px;">${dots}</div>
       <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
-      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;5.99</span> <strong>&pound;2.99</strong> — half price.</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;5.99</span> <strong>&pound;2.99</strong>, half price.</p>
     </div>`;
 
   let subject: string;
@@ -734,10 +734,10 @@ export async function sendDatesNudgeEmail(params: {
     body = `
       <p style="margin:0 0 16px;">${greeting}</p>
       <p style="margin:0 0 16px;">
-        Quick one — the 50% off your first card we mentioned is still yours to
+        Quick one: the 50% off your first card we mentioned is still yours to
         claim. Add ${remaining === 1 ? 'one more date' : `${remaining} more dates`}
-        that matter — a birthday, an anniversary, any day worth a card —
-        and it unlocks. About a minute's work.
+        that matter and it unlocks: a birthday, an anniversary, any day
+        worth a card. About a minute's work.
       </p>
       ${ringBlock}
       <p style="margin:0 0 8px;">
@@ -746,18 +746,18 @@ export async function sendDatesNudgeEmail(params: {
       </p>`;
   } else {
     const days = daysUntilChristmas();
-    subject = `Christmas is in ${days} days — whose card will it be?`;
+    subject = `Christmas is in ${days} days. Whose card will it be?`;
     heading = 'The best cards are made early.';
     body = `
       <p style="margin:0 0 16px;">${greeting}</p>
       <p style="margin:0 0 16px;">
         Christmas is in <strong>${days} days</strong>. Somebody's birthday
         is closer than you think. The dates you add now are the panics you
-        skip later — we'll watch them all and nudge you in good time.
+        skip later. We'll watch them all and nudge you in good time.
       </p>
       ${ringBlock}
       <p style="margin:0 0 8px;">
-        No rush to buy a thing — the half-price card waits for the right moment.
+        No rush to buy a thing. The half-price card waits for the right moment.
       </p>`;
   }
 
@@ -770,9 +770,9 @@ export async function sendDatesNudgeEmail(params: {
   });
   const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
     variant === 'd2'
-      ? `Your 50% off is still waiting — you're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a35.99 -> \u00a32.99, plus postage.`
-      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later — ${remaining} more and your first card is half price.`
-  }\n\nAdd a date: ${studioUrl}\n\n— Aidan at Celebrait`;
+      ? `Your 50% off is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a35.99 -> \u00a32.99, plus postage.`
+      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first card is half price.`
+  }\n\nAdd a date: ${studioUrl}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject, html, text, marketing: true });
 }
 
@@ -854,16 +854,16 @@ export async function sendCardReadyEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Here's the card you made. Have a look — if it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.
+      Here's the card you made. Have a look. If it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.
     </p>
     <p style="margin: 0 0 8px;">
-      No rush — every version stays in your gallery.
+      No rush. Every version stays in your gallery.
     </p>
   `;
 
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
-    preheader: 'Have a look — send it, or start again with the same details.',
+    preheader: 'Have a look. Send it, or start again with the same details.',
     heading: `${recipientClauseRaw} is ready`,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
@@ -872,9 +872,9 @@ export async function sendCardReadyEmail(params: {
 
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
-    `${recipientClause} is ready. Have a look — if it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.\n\n` +
+    `${recipientClause} is ready. Have a look. If it looks right, it's ready to send. If it's not quite right, start again with the same details: we keep your photo, scene and message, so you're never starting from scratch.\n\n` +
     `View your card: ${cardUrl}\n\n` +
-    `No rush — every version stays in your gallery.\n\n— Celebrait`;
+    `No rush. Every version stays in your gallery.\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject: subjectSubject, html, text });
 }
@@ -892,10 +892,10 @@ export async function sendGenerationFailedEmail(
     const body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       <p style="margin: 0 0 16px;">
-        Something went wrong while we were making your card. It happens now and then — usually a photo we couldn't quite read.
+        Something went wrong while we were making your card. It happens now and then, usually a photo we couldn't quite read.
       </p>
       <p style="margin: 0 0 16px;">
-        Try again with the same photo, or a different one — that almost always fixes it. You haven't been charged.
+        Try again with the same photo, or a different one. That almost always fixes it. You haven't been charged.
       </p>
     `;
     const retryUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}/edit`;
@@ -906,16 +906,16 @@ export async function sendGenerationFailedEmail(
     });
     const text = `${userName ? `Hi ${userName},` : 'Hi there,'}
 
-Something went wrong while we were making your card. It happens now and then — usually a photo we couldn't quite read.
+Something went wrong while we were making your card. It happens now and then, usually a photo we couldn't quite read.
 
-Try again with the same photo, or a different one — that almost always fixes it. You haven't been charged.
+Try again with the same photo, or a different one. That almost always fixes it. You haven't been charged.
 
 Try again: ${retryUrl}
 
-— Celebrait`;
+Celebrait`;
     await sendEmail({
       to: userEmail,
-      subject: "Your card didn't finish — you haven't been charged",
+      subject: "Your card didn't finish. You haven't been charged",
       html,
       text,
     });
@@ -942,11 +942,11 @@ export async function sendSenderOrderProblemEmail(params: {
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       Our printer has told us there's a problem with your card order, so it
-      hasn't gone out. We're sorry — this is rare, and it's ours to fix.
+      hasn't gone out. We're sorry. This is rare, and it's ours to fix.
     </p>
     <p style="margin: 0 0 16px;">
       We're looking into it now. Within one working day we'll either have it
-      reprinted and on its way, or refund you in full — and we'll email you
+      reprinted and on its way, or refund you in full, and we'll email you
       either way. You don't need to do anything.
     </p>
     <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
@@ -954,24 +954,24 @@ export async function sendSenderOrderProblemEmail(params: {
     </p>
   `;
   const html = chassis({
-    preheader: "Our printer flagged a problem. We're on it — reprint or full refund within a working day.",
+    preheader: "Our printer flagged a problem. We're on it: reprint or full refund within a working day.",
     heading: "There's a problem with your order",
     bodyHtml: body,
     cta: { label: 'View your order', href: orderUrl },
   });
   const text = `${greeting}
 
-Our printer has told us there's a problem with your card order, so it hasn't gone out. We're sorry — this is rare, and it's ours to fix.
+Our printer has told us there's a problem with your card order, so it hasn't gone out. We're sorry. This is rare, and it's ours to fix.
 
-We're looking into it now. Within one working day we'll either have it reprinted and on its way, or refund you in full — and we'll email you either way. You don't need to do anything.
+We're looking into it now. Within one working day we'll either have it reprinted and on its way, or refund you in full, and we'll email you either way. You don't need to do anything.
 
 Your order: ${orderUrl}
 Order: ${orderId}
 
-— Celebrait`;
+Celebrait`;
   return sendEmail({
     to: customerEmail,
-    subject: "There's a problem with your card order — we're on it",
+    subject: "There's a problem with your card order. We're on it",
     html,
     text,
   });
@@ -1040,7 +1040,7 @@ export async function sendRecipientCardArrivedEmail(params: {
     `${recipientName ? `Hi ${recipientName},\n\n` : ''}` +
     `${senderName} made you a card${occasion ? ` for your ${occasion}` : ''}. It's ready whenever you are.\n\n` +
     `Open it here: ${shareUrl}\n\n` +
-    `Take your time with it.\n\n— Celebrait`;
+    `Take your time with it.\n\nCelebrait`;
 
   return sendEmail({
     to: recipientEmail,
@@ -1118,7 +1118,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
   } = params;
 
   const forWhom = recipientName ? ` to ${escape(recipientName)}` : '';
-  const occasionPart = occasion ? ` — ${escape(occasion)}` : '';
+  const occasionPart = occasion ? ` (${escape(occasion)})` : '';
   // Self-send (shipTo='sender') = it's coming to YOU to hand over; otherwise
   // it's posted straight to the recipient.
   const toYou = includesPrint && shipTo === 'sender';
@@ -1133,15 +1133,15 @@ export async function sendSenderOrderConfirmedEmail(params: {
     if (scheduledSendAt) {
       const dateLabel = formatScheduledDate(scheduledSendAt);
       items.push(
-        `<li style="margin: 0 0 6px;">Digital — we'll send it to ${escape(recipientName ?? 'them')} on <strong>${dateLabel}</strong> at 8am, and email you as soon as they open it.</li>`,
+        `<li style="margin: 0 0 6px;">Digital: we'll send it to ${escape(recipientName ?? 'them')} on <strong>${dateLabel}</strong> at 8am, and email you as soon as they open it.</li>`,
       );
     } else if (digitalSentToRecipient) {
       items.push(
-        `<li style="margin: 0 0 6px;">Digital — sent to ${escape(recipientName ?? 'them')}'s inbox just now. We'll email you as soon as they open it.</li>`,
+        `<li style="margin: 0 0 6px;">Digital: sent to ${escape(recipientName ?? 'them')}'s inbox just now. We'll email you as soon as they open it.</li>`,
       );
     } else {
       items.push(
-        `<li style="margin: 0 0 6px;">Digital — your private share link is ready on the card. Tap below to view it and share the link however you like.</li>`,
+        `<li style="margin: 0 0 6px;">Digital: your private share link is ready on the card. Tap below to view it and share the link however you like.</li>`,
       );
     }
   }
@@ -1150,7 +1150,7 @@ export async function sendSenderOrderConfirmedEmail(params: {
       ? 'posted <strong>to you</strong> to hand over yourself, tracked'
       : `posted <strong>straight to ${escape(recipientName ?? 'them')}</strong>, tracked`;
     items.push(
-      `<li style="margin: 0 0 6px;">Printed — a one-off print, made to order (<strong>up to three working days</strong>), then ${deliveryLine}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed: a one-off print, made to order (<strong>up to three working days</strong>), then ${deliveryLine}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.</li>`,
     );
   }
 
@@ -1195,22 +1195,22 @@ export async function sendSenderOrderConfirmedEmail(params: {
   const textItems: string[] = [];
   if (includesDigital) {
     if (scheduledSendAt) {
-      textItems.push(`- Digital — we'll send it to ${recipientName ?? 'them'} on ${formatScheduledDate(scheduledSendAt)} at 8am, and email you as soon as they open it.`);
+      textItems.push(`- Digital: we'll send it to ${recipientName ?? 'them'} on ${formatScheduledDate(scheduledSendAt)} at 8am, and email you as soon as they open it.`);
     } else if (digitalSentToRecipient) {
-      textItems.push(`- Digital — sent to ${recipientName ?? 'them'}'s inbox just now. We'll email you as soon as they open it.`);
+      textItems.push(`- Digital: sent to ${recipientName ?? 'them'}'s inbox just now. We'll email you as soon as they open it.`);
     } else {
-      textItems.push(`- Digital — your private share link is ready on the card. Open it below to view and share.`);
+      textItems.push(`- Digital: your private share link is ready on the card. Open it below to view and share.`);
     }
   }
   if (includesPrint) {
     const dl = toYou
       ? 'posted to you to hand over yourself, tracked'
       : `posted straight to ${recipientName ?? 'them'}, tracked`;
-    textItems.push(`- Printed — a one-off print, made to order (up to three working days), then ${dl}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.`);
+    textItems.push(`- Printed: a one-off print, made to order (up to three working days), then ${dl}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.`);
   }
   const text = `Hi ${senderName},
 
-Your order${recipientName ? ` for the card to ${recipientName}` : ''}${occasion ? ` — ${occasion}` : ''} is confirmed.
+Your order${recipientName ? ` for the card to ${recipientName}` : ''}${occasion ? ` (${occasion})` : ''} is confirmed.
 
 What's included:
 ${textItems.join('\n')}
@@ -1220,7 +1220,7 @@ Order: ${orderId}
 ${guestShare ? `Share link: ${guestShare}\n` : ''}
 ${ctaLabel}: ${ctaHref}
 
-— Celebrait`;
+Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });
 }
@@ -1260,7 +1260,7 @@ We've refunded ${money} to your original payment method. Refunds usually land wi
 
 Order: ${orderId}
 
-— Celebrait`;
+Celebrait`;
   return sendEmail({
     to: customerEmail,
     subject: `Your ${money} refund is on its way`,
@@ -1297,7 +1297,7 @@ export async function sendSenderCardOpenedEmail(params: {
       Hope they loved it.
     </p>
     <p style="margin: 0 0 8px; color: ${EMAIL_STONE}; font-size: 14px;">
-      Someone else coming up? Your cards stay in your gallery — copy one to get a head start.
+      Someone else coming up? Your cards stay in your gallery. Copy one to get a head start.
     </p>
   `;
 
@@ -1315,11 +1315,11 @@ ${recipientName ?? 'They'} just opened the card you made${recipientName ? ' for 
 
 Hope they loved it.
 
-Someone else coming up? Your cards stay in your gallery — copy one to get a head start.
+Someone else coming up? Your cards stay in your gallery. Copy one to get a head start.
 
 Make another: ${PUBLIC_ORIGIN}/studio
 
-— Celebrait`;
+Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });
 }
@@ -1364,7 +1364,7 @@ export async function sendSenderPrintShippedEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
     <p style="margin: 0 0 16px;">
-      ${who} card just shipped. <strong>${escape(courier)}</strong> have it now — should be with ${recipientName ? escape(recipientName) : 'them'} <strong>${escape(etaWindow)}</strong>.
+      ${who} card just shipped. <strong>${escape(courier)}</strong> have it now and should be with ${recipientName ? escape(recipientName) : 'them'} <strong>${escape(etaWindow)}</strong>.
     </p>
   `;
 
@@ -1383,12 +1383,12 @@ export async function sendSenderPrintShippedEmail(params: {
 
   const text = `Hi ${senderName},
 
-${recipientName ? `${recipientName}'s` : 'Your'} card just shipped. ${courier} have it now — should be with ${recipientName ?? 'them'} ${etaWindow}.
+${recipientName ? `${recipientName}'s` : 'Your'} card just shipped. ${courier} have it now and should be with ${recipientName ?? 'them'} ${etaWindow}.
 
 Track delivery: ${trackingUrl}
 Tracking ref: ${trackingNumber}
 
-— Celebrait`;
+Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });
 }
@@ -1426,7 +1426,7 @@ export async function sendSenderPrintDeliveredEmail(params: {
       The best part is when they open it.
     </p>
     <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 14px;">
-      Someone else coming up? Your cards stay in your gallery — copy one to get a head start.
+      Someone else coming up? Your cards stay in your gallery. Copy one to get a head start.
     </p>
   `;
 
@@ -1444,11 +1444,11 @@ ${recipientName ? `${recipientName}'s` : 'Your recipient'} card was delivered to
 
 The best part is when they open it.
 
-Someone else coming up? Your cards stay in your gallery — copy one to get a head start.
+Someone else coming up? Your cards stay in your gallery. Copy one to get a head start.
 
 Make another: ${makeAnotherHref}
 
-— Celebrait`;
+Celebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text });
 }
@@ -1487,16 +1487,16 @@ export async function sendDropOffRecoveryEmail(params: {
       ${recipientClause} is still in your gallery. We didn't want you to forget about it.
     </p>
     <p style="margin: 0 0 16px;">
-      Have another look — send it as it is, or change something first.
+      Have another look. Send it as it is, or change something first.
     </p>
     <p style="margin: 0; color: ${EMAIL_BODY}; font-size: 15px;">
-      No rush — it stays in your gallery.
+      No rush. It stays in your gallery.
     </p>
   `;
 
   const cardUrl = `${PUBLIC_ORIGIN}/studio/card/${cardId}`;
   const html = chassis({
-    preheader: 'Ready when you are — no rush.',
+    preheader: 'Ready when you are. No rush.',
     bodyHtml: body,
     cta: { label: 'View your card', href: cardUrl },
     footerNote: optOutFooter(),
@@ -1506,7 +1506,7 @@ export async function sendDropOffRecoveryEmail(params: {
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
     `${recipientClause} is still in your gallery. We didn't want you to forget about it.\n\n` +
     `Have another look: ${cardUrl}\n\n` +
-    `No rush — it stays in your gallery.\n\n— Celebrait`;
+    `No rush. It stays in your gallery.\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
@@ -1544,7 +1544,7 @@ export async function sendDropOffTweakEmail(params: {
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
-      Just checking in — if ${recipientClause} isn't quite right, you can
+      Just checking in. If ${recipientClause} isn't quite right, you can
       change it without losing the version we made.
     </p>
     <p style="margin: 0 0 16px;">
@@ -1566,10 +1566,10 @@ export async function sendDropOffTweakEmail(params: {
 
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
-    `Just checking in — if ${recipientClause} isn't quite right, you can change it without losing the version we made.\n\n` +
+    `Just checking in. If ${recipientClause} isn't quite right, you can change it without losing the version we made.\n\n` +
     `Try a different scene, swap the photo, or pick a new style. Each change makes a new version, and your originals stay in your gallery.\n\n` +
     `Change it: ${cardUrl}\n\n` +
-    `Or if it's already right, it's ready to send.\n\n— Celebrait`;
+    `Or if it's already right, it's ready to send.\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
@@ -1608,12 +1608,12 @@ export async function sendDropOffLastCallEmail(params: {
       ${recipientClause} is still in your gallery, ready when you are.
     </p>
     <p style="margin: 0 0 16px;">
-      This is the last we'll email you about this one — we don't want to
+      This is the last we'll email you about this one. We don't want to
       keep nudging if it's not the right time. You can always come back
       to it from your gallery, no email needed.
     </p>
     <p style="margin: 0; color: ${EMAIL_BODY}; font-size: 15px;">
-      Send it, change it, or leave it for later — up to you.
+      Send it, change it, or leave it for later. Up to you.
     </p>
   `;
 
@@ -1628,9 +1628,9 @@ export async function sendDropOffLastCallEmail(params: {
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
     `${recipientClause} is still in your gallery, ready when you are.\n\n` +
-    `This is the last we'll email you about this one — we don't want to keep nudging if it's not the right time. You can always come back to it from your gallery, no email needed.\n\n` +
+    `This is the last we'll email you about this one. We don't want to keep nudging if it's not the right time. You can always come back to it from your gallery, no email needed.\n\n` +
     `View your card: ${cardUrl}\n\n` +
-    `Send it, change it, or leave it for later — up to you.\n\n— Celebrait`;
+    `Send it, change it, or leave it for later. Up to you.\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }
@@ -1686,8 +1686,8 @@ export async function sendDraftNudgeEmail(params: {
   // point at the free digital link rather than promise a miracle.
   const timing =
     daysUntil <= 6
-      ? `is ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'} away — that's tight for the post (we advise a week), so order today and send the free digital link on the day as a backup`
-      : `is ${daysUntil} days away — order today and it'll arrive in time`;
+      ? `is ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'} away, which is tight for the post (we advise a week), so order today and send the free digital link on the day as a backup`
+      : `is ${daysUntil} days away. Order today and it'll arrive in time`;
 
   const frontAbs = absoluteEmailImage(params.frontImageUrl);
   const insideAbs = absoluteEmailImage(params.insideImageUrl);
@@ -1704,7 +1704,7 @@ export async function sendDraftNudgeEmail(params: {
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       ${who}'s ${occ} ${timing}. The card you made is ready and waiting in
-      your Drafts — every card is printed to order by our partner printer,
+      your Drafts. Every card is printed to order by our partner printer,
       then posted Royal Mail 24.
     </p>
     <p style="margin: 0 0 8px;">
@@ -1714,10 +1714,10 @@ export async function sendDraftNudgeEmail(params: {
 
   return sendEmail({
     to: senderEmail,
-    subject: `${recipientName}'s card is ready — time to post it`,
+    subject: `${recipientName}'s card is ready. Time to post it`,
     text: `${recipientName}'s ${occasion} ${timing}. The card you made is waiting in your Drafts: ${giveUrl}`,
     html: chassis({
-      preheader: `${recipientName}'s ${occ} is coming up — the card you made is ready to post.`,
+      preheader: `${recipientName}'s ${occ} is coming up. The card you made is ready to post.`,
       heading: 'You already made the hard part.',
       bodyHtml: body,
       heroImages,
@@ -1774,7 +1774,7 @@ export async function sendReminderEmail(params: {
   const memoryBlock = memorySpread
     ? `
       <p style="margin: 0 0 14px; color: ${EMAIL_STONE}; font-size: 14px;">
-        Last time you sent ${escape(recipientName)} this&nbsp;&mdash;
+        Last time you sent ${escape(recipientName)} this:
       </p>
       <div style="margin: 0 0 24px;">
         ${memorySpread}
@@ -1807,7 +1807,7 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is in <strong>3 weeks</strong>.${hasMemory ? ` Plenty of time to make this year's.` : ` Plenty of time to make them something special.`}
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Start now and you've time to change the scene, the message — anything you like. Cards are printed to order by our partner printer, then posted, so we always advise ordering a week ahead.
+        Start now and you've time to change the scene, the message, anything you like. Cards are printed to order by our partner printer, then posted, so we always advise ordering a week ahead.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1822,7 +1822,7 @@ export async function sendReminderEmail(params: {
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>ten days away</strong>.${hasMemory ? ` Time to make this year's.` : ''} It takes about five minutes to make — order this week and it'll be there with days to spare.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>ten days away</strong>.${hasMemory ? ` Time to make this year's.` : ''} It takes about five minutes to make. Order this week and it'll be there with days to spare.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
         Honest bit: our cards are printed to order by a partner printer, then posted Royal Mail 24. That's why we advise a week. Ten days is comfortable.
@@ -1835,15 +1835,15 @@ export async function sendReminderEmail(params: {
     // t_7 — the last safe day to order. Say it plainly, and say what the
     // fallback is (the free digital link), without promising the post.
     subject = `Last safe day to order ${recipientName}'s ${occasionLabel} card`;
-    preheader = `A week out is the line — order today and it arrives in time.`;
+    preheader = `A week out is the line. Order today and it arrives in time.`;
     body = `
       <p style="margin: 0 0 16px;">${greeting}</p>
       ${memoryBlock}
       <p style="margin: 0 0 16px;">
-        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong> — today is the last safe day to order.${hasMemory ? ` Time to make this year's.` : ''} Order now and it arrives in good time.
+        ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>, so today is the last safe day to order.${hasMemory ? ` Time to make this year's.` : ''} Order now and it arrives in good time.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Our cards are printed to order by a partner printer, then posted Royal Mail 24, which is why a week is the line. Leave it later and the post may miss the day — though every card comes with a free digital link that lands instantly, so there's always something to send.
+        Our cards are printed to order by a partner printer, then posted Royal Mail 24, which is why a week is the line. Leave it later and the post may miss the day. Every card comes with a free digital link that lands instantly, though, so there's always something to send.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1861,11 +1861,11 @@ export async function sendReminderEmail(params: {
   const text =
     `${senderName ? `Hi ${senderName},\n\n` : ''}` +
     (tier === 't_21'
-      ? `${recipientName}'s ${occasionLabel} is in 3 weeks — plenty of time to make them something special. We advise ordering a week ahead.`
+      ? `${recipientName}'s ${occasionLabel} is in 3 weeks. Plenty of time to make them something special. We advise ordering a week ahead.`
       : tier === 't_10'
         ? `${recipientName}'s ${occasionLabel} is ten days away. Order this week and it'll be there with days to spare.`
-        : `${recipientName}'s ${occasionLabel} is a week away — today is the last safe day to order. Our cards are printed to order by a partner printer, then posted Royal Mail 24. Every card comes with a free digital link that lands instantly.`) +
-    `\n\nStart here: ${startCardUrl}\n\n— Celebrait`;
+        : `${recipientName}'s ${occasionLabel} is a week away, so today is the last safe day to order. Our cards are printed to order by a partner printer, then posted Royal Mail 24. Every card comes with a free digital link that lands instantly.`) +
+    `\n\nStart here: ${startCardUrl}\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
 }

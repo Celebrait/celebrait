@@ -42,6 +42,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
+import { hasAiDash, stripAiDash } from '@shared/no-dash';
 import { publicImageUrl, storeDisplayWebpSibling } from '../image-storage';
 import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
@@ -1359,6 +1360,16 @@ const V2_MASK_WRONG = /\b[abd-eg-rt-z]\*{2,}\w*/i;
  *  card before verify, so swear-unmasked can no longer occur at all.
  *  Counterfeit masks still go to the referee — b**** cannot be
  *  reconstructed in code. */
+/** The dash law's last line of defence (2026-10-09): run over every card
+ *  at the boundary where a set leaves the server, so a no-dash violation
+ *  still standing after the repair round never ships a dash. Hyphens
+ *  inside words are untouched. */
+function noDashConcept<T extends CardConcept>(c: T): T {
+  return { ...c,
+    front_text: stripAiDash(String(c.front_text ?? '')),
+    inside_text: typeof c.inside_text === 'string' ? stripAiDash(c.inside_text) : c.inside_text,
+    front_candidates: Array.isArray(c.front_candidates) ? c.front_candidates.map((t) => stripAiDash(String(t))) : c.front_candidates };
+}
 export function autoMask(text: string): string {
   return text
     .replace(/\b(f|F)(?:uck|UCK)(\w*)/g, (_, a, suf) => `${a}***${suf}`)
@@ -1613,6 +1624,17 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       if (r === 'long' && (words < 10 || words > 18)) v.push(`length: card ${i + 1} is the LONG card — 12-18 words, one built sentence that lands, it has ${words}`);
     });
   }
+  // ⚠️ THE DASH IS "TEXTBOOK AI" — IN CODE (Aidan 2026-10-09: "one dash
+  // is fine but not --"). The writer joined clauses with an em-dash on
+  // most fronts ("Happy birthday, Linda — for all the steady jobs…",
+  // "Sixty, and still the measure — for plants and people."). An
+  // em-dash, a spaced en-dash or a double hyphen anywhere a customer
+  // reads is a violation; a hyphen inside a word is not. stripAiDash
+  // runs over the shipped set as the last line of defence.
+  cards.forEach((c, i) => {
+    const printed = [c.front_text, ...(Array.isArray(c.front_candidates) ? c.front_candidates : []), c.inside_text].map((t) => String(t ?? ''));
+    if (printed.some(hasAiDash)) v.push(`no-dash: card ${i + 1} leans on a dash — write the join: a full stop, a comma, or a colon; a hyphen inside a word is fine`);
+  });
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
@@ -2080,6 +2102,7 @@ The typeled card is TEXT-ONLY: the words set huge ARE the artwork,` : ''} and it
 THE BAR, per card:
 - It lands for THIS person — built from their world via the archetype, never the broad category. A card that suits anyone who vaguely likes the topic has failed.
 - Each card is its own idea; no distinctive word appears on two fronts.
+- Punctuation: no em-dash, no spaced en-dash, no double hyphen anywhere in front_text or inside_text. Write the join as a full stop, a comma or a colon; a hyphen inside a word (well-earned, co-op) is fine.
 - No invented facts: no years, ages, habits or history the brief did not give you. A derived birth year may describe the RECIPIENT only, never the subject.
 - art_direction: one drawable sentence. ⚠️ EVERY ILLUSTRATED CARD'S ARTWORK COMES FROM THEIR WORLD — 100%, not one of three; only the typeled card is exempt. If the picture would suit a different interest, it has failed however handsome. Real places (NAMED), caricature of public figures, the kit and styling of their world are welcome. Never an actual logo, wordmark or crest, never a copyrighted character depicted as themselves.
 - If they love a CLUB, BAND, SHOW or FRANCHISE: say WHICH ONE. Name it, its ground, its people, its eras, its songs — in the words, and in at least one artwork (a real stadium, a real skyline, a caricature are all open to you; only the crest and logo are not). A card that would suit any fan of the category has failed — "checks the team news" is every club in Britain; find the thing only THEIRS owns.
@@ -2411,6 +2434,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           note: 'These run in v2Verify after every writer round. Standing violations ship VISIBLY in the yellow box, never silently.',
           text: [
             'length — each card obeys its dealt register (short ≤8 words, mid ≤14, long 12–18)',
+            'no-dash — no em-dash, spaced en-dash or double hyphen on a front or inside (a hyphen inside a word is fine); stripAiDash runs over the shipped set as the last line of defence',
             'rude-slot / rude-floor / rude-register — swearing lands where the deal says (mix\'s rude card and the christmas hero MUST carry a real masked swear; birthday rude wants two sweary fronts; christmas grades down from one filthy hero)',
             'unmasked-swear — f/s/c words are ALWAYS masked (first letter + asterisks), every tone',
             'swear-tag — a standalone "F***ing [word]." sentence bolted after a claim is a template, not a joke',
@@ -3016,6 +3040,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // but don't really have a log of the prompts"): every card
         // carries what the server dealt it, so a set explains itself.
         const conceptsOut = (mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts)
+          .map(noDashConcept)
           .map((c, i) => ({ ...c, deal: slots[i] ? {
             angle: slots[i].angle, format: slots[i].format ?? 'free', register: slots[i].register,
             territory: slots[i].territory, presence: slots[i].ground, tone: slots[i].tone,
@@ -3462,7 +3487,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         palette: c.palette ?? null,
       }))).catch((e) => console.warn('[CARD-LAB] generation log failed (non-fatal):', e));
 
-      res.json({ concepts: judged, notes });
+      res.json({ concepts: judged.map(noDashConcept), notes });
     } catch (err) {
       console.error('[CARD-LAB] concepts error:', err);
       res.status(500).json({ message: 'Concept generation failed' });

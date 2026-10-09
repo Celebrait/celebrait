@@ -11,6 +11,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { openai } from '../utils/shared';
+import { stripAiDash } from '@shared/no-dash';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents } from '../prompts/llm-cost';
@@ -167,7 +168,7 @@ export function registerStudioBrainstormRoutes(app: Express): void {
 
     const userId = (req as any).session?.otpUserId ?? 'unknown';
     if (rateLimitHit(`brainstorm:user:${userId}`, 60, 60 * 60 * 1000)) {
-      return res.status(429).json({ error: 'Too many requests — take a breather and try again shortly.' });
+      return res.status(429).json({ error: 'Too many requests. Take a breather and try again shortly.' });
     }
 
     try {
@@ -274,7 +275,7 @@ export function registerStudioBrainstormRoutes(app: Express): void {
         // model ignored the JSON schema. Treat the raw as a reply,
         // keep phase stable, no suggestions/finalScene.
         return res.json({
-          reply: raw || "Sorry — I hit a snag. Could you say that again?",
+          reply: raw || "Sorry, I hit a snag. Could you say that again?",
           phase: inferPhaseFromAction(action, currentPhase),
           suggestions: null,
           finalScene: null,
@@ -284,14 +285,15 @@ export function registerStudioBrainstormRoutes(app: Express): void {
       // Light validation — the model sometimes returns the fields but
       // shapes them oddly. Normalise before returning.
       const response: BrainstormResponse = {
-        reply: typeof parsed.reply === 'string' ? parsed.reply : '',
+        // The dash law (2026-10-09): no em-dash / spaced en-dash / "--" in model text a customer reads.
+        reply: typeof parsed.reply === 'string' ? stripAiDash(parsed.reply) : '',
         phase: isValidPhase(parsed.phase) ? parsed.phase : inferPhaseFromAction(action, currentPhase),
         suggestions: Array.isArray(parsed.suggestions)
-          ? parsed.suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3)
+          ? parsed.suggestions.filter((s): s is string => typeof s === 'string').slice(0, 3).map(stripAiDash)
           : undefined,
         finalScene:
           typeof parsed.finalScene === 'string' && parsed.finalScene.trim().length > 0
-            ? parsed.finalScene.trim()
+            ? stripAiDash(parsed.finalScene.trim())
             : undefined,
       };
 

@@ -538,8 +538,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const occasionLabel = state?.recipient?.occasion?.trim();
         const whoFor = recipientName?.trim();
         const productName = whoFor
-          ? `${whoFor}'s ${occasionLabel ? `${occasionLabel} ` : ''}card — printed & posted`
-          : 'Celebrait card — printed & posted';
+          ? `${whoFor}'s ${occasionLabel ? `${occasionLabel} ` : ''}card, printed & posted`
+          : 'Celebrait card, printed & posted';
         const frontPublic = resolveStoredImageUrl(card.frontImagePath, card.frontImageUrl);
         const payment = await provider.createPayment({
           studioOrderId: order.id,

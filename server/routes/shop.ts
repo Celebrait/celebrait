@@ -66,13 +66,13 @@ export function registerShopRoutes(app: Express): void {
       body = schema.parse(req.body ?? {});
     } catch (err) {
       const issue = err instanceof z.ZodError ? err.issues[0] : null;
-      return res.status(400).json({ message: issue ? `Invalid request — ${issue.path.join('.')}: ${issue.message}` : 'Invalid request' });
+      return res.status(400).json({ message: issue ? `Invalid request (${issue.path.join('.')}): ${issue.message}` : 'Invalid request' });
     }
 
     try {
       const [tpl] = await db.select().from(cardTemplates).where(eq(cardTemplates.id, templateId));
       if (!tpl || !tpl.published) return res.status(404).json({ message: 'No such card' });
-      if (!tpl.image_path) return res.status(409).json({ message: "That card's artwork is missing — try another" });
+      if (!tpl.image_path) return res.status(409).json({ message: "That card's artwork is missing. Try another" });
 
       // THE INSIDE, three ways:
       //  · ours  — the message written for this card, already rendered.
@@ -143,7 +143,7 @@ export function registerShopRoutes(app: Express): void {
       });
     } catch (err) {
       console.error('[SHOP] template→card failed:', err);
-      res.status(500).json({ message: "We couldn't set that card up — try again" });
+      res.status(500).json({ message: "We couldn't set that card up. Try again" });
     }
   });
 

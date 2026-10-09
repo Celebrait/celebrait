@@ -23,6 +23,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { cards, type CardDraftState } from '@shared/schema';
 import { openai } from '../utils/shared';
+import { stripAiDash } from '@shared/no-dash';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { requireGuestMaker } from './admin-card-lab';
 import { logGeneration } from '../prompts/generation-log';
@@ -317,7 +318,8 @@ export async function respondWithScenes(
               const text = typeof obj.text === 'string' ? obj.text.trim() : '';
               if (!text) return null;
               const id = typeof obj.id === 'string' ? obj.id : String.fromCharCode(97 + i);
-              return { id, text };
+              // The dash law (2026-10-09): no em-dash / spaced en-dash / "--" in model text a customer reads.
+              return { id, text: stripAiDash(text) };
             }
             return null;
           })
@@ -334,7 +336,7 @@ export async function respondWithScenes(
   } catch (err: any) {
     console.error('[STUDIO_SCENE_SUGGEST] error:', err);
     res.status(500).json({
-      error: 'Could not generate suggestions — try again or use the brainstorm chat.',
+      error: 'Could not generate suggestions. Try again or use the brainstorm chat.',
     });
   }
 

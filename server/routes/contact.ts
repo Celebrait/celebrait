@@ -93,14 +93,14 @@ export function registerContactRoutes(app: Express): void {
         });
         return res
           .status(502)
-          .json({ message: "Sorry — we couldn't send that just now. Please email us directly." });
+          .json({ message: "Sorry, we couldn't send that just now. Please email us directly." });
       }
       return res.json({ ok: true });
     } catch (err) {
       console.error('[CONTACT] error:', err);
       return res
         .status(500)
-        .json({ message: "Sorry — something went wrong. Please email us directly." });
+        .json({ message: "Sorry, something went wrong. Please email us directly." });
     }
   });
 }
