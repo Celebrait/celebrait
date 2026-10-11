@@ -31,6 +31,7 @@ import { useRackEnabled } from '@/hooks/use-rack';
 import { cardPriceGBP } from '@shared/pricing';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { HandoverSection } from '@/components/landing/handover-section';
+import { HowItWorksSection } from '@/components/landing/how-it-works-section';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
 import { InsideSection } from '@/components/landing/inside-section';
 import { FaqSection } from '@/components/landing/faq-section';
@@ -176,6 +177,9 @@ export default function DoorwayBPage() {
             offer (at THIS door's price), the print statement — then a FAQ
             with the three-card answers. Same components as /photo, so the
             two doors can't drift apart. */}
+        {/* Six questions, three cards, the inside: the route in three
+            beats, drawn with the carousel's own fronts (Aidan 2026-10-11). */}
+        <HowItWorksSection door="maker" />
         <HandoverSection />
         <OccasionsPromoSection door="maker" />
         <InsideSection />

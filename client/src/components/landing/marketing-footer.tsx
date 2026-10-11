@@ -26,12 +26,13 @@ const COMPANY: FooterLink[] = [
 
 // Anchors must exist on the page they name: `/` is the gate (only
 // #doors), so these point at the photo LP's sections and pricing's
-// delivery block (audit 2026-10-06). FAQ is door-aware (2026-10-09):
-// /create has its own #faq with the three-card answers, so on that side
-// of the house the link stays on that side.
+// delivery block (audit 2026-10-06). FAQ and How it works are door-aware
+// (2026-10-09, 2026-10-11): /create has its own #faq and #how-it-works
+// with the three-card answers, so on that side of the house the links
+// stay on that side.
 function helpLinks(path: string): FooterLink[] {
   return [
-    { label: 'How it works', href: '/photo#proof' },
+    { label: 'How it works', href: THREE_CARD_DOOR.test(path) ? '/create#how-it-works' : '/photo#how-it-works' },
     { label: 'FAQ', href: THREE_CARD_DOOR.test(path) ? '/create#faq' : '/photo#faq' },
     { label: 'Delivery', href: '/pricing#delivery' },
   ];

@@ -51,6 +51,7 @@ import { Rise } from '@/components/landing/rise';
 import { ShimmerWord } from '@/components/landing/shimmer-word';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { InsideSection } from '@/components/landing/inside-section';
+import { HowItWorksSection } from '@/components/landing/how-it-works-section';
 export { ShimmerWord };
 import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -1640,6 +1641,8 @@ export default function LandingKeeper() {
       <KeeperHeader />
       <main className="pt-32">
         <HeroSection />
+        {/* The three steps the hero names, shown (Aidan 2026-10-11). */}
+        <HowItWorksSection door="photo" />
         <ProofSection />
         <InsideSection />
         {/* Imagine it → describe it → send it (animated phone). Moved up to
