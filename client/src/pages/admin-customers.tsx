@@ -14,6 +14,7 @@ import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, ArrowLeft, ExternalLink, Users, Package, UserPlus, BarChart3, AlertTriangle, Download, UserX } from 'lucide-react';
 import { genCostUsdX100ToGbp } from '@shared/pricing';
+import { formatMoney, market } from '@shared/market';
 
 interface GenSide { ok: number; fail: number }
 interface CardGen { front: GenSide; inside: GenSide }
@@ -123,8 +124,10 @@ interface LeadRow {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
-function gbp(pence: number): string {
-  return `£${(pence / 100).toFixed(2)}`;
+// Customer money (orders, revenue), NOT model costs. An order carries its
+// own currency, so per-order lines pass it; totals use the active market.
+function gbp(minor: number, currency?: string | null): string {
+  return formatMoney(minor, currency === 'GBP' || currency === 'ZAR' ? currency : undefined);
 }
 function fullName(c: { firstName: string | null; lastName: string | null; email: string | null }): string {
   const n = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
@@ -134,7 +137,7 @@ function fmtDate(iso: string | null): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(market().locale, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // Build a CSV from headers + rows and trigger a download. Quotes any cell
@@ -306,7 +309,7 @@ function CustomersTab({ onSelect }: { onSelect: (id: string) => void }) {
   const exportCsv = () =>
     downloadCsv(
       'celebrait-customers.csv',
-      ['Name', 'Email', 'Cards', 'Paid orders', 'Total spent (£)', 'Joined', 'Last active', 'Marketing opt-in'],
+      ['Name', 'Email', 'Cards', 'Paid orders', `Total spent (${market().currencySymbol})`, 'Joined', 'Last active', 'Marketing opt-in'],
       customers.map((c) => [
         fullName(c),
         c.email ?? '',
@@ -838,9 +841,9 @@ function OrderCard({ o, showCustomer, reason }: { o: OrderRow; showCustomer?: bo
           )}
         </div>
         <div className="text-right">
-          <div className="font-semibold text-stone-900">{gbp(o.amountPaid ?? o.totalAmount)}</div>
+          <div className="font-semibold text-stone-900">{gbp(o.amountPaid ?? o.totalAmount, o.currency)}</div>
           {o.amountPaid != null && o.amountPaid !== o.totalAmount && (
-            <div className="text-[11px] text-stone-400 line-through">{gbp(o.totalAmount)}</div>
+            <div className="text-[11px] text-stone-400 line-through">{gbp(o.totalAmount, o.currency)}</div>
           )}
         </div>
       </div>
@@ -853,12 +856,12 @@ function OrderCard({ o, showCustomer, reason }: { o: OrderRow; showCustomer?: bo
           <span>Card #{o.cardId}</span>
         )}
         <span>{o.shipTo === 'sender' ? 'To sender' : 'To recipient'} · {o.shippingTier}</span>
-        <span>{gbp(o.printAmount)} card + {gbp(o.shippingAmount)} ship{o.envelopeStickerAmount > 0 ? ` + ${gbp(o.envelopeStickerAmount)} seal` : ''}</span>
+        <span>{gbp(o.printAmount, o.currency)} card + {gbp(o.shippingAmount, o.currency)} ship{o.envelopeStickerAmount > 0 ? ` + ${gbp(o.envelopeStickerAmount, o.currency)} seal` : ''}</span>
         <span>{fmtDate(o.paidAt ?? o.createdAt)}</span>
       </div>
       {addr && (
         <div className="mt-1 text-xs text-stone-400">
-          {[addr.line1, addr.line2, addr.city, addr.postcode].filter(Boolean).join(', ')}
+          {[addr.line1, addr.line2, addr.suburb, addr.city, addr.postcode].filter(Boolean).join(', ')}
         </div>
       )}
       <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
@@ -920,7 +923,7 @@ function OrdersTab() {
           onClick={() =>
             downloadCsv(
               'celebrait-orders.csv',
-              ['Order ref', 'Customer', 'Email', 'Card', 'Ship to', 'Tier', 'Charged (£)', 'List (£)', 'Payment', 'Fulfilment', 'Prodigi', 'Tracking', 'Created', 'Paid'],
+              ['Order ref', 'Customer', 'Email', 'Card', 'Ship to', 'Tier', `Charged (${market().currencySymbol})`, `List (${market().currencySymbol})`, 'Payment', 'Fulfilment', 'Prodigi', 'Tracking', 'Created', 'Paid'],
               (data?.orders ?? []).map((o) => [
                 o.id,
                 o.customerName,

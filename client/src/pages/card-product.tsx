@@ -24,15 +24,16 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { Card3DViewer } from '@/components/card-3d-viewer';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
-import { cardPriceGBP, getShippingTier } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { useMakeYoursHref } from '@/components/landing/marketing-footer';
 
 /** Rack cards are the £4.99 door — priced from the ladder, never
  *  hardcoded, so a price change lands everywhere at once. */
-const RACK_PRICE = cardPriceGBP('rack');
-const POSTAGE = getShippingTier('standard').price;
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+const RACK_PRICE = cardPrice('rack');
+const POSTAGE = shippingPrice();
 
 interface ProductCard {
   id: number; occasion: string; front_text: string; inside_text?: string | null;
@@ -189,8 +190,8 @@ export default function CardProductPage() {
               </div>
             ) : (<>
             <div className="mt-4 flex items-baseline gap-3">
-              <span className="font-display text-3xl font-bold text-keeper-ink">{gbp(RACK_PRICE)}</span>
-              <span className="text-sm text-keeper-meta">+ {gbp(POSTAGE)} postage, straight to their door</span>
+              <span className="font-display text-3xl font-bold text-keeper-ink">{formatMoney(RACK_PRICE)}</span>
+              <span className="text-sm text-keeper-meta">+ {formatMoney(POSTAGE)} postage, straight to their door</span>
             </div>
 
             {/* THE INSIDE — the default arrives already written. */}
@@ -235,7 +236,7 @@ export default function CardProductPage() {
               className="mt-6 w-full rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black disabled:opacity-60">
               {buying
                 ? (insideMode === 'own' ? 'Setting your words inside…' : 'Getting your card ready…')
-                : `Buy this card for ${gbp(RACK_PRICE)}`}
+                : `Buy this card for ${formatMoney(RACK_PRICE)}`}
             </button>
             {buyError && (
               <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{buyError}</p>
@@ -245,7 +246,7 @@ export default function CardProductPage() {
 
             <ul className="mt-7 space-y-2.5 text-sm text-keeper-body">
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Printed on 280gsm gloss card, kraft envelope</li>
-              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> One-off print, posted Royal Mail 24 UK-wide. Allow at least a week</li>
+              <li className="flex items-start gap-2.5"><Truck className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> One-off print, {copyFor().za ? `${copyFor().shipPhrase} ${copyFor().anywhere}` : 'posted Royal Mail 24 UK-wide'}. Allow at least a week</li>
               <li className="flex items-start gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-cta" /> Send it to them directly, or to yourself to hand over</li>
             </ul>
           </div>

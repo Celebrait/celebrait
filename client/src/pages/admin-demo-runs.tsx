@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Trash2, Check } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { market } from '@shared/market';
 
 interface Run {
   id: number; created_at: string; label: string | null; mode: string | null;
@@ -105,7 +106,7 @@ export default function AdminDemoRunsPage() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-display text-lg font-bold text-keeper-ink">#{r.id} · {r.label ?? 'Untitled run'}</h2>
                 <div className="flex items-center gap-3 text-xs text-keeper-meta">
-                  <span>{new Date(r.created_at).toLocaleString('en-GB')}</span>
+                  <span>{new Date(r.created_at).toLocaleString(market().locale)}</span>
                   <span className="rounded-full border border-keeper-hair px-2 py-0.5">{r.route ?? 'cards'}</span>
                   <button type="button" onClick={() => approve(r.id, !r.approved)}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-medium transition-colors ${r.approved ? 'border-brand bg-brand-muted text-brand-dark' : 'border-keeper-hair text-keeper-meta hover:border-brand/60'}`}>

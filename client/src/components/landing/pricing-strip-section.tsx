@@ -17,6 +17,7 @@
 import { Link } from 'wouter';
 import { ArrowRight, Check } from 'lucide-react';
 import { PRICING_TIERS, formatPrice, type PricingTier } from '@shared/pricing';
+import { market } from '@shared/market';
 
 // Strip shows a tighter feature set than /pricing — top 3 bullets
 // per tier so the cards stay scannable at a glance. The full list
@@ -24,7 +25,7 @@ import { PRICING_TIERS, formatPrice, type PricingTier } from '@shared/pricing';
 const STRIP_FEATURE_LIMIT = 3;
 
 function StripTier({ tier }: { tier: PricingTier }) {
-  const price = formatPrice(tier.price, 'GBP');
+  const price = formatPrice(tier.price, market().currency);
   const features = tier.features.slice(0, STRIP_FEATURE_LIMIT);
 
   return (

@@ -47,6 +47,7 @@ import { getOccasionIcon } from '@/lib/occasion-icon';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { CARD_MAKER_STEPS } from '@shared/schema';
 import type { CardGridItem } from '@shared/schema';
+import { market } from '@shared/market';
 
 export default function StudioHome() {
   const { user } = useAuth();
@@ -575,7 +576,7 @@ function formatRelativeTime(ts: Date | string | null): string | null {
   if (diffMs < day) return 'Started today';
   if (diffMs < 2 * day) return 'Started yesterday';
   if (diffMs < 7 * day) return `Started ${Math.floor(diffMs / day)} days ago`;
-  return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+  return `Started ${d.toLocaleDateString(market().locale, { day: 'numeric', month: 'short' })}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────

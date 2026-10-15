@@ -37,6 +37,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
 import { occasionLabelMid } from '@/lib/occasion-label';
 import type { AddressBookEntry } from '@shared/schema';
+import { market } from '@shared/market';
 
 interface UpcomingReminder {
   occasionId: number;
@@ -385,7 +386,7 @@ function formatOccurrenceDate(iso: string): string {
   if (Number.isNaN(date.getTime())) return iso;
   const today = new Date();
   const sameYear = date.getUTCFullYear() === today.getUTCFullYear();
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleDateString(market().locale, {
     day: 'numeric',
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),

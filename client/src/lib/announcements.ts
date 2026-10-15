@@ -9,6 +9,10 @@
 // one the user opened (watermarked by id in localStorage), so adding a new
 // top entry lights the badge for everyone exactly once.
 
+import { market, formatMoney } from "@shared/market";
+import { shippingPrice } from "@shared/pricing";
+import { copyFor } from "@shared/market-copy";
+
 export type AnnouncementTone = "new" | "update" | "important" | "tip";
 
 export interface Announcement {
@@ -26,7 +30,7 @@ export interface Announcement {
   linkLabel?: string;
 }
 
-export const ANNOUNCEMENTS: Announcement[] = [
+const ALL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: "2026-07-03-printed-cards",
     tone: "new",
@@ -43,7 +47,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     category: "Delivery",
     date: "9 September 2026",
     title: "One postage option, and honest dates",
-    body: "Our cards are one-off prints. Please allow at least a week from order to arrival. They're printed to order by a partner printer, then posted Royal Mail 24 (£2.95). At checkout, tell us the date and we'll say straight away whether it'll make it.",
+    body: `Our cards are one-off prints. Please allow at least a week from order to arrival. They're printed to order by a partner printer, then posted Royal Mail 24 (${formatMoney(shippingPrice())}). At checkout, tell us the date and we'll say straight away whether it'll make it.`,
   },
   {
     id: "2026-06-01-reminders",
@@ -56,6 +60,18 @@ export const ANNOUNCEMENTS: Announcement[] = [
     linkLabel: "Set up reminders",
   },
 ];
+
+// ZA: same entries, the delivery words swapped (no UK, no Royal Mail, no
+// named printer). GB gets the array above untouched.
+const ZA_BODIES: Record<string, (gb: string) => string> = {
+  "2026-07-03-printed-cards": (gb) => gb.replace("posted in the UK", `sent ${copyFor().anywhere}`),
+  "2026-09-09-order-a-week-ahead": () =>
+    `${market().leadTimeLine} They're printed to order, then ${copyFor().shipPhrase}. At checkout, tell us the date and we'll say straight away whether it'll make it.`,
+};
+export const ANNOUNCEMENTS: Announcement[] =
+  market().id === "ZA"
+    ? ALL_ANNOUNCEMENTS.map((a) => (ZA_BODIES[a.id] ? { ...a, body: ZA_BODIES[a.id](a.body) } : a))
+    : ALL_ANNOUNCEMENTS;
 
 export function latestAnnouncementId(): string | null {
   return ANNOUNCEMENTS[0]?.id ?? null;

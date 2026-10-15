@@ -12,15 +12,17 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { SUPPORT_EMAIL } from '@/lib/legal';
+import { market as activeMarket } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
 import {
-  cardPriceGBP,
-  firstOrderPriceGBP,
-  UK_SHIPPING_STANDARD_GBP,
+  cardPrice,
+  firstOrderPrice,
+  shippingPrice,
   HONEST_LEAD_LINE,
 } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 interface FaqEntry {
   q: string;
@@ -44,11 +46,11 @@ const photoFaqs = (rack: boolean): FaqEntry[] => [
   },
   {
     q: 'Can I print and post the card?',
-    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${gbp(cardPriceGBP(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${gbp(cardPriceGBP('rack'))} off the shelf, ` : ''}${gbp(cardPriceGBP('maker'))} made for them, ${gbp(cardPriceGBP('photo'))} from your photo), with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`,
+    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${formatMoney(cardPrice(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${formatMoney(cardPrice('maker'))} made for them, ${formatMoney(cardPrice('photo'))} from your photo), with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`,
   },
   {
     q: 'How fast is delivery?',
-    a: 'Our cards are one-off prints. Please allow at least a week from order to arrival. Right now they\'re printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (£2.95), usually the next working day. At checkout you can tell us the date and we\'ll say straight away whether it\'ll make it. The free digital link arrives instantly either way.',
+    a: `Our cards are one-off prints. Please allow at least a week from order to arrival. Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (${formatMoney(shippingPrice())}), usually the next working day. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
   },
   {
     q: 'What paper do you print on?',
@@ -95,19 +97,39 @@ const MAKER_FAQS: FaqEntry[] = [
   },
   {
     q: 'What does it cost?',
-    a: `${gbp(cardPriceGBP('maker'))} a card, plus ${gbp(UK_SHIPPING_STANDARD_GBP)} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${gbp(firstOrderPriceGBP('maker'))}. Making and previewing is free; you only pay when you print one.`,
+    a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${formatMoney(firstOrderPrice('maker'))}. Making and previewing is free; you only pay when you print one.`,
   },
   {
     q: 'How long does delivery take?',
-    a: `${HONEST_LEAD_LINE} Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (${gbp(UK_SHIPPING_STANDARD_GBP)}), usually the next working day. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
+    a: `${HONEST_LEAD_LINE} Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked (${formatMoney(shippingPrice())}), usually the next working day. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
   },
 ];
+
+// ZA answers, same facts, for the questions whose GB answer names the UK,
+// Royal Mail or a partner printer (ZA at launch: printed and couriered by
+// hand, nobody named). Keyed by question; each gets the GB answer so a
+// small swap can reuse it. The GB arrays above stay word for word.
+const ZA_ANSWERS: Record<string, (gb: string) => string> = {
+  'Can I print and post the card?': (gb) => gb.replace('posted in a kraft envelope', 'sent in a kraft envelope'),
+  'How fast is delivery?': () =>
+    `${activeMarket().leadTimeLine} Right now they're printed to order, then ${copyFor().shipPhrase} (${formatMoney(shippingPrice())}) to ${copyFor().anywhere}. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
+  'How long does delivery take?': () =>
+    `${activeMarket().leadTimeLine} Right now they're printed to order, then ${copyFor().shipPhrase} (${formatMoney(shippingPrice())}) to ${copyFor().anywhere}. At checkout you can tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.`,
+  'Where do you ship to?': () =>
+    "Anywhere in South Africa today. Buying from abroad is fine; have it sent straight to them. Sign up and we'll let you know when we deliver further afield.",
+  'How do reminders work?': (gb) =>
+    gb.replace('printed to order by our partner printer, then posted', 'printed to order, then sent by courier'),
+};
+const forMarket = (faqs: FaqEntry[]): FaqEntry[] =>
+  activeMarket().id === 'ZA'
+    ? faqs.map((f) => (ZA_ANSWERS[f.q] ? { ...f, a: ZA_ANSWERS[f.q](f.a) } : f))
+    : faqs;
 
 /** `door` picks the answer set: the photo door's ten (default, /photo) or
  *  the three-card door's six (/create). Same chrome either way. */
 export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
   const rack = useRackEnabled() === true;
-  const FAQS = door === 'maker' ? MAKER_FAQS : photoFaqs(rack);
+  const FAQS = forMarket(door === 'maker' ? MAKER_FAQS : photoFaqs(rack));
   return (
     <section id="faq" className="snap-center relative scroll-mt-32 py-24 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array

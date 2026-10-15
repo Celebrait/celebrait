@@ -12,6 +12,10 @@
 //   • "Free for me. Paid for them" framing — free tier exists, but
 //     it's about making the card for yourself. Paid tiers are about
 //     the gift moment.
+//   • 2026-10-15: SUPERSEDED for prices: ZAR is live behind the market
+//     switch (shared/market.ts). Surfaces call the market-aware
+//     cardPrice()/firstOrderPrice()/shippingPrice() at the bottom of
+//     this file; the *GBP functions are kept as GB-pinned aliases.
 //   • UK-PRIMARY LAUNCH. ZAR numbers stay in this file as dormant
 //     data — tuned per the SA market research note, ready for the
 //     day SA goes live — but no UI consumes them today. The landing
@@ -22,7 +26,37 @@
 // launch regen-rate data (per next_pricing_and_regen_economics.md).
 // The structure can ship now; numbers lock after data.
 
+import { MARKETS, formatMoney, marketId, type MarketId } from './market';
+
 export type CurrencyCode = 'GBP' | 'ZAR';
+
+// ═════════════════════════════════════════════════════════════════════
+// SOUTH AFRICA (ZAR) PRICES: PLACEHOLDERS (2026-10-15)
+//
+// Aidan hasn't set the SA prices yet. Change them HERE and nowhere
+// else: every rand on the site, at both checkouts, in the server's
+// charge and in emails derives from this one object (via cardPrice(),
+// firstOrderPrice(), shippingPrice() below). Minor units (cents):
+// 9900 = R99. Only read when the market is ZA (env MARKET=ZA); the UK
+// prices further down are untouched by it.
+// ═════════════════════════════════════════════════════════════════════
+export const ZAR_PRICES = {
+  card: {
+    rack: 9900,   // R99, off the shelf
+    maker: 12900, // R129, made for them
+    photo: 14900, // R149, from your photo
+  },
+  /** Standard delivery by courier, tracked. Charged once per order. */
+  shipping: 7900, // R79
+  /** Wax-seal envelope sticker: NOT offered in South Africa (0 = never
+   *  shown, never charged). */
+  envelopeSticker: 0,
+} as const;
+
+/** ZA courier leg after printing, in working days (PLACEHOLDER: no
+ *  courier chosen yet). Feeds the "expect it by" date, the shipped
+ *  email's arrival window and the JSON-LD transit time. */
+export const ZA_COURIER_WORKING_DAYS = { min: 2, max: 4 } as const;
 // Print-led V1 (decided 2026-07-01): the printed card is the only paid
 // product and it INCLUDES a free digital link. No standalone 'digital'
 // tier. See next_digital_card_strategy.md.
@@ -68,21 +102,29 @@ export const PRICING_TIERS: PricingTier[] = [
     // priced by door — £4.99 off the shelf, £5.99 made for them, £6.99
     // from your photo (CARD_PRICES_GBP). This tier exists for the
     // /pricing page's headline, so it carries the cheapest. The AMOUNT
-    // CHARGED always comes from cardPriceGBP(card.source), never from
+    // CHARGED always comes from cardPrice(card.source), never from
     // here — see UX_THREE_DOORS.md §8a.
-    price: { GBP: 499, ZAR: 19900 },
-    features: [
-      '£4.99 off the shelf · £5.99 made for them · £6.99 from your photo',
-      '280gsm gloss-coated art card, HP Indigo print',
-      'Posted in a kraft envelope, tracked',
-      'Sustainably sourced, plastic-free & recyclable',
-      'Free digital link included: 3D opening view, share anywhere',
-      'See when they open it',
-      'Print-resolution file to keep',
-    ],
+    price: { GBP: 499, ZAR: ZAR_PRICES.card.rack },
+    // A getter, so the price line is written in the active market's
+    // currency when it is read (the market is known by then).
+    get features() {
+      return [
+        `${formatMoney(cardPrice('rack'))} off the shelf · ${formatMoney(cardPrice('maker'))} made for them · ${formatMoney(cardPrice('photo'))} from your photo`,
+        ...PRINTED_FEATURES_REST,
+      ];
+    },
     highlight: true,
     ctaLabel: 'Make & send a card',
   },
+];
+
+const PRINTED_FEATURES_REST = [
+  '280gsm gloss-coated art card, HP Indigo print',
+  'Posted in a kraft envelope, tracked',
+  'Sustainably sourced, plastic-free & recyclable',
+  'Free digital link included: 3D opening view, share anywhere',
+  'See when they open it',
+  'Print-resolution file to keep',
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -119,7 +161,8 @@ export interface ShippingTier {
   id: ShippingTierId;
   /** Customer-facing label. */
   name: string;
-  /** Carrier + service — the fine print under the label. */
+  /** Carrier + service — the fine print under the label. GB wording:
+   *  surfaces read shippingCarrierLabel() for the active market. */
   carrier: string;
   /** Prodigi `shippingMethod` enum value. */
   prodigiMethod: 'Standard' | 'Express' | 'Overnight';
@@ -182,8 +225,7 @@ export function getShippingTier(id: ShippingTierId): ShippingTier {
 
 /** The honest expectation-setting line for a tier: production + carrier. */
 export function deliveryEstimateCopy(id: ShippingTierId): string {
-  const t = getShippingTier(id);
-  return `Printed to order (up to ${PRODUCTION_WORKING_DAYS} working days), then ${t.carrier} (${t.shippingEstimate}).`;
+  return `Printed to order (up to ${PRODUCTION_WORKING_DAYS} working days), then ${shippingCarrierLabel(id)} (${shippingEstimateLabel(id)}).`;
 }
 
 /** One-liner for the site-wide production banner + any "how long" copy. */
@@ -230,10 +272,11 @@ function addWorkingDays(from: Date, n: number): Date {
  *  shown, because a date range that reads "Mon 14 – Thu 17" under a line
  *  saying "allow at least a week" is a contradiction (Aidan 2026-09-10). */
 export function deliveryWindow(from: Date = new Date()): { earliest: Date; latest: Date } {
-  const earliest = addWorkingDays(from, 1 + STANDARD_POST_WORKING_DAYS.min);
+  const post = transitWorkingDays();
+  const earliest = addWorkingDays(from, 1 + post.min);
   const promised = new Date(from.getFullYear(), from.getMonth(), from.getDate() + ORDER_AHEAD_DAYS);
   while (isWeekend(promised)) promised.setDate(promised.getDate() + 1);
-  const byWork = addWorkingDays(from, PRODUCTION_WORKING_DAYS + STANDARD_POST_WORKING_DAYS.max);
+  const byWork = addWorkingDays(from, PRODUCTION_WORKING_DAYS + post.max);
   return { earliest, latest: byWork > promised ? byWork : promised };
 }
 
@@ -244,7 +287,7 @@ export function expectedBy(from: Date = new Date()): Date {
 
 /** "Tue 16 Sep" — short, British, no year (the window is days away). */
 export function formatDayMonth(d: Date): string {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(MARKETS[marketId()].locale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 /** Parse a YYYY-MM-DD (the <input type=date> value) as a local date. */
@@ -279,7 +322,10 @@ export function arrivalVerdict(needBy: Date, from: Date = new Date()): ArrivalVe
  *  OFFERED_SHIPPING_TIER_IDS). Kept as data only; no surface renders it. */
 export const OVERNIGHT_DELIVERY = {
   price: { GBP: 1395, ZAR: null }, // ZAR null = not available
-  description: 'UK only · next-day courier once printed',
+  // Not offered anywhere since 2026-09-09; never sold in ZA.
+  get description() {
+    return marketId() === 'GB' ? 'UK only · next-day courier once printed' : 'Not available in South Africa';
+  },
   ukOnly: true,
 } as const;
 
@@ -316,13 +362,13 @@ export function envelopeStickerGBP(
   chosen: boolean,
   shipTo: 'sender' | 'recipient' | null | undefined,
 ): number {
-  return chosen && shipTo === 'recipient' ? ENVELOPE_STICKER_GBP : 0;
+  return envelopeStickerPrice(chosen, shipTo, 'GB');
 }
 
 /** Derive the GBP price of a tier in minor units. Tiny helper so
  *  consumers don't have to remember the price-shape (`.GBP` indexing). */
 export function tierPriceGBP(id: TierId): number {
-  return getTier(id).price.GBP;
+  return tierPrice(id, 'GB');
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -346,7 +392,7 @@ export const CARD_PRICES_GBP: Record<CardSource, number> = {
  *  legacy sources fall back to `photo` — the historic £8.99 product was
  *  the photo card, so an unlabelled row is a photo row. */
 export function cardPriceGBP(source: string | null | undefined): number {
-  return CARD_PRICES_GBP[(source ?? 'photo') as CardSource] ?? CARD_PRICES_GBP.photo;
+  return cardPrice(source, 'GB');
 }
 
 /** Time to make, start to finish, by door (Aidan 2026-09-10: "roughly
@@ -363,11 +409,7 @@ export const CARD_PRICE_FROM_GBP = Math.min(...Object.values(CARD_PRICES_GBP));
 /** Format a TierPrice for display. Returns "Free" when 0. */
 export function formatPrice(price: TierPrice, currency: CurrencyCode): string {
   if (price[currency] === 0) return 'Free';
-  if (currency === 'GBP') {
-    return `£${(price.GBP / 100).toFixed(2)}`;
-  }
-  // ZAR rendered as whole rand (no cents needed at these prices)
-  return `R${Math.round(price.ZAR / 100)}`;
+  return formatMoney(price[currency], currency);
 }
 
 /** Lookup helper. */
@@ -397,5 +439,131 @@ export function genCostUsdX100ToGbp(costCentsX100: number): number {
 // Code). Rounded DOWN to the penny so the customer never loses a fraction.
 export const FIRST_ORDER_DISCOUNT = 0.5;
 export function firstOrderPriceGBP(source: Parameters<typeof cardPriceGBP>[0]): number {
-  return Math.floor(cardPriceGBP(source) * (1 - FIRST_ORDER_DISCOUNT));
+  return firstOrderPrice(source, 'GB');
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// MARKET-AWARE PRICES (2026-10-15): what every surface calls.
+//
+// Each returns MINOR UNITS in the active market's currency (pence in
+// GB, cents in ZA; see shared/market.ts). The client knows the market
+// from the shell the server injects; the server from env MARKET. The
+// optional `m` pins a market (tests, and the *GBP aliases above).
+// Display with formatMoney() from shared/market. The server charges
+// from these same functions, so the shown total is the charged total.
+// ═════════════════════════════════════════════════════════════════════
+
+interface MarketPrices {
+  card: Readonly<Record<CardSource, number>>;
+  /** The one postage option sold at launch. */
+  shipping: number;
+  /** 0 = the sticker is not offered in this market. */
+  envelopeSticker: number;
+}
+
+function pricesFor(m: MarketId): MarketPrices {
+  if (m === 'ZA') return ZAR_PRICES;
+  return {
+    card: CARD_PRICES_GBP,
+    shipping: UK_SHIPPING_STANDARD_GBP,
+    envelopeSticker: ENVELOPE_STICKER_GBP,
+  };
+}
+
+/** Every door's price in the active market. */
+export function cardPrices(m: MarketId = marketId()): Readonly<Record<CardSource, number>> {
+  return pricesFor(m).card;
+}
+
+/** The price of a card from a given door. Unknown or legacy sources
+ *  fall back to `photo` (an unlabelled row is a photo row). */
+export function cardPrice(source: string | null | undefined, m: MarketId = marketId()): number {
+  const table = pricesFor(m).card;
+  return table[(source ?? 'photo') as CardSource] ?? table.photo;
+}
+
+/** The first-order offer price (half the everyday price, rounded DOWN
+ *  to the minor unit so the customer never loses a fraction). */
+export function firstOrderPrice(source: string | null | undefined, m: MarketId = marketId()): number {
+  return Math.floor(cardPrice(source, m) * (1 - FIRST_ORDER_DISCOUNT));
+}
+
+/** Postage for an order. GB resolves the tier (historical orders can
+ *  carry express/overnight); ZA sells one courier option, so every tier
+ *  id resolves to it. */
+export function shippingPrice(tier: ShippingTierId = DEFAULT_SHIPPING_TIER, m: MarketId = marketId()): number {
+  return m === 'ZA' ? ZAR_PRICES.shipping : getShippingTier(tier).price;
+}
+
+/** The postage line's fine print: "Royal Mail 24, tracked" in GB; in
+ *  ZA the market's named courier, or plain "Courier" while none is
+ *  chosen (and "tracked" only where the market may promise it). */
+export function shippingCarrierLabel(tier: ShippingTierId = DEFAULT_SHIPPING_TIER, m: MarketId = marketId()): string {
+  if (m === 'GB') return getShippingTier(tier).carrier;
+  const cfg = MARKETS[m];
+  return `${cfg.courierName ?? 'Courier'}${cfg.tracked ? ', tracked' : ''}`;
+}
+
+/** The carrier leg in working days: Royal Mail 24 (1–2) in GB, the
+ *  courier placeholder (ZA_COURIER_WORKING_DAYS) in ZA. */
+export function transitWorkingDays(m: MarketId = marketId()): { min: number; max: number } {
+  return m === 'ZA' ? ZA_COURIER_WORKING_DAYS : STANDARD_POST_WORKING_DAYS;
+}
+
+/** The carrier leg as words, for the shipped email and estimate copy:
+ *  the tier's own ("1–2 working days") in GB, "2–4 working days" in ZA. */
+export function shippingEstimateLabel(tier: ShippingTierId = DEFAULT_SHIPPING_TIER, m: MarketId = marketId()): string {
+  if (m === 'GB') return getShippingTier(tier).shippingEstimate;
+  const d = transitWorkingDays(m);
+  return `${d.min}–${d.max} working days`;
+}
+
+/** The cheapest door, for "from R99" / "from £4.99" copy. */
+export function cardPriceFrom(m: MarketId = marketId()): number {
+  return Math.min(...Object.values(pricesFor(m).card));
+}
+
+/** Is the wax-seal envelope sticker sold in this market at all? */
+export function envelopeStickerOffered(m: MarketId = marketId()): boolean {
+  return pricesFor(m).envelopeSticker > 0;
+}
+
+/** The sticker's unit price (0 where it isn't offered). */
+export function envelopeStickerUnitPrice(m: MarketId = marketId()): number {
+  return pricesFor(m).envelopeSticker;
+}
+
+/** The sticker charge for an order: its price when chosen on a direct
+ *  send in a market that sells it, else 0. Client and server both call
+ *  this so the shown total equals the charge. */
+export function envelopeStickerPrice(
+  chosen: boolean,
+  shipTo: 'sender' | 'recipient' | null | undefined,
+  m: MarketId = marketId(),
+): number {
+  return chosen && shipTo === 'recipient' ? pricesFor(m).envelopeSticker : 0;
+}
+
+/** The static shell (client/index.html) states GB prices in its JSON-LD
+ *  for crawlers: the photo card ("price": "6.99") and postage ("value":
+ *  "2.95"). Rewrite them to the active market's. A no-op in GB. */
+export function marketizeShellPrices(html: string, m: MarketId = marketId()): string {
+  if (m === 'GB') return html;
+  const major = (minor: number) => (minor / 100).toFixed(2);
+  const esc = (s: string) => s.replace('.', '\\.');
+  const gbT = transitWorkingDays('GB');
+  const t = transitWorkingDays(m);
+  return html
+    // The carrier leg ("transitTime" min/max days) to the market's.
+    .replace(
+      new RegExp(`("transitTime":\\s*\\{[^}]*?"minValue":\\s*)${gbT.min}(,[^}]*?"maxValue":\\s*)${gbT.max}\\b`),
+      `$1${t.min}$2${t.max}`,
+    )
+    .replace(new RegExp(`("price":\\s*")${esc(major(cardPrice('photo', 'GB')))}(")`, 'g'), `$1${major(cardPrice('photo', m))}$2`)
+    .replace(new RegExp(`("value":\\s*")${esc(major(shippingPrice(DEFAULT_SHIPPING_TIER, 'GB')))}(")`, 'g'), `$1${major(shippingPrice(DEFAULT_SHIPPING_TIER, m))}$2`);
+}
+
+/** A tier's headline price in the active market's currency. */
+export function tierPrice(id: TierId, m: MarketId = marketId()): number {
+  return getTier(id).price[m === 'ZA' ? 'ZAR' : 'GBP'];
 }

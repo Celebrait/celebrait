@@ -20,6 +20,7 @@ import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { FIXED_DATE_OCCASIONS } from '@shared/fixed-occasions';
+import { market } from '@shared/market';
 import {
   ArrowLeft,
   Cake,
@@ -176,7 +177,7 @@ const FIXED_DATE_NOTES: Record<string, string> = {
   valentines: '14 February. We know.',
   // UK Mother's Day = Mothering Sunday (4th Sunday of Lent, in March) —
   // NOT the US "2nd Sunday of May". (audit 2026-07-02.)
-  mothers_day: 'Mothering Sunday (in March). We know.',
+  mothers_day: market().id === 'ZA' ? 'Second Sunday of May. We know.' : 'Mothering Sunday (in March). We know.',
   fathers_day: 'Third Sunday of June. We know.',
 };
 
@@ -629,7 +630,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
                 type="tel"
                 value={phone}
                 onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
-                placeholder="+44…"
+                placeholder={`${market().phonePrefix}…`}
                 maxLength={40}
                 aria-invalid={!!fieldErrors.phone}
                 data-testid="input-ab-phone"
@@ -697,7 +698,7 @@ export default function AddressBookFormPage({ mode }: AddressBookFormPageProps) 
                   id="country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  placeholder="United Kingdom"
+                  placeholder={market().id === 'ZA' ? 'South Africa' : 'United Kingdom'}
                   data-testid="input-ab-country"
                 />
               </Field>
@@ -849,7 +850,7 @@ function PrivacyFooter() {
               <div>
                 <p className="font-medium text-keeper-ink mb-1">Your rights</p>
                 <p>
-                  Under UK GDPR you can ask us to export or delete
+                  Under {market().id === 'ZA' ? 'POPIA' : 'UK GDPR'} you can ask us to export or delete
                   everything we hold about you. Email{' '}
                   <a
                     href={`mailto:${SUPPORT_EMAIL}`}

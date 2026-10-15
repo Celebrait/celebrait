@@ -12,6 +12,8 @@
 // header + strip height (120px).
 
 import { Link } from 'wouter';
+import { cardPriceFrom, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
 export function PromoStrip() {
   return (
@@ -19,7 +21,7 @@ export function PromoStrip() {
       <div className="max-w-7xl mx-auto h-10 px-6 md:px-10 flex items-center justify-center">
         <p className="text-xs md:text-sm text-ink-soft text-center">
           Our cards are one-off prints. Please allow at least a week from order to
-          arrival. Cards from £4.99 + £2.95 postage.{' '}
+          arrival. Cards from {formatMoney(cardPriceFrom())} + {formatMoney(shippingPrice())} postage.{' '}
           <Link
             href="/pricing"
             className="text-brand hover:text-brand-dark font-medium ml-1"

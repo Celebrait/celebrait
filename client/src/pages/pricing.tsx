@@ -24,9 +24,10 @@ import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { useSeo } from '@/lib/use-seo';
-import { CARD_PRICES_GBP, UK_SHIPPING_STANDARD_GBP, MAKE_TIME, type CardSource } from '@shared/pricing';
+import { copyFor } from '@shared/market-copy';
+import { cardPrice, shippingPrice, MAKE_TIME, type CardSource } from '@shared/pricing';
+import { formatMoney, market } from '@shared/market';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 interface Door {
   source: CardSource;
@@ -37,6 +38,10 @@ interface Door {
   href: string;
   cta: string;
 }
+
+// The market's delivery words (shared/market-copy.ts). Prices stay with
+// shared/pricing + formatMoney.
+const COPY = copyFor();
 
 const DOORS: Door[] = [
   {
@@ -70,7 +75,7 @@ const DOORS: Door[] = [
 
 const INCLUDED = [
   '280gsm gloss-coated art card, HP Indigo print',
-  'Posted in a kraft envelope, tracked',
+  `${COPY.za ? 'Sent' : 'Posted'} in a kraft envelope${market().tracked ? ', tracked' : ''}`,
   'Straight to them, or to you first to hand over',
   'A free digital link, so the card opens in 3D on any screen',
   'Sustainably sourced, plastic-free and recyclable',
@@ -118,7 +123,7 @@ export default function PricingPage() {
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-muted text-keeper-gold">
                         <Icon className="h-5 w-5" strokeWidth={1.75} />
                       </span>
-                      <span className="font-display text-[26px] font-bold leading-none tracking-[-0.01em] text-keeper-ink">{gbp(CARD_PRICES_GBP[d.source])}</span>
+                      <span className="font-display text-[26px] font-bold leading-none tracking-[-0.01em] text-keeper-ink">{formatMoney(cardPrice(d.source))}</span>
                     </div>
                     <h2 className="mt-4 font-display text-[22px] font-bold leading-[1.1] text-keeper-ink">{d.title}</h2>
                     <p className="mt-1 text-[14px] leading-snug text-keeper-body">{d.line}</p>
@@ -130,7 +135,7 @@ export default function PricingPage() {
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-4 text-[12px] text-keeper-meta">Takes {MAKE_TIME[d.source]} · + {gbp(UK_SHIPPING_STANDARD_GBP)} postage, Royal Mail 24 tracked</p>
+                    <p className="mt-4 text-[12px] text-keeper-meta">Takes {MAKE_TIME[d.source]} · + {formatMoney(shippingPrice())} postage{COPY.za ? `, ${COPY.shipPhrase}` : ', Royal Mail 24 tracked'}</p>
                     <Link href={href} className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-go px-5 py-2.5 text-[14.5px] font-semibold text-go-foreground transition-colors hover:bg-go-hover">
                       {d.cta}
                     </Link>
@@ -157,13 +162,13 @@ export default function PricingPage() {
                 <p className={EYEBROW}>Delivery, honestly</p>
                 <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-keeper-body">
                   <p>
-                    Our cards are one-off prints. Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked, for {gbp(UK_SHIPPING_STANDARD_GBP)}. Please allow at least a week from order to arrival.
+                    Our cards are one-off prints. {COPY.za ? `Right now they're printed to order, then ${COPY.shipPhrase} to ${COPY.anywhere}, for ` : "Right now they're printed to order by a partner printer, which takes up to three working days, then posted Royal Mail 24, tracked, for "}{formatMoney(shippingPrice())}. Please allow at least a week from order to arrival.
                   </p>
                   <p>
                     At checkout, tell us the date and we'll say straight away whether it'll make it. The free digital link arrives instantly either way.
                   </p>
                   <p>
-                    UK addresses only for now. Buying from abroad is fine; have it sent straight to them.
+                    {COPY.addressesOnly}
                   </p>
                 </div>
               </div>

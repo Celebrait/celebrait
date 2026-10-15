@@ -12,6 +12,7 @@ import { Link, useLocation } from 'wouter';
 import { Instagram, ArrowRight } from 'lucide-react';
 import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
+import { copyFor } from '@shared/market-copy';
 
 interface FooterLink {
   label: string;
@@ -195,7 +196,7 @@ export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {
           bleeding wordmark room to read behind it. */}
       <div className="relative mt-24 border-t border-white/10 md:mt-32">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-6 text-xs text-keeper-paper/50 md:flex-row md:px-10">
-          <p>© {new Date().getFullYear()} Celebrait · Made in Manchester</p>
+          <p>© {new Date().getFullYear()} Celebrait · {copyFor().madeIn}</p>
           <p className="tracking-wide">Cards worth keeping.</p>
         </div>
       </div>

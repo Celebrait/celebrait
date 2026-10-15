@@ -43,6 +43,7 @@ import { Card3DViewer } from '@/components/card-3d-viewer';
 import { expectedBy, formatDayMonth } from '@shared/pricing';
 import type { CardDraftState } from '@shared/models/card-draft';
 import type { PhotoMode } from '@shared/schema';
+import { copyFor } from '@shared/market-copy';
 import {
   CSS, H1, PRIMARY, POST_FLIGHT_MS, SCREEN,
   PhotoPicker, PostFlight,
@@ -713,7 +714,7 @@ export function PhotoRun({ cfg, replay, ground = true }: { cfg: DemoConfig; repl
             <div data-demo="card" className="relative h-[min(60vh,110vw)] w-full shrink-0">
               <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
                 onFirstFrame={() => setCardPainted(true)} enableRotate enableZoom={false}
-                backLogo backCaption="celebrait.co.uk"
+                backLogo backCaption={copyFor().domain}
                 autoRotate={!cardOpen} autoRotateSpeed={8}
                 closedAngle={0} restYaw={0} framingMargin={1.95} minDistance={2} maxDistance={8} className="h-full w-full" />
             </div>

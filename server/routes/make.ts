@@ -23,7 +23,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../db';
 import { cards } from '@shared/schema';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { requireGuestMaker } from './admin-card-lab';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
@@ -125,7 +125,7 @@ export function registerMakeRoutes(app: Express): void {
           cardType: 'printed',
           printOption: 'front-and-inside',
           status: 'completed',
-          price: cardPriceGBP('maker'),
+          price: cardPrice('maker'),
           frontImagePath: front.filename,
           insideImagePath: inside?.filename ?? null,
           conversationData: state as unknown as Record<string, unknown>,
@@ -141,7 +141,7 @@ export function registerMakeRoutes(app: Express): void {
         owned: !!userId,
         frontImageUrl: publicImageUrl(front.filename),
         insideImageUrl: inside ? publicImageUrl(inside.filename) : null,
-        price: cardPriceGBP('maker'),
+        price: cardPrice('maker'),
       });
     } catch (err) {
       console.error('[MAKE] save failed:', err);

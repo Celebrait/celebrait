@@ -4,7 +4,7 @@
 // warm violet primary, stone neutrals, green CTAs.
 
 import { Link, useLocation } from 'wouter';
-import { LogOut, ExternalLink, Sparkles, BarChart3, Mail, Users, TrendingUp, Image as ImageIcon, type LucideIcon, Share2, FlaskConical, Star, Cake, Clapperboard, Lock } from 'lucide-react';
+import { LogOut, ExternalLink, Sparkles, BarChart3, Mail, Users, TrendingUp, Image as ImageIcon, type LucideIcon, Share2, FlaskConical, Star, Cake, Clapperboard, Lock, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,6 +19,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Customers', href: '/admin/customers', icon: Users },
+  { label: 'Fulfilment', href: '/admin/fulfilment', icon: Printer },
   { label: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
   { label: 'Prompt Lab', href: '/admin/prompts', icon: Sparkles },
   { label: 'Photo Lab', href: '/admin/photo-lab', icon: ImageIcon },

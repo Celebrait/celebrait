@@ -9,6 +9,7 @@
 // runtime circular dependency.
 
 import { stripePaymentProvider } from "./stripe-provider";
+import { payfastPaymentProvider } from "./payfast-provider";
 
 export interface CreatePaymentRequest {
   studioOrderId: string;
@@ -106,6 +107,10 @@ export function getPaymentProvider(): PaymentProvider {
       // The stripe provider constructs its SDK client lazily, so the
       // import is inert until createPayment/getStatus is actually called.
       return stripePaymentProvider;
+    case "payfast":
+      // South Africa (MARKET=ZA). Redirect-form flow + ITN; see
+      // payfast-provider.ts. Reads PAYFAST_* env lazily, per call.
+      return payfastPaymentProvider;
     default:
       throw new Error(`Unknown STUDIO_PAYMENT_PROVIDER: ${name}`);
   }

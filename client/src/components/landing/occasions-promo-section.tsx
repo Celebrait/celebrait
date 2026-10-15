@@ -22,10 +22,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { daysToChristmas } from '@/lib/moments';
 import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
-import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { market } from '@shared/market';
 
 const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 /** `door` picks the price the offer quotes (the ticker does the same):
  *  the number must be the number THIS door will charge — the line was
@@ -48,7 +49,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
     }
   };
 
-  const todayLabel = new Date().toLocaleDateString('en-GB', {
+  const todayLabel = new Date().toLocaleDateString(market().locale, {
     day: 'numeric',
     month: 'short',
   });
@@ -73,7 +74,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
             <strong className="text-keeper-ink">
               50% off your first card
             </strong>:{' '}
-            <span className="line-through">{gbp(cardPriceGBP(door))}</span> <b>{gbp(firstOrderPriceGBP(door))}</b>, plus
+            <span className="line-through">{formatMoney(cardPrice(door))}</span> <b>{formatMoney(firstOrderPrice(door))}</b>, plus
             postage.
           </p>
 
@@ -155,7 +156,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
                 <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
                   <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
                     {new Date()
-                      .toLocaleDateString('en-GB', { month: 'short' })
+                      .toLocaleDateString(market().locale, { month: 'short' })
                       .toUpperCase()}
                   </span>
                   <div className="z-[1] mt-[30px] h-3 w-3 rounded-full bg-keeper-ink" />

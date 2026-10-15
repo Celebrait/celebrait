@@ -8,7 +8,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { CheckCircle2, Circle, LayoutGrid, Loader2, Lock, LockOpen, XCircle } from 'lucide-react';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { publicOrigin } from '@shared/market';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Lock { locked: boolean; password: string; rackEnabled: boolean }
@@ -81,7 +83,7 @@ export default function AdminSitePage() {
   };
 
   if (isLoading || !data) return <div className="flex justify-center p-10"><Loader2 className="h-6 w-6 animate-spin text-keeper-meta" /></div>;
-  const share = typeof window !== 'undefined' ? window.location.origin : 'https://www.celebrait.co.uk';
+  const share = typeof window !== 'undefined' ? window.location.origin : publicOrigin();
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -109,7 +111,7 @@ export default function AdminSitePage() {
           <LayoutGrid className={`h-6 w-6 ${data.rackEnabled ? 'text-emerald-600' : 'text-keeper-meta'}`} />
           <div>
             <p className="font-semibold text-keeper-ink">{data.rackEnabled ? 'The rack — live' : 'The rack — parked'}</p>
-            <p className="text-[13px] text-keeper-body">{data.rackEnabled ? `Live — stock cards are for sale at £${(cardPriceGBP('rack') / 100).toFixed(2)}.` : 'Parked — no stock cards anywhere on the site; the carousel shows real cards as proof.'}</p>
+            <p className="text-[13px] text-keeper-body">{data.rackEnabled ? `Live — stock cards are for sale at ${formatMoney(cardPrice('rack'))}.` : 'Parked — no stock cards anywhere on the site; the carousel shows real cards as proof.'}</p>
           </div>
         </div>
         <button type="button" disabled={saving} onClick={() => save({ rackEnabled: !data.rackEnabled })}

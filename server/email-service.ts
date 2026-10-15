@@ -32,6 +32,16 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { CONTROLLER, SUPPORT_EMAIL, legalValue } from '@shared/legal';
+import { market, publicOrigin, formatMoney as formatMarketMoney } from '@shared/market';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { copyFor } from '@shared/market-copy';
+
+/** "printed to order by a partner printer, then posted Royal Mail 24"
+ *  in GB (today's words); ZA names no printer and no courier. */
+const printedThenSent = (our = false) =>
+  copyFor().za
+    ? 'printed to order, then sent by courier'
+    : `printed to order by ${our ? 'our' : 'a'} partner printer, then posted Royal Mail 24`;
 
 // ── Preview capture (admin email tester) ──────────────────────────────
 // Lets `/admin/emails` render any template's HTML without sending it
@@ -108,7 +118,7 @@ if (brevoApiKey) {
 // or future SA support. See next_checkout_shipping_robust.md.
 const FROM_EMAIL = process.env.MAIL_FROM_EMAIL ?? SUPPORT_EMAIL;
 const FROM_NAME = process.env.MAIL_FROM_NAME ?? 'Celebrait';
-const PUBLIC_ORIGIN = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+const PUBLIC_ORIGIN = publicOrigin();
 
 interface EmailParams {
   to: string;
@@ -288,6 +298,101 @@ export async function sendAdminAlertEmail(
     subject: `[Celebrait ALERT] ${subject}`,
     text: lines.join('\n'),
   });
+}
+
+// ── Operator: a print job (manual print provider) ───────────────────
+// Fired by server/studio/manual-print-provider.ts on the paid flip when
+// STUDIO_PRINT_PROVIDER=manual: a human prints and couriers the order.
+// Everything needed at the printer and the courier counter in one mail:
+// the print-ready file per card, the envelope address as label lines,
+// the need-by date, and one link to /admin/fulfilment to mark it done.
+export interface AdminPrintJob {
+  orderId: string;
+  cards: { cardId: number; copies: number; printFileUrl: string; frontImageUrl: string | null }[];
+  recipientName: string;
+  addressLines: string[];
+  shipTo: 'sender' | 'recipient';
+  /** Already formatted for the market ("Sat 24 October 2026"), or null. */
+  needBy: string | null;
+  shippingLabel: string | null;
+  giftMessage: string | null;
+  envelopeSticker: boolean;
+  customerName: string | null;
+  customerEmail: string | null;
+  adminUrl: string;
+}
+
+export async function sendAdminPrintJobEmail(job: AdminPrintJob): Promise<boolean> {
+  const short = job.orderId.slice(0, 8);
+  const totalCopies = job.cards.reduce((n, c) => n + c.copies, 0);
+  const subject =
+    `[Celebrait PRINT] ${totalCopies} card${totalCopies === 1 ? '' : 's'} for ${job.recipientName}` +
+    (job.needBy ? `, needed by ${job.needBy}` : '') +
+    ` (order ${short})`;
+  const shipToLine =
+    job.shipTo === 'recipient'
+      ? 'Post straight to the recipient.'
+      : 'Post to the buyer (they hand it over themselves).';
+
+  const text = [
+    `New print job: order ${job.orderId}`,
+    '',
+    `Cards: ${job.cards.length} (${totalCopies} cop${totalCopies === 1 ? 'y' : 'ies'})`,
+    ...job.cards.map((c, i) => `  ${i + 1}. Card ${c.cardId} x${c.copies}: ${c.printFileUrl}`),
+    '',
+    `Need-by date: ${job.needBy ?? 'not given'}`,
+    `Postage: ${job.shippingLabel ?? 'Standard'}. ${shipToLine}`,
+    job.envelopeSticker ? 'Envelope seal sticker: YES (they paid for it)' : '',
+    job.giftMessage ? `Gift note: ${job.giftMessage}` : '',
+    '',
+    'Ship to:',
+    ...job.addressLines.map((l) => `  ${l}`),
+    '',
+    `Buyer: ${job.customerName ?? '?'} <${job.customerEmail ?? '?'}>`,
+    '',
+    `Mark it printed / shipped: ${job.adminUrl}`,
+  ]
+    .filter((l, i, arr) => !(l === '' && arr[i - 1] === ''))
+    .join('\n');
+
+  const cell = 'padding:8px 0;border-bottom:1px solid #EFEAE1;vertical-align:top;';
+  const cardRows = job.cards
+    .map(
+      (c, i) => `
+      <tr>
+        <td style="${cell}width:88px;">${
+          c.frontImageUrl
+            ? `<img src="${escape(c.frontImageUrl)}" width="72" height="72" alt="Card ${c.cardId}" style="display:block;border:1px solid #E5DFD4;border-radius:4px;object-fit:cover;">`
+            : ''
+        }</td>
+        <td style="${cell}">
+          <div style="font-weight:600;">${i + 1}. Card ${c.cardId} &times; ${c.copies}</div>
+          <a href="${escape(c.printFileUrl)}" style="color:#5c57d4;">Download print-ready file</a>
+          <div style="color:#7A7267;font-size:12px;">6732 &times; 1713 px flat strip: back | front | inside left | inside right</div>
+        </td>
+      </tr>`,
+    )
+    .join('');
+
+  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#FAF8F4;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#211D19;font-size:14px;line-height:1.5;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E5DFD4;border-radius:8px;padding:24px;">
+    <div style="font-size:12px;color:#7A7267;text-transform:uppercase;letter-spacing:.06em;">Print job</div>
+    <h1 style="margin:4px 0 4px;font-size:20px;">${totalCopies} card${totalCopies === 1 ? '' : 's'} for ${escape(job.recipientName)}</h1>
+    <div style="color:#7A7267;font-size:13px;">Order <span style="font-family:monospace;">${escape(job.orderId)}</span></div>
+    <p style="margin:16px 0;padding:10px 12px;background:${job.needBy ? '#EEEDFB' : '#FAF8F4'};border:1px solid ${job.needBy ? '#5c57d4' : '#E5DFD4'};border-radius:6px;">
+      <strong>Need-by date:</strong> ${job.needBy ? escape(job.needBy) : 'not given'}<br>
+      <strong>Postage:</strong> ${escape(job.shippingLabel ?? 'Standard')}. ${escape(shipToLine)}
+      ${job.envelopeSticker ? '<br><strong>Envelope seal sticker:</strong> yes, they paid for it' : ''}
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${cardRows}</table>
+    <h2 style="margin:20px 0 6px;font-size:14px;">Ship to</h2>
+    <div style="font-family:monospace;font-size:14px;background:#FAF8F4;border:1px solid #E5DFD4;border-radius:6px;padding:10px 12px;">${job.addressLines.map((l) => escape(l)).join('<br>')}</div>
+    ${job.giftMessage ? `<h2 style="margin:20px 0 6px;font-size:14px;">Gift note</h2><div>${escape(job.giftMessage)}</div>` : ''}
+    <p style="margin:20px 0 0;color:#7A7267;font-size:13px;">Buyer: ${escape(job.customerName ?? '?')} &lt;${escape(job.customerEmail ?? '?')}&gt;</p>
+    <p style="margin:20px 0 0;"><a href="${escape(job.adminUrl)}" style="display:inline-block;background:#5c57d4;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600;">Mark printed / shipped</a></p>
+  </div></body></html>`;
+
+  return sendEmail({ to: ADMIN_ALERT_EMAIL, subject, html, text });
 }
 
 // ── Shared chassis ──────────────────────────────────────────────────
@@ -598,7 +703,7 @@ export async function sendEarlyAccessConfirmEmail(params: {
       Here's the idea: tell us about someone, or hand us a photo of them,
       and we'll make a card that is genuinely <strong>about them</strong>
       rather than about a generic birthday. Printed properly on heavy
-      card, and posted anywhere in the UK.
+      card, and posted ${copyFor().anywhere}.
     </p>
     ${optInLine}
     <p style="margin: 0 0 8px;">
@@ -623,7 +728,7 @@ export async function sendEarlyAccessConfirmEmail(params: {
   const text =
     `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n` +
     `Thanks for putting your name down. You're on the early-access list, which means you'll hear from us before we tell anybody else.\n\n` +
-    `Here's the idea: tell us about someone, or hand us a photo of them, and we'll make a card that is genuinely about them rather than about a generic birthday. Printed properly on heavy card, and posted anywhere in the UK.\n\n` +
+    `Here's the idea: tell us about someone, or hand us a photo of them, and we'll make a card that is genuinely about them rather than about a generic birthday. Printed properly on heavy card, and posted ${copyFor().anywhere}.\n\n` +
     (marketingOptIn
       ? `You also said yes to the odd card idea once we're up and running. We'll keep those rare, and worth opening.\n\n`
       : '') +
@@ -658,8 +763,8 @@ export async function sendWelcomeEmail(params: {
     <p style="margin: 0 0 16px;">
       Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
       Tell us who it's for and one thing about them, and we write and
-      illustrate three to choose from, printed properly and posted anywhere
-      in the UK.
+      illustrate three to choose from, printed properly and posted
+      ${copyFor().anywhere}.
     </p>
     <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 18px 20px; margin: 0 0 18px;">
       <p style="margin: 0 0 6px; font-weight: 700; color: #211D19;">
@@ -668,8 +773,8 @@ export async function sendWelcomeEmail(params: {
       <p style="margin: 0; font-size: 14px;">
         Tell us <strong>three dates that matter</strong>: birthdays,
         anniversaries, any day worth a card. Do that and your first one is
-        <span style="text-decoration: line-through;">&pound;5.99</span>
-        <strong>&pound;2.99</strong>, plus postage. We'll watch every date
+        <span style="text-decoration: line-through;">${moneyHtml(cardPrice('maker'))}</span>
+        <strong>${moneyHtml(firstOrderPrice('maker'))}</strong>, plus postage. We'll watch every date
         you add and nudge you in good time, so nobody's day slips past
         again.
       </p>
@@ -693,7 +798,7 @@ export async function sendWelcomeEmail(params: {
     postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted anywhere in the UK.\n\n50% OFF YOUR FIRST CARD\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first card is \u00a35.99 -> \u00a32.99, plus postage. We'll watch every date you add and nudge you in good time.\n\nClaim 50% off: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\nAidan at Celebrait`;
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted ${copyFor().anywhere}.\n\n50% OFF YOUR FIRST CARD\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first card is ${formatMarketMoney(cardPrice('maker'))} -> ${formatMarketMoney(firstOrderPrice('maker'))}, plus postage. We'll watch every date you add and nudge you in good time.\n\nClaim 50% off: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject: 'Welcome: 50% off your first card', html, text });
 }
 
@@ -722,7 +827,7 @@ export async function sendDatesNudgeEmail(params: {
     <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
       <div style="margin-bottom:8px;">${dots}</div>
       <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
-      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">&pound;5.99</span> <strong>&pound;2.99</strong>, half price.</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is <span style="text-decoration:line-through;">${moneyHtml(cardPrice('maker'))}</span> <strong>${moneyHtml(firstOrderPrice('maker'))}</strong>, half price.</p>
     </div>`;
 
   let subject: string;
@@ -770,7 +875,7 @@ export async function sendDatesNudgeEmail(params: {
   });
   const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
     variant === 'd2'
-      ? `Your 50% off is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: \u00a35.99 -> \u00a32.99, plus postage.`
+      ? `Your 50% off is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: ${formatMarketMoney(cardPrice('maker'))} -> ${formatMarketMoney(firstOrderPrice('maker'))}, plus postage.`
       : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first card is half price.`
   }\n\nAdd a date: ${studioUrl}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject, html, text, marketing: true });
@@ -1146,11 +1251,14 @@ export async function sendSenderOrderConfirmedEmail(params: {
     }
   }
   if (includesPrint) {
+    // Market words: GB "posted …, tracked"; ZA "sent by courier", no tracking promised.
+    const sent = copyFor().za ? 'sent by courier' : 'posted';
+    const trk = market().tracked ? ', tracked' : '';
     const deliveryLine = toYou
-      ? 'posted <strong>to you</strong> to hand over yourself, tracked'
-      : `posted <strong>straight to ${escape(recipientName ?? 'them')}</strong>, tracked`;
+      ? `${sent} <strong>to you</strong> to hand over yourself${trk}`
+      : `${sent} <strong>straight to ${escape(recipientName ?? 'them')}</strong>${trk}`;
     items.push(
-      `<li style="margin: 0 0 6px;">Printed: a one-off print, made to order (<strong>up to three working days</strong>), then ${deliveryLine}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.</li>`,
+      `<li style="margin: 0 0 6px;">Printed: a one-off print, made to order (<strong>up to three working days</strong>), then ${deliveryLine}. Please allow at least a week from order to arrival. ${market().tracked ? "We'll email your tracking as soon as it ships." : "We'll email you as soon as it ships."}</li>`,
     );
   }
 
@@ -1203,10 +1311,12 @@ export async function sendSenderOrderConfirmedEmail(params: {
     }
   }
   if (includesPrint) {
+    const sent = copyFor().za ? 'sent by courier' : 'posted';
+    const trk = market().tracked ? ', tracked' : '';
     const dl = toYou
-      ? 'posted to you to hand over yourself, tracked'
-      : `posted straight to ${recipientName ?? 'them'}, tracked`;
-    textItems.push(`- Printed: a one-off print, made to order (up to three working days), then ${dl}. Please allow at least a week from order to arrival. We'll email your tracking as soon as it ships.`);
+      ? `${sent} to you to hand over yourself${trk}`
+      : `${sent} straight to ${recipientName ?? 'them'}${trk}`;
+    textItems.push(`- Printed: a one-off print, made to order (up to three working days), then ${dl}. Please allow at least a week from order to arrival. ${market().tracked ? "We'll email your tracking as soon as it ships." : "We'll email you as soon as it ships."}`);
   }
   const text = `Hi ${senderName},
 
@@ -1704,8 +1814,7 @@ export async function sendDraftNudgeEmail(params: {
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       ${who}'s ${occ} ${timing}. The card you made is ready and waiting in
-      your Drafts. Every card is printed to order by our partner printer,
-      then posted Royal Mail 24.
+      your Drafts. Every card is ${printedThenSent(true)}.
     </p>
     <p style="margin: 0 0 8px;">
       One tap below and it's on its way.
@@ -1825,7 +1934,7 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>ten days away</strong>.${hasMemory ? ` Time to make this year's.` : ''} It takes about five minutes to make. Order this week and it'll be there with days to spare.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Honest bit: our cards are printed to order by a partner printer, then posted Royal Mail 24. That's why we advise a week. Ten days is comfortable.
+        Honest bit: our cards are ${printedThenSent()}. That's why we advise a week. Ten days is comfortable.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1843,7 +1952,7 @@ export async function sendReminderEmail(params: {
         ${escape(recipientName)}'s ${escape(occasionLabel)} is <strong>a week away</strong>, so today is the last safe day to order.${hasMemory ? ` Time to make this year's.` : ''} Order now and it arrives in good time.
       </p>
       <p style="margin: 0 0 8px; color: ${EMAIL_BODY};">
-        Our cards are printed to order by a partner printer, then posted Royal Mail 24, which is why a week is the line. Leave it later and the post may miss the day. Every card comes with a free digital link that lands instantly, though, so there's always something to send.
+        Our cards are ${printedThenSent()}, which is why a week is the line. Leave it later and the ${copyFor().za ? 'courier' : 'post'} may miss the day. Every card comes with a free digital link that lands instantly, though, so there's always something to send.
       </p>
     `;
     ctaLabel = hasMemory
@@ -1864,7 +1973,7 @@ export async function sendReminderEmail(params: {
       ? `${recipientName}'s ${occasionLabel} is in 3 weeks. Plenty of time to make them something special. We advise ordering a week ahead.`
       : tier === 't_10'
         ? `${recipientName}'s ${occasionLabel} is ten days away. Order this week and it'll be there with days to spare.`
-        : `${recipientName}'s ${occasionLabel} is a week away, so today is the last safe day to order. Our cards are printed to order by a partner printer, then posted Royal Mail 24. Every card comes with a free digital link that lands instantly.`) +
+        : `${recipientName}'s ${occasionLabel} is a week away, so today is the last safe day to order. Our cards are ${printedThenSent()}. Every card comes with a free digital link that lands instantly.`) +
     `\n\nStart here: ${startCardUrl}\n\nCelebrait`;
 
   return sendEmail({ to: senderEmail, subject, html, text, marketing: true });
@@ -1918,17 +2027,28 @@ function escape(s: string | null | undefined): string {
     .replace(/'/g, '&#39;');
 }
 
+/** An order's money in ITS currency (an order row carries its own
+ *  `currency`, so a GBP order still reads £ after the market flips).
+ *  GBP and ZAR go through shared/market's formatMoney, the one the site
+ *  uses; anything else keeps the old symbol-prefix fallback. */
 function formatMoney(minor: number, currency: string): string {
+  const c = (currency || market().currency).toUpperCase();
+  if (c === 'GBP' || c === 'ZAR') return formatMarketMoney(minor, c);
   const major = (minor / 100).toFixed(2);
-  const symbol = currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency === 'ZAR' ? 'R' : '';
+  const symbol = c === 'EUR' ? '€' : c === 'USD' ? '$' : '';
   return `${symbol}${major}`;
 }
 
+/** Money for HTML email bodies in the ACTIVE market: "&pound;5.99" in
+ *  GB (as the templates always wrote it), "R129" in ZA. */
+function moneyHtml(minor: number): string {
+  return formatMarketMoney(minor).replace('£', '&pound;');
+}
+
 /** Format a scheduled-delivery date for the order-confirmed email's
- *  digital line. Default locale = en-GB ("15 May 2026"); can be
- *  parameterised later if we localise. */
+ *  digital line, in the market's locale ("15 May 2026"). */
 function formatScheduledDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
+  return d.toLocaleDateString(market().locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

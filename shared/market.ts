@@ -38,6 +38,15 @@ export interface MarketConfig {
   postcodeHint: string;
   /** ISO country code sent to the print/courier provider. */
   isoCountry: 'GB' | 'ZA';
+  /** The delivery service customer copy may NAME ("Royal Mail 24").
+   *  Undefined = copy says "courier" and names nobody (ZA at launch:
+   *  printed and couriered by hand, no service chosen yet). */
+  courierName?: string;
+  /** Whether customer copy may promise tracking. */
+  tracked: boolean;
+  /** The site-wide lead-time line in this market. Same words in both
+   *  today; shared/pricing.ts HONEST_LEAD_LINE is the GB source. */
+  leadTimeLine: string;
 }
 
 export const MARKETS: Record<MarketId, MarketConfig> = {
@@ -56,6 +65,9 @@ export const MARKETS: Record<MarketId, MarketConfig> = {
     postcodeLabel: 'Postcode',
     postcodeHint: 'A UK postcode. We post within the UK only.',
     isoCountry: 'GB',
+    courierName: 'Royal Mail 24',
+    tracked: true,
+    leadTimeLine: 'Our cards are one-off prints. Please allow at least a week from order to arrival.',
   },
   ZA: {
     id: 'ZA',
@@ -73,6 +85,9 @@ export const MARKETS: Record<MarketId, MarketConfig> = {
     postcodeLabel: 'Postal code',
     postcodeHint: 'A four-digit South African postal code.',
     isoCountry: 'ZA',
+    courierName: undefined,
+    tracked: false,
+    leadTimeLine: 'Our cards are one-off prints. Please allow at least a week from order to arrival.',
   },
 };
 

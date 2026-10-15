@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import logoSrc from "../assets/logo-mark.webp";
 import { CONTROLLER } from "@/lib/legal";
+import { copyFor } from "@shared/market-copy";
 
 // Footer used on the legal pages (privacy / terms). UK identity — the
 // full registered entity lives on the legal pages themselves via
@@ -22,7 +23,7 @@ export default function Footer() {
         <div className="border-t border-purple-100 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-slate-gray text-sm">
-              © 2026 {CONTROLLER.tradingAs}. Made with ❤️ in the UK. All rights
+              © 2026 {CONTROLLER.tradingAs}. Made with ❤️ in {copyFor().country}. All rights
               reserved.
             </p>
             <div className="flex space-x-4 text-sm">

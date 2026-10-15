@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import { expectedByCopy } from '@/components/checkout/need-by';
+import { formatMoney } from '@shared/market';
 
 interface OrderResponse {
   order: {
@@ -28,9 +29,6 @@ interface OrderResponse {
   shareUrl: string | null;
 }
 
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
 
 export default function CheckoutSuccessPage() {
   const [, setLocation] = useLocation();
@@ -136,7 +134,7 @@ export default function CheckoutSuccessPage() {
                 Thanks, we've got it
               </h1>
               <p className="text-sm text-keeper-body mt-1">
-                {formatGBP(data.order.totalAmount)} paid. You'll get a confirmation by email.
+                {formatMoney(data.order.totalAmount)} paid. You'll get a confirmation by email.
               </p>
             </div>
           </div>

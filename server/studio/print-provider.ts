@@ -12,6 +12,7 @@
 
 import type { ShippingAddress } from "@shared/schema";
 import { prodigiPrintProvider } from "./prodigi-provider";
+import { manualPrintProvider } from "./manual-print-provider";
 
 /** One card in a print order. An order may hold several — the basket
  *  (UX_THREE_DOORS.md §8d) posts them in ONE shipment, which is why
@@ -101,6 +102,11 @@ export function getPrintProvider(): PrintProvider {
       // submitOrder/getStatus is actually called, so importing it here in
       // stub mode is harmless.
       return prodigiPrintProvider;
+    case "manual":
+      // A human prints and couriers (SA launch, no print API partner yet):
+      // composes the print files, mails the operator a print job, and the
+      // order is moved on from /admin/fulfilment. See manual-print-provider.ts.
+      return manualPrintProvider;
     default:
       throw new Error(`Unknown STUDIO_PRINT_PROVIDER: ${name}`);
   }

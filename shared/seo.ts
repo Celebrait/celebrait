@@ -16,15 +16,23 @@
 // Moonpig owns. Emotion in on-page copy, search phrasing in the meta
 // layer. Titles ≤ ~60 chars (Google truncation), descriptions ≤ ~155.
 
-import { cardPriceGBP } from './pricing';
+import { cardPrice, shippingPrice } from './pricing';
+import { publicOrigin, formatMoney } from './market';
+import { copyFor, shipPhrase } from './market-copy';
 
-export const SITE_ORIGIN = 'https://www.celebrait.co.uk';
+/** The market's public origin (shared/market.ts), fixed at load: the
+ *  market is known before any module runs, on either side. */
+export const SITE_ORIGIN = publicOrigin();
+
+// "posted first class" in GB (today's words); "sent by courier" in ZA.
+const postedHow = () => (copyFor().za ? shipPhrase(undefined, false) : 'posted first class');
 
 // The "from" price follows the rack switch (Aidan 2026-10-09: the rack is
 // parked until there is stock): £4.99 while stock cards sell, else the
 // made-for-them price. Both the server injector and the client hook pass
 // the live flag, so the tab title and the crawler agree.
-const fromGBP = (rackEnabled: boolean) => `£${(cardPriceGBP(rackEnabled ? 'rack' : 'maker') / 100).toFixed(2)}`;
+// Market-aware (shared/pricing + formatMoney): £5.99 in GB, R129 in ZA.
+const fromGBP = (rackEnabled: boolean) => formatMoney(cardPrice(rackEnabled ? 'rack' : 'maker'));
 
 export type PageSeo = {
   /** Route path, no trailing slash (except '/'). */
@@ -40,7 +48,7 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
     path: '/',
     title: 'Personalised Greetings Cards, Made For One Person | Celebrait',
     description:
-      `Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
+      `Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/photo/make',
@@ -52,30 +60,30 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
     path: '/photo',
     title: 'Personalised Greetings Cards: Put Them In The Picture | Celebrait',
     description:
-      `Turn a photo into a personalised greetings card. They become the artwork, in any scene you can describe, printed on 280gsm card and posted anywhere in the UK from ${fromGBP(rackEnabled)}.`,
+      `Turn a photo into a personalised greetings card. They become the artwork, in any scene you can describe, printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      `Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and posted first class from ${fromGBP(rackEnabled)}.`,
+      `Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and ${postedHow()} from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/make',
     title: 'Making their card… | Celebrait',
-    description: 'Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and posted first class.',
+    description: `Three original cards, written and illustrated for one person. Pick your favourite, add your words, printed and ${postedHow()}.`,
   },
   {
     path: '/pricing',
     title: `Pricing: Personalised Greetings Cards from ${fromGBP(rackEnabled)} | Celebrait`,
     description:
-      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus £2.95 postage: ${rackEnabled ? '£4.99 off the shelf, ' : ''}£5.99 made for them, £6.99 from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
+      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus ${formatMoney(shippingPrice())} postage: ${rackEnabled ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${formatMoney(cardPrice('maker'))} made for them, ${formatMoney(cardPrice('photo'))} from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
   },
   {
     path: '/contact',
     title: 'Contact Us | Celebrait',
     description:
-      "Questions about your personalised card, an order, or anything else? Get in touch with the Celebrait team. We're a small UK business and a real human replies.",
+      `Questions about your personalised card, an order, or anything else? Get in touch with the Celebrait team. We're a small ${copyFor().za ? 'South African' : 'UK'} business and a real human replies.`,
   },
   {
     path: '/privacy-policy',
@@ -87,7 +95,7 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
     path: '/terms-of-service',
     title: 'Terms of Service | Celebrait',
     description:
-      'The terms for using Celebrait to create, print and post personalised greetings cards in the UK.',
+      `The terms for using Celebrait to create, print and post personalised greetings cards in ${copyFor().country}.`,
   },
   {
     path: '/blog',
@@ -111,7 +119,7 @@ export type BlogPostMeta = {
 export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: 'how-to-turn-a-photo-into-a-greeting-card',
-    title: 'How to Turn a Photo Into a Greeting Card (UK Guide) | Celebrait',
+    title: `How to Turn a Photo Into a Greeting Card (${copyFor().za ? 'South Africa' : 'UK'} Guide) | Celebrait`,
     heading: 'How to turn a photo into a greeting card',
     description:
       'Turn any phone photo into a printed greeting card where they ARE the artwork, not a photo slapped on a template. Step-by-step guide, from snapshot to doormat.',
@@ -123,7 +131,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
     title: 'AI-Generated Greeting Cards: An Honest Guide | Celebrait',
     heading: 'AI-generated greeting cards: an honest guide',
     description:
-      'What AI greeting cards actually are, how the good ones work, whether they feel lazy (short answer: depends who does the thinking), and what to look for in the UK.',
+      `What AI greeting cards actually are, how the good ones work, whether they feel lazy (short answer: depends who does the thinking), and what to look for in ${copyFor().country}.`,
     published: '2026-07-29',
     readMinutes: 5,
   },
@@ -158,7 +166,7 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
   return {
     path,
     title: `${title}: Personalised & Made For Them | Celebrait`,
-    description: `Real ${title.toLowerCase()} to send as-is or make theirs, or tell us one thing they love and we'll make three just for them. Printed and posted in the UK from £4.99.`,
+    description: `Real ${title.toLowerCase()} to send as-is or make theirs, or tell us one thing they love and we'll make three just for them. Printed and posted in ${copyFor().country} from ${formatMoney(cardPrice('rack'))}.`,
   };
 }
 

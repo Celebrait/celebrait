@@ -25,6 +25,7 @@
 import { Send, PenLine, type LucideIcon } from 'lucide-react';
 import { Rise } from '@/components/landing/rise';
 import { DISPLAY } from '@/pages/doorway';
+import { copyFor } from '@shared/market-copy';
 
 const HANDOVER: Array<{
   icon: LucideIcon;
@@ -38,7 +39,7 @@ const HANDOVER: Array<{
     icon: Send,
     tag: 'F1',
     title: 'Straight to them',
-    body: 'Posted tracked in a kraft envelope, your message printed inside.',
+    body: `${copyFor().sentHow} in a kraft envelope, your message printed inside.`,
     img: '/handover-printed.webp',
     alt: 'A finished Celebrait birthday card standing on a desk beside its kraft envelope.',
   },

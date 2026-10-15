@@ -29,10 +29,11 @@ import { Loader2, Lock, ShieldCheck, Truck } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
-import { getShippingTier, DEFAULT_SHIPPING_TIER, cardPriceGBP } from '@shared/pricing';
+import { DEFAULT_SHIPPING_TIER, cardPrice, shippingPrice, shippingCarrierLabel } from '@shared/pricing';
+import { formatMoney, market, type MarketId } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 export const rackTokenKey = (cardId: number | string) => `celebrait_rack_token_${cardId}`;
 
@@ -49,7 +50,12 @@ interface ShopCard {
   recipientName: string | null;
 }
 
-const UK_POSTCODE = /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/;
+// Postcode shape, label and hint come from the market (shared/market.ts).
+const POSTCODE_EXAMPLE: Record<MarketId, string> = { GB: 'SW1A 1AA', ZA: '2196' };
+const POSTCODE_BAD: Record<MarketId, string> = {
+  GB: 'That doesn’t look like a UK postcode.',
+  ZA: 'That doesn’t look like a South African postal code.',
+};
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const field = 'h-12 w-full rounded-lg border bg-white px-3.5 text-[15px] text-keeper-ink outline-none transition-colors placeholder:text-keeper-meta/80 focus:border-keeper-gold';
@@ -73,6 +79,7 @@ export default function BuyPage() {
   const [name, setName] = useState('');
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
+  const [suburb, setSuburb] = useState(''); // SA addresses only
   const [city, setCity] = useState('');
   const [postcode, setPostcode] = useState('');
   const [recipientName, setRecipientName] = useState('');
@@ -84,7 +91,8 @@ export default function BuyPage() {
   const formTop = useRef<HTMLDivElement>(null);
 
   const cancelled = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cancelled');
-  const tier = getShippingTier(DEFAULT_SHIPPING_TIER);
+  const mkt = market();
+  const shipPrice = shippingPrice(DEFAULT_SHIPPING_TIER);
 
   useEffect(() => {
     if (!Number.isFinite(cardId)) { setState('gone'); return; }
@@ -99,15 +107,16 @@ export default function BuyPage() {
   }, [cardId, token]);
 
   const totals = useMemo(() => {
-    const print = card?.price ?? cardPriceGBP('rack');
-    return { print, ship: tier.price, total: print + tier.price };
-  }, [card, tier.price]);
+    const print = card?.price ?? cardPrice('rack');
+    return { print, ship: shipPrice, total: print + shipPrice };
+  }, [card, shipPrice]);
 
   // Postcode → town, on blur (postcodes.io, free, no key). Saves a field
   // on most orders; silent if it can't.
   const lookupPostcode = async () => {
     const pc = postcode.trim();
-    if (!UK_POSTCODE.test(pc) || city.trim()) return;
+    // postcodes.io is a UK-only service.
+    if (mkt.isoCountry !== 'GB' || !mkt.postcodePattern.test(pc) || city.trim()) return;
     try {
       const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
       if (!res.ok) return;
@@ -123,7 +132,7 @@ export default function BuyPage() {
     recipientName: shipTo === 'recipient' && !recipientName.trim() ? 'Whose name goes on the envelope?' : '',
     line1: line1.trim() ? '' : 'The first line of the address.',
     city: city.trim() ? '' : 'Town or city.',
-    postcode: UK_POSTCODE.test(postcode.trim()) ? '' : postcode.trim() ? 'That doesn’t look like a UK postcode.' : 'A UK postcode. We post within the UK only.',
+    postcode: mkt.postcodePattern.test(postcode.trim()) ? '' : postcode.trim() ? POSTCODE_BAD[mkt.id] : mkt.postcodeHint,
   };
   const firstError = Object.values(errors).find(Boolean) ?? '';
   const valid = !firstError;
@@ -152,7 +161,8 @@ export default function BuyPage() {
           shippingAddress: {
             name: shipTo === 'recipient' ? recipientName.trim() : name.trim(),
             line1: line1.trim(), line2: line2.trim() || undefined,
-            city: city.trim(), postcode: postcode.trim().toUpperCase(), country: 'GB',
+            suburb: suburb.trim() || undefined,
+            city: city.trim(), postcode: postcode.trim().toUpperCase(), country: mkt.isoCountry,
           },
         }),
       });
@@ -210,19 +220,19 @@ export default function BuyPage() {
               <span>Card</span>
               <span>
                 {card.listPrice != null && card.listPrice > totals.print && (
-                  <span className="mr-1.5 text-keeper-meta line-through">{gbp(card.listPrice)}</span>
+                  <span className="mr-1.5 text-keeper-meta line-through">{formatMoney(card.listPrice)}</span>
                 )}
-                {gbp(totals.print)}
+                {formatMoney(totals.print)}
               </span>
             </p>
             {card.listPrice != null && card.listPrice > totals.print && (
               <p className="-mt-0.5 text-xs text-brand-dark">Half price on your first card</p>
             )}
-            <p className="flex justify-between"><span>Postage · {tier.carrier}</span><span>{gbp(totals.ship)}</span></p>
+            <p className="flex justify-between"><span>Postage · {shippingCarrierLabel(DEFAULT_SHIPPING_TIER)}</span><span>{formatMoney(totals.ship)}</span></p>
           </div>
         </div>
       </div>
-      <p className="mt-3 flex justify-between border-t border-keeper-hair pt-3 text-base font-semibold text-keeper-ink"><span>Total</span><span>{gbp(totals.total)}</span></p>
+      <p className="mt-3 flex justify-between border-t border-keeper-hair pt-3 text-base font-semibold text-keeper-ink"><span>Total</span><span>{formatMoney(totals.total)}</span></p>
       <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-keeper-meta">
         <Truck className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
         <span>One-off print, posted tracked. Ordered today, expect it by <span className="font-medium text-keeper-ink">{expectedByCopy()}</span>.</span>
@@ -275,7 +285,7 @@ export default function BuyPage() {
             <section className={section}>
               <h2 className={h2}>Where's it going?</h2>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                {([['recipient', `Straight to ${them}`, 'Addressed to them, tracked'], ['sender', 'To me first', 'To hand over in person']] as const).map(([v, t, s]) => (
+                {([['recipient', `Straight to ${them}`, `Addressed to them${market().tracked ? ', tracked' : ''}`], ['sender', 'To me first', 'To hand over in person']] as const).map(([v, t, s]) => (
                   <button key={v} type="button" onClick={() => setShipTo(v)} aria-pressed={shipTo === v}
                     className={`rounded-xl border-2 px-3 py-3 text-left transition-colors ${shipTo === v ? 'border-brand bg-brand-muted' : 'border-keeper-hair bg-white hover:border-brand/50'}`}>
                     <span className="block text-sm font-medium text-keeper-ink">{t}</span>
@@ -283,7 +293,7 @@ export default function BuyPage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-3 rounded-md bg-keeper-paper px-3 py-2 text-[12px] leading-relaxed text-keeper-meta">We post to UK addresses only for now. Buying from abroad is fine. Have it sent straight to them.</p>
+              <p className="mt-3 rounded-md bg-keeper-paper px-3 py-2 text-[12px] leading-relaxed text-keeper-meta">{copyFor().za ? 'We deliver to South African' : 'We post to UK'} addresses only for now. Buying from abroad is fine. Have it sent straight to them.</p>
               <div className="mt-3 grid gap-3">
                 {shipTo === 'recipient' && (
                   <div>
@@ -298,6 +308,12 @@ export default function BuyPage() {
                   {show('line1') && <p className="mt-1 text-xs text-accent-red-dark">{errors.line1}</p>}
                 </div>
                 <input value={line2} onChange={(e) => setLine2(e.target.value)} autoComplete="shipping address-line2" placeholder="Flat, building (optional)" aria-label="Address line 2 (optional)" className={fieldOk} />
+                {mkt.id === 'ZA' && (
+                  <div>
+                    <label htmlFor="buy-suburb" className={label}>Suburb</label>
+                    <input id="buy-suburb" value={suburb} onChange={(e) => setSuburb(e.target.value)} autoComplete="shipping address-level3" className={fieldOk} data-testid="buy-suburb" />
+                  </div>
+                )}
                 <div className="grid grid-cols-[1fr_140px] gap-3">
                   <div>
                     <label htmlFor="buy-city" className={label}>Town / city</label>
@@ -305,8 +321,8 @@ export default function BuyPage() {
                     {show('city') && <p className="mt-1 text-xs text-accent-red-dark">{errors.city}</p>}
                   </div>
                   <div>
-                    <label htmlFor="buy-postcode" className={label}>Postcode</label>
-                    <input id="buy-postcode" value={postcode} onChange={(e) => setPostcode(e.target.value.toUpperCase())} onBlur={lookupPostcode} autoComplete="shipping postal-code" autoCapitalize="characters" placeholder="SW1A 1AA" className={show('postcode') ? fieldBad : fieldOk} data-testid="buy-postcode" />
+                    <label htmlFor="buy-postcode" className={label}>{mkt.postcodeLabel}</label>
+                    <input id="buy-postcode" value={postcode} onChange={(e) => setPostcode(e.target.value.toUpperCase())} onBlur={lookupPostcode} autoComplete="shipping postal-code" autoCapitalize="characters" inputMode={mkt.id === 'ZA' ? 'numeric' : undefined} placeholder={POSTCODE_EXAMPLE[mkt.id]} className={show('postcode') ? fieldBad : fieldOk} data-testid="buy-postcode" />
                     {show('postcode') && <p className="mt-1 text-xs text-accent-red-dark">{errors.postcode}</p>}
                   </div>
                 </div>
@@ -350,7 +366,7 @@ function PayBlock({ busy, total, onPay, compact = false }: { busy: boolean; tota
       <button type="button" onClick={onPay} disabled={busy} data-testid="buy-pay"
         className="flex w-full items-center justify-center gap-2 rounded-full bg-go py-3.5 text-base font-semibold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {busy ? 'Taking you to payment…' : `Pay ${gbp(total)}`}
+        {busy ? 'Taking you to payment…' : `Pay ${formatMoney(total)}`}
       </button>
       {compact ? (
         <p className="text-center text-[11px] text-keeper-meta">

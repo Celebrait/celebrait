@@ -50,6 +50,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { getOccasionIcon } from '@/lib/occasion-icon';
 import { occasionLabel } from '@/lib/occasion-label';
+import { market } from '@shared/market';
 import {
   isFixedDateOccasion,
   nextFixedOccasionDate,
@@ -267,7 +268,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
  *  - This calendar year → "14 Mar"
  *  - Older → "14 Mar 2025"
  *  Keeps the line short — it's the quietest signal on the row, not
- *  a headline. en-GB locale to match the rest of the product. */
+ *  a headline. The market locale, to match the rest of the product. */
 function formatLastSentDate(iso: string): string {
   const sent = new Date(iso);
   if (Number.isNaN(sent.getTime())) return '';
@@ -280,7 +281,7 @@ function formatLastSentDate(iso: string): string {
   if (dayDiff === 0) return 'today';
   if (dayDiff === 1) return 'yesterday';
   const sameYear = sent.getFullYear() === now.getFullYear();
-  return sent.toLocaleDateString('en-GB', {
+  return sent.toLocaleDateString(market().locale, {
     day: 'numeric',
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),
@@ -411,7 +412,7 @@ function OccasionChip({ occasion }: { occasion: RecipientOccasionRow }) {
     ? formatOccasionDate(occasion.date, occasion.yearSpecific)
     : isFixedDateOccasion(occasion.occasion)
       ? (nextFixedOccasionDate(occasion.occasion, new Date())?.toLocaleDateString(
-          'en-GB',
+          market().locale,
           { day: 'numeric', month: 'short', timeZone: 'UTC' },
         ) ?? null)
       : null;
@@ -444,7 +445,7 @@ function formatOccasionDate(iso: string, yearSpecific: boolean): string {
   const opts: Intl.DateTimeFormatOptions = yearSpecific
     ? { day: 'numeric', month: 'short', year: 'numeric' }
     : { day: 'numeric', month: 'short' };
-  return date.toLocaleDateString('en-GB', opts);
+  return date.toLocaleDateString(market().locale, opts);
 }
 
 // MapPin used to be the address indicator icon — kept import to

@@ -27,7 +27,8 @@ export function captureFirstTouch(): void {
     if (ref) {
       try {
         const host = new URL(ref).hostname.replace(/^www\./, '');
-        if (!host.endsWith('celebrait.co.uk') && host !== 'localhost') {
+        // Both market domains count as self (co.uk and co.za).
+        if (!/(^|\.)celebrait\.co\.(uk|za)$/.test(host) && host !== 'localhost') {
           referrerHost = host;
         }
       } catch {

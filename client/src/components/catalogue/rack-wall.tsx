@@ -14,11 +14,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { Loader2, Sparkles } from 'lucide-react';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { CarouselToggle } from '@/components/catalogue/carousel-toggle';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 export interface CatalogueCard {
   id: number; front_text: string; tone?: string | null; age?: number | null; age_max?: number | null;
@@ -163,7 +163,7 @@ export function RackWall({ occasion, aisle = null, onLoaded, children }: RackWal
               <div className="mt-3 px-0.5">
                 <p className="line-clamp-2 min-h-[2.4em] text-[13px] font-medium leading-snug text-keeper-body">“{c.front_text}”</p>
                 <div className="mt-1.5 flex items-baseline justify-between">
-                  <span className="text-sm font-semibold text-keeper-ink">{gbp(cardPriceGBP('rack'))}</span>
+                  <span className="text-sm font-semibold text-keeper-ink">{formatMoney(cardPrice('rack'))}</span>
                   <span className="text-[11px] text-keeper-meta transition-colors group-hover:text-keeper-gold">Personalise inside →</span>
                 </div>
               </div>

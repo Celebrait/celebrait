@@ -31,6 +31,16 @@
 // able to see WHO holds their data. Name the entity before the list is
 // used for anything.
 
+import { market } from './market';
+
+// ZA (market switch, 2026-10-15): the same documents, the law swapped:
+// POPIA + the Information Regulator for UK GDPR + the ICO, the Consumer
+// Protection Act + the ECT Act for the Consumer Contracts Regulations,
+// South African courts for England and Wales.
+// TODO(solicitor/attorney): review every ZA legal string here and in the
+// privacy / terms pages before the ZA site takes a real order.
+const ZA = market().id === 'ZA';
+
 /** A value counts as set only once the [placeholder] has been replaced. */
 const set = (v: string): string | null => {
   const t = v.trim();
@@ -41,18 +51,19 @@ const RAW = {
   /** Registered legal entity (the party the user contracts with). */
   legalName: "[Legal entity name, e.g. Celebrait Ltd]",
   /** Registered / principal business address. */
-  address: "[Registered / business address, United Kingdom]",
+  address: ZA ? "[Registered / business address, South Africa]" : "[Registered / business address, United Kingdom]",
   /** Companies House number, if a limited company (else leave blank). */
-  companyNumber: "[Companies House number, if applicable]",
-  /** ICO data-protection registration number. */
-  icoNumber: "[ICO registration number, see note]",
+  companyNumber: ZA ? "[CIPC registration number, if applicable]" : "[Companies House number, if applicable]",
+  /** Data-protection registration: ICO number (GB) / Information
+   *  Regulator registration of the Information Officer (ZA). */
+  icoNumber: ZA ? "[Information Regulator registration, see note]" : "[ICO registration number, see note]",
 } as const;
 
 /** THE one public inbox (launch audit 2026-10-06: contact, FAQ and the
  *  legal pages each promised a different mailbox — greetings@ / hello@ /
  *  privacy@ — and only greetings@ is the configured sender). Every
  *  support address a customer sees comes from here. */
-export const SUPPORT_EMAIL = "greetings@celebrait.co.uk";
+export const SUPPORT_EMAIL = market().supportEmail;
 
 export const CONTROLLER = {
   /** Consumer-facing brand. */
@@ -61,9 +72,10 @@ export const CONTROLLER = {
   privacyEmail: SUPPORT_EMAIL,
   /** Mailbox for general / legal / support enquiries. */
   contactEmail: SUPPORT_EMAIL,
-  website: "https://celebrait.co.uk",
-  /** Governing-law jurisdiction. */
-  jurisdiction: "England and Wales",
+  /** The bare origin the documents name ("https://celebrait.co.uk"). */
+  website: market().origin.replace('://www.', '://'),
+  /** Governing-law jurisdiction. TODO(solicitor/attorney): review (ZA). */
+  jurisdiction: ZA ? "the Republic of South Africa" : "England and Wales",
 
   /** Null until the real entity is set — callers must handle that. */
   legalName: set(RAW.legalName),

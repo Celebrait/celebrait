@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { market } from '@shared/market';
 
 /** One per line: who | occasion | interest. Chosen to cover what has
  *  actually broken before — a hobby with kit, a subject that owns a
@@ -101,7 +102,7 @@ export default function AdminCardBenchPage() {
     setRunning(true);
     setCells([]);
     setSpendUsd(0);
-    setRanAt(new Date().toLocaleString('en-GB'));
+    setRanAt(new Date().toLocaleString(market().locale));
 
     try {
       for (const b of briefs) {

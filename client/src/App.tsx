@@ -158,6 +158,7 @@ const CardProductPage = lazy(() => import("@/pages/card-product"));
 const StudioMomentsPage = lazy(() => import("@/pages/studio-moments"));
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin-customers"));
+const AdminFulfilmentPage = lazy(() => import("@/pages/admin-fulfilment"));
 const AdminEmailsPage = lazy(() => import("@/pages/admin-emails"));
 const AdminSocialStudioPage = lazy(() => import("@/pages/admin-social-studio"));
 
@@ -495,6 +496,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminCustomersPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/fulfilment">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminFulfilmentPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

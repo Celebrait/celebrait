@@ -51,6 +51,8 @@ import {
 } from '@/lib/moments';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { MomentIcon } from '@/components/studio/moment-icon';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
 export default function StudioMomentsPage() {
   // The 15-second sheet replaces every link to the address-book ADMIN
@@ -148,8 +150,8 @@ export default function StudioMomentsPage() {
                   Unlocked: 50% off your first card
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  <span className="line-through text-keeper-meta">£5.99</span>{' '}
-                  <span className="font-semibold text-go">£2.99</span> plus
+                  <span className="line-through text-keeper-meta">{formatMoney(cardPrice('maker'))}</span>{' '}
+                  <span className="font-semibold text-go">{formatMoney(firstOrderPrice('maker'))}</span> plus
                   postage. It’s waiting whenever a moment comes round.
                 </p>
                 <Link href="/make">

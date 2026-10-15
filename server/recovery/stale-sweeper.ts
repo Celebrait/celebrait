@@ -142,6 +142,11 @@ const PAYMENT_RECONCILE_MIN_AGE_MS = 10 * 60 * 1000;
 const PAYMENT_RECONCILE_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 export async function sweepUnreconciledPayments(): Promise<number> {
   const provider = getPaymentProvider();
+  // Stripe only. PayFast (MARKET=ZA) has no status API for once-off
+  // payments: its getStatus just echoes our own row, so asking it would
+  // never settle anything. There the verified ITN is the source of truth,
+  // and a payment whose ITN never lands has to be settled by hand from
+  // the PayFast dashboard (the ITN-rejected admin alert says so).
   if (provider.name !== 'stripe') return 0;
   const now = Date.now();
   const pending = await db

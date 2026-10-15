@@ -20,6 +20,11 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Truck, Sparkles, Package, MailOpen, Globe } from 'lucide-react';
 import fathersDayFront from '@/assets/fathers-day-front.jpg';
+import { cardPriceFrom, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
+
+const COPY = copyFor();
 
 /** Auto-looping envelope-opening mock. Just CSS transforms — full
  *  Lottie/three.js for one section is overkill. The animation runs on
@@ -131,12 +136,12 @@ const PRINT_FEATURES: PrintFeature[] = [
   {
     icon: Truck,
     title: 'Then posted: allow at least a week',
-    body: 'Royal Mail 24 for £2.95, usually the next working day. Please allow at least a week from order to arrival. Tell us the date at checkout and we\'ll say if it\'ll make it.',
+    body: `${COPY.za ? 'Sent by courier' : 'Royal Mail 24'} for ${formatMoney(shippingPrice())}${COPY.za ? '' : ', usually the next working day'}. Please allow at least a week from order to arrival. Tell us the date at checkout and we'll say if it'll make it.`,
   },
   {
     icon: Globe,
-    title: 'UK launch · more soon',
-    body: 'United Kingdom today. South Africa, Europe and the US in the pipeline.',
+    title: COPY.za ? 'South Africa first · more soon' : 'UK launch · more soon',
+    body: COPY.za ? 'Anywhere in South Africa today. More countries in the pipeline.' : 'United Kingdom today. South Africa, Europe and the US in the pipeline.',
   },
 ];
 
@@ -154,7 +159,7 @@ export function SendItYourWaySection() {
             and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A premium 280gsm gloss card, posted anywhere in the UK, and every
+            A premium 280gsm gloss card, posted {COPY.anywhere}, and every
             one comes with a free private link to share too.
           </p>
         </div>
@@ -190,7 +195,7 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              From £4.99 plus postage. HP Indigo printed on 280gsm gloss card,
+              From {formatMoney(cardPriceFrom())} plus postage. HP Indigo printed on 280gsm gloss card,
               posted in a kraft envelope.
             </p>
 

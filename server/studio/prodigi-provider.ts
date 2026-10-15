@@ -55,6 +55,7 @@ import type {
   PrintProviderStatus,
 } from "./print-provider";
 import type { ShippingAddress } from "@shared/schema";
+import { publicOrigin } from "@shared/market";
 import { composeCardPrintStrip } from "./print-compositor";
 import {
   cardImageBaseName,
@@ -106,7 +107,7 @@ function config(): ProdigiConfig {
   const envelopeStickerUrl =
     process.env.PRODIGI_ENVELOPE_STICKER === "on"
       ? process.env.PRODIGI_ENVELOPE_STICKER_URL ??
-        `${(process.env.PUBLIC_APP_ORIGIN ?? "https://celebrait.co.uk").replace(/\/+$/, "")}/envelope-seal.png`
+        `${publicOrigin()}/envelope-seal.png`
       : null;
   return {
     apiKey,
@@ -171,7 +172,8 @@ async function fetchImageBuffer(url: string): Promise<Buffer> {
 function toProdigiAddress(a: ShippingAddress) {
   return {
     line1: a.line1,
-    line2: a.line2 || undefined,
+    // Prodigi has no suburb field: an SA suburb rides on line 2.
+    line2: [a.line2, a.suburb].filter((x) => x && x.trim()).join(", ") || undefined,
     postalOrZipCode: a.postcode,
     countryCode: a.country || "GB",
     townOrCity: a.city,

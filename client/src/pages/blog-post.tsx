@@ -9,6 +9,7 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { BLOG_POSTS, SITE_ORIGIN } from '@shared/seo';
 import { BLOG_BODIES } from '@/pages/blog-content';
 import { useSeo } from '@/lib/use-seo';
+import { market } from '@shared/market';
 
 export default function BlogPostPage() {
   const [location] = useLocation();
@@ -73,7 +74,7 @@ export default function BlogPostPage() {
           {post.heading}
         </h1>
         <p className="mt-4 text-[13px] text-keeper-meta">
-          {new Date(post.published).toLocaleDateString('en-GB', {
+          {new Date(post.published).toLocaleDateString(market().locale, {
             day: 'numeric',
             month: 'long',
             year: 'numeric',

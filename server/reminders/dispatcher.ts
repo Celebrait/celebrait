@@ -28,6 +28,7 @@
 
 import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db';
+import { publicOrigin } from '@shared/market';
 import { publicImageUrl } from '../image-storage';
 import {
   addressBookEntries,
@@ -206,7 +207,7 @@ export async function runReminderDispatch(
           recipientName: entry.name,
           occasion: occasion.occasion,
           daysUntil,
-          giveUrl: `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk'}/studio/card/${readyDraft.id}/give`,
+          giveUrl: `${publicOrigin()}/studio/card/${readyDraft.id}/give`,
           frontImageUrl: readyDraft.front,
           insideImageUrl: readyDraft.inside,
         });
@@ -592,7 +593,7 @@ async function findLastSentCardImages(
  *  recipient name + occasion via query string so the new-card flow
  *  knows who this is for. */
 function buildStartCardUrl(recipientName: string, occasion: string): string {
-  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+  const origin = publicOrigin();
   const params = new URLSearchParams({
     recipient: recipientName,
     occasion,

@@ -21,6 +21,7 @@ import sharp from "sharp";
 import QRCode from "qrcode";
 import opentype from "opentype.js";
 import path from "path";
+import { publicOrigin } from "@shared/market";
 import fs from "fs";
 
 const CANVAS_W = 6732;
@@ -49,8 +50,7 @@ const PANEL_H = CANVAS_H;
 // KEEP THIS AND THE /c ROUTE IN STEP — a card already in someone's
 // drawer cannot be re-pointed.
 const QR_TARGET = (() => {
-  const origin = (process.env.PUBLIC_APP_ORIGIN ?? "https://www.celebrait.co.uk").replace(/\/+$/, "");
-  return `${origin}/c`;
+  return `${publicOrigin()}/c`;
 })();
 
 // ── Back-panel stack: ONE scale, anchored to the QR ────────────────

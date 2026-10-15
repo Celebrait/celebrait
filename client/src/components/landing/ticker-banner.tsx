@@ -17,7 +17,8 @@
 import { useEffect, useState } from 'react';
 import { Gift, Truck } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -41,7 +42,6 @@ export const CLAIM_PARAM = 'claim';
 function doorFor(path: string): 'photo' | 'maker' {
   return path.startsWith('/photo') ? 'photo' : 'maker';
 }
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 export function useClaimFreeCard() {
   const [location, setLocation] = useLocation();
@@ -95,7 +95,7 @@ export function TickerBanner() {
         </span>
         <span className="hidden sm:inline">
           Tell us 3 dates that matter and your first card is{' '}
-          <span className="line-through opacity-70">{gbp(cardPriceGBP(door))}</span> <b className="text-accent-coral">{gbp(firstOrderPriceGBP(door))}</b>.
+          <span className="line-through opacity-70">{formatMoney(cardPrice(door))}</span> <b className="text-accent-coral">{formatMoney(firstOrderPrice(door))}</b>.
           Claim it ›
         </span>
       </button>

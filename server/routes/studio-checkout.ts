@@ -25,6 +25,8 @@ import { orderItems,
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
+import { market } from '@shared/market';
+import { shipPhrase } from '@shared/market-copy';
 import {
   getFreeCardStatus,
   consumeFreeCardCredit,
@@ -45,14 +47,17 @@ import {
 } from '../email-service';
 import type { PrintProviderStatus } from '../studio/print-provider';
 import {
-  tierPriceGBP,
-  cardPriceGBP,
+  tierPrice,
+  cardPrice,
   getShippingTier,
-  envelopeStickerGBP,
+  shippingPrice,
+  shippingCarrierLabel,
+  shippingEstimateLabel,
+  envelopeStickerPrice,
   DEFAULT_SHIPPING_TIER,
   OFFERED_SHIPPING_TIER_IDS,
   type ShippingTierId,
-  firstOrderPriceGBP,
+  firstOrderPrice,
 } from '@shared/pricing';
 
 // Pricing in pence — sourced from shared/pricing.ts. Client checkout
@@ -60,7 +65,7 @@ import {
 // Print-led V1 (2026-07-01): every order is a printed card with a FREE
 // digital link — digital is always £0 and there is no bundle/"both"
 // discount. See next_digital_card_strategy.md.
-const PRINT_PRICE = tierPriceGBP('printed');
+const PRINT_PRICE = tierPrice('printed');
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -343,9 +348,10 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // £4.99 off the shelf, £5.99 made for them, £6.99 from a photo.
         // The SERVER decides from the stored card.source — a crafted POST
         // can't buy a photo card at rack price.
-        const printAmount0 = freeCardApplied ? firstOrderPriceGBP(card.source) : cardPriceGBP(card.source);
+        // Market-aware (shared/pricing): pence in GB, cents in ZA.
+        const printAmount0 = freeCardApplied ? firstOrderPrice(card.source) : cardPrice(card.source);
         const digitalAmount = 0;
-        const shippingAmount0 = getShippingTier(shippingTier).price;
+        const shippingAmount0 = shippingPrice(shippingTier);
 
         // Comp code ("this one's on us"). Validated here, CONSUMED only
         // on the paid flip — same discipline as the free-card credit, so
@@ -373,7 +379,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // on the kraft envelope WE post). Server-derived so a crafted POST can't
         // add the sticker without paying, or attach it on a self-send. Direct
         // delivery itself is free now.
-        const envelopeStickerAmount = envelopeStickerGBP(
+        const envelopeStickerAmount = envelopeStickerPrice(
           body.envelopeSticker === true,
           body.shipTo,
         );
@@ -468,7 +474,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             shippingAddress: body.shippingAddress,
             giftMessage: body.giftMessage,
             needByDate: body.needByDate ?? null,
-            currency: 'GBP',
+            // GBP in the UK, ZAR when MARKET=ZA (PayFast takes ZAR only).
+            currency: market().currency,
             printAmount,
             digitalAmount,
             shippingAmount,
@@ -518,7 +525,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             orderId: order.id,
             totals: {
               printAmount, digitalAmount, shippingAmount,
-              totalAmount, currency: 'GBP', freeCardApplied, compCode,
+              totalAmount, currency: market().currency, freeCardApplied, compCode,
             },
             // The client redirects on mode:'redirect'; send it straight to
             // the success page, which polls the order and finds it paid.
@@ -544,11 +551,12 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const payment = await provider.createPayment({
           studioOrderId: order.id,
           amount: totalAmount,
-          currency: 'GBP',
+          currency: market().currency,
           customerEmail: body.customerEmail,
           customerName: body.customerName,
           description: freeCardApplied ? `${productName} · first card, 50% off` : productName,
-          productDescription: 'Printed to order on 280gsm card, posted Royal Mail 24 tracked. Free digital link included.',
+          // GB: "posted Royal Mail 24 tracked" exactly as before; ZA: "sent by courier".
+          productDescription: `Printed to order on 280gsm card, ${shipPhrase(market()).replace(', tracked', ' tracked')}. Free digital link included.`,
           imageUrl: frontPublic ?? undefined,
           // Guests can't reach /checkout/success (RequireAuth) — their
           // journey lands on the public tokenised order page instead
@@ -576,7 +584,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             digitalAmount,
             shippingAmount,
             totalAmount,
-            currency: 'GBP',
+            currency: market().currency,
             freeCardApplied,
           },
           payment,
@@ -1496,7 +1504,11 @@ const FULFILLMENT_RANK: Record<string, number> = {
 
 export async function applyFulfillmentUpdate(
   order: typeof studioOrders.$inferSelect,
-  update: Pick<PrintProviderStatus, 'status' | 'trackingNumber' | 'trackingUrl'>,
+  update: Pick<PrintProviderStatus, 'status' | 'trackingNumber' | 'trackingUrl'> & {
+    /** Who actually carries it, when a human typed it on /admin/fulfilment
+     *  (manual print provider). Absent → the shipping tier's carrier. */
+    courier?: string;
+  },
 ): Promise<void> {
   const next = update.status;
 
@@ -1637,8 +1649,8 @@ export async function applyFulfillmentUpdate(
         trackingUrl:
           fresh.trackingUrl ||
           (order.userId ? `${publicAppOrigin()}/studio/orders` : `${publicAppOrigin()}/order/${order.id}`),
-        courier: tier.carrier,
-        etaWindow: tier.shippingEstimate,
+        courier: update.courier?.trim() || shippingCarrierLabel(tier.id),
+        etaWindow: shippingEstimateLabel(tier.id),
         cardImageUrl,
         insideImageUrl,
       });

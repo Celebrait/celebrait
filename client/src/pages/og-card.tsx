@@ -17,6 +17,7 @@ import iconHeart from '@/assets/icons/heart.png';
 import iconPresent from '@/assets/icons/present.png';
 import iconRibbon from '@/assets/icons/ribbon.png';
 import iconRing from '@/assets/icons/ring.png';
+import { copyFor } from '@shared/market-copy';
 
 // Same celebration icons the landing's CelebrationBackdrop floats —
 // scattered faintly here for the identical brand motif (the real
@@ -202,7 +203,7 @@ export default function OgCard() {
             </p>
             <p className="mt-3 flex items-center gap-2 text-[16px] font-medium text-keeper-meta">
               <Globe className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
-              celebrait.co.uk
+              {copyFor().domain}
             </p>
           </div>
         </div>

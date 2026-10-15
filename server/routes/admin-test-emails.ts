@@ -39,6 +39,7 @@
 import type { Express, Request, Response } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
+import { publicOrigin } from '@shared/market';
 import {
   cards,
   users,
@@ -232,7 +233,7 @@ async function dispatchTemplate(
   const { targetTo, vars, cardId, body, adminContact, cardImageUrl, insideImageUrl } = args;
   // Real card art when a cardId is given; sample front + inside otherwise
   // so both heroes still render in a dummy preview.
-  const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+  const origin = publicOrigin();
   const sampleFront = cardImageUrl ?? `${origin}/hero-card-front.webp`;
   const sampleInside = insideImageUrl ?? `${origin}/hero-card-inside.webp`;
   switch (template) {
@@ -255,7 +256,7 @@ async function dispatchTemplate(
     case 'recipient-card-arrived': {
       const shareUrl =
         body.shareUrl ??
-        `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk'}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
+        `${publicOrigin()}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
       return sendRecipientCardArrivedEmail({
         recipientEmail: targetTo,
         recipientName: vars.recipientName,
@@ -352,7 +353,7 @@ async function dispatchTemplate(
       // body.daysUntil override is honoured). lastCardImage = the "last
       // time you sent this" hero (real card art if a cardId is given,
       // else a sample).
-      const origin = process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.uk';
+      const origin = publicOrigin();
       const tierMap: Record<
         'reminder-t21' | 'reminder-t10' | 'reminder-t7',
         { tier: ReminderTier; daysUntil: number }

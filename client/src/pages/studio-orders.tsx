@@ -34,6 +34,7 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { StudioOrderListItem } from '@shared/schema';
+import { market } from '@shared/market';
 
 export default function StudioOrders() {
   const { data, isLoading, error } = useQuery<StudioOrderListItem[]>({
@@ -492,7 +493,7 @@ function formatWhen(ts: Date | string): string {
   if (diffMs < day) return 'today';
   if (diffMs < 2 * day) return 'yesterday';
   if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} days ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(market().locale, { day: 'numeric', month: 'short' });
 }
 
 // ─────────────────────────────────────────────────────────────────────

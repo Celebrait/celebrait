@@ -3,6 +3,7 @@ import { boolean, index, integer, jsonb, pgTable, text, timestamp, varchar } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
+import { market } from "../market";
 
 // Studio orders. Legacy `orders` table (shared/schema.ts) is dead —
 // keep it around for historical records but do not reference it from
@@ -37,7 +38,7 @@ export const studioOrders = pgTable(
     // shippingAddress; 'recipient' means direct-to-recipient with
     // plain packaging + optional gift message. Null when digital-only.
     shipTo: text("ship_to"), // 'sender' | 'recipient' | null
-    shippingAddress: jsonb("shipping_address"), // { line1, line2?, city, postcode, country }
+    shippingAddress: jsonb("shipping_address"), // { name?, line1, line2?, suburb? (ZA), city, postcode, country }
     // Delivery speed the customer picked at checkout. Drives shippingAmount
     // AND the Prodigi shippingMethod at fulfilment. See SHIPPING_TIERS in
     // shared/pricing.ts. 'standard' | 'express' | 'overnight'.
@@ -185,18 +186,34 @@ export const shippingAddressSchema = z.object({
   name: z.string().trim().max(80).optional(),
   line1: z.string().min(1),
   line2: z.string().optional(),
+  /** South African addresses carry a suburb between the street and the
+   *  city (2026-10-15). Optional; the ZA forms ask for it, GB never does. */
+  suburb: z.string().trim().max(80).optional(),
   city: z.string().min(1),
-  // Real UK postcode shape (audit 2026-07-27): a typo used to surface
-  // only when Prodigi rejected the order — AFTER payment. Permissive on
-  // spacing/case; the regex covers all live UK formats (A9 9AA…AA9A 9AA).
+  // Real postcode shape for the ACTIVE MARKET (shared/market.ts): a typo
+  // used to surface only when the printer rejected the order — AFTER
+  // payment (audit 2026-07-27). GB: all live UK formats, permissive on
+  // spacing/case. ZA: four digits.
   postcode: z
     .string()
     .trim()
-    .regex(/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/, {
-      message: "Enter a valid UK postcode (e.g. SW1A 1AA)",
+    .superRefine((v, ctx) => {
+      const m = market();
+      if (!m.postcodePattern.test(v)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: m.id === "GB" ? "Enter a valid UK postcode (e.g. SW1A 1AA)" : m.postcodeHint,
+        });
+      }
     }),
-  // UK-only product — a crafted POST could previously ship anywhere at
-  // UK shipping prices.
-  country: z.literal("GB").default("GB"),
+  // One-country product — a crafted POST could previously ship anywhere
+  // at domestic shipping prices. The address must be in the market this
+  // deployment sells in (GB, or ZA when MARKET=ZA).
+  country: z
+    .enum(["GB", "ZA"])
+    .default(() => market().isoCountry)
+    .refine((c) => c === market().isoCountry, {
+      message: "We only deliver within the country we sell in.",
+    }),
 });
 export type ShippingAddress = z.infer<typeof shippingAddressSchema>;

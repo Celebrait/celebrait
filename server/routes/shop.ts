@@ -24,7 +24,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../db';
 import { cards, cardTemplates, orderItems, studioOrders } from '@shared/schema';
-import { cardPriceGBP, firstOrderPriceGBP } from '@shared/pricing';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { getFreeCardStatus } from '../studio/free-card';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
@@ -123,7 +123,7 @@ export function registerShopRoutes(app: Express): void {
           sceneType: 'rack',
           cardType: 'printed',
           status: 'completed',
-          price: cardPriceGBP('rack'),
+          price: cardPrice('rack'),
           frontImagePath: tpl.image_path,
           insideImagePath,
           conversationData: state as unknown as Record<string, unknown>,
@@ -139,7 +139,7 @@ export function registerShopRoutes(app: Express): void {
         cardToken: imageKey,
         frontImageUrl: publicImageUrl(tpl.image_path),
         insideImageUrl: insideImagePath ? publicImageUrl(insideImagePath) : null,
-        price: cardPriceGBP('rack'),
+        price: cardPrice('rack'),
       });
     } catch (err) {
       console.error('[SHOP] template→card failed:', err);
@@ -171,11 +171,11 @@ export function registerShopRoutes(app: Express): void {
       // a signed-in owner of a made-for-them card. Until 2026-10-06 this
       // summary always quoted the full price, so /buy showed £5.99 and
       // billed £2.99 (audit). Mirror the SAME rule the checkout uses.
-      const listPrice = cardPriceGBP(card.source);
+      const listPrice = cardPrice(card.source);
       let price = listPrice;
       if (owns && card.source !== 'rack') {
         try {
-          if ((await getFreeCardStatus(sessionUser)).eligible) price = firstOrderPriceGBP(card.source);
+          if ((await getFreeCardStatus(sessionUser)).eligible) price = firstOrderPrice(card.source);
         } catch (err) {
           console.warn('[SHOP] free-card status lookup failed — quoting list price:', err);
         }

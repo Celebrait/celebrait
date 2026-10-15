@@ -63,9 +63,10 @@ import { GestureHints } from '@/components/gesture-hints';
 // The shared kit: display face, hero headline scale, the one primary
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
 import { DISPLAY, H1, BTN_PRIMARY, BTN_PRIMARY_LG } from '@/pages/doorway';
-import { cardPriceGBP, firstOrderPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 // Pence → "£6.99". The same one-liner the three-card doorway keeps locally.
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
 // the JS bundle instead of after it. On prod that parallel start is
@@ -243,7 +244,7 @@ function PrimaryCta({ large = false }: { large?: boolean }) {
 // for the deliver-your-way promise.
 const TRUST_CHIPS = [
   { icon: RefreshCw, label: "Don't love it? A fresh take is free" },
-  { icon: Mail, label: '280gsm · kraft envelope · printed in the UK' },
+  { icon: Mail, label: `280gsm · kraft envelope · ${copyFor().printedIn}` },
   { icon: Truck, label: 'Straight to them, or to you to hand over' },
 ] as const;
 
@@ -851,8 +852,8 @@ function HeroSection() {
             </div>
             <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
               The result? A close to perfect greetings card they'll{' '}
-              <span className="font-medium text-keeper-ink">probably keep</span> for
-              £6.99. From photo to print-ready in 7–10 minutes*
+              <span className="font-medium text-keeper-ink">probably keep</span> for{' '}
+              {formatMoney(cardPrice('photo'))}. From photo to print-ready in 7–10 minutes*
             </p>
             {/* The wink — the asterisk is the joke, so keep it quiet and
                 right under the claim it qualifies. */}
@@ -1321,15 +1322,15 @@ function ObjectSection() {
           <ul className="mt-6 space-y-2 text-[16px] text-keeper-ink">
             <li>✓ 280gsm gloss art card, HP Indigo press</li>
             <li>✓ Kraft envelope, recyclable materials</li>
-            <li>✓ Printed in the UK</li>
+            <li>✓ Printed in {copyFor().country}</li>
           </ul>
           <p className="mt-6 border-l-2 border-keeper-hair pl-4 text-[13.5px] leading-relaxed text-keeper-meta">
             Our cards are one-off prints, made just for them, so please allow at
-            least a week from order to arrival. Posted Royal Mail 24, tracked,
-            for £2.95.
+            least a week from order to arrival. {copyFor().za ? 'Sent by courier' : 'Posted Royal Mail 24, tracked,'}{' '}
+            for {formatMoney(shippingPrice())}.
           </p>
           <p className="mt-4 font-mono text-[12px] text-keeper-meta">
-            Today you make it → printed once, just for them → posted Royal Mail 24 · allow a week
+            Today you make it → printed once, just for them → {copyFor().za ? copyFor().shipPhrase : 'posted Royal Mail 24'} · allow a week
           </p>
           {/* The "Straight to them / Or to you first" pair used to sit here
               as two 13px cards. It's now its own section (HandoverSection)
@@ -1362,16 +1363,16 @@ function PriceSection() {
           </p>
           <div className="mt-2 flex items-baseline justify-center gap-4">
             <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
-              {gbp(firstOrderPriceGBP('photo'))}
+              {formatMoney(firstOrderPrice('photo'))}
             </span>
             <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
               <span className="sr-only">Normally </span>
-              <s>{gbp(cardPriceGBP('photo'))}</s>
+              <s>{formatMoney(cardPrice('photo'))}</s>
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            Plus {gbp(UK_SHIPPING_STANDARD_GBP)} standard postage. One per account;
-            after that, photo cards are {gbp(cardPriceGBP('photo'))} plus postage. Make and preview as
+            Plus {formatMoney(shippingPrice())} standard postage. One per account;
+            after that, photo cards are {formatMoney(cardPrice('photo'))} plus postage. Make and preview as
             many as you like for free. You only pay when you post one.
             Our cards are one-off prints, so please allow at least a week from order to arrival.
           </p>

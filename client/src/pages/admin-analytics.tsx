@@ -17,6 +17,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Loader2, TrendingUp, Users, CreditCard, Palette } from 'lucide-react';
+import { formatMoney } from '@shared/market';
 
 type DailyRow = {
   day: string;
@@ -54,7 +55,8 @@ function lcpTone(ms: number | null): string {
 }
 const secs = (ms: number | null) => (ms == null ? '—' : `${(ms / 1000).toFixed(1)}s`);
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+// Revenue in the active market's currency (shared/market).
+const gbp = (minor: number) => formatMoney(minor);
 
 export default function AdminAnalyticsPage() {
   const { data, isLoading, error } = useQuery<AnalyticsResponse>({

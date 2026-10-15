@@ -23,8 +23,11 @@
 // (name=/property=/rel=) so reordering lines in index.html can't break
 // it silently.
 
-import { seoForPath, robotsForPath, isKnownRoutePath, SITE_ORIGIN } from '@shared/seo';
-import { marketBootScript } from '@shared/market';
+import { seoForPath, robotsForPath, isKnownRoutePath } from '@shared/seo';
+import { marketBootScript, market, publicOrigin } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
+import { cardPrice, marketizeShellPrices } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 import type { PageSeo } from '@shared/seo';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
@@ -48,7 +51,7 @@ const SHARE_OG = {
   title: 'Someone made you a card',
   description:
     "A personalised card, made just for you — you're in the picture. Tap to open it.",
-  image: `${SITE_ORIGIN}/og-share-card.png?v=2`,
+  get image() { return `${publicOrigin()}/og-share-card.png?v=2`; },
   imageAlt:
     'Someone made you an Unbinnable Greetings Card — Celebrait',
 };
@@ -63,10 +66,38 @@ function isShareLinkPath(p: string): boolean {
  *  registry. Never throws: a DB blip serves base metadata. */
 export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
   const rack = await rackOpen();
-  const html = withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack);
+  const html = marketizeShell(withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack));
   // The market (GB/ZA) the client reads synchronously on first paint, so
   // no frame ever renders in the wrong currency. See shared/market.ts.
   return html.replace('</head>', `${marketBootScript()}</head>`);
+}
+
+/** The shell (client/index.html) is static and written for GB: its
+ *  absolute URLs say the co.uk origin and its JSON-LD says GBP / GB.
+ *  Rewrite both to the active market so crawlers and social scrapers
+ *  (which never run JS) see the right site. In GB with no
+ *  PUBLIC_APP_ORIGIN override this is a no-op. JSON-LD PRICE values are
+ *  left alone here (shared/pricing.ts owns them). */
+const SHELL_ORIGIN = 'https://www.celebrait.co.uk';
+
+/** The price quoted in a template card's meta description. ⚠️ GB still
+ *  says the retired flat £8.99 (kept byte-identical during the market
+ *  switch, 2026-10-15); it should become cardPrice('rack') like ZA. */
+function templateCardPrice(): string {
+  return market().id === 'GB' ? '£8.99' : formatMoney(cardPrice('rack'));
+}
+export function marketizeShell(html: string): string {
+  const m = market();
+  const origin = publicOrigin();
+  let out = html.split(SHELL_ORIGIN).join(origin);
+  out = out
+    .replace(/("(?:priceCurrency|currency)":\s*")[A-Z]{3}(")/g, `$1${m.currency}$2`)
+    .replace(/("(?:areaServed|addressCountry|applicableCountry)":\s*")[A-Z]{2}(")/g, `$1${m.isoCountry}$2`)
+    .replace(/(<meta property="og:locale" content=")[^"]*(")/, `$1${m.locale.replace('-', '_')}$2`);
+  if (m.id !== 'GB') out = out.split('posted anywhere in the UK').join(`posted ${copyFor(m).anywhere}`);
+  // JSON-LD price values (photo card, postage): shared/pricing.ts.
+  out = marketizeShellPrices(out);
+  return out;
 }
 
 /** The X-Robots-Tag for the shell response — the rack flag read once. */
@@ -104,7 +135,7 @@ async function injectSeoInner(templateHtml: string, requestPath: string, rack: b
         const seo: PageSeo = {
           path: requestPath,
           title: `${interest ? `${intCap} ` : ''}${occ} Card — “${t.front_text.slice(0, 60)}” | Celebrait`,
-          description: `A one-of-a-kind ${t.occasion} card${interest ? ` for someone who loves ${interest}` : ''} — “${t.front_text.slice(0, 90)}”. Designed inside and out, printed on 300gsm and posted anywhere in the UK. £8.99 + postage.`,
+          description: `A one-of-a-kind ${t.occasion} card${interest ? ` for someone who loves ${interest}` : ''} — “${t.front_text.slice(0, 90)}”. Designed inside and out, printed on 300gsm and posted ${copyFor().anywhere}. ${templateCardPrice()} + postage.`,
         };
         return applySeo(templateHtml, seo);
       }
@@ -154,7 +185,7 @@ function applySeo(templateHtml: string, seo: PageSeo): string {
   const title = escapeAttr(seo.title);
   const desc = escapeAttr(seo.description);
   const canonical =
-    SITE_ORIGIN + (seo.path === '/' ? '/' : seo.path);
+    publicOrigin() + (seo.path === '/' ? '/' : seo.path);
 
   return (
     templateHtml

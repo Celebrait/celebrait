@@ -22,7 +22,7 @@ import { CropDialog } from '@/components/studio/crop-dialog';
 import { PhotoConsentLine, PhotoTips, readPhotoConsent, rememberPhotoConsent } from '@/components/photo-consent-tips';
 import { likenessNoteForSet, ANALYSIS_GATE_MS, type PhotoSetNote } from '@/lib/photo-likeness';
 import { toast } from '@/hooks/use-toast';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, VIBE_SUB, MUM_WORD, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
@@ -32,7 +32,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { useRackEnabled } from '@/hooks/use-rack';
-import { cardPriceGBP, HONEST_LEAD_LINE } from '@shared/pricing';
+import { cardPrice, HONEST_LEAD_LINE } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 import type { CropBounds } from '@shared/models/photos';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
@@ -74,7 +76,6 @@ async function makePost(path: string, body: unknown, attempt = 0): Promise<any> 
   }
   return r.json();
 }
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 /** The inside renderer's ceiling on the joined message (render-inside's schema). */
 const INSIDE_MAX = 300;
 
@@ -544,7 +545,7 @@ export default function MakePage() {
     // the questions use, then three new cards on those details.
     if (askVibe) {
       const VIBES: Vibe[] = ['mix', 'funny', 'warm', 'rude'];
-      const SUB: Record<Vibe, string> = { mix: 'three cards, three vibes, you choose after', funny: 'a good laugh, kindly meant', warm: 'heartfelt, the kind they keep', rude: 'proper swearing, tastefully starred out' };
+      const SUB: Record<Vibe, string> = VIBE_SUB;
       return (
         <MakeShell step={step}>
           <div className={panel}>
@@ -726,7 +727,7 @@ export default function MakePage() {
                     pre-filled with our line: it glows while it's still
                     ours, and a tweak is a tweak (audit 2026-10-06). */}
                 <div className="mt-4 space-y-3">
-                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open, e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? 'Mum' : whoName},`} className={input} />
+                  <Input value={dear} onChange={(e) => setDear(e.target.value)} placeholder={`How you open, e.g. Dear ${whoName === 'them' || whoName.startsWith('your ') ? MUM_WORD : whoName},`} className={input} />
                   <div>
                     <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={INSIDE_MAX} placeholder="Your message…" aria-label="The message inside" data-testid="inside-message"
                       className={`min-h-[120px] w-full rounded-xl border bg-white px-4 py-3 text-base resize-y placeholder:text-keeper-meta/70 focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 ${insideMode === 'ours' ? 'border-brand/40 bg-brand-muted shadow-[0_0_0_4px_rgba(122,118,232,0.14),0_14px_36px_-14px_rgba(122,118,232,0.6)]' : 'border-brand-light'}`} />
@@ -759,7 +760,7 @@ export default function MakePage() {
       <MakeShell step={step}>
         <div className={panel}>
           <h1 className={`${h1} mb-1`}>There it is: {forWho} card.</h1>
-          <p className="text-sm text-keeper-body">280gsm, kraft envelope, posted Royal Mail 24. {HONEST_LEAD_LINE}</p>
+          <p className="text-sm text-keeper-body">280gsm, kraft envelope, {copyFor().za ? copyFor().shipPhrase : 'posted Royal Mail 24'}. {HONEST_LEAD_LINE}</p>
           <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>
@@ -773,7 +774,7 @@ export default function MakePage() {
                   .then((s) => navigate(`/buy/${s.cardId}`))
                   .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
-              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it for {gbp(cardPriceGBP('maker'))}
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it for {formatMoney(cardPrice('maker'))}
             </button>
             <button type="button" disabled={!!saving || !chosenFront}
               className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"
@@ -794,7 +795,7 @@ export default function MakePage() {
             <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
-          <p className={helper}>Made for them · {gbp(cardPriceGBP('maker'))} + postage, printed to order in the UK. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
+          <p className={helper}>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
         </div>
       </MakeShell>
     );

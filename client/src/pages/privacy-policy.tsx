@@ -2,8 +2,14 @@ import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 // Lock-aware: wordmark + legal links while the site is locked, full chrome otherwise.
 import { LegalHeader, LegalFooter } from "@/components/landing/legal-chrome";
 import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
+import { market } from "@shared/market";
+
+// ZA (market switch 2026-10-15): same structure, the law swapped. UK GDPR
+// + DPA 2018 + the ICO become POPIA + the Information Regulator.
+// TODO(solicitor/attorney): review every ZA branch on this page.
 
 export default function PrivacyPolicy() {
+  const ZA = market().id === "ZA";
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -66,9 +72,19 @@ export default function PrivacyPolicy() {
               </h2>
               <p className="text-keeper-body leading-relaxed">
                 {ENTITY_NAMED ? `${CONTROLLER.legalName}, trading as ${CONTROLLER.tradingAs}` : CONTROLLER.tradingAs} ("we",
-                "us", "our") is the data controller responsible for your
-                personal information under the UK General Data Protection
-                Regulation (UK GDPR) and the Data Protection Act 2018.
+                "us", "our") is the data controller responsible for your{" "}
+                {ZA ? (
+                  <>
+                    personal information (the &ldquo;responsible party&rdquo;)
+                    under the Protection of Personal Information Act 4 of 2013
+                    (POPIA).
+                  </>
+                ) : (
+                  <>
+                    personal information under the UK General Data Protection
+                    Regulation (UK GDPR) and the Data Protection Act 2018.
+                  </>
+                )}
               </p>
               {/* Every line here is dropped rather than printed as a
                   [placeholder] while the entity is unset — this page is
@@ -79,7 +95,7 @@ export default function PrivacyPolicy() {
                 </p>
                 {CONTROLLER.address && <p>{CONTROLLER.address}</p>}
                 <p>Email: {CONTROLLER.privacyEmail}</p>
-                {CONTROLLER.icoNumber && <p>ICO registration: {CONTROLLER.icoNumber}</p>}
+                {CONTROLLER.icoNumber && <p>{ZA ? "Information Regulator registration" : "ICO registration"}: {CONTROLLER.icoNumber}</p>}
                 {!ENTITY_NAMED && <p className="mt-2 text-sm">{PRE_LAUNCH_NOTE}</p>}
               </div>
             </section>
@@ -190,8 +206,10 @@ export default function PrivacyPolicy() {
                 4. How and why we use your information
               </h2>
               <p className="text-keeper-body leading-relaxed mb-4">
-                Under UK GDPR we must have a lawful basis for each use of your
-                data. Our uses and their bases are:
+                {ZA
+                  ? "Under POPIA we may only use your information for a lawful reason. Our uses and the reasons for them are:"
+                  : <>Under UK GDPR we must have a lawful basis for each use of your
+                data. Our uses and their bases are:</>}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-keeper-body border border-gray-200 rounded-lg">
@@ -312,9 +330,9 @@ export default function PrivacyPolicy() {
                       <td className="px-4 py-2">EU</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2">Stripe</td>
+                      <td className="px-4 py-2">{ZA ? "PayFast" : "Stripe"}</td>
                       <td className="px-4 py-2">Payment processing</td>
-                      <td className="px-4 py-2">United States / EU</td>
+                      <td className="px-4 py-2">{ZA ? "South Africa" : "United States / EU"}</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2">Print &amp; delivery partner</td>
@@ -322,7 +340,7 @@ export default function PrivacyPolicy() {
                         Printing and posting physical cards (recipient name and
                         address only)
                       </td>
-                      <td className="px-4 py-2">EU / United Kingdom</td>
+                      <td className="px-4 py-2">{ZA ? "South Africa" : "EU / United Kingdom"}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -339,6 +357,17 @@ export default function PrivacyPolicy() {
               <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 6. International transfers
               </h2>
+              {ZA ? (
+                <p className="text-keeper-body leading-relaxed">
+                  Some of our providers are based outside South Africa,
+                  including in the United States and the EU. We only send your
+                  information abroad where POPIA (section 72) allows it: the
+                  provider is bound by law or a written agreement that protects
+                  it to a standard at least as good as POPIA, or the transfer is
+                  needed to carry out our contract with you. You can ask us for
+                  more detail using the contact below.
+                </p>
+              ) : (
               <p className="text-keeper-body leading-relaxed">
                 Some of our providers are based outside the UK, including in the
                 United States. Where your information is transferred outside the
@@ -349,6 +378,7 @@ export default function PrivacyPolicy() {
                 continues to be protected. You can ask us for more detail using
                 the contact below.
               </p>
+              )}
             </section>
 
             {/* ── 7. Retention ────────────────────────────────────── */}
@@ -371,7 +401,7 @@ export default function PrivacyPolicy() {
                 <li>
                   <strong>Order and payment records</strong>: retained for as
                   long as required to meet our legal and accounting obligations
-                  (generally up to six years).
+                  ({ZA ? "generally five years" : "generally up to six years"}).
                 </li>
                 <li>
                   <strong>Operational records</strong>: technical logs used to
@@ -391,7 +421,7 @@ export default function PrivacyPolicy() {
                 8. Your rights
               </h2>
               <p className="text-keeper-body leading-relaxed mb-4">
-                Under UK data protection law you have the right to:
+                {ZA ? "Under POPIA you have the right to:" : "Under UK data protection law you have the right to:"}
               </p>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>access the personal information we hold about you;</li>
@@ -405,6 +435,23 @@ export default function PrivacyPolicy() {
                   withdraw your consent at any time, where we rely on consent.
                 </li>
               </ul>
+              {ZA ? (
+              <p className="text-keeper-body leading-relaxed mt-4">
+                To exercise any of these rights, email us at{" "}
+                {CONTROLLER.privacyEmail}. We will respond within 30 days. You
+                also have the right to complain to South Africa's data
+                protection regulator, the Information Regulator, at{" "}
+                <a
+                  href="https://inforegulator.org.za"
+                  className="text-brand hover:text-brand-dark underline underline-offset-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  inforegulator.org.za
+                </a>
+                , though we'd appreciate the chance to help first.
+              </p>
+              ) : (
               <p className="text-keeper-body leading-relaxed mt-4">
                 To exercise any of these rights, email us at{" "}
                 {CONTROLLER.privacyEmail}. We will respond within one month. You
@@ -421,6 +468,7 @@ export default function PrivacyPolicy() {
                 or on 0303 123 1113, though we'd appreciate the chance to help
                 first.
               </p>
+              )}
             </section>
 
             {/* ── 9. Security ─────────────────────────────────────── */}
@@ -433,8 +481,8 @@ export default function PrivacyPolicy() {
                 protect your information, including encryption in transit
                 (HTTPS), access controls, and reputable infrastructure providers.
                 No online service can be completely secure, but we work to protect
-                your data and will notify you and the ICO of a serious breach
-                where the law requires.
+                your data and will notify you and the{" "}
+                {ZA ? "Information Regulator of a security compromise, as POPIA requires." : "ICO of a serious breach where the law requires."}
               </p>
             </section>
 
@@ -459,7 +507,7 @@ export default function PrivacyPolicy() {
               <p className="text-keeper-body leading-relaxed">
                 Celebrait is intended for adults. It is not directed at children,
                 and we do not knowingly collect personal information from anyone
-                under 16. If you believe a child has provided us with personal
+                under {ZA ? "18" : "16"}. If you believe a child has provided us with personal
                 information, please contact us and we will delete it.
               </p>
             </section>

@@ -52,6 +52,7 @@ import { ThumbImg } from '@/components/thumb-img';
 import { CardKindChip } from '@/components/studio/card-kind-chip';
 import { CARD_MAKER_STEPS } from '@shared/schema';
 import type { CardGridItem } from '@shared/schema';
+import { market } from '@shared/market';
 
 // Steps that count toward the user-visible progress dots — excludes
 // the final Review step which is the "ready to generate" celebratory
@@ -399,7 +400,7 @@ function formatRelativeTime(ts: Date | string | null): string | null {
   if (diffMs < day) return 'Started today';
   if (diffMs < 2 * day) return 'Started yesterday';
   if (diffMs < 7 * day) return `Started ${Math.floor(diffMs / day)} days ago`;
-  return `Started ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+  return `Started ${d.toLocaleDateString(market().locale, { day: 'numeric', month: 'short' })}`;
 }
 
 // ── Skeleton — three rows so the page doesn't pop ────────────────────

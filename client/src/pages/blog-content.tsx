@@ -17,14 +17,16 @@
 // claims, no stock). All lazy-loaded with dimensions to avoid CLS.
 import { Link } from 'wouter';
 import type { ReactNode } from 'react';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
 
 /** The "from" price: the rack's £4.99 only while stock cards sell
  *  (/admin/site, 2026-10-09), else the made-for-them price. */
 function FromPrice() {
   const rack = useRackEnabled() === true;
-  return <>£{(cardPriceGBP(rack ? 'rack' : 'maker') / 100).toFixed(2)}</>;
+  return <>{formatMoney(cardPrice(rack ? 'rack' : 'maker'))}</>;
 }
 
 const P = ({ children }: { children: ReactNode }) => (
@@ -191,7 +193,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
         A digital card is a message. A printed one is an object. It goes on
         the mantelpiece, the fridge, the shelf of things that survived a
         house move. Look for proper card stock (ours is{' '}
-        <Strong>280gsm gloss-coated</Strong>, printed to order in the UK) and
+        <Strong>280gsm gloss-coated</Strong>, printed to order in {copyFor().country}) and
         honest delivery expectations. Printed-to-order takes a day or three,
         and anyone promising a personalised printed card "tomorrow" is
         cutting a corner somewhere.
@@ -207,8 +209,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
       <P>
         With Celebrait, designing is free and you can re-roll the artwork as
         many times as you like before buying. A printed card is{' '}
-        <Strong>from <FromPrice /> plus postage (£2.95)</Strong>, posted anywhere in
-        the UK, straight to them or to you to hand over. A free digital
+        <Strong>from <FromPrice /> plus postage ({formatMoney(shippingPrice())})</Strong>, posted {copyFor().anywhere}, straight to them or to you to hand over. A free digital
         version is included with every printed card.
       </P>
 
@@ -387,7 +388,7 @@ export const BLOG_BODIES: Record<string, ReactNode> = {
         Ben because of that one trip in 2019 is better. And{' '}
         <Strong>print it</Strong>. The entire magic of a card like this is
         that it ends up framed, on the fridge, kept. Ours are 280gsm,
-        printed to order in the UK, from <FromPrice /> plus postage, straight to their
+        printed to order in {copyFor().country}, from <FromPrice /> plus postage, straight to their
         door or yours.
       </P>
 

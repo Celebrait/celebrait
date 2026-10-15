@@ -37,9 +37,10 @@ import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { useSeo } from '@/lib/use-seo';
-import { cardPriceGBP, MAKE_TIME } from '@shared/pricing';
+import { copyFor } from '@shared/market-copy';
+import { cardPrice, shippingPrice, MAKE_TIME } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 interface DoorProps {
   href: string;
@@ -160,10 +161,10 @@ export default function GatePage() {
   // The wall under the doors: the admin's carousel picks ONLY (no rack
   // padding). The block hides itself until there's at least one pick.
   const picks = useDriftCards(20, null);
-  const photo = gbp(cardPriceGBP('photo'));
-  const maker = gbp(cardPriceGBP('maker'));
+  const photo = formatMoney(cardPrice('photo'));
+  const maker = formatMoney(cardPrice('maker'));
   // "from £X": the rack's £4.99 only while stock cards sell (/admin/site).
-  const from = useRackEnabled() === true ? gbp(cardPriceGBP('rack')) : maker;
+  const from = useRackEnabled() === true ? formatMoney(cardPrice('rack')) : maker;
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -206,7 +207,7 @@ export default function GatePage() {
                 the photo lander's plain chips, same family). */}
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               {[
-                { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted anywhere in the UK from <span className="font-semibold">{from}</span></> },
+                { icon: Stamp, label: <>Printed <span className="text-keeper-meta">+</span> posted {copyFor().anywhere} from <span className="font-semibold">{from}</span></> },
                 { icon: HandCoins, label: <>Design for free, pay only after you’ve created</> },
               ].map(({ icon: Icon, label }, n) => (
                 <span key={n} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/80 py-1.5 pl-1.5 pr-4 text-[13.5px] text-keeper-ink shadow-[0_1px_2px_rgba(33,29,25,0.04)]">
@@ -253,7 +254,7 @@ export default function GatePage() {
                 [RefreshCw, 'Changed your mind? Roll again with a new vibe, or tweak the details.'],
                 [PenLine, 'You steer, we draw. Your answers set the scene. We just can\'t do logos, brands or famous faces.'],
                 [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
-                [Clock, 'Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is £2.95, Royal Mail 24.'],
+                [Clock, `Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is ${formatMoney(shippingPrice())}, ${copyFor().za ? copyFor().shipPhrase : 'Royal Mail 24'}.`],
                 [LockOpen, 'No account needed to see your three.'],
               ]}
             />
@@ -279,7 +280,7 @@ export default function GatePage() {
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
                 [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],
                 [Gem, 'Drawn by our bigger image model, one card at a time, at full print quality. Slower, dearer to run, and worth it.'],
-                [Clock, 'Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is £2.95, Royal Mail 24.'],
+                [Clock, `Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is ${formatMoney(shippingPrice())}, ${copyFor().za ? copyFor().shipPhrase : 'Royal Mail 24'}.`],
                 [LockOpen, 'No account to start.'],
               ]}
             />

@@ -26,9 +26,9 @@ import { TrustChips } from '@/pages/landing-keeper';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { RackWall, type RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 // The landing's display style, verbatim (landing-keeper.tsx DISPLAY).
 export const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 /** The public pages' shared hero rhythm (2026-09-04 consistency pass —
@@ -148,7 +148,7 @@ export default function DoorwayPage() {
                 <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A card made for them.</h2>
                 <p className="mt-1 text-sm leading-relaxed text-keeper-body">Tell us who. Three originals to pick from, about 3–5 minutes start to finish. Then put them in it with a photo — optional, and worth it.</p>
                 <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
-                  <span className="text-[12px] text-keeper-meta">from {gbp(cardPriceGBP('rack'))} · 3–5 minutes</span>
+                  <span className="text-[12px] text-keeper-meta">from {formatMoney(cardPrice('rack'))} · 3–5 minutes</span>
                   <span className={doorCta}><Sparkles className="h-4 w-4 text-cta" /> Start with who it's for</span>
                 </div>
               </Link>
@@ -161,7 +161,7 @@ export default function DoorwayPage() {
                 <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A scene made around them.</h2>
                 <p className="mt-1 text-sm leading-relaxed text-keeper-body">From one photo. You describe the moment, we make it real.</p>
                 <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
-                  <span className="text-[12px] text-keeper-meta">{gbp(cardPriceGBP('photo'))} · first one's on us</span>
+                  <span className="text-[12px] text-keeper-meta">{formatMoney(cardPrice('photo'))} · first one's on us</span>
                   <span className={doorCta}><Camera className="h-4 w-4 text-cta" /> Start with a photo</span>
                 </div>
               </Link>

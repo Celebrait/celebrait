@@ -2,8 +2,21 @@ import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 // Lock-aware: wordmark + legal links while the site is locked, full chrome otherwise.
 import { LegalHeader, LegalFooter } from "@/components/landing/legal-chrome";
 import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, TERMS_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
+import { market, type MarketId } from "@shared/market";
+
+// The no-payment liability cap, in the market's currency (minor units).
+// TODO(attorney): R1,000 is a PLACEHOLDER for South Africa; confirm the
+// figure (and the clause under the CPA) before ZA launch.
+const LIABILITY_CAP_MINOR: Record<MarketId, number> = { GB: 5000, ZA: 100000 };
+
+// ZA (market switch 2026-10-15): same structure, the law swapped. The
+// Consumer Contracts Regulations + Consumer Rights Act become the ECT Act
+// (7-day cooling-off, which excludes personalised goods) + the Consumer
+// Protection Act; England and Wales becomes the Republic of South Africa.
+// TODO(solicitor/attorney): review every ZA branch on this page.
 
 export default function TermsOfService() {
+  const ZA = market().id === "ZA";
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -293,7 +306,7 @@ export default function TermsOfService() {
               </h2>
               <ul className="list-disc pl-6 text-keeper-body space-y-2">
                 <li>
-                  Prices are shown at checkout in pounds sterling (GBP) and, where
+                  Prices are shown at checkout in {ZA ? "South African rand (ZAR)" : "pounds sterling (GBP)"} and, where
                   applicable, include VAT. Any delivery charge for printed cards
                   is shown before you pay.
                 </li>
@@ -304,7 +317,7 @@ export default function TermsOfService() {
                   obvious pricing error has occurred).
                 </li>
                 <li>
-                  Payment is taken through our payment provider, Stripe, on their
+                  Payment is taken through our payment provider, {ZA ? "PayFast" : "Stripe"}, on their
                   secure systems. We do not receive or store your full card
                   details.
                 </li>
@@ -328,6 +341,21 @@ export default function TermsOfService() {
               <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.1 Personalised cards
               </h3>
+              {ZA ? (
+              <p className="text-keeper-body leading-relaxed mb-4">
+                {CONTROLLER.tradingAs} cards are made to your specification and
+                personalised to you. Things bought online normally carry a
+                7-day cooling-off period under the Electronic Communications and
+                Transactions Act 25 of 2002 (ECT Act). That cooling-off right{" "}
+                <strong>does not apply</strong> to goods made to your
+                specification or clearly personalised (section 42 of the ECT
+                Act), and the Consumer Protection Act 68 of 2008 excludes them
+                from its change-of-mind return rights too. This means that once
+                you approve and pay for a personalised printed card and we begin
+                producing it, it cannot be cancelled simply because you have
+                changed your mind.
+              </p>
+              ) : (
               <p className="text-keeper-body leading-relaxed mb-4">
                 {CONTROLLER.tradingAs} cards are made to your specification and
                 personalised to you. Under the Consumer Contracts Regulations
@@ -337,22 +365,25 @@ export default function TermsOfService() {
                 a personalised printed card and we begin producing it, it cannot
                 be cancelled simply because you have changed your mind.
               </p>
+              )}
               <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.2 Digital cards
               </h3>
               <p className="text-keeper-body leading-relaxed mb-4">
                 For digital cards, you ask us to make your card available to you
                 immediately after payment. By placing the order you consent to
-                immediate supply and acknowledge that you therefore lose the
-                14-day right to cancel once supply has begun.
+                immediate supply and acknowledge that you therefore lose the{" "}
+                {ZA ? "7-day cooling-off right under the ECT Act" : "14-day right to cancel"} once supply has begun.
               </p>
               <h3 className="text-xl font-medium text-keeper-ink mb-3">
                 9.3 If something is wrong
               </h3>
               <p className="text-keeper-body leading-relaxed mb-4">
-                None of the above affects your statutory rights under the Consumer
+                {ZA
+                  ? "None of the above affects your rights under the Consumer Protection Act 68 of 2008. Your card must be as described, of good quality, and fit for purpose."
+                  : <>None of the above affects your statutory rights under the Consumer
                 Rights Act 2015. Your card must be as described, of satisfactory
-                quality, and fit for purpose. If a card arrives faulty, damaged,
+                quality, and fit for purpose.</>} If a card arrives faulty, damaged,
                 misprinted, materially different from what you approved, or a
                 digital card fails to deliver or display, you are entitled to a
                 remedy, normally a free replacement or a refund. Please contact
@@ -384,8 +415,9 @@ export default function TermsOfService() {
                   minutes.
                 </li>
                 <li>
-                  <strong>Printed cards</strong> are produced and posted by our
-                  print-and-delivery partner. Any delivery timescales shown are
+                  <strong>Printed cards</strong>{" "}
+                  {ZA ? "are printed to order and sent by courier, to South African addresses only." : "are produced and posted by our print-and-delivery partner."}{" "}
+                  Any delivery timescales shown are
                   estimates, not guarantees, and can be affected by the carrier.
                 </li>
                 <li>
@@ -462,7 +494,7 @@ export default function TermsOfService() {
                 <li>
                   our total liability arising from or in connection with any order
                   is limited to the amount you paid for that order (or, where no
-                  payment was made, to £50).
+                  payment was made, to {market().currencySymbol}{(LIABILITY_CAP_MINOR[market().id] / 100).toLocaleString('en-GB')}).
                 </li>
               </ul>
               <p className="text-keeper-body leading-relaxed mt-4">
@@ -531,10 +563,11 @@ export default function TermsOfService() {
               <p className="text-keeper-body leading-relaxed">
                 These Terms and any dispute relating to them or the Service are
                 governed by the law of {CONTROLLER.jurisdiction}, and the courts
-                of {CONTROLLER.jurisdiction} will have jurisdiction. If you are a
-                consumer living elsewhere in the UK, you keep the benefit of any
-                mandatory protections and the right to bring proceedings in the
-                courts of the part of the UK where you live. We hope to resolve
+                of {CONTROLLER.jurisdiction} will have jurisdiction.{" "}
+                {ZA
+                  ? "Nothing here limits your right to approach the National Consumer Commission, a consumer court or the Consumer Goods and Services Ombud."
+                  : "If you are a consumer living elsewhere in the UK, you keep the benefit of any mandatory protections and the right to bring proceedings in the courts of the part of the UK where you live."}{" "}
+                We hope to resolve
                 any concern directly first, so please contact us at{" "}
                 {CONTROLLER.contactEmail}.
               </p>

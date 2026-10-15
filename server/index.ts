@@ -11,6 +11,8 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { assertLaunchSafeConfig } from "./launch-guards";
 import { setupVite, serveStatic, log } from "./vite";
+import { market } from "@shared/market";
+import { renderRobotsTxt, renderSitemapXml } from "./robots-sitemap";
 
 const app = express();
 
@@ -39,10 +41,14 @@ app.use((_req, res, next) => {
 // previews pass straight through. The ACME challenge path is excluded as
 // belt-and-braces (Render terminates TLS at its edge, so the app normally
 // never sees it). Flip the canonical later with CANONICAL_HOST /
-// REDIRECT_HOSTS env vars — no code change.
-const CANONICAL_HOST = process.env.CANONICAL_HOST ?? "www.celebrait.co.uk";
+// REDIRECT_HOSTS env vars — no code change. Defaults follow the market
+// (shared/market.ts): in ZA the old co.uk hosts 301 to co.za too, for as
+// long as that domain stays registered.
+const CANONICAL_HOST = process.env.CANONICAL_HOST ?? market().canonicalHost;
+const DEFAULT_REDIRECT_HOSTS =
+  market().id === "ZA" ? "celebrait.co.za,celebrait.co.uk,www.celebrait.co.uk" : "celebrait.co.uk";
 const REDIRECT_HOSTS = new Set(
-  (process.env.REDIRECT_HOSTS ?? "celebrait.co.uk")
+  (process.env.REDIRECT_HOSTS ?? DEFAULT_REDIRECT_HOSTS)
     .split(",")
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean),
@@ -145,6 +151,15 @@ app.use((req, res, next) => {
     res.redirect(301, req.originalUrl.replace(/^\/door/, "/create")),
   );
   app.get("/hero-poc", (_req, res) => res.redirect(301, "/"));
+  // robots.txt + sitemap.xml carry the market's origin, so they are
+  // rendered, not static (server/robots-sitemap.ts). Before the static
+  // handler and Vite, so nothing else can answer these paths.
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").set("Cache-Control", "public, max-age=86400").send(renderRobotsTxt());
+  });
+  app.get("/sitemap.xml", (_req, res) => {
+    res.type("application/xml").set("Cache-Control", "public, max-age=86400").send(renderSitemapXml());
+  });
 
   const server = await registerRoutes(app);
   // One-off data passes ride boot: idempotent, guarded, loud.

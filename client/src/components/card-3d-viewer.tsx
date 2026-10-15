@@ -46,6 +46,7 @@ import { ContactShadows, OrbitControls, useTexture } from '@react-three/drei';
 import type { MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 import celebraitLogo from '@/assets/celebrait.webp';
+import { copyFor } from '@shared/market-copy';
 
 // The server writes a display WebP next to every generated PNG (~5–9x
 // smaller — see image-storage.ts storeDisplayWebpSibling). Load THAT as the
@@ -1407,7 +1408,7 @@ function usePaperTexture(opts: {
 
       ctx.fillStyle = '#8a7f6f';
       ctx.font = "300 22px 'Inter', system-ui, sans-serif";
-      ctx.fillText('celebrait.co.uk', size / 2, size / 2 + 34);
+      ctx.fillText(copyFor().domain, size / 2, size / 2 + 34);
     }
 
     const tex = new THREE.CanvasTexture(canvas);

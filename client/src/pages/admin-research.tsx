@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { ThumbImg } from '@/components/thumb-img';
+import { market } from '@shared/market';
 
 interface LiveRender { id: number; created_at: string; kind: string; front_text: string | null; imageUrl: string | null }
 
@@ -82,7 +83,7 @@ export default function AdminResearchPage() {
             <p className="font-semibold text-stone-800">
               {r.tester_name || 'Anonymous'}
               <span className="ml-2 text-xs font-normal text-stone-400">
-                {new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {new Date(r.created_at).toLocaleString(market().locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 {r.regen_used && ' · used “start again”'}
               </span>
             </p>

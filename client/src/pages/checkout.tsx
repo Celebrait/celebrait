@@ -29,15 +29,19 @@ import { useAuth } from '@/hooks/use-auth';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
 import {
-  tierPriceGBP,
-  cardPriceGBP,
-  firstOrderPriceGBP,
-  getShippingTier,
-  envelopeStickerGBP,
-  ENVELOPE_STICKER_GBP,
+  tierPrice,
+  cardPrice,
+  firstOrderPrice,
+  shippingPrice,
+  shippingCarrierLabel,
+  envelopeStickerPrice,
+  envelopeStickerUnitPrice,
+  envelopeStickerOffered,
   DEFAULT_SHIPPING_TIER,
   type ShippingTierId,
 } from '@shared/pricing';
+import { formatMoney, market, type MarketId } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 
 interface CardSummary {
   id: number;
@@ -84,17 +88,17 @@ type ProductChoice = 'digital' | 'print' | 'both';
 // is always £0 and there's no bundle discount. Postage is a separate line
 // priced from the chosen delivery tier (SHIPPING_TIERS).
 /** The FROM price, for skeleton/loading states only. The real charge is
- *  cardPriceGBP(card.source) — see printPrice below. */
-const PRINT_PRICE = tierPriceGBP('printed');
+ *  cardPrice(card.source) — see printPrice below. */
+const PRINT_PRICE = tierPrice('printed');
 
 // Wax-seal sticker offer — OFF for soft launch. See the comment at the
 // offer's render site (search STICKER_OFFER_ENABLED) for the two
 // conditions required before flipping this back on.
 const STICKER_OFFER_ENABLED = false;
 
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
+/** Placeholder for the postcode field, per market. */
+const POSTCODE_EXAMPLE: Record<MarketId, string> = { GB: 'SW1A 1AA', ZA: '2196' };
+
 
 // Printed card (+ free digital link) + postage for the chosen delivery tier
 // + the optional wax-seal sticker (direct sends only). The server re-derives
@@ -117,11 +121,11 @@ function totalsFor(
 ) {
   // Priced by the door that made this card, mirroring the server so the
   // shown total always equals the charge (UX_THREE_DOORS.md §8a).
-  const printPrice = cardPriceGBP(cardSource);
-  const printAmount = freeCard ? firstOrderPriceGBP(cardSource as Parameters<typeof cardPriceGBP>[0]) : printPrice;
+  const printPrice = cardPrice(cardSource);
+  const printAmount = freeCard ? firstOrderPrice(cardSource) : printPrice;
   const digitalAmount = 0;
-  const shippingAmount = compCode ? 0 : getShippingTier(tier).price;
-  const stickerAmount = envelopeStickerGBP(addSticker, shipTo);
+  const shippingAmount = compCode ? 0 : shippingPrice(tier);
+  const stickerAmount = envelopeStickerPrice(addSticker, shipTo);
   return {
     printAmount,
     digitalAmount,
@@ -232,9 +236,13 @@ export default function CheckoutPage() {
   const [envelopeName, setEnvelopeName] = useState('');
   const [line1, setLine1] = useState('');
   const [line2, setLine2] = useState('');
+  // SA addresses carry a suburb between the street and the city.
+  const [suburb, setSuburb] = useState('');
   const [city, setCity] = useState('');
   const [postcode, setPostcode] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const mkt = market();
+  const postcodeValid = mkt.postcodePattern.test(postcode.trim());
   // Comp code — creator gifting ("this one's on us"). Kept out of the way
   // of normal buyers: a small "Got a code?" reveal, not a field everyone
   // sees. ?code=X prefills it so a DM'd link can carry the code.
@@ -285,7 +293,8 @@ export default function CheckoutPage() {
   // Postcodes) is a paid upgrade for a future pass.
   const handlePostcodeLookup = async () => {
     const pc = postcode.trim();
-    if (pc.length < 5) return;
+    // postcodes.io is a UK-only service.
+    if (mkt.isoCountry !== 'GB' || pc.length < 5) return;
     try {
       const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
       if (!res.ok) return;
@@ -298,7 +307,7 @@ export default function CheckoutPage() {
   };
 
   const addressComplete =
-    line1.trim().length > 0 && city.trim().length > 0 && postcode.trim().length >= 5 &&
+    line1.trim().length > 0 && city.trim().length > 0 && postcodeValid &&
     (shipTo !== 'recipient' || envelopeName.trim().length > 0);
   const contactComplete =
     customerName.trim().length > 0 && /.+@.+\..+/.test(customerEmail);
@@ -332,9 +341,10 @@ export default function CheckoutPage() {
           name: shipTo === 'recipient' ? envelopeName.trim() : customerName.trim(),
           line1: line1.trim(),
           line2: line2.trim() || undefined,
+          suburb: suburb.trim() || undefined,
           city: city.trim(),
           postcode: postcode.trim().toUpperCase(),
-          country: 'GB',
+          country: mkt.isoCountry,
         };
       }
 
@@ -513,22 +523,22 @@ export default function CheckoutPage() {
                   Printed &amp; posted
                 </h2>
                 <p className="text-sm text-keeper-body leading-relaxed">
-                  A premium 280gsm gloss card, posted in the UK, with a free
+                  A premium 280gsm gloss card, posted in {copyFor().country}, with a free
                   digital link to share too.
                 </p>
                 {freeCardApplied ? (
                   <p className="text-lg font-semibold text-keeper-ink mt-3">
                     <span className="mr-1.5 font-normal text-keeper-meta line-through">
-                      {formatGBP(cardPriceGBP(card?.source))}
+                      {formatMoney(cardPrice(card?.source))}
                     </span>
-                    {formatGBP(totals.total)}{' '}
+                    {formatMoney(totals.total)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
                       inc. postage, 50% off your first card
                     </span>
                   </p>
                 ) : (
                   <p className="text-lg font-semibold text-keeper-ink mt-3">
-                    {formatGBP(totals.total)}{' '}
+                    {formatMoney(totals.total)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
                       inc. postage
                     </span>
@@ -581,7 +591,7 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-xs text-keeper-meta mt-0.5 leading-relaxed max-w-[42ch]">
                           {shipTo === 'recipient'
-                            ? 'Addressed and posted straight to them, tracked, at no extra charge.'
+                            ? (copyFor().za ? 'Addressed and sent straight to them by courier, at no extra charge.' : 'Addressed and posted straight to them, tracked, at no extra charge.')
                             : 'Posted to you, ready to hand over in person.'}
                         </p>
                       </div>
@@ -626,7 +636,7 @@ export default function CheckoutPage() {
                     default insert (Prodigi Settings → Branding), (b) one
                     DIR test order with the env var on shows OUR per-order
                     seal correctly placed. */}
-                {STICKER_OFFER_ENABLED && isResolved && shipTo === 'recipient' && (
+                {STICKER_OFFER_ENABLED && envelopeStickerOffered() && isResolved && shipTo === 'recipient' && (
                   <Section title="Add a keepsake seal?">
                     <button
                       type="button"
@@ -650,7 +660,7 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span className="block text-sm font-medium text-keeper-ink">
-                          Wax-seal envelope sticker · +{formatGBP(ENVELOPE_STICKER_GBP)}
+                          Wax-seal envelope sticker · +{formatMoney(envelopeStickerUnitPrice())}
                         </span>
                         <span className="mt-0.5 block text-xs text-keeper-meta leading-relaxed">
                           A round “only open on your special day” seal on the
@@ -670,9 +680,9 @@ export default function CheckoutPage() {
                       buyers CAN pay — the card just has to land at a UK
                       address, so route them to "straight to them". */}
                   <p className="rounded-md bg-stone-50 px-3 py-2 text-[11.5px] leading-relaxed text-keeper-meta">
-                    We deliver to <b>UK addresses only</b> for now. Buying
+                    We deliver to <b>{copyFor().za ? 'South African' : 'UK'} addresses only</b> for now. Buying
                     from abroad is fine. Just have the card sent straight
-                    to them at their UK address.
+                    to them at their {copyFor().za ? 'South African' : 'UK'} address.
                   </p>
                   {shipTo === 'recipient' && (
                     <Field label="Their full name, for the envelope">
@@ -685,16 +695,22 @@ export default function CheckoutPage() {
                   <Field label="Address line 2 (optional)">
                     <Input value={line2} onChange={(e) => setLine2(e.target.value)} autoComplete="shipping address-line2" />
                   </Field>
+                  {mkt.id === 'ZA' && (
+                    <Field label="Suburb">
+                      <Input value={suburb} onChange={(e) => setSuburb(e.target.value)} autoComplete="shipping address-level3" data-testid="checkout-suburb" />
+                    </Field>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Town / city">
                       <Input value={city} onChange={(e) => setCity(e.target.value)} autoComplete="shipping address-level2" />
                     </Field>
-                    <Field label="Postcode">
+                    <Field label={mkt.postcodeLabel}>
                       <Input
                         value={postcode}
                         onChange={(e) => setPostcode(e.target.value.toUpperCase())}
                         onBlur={handlePostcodeLookup}
-                        placeholder="SW1A 1AA"
+                        placeholder={POSTCODE_EXAMPLE[mkt.id]}
+                        inputMode={mkt.id === 'ZA' ? 'numeric' : undefined}
                         autoComplete="shipping postal-code"
                         autoCapitalize="characters"
                       />
@@ -730,7 +746,7 @@ export default function CheckoutPage() {
                     : 'Square, 280gsm gloss art card'
                 }
                 amount={totals.printAmount}
-                original={freeCardApplied ? cardPriceGBP(card?.source) : undefined}
+                original={freeCardApplied ? cardPrice(card?.source) : undefined}
               />
               {/* Always included free with the printed card. */}
               <LineItem
@@ -740,7 +756,7 @@ export default function CheckoutPage() {
                 amount={totals.digitalAmount}
               />
               <LineItem
-                label={`Postage · ${getShippingTier(effectiveTier).carrier}`}
+                label={`Postage · ${shippingCarrierLabel(effectiveTier)}`}
                 amount={totals.shippingAmount}
                 muted
               />
@@ -795,7 +811,7 @@ export default function CheckoutPage() {
               <div className="border-t border-keeper-hair pt-3 flex items-center justify-between">
                 <span className="text-sm font-medium text-keeper-ink">Total</span>
                 <span className="text-xl font-semibold text-keeper-ink">
-                  {formatGBP(totals.total)}
+                  {formatMoney(totals.total)}
                 </span>
               </div>
 
@@ -817,9 +833,11 @@ export default function CheckoutPage() {
                     : includesPrint && !isResolved
                       ? 'Choose where the card should be delivered first.'
                       : includesPrint && !addressComplete
-                        ? postcode.trim().length > 0 && postcode.trim().length < 5
+                        ? mkt.id === 'GB' && postcode.trim().length > 0 && postcode.trim().length < 5
                           ? 'That postcode looks too short. We can only deliver to UK addresses.'
-                          : 'Complete the delivery address to continue.'
+                          : postcode.trim().length > 0 && !postcodeValid
+                            ? mkt.postcodeHint
+                            : 'Complete the delivery address to continue.'
                         : 'Almost there. Check the details above.'}
                 </p>
               )}
@@ -839,7 +857,7 @@ export default function CheckoutPage() {
                   // like a trick; say what actually happens.
                   'Send it. Nothing to pay'
                 ) : (
-                  `Pay ${formatGBP(totals.total)}`
+                  `Pay ${formatMoney(totals.total)}`
                 )}
               </Button>
               {/* Deferral reassurance (Carina 2026-08-07): she couldn't
@@ -961,10 +979,10 @@ function LineItem({
       <span className={`text-sm ${muted ? 'text-keeper-meta' : 'font-medium text-keeper-ink'}`}>
         {original != null && (
           <span className="mr-1.5 font-normal text-keeper-meta line-through">
-            {formatGBP(original)}
+            {formatMoney(original)}
           </span>
         )}
-        {amount === 0 ? 'Free' : amount < 0 ? `−${formatGBP(-amount)}` : formatGBP(amount)}
+        {amount === 0 ? 'Free' : amount < 0 ? `−${formatMoney(-amount)}` : formatMoney(amount)}
       </span>
     </div>
   );

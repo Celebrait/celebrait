@@ -27,6 +27,7 @@ import { registerStudioDraftRoutes } from "./routes/studio-drafts";
 import { registerStudioBrainstormRoutes } from "./routes/studio-brainstorm";
 import { registerStudioSceneSuggestRoutes } from "./routes/studio-scene-suggest";
 import { registerStudioCheckoutRoutes } from "./routes/studio-checkout";
+import { registerPayfastRoutes } from "./routes/payfast";
 import { registerStudioNotificationRoutes } from "./routes/studio-notifications";
 // Inside-text AI routes (rewriter + macro composer) — PARKED for
 // Celebrait Premium tier (decision 2026-05-17, see
@@ -34,6 +35,7 @@ import { registerStudioNotificationRoutes } from "./routes/studio-notifications"
 // import { registerStudioInsideTextRoutes } from "./routes/studio-inside-text";
 import { registerAdminCostsRoutes } from "./routes/admin-costs";
 import { registerAdminCustomersRoutes } from "./routes/admin-customers";
+import { registerAdminFulfilmentRoutes } from "./routes/admin-fulfilment";
 import { registerAdminCompCodeRoutes } from "./routes/admin-comp-codes";
 import { registerAdminCardLabRoutes } from "./routes/admin-card-lab";
 import { registerCatalogueRoutes } from "./routes/catalogue";
@@ -441,10 +443,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerStudioBrainstormRoutes(app);
   registerStudioSceneSuggestRoutes(app);
   registerStudioCheckoutRoutes(app);
+  registerPayfastRoutes(app);
   registerStudioNotificationRoutes(app);
   // registerStudioInsideTextRoutes(app); // PARKED for Premium tier — see next_celebrait_premium.md
   registerAdminCostsRoutes(app);
   registerAdminCustomersRoutes(app);
+  registerAdminFulfilmentRoutes(app);
   registerAdminCompCodeRoutes(app);
   registerAdminCardLabRoutes(app);
   registerCatalogueRoutes(app);

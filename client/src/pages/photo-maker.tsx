@@ -38,9 +38,9 @@ import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { useLocalCardMaker } from '@/hooks/use-local-card-maker';
 import { GuestPhotoContext, useGuestPhotos, getGuestPhotoBlobs, clearGuestPhotos, discardGuestSession, photoThumbSrc } from '@/lib/guest-photos';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 /** The public walk: the studio's first four steps, then the gate. */
 const PUBLIC_STEPS = [
@@ -331,7 +331,7 @@ function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, on
           {authed
             ? 'Your card is saved to your studio and drawn there, a few minutes on our bigger image model.'
             : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
-          {' '}Nothing to pay until you print ({gbp(cardPriceGBP('photo'))}).
+          {' '}Nothing to pay until you print ({formatMoney(cardPrice('photo'))}).
         </p>
         {error && <p className="mt-3 text-[13px] text-accent-red-dark">{error}</p>}
         <Button

@@ -27,6 +27,8 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
 import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
 import { ProgressRing } from '@/components/studio/moment-ring';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
 
@@ -239,7 +241,7 @@ export function FreeCardInvite() {
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
                       Then three dates that matter, and your first card is{' '}
-                      <span className="line-through">£5.99</span> <b>£2.99</b>,
+                      <span className="line-through">{formatMoney(cardPrice('maker'))}</span> <b>{formatMoney(firstOrderPrice('maker'))}</b>,
                       half price.
                     </p>
                   )}
@@ -290,16 +292,16 @@ export function FreeCardInvite() {
                       start here. Tell us <b>three dates that matter</b> (a
                       birthday, an anniversary, any day) and your first card
                       is half price.{' '}
-                      <span className="text-stone-400 line-through">£5.99</span>{' '}
-                      <b>£2.99</b>, plus postage.
+                      <span className="text-stone-400 line-through">{formatMoney(cardPrice('maker'))}</span>{' '}
+                      <b>{formatMoney(firstOrderPrice('maker'))}</b>, plus postage.
                     </p>
                   ) : (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       The right moment probably hasn't come round yet. So start the
                       other way: tell us <b>three dates that matter</b> (a birthday,
                       an anniversary, any day) and your first card is half price.{' '}
-                      <span className="text-stone-400 line-through">£5.99</span>{' '}
-                      <b>£2.99</b>, plus postage. It waits for the moment.
+                      <span className="text-stone-400 line-through">{formatMoney(cardPrice('maker'))}</span>{' '}
+                      <b>{formatMoney(firstOrderPrice('maker'))}</b>, plus postage. It waits for the moment.
                     </p>
                   )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">

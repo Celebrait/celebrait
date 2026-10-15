@@ -33,6 +33,7 @@ import presentIcon from '@/assets/icons/present.png';
 import ribbonIcon from '@/assets/icons/ribbon.png';
 import ringIcon from '@/assets/icons/ring.png';
 import wordmark from '@/assets/celebrait.webp';
+import { copyFor } from '@shared/market-copy';
 
 const ICONS = {
   cake: cakeIcon,
@@ -454,7 +455,7 @@ export default function AdminSocialStudio() {
   const [slide, setSlide] = useState<1 | 2>(1);
   // A call to action carried on every slide — the whole point of the
   // "make someone a card, post it, tell them how to get one" play.
-  const [cta, setCta] = useState('DM to order yours · celebrait.co.uk');
+  const [cta, setCta] = useState(`DM to order yours · ${copyFor().domain}`);
   // ── Make a card right here, using the LIVE production prompt, so a
   // marketing card is the same thing a customer would receive (Aidan:
   // "this probably needs a card generator building in").
@@ -1520,7 +1521,7 @@ export default function AdminSocialStudio() {
             <Input
               value={cta}
               onChange={(e) => setCta(e.target.value)}
-              placeholder="DM to order yours · celebrait.co.uk"
+              placeholder={`DM to order yours · ${copyFor().domain}`}
               className="mt-1 text-sm"
               data-testid="social-cta"
             />

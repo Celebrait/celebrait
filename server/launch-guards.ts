@@ -55,6 +55,34 @@ export function assertLaunchSafeConfig(): void {
     );
   }
 
+  // PayFast (South Africa). A real gateway, so the same rule as Stripe:
+  // money in needs a real printer behind it, which in ZA is the 'manual'
+  // print provider (or Prodigi). A sandbox PayFast on production is only
+  // a WARNING, so a sandbox dry run on the live box is possible; nobody
+  // can be charged real money through the sandbox.
+  if (payment === 'payfast' && print !== 'manual' && print !== 'prodigi') {
+    fatal.push(
+      `STUDIO_PAYMENT_PROVIDER=payfast but STUDIO_PRINT_PROVIDER=${print}: ` +
+        'customers would be CHARGED while the stub print provider fakes a healthy ' +
+        '"submitted" order and nothing ever prints. Set STUDIO_PRINT_PROVIDER=manual.',
+    );
+  }
+  if (payment === 'payfast') {
+    const sb = (process.env.PAYFAST_SANDBOX ?? '').trim().toLowerCase();
+    if (sb === '1' || sb === 'true') {
+      warnings.push(
+        'PAYFAST_SANDBOX is set on production: checkout goes to sandbox.payfast.co.za ' +
+          'and NO real money is taken. Fine for a dry run; unset it before real customers pay.',
+      );
+    }
+    if (!process.env.PAYFAST_MERCHANT_ID || !process.env.PAYFAST_MERCHANT_KEY) {
+      warnings.push(
+        'STUDIO_PAYMENT_PROVIDER=payfast but PAYFAST_MERCHANT_ID / PAYFAST_MERCHANT_KEY ' +
+          'are missing: every checkout will fail. Set them on Render.',
+      );
+    }
+  }
+
   if (!process.env.SESSION_SECRET) {
     fatal.push(
       'SESSION_SECRET is not set — session cookies would be signed with the ' +

@@ -47,7 +47,8 @@ function referrerHost(req: Request): string | null {
   try {
     const host = new URL(ref).hostname.replace(/^www\./, '');
     // Self-referrals (SPA navigations, internal links) aren't a source.
-    if (host.endsWith('celebrait.co.uk') || host === 'localhost') return null;
+    // Both market domains count as self (the old co.uk 301s to co.za).
+    if (/(^|\.)celebrait\.co\.(uk|za)$/.test(host) || host === 'localhost') return null;
     return host.slice(0, 100);
   } catch {
     return null;

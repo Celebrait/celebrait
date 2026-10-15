@@ -28,7 +28,8 @@ import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY_LG } from '@/pa
 import type { RackPayload } from '@/components/catalogue/rack-wall';
 import { useSeo } from '@/lib/use-seo';
 import { useRackEnabled } from '@/hooks/use-rack';
-import { cardPriceGBP } from '@shared/pricing';
+import { cardPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
@@ -36,7 +37,6 @@ import { OccasionsPromoSection } from '@/components/landing/occasions-promo-sect
 import { InsideSection } from '@/components/landing/inside-section';
 import { FaqSection } from '@/components/landing/faq-section';
 
-const gbp = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 
 
@@ -135,7 +135,7 @@ export default function DoorwayBPage() {
               {/* The other door (the gate, 2026-09-03): the photo route is
                   live at /photo and each page points at the other. */}
               <p className="text-[14px] text-keeper-body">
-                <span className="text-keeper-meta">{gbp(cardPriceGBP('maker'))} · nothing to pay until you print</span>
+                <span className="text-keeper-meta">{formatMoney(cardPrice('maker'))} · nothing to pay until you print</span>
                 <span className="mx-2 text-keeper-hair">|</span>
                 <Link href="/photo" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Got a photo of them? Put them in the picture →</Link>
               </p>
@@ -165,7 +165,7 @@ export default function DoorwayBPage() {
               <Link href="/cards/birthday" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
                 Birthdays{counts.birthday ? <span className="ml-1 text-[12px] text-keeper-meta">{counts.birthday}</span> : null}
               </Link>
-              <span className="text-[13px] text-keeper-meta">· from {gbp(cardPriceGBP('rack'))}</span>
+              <span className="text-[13px] text-keeper-meta">· from {formatMoney(cardPrice('rack'))}</span>
             </p>
           </div>}
 

@@ -7,6 +7,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { BLOG_POSTS } from '@shared/seo';
 import { useSeo } from '@/lib/use-seo';
+import { market } from '@shared/market';
 
 export default function BlogPage() {
   const [location] = useLocation();
@@ -46,7 +47,7 @@ export default function BlogPage() {
                 {post.description}
               </p>
               <p className="mt-4 text-[12.5px] text-keeper-meta">
-                {new Date(post.published).toLocaleDateString('en-GB', {
+                {new Date(post.published).toLocaleDateString(market().locale, {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',

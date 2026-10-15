@@ -38,6 +38,8 @@ import presentIcon from '@/assets/icons/present.png';
 import heartIcon from '@/assets/icons/heart.png';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { PhotoRun, DEMO_PHOTO_PRESETS, loadReplayCard, type ReplayCard } from '@/pages/demo-photo';
+import { market } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
 
 // ── versions ─────────────────────────────────────────────────────────
 
@@ -1138,7 +1140,7 @@ export function DemoRun({ cfg, ground = true }: { cfg: DemoConfig; ground?: bool
             <Card3DViewer frontImageUrl={chosenFront} insideImageUrl={insideUrl} open={cardOpen} onOpenChange={setCardOpen}
               onFirstFrame={() => setCardPainted(true)}
               enableRotate enableZoom={false}
-              backLogo backCaption="celebrait.co.uk"
+              backLogo backCaption={copyFor().domain}
               closedAngle={-0.38} restYaw={-0.12} framingMargin={1.35} minDistance={1.3} maxDistance={8} className="h-full w-full" />
           </div>
           <div className={`mt-4 shrink-0 px-5 ${clip === 'open' ? 'invisible' : ''}`}>
@@ -1384,7 +1386,7 @@ function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
                       <img src={r.cameoUrl ?? r.frontUrls[r.pickedIndex]} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" loading="lazy" />
                       <span className="block px-2 pb-2 pt-1.5 text-[11.5px] leading-tight text-keeper-ink">
                         {r.label ?? `Run ${r.id}`}
-                        <span className="block text-keeper-meta">{r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{t ? ` · ${t}` : ''}{r.cameoUrl ? ' · photo' : ''}</span>
+                        <span className="block text-keeper-meta">{r.created_at ? new Date(r.created_at).toLocaleDateString(market().locale, { day: 'numeric', month: 'short' }) : ''}{t ? ` · ${t}` : ''}{r.cameoUrl ? ' · photo' : ''}</span>
                       </span>
                     </button>
                   );
@@ -1614,7 +1616,7 @@ export function DemoOpener({ frontUrl, insideUrl, line, label, onStart }: {
             <Card3DViewer frontImageUrl={frontUrl} insideImageUrl={insideUrl ?? undefined}
               open={open} onOpenChange={setOpen} onFirstFrame={() => setPainted(true)}
               enableRotate enableZoom={false}
-              backLogo backCaption="celebrait.co.uk"
+              backLogo backCaption={copyFor().domain}
               closedAngle={-0.26} restYaw={0} framingMargin={1.4} minDistance={1.05} maxDistance={8} className="h-full w-full" />
           </motion.div>
         </motion.div>

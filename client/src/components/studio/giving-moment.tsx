@@ -35,9 +35,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cardPriceGBP, UK_SHIPPING_STANDARD_GBP } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import type { CardDraftState } from '@shared/schema';
+import { copyFor } from '@shared/market-copy';
 
 // ── Pricing (pence) ──────────────────────────────────────────────────
 // Print-led V1: one product — a printed card (+ free digital link) plus
@@ -47,9 +49,6 @@ import type { CardDraftState } from '@shared/schema';
 
 type Destination = 'recipient' | 'sender';
 
-function formatGBP(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
 
 // ── Props ────────────────────────────────────────────────────────────
 
@@ -83,7 +82,7 @@ export function GivingMoment({
   const [, setLocation] = useLocation();
 
   const them = recipientName || 'them';
-  const CARD_BASE = cardPriceGBP(cardSource) + UK_SHIPPING_STANDARD_GBP;
+  const CARD_BASE = cardPrice(cardSource) + shippingPrice();
 
   // Print-led V1: one product (a printed card + free digital link), so
   // there's no format step — the only question is where it should go.
@@ -177,7 +176,7 @@ export function GivingMoment({
         </h2>
         <p className="text-sm text-keeper-meta leading-relaxed">
           Your printed card{recipientName ? ` for ${recipientName}` : ''}:{' '}
-          {formatGBP(CARD_BASE)} inc. postage, with a free digital link to
+          {formatMoney(CARD_BASE)} inc. postage, with a free digital link to
           share.
         </p>
         {/* The lead-time notice, before the address form (Aidan
@@ -190,7 +189,7 @@ export function GivingMoment({
           <DestinationCard
             icon={<Mail className="w-5 h-5" />}
             title={recipientName ? `Straight to ${recipientName}` : 'Straight to them'}
-            body="Posted tracked in a kraft envelope, your message printed inside."
+            body={`${copyFor().sentHow} in a kraft envelope, your message printed inside.`}
             selected={destination === 'recipient'}
             onSelect={() => setDestination('recipient')}
             testId="giving-dest-recipient"
@@ -228,7 +227,7 @@ export function GivingMoment({
           <>
             Continue to payment
             <span className="ml-2 font-normal opacity-90">
-              · {formatGBP(CARD_BASE)}
+              · {formatMoney(CARD_BASE)}
             </span>
             <ArrowRight className="w-4 h-4 ml-2" />
           </>

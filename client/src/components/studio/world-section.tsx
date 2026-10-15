@@ -24,6 +24,9 @@ import {
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { ProgressRing } from '@/components/studio/moment-ring';
+import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { market } from '@shared/market';
 
 const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 
@@ -208,7 +211,7 @@ export function WorldSection({
           {unlocked ? (
             <>
               <b className="text-keeper-ink">Your first card’s half price:</b>{' '}
-              <span className="line-through">£5.99</span> £2.99, plus postage.
+              <span className="line-through">{formatMoney(cardPrice('maker'))}</span> {formatMoney(firstOrderPrice('maker'))}, plus postage.
               It’s waiting whenever a moment comes round.
             </>
           ) : (
@@ -279,7 +282,7 @@ export function WorldSection({
                 <div className="z-[1] mt-[30px] h-3 w-3 rounded-full bg-keeper-ink" />
                 <span className="text-[13px] font-bold leading-tight text-keeper-ink">Today</span>
                 <span className="text-[11px] text-keeper-meta">
-                  {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  {new Date().toLocaleDateString(market().locale, { day: 'numeric', month: 'short' })}
                 </span>
               </div>
               {/* + Add a day */}
