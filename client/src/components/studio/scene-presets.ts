@@ -15,6 +15,7 @@
 // (lowercase). An 'other' fallback covers anything unusual.
 
 import { occasionLabel } from '@/lib/occasion-label';
+import { marketId } from '@shared/market';
 
 export interface OccasionPresets {
   occasion: string;
@@ -385,7 +386,7 @@ export const OCCASION_PRESETS: Record<string, OccasionPresets> = {
 
 /** Occasion options shown in the Recipient step dropdown. Order is
  *  roughly "most common first". */
-export const OCCASION_OPTIONS = [
+const GB_OCCASION_OPTIONS = [
   'birthday',
   'anniversary',
   'wedding',
@@ -398,6 +399,20 @@ export const OCCASION_OPTIONS = [
   'sympathy',
   'other',
 ] as const;
+/** South Africa (MARKET=ZA, 2026-10-15): the GB list plus SA's own card
+ *  moments, 'other' still last. Labels live in lib/occasion-label. */
+const ZA_OCCASION_OPTIONS: readonly string[] = [
+  ...GB_OCCASION_OPTIONS.filter((o) => o !== 'other'),
+  'matric_dance',
+  'matric_results',
+  'eid',
+  'diwali',
+  'heritage_day',
+  'womens_day',
+  'youth_day',
+  'other',
+];
+export const OCCASION_OPTIONS: readonly string[] = marketId() === 'ZA' ? ZA_OCCASION_OPTIONS : GB_OCCASION_OPTIONS;
 
 export function getOccasionLabel(occasion: string | undefined): string {
   if (!occasion) return '';

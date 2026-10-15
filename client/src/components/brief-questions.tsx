@@ -16,6 +16,12 @@ import { useTypewriter } from '@/hooks/use-typewriter';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
 import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
+import { marketId } from '@shared/market';
+
+/** South Africa (MARKET=ZA, 2026-10-15). The words a South African buyer
+ *  uses for their people, and a gentler top register: the engine still
+ *  receives 'rude', and in ZA it writes playful, never sweary. */
+const ZA = marketId() === 'ZA';
 
 // ── the brief ────────────────────────────────────────────────────────
 export type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
@@ -36,17 +42,21 @@ export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'>): string | 
   return undefined;
 }
 
-export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: 'Cheekier' };
+export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: ZA ? 'Playful' : 'Cheekier' };
 /** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
 const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
   funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
   warm: { label: 'Warm', sub: 'heartfelt, the kind they keep' },
-  rude: { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
+  rude: ZA ? { label: 'Playful', sub: 'light teasing, kindly meant' } : { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
   mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes, you choose after' },
 };
+/** The vibe sub-lines, for pages that draw their own vibe tiles (/make's re-deal). */
+export const VIBE_SUB: Record<Vibe, string> = { funny: VIBE_META.funny.sub, warm: VIBE_META.warm.sub, rude: VIBE_META.rude.sub, mix: VIBE_META.mix.sub };
+/** "Mum" in GB, "Mom" in ZA: for example copy. */
+export const MUM_WORD = ZA ? 'Mom' : 'Mum';
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
 const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
-export const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
+const GB_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
   { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
   { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
@@ -56,11 +66,23 @@ export const RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Partner' }, { label: 'Best mate' }, { label: 'Friend' },
   { label: 'Colleague' }, { label: 'Someone else' },
 ];
+const ZA_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
+  { label: 'Mom', implies: 'her' }, { label: 'Dad', implies: 'him' },
+  { label: 'Ouma', implies: 'her' }, { label: 'Oupa', implies: 'him' },
+  { label: 'Gogo', implies: 'her' }, { label: 'Granny', implies: 'her' },
+  { label: 'Grandpa', implies: 'him' },
+  { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
+  { label: 'Daughter', implies: 'her' }, { label: 'Son', implies: 'him' },
+  { label: 'Wife', implies: 'her' }, { label: 'Husband', implies: 'him' },
+  { label: 'Partner' }, { label: 'Friend' },
+  { label: 'Colleague' }, { label: 'Someone else' },
+];
+export const RECIPIENTS = ZA ? ZA_RECIPIENTS : GB_RECIPIENTS;
 const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
 /** The relations people use AS a name ("How old is Mum?"). Every other
  *  chip is a role and needs "your" in front of it — "How old is
  *  Partner?" read as a bug (Aidan 2026-09-09). */
-const NAME_LIKE = new Set(['Mum', 'Dad', 'Nan', 'Grandad']);
+const NAME_LIKE = new Set(ZA ? ['Mom', 'Dad', 'Ouma', 'Oupa', 'Gogo', 'Granny', 'Grandpa'] : ['Mum', 'Dad', 'Nan', 'Grandad']);
 /** The recipient as a phrase that fits inside a sentence: their first
  *  name if we have it, else "Mum" / "your partner" / "them". */
 export function whoPhrase(b: Pick<Brief, 'who' | 'name'>): string {
@@ -105,7 +127,26 @@ const THING_EXAMPLES: Record<string, string[]> = {
   Colleague: ['the office coffee machine', 'the spreadsheets', 'retiring after 25 years', 'the Friday quiz'],
 };
 const THING_EXAMPLES_DEFAULT = ['fishing', 'just passed her driving test', 'Man United', 'a Barbie-themed party', 'her allotment', 'Ibiza with the girls in June', 'Toy Story', '30 years of questionable golf'];
-const thingExamplesFor = (who: string): string[] => THING_EXAMPLES[who] ?? THING_EXAMPLES_DEFAULT;
+const ZA_THING_EXAMPLES: Record<string, string[]> = {
+  Mom: ['her garden', 'Sunday lunch for the whole family', 'her book club', 'walks on the beach, every morning'],
+  Dad: ['the braai, every weekend', 'fishing at the dam', 'his old bakkie, still running', 'the rugby, never misses a game'],
+  Ouma: ['baking rusks', 'her roses', 'crosswords and a strong coffee', 'the grandchildren, all of them'],
+  Oupa: ['his vegetable garden', 'telling the same stories', 'the cricket on the radio', 'fixing things in the garage'],
+  Gogo: ['her church choir', 'cooking for everyone', 'her garden', 'the grandchildren, all of them'],
+  Granny: ['knitting for the grandchildren', 'her roses', 'baking on Sundays', 'a good cup of tea'],
+  Grandpa: ['his vegetable garden', 'the cricket', 'fishing', 'crosswords in the morning'],
+  Sister: ['her new flat in Cape Town', 'yoga and flat whites', 'true crime podcasts', 'a road trip with the girls'],
+  Brother: ['the Bokke', 'gaming until 3am', 'his first marathon', 'mountain biking'],
+  Daughter: ['just passed her driving test', 'Taylor Swift', 'her first year at varsity', 'horses, always horses'],
+  Son: ['gaming', 'his first job', 'soccer on Saturdays', 'skateboarding'],
+  Wife: ['our trip to Mozambique', 'her garden', 'a good book and a quiet morning', 'the dogs'],
+  Husband: ['his golf', 'the braai', 'fishing trips with the guys', 'the rugby'],
+  Partner: ['hiking on weekends', 'our trip to the Drakensberg', 'the dog we talk about more than each other', 'terrible puns'],
+  Friend: ['trail running', 'the book club', 'a road trip up the coast', 'the quiz night, every Thursday'],
+  Colleague: ['the office coffee machine', 'the spreadsheets', 'retiring after 25 years', 'the Friday braai'],
+};
+const ZA_THING_EXAMPLES_DEFAULT = ['fishing', 'just passed her driving test', 'the Bokke', 'her garden', 'hiking on weekends', 'baking rusks', 'gaming', '30 years of questionable golf'];
+const thingExamplesFor = (who: string): string[] => (ZA ? ZA_THING_EXAMPLES[who] ?? ZA_THING_EXAMPLES_DEFAULT : THING_EXAMPLES[who] ?? THING_EXAMPLES_DEFAULT);
 /** The studio's occasion picker: four up front, the rest behind More, and Other as free text. */
 const PRIMARY_OCCASIONS: readonly string[] = ['birthday', 'christmas', 'anniversary', 'wedding'];
 const VIBE_SET = new Set<string>(VIBES);
@@ -129,7 +170,7 @@ export function readBriefFromSearch(search: string): Brief {
     front: f === 'role' || f === 'name' || f === 'none' ? f : defaultFront(who, name),
   };
 }
-/** Mum/Dad/Nan/Grandad lead with the word itself; anyone else leads
+/** Mum/Dad/Nan/Grandad (ZA: Mom/Dad/Ouma/Oupa/Gogo/Granny/Grandpa) lead with the word itself; anyone else leads
  *  with the name if we have one, else nothing. */
 export const defaultFront = (who: string, name: string): FrontWord => (NAME_LIKE.has(who.trim()) ? 'role' : name.trim() ? 'name' : 'none');
 export function briefToSearch(b: Brief): string {

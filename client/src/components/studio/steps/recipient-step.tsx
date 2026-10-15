@@ -34,6 +34,11 @@ import {
   Leaf,
   PenLine,
   Diamond,
+  Music,
+  Moon,
+  Flame,
+  Sun,
+  Sparkles,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -69,6 +74,14 @@ export const OCCASION_ICON: Record<string, LucideIcon> = {
   valentines: Heart,
   thankyou: Flower2,
   sympathy: Leaf,
+  // South Africa's occasions (MARKET=ZA only, 2026-10-15).
+  matric_dance: Music,
+  matric_results: GraduationCap,
+  eid: Moon,
+  diwali: Flame,
+  heritage_day: Sun,
+  womens_day: Flower2,
+  youth_day: Sparkles,
   other: PenLine,
 };
 

@@ -11,6 +11,7 @@
 
 import { motion } from 'framer-motion';
 import { Bell, BookHeart, Calendar } from 'lucide-react';
+import { marketId } from '@shared/market';
 
 interface BookEntry {
   initial: string;
@@ -24,7 +25,7 @@ interface BookEntry {
 const BOOK: BookEntry[] = [
   {
     initial: 'M',
-    name: 'Mum',
+    name: marketId() === 'ZA' ? 'Mom' : 'Mum',
     relationship: 'Mother',
     occasion: '70th birthday',
     daysUntil: 18,

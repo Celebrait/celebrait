@@ -24,6 +24,14 @@ const LABELS: Record<string, string> = {
   thankyou: 'Thank you',
   sympathy: 'Sympathy',
   easter: 'Easter',
+  // South Africa's occasions (offered only when MARKET=ZA, 2026-10-15).
+  matric_dance: 'Matric dance',
+  matric_results: 'Matric results',
+  heritage_day: 'Heritage Day',
+  womens_day: "Women's Day",
+  youth_day: 'Youth Day',
+  eid: 'Eid',
+  diwali: 'Diwali',
   other: 'Something else',
 };
 
@@ -31,6 +39,7 @@ const LABELS: Record<string, string> = {
 const PROPER = new Set([
   'christmas', 'valentines', 'mothers_day', 'fathers_day', 'easter',
   'diwali', 'eid', 'hanukkah', 'new year', 'new_year',
+  'heritage_day', 'womens_day', 'youth_day',
 ]);
 
 function normalise(o: string | null | undefined): string {

@@ -12,13 +12,24 @@
 //                      NOT the US "2nd Sunday of May".
 //   • Father's Day   — 3rd Sunday of June
 //
+// SOUTH AFRICA (MARKET=ZA, 2026-10-15): Mother's Day is the 2nd Sunday
+// of May there; Father's Day is the same 3rd Sunday of June. The three
+// SA public days below are fixed dates too. Only Mother's Day differs by
+// market, and it is resolved at call time so env/shell timing can't bite.
+//
 // All dates are UTC-midnight, matching the reminder system's date maths.
+
+import { marketId } from './market';
 
 export const FIXED_DATE_OCCASIONS = new Set([
   'christmas',
   'valentines',
   'mothers_day',
   'fathers_day',
+  // SA public days (never offered on GB surfaces).
+  'youth_day',
+  'womens_day',
+  'heritage_day',
 ]);
 
 export function isFixedDateOccasion(occasion: string): boolean {
@@ -67,7 +78,13 @@ export function fixedOccasionDateForYear(occasion: string, year: number): Date |
     case 'valentines':
       return new Date(Date.UTC(year, 1, 14)); // 14 Feb
     case 'mothers_day':
-      return motheringSunday(year);
+      return marketId() === 'ZA' ? nthWeekdayOfMonth(year, 4, 0, 2) : motheringSunday(year); // ZA: 2nd Sunday of May
+    case 'youth_day':
+      return new Date(Date.UTC(year, 5, 16)); // 16 June
+    case 'womens_day':
+      return new Date(Date.UTC(year, 7, 9)); // 9 August
+    case 'heritage_day':
+      return new Date(Date.UTC(year, 8, 24)); // 24 September
     case 'fathers_day':
       return nthWeekdayOfMonth(year, 5, 0, 3); // 3rd Sunday of June
     default:

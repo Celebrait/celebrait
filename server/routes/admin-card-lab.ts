@@ -43,6 +43,7 @@ import { db } from '../db';
 import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
 import { hasAiDash, stripAiDash } from '@shared/no-dash';
+import { serverMarketId } from '@shared/market';
 import { publicImageUrl, storeDisplayWebpSibling } from '../image-storage';
 import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
@@ -525,7 +526,11 @@ const CHRISTMAS_TONES: Record<string, string> = {
 };
 export function christmasProfile(tone: string | undefined): OccasionProfile {
   const t = tone === 'mix' ? 'mix' : (tone ?? 'funny');
-  const toneText = t === 'mix'
+  const za = serverMarketId() === 'ZA';
+  const toneText = za && t === 'mix'
+    ? `ONE OF EACH AT CHRISTMAS: each slot's tone applies ONLY to its own card, and no card carries swearing of any grade.\n${ZA_PLAYFUL_TONE}`
+    : za && t === 'rude' ? ZA_PLAYFUL_TONE
+    : t === 'mix'
     ? `ONE OF EACH AT CHRISTMAS: each slot's tone applies ONLY to its own card. The rude slot follows the rude rules; the funny and warm cards carry NO swearing of any grade.\n${CHRISTMAS_TONES.rude}`
     : CHRISTMAS_TONES[t] ?? CHRISTMAS_TONES.funny;
   return PROFILE('christmas', 'full', `${CHRISTMAS_CORE}\n${toneText}`);
@@ -679,11 +684,19 @@ export function statedAge(occasion: string | undefined): number | null {
  *  static birthday profile whenever the occasion classifies as one. */
 const MIX_TONE_BRIEF = `TONE — ONE OF EACH. This set is a RANGE, not a register: each slot below names its own tone, and the three must be unmistakably different asks side by side. The funny card makes them laugh out loud — the joke is its product. The warm card makes them feel something — fond, noticing, specific, no mickey-taking, no age jokes. The rude card makes them swear — it alone carries real masked swearing, and its joke survives with the swearing removed. ⚠️ FOR A MUM, DAD, NAN OR GRANDAD-GRADE RECIPIENT the rude card swears in printed British milds — bloody, bollocks, arse, sod — never a masked word: one-of-each is a range, not Rude. ⚠️ THE FAILURE IS BLUR: a warm card with a smirk, a funny card that is really just kind, a rude card whose only rudeness is the swear word. A buyer choosing between these three should feel three different cards, not one card at three volumes.`;
 
+/** SOUTH AFRICA (Aidan 2026-10-15: "keep things simple, don't try jokes,
+ *  well not English style"). The rude tone id still arrives from the
+ *  client; in ZA it means PLAYFUL and carries no swearing, so the GB
+ *  rude/mix briefs (which order swearing) are swapped out, never edited. */
+const ZA_PLAYFUL_TONE = `TONE — PLAYFUL. Light teasing, kindly meant: the fond, knowing smile at a habit everyone who loves them would recognise, the way family and close friends actually tease. No swear words of any kind, masked or printed, and nothing the person handing it over would be embarrassed by. The tease is about their own thing, never their age, looks or body.`;
+const ZA_MIX_TONE_BRIEF = `TONE — ONE OF EACH. This set is a RANGE: each slot below names its own tone, and the three must feel like three different cards. The funny card makes them laugh, gently. The warm card makes them feel something: fond, noticing, specific. The PLAYFUL card teases them lightly, kindly meant. No swear words on any card. ⚠️ THE FAILURE IS BLUR: three cards at one volume.`;
+
 export function birthdayProfile(tone: BirthdayTone, age: number | null): OccasionProfile {
+  const za = serverMarketId() === 'ZA';
   return {
     key: 'birthday',
     humour: tone === 'warm' ? 'gentle' : 'full',
-    brief: `${tone === 'mix' ? MIX_TONE_BRIEF : BIRTHDAY_TONES[tone as Exclude<BirthdayTone, 'mix'>]}
+    brief: `${za && tone === 'mix' ? ZA_MIX_TONE_BRIEF : za && tone === 'rude' ? ZA_PLAYFUL_TONE : tone === 'mix' ? MIX_TONE_BRIEF : BIRTHDAY_TONES[tone as Exclude<BirthdayTone, 'mix'>]}
 
 ${birthdayAgeBlock(age)}
 
@@ -1331,7 +1344,10 @@ Return JSON: {"cards":[{"verdict":"pass"|"kill","what":"words"|"look","why":"<si
 // oblique referee vocabulary a static hint list can never know
 // ("sky-blue" is Manchester City).
 
-const V2_SWEAR = /f\*+\w*|s\*+|c\*+|bollocks|bastard|wanker|prick|twat|bellend|knobhead|arse|piss|shag|tits|knob\b|fuck\w*|shit\w*/i;
+// Word-bounded (2026-10-15): without \b the swear-on-clean floor flagged
+// "rehearse" (arse), "prickly", "shaggy" and "petits", costing clean sets a
+// repair round for nothing. Masked forms keep matching anywhere.
+const V2_SWEAR = /f\*+\w*|s\*+|c\*+|\b(?:bollocks|bastards?|wankers?|pricks?|twats?|bellends?|knobheads?|arse(?:s|d|holes?)?|piss(?:ed|ing|es)?|shag(?:s|ged|ging)?|tits|knob|fuck\w*|shit\w*)\b/i;
 /** ⚠️ STRONG SWEARING PRINTS MASKED — Aidan's decision, 2026-08-20.
  *  Only the three that UK card shops actually asterisk. The mild
  *  British end (bollocks, arse, bastard, wanker, prick, twat) prints in
@@ -1559,7 +1575,7 @@ export function senseSystemPrompt(recipientAge?: number | null, interest?: strin
 - PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE). ⚠️ PUNS MUST PARSE TOO — the GARDEN-PATH PUN fails here: wordplay that substitutes into an idiom but leaves the literal sentence ungrammatical, forcing the reader to re-group the words ("You can spot a fake tortilla aisle away" — the dropped article makes it read as a fake tortilla-aisle; "an aisle away" parses AND keeps the joke; a real buyer's verdict was "makes zero sense"). Read every pun as plain English first: if the surface sentence is broken until you find the substitution, it FAILS.
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
 - REAL CLAIM: the line restates as one plain sentence about the recipient or their thing; register-shaped noise with no claim fails.
-${layBuyer ? `- LAY BUYER (2026-09-13): the person BUYING knows the recipient, not the hobby. A term only insiders of the subject use fails (observed: "shore-check" on a wild-swimming card — real, correct, and the buyer had no idea what it meant) — UNLESS the artwork note shows what the term means, so someone who has never done the hobby gets it from the picture in one second. Two ways to pass and no third: say the same thing in words a non-insider has, or let the picture carry it. ⚠️ DROPPING THE DETAIL IS NOT A FIX — the specific ritual is the best material on the card and must survive; only the vocabulary changes. Everyday words the general public uses are never jargon. Phrase this violation as: the term in quotes, then "say it plainly or show it in the artwork — keep the detail".
+${layBuyer ? `- LAY BUYER (2026-09-13): the person BUYING knows the recipient, not the hobby. A term only insiders of the subject use fails (observed: "shore-check" on a wild-swimming card — real, correct, and the buyer had no idea what it meant) — UNLESS the artwork note shows what the term means, so someone who has never done the hobby gets it from the picture in one second. Two ways to pass and no third: say the same thing in words a non-insider has, or let the picture carry it. ⚠️ DROPPING THE DETAIL IS NOT A FIX — the specific ritual is the best material on the card and must survive; only the vocabulary changes. Everyday words the general public uses are never jargon.${serverMarketId() === 'ZA' ? ' The buyers are South African: words every South African uses (matric, braai, varsity, the Bokke) are everyday words here.' : ''} Phrase this violation as: the term in quotes, then "say it plainly or show it in the artwork — keep the detail".
 ` : ''}
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at. A standalone two-word swear sentence tagged onto a clean claim ("F***ing obviously.") fails even when the claim survives — the swear is decoration, not register.
 ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
@@ -1680,10 +1696,14 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     // masked f/s/c word anywhere on that card is a violation. The RUDE
     // tone itself is untouched: a buyer who chose Rude gets rude.
     const FAMILY_GRADE = new Set(['mum', 'mother', 'stepmum', 'step-mum', 'mother-in-law', 'dad', 'father', 'stepdad', 'step-dad', 'father-in-law', 'nan', 'nana', 'nanny', 'gran', 'granny', 'grandma', 'grandmother', 'grandad', 'granddad', 'grandpa', 'gramps', 'grandfather', 'aunt', 'auntie', 'aunty', 'uncle']);
-    const familyMild = b.tone === 'mix' && FAMILY_GRADE.has(b.who.trim().toLowerCase());
+    // ZA chips (2026-10-15), recognised only when MARKET=ZA so GB is unchanged.
+    const ZA_FAMILY_GRADE = new Set(['mom', 'mommy', 'ouma', 'oupa', 'gogo', 'wife', 'husband']);
+    const whoKey = b.who.trim().toLowerCase();
+    const familyMild = b.tone === 'mix' && (FAMILY_GRADE.has(whoKey) || (serverMarketId() === 'ZA' && ZA_FAMILY_GRADE.has(whoKey)));
     const MILD_OK = /\b(bloody|bollocks?|arsed?|sod(ding)?|daft|bugger(ing)?|damn(ed)?|hell|crap(py)?|knob(head)?s?|shite|pissed?|git)\b/i;
     const rf = fronts[opts.rudeSlot] ?? '';
-    if (!(V2_SWEAR.test(rf) || (familyMild && MILD_OK.test(rf)))) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing${familyMild ? ` — for a ${b.who} that means a mild printed word (bloody, bollocks, arse, sod, daft), never a masked one` : ''}`);
+    // ZA (2026-10-15): the rude slot is PLAYFUL there and swears nowhere.
+    if (serverMarketId() !== 'ZA' && !(V2_SWEAR.test(rf) || (familyMild && MILD_OK.test(rf)))) v.push(`rude-slot: card ${opts.rudeSlot + 1} is this set's RUDE card and its front carries no real swearing${familyMild ? ` — for a ${b.who} that means a mild printed word (bloody, bollocks, arse, sod, daft), never a masked one` : ''}`);
     const masked = familyMild ? `${cards[opts.rudeSlot]?.front_text ?? ''} ${cards[opts.rudeSlot]?.inside_text ?? ''}`.match(/\b[fsc]\*{2,}[a-z'’]*/i) : null;
     if (masked) v.push(`mix-family: card ${opts.rudeSlot + 1} carries "${masked[0]}" on a one-of-each set for a ${b.who} — the buyer chose a range, not Rude; the rude card for a family-grade recipient swears in printed milds (bloody, bollocks, arse, sod, daft) and never a masked word`);
   }
@@ -1691,7 +1711,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // person (two sweary fronts); christmas rude is the market's
   // one-filthy-hero shape — two floor failures shipped amber before
   // this bent (Aidan: "rude christmas warrants something else").
-  if (b.cheeky) {
+  if (b.cheeky && serverMarketId() !== 'ZA') {
     const need = opts?.occasionKey === 'christmas' ? 1 : 2;
     if (fronts.filter((f) => V2_SWEAR.test(f)).length < need) v.push(`rude-floor: at least ${need === 1 ? 'ONE front needs' : 'TWO fronts need'} real swearing`);
     if (opts?.occasionKey === 'christmas') {
@@ -1738,6 +1758,19 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     fronts.forEach((f, i) => {
       const hit = f.match(SWEAR_TRAIL);
       if (hit) v.push(`swear-trail: card ${i + 1} parks "${hit[0].trim()}" at the end of the line after a comma or dash — a swear bolted on as a tag does no work inside the joke; put it inside the sentence that carries the joke, or drop it`);
+    });
+  }
+  // ⚠️ SOUTH AFRICA SPEAKS SOUTH AFRICAN — IN CODE (2026-10-15). The
+  // writer's house voice is British; a ZA card carrying "mate", "nan" or
+  // any swear reads as imported. Short list, word boundaries (law 9); a
+  // word the brief itself uses (a home-brewer's "brew") is echoed, not
+  // flagged.
+  if (serverMarketId() === 'ZA') {
+    const ZA_FOREIGN = /\b(mates?|nan|mum(?:s|my)?|cheeky|bloody|bollocks?|brew|quid|knackered|taking the piss|cuppa|bloke|innit|blimey|[fsc]\*+[a-z'’]*|fuck\w*|shit\w*|cunt\w*|arse(?:d|hole)?|bastards?|wankers?|pricks?|twats?|bellend|knob(?:head)?s?|piss(?:ed|ing)?|shag\w*|tits|bugger(?:ing)?|sod(?:ding)?|git|shite|crap(?:py)?|damn(?:ed)?|hell)\b/gi;
+    const own = `${b.interest ?? ''} ${b.dislikes ?? ''} ${b.name ?? ''} ${b.insideName ?? ''}`.toLowerCase();
+    cards.forEach((c, i) => {
+      const hits = Array.from(new Set((`${c.front_text ?? ''} ${c.inside_text ?? ''}`.match(ZA_FOREIGN) ?? []).map((w) => w.toLowerCase()))).filter((w) => !own.includes(w));
+      if (hits.length) v.push(`za-register: card ${i + 1} says "${hits.join('", "')}": British slang or swearing reads as imported on a South African card. Rewrite in plain, warm South African English (Mom, not Mum), no swear words of any grade`);
     });
   }
   // ⚠️ THE MASKING LAW IS CODE NOW (2026-08-31). Two cards reached the
@@ -2082,6 +2115,18 @@ export const RUDE_MECHS: Record<string, string> = {
   formal: 'MISPLACED FORMALITY — obscenity delivered deadpan in entirely the wrong register: officialese, ceremony, small print, a polite notice, a listing. The collision between the register and the filth is the whole joke, so the formal voice must be played completely straight.',
 };
 
+/** SOUTH AFRICA — the one market block on the writer (2026-10-15). Appended
+ *  only when MARKET=ZA, so the GB prompt is byte-identical. Territory
+ *  described, nothing local named as an example (law 1: an example
+ *  becomes the menu); the code floor `za-register` is the guarantee. */
+const V2_ZA_REGISTER = `MARKET — SOUTH AFRICA. These cards are bought in South Africa, by South Africans, for South Africans. Wherever this prompt says UK or British, read South African; this block outranks anything above it.
+- THE REGISTER: warm, sincere and plain first. Say the true thing simply, the way a South African writes inside a card by hand. A card that is simply lovely is a finished card; do not reach for a joke the tone did not ask for.
+- HUMOUR only where a slot's tone asks for it (funny or playful), and then gentle, situational and kind: a smile at their own habits, never a put-down, never a pun that needs explaining.
+- NO BRITISH IDIOM OR SLANG anywhere: no mate, nan, cheeky, bloody, bollocks, brew, quid, knackered, taking the piss, and no pub or football-terrace banter. They read as imported.
+- NO SWEARING AT ALL, of any grade, masked or printed. Everything above about rude registers, swears, masked words and milds does not apply in this market: a slot marked PLAYFUL is light teasing, kindly meant, without a single swear word.
+- LOCAL REFERENCES ARE EARNED, NEVER STAPLED ON: a South African place, food, team or habit appears only when the person's own thing is that thing. Local colour added to prove where the card was made is a failed card.
+- SPELLING is South African English: Mom (never Mum), colour, favourite, centre. No Afrikaans, isiZulu or other South African language words unless the brief itself uses them; when it does, echo them exactly and respectfully.`;
+
 export function v2SystemPrompt(visual: 'celebrait' | 'open' | 'charm', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string; cast?: boolean; rudeMech?: string }>, occasionBrief: string): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
@@ -2114,7 +2159,7 @@ ${visual === 'charm' ? V2_CHARM_REGISTER : visual === 'celebrait' ? V2_CELEBRAIT
 - THE RUDE CARD IS NOT EXEMPT FROM THE PERSON. Rude lives in the SENTENCE; the artwork still belongs to the recipient's world and taste. When the brief leans a taste — a her, a nan, a soft or delicate aesthetic — the rude card wears that aesthetic WITH the filthy line: the sweetest-looking card with the worst mouth is the stronger joke and the bigger seller. Observed failure: an 18-year-old-her brief returned a rude card of calculator, wifi symbol and red-black chrome — nothing of her on it — because the slot assumed rude means masculine poster. It does not.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
-Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.`;
+Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.${serverMarketId() === 'ZA' ? `\n\n${V2_ZA_REGISTER}` : ''}`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -2505,7 +2550,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
     const serious = occProfile.humour === 'off';
     // The rude TONE implies cheek; the legacy checkbox still works so
     // the bench and any saved call sites keep behaving.
-    const effectiveCheeky = (body.cheeky || body.tone === 'rude') && body.tone !== 'mix' && !serious;
+    // ZA: the rude id means PLAYFUL (no swearing), so cheek never arms there.
+    const effectiveCheeky = (body.cheeky || body.tone === 'rude') && body.tone !== 'mix' && !serious && serverMarketId() !== 'ZA';
     // Which three of the four angles this set gets. Rotated here so the
     // three shapes stop being identical on every brief we have ever run.
     const chosenAngles = (body.angles as Angle[] | undefined)
@@ -2893,7 +2939,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // Christmas rude: ONE dealt filthy hero (stable across repair
         // rounds), marked on its slot so the writer aims the swearing
         // there and the rude-slot floor enforces it.
-        const xmasHero = occKey === 'christmas' && body.tone === 'rude' && !mixTones ? Math.floor(Math.random() * 3) : null;
+        const xmasHero = occKey === 'christmas' && body.tone === 'rude' && !mixTones && serverMarketId() !== 'ZA' ? Math.floor(Math.random() * 3) : null;
         // The cast is DEALT, not permitted — the audit found zero cast
         // in thirty cards under permission alone. Kids always get a
         // cast card (matching the floor); adults roughly one set in
@@ -2915,13 +2961,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
           [rudeMechKeys[xmasHero], rudeMechKeys[3]] = [rudeMechKeys[3], rudeMechKeys[xmasHero]];
         }
         const rudeMechFor = (i: number): string | undefined => {
+          if (serverMarketId() === 'ZA') return undefined; // ZA: no filth engines, playful only
           if (mixTones) return mixTones[i] === 'rude' ? rudeMechKeys.find((k) => k !== 'innuendo') : undefined;
           return body.tone === 'rude' ? rudeMechKeys[i % rudeMechKeys.length] : undefined;
         };
         const slots = v2Angles.map((a, i) => ({ angle: a,
           cast: xmasCast === i || undefined,
           rudeMech: rudeMechFor(i),
-          tone: mixTones ? mixTones[i] : (xmasHero === i ? 'rude' : undefined),
+          tone: mixTones ? (mixTones[i] === 'rude' && serverMarketId() === 'ZA' ? 'playful' : mixTones[i]) : (xmasHero === i ? 'rude' : undefined),
           format: freeComp ? undefined : (i === typeledAt ? 'typeled' : otherFormats.pop()!),
           register: i === typeledAt ? typeledRegister : restRegisters.shift()!,
           territory: territories.length === 3 ? territories[i] : undefined,

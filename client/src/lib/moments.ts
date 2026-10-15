@@ -5,6 +5,9 @@
 // two surfaces can never disagree about what a moment is or when the
 // nationals fall.
 
+import { marketId } from '@shared/market';
+import { market } from '@shared/market';
+
 export interface UpcomingReminder {
   occasionId: number;
   entryId: number;
@@ -22,7 +25,10 @@ export interface UpcomingReminder {
 // Day is the third Sunday of June) — a table is auditable at a glance,
 // an Easter computation is not. Extend before 2030.
 const NATIONAL_TABLE: Record<string, string[]> = {
-  "Mother's Day": ['2026-03-15', '2027-03-07', '2028-03-26', '2029-03-11', '2030-03-31'],
+  // ZA (2026-10-15): Mother's Day is the 2nd Sunday of May there.
+  "Mother's Day": marketId() === 'ZA'
+    ? ['2026-05-10', '2027-05-09', '2028-05-14', '2029-05-13', '2030-05-12']
+    : ['2026-03-15', '2027-03-07', '2028-03-26', '2029-03-11', '2030-03-31'],
   "Father's Day": ['2026-06-21', '2027-06-20', '2028-06-18', '2029-06-17', '2030-06-16'],
 };
 
@@ -65,7 +71,7 @@ export function nextNationalMoments(today: Date): NationalMoment[] {
 }
 
 export function fmtMomentDate(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {
+  return new Date(iso + 'T00:00:00').toLocaleDateString(market().locale, {
     day: 'numeric',
     month: 'long',
   });
@@ -76,7 +82,7 @@ export function countdownLabel(days: number): string {
   if (days === 1) return 'Tomorrow';
   if (days < 30) return `${days} days`;
   if (days < 60) return 'Next month';
-  return new Date(Date.now() + days * 86_400_000).toLocaleDateString('en-GB', {
+  return new Date(Date.now() + days * 86_400_000).toLocaleDateString(market().locale, {
     month: 'long',
   });
 }
@@ -115,8 +121,12 @@ export function daysToChristmas(): number {
 export function occasionFacts(): string[] {
   return [
     `Christmas is in ${daysToChristmas()} days. The best cards get made in slippers, not in a panic.`,
-    'Mothering Sunday moves with Easter every year. We track it so you never have to.',
-    'The average Brit forgets three birthdays a year. Not you. Not any more.',
+    marketId() === 'ZA'
+      ? "Mother's Day is the second Sunday of May. We'll remind you in time."
+      : 'Mothering Sunday moves with Easter every year. We track it so you never have to.',
+    marketId() === 'ZA'
+      ? 'Birthdays sneak up on everyone. Not you. Not any more.'
+      : 'The average Brit forgets three birthdays a year. Not you. Not any more.',
     "A kept card outlives a text by years. Mantelpieces don't have notification settings.",
   ];
 }
