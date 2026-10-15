@@ -24,6 +24,7 @@
 // it silently.
 
 import { seoForPath, robotsForPath, isKnownRoutePath, SITE_ORIGIN } from '@shared/seo';
+import { marketBootScript } from '@shared/market';
 import type { PageSeo } from '@shared/seo';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
@@ -62,7 +63,10 @@ function isShareLinkPath(p: string): boolean {
  *  registry. Never throws: a DB blip serves base metadata. */
 export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
   const rack = await rackOpen();
-  return withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack);
+  const html = withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack);
+  // The market (GB/ZA) the client reads synchronously on first paint, so
+  // no frame ever renders in the wrong currency. See shared/market.ts.
+  return html.replace('</head>', `${marketBootScript()}</head>`);
 }
 
 /** The X-Robots-Tag for the shell response — the rack flag read once. */
