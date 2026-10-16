@@ -64,6 +64,12 @@ export function deriveFrontSceneVars(vars: FrontSceneVars): RenderVars {
     noClothing: !hasUserClothing,
     aiDecideStyle: !hasUserArtStyle,
     includeText: !!(vars.includeText && vars.cardText?.trim()),
+    /** The missing else-branch (Aidan's Maui card, 2026-08-14): with
+     *  includeText false the template said NOTHING about text, and the
+     *  image model invented its own slogan ("LIVING MY BEST LIFE MAUI
+     *  STYLE!"). Silence is not an instruction. This powers the
+     *  {{#if noText}} zero-text block in the front_scene templates. */
+    noText: !(vars.includeText && vars.cardText?.trim()),
     cardText: vars.cardText ?? '',
     // Photo mode flags — used by {{#if}} blocks in the template to
     // give the model explicit context about what the reference images

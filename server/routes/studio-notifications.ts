@@ -36,10 +36,11 @@
 // fired, etc.) the migration is mechanical.
 
 import type { Express, Request, Response } from 'express';
-import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { cards } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { publicImageUrl } from '../image-storage';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
@@ -98,9 +99,21 @@ export function registerStudioNotificationRoutes(app: Express) {
         // `->'recipient'->>'name'` returns NULL if `recipient` is
         // missing or if `name` isn't a string — same graceful fallback
         // the previous JS guards gave us.
+        // Two classes of "there's something for you" event, unified into
+        // one cheap poll:
+        //   • completed  → the one-shot reveal celebration. Deduped via
+        //     notifiedAt (stamped when the user engages), so it fires once.
+        //   • front-ready / inside-ready → the front-first flow PAUSES in
+        //     these states waiting for the user to come approve a side.
+        //     These are LIVE actionable states (they clear themselves the
+        //     moment the card advances), so they intentionally ignore
+        //     notifiedAt — that column is reserved for the completion
+        //     celebration. Client-side dedupe (per cardId+status, plus
+        //     "am I already on this card?") keeps them from spamming.
         const rows = await db
           .select({
             cardId: cards.id,
+            status: cards.status,
             recipientName: sql<string | null>`${cards.conversationData}->'recipient'->>'name'`,
             occasion: sql<string | null>`${cards.conversationData}->'recipient'->>'occasion'`,
             frontImagePath: cards.frontImagePath,
@@ -111,9 +124,11 @@ export function registerStudioNotificationRoutes(app: Express) {
           .where(
             and(
               eq(cards.userId, userId),
-              eq(cards.status, 'completed'),
-              isNull(cards.notifiedAt),
               gte(cards.createdAt, cutoff),
+              or(
+                and(eq(cards.status, 'completed'), isNull(cards.notifiedAt)),
+                inArray(cards.status, ['front-ready', 'inside-ready']),
+              ),
             ),
           )
           .orderBy(desc(cards.createdAt))
@@ -124,10 +139,11 @@ export function registerStudioNotificationRoutes(app: Express) {
         // legacy base64 data: URL stashed in frontImageUrl.
         const unread = rows.map((r) => ({
           cardId: r.cardId,
+          status: r.status,
           recipientName: r.recipientName?.trim() || null,
           occasion: r.occasion || null,
           frontImageUrl: r.frontImagePath
-            ? `/images/${r.frontImagePath}`
+            ? publicImageUrl(r.frontImagePath)
             : r.frontImageUrl,
           createdAt: r.createdAt,
         }));

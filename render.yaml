@@ -1,0 +1,63 @@
+# Render Blueprint for Celebrait — a single always-on Node web service.
+#
+# Why Render (not Vercel): the studio kicks off AI card generation in the
+# BACKGROUND and replies immediately, then keeps working ~45-90s to finish.
+# That needs a long-running process, which Render gives us; Vercel's
+# serverless model would freeze the function after the response and the
+# card would never finish generating.
+#
+# Render runs `npm run build` (vite client + esbuild server) then
+# `npm start` (node dist/index.js). The server binds 0.0.0.0:$PORT, which
+# Render sets automatically.
+#
+# To deploy: Render dashboard -> New + -> Blueprint -> connect this repo.
+# Render reads this file, then prompts you for the `sync: false` secret
+# values below. See DEPLOY.md for the click-by-click walkthrough.
+
+services:
+  - type: web
+    name: celebrait
+    runtime: node
+    plan: free                 # plenty for testing; sleeps when idle (~30s cold start)
+    region: frankfurt          # closest Render region to UK users
+    branch: claude/nice-rosalind-171f52
+    # --include=dev forces dev dependencies (vite, esbuild, tailwind, tsc) to
+    # install even though NODE_ENV=production — they're needed to BUILD. The
+    # built output runs on prod deps only.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true           # re-deploys automatically on every push to the branch
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Keep payments + print on safe STUBS for the test server — no real
+      # money is taken and no real print orders are submitted.
+      - key: STUDIO_PAYMENT_PROVIDER
+        value: stub
+      - key: STUDIO_PRINT_PROVIDER
+        value: stub
+
+      # Render generates a strong random value on deploy — leave it to Render.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # ---- Secrets you paste in the Render dashboard (blank here on purpose) ----
+      - key: DATABASE_URL        # REQUIRED: your Neon Postgres connection string
+        sync: false
+      - key: GEMINI_API_KEY      # image generation (Gemini / Nano Banana)
+        sync: false
+      - key: OPENAI_API_KEY      # image generation (gpt-image)
+        sync: false
+
+      # Set this AFTER the first deploy, to your live Render URL
+      # (e.g. https://celebrait.onrender.com). Used for links + OAuth redirects.
+      - key: PUBLIC_APP_ORIGIN
+        sync: false
+
+      # ---- Optional: add these later in the dashboard to switch features on ----
+      # Email (Brevo):   BREVO_API_KEY, BREVO_SMTP_USER, BREVO_SMTP_KEY,
+      #                  MAIL_FROM_EMAIL, MAIL_FROM_NAME
+      # Google sign-in:  GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+      #                  (GOOGLE_REDIRECT_URI = <your Render URL>/api/auth/google/callback)

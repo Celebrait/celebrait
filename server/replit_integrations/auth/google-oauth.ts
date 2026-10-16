@@ -35,6 +35,7 @@ import { randomBytes } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { users } from '@shared/models/auth';
+import { sendWelcomeEmail } from '../../email-service';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -87,6 +88,20 @@ export function registerGoogleAuthRoutes(app: Express): void {
   } else {
     console.log('[google-oauth] Routes registered. Redirect URI:', cfg.redirectUri);
   }
+
+  // ── Step 0 ─ is this even switched on?
+  //
+  // The client used to decide whether to render "Continue with Google"
+  // from a hardcoded flag, which meant the button and the server config
+  // could disagree in both directions — a dead button that 503s, or a
+  // working provider nobody can reach. This lets the client ask.
+  //
+  // Deliberately public and deliberately boring: a boolean saying
+  // whether three env vars are present. It leaks nothing an attacker
+  // couldn't learn by clicking the button.
+  app.get('/api/auth/google/available', (_req: Request, res: Response) => {
+    res.json({ available: readGoogleConfig() !== null });
+  });
 
   // ── Step 1 ─ kickoff. Redirect the browser to Google's consent screen.
   app.get('/api/auth/google', (req: Request, res: Response) => {
@@ -239,6 +254,10 @@ export function registerGoogleAuthRoutes(app: Express): void {
           })
           .returning();
         user = newUser;
+        // Welcome email — once, on Google signup. Fire-and-forget.
+        sendWelcomeEmail({ email: normalizedEmail, firstName: info.given_name || null }).catch(
+          (err) => console.error('[AUTH] welcome email failed (google):', err),
+        );
       }
 
       // ── Step 4d ─ establish session. Reuse the OTP session key so

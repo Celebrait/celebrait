@@ -6,6 +6,7 @@
 // that land here.
 
 import { useQuery } from '@tanstack/react-query';
+import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
 import { Wand2, Send } from 'lucide-react';
 import { CardGrid, CardGridSkeleton } from '@/components/studio/card-grid';
@@ -24,11 +25,10 @@ export default function StudioSent() {
       {isLoading ? (
         <CardGridSkeleton />
       ) : error ? (
-        <ErrorState message={error instanceof Error ? error.message : 'Please try again.'} />
+        <ErrorState message={friendlyError(error, 'Please try again.')} />
       ) : (
         <CardGrid
           cards={bucketCards(data ?? []).sent}
-          showNewCardTile={false}
           emptyHint={<SentEmpty />}
         />
       )}
@@ -40,14 +40,14 @@ function PageHeader() {
   return (
     <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">Sent</h1>
-        <p className="text-sm text-stone-600 mt-1">
-          Every card you've made — keep them as keepsakes, or reorder in a tap.
+        <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-[-0.015em] text-keeper-ink">Sent</h1>
+        <p className="text-sm text-keeper-body mt-1">
+          Every card you've made. Keep them as keepsakes, or reorder in a tap.
         </p>
       </div>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm flex-shrink-0"
         data-testid="sent-new-card"
       >
         <Wand2 className="w-4 h-4" />
@@ -63,19 +63,24 @@ function SentEmpty() {
       <div className="w-14 h-14 rounded-full bg-brand-muted text-brand-dark flex items-center justify-center mx-auto mb-4">
         <Send className="w-6 h-6" />
       </div>
-      <p className="text-base font-semibold text-ink mb-1">No sent cards yet</p>
-      <p className="text-sm text-stone-600 mb-6 max-w-sm mx-auto">
-        Cards you've finished and ordered will appear here — ready to
+      <p className="text-base font-semibold text-keeper-ink mb-1">No sent cards yet</p>
+      <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">
+        Cards you've finished and ordered will appear here, ready to
         share again, reorder, or keep as a keepsake.
       </p>
       <Link
         href="/studio/new-card"
-        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 bg-go hover:bg-go-hover text-white rounded-full px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
         data-testid="sent-empty-start-card"
       >
         <Wand2 className="w-4 h-4" />
         Start your first card
       </Link>
+      <p className="mt-3 text-xs text-keeper-meta">
+        <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="sent-empty-questions">
+          Answer a few questions instead
+        </Link>
+      </p>
     </div>
   );
 }
@@ -83,8 +88,8 @@ function SentEmpty() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="max-w-md mx-auto text-center py-12">
-      <p className="text-sm text-red-600 mb-2">Couldn't load your sent cards.</p>
-      <p className="text-xs text-stone-500">{message}</p>
+      <p className="text-sm text-accent-red-dark mb-2">Couldn't load your sent cards.</p>
+      <p className="text-xs text-keeper-meta">{message}</p>
     </div>
   );
 }
