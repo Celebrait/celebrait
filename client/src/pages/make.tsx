@@ -22,7 +22,7 @@ import { CropDialog } from '@/components/studio/crop-dialog';
 import { PhotoConsentLine, PhotoTips, readPhotoConsent, rememberPhotoConsent } from '@/components/photo-consent-tips';
 import { likenessNoteForSet, ANALYSIS_GATE_MS, type PhotoSetNote } from '@/lib/photo-likeness';
 import { toast } from '@/hooks/use-toast';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, VIBE_SUB, MUM_WORD, frontWordOf, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, VIBE_SUB, MUM_WORD, frontWordOf, briefLanguage, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
@@ -33,7 +33,7 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { cardPrice, HONEST_LEAD_LINE } from '@shared/pricing';
-import { formatMoney } from '@shared/market';
+import { formatMoney, marketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import type { CropBounds } from '@shared/models/photos';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -84,7 +84,13 @@ const INSIDE_MAX = 300;
 // brief arrives here in the URL; `go=1` means it's finished — straight
 // into the wait.
 
-interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string }
+interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string;
+  /** ZA languages (2026-10-16): set by the engine when the card is not
+   *  English; greeting + opener are the phrasebook words (zu/xh). */
+  language?: string; greeting?: string; opener?: string }
+/** The read-back fields for a render: only a non-English card is checked. */
+const textCheckFor = (c: Concept, expectedText: string | undefined) =>
+  (c.language && c.language !== 'en' && expectedText ? { language: c.language, expectedText } : {});
 /** The photo route's failure kinds (generation-error-panel.tsx), plus our
  *  own ceiling. Same words on both routes (Aidan 2026-09-08). */
 type FailCode = 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown';
@@ -96,7 +102,9 @@ const FAIL_COPY: Record<FailCode, { title: string; tile: string; retry: string }
   timeout: { title: 'That one took too long', tile: 'That one took too long to draw.', retry: 'Have another go' },
   unknown: { title: 'That one didn’t land', tile: 'That one didn’t come out.', retry: 'Have another go' },
 };
-interface CardCell { concept: Concept; imageUrl?: string; error?: string; code?: FailCode; retrying?: boolean }
+interface CardCell { concept: Concept; imageUrl?: string; error?: string; code?: FailCode; retrying?: boolean;
+  /** The lettering read back off this front didn't match the words (ZA languages). */
+  textFailed?: boolean }
 type Phase = 'brief' | 'generating' | 'results' | 'cameo' | 'signoff' | 'done' | 'failed' | 'capped';
 
 // ── the landing's classes (Aidan 2026-09-03: "not sure we need to flip
@@ -280,6 +288,8 @@ export default function MakePage() {
   const cameoFileRef = useRef<HTMLInputElement>(null);
   const [insideUrl, setInsideUrl] = useState<string | null>(null);
   const [insideBusy, setInsideBusy] = useState(false);
+  /** The inside's opener didn't read back as written (ZA isiZulu/isiXhosa). */
+  const [insideTextFailed, setInsideTextFailed] = useState(false);
 
   // ── the wait: narration in words, driven by what's really happening
   // (components/make-narration.tsx). `waitConcepts` flips the act from
@@ -317,6 +327,8 @@ export default function MakePage() {
         // system prompt; the other two print their schema defaults).
         pipeline: 'celebrait', freeComposition: true, age: ageNum,
         interest: brief.thing.trim() || undefined, dislikes: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, frontWord: frontWordOf(brief), memory: false,
+        // ZA only: the card's language (English unless the buyer chose one).
+        ...(marketId() === 'ZA' ? { language: briefLanguage(brief) } : {}),
       });
       const concepts: Concept[] = j.concepts ?? [];
       if (!concepts.length) throw new Error('Nothing came back. Try again');
@@ -346,8 +358,8 @@ export default function MakePage() {
   };
   const renderCell = async (i: number, c: Concept, safer = false): Promise<boolean> => {
     try {
-      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
-      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined, code: undefined } : x)));
+      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, ...textCheckFor(c, c.front_text) });
+      setCells((prev) => prev.map((x, j) => (j === i ? { ...x, imageUrl: rj.imageUrl, error: undefined, code: undefined, textFailed: rj.textCheck === 'failed' } : x)));
       setLanded((n) => n + 1);
       return true;
     } catch (e: any) {
@@ -410,8 +422,9 @@ export default function MakePage() {
       // edit wedged him into the shirt half-photoreal; the redraw "took
       // the existing concept and reworked it… kept the text style,
       // colours"). The edit path stays available in the lab only.
-      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw' });
+      const rj = await makePost('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true, cameoPhoto: photo, cameoMode: 'redraw', ...textCheckFor(c, c.front_text) });
       setCameoUrl(rj.imageUrl);
+      if (rj.textCheck === 'failed') toast({ title: 'We checked the lettering on this one', description: 'It isn’t spelled exactly right. Try the photo again, or keep the card without it.' });
       // QA it in the BACKGROUND — the card shows straight away and the
       // verdict catches up. Gating the reveal on a vision call would add
       // three seconds to a wait we've already apologised for.
@@ -455,8 +468,9 @@ export default function MakePage() {
       const core = message.trim();
       const joined = [dear.trim(), core, from.trim()].filter(Boolean).join('\n\n');
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
-      const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction });
-      setInsideUrl(ir.imageUrl); setPhase('done');
+      // ZA isiZulu/isiXhosa: the opener is read back, if it's still in their words.
+      const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction, ...textCheckFor(c, c.opener && joined.includes(c.opener) ? c.opener : undefined) });
+      setInsideUrl(ir.imageUrl); setInsideTextFailed(ir.textCheck === 'failed'); setPhase('done');
     } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render. Try again')); }
     finally { setInsideBusy(false); }
   };
@@ -579,11 +593,12 @@ export default function MakePage() {
               them (the front is right there; captions only cut off). */}
           <div className="mt-8 grid grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6">
             {cells.map((c, i) => (
-              <button key={i} type="button" disabled={!c.imageUrl}
+              <div key={i}>
+              <button type="button" disabled={!c.imageUrl || c.retrying}
                 onClick={() => { setPicked(i); if (picked !== i || !message.trim()) setMessage(c.concept.inside_text ?? ''); setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null); setPhase('cameo'); }}
                 className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-keeper-gold disabled:cursor-default"
                 aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
-                {c.imageUrl
+                {c.imageUrl && !c.retrying
                   ? <AjarTile imageUrl={c.imageUrl} alt={c.concept.front_text} eager />
                   : c.retrying
                     ? <div className="relative aspect-square overflow-hidden rounded-r-[6px] rounded-l-[2px] bg-gradient-to-br from-brand-muted via-brand-muted/70 to-brand-muted/90 ring-1 ring-brand/15" aria-label="Drawing this one again">
@@ -594,6 +609,16 @@ export default function MakePage() {
                         <span role="button" onClick={(e) => { e.stopPropagation(); void tryAgain(i); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">{FAIL_COPY[c.code ?? 'unknown'].retry}</span>
                       </div>}
               </button>
+              {/* ZA languages: we read the lettering back and it isn't
+                  exactly the words. Said out loud, with its retry, never
+                  left to be picked silently. */}
+              {c.imageUrl && c.textFailed && !c.retrying && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-accent-red-dark" data-testid="text-check-failed">
+                  <span>We checked the lettering and it isn’t spelled exactly right.</span>
+                  <button type="button" onClick={() => void tryAgain(i)} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">Draw it again</button>
+                </div>
+              )}
+              </div>
             ))}
           </div>
           <div className="mt-10 flex flex-col items-start gap-3 border-t border-keeper-hair pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -765,6 +790,12 @@ export default function MakePage() {
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{insideUrl && <img src={insideUrl} alt="inside" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The inside</p></div>
           </div>
+          {insideTextFailed && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-accent-red-dark" data-testid="inside-text-check-failed">
+              <span>We checked the lettering inside and the opening line isn’t spelled exactly right.</span>
+              <button type="button" onClick={() => { setPhase('signoff'); void renderInside(); }} className="inline-flex items-center gap-1.5 rounded-full border border-keeper-hair bg-white px-3 py-1.5 text-xs font-medium text-keeper-body hover:border-keeper-gold hover:text-keeper-gold">Design the inside again</button>
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button type="button" disabled={!!saving || !chosenFront} className={commit}
               onClick={() => {

@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
 import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
 import { marketId } from '@shared/market';
+import { CARD_LANGUAGES, type CardLanguage } from '@shared/sa-languages';
+import { cardLanguageAvailable, isCardLanguage } from '@shared/card-language';
 
 /** South Africa (MARKET=ZA, 2026-10-15). The words a South African buyer
  *  uses for their people, and a gentler top register: the engine still
@@ -33,8 +35,15 @@ export type FrontWord = 'role' | 'name' | 'none';
 export interface Brief {
   who: string; gender: 'him' | 'her' | null; occasion: string; age: string;
   vibe: Vibe; thing: string; cant: string; name: string; front: FrontWord;
+  /** The card's language (ZA only, 2026-10-16). Always 'en' in GB. */
+  lang: CardLanguage;
 }
-export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '', front: 'none' });
+export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '', front: 'none', lang: 'en' });
+/** The languages this occasion can be written in (ZA). English first, always. */
+export const languagesFor = (occasion: string) => (ZA ? CARD_LANGUAGES.filter((l) => cardLanguageAvailable(l.id, occasion)) : CARD_LANGUAGES.filter((l) => l.id === 'en'));
+/** The language the engine is asked for: the buyer's choice when this
+ *  occasion offers it, English otherwise (or in GB). */
+export const briefLanguage = (b: Pick<Brief, 'lang' | 'occasion'>): CardLanguage => (ZA && cardLanguageAvailable(b.lang, b.occasion) ? b.lang : 'en');
 /** The literal word the engine may set on the front, or nothing. */
 export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'>): string | undefined {
   if (b.front === 'role') return NAME_LIKE.has(b.who.trim()) ? b.who.trim() : undefined;
@@ -168,6 +177,7 @@ export function readBriefFromSearch(search: string): Brief {
     cant: (q.get('cant') ?? '').slice(0, 60),
     name,
     front: f === 'role' || f === 'name' || f === 'none' ? f : defaultFront(who, name),
+    lang: ZA && isCardLanguage(q.get('lang')) ? (q.get('lang') as CardLanguage) : 'en',
   };
 }
 /** Mum/Dad/Nan/Grandad (ZA: Mom/Dad/Ouma/Oupa/Gogo/Granny/Grandpa) lead with the word itself; anyone else leads
@@ -184,6 +194,7 @@ export function briefToSearch(b: Brief): string {
   if (b.cant) q.set('cant', b.cant);
   if (b.name) q.set('name', b.name);
   if (b.front !== defaultFront(b.who, b.name)) q.set('front', b.front);
+  if (ZA && b.lang && b.lang !== 'en') q.set('lang', b.lang);
   return q.toString();
 }
 export const ageOf = (b: Brief): number | null => { const n = parseInt(b.age, 10); return Number.isInteger(n) && n >= 1 && n <= 110 ? n : null; };
@@ -452,6 +463,19 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                     an error on video (Aidan 2026-09-17). Real buyers keep it. */}
                 {!minimal && brief.name.trim() && <p className={s.warn}>It’ll be printed exactly as you type it, so worth a double-check.</p>}
               </>
+            )}
+            {/* ZA only (2026-10-16): the card's language, one tap, English
+                by default; only languages this occasion can be written in. */}
+            {ZA && languagesFor(brief.occasion).length > 1 && (
+              <div className="mt-6" data-testid="lang-row">
+                <p className={`${s.sub} font-medium text-keeper-ink`}>Write it in</p>
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {languagesFor(brief.occasion).map((l) => (
+                    <button key={l.id} type="button" className={s.chip(briefLanguage(brief) === l.id)} onClick={() => set({ lang: l.id })} aria-pressed={briefLanguage(brief) === l.id}>{l.label}</button>
+                  ))}
+                </div>
+                {!minimal && <p className={s.helper}>{CARD_LANGUAGES.find((l) => l.id === briefLanguage(brief))?.sub}</p>}
+              </div>
             )}
             {!minimal && <p className={`${s.helper} mt-4`}>Got a photo of {whoPhrase(brief)} handy? After you pick your favourite, we can put them right in the card.</p>}
           </>

@@ -44,6 +44,8 @@ import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@
 import { isMilestone } from '@shared/catalogue';
 import { hasAiDash, stripAiDash } from '@shared/no-dash';
 import { serverMarketId } from '@shared/market';
+import { LANGUAGE_MODE, type CardLanguage } from '@shared/sa-languages';
+import { cardPhraseFor, textCheckPasses } from '@shared/card-language';
 import { publicImageUrl, storeDisplayWebpSibling } from '../image-storage';
 import { isR2Enabled, r2Put, r2Copy } from '../r2-storage';
 import { openai } from '../utils/shared';
@@ -768,7 +770,7 @@ COLOUR: the SAME palette family as the front card but LIGHTER and quieter — us
 TYPOGRAPHY: the same TYPESET treatment as the front — a real typeface, cleanly drawn, printing perfectly clean with no ink texture, no misregistration and no stray marks near any letter — but calmer and smaller. Set the message in a clear hierarchy: the greeting small at the top, the message in the middle at reading size, the sign-off smaller beneath. Every word perfectly legible and correctly spelled.
 NEVER: no people, no faces, no hands, no figures of any kind. Never repeat the front card's main subject at full size — the inside of a real card never re-prints its own cover.`;
 
-const conceptsSchema = z.object({
+export const conceptsSchema = z.object({
   who: z.string().max(60),
   occasion: z.string().max(60),
   from: z.string().max(60).optional(),
@@ -860,6 +862,11 @@ const conceptsSchema = z.object({
   dislikes: z.string().max(200).optional(),
   /** Character ladder — see quirkyDna(). */
   characters: z.enum(['objects', 'animals', 'figures']).default('objects'),
+  /** The card's language (South Africa only, 2026-10-16; see
+   *  shared/sa-languages.ts). 'af' = written in Afrikaans; 'zu'/'xh' =
+   *  the phrasebook greeting on the front and opener inside, placed by
+   *  code, the rest English. Ignored unless MARKET=ZA. */
+  language: z.enum(['en', 'af', 'zu', 'xh']).default('en'),
 });
 
 interface CardConcept {
@@ -1570,7 +1577,7 @@ export function stockPunCheck(fronts: string[], recentFronts: string[]): string[
   return v;
 }
 
-export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null, layBuyer = true): string {
+export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null, layBuyer = true, language?: CardLanguage): string {
   return `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack${layBuyer ? ' — a stranger who knows the recipient but has never done their hobby' : ''}. Then judge these floors:
 - PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE). ⚠️ PUNS MUST PARSE TOO — the GARDEN-PATH PUN fails here: wordplay that substitutes into an idiom but leaves the literal sentence ungrammatical, forcing the reader to re-group the words ("You can spot a fake tortilla aisle away" — the dropped article makes it read as a fake tortilla-aisle; "an aisle away" parses AND keeps the joke; a real buyer's verdict was "makes zero sense"). Read every pun as plain English first: if the surface sentence is broken until you find the substitution, it FAILS.
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
@@ -1580,20 +1587,21 @@ ${layBuyer ? `- LAY BUYER (2026-09-13): the person BUYING knows the recipient, n
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at. A standalone two-word swear sentence tagged onto a clean claim ("F***ing obviously.") fails even when the claim survives — the swear is decoration, not register.
 ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
 ` : ''}${interest?.trim() ? `- THE SUBJECT ANCHOR: the brief's subject is "${interest.trim()}". If that names a SPECIFIC show, film, book, team or place, EVERY front must name it or unmistakably anchor it — answering a named subject with its generic CATEGORY (telly-in-general for a named sitcom, football-in-general for a named club) fails the set's whole reason for existing; flag every card that could be about the category rather than the subject. Judge anchored cards at a knowing buyer's half-second: the reference must be the subject's most famous tier and land instantly for someone who knows it — depth of fandom never excuses a second read.
+` : ''}${language === 'af' ? `- LANGUAGE: these lines are written in AFRIKAANS for Afrikaans readers. Wherever this prompt says English, read Afrikaans: judge sense and the first read in Afrikaans, never English idiom or word choice.
 ` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
 }
 
 export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null, layBuyer = true,
   /** Instrumentation only (2026-10-08): which round this is, and a hook
    *  the caller uses to total the set's wall-clock and spend. */
-  opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void }): Promise<string[]> {
+  opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void; language?: CardLanguage }): Promise<string[]> {
   try {
     const t0 = Date.now();
     const p = helperParams(700, 0.2);
     const r = await client.chat.completions.create({
       ...p,
       messages: [
-        { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer) },
+        { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer, opts?.language) },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
@@ -1619,14 +1627,22 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
   }
 }
 
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string }): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string; language?: CardLanguage; greeting?: string }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
+  // THE CARD'S LANGUAGE (ZA only, 2026-10-16). An Afrikaans card's words
+  // are Afrikaans, so floors that pattern-match ENGLISH words would fire
+  // on correct cards: those skip on `af` (each one marked below); the
+  // structural floors stay. A greeting card ('zu'/'xh') has the phrasebook
+  // greeting as its front, placed by code, so floors about the front's
+  // own wording cannot apply (`fixedFront`); `phrase-exact` guards it.
+  const af = opts?.language === 'af';
+  const fixedFront = !!opts?.greeting;
   // ⚠️ THE LENGTH REGISTERS ARE FLOORS TOO. Without this a 20-word
   // description landed in a SHORT slot and read as art direction on the
   // front of a card. Short hits, mid breathes, long builds — enforced.
-  if (slots) {
+  if (slots && !fixedFront) {
     fronts.forEach((f, i) => {
       const words = f.trim().split(/\s+/).filter(Boolean).length;
       const r = slots[i]?.register;
@@ -1651,6 +1667,14 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const printed = [c.front_text, ...(Array.isArray(c.front_candidates) ? c.front_candidates : []), c.inside_text].map((t) => String(t ?? ''));
     if (printed.some(hasAiDash)) v.push(`no-dash: card ${i + 1} leans on a dash — write the join: a full stop, a comma, or a colon; a hyphen inside a word is fine`);
   });
+  // ⚠️ THE PHRASEBOOK GREETING IS VERBATIM — IN CODE. Code places it on
+  // every front before this runs, so this never fires today; it guards
+  // any future edit that rewrites a front after placement.
+  if (opts?.greeting) {
+    fronts.forEach((f, i) => {
+      if (!f.includes(opts.greeting!)) v.push(`phrase-exact: card ${i + 1}'s front must carry the greeting "${opts.greeting}" exactly as written`);
+    });
+  }
   const arts = cards.map((c) => String(c.art_direction ?? ''));
   const whole = fronts.map((f, i) => `${f} ${arts[i]}`);
 
@@ -1765,7 +1789,8 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // any swear reads as imported. Short list, word boundaries (law 9); a
   // word the brief itself uses (a home-brewer's "brew") is echoed, not
   // flagged.
-  if (serverMarketId() === 'ZA') {
+  // Skipped on `af`: "mate" is an everyday Afrikaans word (in groot mate).
+  if (serverMarketId() === 'ZA' && !af) {
     const ZA_FOREIGN = /\b(mates?|nan|mum(?:s|my)?|cheeky|bloody|bollocks?|brew|quid|knackered|taking the piss|cuppa|bloke|innit|blimey|[fsc]\*+[a-z'’]*|fuck\w*|shit\w*|cunt\w*|arse(?:d|hole)?|bastards?|wankers?|pricks?|twats?|bellend|knob(?:head)?s?|piss(?:ed|ing)?|shag\w*|tits|bugger(?:ing)?|sod(?:ding)?|git|shite|crap(?:py)?|damn(?:ed)?|hell)\b/gi;
     const own = `${b.interest ?? ''} ${b.dislikes ?? ''} ${b.name ?? ''} ${b.insideName ?? ''}`.toLowerCase();
     cards.forEach((c, i) => {
@@ -1807,7 +1832,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // (Merry Winemas / Merry Bollocks Christmas) both count.
   if (opts?.occasionKey === 'christmas') {
     const GREET = /\b(merry|happy)\s+(?:[\w'’-]+\s+){0,2}(?:christmas|xmas|crimbo)\b|\b(?:merry|happy)\s+[\w'’-]*mas\b/i;
-    if (!fronts.some((f) => GREET.test(f)))
+    if (!fixedFront && !fronts.some((f) => GREET.test(f) || (af && /\bkersfees\b/i.test(f))))
       v.push('greeting-missing: not one front says Merry Christmas — at least one card carries the greeting, played straight by default, riffed only if the fusion genuinely sings');
   }
   // ⚠️ KIDS' CHRISTMAS BRINGS THE CAST — IN CODE. The world opened
@@ -1896,7 +1921,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       }
     }
   }
-  if (b.dislikes && hints.dislike) {
+  // Skipped on `af` (English hint words vs Afrikaans fronts) and on a
+  // fixed front (the joke, if any, lives inside).
+  if (b.dislikes && hints.dislike && !af && !fixedFront) {
     const n = whole.filter((w) => hints.dislike!.test(w)).length;
     if (n === 0) v.push(`dislike-missing: exactly one card must be built on "${b.dislikes}"`);
     if (n === 3) v.push('dislike-everywhere: the dislike may carry at most two cards');
@@ -1905,7 +1932,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     // ALL THREE (Aidan 2026-08-31: "if the user asks for something all
     // 3 cards should show it") — the buyer typed ONE thing; a card
     // that ignores it is a card they didn't ask for.
-    whole.forEach((w, i) => {
+    // Skipped on `af`: English hint words vs an Afrikaans front. The
+    // artwork floor below still reads the (English) art direction.
+    if (!af) whole.forEach((w, i) => {
       if (!hints.interest!.test(w)) v.push(`generic-set: card ${i + 1} never lands ${b.interest} in its words or artwork — the buyer asked for ONE thing and every card shows it`);
     });
     // ⚠️ 100% OF ILLUSTRATED ARTWORK COMES FROM THEIR WORLD — per card,
@@ -1944,8 +1973,11 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   if (opts?.occasionKey && opts.occasionKey !== 'birthday') {
     const OCC_WORLD: Record<string, RegExp> = {
       'christmas': /christmas|xmas|festive|stocking|tinsel|bauble|advent|mistletoe|sleigh|nativit|carol|wreath|december|yule|snow|holly|robin|mince pie|mulled|cracker|turkey|santa|reindeer|elf\b|elves|eggnog|gingerbread|candy cane|fairy lights|pigs in blankets|sprouts?\b/i,
-      "mother's day": /mother'?s day|mothering sunday|\bmum\b|\bmam\b/i,
-      "father's day": /father'?s day|\bdad\b/i,
+      // Curly apostrophe (2026-10-16): the writer prints "Mother’s Day", which
+      // the straight-only pattern missed, so occasion-missing fired on every
+      // card of every Mother's Day set. "Mom" for South Africa.
+      "mother's day": /mother['’]?s day|mothering sunday|\bmum\b|\bmam\b|\bmom\b/i,
+      "father's day": /father['’]?s day|\bdad\b/i,
       "valentine's day": /valentine|be mine|\bmy love\b/i,
       'anniversary': /anniversar|years together|married|wedding day/i,
       'wedding': /wedding|married|marriage|bride|groom|newlywed|big day|aisle/i,
@@ -1976,7 +2008,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       // Merry Christmas tucked inside cannot carry a front that reads
       // as any Friday night (observed: taxi-chips-chat works-do card,
       // zero Christmas on its face).
-      cards.forEach((c, i) => {
+      // Skipped on `af` (English occasion words) and on a fixed front (the
+      // greeting IS the occasion's own greeting).
+      if (!af && !fixedFront) cards.forEach((c, i) => {
         if (!(re.test(fronts[i]) || re.test(arts[i])))
           v.push(`occasion-missing: card ${i + 1} never lands ${opts.occasionKey} on its FACE — front words or artwork; the inside doesn't count because a rack browser never sees it. Right now this card could be any week of the year: fold the season into its own world (its light, one of its objects in the kit, or the words), never a stapled prop`);
       });
@@ -2000,7 +2034,7 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     // (false-fired on a "40." type poster, shipped as a phantom).
     const isTypeled = (c: CardConcept) => /type[- ]?led|text[- ]?only/i.test(`${c.format ?? ''} ${String(c.art_direction ?? '').slice(0, 40)}`);
     if (cards.some((c, i) => !isTypeled(c) && num.test(fronts[i]) && num.test(arts[i]))) v.push('number-twice: the number goes in the words OR the artwork of a card, never both (type-led cards exempt — their words are the artwork)');
-  } else if (!opts?.occasionKey || opts.occasionKey === 'birthday') {
+  } else if ((!opts?.occasionKey || opts.occasionKey === 'birthday') && !af && !fixedFront) {
     const n = fronts.filter(v2SaysOccasion).length;
     if (n === 0) v.push('occasion-missing: at least one front must say what the occasion is');
     // A GENERIC roll is ABOUT the occasion — all three may name it.
@@ -2033,7 +2067,8 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
     const leak = new RegExp(`\\b(${escaped}|${stem}\\w*)\\b`, 'i');
     if (fronts.some((f) => leak.test(f))) v.push(`name-on-front: "${b.insideName}" belongs INSIDE only — the front word is ${b.name ? `"${b.name}"` : 'nothing'}; no front may carry the first name`);
   }
-  if (b.gender !== 'unspecified') {
+  // Skipped on `af`: "man" (husband) is everyday Afrikaans on her cards.
+  if (b.gender !== 'unspecified' && !af) {
     const wrong = b.gender === 'her' ? V2_MALE : V2_FEMALE;
     if (fronts.some((f) => wrong.test(f))) v.push('gender-clash: remove gendered words that contradict the recipient');
   }
@@ -2049,7 +2084,8 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       .forEach((w) => seen.set(w, (seen.get(w) ?? 0) + 1));
   }
   const dupes = Array.from(seen.entries()).filter(([w, n]) => n >= 2 && !['still','another','birthday','happy','years','about','being'].includes(w));
-  if (dupes.length) v.push(`shared-vocab: "${dupes[0][0]}" appears on more than one front — each card gets its own vocabulary`);
+  // Skipped on `af` (English stoplist) and on a fixed front (one greeting, three cards).
+  if (dupes.length && !af && !fixedFront) v.push(`shared-vocab: "${dupes[0][0]}" appears on more than one front — each card gets its own vocabulary`);
   // The same floor for PICTURES: two cards of one set drew trainers
   // (yellow pair on the warm card, second pair under the locker) and
   // nothing checked, because shared-vocab reads fronts only. Craft
@@ -2127,7 +2163,23 @@ const V2_ZA_REGISTER = `MARKET — SOUTH AFRICA. These cards are bought in South
 - LOCAL REFERENCES ARE EARNED, NEVER STAPLED ON: a South African place, food, team or habit appears only when the person's own thing is that thing. Local colour added to prove where the card was made is a failed card.
 - SPELLING is South African English: Mom (never Mum), colour, favourite, centre. No Afrikaans, isiZulu or other South African language words unless the brief itself uses them; when it does, echo them exactly and respectfully.`;
 
-export function v2SystemPrompt(visual: 'celebrait' | 'open' | 'charm', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string; cast?: boolean; rudeMech?: string }>, occasionBrief: string): string {
+/** THE CARD'S LANGUAGE (ZA only, 2026-10-16). One block appended after
+ *  the market block, only when a ZA buyer chose a language, so the GB and
+ *  English prompts are byte-identical. Afrikaans: the writer composes in
+ *  it. isiZulu/isiXhosa: the writer is TOLD the phrasebook words and
+ *  writes the English around them; code places the phrases verbatim
+ *  (the writer never authors Nguni text). */
+export type V2Language = { id: 'af' } | { id: 'zu' | 'xh'; greeting: string; opener: string; meaning: string };
+const LANGUAGE_NAME: Record<CardLanguage, string> = { en: 'English', af: 'Afrikaans', zu: 'isiZulu', xh: 'isiXhosa' };
+export function v2LanguageBlock(lang: V2Language): string {
+  if (lang.id === 'af') {
+    return `LANGUAGE — AFRIKAANS. The buyer chose Afrikaans: front_text, any front_candidates and inside_text are written in natural, standard Afrikaans, the way a South African writes it in a card by hand. South African spelling, every diacritic correct (ê, ë, ô, û, ï, 'n). Compose in Afrikaans from the start, never English translated word for word. The register rules of the South Africa block apply unchanged, and this block outranks its line about Afrikaans words. art_direction, palette, typeface and direction stay in English: they brief the illustrator, not the reader.`;
+  }
+  const name = LANGUAGE_NAME[lang.id];
+  return `LANGUAGE — ${name.toUpperCase()} GREETING. The buyer chose ${name}. Every front carries the ${name} greeting "${lang.greeting}" (${lang.meaning}) as its lettering, exactly as written and nothing else: set front_text to exactly that, and let each card's ARTWORK carry their world, so the three cards differ in their pictures. Every inside opens with "${lang.opener}" exactly; code places that line, so inside_text is only the English that follows it, written to sit naturally after it. Never write any other ${name} words, and never alter, translate or respell the two phrases. This block outranks the South Africa block's line about other languages.`;
+}
+
+export function v2SystemPrompt(visual: 'celebrait' | 'open' | 'charm', slots: Array<{ angle: string; format?: string; register: string; territory?: string; ground?: string; tone?: string; cast?: boolean; rudeMech?: string }>, occasionBrief: string, language?: V2Language): string {
   return `You write and art-direct personalised UK greeting cards — the kind a good independent shop racks in ${new Date().getFullYear()}. From the brief and the archetype, return THREE finished cards.
 
 ${occasionBrief}
@@ -2159,7 +2211,7 @@ ${visual === 'charm' ? V2_CHARM_REGISTER : visual === 'celebrait' ? V2_CELEBRAIT
 - THE RUDE CARD IS NOT EXEMPT FROM THE PERSON. Rude lives in the SENTENCE; the artwork still belongs to the recipient's world and taste. When the brief leans a taste — a her, a nan, a soft or delicate aesthetic — the rude card wears that aesthetic WITH the filthy line: the sweetest-looking card with the worst mouth is the stronger joke and the bigger seller. Observed failure: an 18-year-old-her brief returned a rude card of calculator, wifi symbol and red-black chrome — nothing of her on it — because the slot assumed rude means masculine poster. It does not.
 - If a dislike is given: exactly ONE card is built on it, fused into the joke.
 
-Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.${serverMarketId() === 'ZA' ? `\n\n${V2_ZA_REGISTER}` : ''}`;
+Return JSON {"concepts":[{"angle":"...","format":"...","front_text":"...","inside_text":"warm, max 28 words, never restates the front","art_direction":"...","palette":"ground + inks in the medium's own terms","typeface":"lettering personality, under 15 words","direction":"the medium/look chosen and why it suits them"}]} — exactly three, in slot order.${serverMarketId() === 'ZA' ? `\n\n${V2_ZA_REGISTER}` : ''}${language && serverMarketId() === 'ZA' ? `\n\n${v2LanguageBlock(language)}` : ''}`;
 }
 
 export function registerAdminCardLabRoutes(app: Express): void {
@@ -2548,6 +2600,28 @@ export function registerAdminCardLabRoutes(app: Express): void {
       : classified.key === 'christmas' ? christmasProfile(body.tone)
       : classified;
     const serious = occProfile.humour === 'off';
+    // THE CARD'S LANGUAGE (ZA only, 2026-10-16). v2 only: the classic
+    // (humour-off) chain has no language path and writes English. A
+    // greeting language with no confirmed phrase for this occasion falls
+    // back to English too, out loud.
+    let cardLang: CardLanguage = serverMarketId() === 'ZA' ? body.language : 'en';
+    if (cardLang !== 'en' && (body.pipeline === 'classic' || serious)) {
+      console.warn(`[LANG] lang=${cardLang} occasion=${occKey}: classic pipeline has no language path, writing English`);
+      cardLang = 'en';
+    }
+    const phrase = LANGUAGE_MODE[cardLang] === 'greeting' ? cardPhraseFor(cardLang, classified.key === 'birthday' ? 'birthday' : occKey) : null;
+    if (LANGUAGE_MODE[cardLang] === 'greeting' && !phrase) {
+      console.warn(`[LANG] lang=${cardLang} occasion=${occKey}: no confirmed phrasebook entry, writing English`);
+      cardLang = 'en';
+    }
+    const v2Lang: V2Language | undefined = cardLang === 'af' ? { id: 'af' }
+      : phrase && (cardLang === 'zu' || cardLang === 'xh') ? { id: cardLang, greeting: phrase.greeting, opener: phrase.opener, meaning: phrase.meaning }
+      : undefined;
+    // A greeting card's front is the phrasebook greeting ALONE: no front
+    // word (observed on the bench: "Gogo lettered huge" in one card's
+    // artwork beside the greeting). The brief then says "FRONT WORD:
+    // none" and the first name stays inside, through the existing lines.
+    if (phrase) body.frontWord = undefined;
     // The rude TONE implies cheek; the legacy checkbox still works so
     // the bench and any saved call sites keep behaving.
     // ZA: the rude id means PLAYFUL (no swearing), so cheek never arms there.
@@ -2996,7 +3070,22 @@ export function registerAdminCardLabRoutes(app: Express): void {
           if (host !== -1) { const g = slots[clash].ground; slots[clash].ground = slots[host].ground; slots[host].ground = g; }
           else { slots[clash].ground = 'mid'; }
         }
-        const sys = v2SystemPrompt(body.charm ? 'charm' : (body.pipeline as 'celebrait' | 'open'), slots, occProfile.brief);
+        const sys = v2SystemPrompt(body.charm ? 'charm' : (body.pipeline as 'celebrait' | 'open'), slots, occProfile.brief, v2Lang);
+        // GREETING MODE ('zu'/'xh'): CODE places the phrasebook words, the
+        // writer never authors them. The front IS the greeting; the inside
+        // opens with the opener (a writer-typed copy of it at the start,
+        // case or accent drift included, is replaced, never doubled).
+        const withoutOpener = (t: string): string => {
+          const s = t.trim();
+          if (!phrase) return s;
+          const o = phrase.opener;
+          return s.slice(0, o.length).normalize('NFC').toLowerCase() === o.normalize('NFC').toLowerCase()
+            ? s.slice(o.length).replace(/^[\s,.!]+/, '') : s;
+        };
+        const placePhrase = <T extends CardConcept>(c: T): T => (phrase
+          ? { ...c, front_text: phrase.greeting, front_candidates: undefined, inside_text: `${phrase.opener}\n${withoutOpener(String(c.inside_text ?? ''))}`.trim() }
+          : c);
+        if (v2Lang) console.log(`[LANG] lang=${cardLang} occasion=${occKey}${phrase ? ` greeting="${phrase.greeting}" opener="${phrase.opener}"` : ''}`);
         // Aidan, 2026-08-20: "whatever the user chooses MUST dictate to an
         // extent the palette as it builds the archetype." Colour was the one
         // thing the archetype never spoke about, so it was decided downstream
@@ -3045,16 +3134,20 @@ export function registerAdminCardLabRoutes(app: Express): void {
             // lives HERE — once, at the source (observed: a
             // compositional idea over 160 chars 400ing the render).
             .map((c) => ({ ...c, format: typeof c.format === 'string' ? c.format.replace(/\s+/g, ' ').trim().slice(0, 158) : c.format, angle: typeof c.angle === 'string' ? c.angle.replace(/\s+/g, ' ').trim().slice(0, 158) : c.angle }))
-            .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }));
+            .map((c) => ({ ...c, front_text: autoMask(String(c.front_text ?? '')), inside_text: c.inside_text ? autoMask(String(c.inside_text)) : c.inside_text }))
+            // Greeting mode: the floors judge the card as it will print.
+            .map(placePhrase);
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
             rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : xmasHero ?? undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined,
-            occasionKey: occKey });
+            occasionKey: occKey, language: cardLang, greeting: phrase?.greeting });
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
-          violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
-            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; } }));
-          violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
+          // Not on a greeting card: it judges FRONT lines, and that front
+          // is the phrasebook's, which no repair round may touch.
+          if (!phrase) violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
+            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; }, language: cardLang }));
+          if (!phrase) violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
           meter.perRound.push(violations);
           // The writer row is logged AFTER the referees so it carries this
           // round's violations — the ledger answers "which floors fire"
@@ -3087,13 +3180,19 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // but don't really have a log of the prompts"): every card
         // carries what the server dealt it, so a set explains itself.
         const conceptsOut = (mixTones ? concepts.map((c, i) => ({ ...c, tone: mixTones[i] })) : concepts)
+          // The phrase goes on AFTER the dash strip, so no post-processing
+          // can ever alter phrasebook text.
+          .map((c) => (phrase ? { ...c, inside_text: withoutOpener(String(c.inside_text ?? '')) } : c))
           .map(noDashConcept)
+          .map(placePhrase)
+          .map((c) => (v2Lang ? { ...c, language: cardLang, ...(phrase ? { greeting: phrase.greeting, opener: phrase.opener } : {}) } : c))
           .map((c, i) => ({ ...c, deal: slots[i] ? {
             angle: slots[i].angle, format: slots[i].format ?? 'free', register: slots[i].register,
             territory: slots[i].territory, presence: slots[i].ground, tone: slots[i].tone,
             cast: slots[i].cast || undefined, engine: slots[i].rudeMech,
           } : undefined }));
         return res.json({ concepts: conceptsOut, notes: [], archetype: arch.archetype ?? null, territories, violations, compMode: freeComp ? 'free' : 'dealt',
+          ...(serverMarketId() === 'ZA' ? { language: cardLang } : {}),
           ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText },
           // The meter rides the response too, so a harness measures the
           // thing the customer waited for without parsing server logs.
@@ -3678,6 +3777,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       quality: z.enum(['low', 'medium', 'high']).default('low'),
       /** Admin door only — see renderHandler. */
       provider: LAB_IMAGE_PROVIDERS.optional(),
+      /** ZA greeting languages (2026-10-16): expectedText = the phrasebook
+       *  opener, read back off the drawn inside like the front's greeting. */
+      language: z.enum(['en', 'af', 'zu', 'xh']).optional(),
+      expectedText: z.string().max(300).optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -3688,9 +3791,28 @@ export function registerAdminCardLabRoutes(app: Express): void {
     }
 
     try {
-      const result = await generateInsideImage({ ...body, provider: labImageProvider(req, body.provider) });
+      const { language, expectedText, ...insideOpts } = body;
+      const opts = { ...insideOpts, provider: labImageProvider(req, body.provider) };
+      let result = await generateInsideImage(opts);
+      // The opener's read-back, same shape as the front's (renderHandler).
+      const checkText = serverMarketId() === 'ZA' && (language === 'zu' || language === 'xh') && body.mode !== 'blank' && expectedText?.trim() ? expectedText.trim() : null;
+      let text: { textCheck?: string; transcription?: string; reRendered?: boolean } = {};
+      if (checkText) {
+        const c1 = await readBackCardText(result.imageUrl, checkText, { language: language!, panel: 'inside' });
+        text = { textCheck: c1.ok ? 'ok' : c1.ok === null ? 'unchecked' : 'failed', transcription: c1.transcription ?? undefined, reRendered: false };
+        if (c1.ok === false) {
+          try {
+            const second = await generateInsideImage({ ...opts, extraInstruction: sharpenTextInstruction(checkText) });
+            const c2 = await readBackCardText(second.imageUrl, checkText, { language: language!, panel: 'inside', attempt: 2 });
+            result = second;
+            text = { textCheck: c2.ok === false ? 'failed' : c2.ok ? 'ok' : 'unchecked', transcription: c2.transcription ?? c1.transcription ?? undefined, reRendered: true };
+          } catch (err: any) {
+            console.warn(`[TEXT-CHECK] lang=${language} panel=inside sharpened re-render failed: ${err?.message ?? err}`);
+          }
+        }
+      }
       void persistResearchRender(req, undefined, result.imageUrl, 'inside');
-      res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs });
+      res.json({ imageUrl: result.imageUrl, costUsd: result.costUsd, durationMs: result.durationMs, ...text });
     } catch (err: any) {
       console.error('[CARD-LAB] render-inside error:', err?.message ?? err);
       res.status(502).json({ message: err?.message ?? 'Inside render failed' });
@@ -3985,6 +4107,11 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
        *  research link stay pinned to the proven model until the lab
        *  says otherwise (Prompt Lab first). */
       provider: LAB_IMAGE_PROVIDERS.optional(),
+      /** ZA languages (2026-10-16): a non-English card's front is read
+       *  back after it is drawn and compared with expectedText (the
+       *  concept's front_text). Never runs for 'en' or outside ZA. */
+      language: z.enum(['en', 'af', 'zu', 'xh']).optional(),
+      expectedText: z.string().max(300).optional(),
     });
     let body: z.infer<typeof schema>;
     try {
@@ -4035,10 +4162,10 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
     // on), fall back to Gemini — different provider, different
     // thresholds — and report WHICH one drew it so the lab teaches us
     // where each wall actually sits.
-    const attempt = async (providerId: string) => {
+    const attempt = async (providerId: string, p: string = prompt) => {
       const provider = getProvider(providerId);
       const result = await provider.generate({
-        prompt,
+        prompt: p,
         // Edit: the card is image 1 (the canvas), the photo is image 2.
         // Redraw: the photo alone, as before.
         referenceImageBase64: editCameo ? body.baseImage : body.cameoPhoto,
@@ -4071,9 +4198,31 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
       return /safety|content polic|moderation|rejected|not allowed|violat/.test(m);
     };
 
+    // THE TEXT READ-BACK (ZA, non-English only): read the lettering off
+    // the drawn card; on a mismatch, ONE re-render with the exact text
+    // sharpened; still wrong = the card ships flagged (textCheck
+    // 'failed') so the page can say so and offer its retry, never a
+    // silent pick. A check that cannot run fails open ('unchecked').
+    const checkText = serverMarketId() === 'ZA' && body.language && body.language !== 'en' && body.expectedText?.trim()
+      ? body.expectedText.trim() : null;
+    const withTextCheck = async (first: Awaited<ReturnType<typeof attempt>>, providerId: string) => {
+      if (!checkText) return { result: first, text: {} };
+      const lang = body.language!;
+      const c1 = await readBackCardText(first.imageUrl, checkText, { language: lang, panel: 'front' });
+      if (c1.ok !== false) return { result: first, text: { textCheck: c1.ok ? 'ok' : 'unchecked', transcription: c1.transcription ?? undefined, reRendered: false } };
+      try {
+        const second = await attempt(providerId, `${prompt}\n\n${sharpenTextInstruction(checkText)}`);
+        const c2 = await readBackCardText(second.imageUrl, checkText, { language: lang, panel: 'front', attempt: 2 });
+        return { result: second, text: { textCheck: c2.ok === false ? 'failed' : c2.ok ? 'ok' : 'unchecked', transcription: c2.transcription ?? c1.transcription ?? undefined, reRendered: true } };
+      } catch (err: any) {
+        console.warn(`[TEXT-CHECK] lang=${lang} panel=front sharpened re-render failed: ${err?.message ?? err}`);
+        return { result: first, text: { textCheck: 'failed', transcription: c1.transcription ?? undefined, reRendered: false } };
+      }
+    };
+
     try {
       const providerId = labImageProvider(req, body.provider);
-      const result = await attempt(providerId);
+      const { result, text } = await withTextCheck(await attempt(providerId), providerId);
       void persistResearchRender(req, body.front_text, result.imageUrl, 'front');
       res.json({
         imageUrl: result.imageUrl, costUsd: result.costUsd,
@@ -4082,6 +4231,7 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
         // A/B grid says which model drew what.
         drawnBy: providerId === PRODUCTION_IMAGE_PROVIDER ? 'openai' : result.model,
         model: result.model,
+        ...text,
       });
     } catch (err: any) {
       if (!looksBlocked(err)) {
@@ -4090,11 +4240,12 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
       }
       console.warn('[CARD-LAB] openai refused, trying gemini:', err?.message);
       try {
-        const result = await attempt('gemini-flash');
+        const { result, text } = await withTextCheck(await attempt('gemini-flash'), 'gemini-flash');
         void persistResearchRender(req, body.front_text, result.imageUrl, 'front');
         res.json({
           imageUrl: result.imageUrl, costUsd: result.costUsd,
           durationMs: result.durationMs, drawnBy: 'gemini (openai refused)',
+          ...text,
         });
       } catch (err2: any) {
         res.status(502).json({
@@ -4179,7 +4330,9 @@ export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; m
   palette?: string | null; typeface?: string | null; art_direction?: string | null; direction?: string | null;
   characters?: CharacterLevel; freeStyle?: boolean; quality?: 'low' | 'medium' | 'high';
   /** Lab A/B only; production callers leave it unset. */
-  provider?: string }) {
+  provider?: string;
+  /** Appended last: the text read-back's one sharpened re-render. */
+  extraInstruction?: string }) {
   const dear = o.dear?.trim();
   const from = o.from?.trim();
   const message = o.message?.trim();
@@ -4204,6 +4357,7 @@ export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; m
     textBlock,
     '',
     `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
+    o.extraInstruction ?? '',
   ].filter(Boolean).join('\n');
   const result = await getProvider(o.provider ?? PRODUCTION_IMAGE_PROVIDER).generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
   void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
@@ -4211,3 +4365,48 @@ export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; m
     costCents: result.costCents, durationMs: result.durationMs, success: true });
   return result;
 }
+
+/** THE TEXT READ-BACK (ZA languages, 2026-10-16). No native speaker
+ *  reviews a card, so the words the image model lettered are read back
+ *  by a vision model and compared with the words we meant (Unicode NFC,
+ *  lower case, punctuation off; shared/card-language.ts). The model is
+ *  NOT shown the intended text: it transcribes blind, so it cannot
+ *  "see" what it was told to expect. gpt-4o at detail high: cheaper
+ *  per image than 4o-mini (mini bills images at ~33x tokens) and the
+ *  better reader. `ok: null` = the check itself failed (fail open). */
+const TEXT_CHECK_MODEL = process.env.TEXT_CHECK_MODEL?.trim() || 'gpt-4o';
+export async function readBackCardText(imageUrl: string, expected: string, o: { language: CardLanguage; panel: 'front' | 'inside'; attempt?: number }): Promise<{ ok: boolean | null; transcription: string | null; ms: number; cents: number; model: string }> {
+  const t0 = Date.now();
+  const model = TEXT_CHECK_MODEL;
+  try {
+    if (!openai) throw new Error('OpenAI not configured');
+    const r = await openai.chat.completions.create({
+      model, temperature: 0, max_tokens: 400,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: 'Transcribe every word of text printed on this greeting card image, exactly as it is drawn: the same spelling, the same accents and diacritics, the same capitalisation, line by line. The text may be in English, Afrikaans, isiZulu or isiXhosa. Do not correct, translate or complete anything: if a letter is malformed or missing, transcribe what is actually there. Return JSON {"text":"..."} with lines separated by \\n, or {"text":""} if there is no text.' },
+        { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
+      ] }],
+    }, { timeout: 30_000 });
+    const ms = Date.now() - t0;
+    const cents = chatUsageCents(model, r.usage);
+    const parsed = JSON.parse(r.choices[0]?.message?.content ?? '{}');
+    const transcription = typeof parsed.text === 'string' ? parsed.text : '';
+    const ok = textCheckPasses(expected, transcription);
+    const line = `lang=${o.language} panel=${o.panel} attempt=${o.attempt ?? 1} ok=${ok} expected=${JSON.stringify(expected)} read=${JSON.stringify(transcription.replace(/\s+/g, ' ').trim())}`;
+    console.log(`[TEXT-CHECK] ${line} ${ms}ms`);
+    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+      provider: 'openai', model, quality: null, costCents: cents, durationMs: ms, success: true, stage: 'text-check', violations: ok ? null : [line] });
+    return { ok, transcription, ms, cents, model };
+  } catch (err: any) {
+    const ms = Date.now() - t0;
+    console.warn(`[TEXT-CHECK] lang=${o.language} panel=${o.panel} attempt=${o.attempt ?? 1} ok=unknown (check failed, fail open): ${err?.message ?? err}`);
+    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+      provider: 'openai', model, quality: null, costCents: 0, durationMs: ms, success: false, errorCode: 'text-check-failed', stage: 'text-check' });
+    return { ok: null, transcription: null, ms, cents: 0, model };
+  }
+}
+
+/** The one sharpened instruction appended to a re-render after a failed read-back. */
+export const sharpenTextInstruction = (expected: string) =>
+  `⚠️ TEXT ACCURACY — render this exact text, letter for letter: "${expected}". Every letter and every accent exactly as written here, no letter added, dropped, swapped or respelled, and no other words.`;
