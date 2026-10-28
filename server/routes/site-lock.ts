@@ -40,11 +40,14 @@ const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnable
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
-  // Ten minutes, not fifteen seconds: every SPA load fetches this (bots
-  // that run JS included) and each cache miss wakes the Neon compute for
-  // a 5-minute minimum. An admin flip clears the cache in-process below,
-  // so the long TTL costs the admin nothing (single instance on Render).
-  if (cache && Date.now() - cache.at < 10 * 60_000) return cache.value;
+  // Cached for the life of the process (2026-10-28). Render health-checks
+  // `/` every few seconds and the shell reads this flag, so ANY expiry
+  // turns the health check into a periodic database query: at 10 minutes
+  // it woke Neon twice an hour, around the clock, ~3 CU-hrs a day on a
+  // site with no visitors. The value only changes through the admin PUT
+  // below, which clears this cache in the same process (one instance on
+  // Render), and a deploy restarts the process. So nothing goes stale.
+  if (cache) return cache.value;
   let value = DEFAULT;
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);

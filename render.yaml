@@ -26,7 +26,7 @@ services:
     # built output runs on prod deps only.
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
-    healthCheckPath: /
+    healthCheckPath: /healthz
     autoDeploy: true           # re-deploys automatically on every push to the branch
     envVars:
       - key: NODE_ENV

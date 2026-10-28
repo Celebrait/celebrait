@@ -53,6 +53,12 @@ const REDIRECT_HOSTS = new Set(
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean),
 );
+// Liveness for Render's health check: no database, no HTML shell. Point
+// Render's "Health Check Path" here so its pings can never wake Neon.
+app.get("/healthz", (_req, res) => {
+  res.set("Cache-Control", "no-store").type("text/plain").send("ok");
+});
+
 app.use((req, res, next) => {
   const host = (req.headers.host ?? "").toLowerCase().split(":")[0];
   if (REDIRECT_HOSTS.has(host) && !req.path.startsWith("/.well-known/")) {
