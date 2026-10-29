@@ -14,8 +14,8 @@
 // client/public/hiw, so the three frames tell one story. The frames
 // are dense on purpose: the first pass floated small things in big
 // empty boxes.
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Check, Truck } from 'lucide-react';
 import { EASE, Rise } from '@/components/landing/rise';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
@@ -85,6 +85,8 @@ interface Clock {
   play: boolean;
   reduced: boolean;
   base: number;
+  /** Tell the section this beat has finished, so the next one starts. */
+  done: () => void;
 }
 function tr(c: Clock, at: number, d = 0.6) {
   return c.reduced ? { duration: 0 } : { delay: c.base + at, duration: d, ease: EASE };
@@ -108,7 +110,7 @@ function usePhase(c: Clock, at: number): boolean {
   return on;
 }
 /** Clock-driven typing from `at` seconds, TYPE_MS per character. */
-function useTyped(c: Clock, text: string, at: number): { shown: string; typing: boolean } {
+function useTyped(c: Clock, text: string, at: number, ms = TYPE_MS): { shown: string; typing: boolean } {
   const [n, setN] = useState(c.reduced ? text.length : 0);
   const started = usePhase(c, at);
   useEffect(() => {
@@ -119,12 +121,20 @@ function useTyped(c: Clock, text: string, at: number): { shown: string; typing: 
       i += 1;
       setN(i);
       if (i >= text.length) window.clearInterval(id);
-    }, TYPE_MS);
+    }, ms);
     return () => window.clearInterval(id);
-  }, [started, c.reduced, text]);
+  }, [started, c.reduced, text, ms]);
   return { shown: text.slice(0, n), typing: started && n < text.length };
 }
-const typeSecs = (text: string) => (text.length * TYPE_MS) / 1000;
+const typeSecs = (text: string, ms = TYPE_MS) => (text.length * ms) / 1000;
+/** For a beat on a fixed timeline: finished `at` seconds after it starts. */
+function useDoneAt(c: Clock, at: number) {
+  useEffect(() => {
+    if (!c.play) return;
+    const t = window.setTimeout(c.done, c.reduced ? 0 : (c.base + at) * 1000);
+    return () => window.clearTimeout(t);
+  }, [c.play, c.reduced, c.base, c.done, at]);
+}
 
 // ── shared pieces ─────────────────────────────────────────────────────
 /** The lime readiness chip (pale green ground, forest text, the
@@ -229,9 +239,9 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
  *  The cover rests at `angle` (radians, negative = open toward the
  *  viewer) and never swings: these are illustrations, not controls. */
 function Card3DStage({
-  c, front, inside, angle, framing, minDistance, poster, alt, yaw, insideLeftLogo = true,
+  c, front, inside, angle, framing, minDistance, poster, alt, yaw, insideLeftLogo = true, onReady,
 }: {
-  c: Clock; front: string; inside: string; angle: number; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw: number; insideLeftLogo?: boolean;
+  c: Clock; front: string; inside: string; angle: number; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw: number; insideLeftLogo?: boolean; onReady?: () => void;
 }) {
   const [ready, setReady] = useState(false);
   return (
@@ -256,7 +266,7 @@ function Card3DStage({
               minDistance={minDistance}
               maxDistance={12}
               dprMax={1.5}
-              onFirstFrame={() => setReady(true)}
+              onFirstFrame={() => { setReady(true); onReady?.(); }}
               className="h-full w-full"
             />
           </Suspense>
@@ -278,26 +288,27 @@ function FlatCard({ src, alt, className = '' }: { src: string; alt: string; clas
 /** The white input the visitor types into on the real maker: a small
  *  caps label over the typed words. `lead` sits before the words (step
  *  2's photo of Mum, so the field reads "this person, in this moment"). */
-function Field({ c, label, lead, children }: { c: Clock; label: string; lead?: React.ReactNode; children: React.ReactNode }) {
+function Field({ label, lead, text, typing, placeholder }: { label: string; lead?: React.ReactNode; text: string; typing: boolean; placeholder: string }) {
+  // On screen from the start, empty with its placeholder, so a step
+  // that is waiting its turn reads as "next", not as a blank box.
   return (
-    <motion.div
-      initial={from(c, { opacity: 0, y: 8 })}
-      animate={c.play ? { opacity: 1, y: 0 } : undefined}
-      transition={tr(c, 0, 0.5)}
-      className="flex items-center gap-3 rounded-xl border border-keeper-hair bg-white px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]"
-    >
+    <div className="flex items-center gap-3 rounded-xl border border-keeper-hair bg-white px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]">
       {lead}
       <div className="min-w-0 flex-1">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
-        <div className="mt-0.5 text-[15px] leading-snug text-keeper-ink">{children}</div>
+        <div className="mt-0.5 text-[15px] leading-snug text-keeper-ink">
+          {text ? <span>{text}</span> : <span className="text-keeper-meta/70">{placeholder}</span>}
+          <Caret on={typing} />
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 /** 1. Her real selfie fills the stage; a frame draws round her face,
  *  then the likeness check lands. */
 function PhotoBeat1({ c }: { c: Clock }) {
+  useDoneAt(c, 2.0);
   return (
     <div className="absolute inset-0">
       <motion.img
@@ -325,20 +336,51 @@ function PhotoBeat1({ c }: { c: Clock }) {
   );
 }
 
-/** 2. Her photo and the moment, typed in one field; a hairline draws
- *  under the words while we draw, then the front stands up, big, as
- *  the real 3D card resting ajar. Photo + words = this card. */
+/** The wait between typing and the card: a quiet ring and one line,
+ *  centred where the card will land. Sits in the 3D card's area so the
+ *  eye is already there when the card arrives. */
+function Spinner({ on, label }: { on: boolean; label: string }) {
+  return (
+    <div
+      aria-hidden={!on}
+      className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-300 ${on ? 'opacity-100' : 'opacity-0'}`}
+    >
+      <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-brand/15 border-t-brand" />
+      <span className="text-[13px] font-medium text-keeper-meta">{label}</span>
+    </div>
+  );
+}
+
+/** The reveal for a beat that waits on its 3D card: no sooner than
+ *  `at`, and only once the card has painted (so the spinner covers the
+ *  load, not a blank box), with a ceiling so a slow GPU never strands
+ *  the sequence: past `at + 3` s the poster image stands in. Tells the
+ *  section the beat is finished `settle` seconds after the reveal. */
+function useReveal(c: Clock, at: number, settle = 0.9) {
+  const [ready, setReady] = useState(false);
+  const due = usePhase(c, at);
+  const giveUp = usePhase(c, at + 3);
+  const revealed = c.reduced || (due && (ready || giveUp));
+  useEffect(() => {
+    if (!revealed) return;
+    const t = window.setTimeout(c.done, c.reduced ? 0 : settle * 1000);
+    return () => window.clearTimeout(t);
+  }, [revealed, c.done, c.reduced, settle]);
+  return { revealed, onReady: () => setReady(true) };
+}
+
+/** 2. Her photo and the moment, typed in one field; a spinner while we
+ *  draw; then the front stands up, big, as the real 3D card resting
+ *  ajar. Photo + words = this card. */
 function PhotoBeat2({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, SCENE_TEXT, 0.4);
-  const drawingAt = 0.4 + typeSecs(SCENE_TEXT) + 0.2;
-  const drawnAt = drawingAt + 1.0;
+  const drawingAt = 0.4 + typeSecs(SCENE_TEXT) + 0.25;
   const drawing = usePhase(c, drawingAt);
-  const drawn = usePhase(c, drawnAt);
+  const { revealed, onReady } = useReveal(c, drawingAt + 1.4);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
         <Field
-          c={c}
           label="The moment"
           lead={
             <img
@@ -352,70 +394,62 @@ function PhotoBeat2({ c }: { c: Clock }) {
               className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-keeper-hair"
             />
           }
-        >
-          <span>{shown}</span>
-          <Caret on={typing} />
-        </Field>
-        <div className={`mt-2 flex items-center gap-2 px-1 transition-opacity duration-300 ${drawing ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-keeper-hair/70">
-            <motion.div
-              className="h-full rounded-full bg-brand"
-              initial={from(c, { width: '0%' })}
-              animate={c.play ? { width: '100%' } : undefined}
-              transition={tr(c, drawingAt, 0.95)}
-            />
-          </div>
-          <span className="flex items-center gap-1 text-[12px] font-medium text-keeper-meta">
-            {drawn ? <Check className="h-3.5 w-3.5 text-cta-dark" strokeWidth={2.5} aria-hidden="true" /> : null}
-            {drawn ? 'Drawn' : 'Drawing her in'}
-          </span>
-        </div>
-      </div>
-      <motion.div
-        className="absolute inset-x-0 bottom-[3%] top-[31%]"
-        initial={from(c, { opacity: 0, y: 24 })}
-        animate={drawn || c.reduced ? { opacity: 1, y: 0 } : undefined}
-        transition={tr(c, 0, 0.7)}
-      >
-        <Card3DStage
-          c={c}
-          front={PHOTO_FRONT}
-          inside={PHOTO_INSIDE}
-          angle={-0.4}
-          yaw={0.1}
-          framing={1.32}
-          minDistance={0.6}
-          alt="The drawn card: Mum under the Northern Lights"
-          poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
+          text={shown}
+          typing={typing}
+          placeholder="Where shall we put her?"
         />
-      </motion.div>
+      </div>
+      <div className="absolute inset-x-0 bottom-[3%] top-[31%]">
+        <Spinner on={drawing && !revealed} label="Drawing her in…" />
+        <motion.div
+          className="absolute inset-0"
+          initial={from(c, { opacity: 0, y: 24 })}
+          animate={revealed ? { opacity: 1, y: 0 } : undefined}
+          transition={c.reduced ? { duration: 0 } : { duration: 0.7, ease: EASE }}
+        >
+          <Card3DStage
+            c={c}
+            front={PHOTO_FRONT}
+            inside={PHOTO_INSIDE}
+            angle={-0.4}
+            yaw={0.1}
+            framing={1.32}
+            minDistance={0.6}
+            onReady={onReady}
+            alt="The drawn card: Mum under the Northern Lights"
+            poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
+          />
+        </motion.div>
+      </div>
     </div>
   );
 }
 
-/** 3. The message types itself, then the card arrives OPEN at the
- *  inside: the printed inside-right page fills most of the stage and
- *  the cover stands open off the left edge, so the words are big
- *  enough to read in the frame. No swing: it rests open. The canvas
- *  runs past the stage's right edge so the page sits right of centre
- *  and the cover is cut by the stage, not by the canvas. */
+/** 3. The message types itself, a spinner while we set it, then the
+ *  card arrives OPEN at the inside: the printed inside-right page fills
+ *  most of the stage and the cover stands open off the left edge, so
+ *  the words are big enough to read in the frame. No swing: it rests
+ *  open. The canvas runs past the stage's right edge so the page sits
+ *  right of centre and the cover is cut by the stage, not the canvas. */
 function PhotoBeat3({ c }: { c: Clock }) {
-  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.4);
-  const showAt = 0.4 + typeSecs(MESSAGE_TEXT) + 0.3;
-  const shown3D = usePhase(c, showAt);
+  // The long line types faster than the short one: same feel, less wait.
+  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.4, 22);
+  const settingAt = 0.4 + typeSecs(MESSAGE_TEXT, 22) + 0.25;
+  const setting = usePhase(c, settingAt);
+  const { revealed, onReady } = useReveal(c, settingAt + 1.3);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
-        <Field c={c} label="Inside">
-          <span>{shown}</span>
-          <Caret on={typing} />
-        </Field>
+        <Field label="Inside" text={shown} typing={typing} placeholder="What would you like to say?" />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 top-[34%]">
+        <Spinner on={setting && !revealed} label="Setting your words…" />
       </div>
       <motion.div
         className="absolute bottom-0 left-0 top-[34%] w-[124%]"
         initial={from(c, { opacity: 0, x: 28 })}
-        animate={shown3D || c.reduced ? { opacity: 1, x: 0 } : undefined}
-        transition={tr(c, 0, 0.8)}
+        animate={revealed ? { opacity: 1, x: 0 } : undefined}
+        transition={c.reduced ? { duration: 0 } : { duration: 0.8, ease: EASE }}
       >
         <Card3DStage
           c={c}
@@ -426,6 +460,7 @@ function PhotoBeat3({ c }: { c: Clock }) {
           insideLeftLogo={false}
           framing={1.14}
           minDistance={0.6}
+          onReady={onReady}
           alt="The card open at the inside, the message set in the card's style"
           poster={<FlatCard src={PHOTO_INSIDE} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
         />
@@ -439,6 +474,7 @@ function PhotoBeat3({ c }: { c: Clock }) {
  *  bottom, each answer landing with its check, then the deal button. */
 function MakerBeat1({ c }: { c: Clock }) {
   const step = 0.22;
+  useDoneAt(c, 0.9 + QUESTIONS.length * step);
   return (
     <div className="absolute inset-0 flex flex-col justify-center gap-[2.6%] px-[8%] py-[7%]">
       {QUESTIONS.map((row, i) => (
@@ -484,6 +520,7 @@ const FAN = [
   { x: '40%', rotate: 8, y: 12 },
 ];
 function MakerBeat2({ c }: { c: Clock }) {
+  useDoneAt(c, 1.9);
   return (
     <div className="absolute inset-0">
       <div className="absolute left-[28%] top-[24%] w-[44%]">
@@ -508,6 +545,7 @@ function MakerBeat2({ c }: { c: Clock }) {
 /** 3. The picked card opens: cover swings, the inside is already
  *  printed, the chip lands. */
 function MakerBeat3({ c }: { c: Clock }) {
+  useDoneAt(c, 1.9);
   return <OpenCard c={c} front={MAKER_FRONTS[MAKER_PICK]} inside={MAKER_INSIDE} alt="The greenhouse can wait" />;
 }
 
@@ -516,24 +554,31 @@ function Beat({
   index,
   label,
   body,
-  stagger,
+  go,
+  onDone,
+  liRef,
   children,
 }: {
   index: number;
   label: string;
   body: string;
-  stagger: number;
+  go: boolean;
+  onDone: (i: number) => void;
+  liRef: (el: HTMLLIElement | null) => void;
   children: (c: Clock) => React.ReactNode;
 }) {
-  const ref = useRef<HTMLLIElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.4 });
   const reduced = !!useReducedMotion();
-  const c: Clock = { play: inView || reduced, reduced, base: index * stagger };
+  const sent = useRef(false);
+  const done = useCallback(() => {
+    if (sent.current) return;
+    sent.current = true;
+    onDone(index);
+  }, [onDone, index]);
+  const c: Clock = { play: go || reduced, reduced, base: 0, done };
   return (
-    <li ref={ref} className="flex flex-col">
+    <li ref={liRef} className="flex flex-col">
       {/* The stage: paper ground, hairline, square at every width so the
-          phone sees the same composition as the desktop (a shorter frame
-          cut the fan and parked the chip on the cards). Everything inside
+          phone sees the same composition as the desktop. Everything inside
           is absolutely placed and clipped so no beat can push the column. */}
       <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)]">
         {children(c)}
@@ -547,28 +592,58 @@ function Beat({
   );
 }
 
-/** `true` from md up, where the three beats share a row and stagger
- *  left to right. Stacked on a phone, each enters on its own. */
-function useWide(): boolean {
-  const [wide, setWide] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-  return wide;
-}
-
+/**
+ * The beats play IN ORDER (Aidan 2026-10-29: "2 should happen, then 3").
+ * A beat starts once it is on screen AND the beat before it has
+ * finished, unless that earlier beat is off screen: on a phone the
+ * steps stack, so by the time step 3 scrolls in, step 2 has usually
+ * played already, and if it hasn't (a fast scroll, a jump link) step 3
+ * doesn't sit blank waiting for something nobody can see. On desktop
+ * all three are on screen together, so they run 1, 2, 3.
+ * One IntersectionObserver for the three, so their visibility lands in
+ * a single update and the chain can't race.
+ */
 export function HowItWorksSection({ door }: { door: Door }) {
-  const wide = useWide();
-  const stagger = wide ? 0.3 : 0;
   const copy = COPY[door];
   const stages: Array<(c: Clock) => React.ReactNode> =
     door === 'photo'
       ? [(c) => <PhotoBeat1 c={c} />, (c) => <PhotoBeat2 c={c} />, (c) => <PhotoBeat3 c={c} />]
       : [(c) => <MakerBeat1 c={c} />, (c) => <MakerBeat2 c={c} />, (c) => <MakerBeat3 c={c} />];
+  const n = stages.length;
+
+  const els = useRef<Array<HTMLLIElement | null>>([]);
+  const [visible, setVisible] = useState<boolean[]>(() => Array(n).fill(false));
+  const [done, setDone] = useState<boolean[]>(() => Array(n).fill(false));
+  const [started, setStarted] = useState<boolean[]>(() => Array(n).fill(false));
+
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        setVisible((prev) => {
+          const next = [...prev];
+          for (const e of entries) {
+            const i = els.current.indexOf(e.target as HTMLLIElement);
+            if (i >= 0) next[i] = e.isIntersecting;
+          }
+          return next;
+        });
+      },
+      { threshold: 0.4 },
+    );
+    els.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setStarted((prev) => {
+      const next = prev.map((s, i) => s || (visible[i] && (i === 0 || done[i - 1] || !visible[i - 1])));
+      return next.some((s, i) => s !== prev[i]) ? next : prev;
+    });
+  }, [visible, done]);
+
+  const onDone = useCallback((i: number) => {
+    setDone((prev) => (prev[i] ? prev : prev.map((d, j) => d || j === i)));
+  }, []);
 
   return (
     <section id="how-it-works" className="scroll-mt-32 px-6 py-24 md:py-32">
@@ -582,7 +657,15 @@ export function HowItWorksSection({ door }: { door: Door }) {
         </Rise>
         <ol className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
           {copy.beats.map((b, i) => (
-            <Beat key={b.label} index={i} label={b.label} body={b.body} stagger={stagger}>
+            <Beat
+              key={b.label}
+              index={i}
+              label={b.label}
+              body={b.body}
+              go={started[i]}
+              onDone={onDone}
+              liRef={(el) => { els.current[i] = el; }}
+            >
               {stages[i]}
             </Beat>
           ))}
