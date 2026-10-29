@@ -228,6 +228,9 @@ export function registerShopRoutes(app: Express): void {
           createdAt: studioOrders.createdAt,
           trackingUrl: studioOrders.trackingUrl,
           needByDate: studioOrders.needByDate,
+          // For the ad 'Purchase' value on the order page (pixel.ts).
+          amountPaid: studioOrders.amountPaid,
+          currency: studioOrders.currency,
         })
         .from(studioOrders)
         .where(eq(studioOrders.id, id));
@@ -258,6 +261,7 @@ export function registerShopRoutes(app: Express): void {
                   shippingAmount: studioOrders.shippingAmount,
                   createdAt: studioOrders.createdAt,
                   trackingUrl: studioOrders.trackingUrl,
+                  amountPaid: studioOrders.amountPaid,
                 })
                 .from(studioOrders).where(eq(studioOrders.id, id));
               if (fresh) Object.assign(order, fresh);

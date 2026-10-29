@@ -3,12 +3,16 @@ import App from "./App";
 import "./index.css";
 import { captureFirstTouch } from "@/lib/attribution";
 import { startRum } from "@/lib/rum";
+import { initPixel } from "@/lib/pixel";
 import { isStaleChunkError, recoverFromStaleChunk } from "@/lib/stale-chunk";
 
 // Remember where this visitor first came from (UTM/referrer) BEFORE the
 // router mounts and any redirect can strip the query string.
 captureFirstTouch();
 startRum();
+// Meta Pixel: loads only after the visitor accepts the advertising
+// cookie, and only when META_PIXEL_ID is set. Otherwise a no-op.
+initPixel();
 
 // STALE CHUNK RECOVERY (2026-08-04). The app code-splits into ~80
 // hash-named chunks. Every deploy replaces them, so a browser holding an

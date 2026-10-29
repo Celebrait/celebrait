@@ -7,14 +7,14 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { CheckCircle2, Circle, LayoutGrid, Loader2, Lock, LockOpen, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, LayoutGrid, Loader2, Lock, LockOpen, Sparkles, XCircle } from 'lucide-react';
 import { cardPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { publicOrigin } from '@shared/market';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface Lock { locked: boolean; password: string; rackEnabled: boolean }
-interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string }
+interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean }
+interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string; warn?: boolean }
 interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
 
 /** The launch-readiness panel: Render's env list, read by code, shown as
@@ -45,6 +45,7 @@ function LaunchReadiness() {
             {data.checks.filter((c) => c.group === g).map((c) => (
               <li key={c.id} className="flex gap-3 px-4 py-3">
                 {c.ok === true ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  : c.warn ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent-red" />
                   : c.ok === false ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent-red-dark" />
                   : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-keeper-meta" />}
                 <div className="min-w-0">
@@ -117,6 +118,23 @@ export default function AdminSitePage() {
         <button type="button" disabled={saving} onClick={() => save({ rackEnabled: !data.rackEnabled })}
           className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.rackEnabled ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
           {data.rackEnabled ? 'Park the rack' : 'Open the rack'}
+        </button>
+      </div>
+
+      {/* THE THREE-CARD ROUTE (Aidan 2026-10-29): photo route only for
+          launch. Off = /create and /make send customers to /photo and
+          the /api/make doors refuse them; admins keep it either way. */}
+      <div className={`mt-4 flex items-center justify-between gap-4 rounded-2xl border p-5 ${data.makerEnabled ? 'border-emerald-300 bg-emerald-50' : 'border-keeper-hair bg-white'}`}>
+        <div className="flex items-center gap-3">
+          <Sparkles className={`h-6 w-6 ${data.makerEnabled ? 'text-emerald-600' : 'text-keeper-meta'}`} />
+          <div>
+            <p className="font-semibold text-keeper-ink">{data.makerEnabled ? 'Three-card route: live' : 'Three-card route: parked'}</p>
+            <p className="text-[13px] text-keeper-body">{data.makerEnabled ? 'Live: both ways of making a card are open.' : 'Parked: only the photo route is open. /create and /make send people to /photo.'}</p>
+          </div>
+        </div>
+        <button type="button" disabled={saving} onClick={() => save({ makerEnabled: !data.makerEnabled })}
+          className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.makerEnabled ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
+          {data.makerEnabled ? 'Park the route' : 'Open the route'}
         </button>
       </div>
 

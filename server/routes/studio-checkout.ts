@@ -35,6 +35,7 @@ import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import { touchCheckout } from '../activity';
+import { sendMetaPurchase } from '../meta-capi';
 import { rackOpen } from './site-lock';
 import {
   sendRecipientCardArrivedEmail,
@@ -104,6 +105,12 @@ const checkoutSchema = z.object({
   /** Comp code ("this one's on us"). Only the string comes from the
    *  client — what it's worth is read from the DB server-side. */
   compCode: z.string().max(32).optional(),
+  /** Advertising-cookie consent at pay time (client/src/lib/consent.ts).
+   *  Absent when no Meta Pixel is configured. */
+  adConsent: z.boolean().optional(),
+  /** Meta's browser ids, sent only alongside adConsent: true. */
+  fbp: z.string().max(200).optional(),
+  fbc: z.string().max(500).optional(),
 });
 
 export function registerStudioCheckoutRoutes(app: Express): void {
@@ -483,6 +490,17 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             totalAmount,
             freeCardApplied,
             compCode,
+            // Ads measurement: the choice, and matching signals ONLY when
+            // the customer said yes (server/meta-capi.ts reads both).
+            adConsent: typeof body.adConsent === 'boolean' ? body.adConsent : null,
+            adMatch: body.adConsent === true
+              ? {
+                  fbp: body.fbp || undefined,
+                  fbc: body.fbc || undefined,
+                  ua: (req.get('user-agent') ?? '').slice(0, 400) || undefined,
+                  ip: req.ip || undefined,
+                }
+              : null,
           })
           .returning({ id: studioOrders.id });
 
@@ -1200,6 +1218,11 @@ export async function markOrderPaidAndDispatch(
   submitPrintOrder(updated[0]).catch((err) => {
     console.error('[STUDIO-CHECKOUT] print submission dispatch failed:', err);
   });
+
+  // Meta Conversions API 'Purchase', once, on this won flip. Sends only
+  // when the customer accepted the ad cookie at checkout and the env is
+  // configured; never throws, never blocks. See server/meta-capi.ts.
+  sendMetaPurchase(updated[0]).catch(() => {});
 
   return { ok: true };
 }

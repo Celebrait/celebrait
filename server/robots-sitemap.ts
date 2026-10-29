@@ -71,8 +71,12 @@ Sitemap: ${origin}/sitemap.xml
 `;
 }
 
-export function renderSitemapXml(origin: string = publicOrigin()): string {
-  const urls = SITEMAP_PAGES.map(
+/** `makerEnabled` false (the three-card route parked, 2026-10-29) drops
+ *  /create (noindexed, redirects to /photo) and /photo (then a duplicate
+ *  of `/`, which renders it and is its canonical). */
+export function renderSitemapXml(origin: string = publicOrigin(), makerEnabled = true): string {
+  const pages = makerEnabled ? SITEMAP_PAGES : SITEMAP_PAGES.filter((p) => p.path !== '/create' && p.path !== '/photo');
+  const urls = pages.map(
     (p) => `  <url>
     <loc>${origin}${p.path}</loc>
     <changefreq>${p.changefreq}</changefreq>

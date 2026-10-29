@@ -32,7 +32,13 @@ import type { PageSeo } from '@shared/seo';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { cardTemplates } from '@shared/schema';
-import { rackOpen } from './routes/site-lock';
+import { getSiteLock } from './routes/site-lock';
+
+/** The rack + maker switches (both cached for the process lifetime). */
+async function switches(): Promise<{ rack: boolean; maker: boolean }> {
+  const lock = await getSiteLock();
+  return { rack: lock.rackEnabled, maker: lock.makerEnabled };
+}
 
 function escapeAttr(s: string): string {
   return s
@@ -65,8 +71,8 @@ function isShareLinkPath(p: string): boolean {
  *  looked up per request. Anything else falls through to the sync
  *  registry. Never throws: a DB blip serves base metadata. */
 export async function injectSeoAsync(templateHtml: string, requestPath: string): Promise<string> {
-  const rack = await rackOpen();
-  const html = marketizeShell(withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack), requestPath, rack));
+  const { rack, maker } = await switches();
+  const html = marketizeShell(withRobotsMeta(await injectSeoInner(templateHtml, requestPath, rack, maker), requestPath, rack, maker));
   // The market (GB/ZA) the client reads synchronously on first paint, so
   // no frame ever renders in the wrong currency. See shared/market.ts.
   return html.replace('</head>', `${marketBootScript()}</head>`);
@@ -100,9 +106,10 @@ export function marketizeShell(html: string): string {
   return out;
 }
 
-/** The X-Robots-Tag for the shell response — the rack flag read once. */
+/** The X-Robots-Tag for the shell response — the rack + maker flags read once. */
 export async function robotsHeaderForPath(requestPath: string): Promise<string | null> {
-  return robotsForPath(requestPath, await rackOpen());
+  const { rack, maker } = await switches();
+  return robotsForPath(requestPath, rack, maker);
 }
 
 /** HTTP status for the SPA shell: 404 for a path no route serves, so
@@ -114,8 +121,8 @@ export function htmlStatusForPath(requestPath: string): number {
 /** `<meta name="robots">` for private / unknown paths — crawlers that
  *  don't run JS still see it. Paired with the X-Robots-Tag header set
  *  where the shell is served (server/vite.ts). */
-function withRobotsMeta(html: string, requestPath: string, rack: boolean): string {
-  const robots = robotsForPath(requestPath, rack);
+function withRobotsMeta(html: string, requestPath: string, rack: boolean, maker: boolean): string {
+  const robots = robotsForPath(requestPath, rack, maker);
   if (!robots) return html;
   return html.replace(
     /(<meta name="description"[^>]*>)/,
@@ -123,7 +130,7 @@ function withRobotsMeta(html: string, requestPath: string, rack: boolean): strin
   );
 }
 
-async function injectSeoInner(templateHtml: string, requestPath: string, rack: boolean): Promise<string> {
+async function injectSeoInner(templateHtml: string, requestPath: string, rack: boolean, maker: boolean): Promise<string> {
   const m = requestPath.match(/^\/card\/(\d+)$/);
   if (m) {
     try {
@@ -143,10 +150,10 @@ async function injectSeoInner(templateHtml: string, requestPath: string, rack: b
       console.warn('[SEO] card lookup failed (non-fatal):', err);
     }
   }
-  return injectSeo(templateHtml, requestPath, rack);
+  return injectSeo(templateHtml, requestPath, rack, maker);
 }
 
-export function injectSeo(templateHtml: string, requestPath: string, rack = false): string {
+export function injectSeo(templateHtml: string, requestPath: string, rack = false, maker = false): string {
   if (isShareLinkPath(requestPath)) {
     const t = escapeAttr(SHARE_OG.title);
     const d = escapeAttr(SHARE_OG.description);
@@ -170,7 +177,7 @@ export function injectSeo(templateHtml: string, requestPath: string, rack = fals
     );
   }
 
-  const seo = seoForPath(requestPath, rack);
+  const seo = seoForPath(requestPath, rack, maker);
 
   if (!seo) {
     // Unknown/private route: base metadata but NO canonical — better no
@@ -184,8 +191,9 @@ export function injectSeo(templateHtml: string, requestPath: string, rack = fals
 function applySeo(templateHtml: string, seo: PageSeo): string {
   const title = escapeAttr(seo.title);
   const desc = escapeAttr(seo.description);
+  const canonicalPath = seo.canonical ?? seo.path;
   const canonical =
-    publicOrigin() + (seo.path === '/' ? '/' : seo.path);
+    publicOrigin() + (canonicalPath === '/' ? '/' : canonicalPath);
 
   return (
     templateHtml

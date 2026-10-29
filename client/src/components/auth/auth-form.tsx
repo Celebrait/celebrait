@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { track } from '@/lib/pixel';
 
 export type AuthStep = 'email' | 'code' | 'welcome';
 
@@ -227,6 +228,8 @@ export function AuthForm({
         code: trimmedCode,
       })) as any;
       if (result?.isNewUser) {
+        // Meta 'Lead': an account was created. No-op without ad consent.
+        track('Lead', { content_name: 'account' });
         setStep('welcome');
       } else {
         toast({ title: 'Welcome back' });

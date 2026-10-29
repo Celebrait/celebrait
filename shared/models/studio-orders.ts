@@ -89,6 +89,14 @@ export const studioOrders = pgTable(
      *  ⚠️ needs: ALTER TABLE studio_orders ADD COLUMN IF NOT EXISTS
      *  comp_code varchar(32); */
     compCode: varchar("comp_code", { length: 32 }),
+    /** The advertising-cookie choice at the moment of paying (2026-10-29):
+     *  true = consented, false = said no or hadn't chosen, null = no pixel
+     *  configured / older order. Only true lets server/meta-capi.ts report
+     *  the Purchase to Meta. Added at boot by ensureLaunchColumns(). */
+    adConsent: boolean("ad_consent"),
+    /** Matching signals for that report, kept ONLY when adConsent is true:
+     *  { fbp?, fbc?, ua?, ip? }. Cleared once the event has been sent. */
+    adMatch: jsonb("ad_match"),
 
     // Payment — provider-agnostic. paymentProvider records which
     // gateway processed it (stub|peach|stripe|…); paymentReference is

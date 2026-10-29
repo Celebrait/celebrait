@@ -23,9 +23,10 @@ import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB } from '@/pages/doorway';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 import { useSeo } from '@/lib/use-seo';
 import { copyFor } from '@shared/market-copy';
-import { cardPrice, shippingPrice, MAKE_TIME, type CardSource } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice, MAKE_TIME, type CardSource } from '@shared/pricing';
 import { formatMoney, market } from '@shared/market';
 
 
@@ -88,7 +89,11 @@ export default function PricingPage() {
   const photoHref = !isLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
   // The rack is parked until there is stock (/admin/site): two doors, not three.
   const rack = useRackEnabled() === true;
-  const doors = rack ? DOORS : DOORS.filter((d) => d.source !== 'rack');
+  // The three-card route is parked for launch (/admin/site, 2026-10-29):
+  // photo only, so with the rack parked too this is a single card.
+  const maker = useMakerEnabled() === true;
+  const doors = DOORS.filter((d) => (d.source !== 'rack' || rack) && (d.source !== 'maker' || maker));
+  const single = doors.length === 1;
 
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
@@ -101,11 +106,11 @@ export default function PricingPage() {
             <h1 className={`mt-4 max-w-[20ch] text-[clamp(28px,5vw,54px)] leading-[1.06] ${DISPLAY}`}>
               One printed card.
               <br />
-              <span className="font-medium italic">{doors.length === 3 ? 'Three' : 'Two'} ways to make it.</span>
+              <span className="font-medium italic">{single ? 'Made from your photo.' : `${doors.length === 3 ? 'Three' : 'Two'} ways to make it.`}</span>
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Every card is printed once, just for them, and posted with a free digital link to share.
-              The price depends on how much we make from scratch.
+              {!single && <>{' '}The price depends on how much we make from scratch.</>}
             </p>
 
             <div className="mt-8 md:mt-10">
@@ -113,7 +118,7 @@ export default function PricingPage() {
             </div>
 
             {/* The ladder */}
-            <div className={`mt-6 grid gap-4 md:gap-5 ${doors.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+            <div className={`mt-6 grid gap-4 md:gap-5 ${doors.length === 3 ? 'md:grid-cols-3' : single ? 'max-w-md' : 'md:grid-cols-2'}`}>
               {doors.map((d) => {
                 const Icon = d.icon;
                 const href = d.source === 'photo' ? photoHref : d.href;
@@ -178,7 +183,9 @@ export default function PricingPage() {
             <div className="mt-12 rounded-2xl border border-keeper-hair bg-white/70 p-6 backdrop-blur-sm md:mt-16 md:p-8">
               <p className={EYEBROW}>The fine print, kept short</p>
               <ul className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-keeper-body">
-                <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account.</li>
+                {maker
+                  ? <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account.</li>
+                  : <li><span className="font-semibold text-keeper-ink">Your first card is half price, {formatMoney(firstOrderPrice('photo'))}</span> when you add three dates that matter to your studio. One per account.</li>}
                 <li><span className="font-semibold text-keeper-ink">Personalised cards can't be cancelled</span> once printing begins. We say so before you pay.</li>
                 <li><span className="font-semibold text-keeper-ink">Making is free.</span> Roll again, change the details, start over. You only pay when you post one.</li>
                 <li><span className="font-semibold text-keeper-ink">No logos, brands or famous faces</span> on the front. Your answers set the scene; we draw it.</li>

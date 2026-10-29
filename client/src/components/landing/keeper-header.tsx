@@ -25,6 +25,7 @@ import { Cake, Camera, ChevronDown, Menu, Sparkles, TreePine, type LucideIcon } 
 
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { TickerBanner } from '@/components/landing/ticker-banner';
@@ -87,13 +88,18 @@ export function KeeperHeader() {
   // The rack is parked until there is stock (/admin/site) — no Stock cards
   // menu until it's known to be open.
   const rack = useRackEnabled();
-  const groups = rack === true ? GROUPS : GROUPS.filter((g) => g.label !== 'Stock cards');
+  // The three-card route is parked for launch (/admin/site, 2026-10-29):
+  // no "Made for them" entry, and `/` is the photo landing page, not the
+  // gate. A group left with one entry renders as a plain link.
+  const maker = useMakerEnabled() === true;
+  const groups = (rack === true ? GROUPS : GROUPS.filter((g) => g.label !== 'Stock cards'))
+    .map((g) => (maker ? g : { ...g, items: g.items.filter((it) => it.href !== '/create') }));
 
-  const onGate = location === '/';
+  const onGate = location === '/' && maker;
   // On the makers and at checkout the visitor is already doing the thing —
   // the header verb would only pull them out of it (audit 2026-09-09).
   const hideCta = location === '/photo/make' || location.startsWith('/buy/') || location.startsWith('/order/');
-  const onPhotoLp = location === '/photo' || location === '/keeper';
+  const onPhotoLp = location === '/photo' || location === '/keeper' || (location === '/' && !maker);
 
   const cta = hideCta ? null : onGate ? (
     /* On the gate the header must not answer the page's own question —
@@ -104,7 +110,7 @@ export function KeeperHeader() {
   ) : (
     /* Signed out on the photo page → the PUBLIC photo maker; anywhere
        else → the three-card builder. */
-    <Link href={onPhotoLp ? '/photo/make' : '/make'}>
+    <Link href={onPhotoLp || !maker ? '/photo/make' : '/make'}>
       <button type="button" className={ctaCls}>Make a card</button>
     </Link>
   );
@@ -120,7 +126,11 @@ export function KeeperHeader() {
 
           {/* Desktop row */}
           <nav className="hidden items-center gap-5 md:flex" aria-label="Main">
-            {groups.map((g) => (
+            {groups.map((g) => g.items.length === 1 ? (
+              <Link key={g.label} href={g.items[0].href} className={`${navLink} ${g.matches(location) ? navActive : ''}`} data-testid={`nav-${g.label.split(' ')[0].toLowerCase()}`}>
+                {g.label}
+              </Link>
+            ) : (
               <DropdownMenu key={g.label} modal={false}>
                 <DropdownMenuTrigger asChild>
                   <button type="button" className={`${navLink} ${g.matches(location) ? navActive : ''}`} data-testid={`nav-${g.label.split(' ')[0].toLowerCase()}`}>
@@ -174,7 +184,9 @@ export function KeeperHeader() {
                   <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto" />
                 </div>
                 <nav className="flex flex-1 flex-col overflow-y-auto px-4 pb-4 pt-2" aria-label="Main">
-                  {groups.map((g) => (
+                  {groups.map((g) => g.items.length === 1 ? (
+                    <Link key={g.label} href={g.items[0].href} onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">{g.label}</Link>
+                  ) : (
                     <MobileGroup key={g.label} group={g} defaultOpen={g.matches(location)} onNavigate={() => setOpen(false)} />
                   ))}
                   <div className="mt-1 flex flex-col">

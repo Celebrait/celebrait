@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import CheckoutLayout from '@/layouts/checkout-layout';
 import { expectedByCopy } from '@/components/checkout/need-by';
 import { formatMoney } from '@shared/market';
+import { trackPurchase } from '@/lib/pixel';
 
 interface OrderResponse {
   order: {
@@ -23,6 +24,8 @@ interface OrderResponse {
     paymentStatus: string;
     fulfillmentStatus: string;
     totalAmount: number;
+    /** What the gateway actually charged (null until paid / pre-July). */
+    amountPaid?: number | null;
     currency: string;
     createdAt?: string;
   };
@@ -54,6 +57,15 @@ export default function CheckoutSuccessPage() {
   });
 
   const paid = data?.order.paymentStatus === 'paid';
+
+  // Meta 'Purchase' (no-op without ad consent; once per order per
+  // browser). eventID 'order-<id>' matches the server-side Conversions
+  // API event so Meta counts the sale once.
+  useEffect(() => {
+    if (!paid || !data) return;
+    const o = data.order;
+    trackPurchase(o.id, o.amountPaid ?? o.totalAmount, o.currency);
+  }, [paid, data]);
 
   // Stop confirming after 20s if payment hasn't landed — surface a calm
   // "check Orders" state instead of a forever spinner.

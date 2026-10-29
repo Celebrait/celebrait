@@ -32,7 +32,10 @@ const postedHow = () => (copyFor().za ? shipPhrase(undefined, false) : 'posted f
 // made-for-them price. Both the server injector and the client hook pass
 // the live flag, so the tab title and the crawler agree.
 // Market-aware (shared/pricing + formatMoney): £5.99 in GB, R129 in ZA.
-const fromGBP = (rackEnabled: boolean) => formatMoney(cardPrice(rackEnabled ? 'rack' : 'maker'));
+// With the three-card route parked too (the maker switch, 2026-10-29)
+// the cheapest card on sale is the photo card.
+const fromGBP = (rackEnabled: boolean, makerEnabled = true) =>
+  formatMoney(cardPrice(rackEnabled ? 'rack' : makerEnabled ? 'maker' : 'photo'));
 
 export type PageSeo = {
   /** Route path, no trailing slash (except '/'). */
@@ -41,27 +44,39 @@ export type PageSeo = {
   description: string;
   /** OG type override — 'article' for blog posts, default 'website'. */
   ogType?: 'website' | 'article';
+  /** Canonical path when it isn't `path` (a duplicate page). */
+  canonical?: string;
 };
 
-const pageSeo = (rackEnabled: boolean): PageSeo[] => [
-  {
-    path: '/',
-    title: 'Personalised Greetings Cards, Made For One Person | Celebrait',
-    description:
-      `Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled)}.`,
-  },
+/** The photo landing's metadata. Shared by /photo and, while the
+ *  three-card route is parked, by `/` (which then renders that page). */
+const photoLanding = (rackEnabled: boolean, makerEnabled: boolean) => ({
+  title: 'Personalised Greetings Cards: Put Them In The Picture | Celebrait',
+  description:
+    `Turn a photo into a personalised greetings card. They become the artwork, in any scene you can describe, printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled, makerEnabled)}.`,
+});
+
+// THE MAKER SWITCH (2026-10-29): while the three-card route is parked,
+// `/` renders the photo landing page, so it carries that page's metadata
+// and stays its own canonical (the homepage is the strongest URL, and
+// QR codes and ads land there). /photo is then the same page twice, so
+// it canonicalises to `/` until the route reopens.
+const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
+  makerEnabled
+    ? {
+        path: '/',
+        title: 'Personalised Greetings Cards, Made For One Person | Celebrait',
+        description:
+          `Two ways to make a card that’s all about them: turn a photo into the artwork, or tell us one thing they love and pick from three originals. Printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled)}.`,
+      }
+    : { path: '/', ...photoLanding(rackEnabled, makerEnabled) },
   {
     path: '/photo/make',
     title: 'Make a card from a photo | Celebrait',
     description:
       'Upload one clear photo, set the scene, and we draw them into it. Free to start. Sign up when you’re ready to generate.',
   },
-  {
-    path: '/photo',
-    title: 'Personalised Greetings Cards: Put Them In The Picture | Celebrait',
-    description:
-      `Turn a photo into a personalised greetings card. They become the artwork, in any scene you can describe, printed on 280gsm card and posted ${copyFor().anywhere} from ${fromGBP(rackEnabled)}.`,
-  },
+  { path: '/photo', ...photoLanding(rackEnabled, makerEnabled), ...(makerEnabled ? {} : { canonical: '/' }) },
   {
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
@@ -75,9 +90,9 @@ const pageSeo = (rackEnabled: boolean): PageSeo[] => [
   },
   {
     path: '/pricing',
-    title: `Pricing: Personalised Greetings Cards from ${fromGBP(rackEnabled)} | Celebrait`,
+    title: `Pricing: Personalised Greetings Cards from ${fromGBP(rackEnabled, makerEnabled)} | Celebrait`,
     description:
-      `No subscriptions: printed cards from ${fromGBP(rackEnabled)} plus ${formatMoney(shippingPrice())} postage: ${rackEnabled ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${formatMoney(cardPrice('maker'))} made for them, ${formatMoney(cardPrice('photo'))} from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
+      `No subscriptions: printed cards from ${fromGBP(rackEnabled, makerEnabled)} plus ${formatMoney(shippingPrice())} postage: ${rackEnabled ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${makerEnabled ? `${formatMoney(cardPrice('maker'))} made for them, ` : ''}${formatMoney(cardPrice('photo'))} from your photo. Free to design, free digital version included. One-off prints: allow at least a week from order to arrival.`,
   },
   {
     path: '/contact',
@@ -205,18 +220,21 @@ export function isKnownRoutePath(path: string): boolean {
 /** The robots directive for a path, or null when it may be indexed.
  *  Used by the server (meta + X-Robots-Tag) and the client hook.
  *  `rackEnabled` false (the default — parked) noindexes the catalogue,
- *  which the client redirects to /create meanwhile. */
-export function robotsForPath(path: string, rackEnabled = false): string | null {
+ *  which the client redirects to /create meanwhile. `makerEnabled` false
+ *  (the default — parked) noindexes the three-card route, which the
+ *  client redirects to /photo meanwhile. */
+export function robotsForPath(path: string, rackEnabled = false, makerEnabled = false): string | null {
   if (NOINDEX_PATHS.some((re) => re.test(path))) return 'noindex,nofollow';
   if (!rackEnabled && /^\/cards(\/|$)/.test(path)) return 'noindex';
+  if (!makerEnabled && /^\/(create|make)(\/|$)/.test(path)) return 'noindex';
   if (!isKnownRoutePath(path)) return 'noindex';
   return null;
 }
 
-export function seoForPath(rawPath: string, rackEnabled = false): PageSeo | null {
+export function seoForPath(rawPath: string, rackEnabled = false, makerEnabled = false): PageSeo | null {
   const path =
     rawPath.length > 1 && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
-  const page = pageSeo(rackEnabled).find((p) => p.path === path);
+  const page = pageSeo(rackEnabled, makerEnabled).find((p) => p.path === path);
   if (page) return page;
   const cat = catalogueSeoForPath(path);
   if (cat) return cat;

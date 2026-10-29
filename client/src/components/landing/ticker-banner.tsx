@@ -19,6 +19,7 @@ import { Gift, Truck } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -39,16 +40,20 @@ export const CLAIM_PARAM = 'claim';
  *  the three-card price — so on /photo it promised £5.99→£2.99 for a card
  *  that is £6.99→£3.49 at checkout (audit 2026-10-06). The number must be
  *  the number this door will actually charge. */
-function doorFor(path: string): 'photo' | 'maker' {
-  return path.startsWith('/photo') ? 'photo' : 'maker';
+/** With the three-card route parked (2026-10-29) every page is the
+ *  photo door: it is the only card a customer can make. */
+function doorFor(path: string, maker = true): 'photo' | 'maker' {
+  return !maker || path.startsWith('/photo') ? 'photo' : 'maker';
 }
 
 export function useClaimFreeCard() {
   const [location, setLocation] = useLocation();
+  // While the three-card route is parked, `/` renders the photo page too.
+  const maker = useMakerEnabled() === true;
   return () => {
     // The invite modal mounts on the PHOTO landing page — /photo since
     // the gate took / (2026-09-03).
-    if (location === '/photo' || location === '/keeper') {
+    if (location === '/photo' || location === '/keeper' || (location === '/' && !maker)) {
       window.dispatchEvent(
         new CustomEvent(CLAIM_EVENT, { detail: { intent: 'asked' } }),
       );
@@ -62,7 +67,7 @@ const HOLD_MS = 8000;
 
 export function TickerBanner() {
   const [tickerPath] = useLocation();
-  const door = doorFor(tickerPath);
+  const door = doorFor(tickerPath, useMakerEnabled() === true);
   const claimTap = useClaimFreeCard();
   // 0 = the offer, 1 = the honest lead line.
   const [slot, setSlot] = useState(0);

@@ -19,6 +19,8 @@ import { formatDayMonth, parseISODate } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
+import { trackPurchase } from '@/lib/pixel';
 
 
 interface ShopOrder {
@@ -28,6 +30,8 @@ interface ShopOrder {
   customerEmail: string | null;
   shippingTier: string;
   totalAmount: number;
+  amountPaid?: number | null;
+  currency?: string;
   printAmount: number;
   shippingAmount: number;
   createdAt: string;
@@ -54,6 +58,7 @@ function stepIndex(status: string): number {
 export default function OrderStatusPage() {
   const params = useParams<{ orderId: string }>();
   const rack = useRackEnabled() === true; // the rack is parked until there is stock
+  const maker = useMakerEnabled() === true; // so is the three-card route (2026-10-29)
   const [order, setOrder] = useState<ShopOrder | null>(null);
   const [items, setItems] = useState<ShopOrderItem[]>([]);
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading');
@@ -68,6 +73,14 @@ export default function OrderStatusPage() {
         const j = await r.json();
         if (stop) return;
         setOrder(j.order); setItems(j.items ?? []); setState('ok');
+        // Meta 'Purchase' for a guest back from the gateway (or a fresh
+        // order): no-op without ad consent, once per order per browser,
+        // eventID matched by the server-side Conversions API event.
+        const fromPayment = new URLSearchParams(window.location.search).get('from') === 'payment';
+        const fresh = Date.now() - new Date(j.order.createdAt).getTime() < 24 * 3600_000;
+        if (j.order.paymentStatus === 'paid' && (fromPayment || fresh)) {
+          trackPurchase(j.order.id, j.order.amountPaid ?? j.order.totalAmount, j.order.currency ?? 'GBP');
+        }
         document.title = 'Your order | Celebrait';
         // Poll while payment settles (max ~1 min) — the API reconciles
         // with Stripe on each read, so this closes the webhook race.
@@ -176,7 +189,7 @@ export default function OrderStatusPage() {
         <p className="mt-6 text-center">
           {rack
             ? <Link href="/cards/birthday" className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Browse the cards →</Link>
-            : <Link href="/create" className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Make another →</Link>}
+            : <Link href={maker ? '/create' : '/photo/make'} className="text-sm font-medium text-keeper-gold hover:underline">Send another one? Make another →</Link>}
         </p>
       </main>
     </div>

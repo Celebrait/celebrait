@@ -12,7 +12,9 @@ import { Link, useLocation } from 'wouter';
 import { Instagram, ArrowRight } from 'lucide-react';
 import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
+import { useMakerEnabled } from '@/hooks/use-maker';
 import { copyFor } from '@shared/market-copy';
+import { CookieSettingsLink } from '@/components/consent-banner';
 
 interface FooterLink {
   label: string;
@@ -31,10 +33,11 @@ const COMPANY: FooterLink[] = [
 // (2026-10-09, 2026-10-11): /create has its own #faq and #how-it-works
 // with the three-card answers, so on that side of the house the links
 // stay on that side.
-function helpLinks(path: string): FooterLink[] {
+function helpLinks(path: string, maker = true): FooterLink[] {
+  const threeCard = maker && THREE_CARD_DOOR.test(path);
   return [
-    { label: 'How it works', href: THREE_CARD_DOOR.test(path) ? '/create#how-it-works' : '/photo#how-it-works' },
-    { label: 'FAQ', href: THREE_CARD_DOOR.test(path) ? '/create#faq' : '/photo#faq' },
+    { label: 'How it works', href: threeCard ? '/create#how-it-works' : '/photo#how-it-works' },
+    { label: 'FAQ', href: threeCard ? '/create#faq' : '/photo#faq' },
     { label: 'Delivery', href: '/pricing#delivery' },
   ];
 }
@@ -59,12 +62,15 @@ export const THREE_CARD_DOOR = /^\/(create|make|door2?)(?:\/|$)/;
  *  visitor is, the public photo maker elsewhere. */
 export function useMakeYoursHref(): string {
   const [path] = useLocation();
-  return THREE_CARD_DOOR.test(path) ? '/make' : '/photo/make';
+  // The three-card route parked (2026-10-29): always the photo maker.
+  const maker = useMakerEnabled() === true;
+  return maker && THREE_CARD_DOOR.test(path) ? '/make' : '/photo/make';
 }
 
 function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [path] = useLocation();
+  const maker = useMakerEnabled() === true;
   const authed = !isLoading && isAuthenticated;
   const cls =
     'group inline-flex items-center gap-2 rounded-full bg-keeper-paper px-8 py-4 text-base font-semibold text-keeper-ink shadow-lg shadow-black/20 transition-all hover:-translate-y-0.5 hover:bg-white';
@@ -73,7 +79,9 @@ function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
   // not promise "free" under two priced doors, nor pick a route for them.
   // A real link (not scrollIntoView) so it also works from /pricing,
   // where there is no #doors.
-  if (mode === 'gate') {
+  // With the three-card route parked there is no gate (2026-10-29): `/`
+  // is the photo page, so the band is the plain photo CTA everywhere.
+  if (mode === 'gate' && maker) {
     return (
       <Link href="/#doors" className={cls}>
         Pick your route
@@ -81,7 +89,7 @@ function FooterCta({ mode = 'default' }: { mode?: FooterCtaMode }) {
       </Link>
     );
   }
-  const href = THREE_CARD_DOOR.test(path)
+  const href = maker && THREE_CARD_DOOR.test(path)
     ? '/make'
     : authed
       ? '/studio/new-card'
@@ -127,6 +135,7 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 
 export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {}) {
   const [path] = useLocation();
+  const maker = useMakerEnabled() === true;
   return (
     <footer className="relative isolate overflow-hidden bg-keeper-ink text-keeper-paper">
       {/* Warm marigold glow bleeding down from the top edge. */}
@@ -187,8 +196,8 @@ export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {
             </div>
           </div>
           <FooterColumn title="Company" links={COMPANY} />
-          <FooterColumn title="Help" links={helpLinks(path)} />
-          <FooterColumn title="Legal" links={LEGAL} />
+          <FooterColumn title="Help" links={helpLinks(path, maker)} />
+          <div><FooterColumn title="Legal" links={LEGAL} /><CookieSettingsLink className="mt-2.5 text-sm text-keeper-paper/70 transition-colors hover:text-keeper-paper" /></div>
         </div>
       </div>
 

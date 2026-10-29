@@ -53,8 +53,13 @@ import { ProgressRing } from '@/components/studio/moment-ring';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 export default function StudioMomentsPage() {
+  // The three-card route parked (2026-10-29): the offer quotes the photo
+  // card and "Make your card" opens the photo studio.
+  const maker = useMakerEnabled() === true;
+  const offer = maker ? 'maker' : 'photo';
   // The 15-second sheet replaces every link to the address-book ADMIN
   // form on this page (Kevin's audit: the add flow IS the product).
   const [addOpen, setAddOpen] = useState(false);
@@ -150,11 +155,11 @@ export default function StudioMomentsPage() {
                   Unlocked: 50% off your first card
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  <span className="line-through text-keeper-meta">{formatMoney(cardPrice('maker'))}</span>{' '}
-                  <span className="font-semibold text-go">{formatMoney(firstOrderPrice('maker'))}</span> plus
+                  <span className="line-through text-keeper-meta">{formatMoney(cardPrice(offer))}</span>{' '}
+                  <span className="font-semibold text-go">{formatMoney(firstOrderPrice(offer))}</span> plus
                   postage. It’s waiting whenever a moment comes round.
                 </p>
-                <Link href="/make">
+                <Link href={maker ? '/make' : '/studio/new-card'}>
                   <Button
                     size="sm"
                     className="mt-2 rounded-full bg-go hover:bg-go-hover text-go-foreground"

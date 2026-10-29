@@ -13,6 +13,7 @@ import { assertLaunchSafeConfig } from "./launch-guards";
 import { setupVite, serveStatic, log } from "./vite";
 import { market } from "@shared/market";
 import { renderRobotsTxt, renderSitemapXml } from "./robots-sitemap";
+import { makerOpen } from "./routes/site-lock";
 
 const app = express();
 
@@ -163,8 +164,11 @@ app.use((req, res, next) => {
   app.get("/robots.txt", (_req, res) => {
     res.type("text/plain").set("Cache-Control", "public, max-age=86400").send(renderRobotsTxt());
   });
-  app.get("/sitemap.xml", (_req, res) => {
-    res.type("application/xml").set("Cache-Control", "public, max-age=86400").send(renderSitemapXml());
+  app.get("/sitemap.xml", async (_req, res) => {
+    // The maker switch (/admin/site) decides whether /create and /photo
+    // are listed. Cached for the process, so no database read per hit.
+    const maker = await makerOpen();
+    res.type("application/xml").set("Cache-Control", "public, max-age=86400").send(renderSitemapXml(undefined, maker));
   });
 
   const server = await registerRoutes(app);

@@ -21,6 +21,7 @@
 // part of the Week 1 rebuild so each page owns its own header.
 
 import { Link, useLocation } from 'wouter';
+import { MakerOnly } from '@/hooks/use-maker';
 import {
   CalendarHeart,
   LogOut,
@@ -133,6 +134,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         {/* Secondary door: the three-card route (/create asks the questions
             in place). Until now a signed-in person who liked that route had
             to leave the studio and find /create again (audit 2026-10-06). */}
+        {/* Hidden while the three-card route is parked (2026-10-29). */}
+        <MakerOnly>
         <Link
           href="/create"
           onClick={onNavigate}
@@ -142,6 +145,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           <MessageSquareText className="w-3.5 h-3.5" />
           Answer a few questions instead
         </Link>
+        </MakerOnly>
       </div>
 
       {NAV_SECTIONS.map((section) => (

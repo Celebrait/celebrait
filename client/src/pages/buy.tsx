@@ -24,6 +24,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
+import { adConsentPayload } from '@/lib/consent';
+import { pixelFlush, track } from '@/lib/pixel';
 import { useParams, Link } from 'wouter';
 import { Loader2, Lock, ShieldCheck, Truck } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -33,6 +35,7 @@ import { DEFAULT_SHIPPING_TIER, cardPrice, shippingPrice, shippingCarrierLabel }
 import { formatMoney, market, type MarketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 
 export const rackTokenKey = (cardId: number | string) => `celebrait_rack_token_${cardId}`;
@@ -73,6 +76,7 @@ export default function BuyPage() {
   const [card, setCard] = useState<ShopCard | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading');
   const rack = useRackEnabled() === true; // the rack is parked until there is stock
+  const maker = useMakerEnabled() === true; // so is the three-card route (2026-10-29)
 
   const [needBy, setNeedBy] = useState('');
   const [email, setEmail] = useState('');
@@ -164,11 +168,20 @@ export default function BuyPage() {
             suburb: suburb.trim() || undefined,
             city: city.trim(), postcode: postcode.trim().toUpperCase(), country: mkt.isoCountry,
           },
+          // Ad-cookie consent at pay time (empty without a pixel).
+          ...adConsentPayload(),
         }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.message ?? 'That didn’t work. Try again');
       if (j?.payment?.mode === 'redirect' && j.payment.redirectUrl) {
+        // Meta 'InitiateCheckout' (no-op without ad consent).
+        track('InitiateCheckout', {
+          value: (j?.totals?.totalAmount ?? 0) / 100,
+          currency: j?.totals?.currency ?? mkt.currency,
+          num_items: 1,
+        });
+        await pixelFlush();
         window.location.href = j.payment.redirectUrl;
         return;
       }
@@ -198,7 +211,7 @@ export default function BuyPage() {
         <div className="mx-auto max-w-lg px-6 pb-24 pt-40 text-center">
           <h1 className="font-display text-2xl font-bold text-keeper-ink">We couldn't find that card</h1>
           <p className="mt-3 text-sm text-keeper-meta">The link may have expired with your session. Pick the card again and it'll be waiting.</p>
-          <Link href={rack ? '/cards/birthday' : '/create'} className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">{rack ? 'Back to the cards' : 'Make a card'}</Link>
+          <Link href={rack ? '/cards/birthday' : maker ? '/create' : '/photo/make'} className="mt-6 inline-block rounded-full bg-keeper-ink px-6 py-3 font-semibold text-keeper-paper">{rack ? 'Back to the cards' : 'Make a card'}</Link>
         </div>
       </div>
     );

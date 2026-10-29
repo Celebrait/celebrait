@@ -46,6 +46,11 @@ export async function ensureLaunchColumns(): Promise<void> {
     // so the launch audit could see neither latency nor which floors fire.
     await db.execute(sql`alter table generation_log add column if not exists stage text`);
     await db.execute(sql`alter table generation_log add column if not exists violations text`);
+    // 2026-10-29: Meta ads measurement. The ad-cookie consent captured at
+    // checkout, and (only when consented) the browser ids for the
+    // server-side Purchase event. See server/meta-capi.ts.
+    await db.execute(sql`alter table studio_orders add column if not exists ad_consent boolean`);
+    await db.execute(sql`alter table studio_orders add column if not exists ad_match jsonb`);
   } catch (err) {
     console.warn('[SCHEMA] launch column check failed:', (err as Error)?.message ?? err);
   }

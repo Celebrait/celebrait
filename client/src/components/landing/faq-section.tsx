@@ -15,6 +15,7 @@ import { SUPPORT_EMAIL } from '@/lib/legal';
 import { market as activeMarket } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 import {
   cardPrice,
   firstOrderPrice,
@@ -31,10 +32,14 @@ interface FaqEntry {
 
 // The photo door's answers (/photo).
 // A function of the rack switch: the £4.99 rung only while stock cards sell.
-const photoFaqs = (rack: boolean): FaqEntry[] => [
+// And of the maker switch (2026-10-29): while the three-card route is
+// parked, no answer mentions it or its price.
+const photoFaqs = (rack: boolean, maker = true): FaqEntry[] => [
   {
     q: 'How does Celebrait work?',
-    a: "You describe what you want: recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes, about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post.",
+    a: maker
+      ? "You describe what you want: recipient, occasion, scene, the small details that make it personal. We write and illustrate it in minutes, about 3–5 for a made-for-them card, 7–10 from a photo. Free to make, free to keep digital. Pay only if you want to print and post."
+      : "Start with a photo of them, then describe what you want: occasion, scene, the small details that make it personal. We draw them into it in about 7–10 minutes. Free to make, free to keep digital. Pay only if you want to print and post.",
   },
   {
     q: 'Whose words go inside the card?',
@@ -46,7 +51,9 @@ const photoFaqs = (rack: boolean): FaqEntry[] => [
   },
   {
     q: 'Can I print and post the card?',
-    a: `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${formatMoney(cardPrice(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${formatMoney(cardPrice('maker'))} made for them, ${formatMoney(cardPrice('photo'))} from your photo), with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`,
+    a: maker || rack
+      ? `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. From ${formatMoney(cardPrice(rack ? 'rack' : 'maker'))} plus postage (${rack ? `${formatMoney(cardPrice('rack'))} off the shelf, ` : ''}${maker ? `${formatMoney(cardPrice('maker'))} made for them, ` : ''}${formatMoney(cardPrice('photo'))} from your photo), with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`
+      : `Yes. A 280gsm gloss-coated card, HP Indigo digital print, posted in a kraft envelope. ${formatMoney(cardPrice('photo'))} plus postage, with a free digital version included. Our cards are one-off prints. Please allow at least a week from order to arrival.`,
   },
   {
     q: 'How fast is delivery?',
@@ -129,7 +136,8 @@ const forMarket = (faqs: FaqEntry[]): FaqEntry[] =>
  *  the three-card door's six (/create). Same chrome either way. */
 export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
   const rack = useRackEnabled() === true;
-  const FAQS = forMarket(door === 'maker' ? MAKER_FAQS : photoFaqs(rack));
+  const maker = useMakerEnabled() === true;
+  const FAQS = forMarket(door === 'maker' ? MAKER_FAQS : photoFaqs(rack, maker));
   return (
     <section id="faq" className="snap-center relative scroll-mt-32 py-24 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array

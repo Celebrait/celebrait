@@ -14,11 +14,14 @@ import { market, publicOrigin } from '@shared/market';
 
 export interface LaunchCheck {
   id: string;
-  group: 'Payments' | 'Printing' | 'Safety' | 'Email' | 'Legal' | 'Site';
+  group: 'Payments' | 'Printing' | 'Safety' | 'Email' | 'Legal' | 'Ads' | 'Site';
   label: string;
   /** true = ready, false = not ready, null = can't be checked by code (manual). */
   ok: boolean | null;
   detail: string;
+  /** Amber, not red: worth fixing, but no customer is let down by it, so
+   *  it never counts as blocking (the ads-tracking rows). */
+  warn?: boolean;
 }
 
 const set = (v: string | undefined): boolean => !!v && v.trim().length > 0;
@@ -128,6 +131,20 @@ export async function runLaunchChecks(): Promise<LaunchCheck[]> {
         label: 'Confirm "Royal Mail 24, tracked" with Prodigi',
         detail: 'The site says tracked. If Prodigi\'s card service isn\'t, say so and the word gets dropped.' },
     ] satisfies LaunchCheck[]),
+    // ── Ads ── (Meta Pixel + Conversions API; presence only, never values)
+    { id: 'ads-pixel', group: 'Ads', ok: set(env.META_PIXEL_ID), warn: !set(env.META_PIXEL_ID),
+      label: 'Meta Pixel id is set (META_PIXEL_ID)',
+      detail: set(env.META_PIXEL_ID)
+        ? (/^\d{5,20}$/.test((env.META_PIXEL_ID ?? '').trim()) ? 'present · the cookie banner shows and the pixel loads after Accept' : 'present but not a number, so the site ignores it. Copy the dataset id from Events Manager.')
+        : 'Not set: no cookie banner, no pixel, and Meta ads optimise blind. Events Manager → Data sources → your dataset id.' },
+    { id: 'ads-capi', group: 'Ads', ok: set(env.META_CAPI_TOKEN), warn: !set(env.META_CAPI_TOKEN),
+      label: 'Meta Conversions API token is set (META_CAPI_TOKEN)',
+      detail: set(env.META_CAPI_TOKEN) ? 'present · paid orders from customers who accepted the cookie are reported server-side' : 'Not set: purchases are only reported from the browser, and ad blockers lose some. Events Manager → Settings → Conversions API → Generate access token.' },
+    { id: 'ads-test-code', group: 'Ads', ok: !(set(env.META_TEST_EVENT_CODE) && env.NODE_ENV === 'production'), warn: set(env.META_TEST_EVENT_CODE) && env.NODE_ENV === 'production',
+      label: 'Meta test mode is off (META_TEST_EVENT_CODE unset)',
+      detail: set(env.META_TEST_EVENT_CODE)
+        ? (env.NODE_ENV === 'production' ? "SET on production: server events go to Test events only and won't count. Remove it from Render once you've seen one arrive." : 'set (fine on a dev server)')
+        : 'unset' },
     // ── Site ──
     { id: 'site-market', group: 'Site', ok: true,
       label: `Selling in ${m.countryName.replace(/^the /, '')} (MARKET=${m.id})`,
@@ -148,7 +165,7 @@ export function registerLaunchCheck(app: Express): void {
     if (!(await requireAdmin(req, res))) return;
     try {
       const checks = await runLaunchChecks();
-      const blocking = checks.filter((c) => c.ok === false).length;
+      const blocking = checks.filter((c) => c.ok === false && !c.warn).length;
       const manual = checks.filter((c) => c.ok === null).length;
       res.json({ checks, blocking, manual, env: process.env.NODE_ENV ?? 'development' });
     } catch (err) {

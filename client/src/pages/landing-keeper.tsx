@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
+import { useMakerEnabled } from '@/hooks/use-maker';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
@@ -735,6 +736,9 @@ function HeroProof() {
 
 function HeroSection() {
   const reduced = useReducedMotion();
+  // The other door shows only while the three-card route is open
+  // (/admin/site, 2026-10-29: photo route only for launch).
+  const maker = useMakerEnabled() === true;
   const [persona, setPersona] = useState(0);
   // Shuffled display order (mum pinned first). Stable for the session —
   // useState's lazy init runs the shuffle once on mount.
@@ -868,12 +872,14 @@ function HeroSection() {
             </p>
             {/* The other door (the gate, 2026-09-03): each landing page
                 points at the other. */}
-            <p className="mt-3 text-[13px] text-keeper-body">
-              No photo to hand?{' '}
-              <Link href="/create" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
-                Tell us one thing they love and pick from three cards →
-              </Link>
-            </p>
+            {maker && (
+              <p className="mt-3 text-[13px] text-keeper-body">
+                No photo to hand?{' '}
+                <Link href="/create" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                  Tell us one thing they love and pick from three cards →
+                </Link>
+              </p>
+            )}
           </div>
           <TrustChips />
         </div>

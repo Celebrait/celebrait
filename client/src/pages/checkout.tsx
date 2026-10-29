@@ -17,6 +17,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
+import { adConsentPayload } from '@/lib/consent';
+import { pixelFlush, track } from '@/lib/pixel';
 import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -72,6 +74,7 @@ interface CardSummary {
 
 interface CheckoutResponse {
   orderId: string;
+  totals?: { totalAmount?: number; currency?: string };
   payment: {
     paymentReference: string;
     mode: 'redirect' | 'embedded';
@@ -328,6 +331,9 @@ export default function CheckoutPage() {
         customerName,
         includesPrint,
         includesDigital,
+        // Ad-cookie consent at the moment of paying (+ Meta's browser ids
+        // when consented), for the server-side Purchase. Empty without a pixel.
+        ...adConsentPayload(),
       };
       if (compCode.trim()) payload.compCode = compCode.trim();
       if (includesPrint) {
@@ -379,6 +385,14 @@ export default function CheckoutPage() {
 
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
         const url = body.payment.redirectUrl;
+        // Meta 'InitiateCheckout' as we hand over to the gateway. No-op
+        // without ad consent.
+        track('InitiateCheckout', {
+          value: (body.totals?.totalAmount ?? 0) / 100,
+          currency: body.totals?.currency ?? mkt.currency,
+          num_items: 1,
+        });
+        await pixelFlush();
         // Stripe returns an absolute URL (https://checkout.stripe.com/…)
         // which needs a real navigation; the stub returns a relative
         // in-app path which wouter handles. Branch on protocol.

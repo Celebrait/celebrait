@@ -9,6 +9,9 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+// The advertising-cookie ask rides with the open site only, so it never
+// sits on the launching-soon page. Inert without META_PIXEL_ID.
+import { ConsentBanner } from '@/components/consent-banner';
 
 const ComingSoonPage = lazy(() => import('@/pages/coming-soon'));
 
@@ -36,7 +39,7 @@ export function SiteGate({ children }: { children: ReactNode }) {
     retry: 1,
   });
 
-  if (OPEN.some((re) => re.test(location))) return <>{children}</>;
+  if (OPEN.some((re) => re.test(location))) return <>{children}<ConsentBanner /></>;
   if (!data && !isError) return <div className="min-h-screen bg-keeper-paper" />;
   // If the check itself fails, fail OPEN like the server middleware does
   // (server/routes/site-lock.ts `catch { return next(); }`): a transient
@@ -45,7 +48,7 @@ export function SiteGate({ children }: { children: ReactNode }) {
   // server-side regardless, so nothing costly leaks through.
   if (isError) {
     console.warn('[site-gate] lock check failed — showing the site');
-    return <>{children}</>;
+    return <>{children}<ConsentBanner /></>;
   }
   if (data && data.locked && !data.allowed) {
     return (
@@ -54,5 +57,5 @@ export function SiteGate({ children }: { children: ReactNode }) {
       </Suspense>
     );
   }
-  return <>{children}</>;
+  return <>{children}<ConsentBanner /></>;
 }

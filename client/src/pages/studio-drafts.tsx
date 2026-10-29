@@ -27,6 +27,7 @@ import { useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'wouter';
+import { MakerOnly } from '@/hooks/use-maker';
 import {
   Wand2,
   FileEdit,
@@ -447,11 +448,13 @@ function DraftsEmpty() {
         <Wand2 className="w-4 h-4" />
         Start a card
       </Link>
+      <MakerOnly>
       <p className="mt-3 text-xs text-keeper-meta">
         <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="drafts-empty-questions">
           Answer a few questions instead
         </Link>
       </p>
+      </MakerOnly>
     </div>
   );
 }

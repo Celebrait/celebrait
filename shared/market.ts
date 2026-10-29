@@ -101,7 +101,7 @@ export function serverMarketId(env: Record<string, string | undefined> = (typeof
 
 declare global {
   interface Window {
-    __CELEBRAIT__?: { market?: MarketId };
+    __CELEBRAIT__?: { market?: MarketId; pixel?: string };
   }
 }
 
@@ -137,7 +137,16 @@ export function formatMoney(minor: number, currency: MarketCurrency = market().c
   return `£${major.toFixed(2)}`;
 }
 
+/** The Meta Pixel id the server injects (env META_PIXEL_ID), digits only.
+ *  Undefined = no pixel configured: no consent banner, no script, no
+ *  requests. See client/src/lib/pixel.ts. */
+export function serverPixelId(env: Record<string, string | undefined> = (typeof process !== 'undefined' ? process.env : {})): string | undefined {
+  const v = (env.META_PIXEL_ID ?? '').trim();
+  return /^\d{5,20}$/.test(v) ? v : undefined;
+}
+
 /** The `<script>` the server puts in every HTML shell. */
 export function marketBootScript(id: MarketId = serverMarketId()): string {
-  return `<script>window.__CELEBRAIT__=${JSON.stringify({ market: id })}</script>`;
+  const pixel = serverPixelId();
+  return `<script>window.__CELEBRAIT__=${JSON.stringify(pixel ? { market: id, pixel } : { market: id })}</script>`;
 }

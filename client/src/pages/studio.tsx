@@ -26,6 +26,7 @@ import { friendlyError } from '@/lib/friendly-error';
 import { useQuery } from '@tanstack/react-query';
 import { WorldSection } from '@/components/studio/world-section';
 import { Link } from 'wouter';
+import { MakerOnly } from '@/hooks/use-maker';
 import {
   ArrowRight,
   Sparkles,
@@ -157,11 +158,13 @@ function DraftPendingView({ name, draft }: { name: string; draft: CardGridItem }
           <Wand2 className="w-4 h-4" />
           Or start a new card
         </Link>
+        <MakerOnly>
         <p className="mt-2 text-xs text-keeper-meta">
           <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="draft-pending-questions">
             Answer a few questions instead
           </Link>
         </p>
+        </MakerOnly>
       </div>
 
 

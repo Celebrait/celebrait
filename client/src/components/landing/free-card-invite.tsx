@@ -29,6 +29,8 @@ import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
+import { useMakerEnabled } from '@/hooks/use-maker';
+import { useLocation } from 'wouter';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
 
@@ -54,6 +56,13 @@ export function FreeCardInvite() {
   // same surface, ring still visible, the real <AuthForm> embedded.
   const [claiming, setClaiming] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('email');
+  // The price the offer quotes follows the DOOR the visitor is on, like
+  // the ticker: the three-card price only on /create or /make while that
+  // route is open, the photo price everywhere else. (Until 2026-10-29 it
+  // quoted the three-card £5.99 → £2.99 on the photo page.)
+  const [invitePath] = useLocation();
+  const makerOpen = useMakerEnabled() === true;
+  const offer = makerOpen && /^\/(create|make)(\/|$)/.test(invitePath) ? 'maker' : 'photo';
   const timerRef = useRef<number | null>(null);
 
   const signedOut = !isLoading && !user;
@@ -241,7 +250,7 @@ export function FreeCardInvite() {
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
                       Then three dates that matter, and your first card is{' '}
-                      <span className="line-through">{formatMoney(cardPrice('maker'))}</span> <b>{formatMoney(firstOrderPrice('maker'))}</b>,
+                      <span className="line-through">{formatMoney(cardPrice(offer))}</span> <b>{formatMoney(firstOrderPrice(offer))}</b>,
                       half price.
                     </p>
                   )}
@@ -292,16 +301,16 @@ export function FreeCardInvite() {
                       start here. Tell us <b>three dates that matter</b> (a
                       birthday, an anniversary, any day) and your first card
                       is half price.{' '}
-                      <span className="text-stone-400 line-through">{formatMoney(cardPrice('maker'))}</span>{' '}
-                      <b>{formatMoney(firstOrderPrice('maker'))}</b>, plus postage.
+                      <span className="text-stone-400 line-through">{formatMoney(cardPrice(offer))}</span>{' '}
+                      <b>{formatMoney(firstOrderPrice(offer))}</b>, plus postage.
                     </p>
                   ) : (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       The right moment probably hasn't come round yet. So start the
                       other way: tell us <b>three dates that matter</b> (a birthday,
                       an anniversary, any day) and your first card is half price.{' '}
-                      <span className="text-stone-400 line-through">{formatMoney(cardPrice('maker'))}</span>{' '}
-                      <b>{formatMoney(firstOrderPrice('maker'))}</b>, plus postage. It waits for the moment.
+                      <span className="text-stone-400 line-through">{formatMoney(cardPrice(offer))}</span>{' '}
+                      <b>{formatMoney(firstOrderPrice(offer))}</b>, plus postage. It waits for the moment.
                     </p>
                   )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">

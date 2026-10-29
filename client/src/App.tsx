@@ -36,7 +36,7 @@ import { useEffect } from 'react';
 import { clearStaleChunkGuard } from '@/lib/stale-chunk';
 import { useSeo } from "@/lib/use-seo";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,6 +46,7 @@ import { RequireAuth, RequireAdmin } from "@/components/require-auth";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SiteGate } from "@/components/site-gate";
 import { useRackEnabled } from "@/hooks/use-rack";
+import { useMakerEnabled } from "@/hooks/use-maker";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
@@ -139,7 +140,26 @@ const BuyPage = lazy(() => import("@/pages/buy"));
 // live in git; the server 301s these too — this catches in-app
 // navigations. Stale offers on them ("first one's on us") are why.
 function CreateRedirect() {
+  // The three-card route parked (/admin/site, 2026-10-29) → the photo LP.
+  const maker = useMakerEnabled();
+  if (maker !== true) return <Redirect to="/photo" replace />;
   return <Redirect to={`/create${window.location.search}`} replace />;
+}
+/** THE MAKER SWITCH (Aidan 2026-10-29: photo route only for launch).
+ *  While the three-card route is parked, customers get the photo landing
+ *  page at `/` (the gate's two-door choice would offer a shut door), and
+ *  /create and /make land on /photo. The routes stay mounted so
+ *  KNOWN_ROUTES stays true. Admins always count as open (use-maker.ts),
+ *  so Aidan still sees the gate and the route. Unknown counts as parked. */
+function HomeRoute() {
+  const maker = useMakerEnabled();
+  if (maker !== true) return <LandingKeeper />;
+  return <GatePage />;
+}
+function MakerRoute({ children }: { children: ReactNode }) {
+  const maker = useMakerEnabled();
+  if (maker !== true) return <Redirect to="/photo" replace />;
+  return <>{children}</>;
 }
 function HomeRedirect() {
   return <Redirect to="/" replace />;
@@ -149,7 +169,8 @@ function HomeRedirect() {
  *  /create. Unknown counts as parked. */
 function CardsOccasionRoute() {
   const rack = useRackEnabled();
-  if (rack !== true) return <Redirect to="/create" replace />;
+  const maker = useMakerEnabled();
+  if (rack !== true) return <Redirect to={maker === true ? "/create" : "/photo"} replace />;
   return <CardsOccasionPage />;
 }
 const OrderStatusPage = lazy(() => import("@/pages/order-status"));
@@ -202,9 +223,13 @@ function Router() {
           {/* THE GATE (2026-09-03): one question at the door — photo or
               tell-us — then the two proven pages. The photo LP moved to
               /photo; the three-card doorway answers at /create (and /door2). */}
-          <Route path="/" component={GatePage} />
+          <Route path="/" component={HomeRoute} />
           <Route path="/photo" component={LandingKeeper} />
-          <Route path="/create" component={DoorwayBPage} />
+          <Route path="/create">
+            <MakerRoute>
+              <DoorwayBPage />
+            </MakerRoute>
+          </Route>
           {/* Legacy /keeper alias → same page, so old links still resolve. */}
           <Route path="/keeper" component={LandingKeeper} />
           <Route path="/hero-poc" component={HomeRedirect} />
@@ -350,7 +375,11 @@ function Router() {
               the rack sells with no account, ownership is token-based. */}
           <Route path="/door" component={CreateRedirect} />
           <Route path="/door2" component={CreateRedirect} />
-          <Route path="/make" component={MakePage} />
+          <Route path="/make">
+            <MakerRoute>
+              <MakePage />
+            </MakerRoute>
+          </Route>
           {/* THE DEMO: /make driving itself for social recordings. Admin
               only — every load spends a set of generations. */}
           <Route path="/demo">

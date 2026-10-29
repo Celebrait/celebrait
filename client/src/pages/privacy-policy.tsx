@@ -3,6 +3,8 @@ import { CelebrationBackdrop } from "@/pages/hero-scroll-poc";
 import { LegalHeader, LegalFooter } from "@/components/landing/legal-chrome";
 import { CONTROLLER, ENTITY_NAMED, PARTY, PRE_LAUNCH_NOTE, PRIVACY_LAST_UPDATED as LAST_UPDATED } from "@/lib/legal";
 import { market } from "@shared/market";
+import { pixelId } from "@/lib/consent";
+import { CookieSettingsLink } from "@/components/consent-banner";
 
 // ZA (market switch 2026-10-15): same structure, the law swapped. UK GDPR
 // + DPA 2018 + the ICO become POPIA + the Information Regulator.
@@ -10,6 +12,9 @@ import { market } from "@shared/market";
 
 export default function PrivacyPolicy() {
   const ZA = market().id === "ZA";
+  // The advertising cookie (Meta Pixel) is described in the UK policy, and
+  // in any market where a pixel id is actually configured.
+  const ADS = !ZA || !!pixelId();
   return (
     <div className="keeper-serif relative min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
@@ -53,11 +58,19 @@ export default function PrivacyPolicy() {
                   sent to third-party AI image services (OpenAI and Google) that
                   generate the artwork.
                 </li>
-                <li>
-                  We <strong>do not</strong> use advertising or analytics
-                  cookies, and we <strong>do not</strong> sell or rent your data.
-                  The only cookie we set is the one that keeps you signed in.
-                </li>
+                {ADS ? (
+                  <li>
+                    We <strong>do not</strong> sell or rent your data. Besides the
+                    cookie that keeps you signed in, we use one advertising cookie
+                    (from Meta), and only if you say yes to it.
+                  </li>
+                ) : (
+                  <li>
+                    We <strong>do not</strong> use advertising or analytics
+                    cookies, and we <strong>do not</strong> sell or rent your data.
+                    The only cookie we set is the one that keeps you signed in.
+                  </li>
+                )}
                 <li>
                   You can access, correct or delete your data at any time.
                   Deleting a card erases its images and details from our storage.
@@ -342,6 +355,16 @@ export default function PrivacyPolicy() {
                       </td>
                       <td className="px-4 py-2">{ZA ? "South Africa" : "EU / United Kingdom"}</td>
                     </tr>
+                    {ADS && (
+                      <tr>
+                        <td className="px-4 py-2">Meta (Facebook, Instagram)</td>
+                        <td className="px-4 py-2">
+                          Measuring which of our ads work, only if you accept the
+                          advertising cookie (see section 10)
+                        </td>
+                        <td className="px-4 py-2">Ireland / United States</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -487,16 +510,82 @@ export default function PrivacyPolicy() {
             </section>
 
             {/* ── 10. Cookies ─────────────────────────────────────── */}
-            <section>
+            <section id="cookies" className="scroll-mt-28">
               <h2 className="font-display text-2xl font-semibold text-keeper-ink mb-4">
                 10. Cookies
               </h2>
-              <p className="text-keeper-body leading-relaxed">
-                We use a single essential cookie to keep you securely signed in.
-                We do not use advertising, analytics or tracking cookies, so no
-                cookie banner is required. You can clear cookies in your browser
-                settings, but doing so will sign you out.
-              </p>
+              {ADS ? (
+                <>
+                  <p className="text-keeper-body leading-relaxed">
+                    We use one essential cookie to keep you securely signed in. It
+                    needs no consent. You can clear cookies in your browser
+                    settings, but doing so will sign you out.
+                  </p>
+                  {/* TODO(solicitor): review the advertising cookie section
+                      (consent wording, Meta's controller role, the
+                      server-side purchase report, retention). */}
+                  <h3 className="font-display text-lg font-semibold text-keeper-ink mt-6 mb-2">
+                    Advertising cookie
+                  </h3>
+                  <ul className="list-disc pl-6 text-keeper-body space-y-2">
+                    <li>
+                      <strong>What it is.</strong> The Meta Pixel, a small piece of
+                      code from Meta Platforms Ireland Ltd. It sets a cookie
+                      (<code>_fbp</code>, plus <code>_fbc</code> if you arrived from
+                      one of our ads).
+                    </li>
+                    <li>
+                      <strong>Why we use it.</strong> To see which of our ads on
+                      Facebook and Instagram bring people to Celebrait and lead to
+                      a card being bought, so we stop paying for ads that don&apos;t.
+                    </li>
+                    <li>
+                      <strong>Only with your consent.</strong> It never loads until
+                      you press Accept. If you say No thanks, nothing is set and
+                      the site works exactly the same. Our legal basis is your
+                      consent.
+                    </li>
+                    <li>
+                      <strong>What Meta receives.</strong> The pages you visit here,
+                      and whether you created an account, started a checkout or
+                      bought a card (with the order value). When you buy a card
+                      with the cookie accepted, we also report that purchase to
+                      Meta directly from our server, with your email address in
+                      scrambled (hashed) form, the cookie&apos;s ids, your browser
+                      type and IP address, so it can be matched to the ad. If you
+                      did not accept, we send nothing to Meta.
+                    </li>
+                    <li>
+                      <strong>Who is responsible.</strong> For collecting and
+                      sending this data, Meta and Celebrait act together (as joint
+                      controllers). What Meta then does with it is covered by
+                      Meta&apos;s own privacy policy at facebook.com/privacy/policy.
+                    </li>
+                    <li>
+                      <strong>Changing your mind.</strong> You can withdraw or give
+                      consent at any time
+                      {pixelId() ? (
+                        <>
+                          {" "}with{" "}
+                          <CookieSettingsLink className="font-medium text-keeper-gold underline underline-offset-2" />
+                          {" "}(also in the footer of every page)
+                        </>
+                      ) : (
+                        <> from the Cookie settings link in the footer</>
+                      )}
+                      . Saying no later stops the pixel and deletes its cookies
+                      from this browser.
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <p className="text-keeper-body leading-relaxed">
+                  We use a single essential cookie to keep you securely signed in.
+                  We do not use advertising, analytics or tracking cookies, so no
+                  cookie banner is required. You can clear cookies in your browser
+                  settings, but doing so will sign you out.
+                </p>
+              )}
             </section>
 
             {/* ── 11. Children ────────────────────────────────────── */}

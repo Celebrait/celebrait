@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { seoForPath, robotsForPath, SITE_ORIGIN } from '@shared/seo';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 /** Reconcile `<meta name="robots">` with the path: set it for private /
  *  unknown pages, remove it otherwise. Exported so the not-found page
@@ -27,9 +28,11 @@ export function setRobotsMeta(value: string | null) {
 export function useSeo(path: string) {
   // The "from £X" in titles/descriptions follows the rack switch.
   const rack = useRackEnabled() === true;
+  // `/` and the three-card route follow the maker switch (2026-10-29).
+  const maker = useMakerEnabled() === true;
   useEffect(() => {
-    setRobotsMeta(robotsForPath(path, rack));
-    const seo = seoForPath(path, rack);
+    setRobotsMeta(robotsForPath(path, rack, maker));
+    const seo = seoForPath(path, rack, maker);
     if (!seo) return;
     document.title = seo.title;
 
@@ -37,7 +40,8 @@ export function useSeo(path: string) {
     if (desc) desc.setAttribute('content', seo.description);
 
     const canonical = document.querySelector('link[rel="canonical"]');
-    const href = SITE_ORIGIN + (seo.path === '/' ? '/' : seo.path);
+    const canonicalPath = seo.canonical ?? seo.path;
+    const href = SITE_ORIGIN + (canonicalPath === '/' ? '/' : canonicalPath);
     if (canonical) canonical.setAttribute('href', href);
     else {
       const l = document.createElement('link');
@@ -45,5 +49,5 @@ export function useSeo(path: string) {
       l.href = href;
       document.head.appendChild(l);
     }
-  }, [path, rack]);
+  }, [path, rack, maker]);
 }

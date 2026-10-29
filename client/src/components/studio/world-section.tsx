@@ -27,6 +27,7 @@ import { ProgressRing } from '@/components/studio/moment-ring';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 
@@ -77,6 +78,8 @@ export function WorldSection({
    *  already cover the moments. */
   showRiver?: boolean;
 }) {
+  // The offer quotes the photo card while the three-card route is parked.
+  const offer = useMakerEnabled() === true ? 'maker' : 'photo';
   const [addOpen, setAddOpen] = useState(false);
   const [preset, setPreset] = useState<string | undefined>(undefined);
   const openAdd = (occasion?: string) => {
@@ -211,7 +214,7 @@ export function WorldSection({
           {unlocked ? (
             <>
               <b className="text-keeper-ink">Your first card’s half price:</b>{' '}
-              <span className="line-through">{formatMoney(cardPrice('maker'))}</span> {formatMoney(firstOrderPrice('maker'))}, plus postage.
+              <span className="line-through">{formatMoney(cardPrice(offer))}</span> {formatMoney(firstOrderPrice(offer))}, plus postage.
               It’s waiting whenever a moment comes round.
             </>
           ) : (

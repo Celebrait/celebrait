@@ -9,15 +9,22 @@
 // signed-in admin. The switch and the password live in site_settings and
 // are edited at /admin/site — no deploy, no env var.
 //
-//   GET  /api/site-lock              { locked, allowed, hasPassword, rackEnabled }
+//   GET  /api/site-lock              { locked, allowed, hasPassword, rackEnabled, makerEnabled }
 //   POST /api/site-lock/unlock       { password } → sets the pass cookie
-//   GET  /api/admin/site-lock        { locked, password, rackEnabled }
-//   PUT  /api/admin/site-lock        { locked?, password?, rackEnabled? }
+//   GET  /api/admin/site-lock        { locked, password, rackEnabled, makerEnabled }
+//   PUT  /api/admin/site-lock        { locked?, password?, rackEnabled?, makerEnabled? }
 //
 // THE RACK SWITCH (Aidan 2026-10-09) rides in the same value: the stock
 // cards are not part of launch (no stock — a thin rack reads as a failed
 // shop), so `rackEnabled` parks every rack surface until there is stock.
 // Off unless an admin has saved it on. Flipped at /admin/site, no deploy.
+//
+// THE MAKER SWITCH (Aidan 2026-10-29: "go photo route only for this
+// launch, keep it simple, shut down the 3 card route from user view")
+// is the same shape: `makerEnabled` parks the three-card route (/create,
+// /make and its /api/make engine doors) for customers. Off unless an
+// admin has saved it on. Signed-in admins keep the route either way, so
+// the demo and the lab still work.
 //
 // The client gate is the experience; the server gate below is what stops
 // a locked visitor spending generations by calling the APIs directly.
@@ -30,13 +37,13 @@ import { db } from '../db';
 import { siteSettings, users } from '@shared/schema';
 import { requireAdmin } from './admin-card-lab';
 
-interface LockValue { locked: boolean; password: string; rackEnabled: boolean }
+interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean }
 const KEY = 'site_lock';
 const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
@@ -52,7 +59,7 @@ export async function getSiteLock(): Promise<LockValue> {
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);
     const v = rows[0]?.value as Partial<LockValue> | undefined;
-    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true };
+    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true };
   } catch {
     // Table not there yet (first boot) — the default holds.
   }
@@ -88,20 +95,33 @@ export async function rackOpen(): Promise<boolean> {
   return (await getSiteLock()).rackEnabled;
 }
 
-/** Is this request through the gate? (+ the rack flag, so the SPA learns
- *  it from the one request it already makes on every load.) */
-export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean }> {
+/** Is the three-card route (/create, /make) open to customers? */
+export async function makerOpen(): Promise<boolean> {
+  return (await getSiteLock()).makerEnabled;
+}
+
+/** Is this request through the gate? (+ the rack and maker flags, so the
+ *  SPA learns them from the one request it already makes on every load.
+ *  The maker flag is the raw switch; the client lets admins through.) */
+export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean }> {
   const lock = await getSiteLock();
   const hasPassword = lock.password.trim().length > 0;
-  const rackEnabled = lock.rackEnabled;
-  if (!lock.locked) return { locked: false, allowed: true, hasPassword, rackEnabled };
+  const { rackEnabled, makerEnabled } = lock;
+  if (!lock.locked) return { locked: false, allowed: true, hasPassword, rackEnabled, makerEnabled };
   const cookie = readCookie(req, COOKIE);
-  if (hasPassword && cookie && sameToken(cookie, passToken(lock.password))) return { locked: true, allowed: true, hasPassword, rackEnabled };
-  return { locked: true, allowed: await isAdminSession(req), hasPassword, rackEnabled };
+  if (hasPassword && cookie && sameToken(cookie, passToken(lock.password))) return { locked: true, allowed: true, hasPassword, rackEnabled, makerEnabled };
+  return { locked: true, allowed: await isAdminSession(req), hasPassword, rackEnabled, makerEnabled };
 }
 
 // The APIs that make things (and cost money) — closed to locked visitors.
 const GATED_API = /^\/api\/(make|research|photo|photos|studio|checkout|buy|catalogue\/keep)(\/|$)/;
+
+// The three-card route's customer doors (admin-card-lab.ts registers the
+// engine ones, make.ts the save). Closed while the maker is parked,
+// except to signed-in admins. /api/make/cards/:id/claim stays open: it
+// only adopts a card already made, it spends nothing. The admin and
+// research doors (/api/admin/*, /api/research/*) are untouched.
+const MAKER_API = /^\/api\/make\/(concepts|render|render-inside|ip-safe-art|cameo-check|cards)\/?$/;
 
 // A few tries per address, then a pause — the password is a share code,
 // not a login, but it shouldn't be guessable by brute force.
@@ -115,6 +135,16 @@ function tooMany(ip: string): boolean {
 }
 
 export function registerSiteLock(app: Express): void {
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
+    if (!MAKER_API.test(req.path)) return next();
+    try {
+      if ((await getSiteLock()).makerEnabled || (await isAdminSession(req))) return next();
+      return res.status(409).json({ message: "That way of making a card isn't open yet", code: 'closed' });
+    } catch {
+      return next();
+    }
+  });
+
   app.use(async (req: Request, res: Response, next: NextFunction) => {
     if (!GATED_API.test(req.path)) return next();
     try {
@@ -152,7 +182,7 @@ export function registerSiteLock(app: Express): void {
     res.json(await getSiteLock());
   });
 
-  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional() });
+  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional() });
   app.put('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     const parsed = putSchema.safeParse(req.body);

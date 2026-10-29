@@ -13,6 +13,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
+import { MakerOnly } from '@/hooks/use-maker';
 import { Wand2, Package } from 'lucide-react';
 import { CardGrid, CardGridSkeleton } from '@/components/studio/card-grid';
 import { bucketCards, collapseFamilies } from '@/lib/studio-card-buckets';
@@ -92,11 +93,13 @@ function ReadyEmpty() {
         <Wand2 className="w-4 h-4" />
         Start a card
       </Link>
+      <MakerOnly>
       <p className="mt-3 text-xs text-keeper-meta">
         <Link href="/create" className="underline underline-offset-4 decoration-stone-300 hover:text-brand-dark" data-testid="ready-empty-questions">
           Answer a few questions instead
         </Link>
       </p>
+      </MakerOnly>
     </div>
   );
 }

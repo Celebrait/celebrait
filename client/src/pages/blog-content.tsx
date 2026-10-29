@@ -21,12 +21,15 @@ import { cardPrice, shippingPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import { useRackEnabled } from '@/hooks/use-rack';
+import { useMakerEnabled } from '@/hooks/use-maker';
 
 /** The "from" price: the rack's £4.99 only while stock cards sell
- *  (/admin/site, 2026-10-09), else the made-for-them price. */
+ *  (/admin/site, 2026-10-09), else the made-for-them price, else (the
+ *  three-card route parked too, 2026-10-29) the photo price. */
 function FromPrice() {
   const rack = useRackEnabled() === true;
-  return <>{formatMoney(cardPrice(rack ? 'rack' : 'maker'))}</>;
+  const maker = useMakerEnabled() === true;
+  return <>{formatMoney(cardPrice(rack ? 'rack' : maker ? 'maker' : 'photo'))}</>;
 }
 
 const P = ({ children }: { children: ReactNode }) => (
