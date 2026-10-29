@@ -209,6 +209,10 @@ interface Card3DViewerProps {
    *  an optional line under it (the pre-launch page, 2026-09-16). */
   backLogo?: boolean;
   backCaption?: string;
+  /** The small brand mark at the foot of the inside-left panel. Default
+   *  true (it is printed there). Off for a framing that crops the open
+   *  cover, where a cut-off mark reads as a glitch (how-it-works). */
+  insideLeftLogo?: boolean;
   className?: string;
   /** Optional controlled open state — lets a parent component wire an
    *  external "Open card" button to the hinge. If omitted, the viewer
@@ -350,6 +354,7 @@ export function Card3DViewer({
   backCredit = 'Made with Celebrait',
   backLogo = false,
   backCaption,
+  insideLeftLogo = true,
   className,
   open: openProp,
   onOpenChange,
@@ -637,6 +642,7 @@ export function Card3DViewer({
               backCredit={backCredit}
               backLogo={backLogo}
               backCaption={backCaption}
+              insideLeftLogo={insideLeftLogo}
               open={open}
               onOpenChange={setOpen}
               framingMargin={framingMargin}
@@ -746,6 +752,7 @@ function Scene({
   backCredit,
   backLogo,
   backCaption,
+  insideLeftLogo,
   open,
   onOpenChange,
   framingMargin,
@@ -769,6 +776,7 @@ function Scene({
   backCredit: string;
   backLogo?: boolean;
   backCaption?: string;
+  insideLeftLogo: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   framingMargin: number;
@@ -836,6 +844,7 @@ function Scene({
         backCredit={backCredit}
         backLogo={backLogo}
         backCaption={backCaption}
+        insideLeftLogo={insideLeftLogo}
         open={open}
         onOpenChange={onOpenChange}
         openProgress={openProgress}
@@ -1075,6 +1084,7 @@ function Card({
   backCredit,
   backLogo,
   backCaption,
+  insideLeftLogo,
   open,
   onOpenChange,
   openProgress,
@@ -1089,6 +1099,7 @@ function Card({
   backCredit: string;
   backLogo?: boolean;
   backCaption?: string;
+  insideLeftLogo: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   openProgress?: MotionValue<number>;
@@ -1127,7 +1138,7 @@ function Card({
   // (Kevin 2026-07-05).
   const coverBackTex = usePaperTexture({
     anisotropy: maxAnisotropy,
-    logoUrl: celebraitLogo,
+    logoUrl: insideLeftLogo ? celebraitLogo : undefined,
   });
 
   // Rounded-corner card geometry, built once and reused across all

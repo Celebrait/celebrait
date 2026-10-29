@@ -22,18 +22,17 @@ import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
 type Door = 'photo' | 'maker';
 
-// Photo door (third pass, 2026-10-29, Aidan: "use 3D assets for the
-// cards, work on the copy, render a step for the inside"). One story
-// end to end, the proof section's Big Ben card: the real selfie it was
-// made from, the drawn front, and its real inside, whose words are the
-// ones typed in step 3. Two people in the photo on purpose: it shows a
-// group shot works. Steps follow the hero's own promise: Start with a
-// photo, Describe the moment, Craft your message.
-const PHOTO_SOURCE = '/proof-bigben-source.webp';
-const PHOTO_FRONT = '/proof-bigben-front.webp';
-const PHOTO_INSIDE = '/proof-bigben-inside.webp';
-const SCENE_TEXT = 'Rach and me abseiling off Big Ben';
-const MESSAGE_TEXT = "Not sure why we're abseiling off Big Ben but it's funny AF.";
+// Photo door (third pass, 2026-10-29). One story end to end, the same
+// Northern Lights card the hero and proof section use (Aidan: "Mum
+// northern lights was best"): her real selfie, the drawn front, and its
+// real inside, whose words are the ones typed in step 3. Steps follow
+// the hero's own promise: Start with a photo, Describe the moment,
+// Craft your message.
+const PHOTO_SOURCE = '/proof-source-photo.webp';
+const PHOTO_FRONT = '/proof-card-front.webp';
+const PHOTO_INSIDE = '/proof-card-inside.webp';
+const SCENE_TEXT = 'Mum under the Northern Lights';
+const MESSAGE_TEXT = 'Sixty years and you still light up every room. Happy birthday Mum, all my love.';
 
 // The product's own WebGL card (the hero uses it too), loaded lazily and
 // mounted only when its beat scrolls into view. Driven by `open`, never
@@ -65,7 +64,7 @@ const COPY: Record<Door, { eyebrow: string; heading: string; sub: string; foot?:
     foot: 'Printed on 280gsm card and posted to them or to you, with a free digital link to send on the day.',
     beats: [
       { label: 'Start with a photo', body: 'Any clear photo of them. Selfies and group shots work. We check it will give a good likeness before anything is drawn.' },
-      { label: 'Describe the moment', body: "Type it the way you'd say it: abseiling off Big Ben, a beach in Cornwall, the front row at Wembley. We draw them into it." },
+      { label: 'Describe the moment', body: "Type it the way you'd say it: under the Northern Lights, a beach in Cornwall, the front row at Wembley. We draw them into it." },
       { label: 'Craft your message', body: "A line or a whole letter. We set it inside in the card's own style, so the inside belongs with the front." },
     ],
   },
@@ -227,12 +226,12 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
 // ── photo door ────────────────────────────────────────────────────────
 /** The real 3D card in a beat. A flat image holds the frame until the
  *  first WebGL frame paints, then cross-fades out, so nothing jumps.
- *  `box` positions the canvas inside the stage; the open spread needs a
- *  wider canvas than the closed card (see PhotoBeat3). */
+ *  The cover rests at `angle` (radians, negative = open toward the
+ *  viewer) and never swings: these are illustrations, not controls. */
 function Card3DStage({
-  c, front, inside, open, framing, minDistance, poster, alt, yaw = -0.12,
+  c, front, inside, angle, framing, minDistance, poster, alt, yaw, insideLeftLogo = true,
 }: {
-  c: Clock; front: string; inside: string; open: boolean; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw?: number;
+  c: Clock; front: string; inside: string; angle: number; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw: number; insideLeftLogo?: boolean;
 }) {
   const [ready, setReady] = useState(false);
   return (
@@ -246,11 +245,12 @@ function Card3DStage({
             <Card3DViewer
               frontImageUrl={front}
               insideImageUrl={inside}
-              open={open}
+              open={false}
               interactive={false}
               enableRotate={false}
               enableZoom={false}
-              closedAngle={-0.5}
+              closedAngle={angle}
+              insideLeftLogo={insideLeftLogo}
               restYaw={yaw}
               framingMargin={framing}
               minDistance={minDistance}
@@ -275,18 +275,34 @@ function FlatCard({ src, alt, className = '' }: { src: string; alt: string; clas
   );
 }
 
-/** 1. The real selfie fills the stage; a frame draws round each face,
- *  then "Both faces clear" lands. */
+/** The white input the visitor types into on the real maker: a small
+ *  caps label over the typed words. `lead` sits before the words (step
+ *  2's photo of Mum, so the field reads "this person, in this moment"). */
+function Field({ c, label, lead, children }: { c: Clock; label: string; lead?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={from(c, { opacity: 0, y: 8 })}
+      animate={c.play ? { opacity: 1, y: 0 } : undefined}
+      transition={tr(c, 0, 0.5)}
+      className="flex items-center gap-3 rounded-xl border border-keeper-hair bg-white px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]"
+    >
+      {lead}
+      <div className="min-w-0 flex-1">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
+        <div className="mt-0.5 text-[15px] leading-snug text-keeper-ink">{children}</div>
+      </div>
+    </motion.div>
+  );
+}
+
+/** 1. Her real selfie fills the stage; a frame draws round her face,
+ *  then the likeness check lands. */
 function PhotoBeat1({ c }: { c: Clock }) {
-  const faces = [
-    'left-[11%] top-[13%] h-[46%] w-[36%]',
-    'left-[55%] top-[7%] h-[44%] w-[33%]',
-  ];
   return (
     <div className="absolute inset-0">
       <motion.img
         src={PHOTO_SOURCE}
-        alt="A selfie of two friends"
+        alt="A selfie of Mum"
         width={500}
         height={500}
         loading="lazy"
@@ -297,62 +313,67 @@ function PhotoBeat1({ c }: { c: Clock }) {
         animate={c.play ? { opacity: 1, scale: 1 } : undefined}
         transition={tr(c, 0, 0.7)}
       />
-      {faces.map((pos, i) => (
-        <motion.div
-          key={pos}
-          aria-hidden="true"
-          className={`absolute rounded-xl border-2 border-white/95 shadow-[0_0_0_1px_rgba(33,29,25,0.08)] ${pos}`}
-          initial={from(c, { opacity: 0, scale: 1.18 })}
-          animate={c.play ? { opacity: 1, scale: 1 } : undefined}
-          transition={tr(c, 0.6 + i * 0.35, 0.55)}
-        />
-      ))}
-      <ReadyChip c={c} at={1.9} label="Both faces clear" className="absolute bottom-4 left-4" />
+      <motion.div
+        aria-hidden="true"
+        className="absolute left-[29%] top-[15%] h-[44%] w-[39%] rounded-2xl border-2 border-white/95 shadow-[0_0_0_1px_rgba(33,29,25,0.08)]"
+        initial={from(c, { opacity: 0, scale: 1.18 })}
+        animate={c.play ? { opacity: 1, scale: 1 } : undefined}
+        transition={tr(c, 0.6, 0.55)}
+      />
+      <ReadyChip c={c} at={1.4} label="Good likeness" className="absolute bottom-4 left-4" />
     </div>
   );
 }
 
-/** 2. The scene types itself, a bar draws it, and the drawn card arrives
- *  as the real 3D card, resting ajar, in the lower part of the stage. */
+/** 2. Her photo and the moment, typed in one field; a hairline draws
+ *  under the words while we draw, then the front stands up, big, as
+ *  the real 3D card resting ajar. Photo + words = this card. */
 function PhotoBeat2({ c }: { c: Clock }) {
-  const { shown, typing } = useTyped(c, SCENE_TEXT, 0.3);
-  const drawingAt = 0.3 + typeSecs(SCENE_TEXT) + 0.25;
+  const { shown, typing } = useTyped(c, SCENE_TEXT, 0.4);
+  const drawingAt = 0.4 + typeSecs(SCENE_TEXT) + 0.2;
   const drawnAt = drawingAt + 1.0;
   const drawing = usePhase(c, drawingAt);
   const drawn = usePhase(c, drawnAt);
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-x-[7%] top-[7%]">
-        <motion.div
-          initial={from(c, { opacity: 0, y: 8 })}
-          animate={c.play ? { opacity: 1, y: 0 } : undefined}
-          transition={tr(c, 0, 0.5)}
-          className="rounded-xl border border-keeper-hair bg-white px-4 py-3 shadow-sm"
+      <div className="absolute inset-x-[6%] top-[6%] z-10">
+        <Field
+          c={c}
+          label="The moment"
+          lead={
+            <img
+              src={PHOTO_SOURCE}
+              alt=""
+              width={500}
+              height={500}
+              loading="lazy"
+              decoding="async"
+              crossOrigin="anonymous"
+              className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-keeper-hair"
+            />
+          }
         >
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">The moment</p>
-          <p className="mt-1 min-h-[1.45em] text-[16px] leading-snug text-keeper-ink">
-            {shown}
-            <Caret on={typing} />
-          </p>
-        </motion.div>
-        <div className={`mt-2.5 transition-opacity duration-300 ${drawing ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="flex items-center gap-2 text-[12px] text-keeper-meta">
-            {drawn ? <Check className="h-3.5 w-3.5 text-cta-dark" strokeWidth={2.5} aria-hidden="true" /> : null}
-            <span>{drawn ? 'Drawn' : 'Drawing them in…'}</span>
-          </div>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-keeper-hair/70">
+          <span>{shown}</span>
+          <Caret on={typing} />
+        </Field>
+        <div className={`mt-2 flex items-center gap-2 px-1 transition-opacity duration-300 ${drawing ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-keeper-hair/70">
             <motion.div
-              className="h-full rounded-full bg-keeper-gold"
+              className="h-full rounded-full bg-brand"
               initial={from(c, { width: '0%' })}
               animate={c.play ? { width: '100%' } : undefined}
               transition={tr(c, drawingAt, 0.95)}
             />
           </div>
+          <span className="flex items-center gap-1 text-[12px] font-medium text-keeper-meta">
+            {drawn ? <Check className="h-3.5 w-3.5 text-cta-dark" strokeWidth={2.5} aria-hidden="true" /> : null}
+            {drawn ? 'Drawn' : 'Drawing her in'}
+          </span>
         </div>
       </div>
       <motion.div
-        className="absolute inset-x-0 bottom-[7%] top-[42%]"
-        initial={from(c, { opacity: 0, y: 18 })}
+        className="absolute inset-x-0 bottom-[3%] top-[31%]"
+        initial={from(c, { opacity: 0, y: 24 })}
         animate={drawn || c.reduced ? { opacity: 1, y: 0 } : undefined}
         transition={tr(c, 0, 0.7)}
       >
@@ -360,69 +381,55 @@ function PhotoBeat2({ c }: { c: Clock }) {
           c={c}
           front={PHOTO_FRONT}
           inside={PHOTO_INSIDE}
-          open={false}
-          framing={1.3}
-          minDistance={0.8}
-          alt="The drawn card: the two friends abseiling off Big Ben"
-          poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[40%] -translate-x-1/2 -translate-y-1/2" />}
+          angle={-0.4}
+          yaw={0.1}
+          framing={1.32}
+          minDistance={0.6}
+          alt="The drawn card: Mum under the Northern Lights"
+          poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
         />
       </motion.div>
     </div>
   );
 }
 
-/** 3. The message types itself, then the same 3D card opens and the
- *  words are there inside, set in the card's own style. The canvas is
- *  wider than the stage and slides right as the cover swings left, so
- *  the closed card starts centred and the open spread ends centred. */
+/** 3. The message types itself, then the card arrives OPEN at the
+ *  inside: the printed inside-right page fills most of the stage and
+ *  the cover stands open off the left edge, so the words are big
+ *  enough to read in the frame. No swing: it rests open. The canvas
+ *  runs past the stage's right edge so the page sits right of centre
+ *  and the cover is cut by the stage, not by the canvas. */
 function PhotoBeat3({ c }: { c: Clock }) {
-  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.3);
-  const openAt = 0.3 + typeSecs(MESSAGE_TEXT) + 0.5;
-  const open = usePhase(c, openAt);
+  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.4);
+  const showAt = 0.4 + typeSecs(MESSAGE_TEXT) + 0.3;
+  const shown3D = usePhase(c, showAt);
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-x-[7%] top-[7%] z-10">
-        <motion.div
-          initial={from(c, { opacity: 0, y: 8 })}
-          animate={c.play ? { opacity: 1, y: 0 } : undefined}
-          transition={tr(c, 0, 0.5)}
-          className="rounded-xl border border-keeper-hair bg-white px-4 py-3 shadow-sm"
-        >
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Inside</p>
-          <p className="mt-1 min-h-[2.9em] text-[15px] leading-snug text-keeper-ink">
-            {shown}
-            <Caret on={typing} />
-          </p>
-        </motion.div>
+      <div className="absolute inset-x-[6%] top-[6%] z-10">
+        <Field c={c} label="Inside">
+          <span>{shown}</span>
+          <Caret on={typing} />
+        </Field>
       </div>
-      {/* Measured from screenshots: the viewer's open cover swings TOWARD
-          the camera, so it projects ~1.4x the inside page's width. With the
-          page ~30% of the stage (framing 1.95), the open card spans
-          body-centre minus 57% to plus 15%, so the body sits at ~70% for
-          the whole open card to be centred: canvas 180% wide, left -20%.
-          Closed, the body is centred at 50%: shifted -20% of the stage,
-          which is -11.1% of the canvas. */}
-      <div className="absolute inset-x-0 bottom-[12%] top-[30%] overflow-hidden">
-        <motion.div
-          className="absolute inset-y-0 left-[-20%] w-[180%]"
-          initial={from(c, { x: '-11.1%' })}
-          animate={open || c.reduced ? { x: '0%' } : undefined}
-          transition={c.reduced ? { duration: 0 } : { duration: 1.0, ease: EASE }}
-        >
-          <Card3DStage
-            c={c}
-            front={PHOTO_FRONT}
-            inside={PHOTO_INSIDE}
-            open={open || c.reduced}
-            framing={1.95}
-            minDistance={0.9}
-            yaw={0}
-            alt="The card open, with the message set inside"
-            poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[22%] -translate-x-1/2 -translate-y-1/2" />}
-          />
-        </motion.div>
-      </div>
-      <ReadyChip c={c} at={openAt + 1.1} label="Set in the card's style" className="absolute bottom-4 left-4 z-10" />
+      <motion.div
+        className="absolute bottom-0 left-0 top-[34%] w-[124%]"
+        initial={from(c, { opacity: 0, x: 28 })}
+        animate={shown3D || c.reduced ? { opacity: 1, x: 0 } : undefined}
+        transition={tr(c, 0, 0.8)}
+      >
+        <Card3DStage
+          c={c}
+          front={PHOTO_FRONT}
+          inside={PHOTO_INSIDE}
+          angle={-2.35}
+          yaw={0}
+          insideLeftLogo={false}
+          framing={1.14}
+          minDistance={0.6}
+          alt="The card open at the inside, the message set in the card's style"
+          poster={<FlatCard src={PHOTO_INSIDE} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
+        />
+      </motion.div>
     </div>
   );
 }
