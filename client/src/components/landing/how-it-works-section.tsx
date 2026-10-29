@@ -14,19 +14,34 @@
 // client/public/hiw, so the three frames tell one story. The frames
 // are dense on purpose: the first pass floated small things in big
 // empty boxes.
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Truck } from 'lucide-react';
 import { EASE, Rise } from '@/components/landing/rise';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
 type Door = 'photo' | 'maker';
 
-// Photo door: the Northern Lights example the hero and proof use.
-const PHOTO_SOURCE = '/proof-source-photo.webp';
-const PHOTO_FRONT = '/proof-card-front.webp';
-const PHOTO_INSIDE = '/proof-card-inside.webp';
-const SCENE_TEXT = 'Mum under the Northern Lights';
+// Photo door (third pass, 2026-10-29, Aidan: "use 3D assets for the
+// cards, work on the copy, render a step for the inside"). One story
+// end to end, the proof section's Big Ben card: the real selfie it was
+// made from, the drawn front, and its real inside, whose words are the
+// ones typed in step 3. Two people in the photo on purpose: it shows a
+// group shot works. Steps follow the hero's own promise: Start with a
+// photo, Describe the moment, Craft your message.
+const PHOTO_SOURCE = '/proof-bigben-source.webp';
+const PHOTO_FRONT = '/proof-bigben-front.webp';
+const PHOTO_INSIDE = '/proof-bigben-inside.webp';
+const SCENE_TEXT = 'Rach and me abseiling off Big Ben';
+const MESSAGE_TEXT = "Not sure why we're abseiling off Big Ben but it's funny AF.";
+
+// The product's own WebGL card (the hero uses it too), loaded lazily and
+// mounted only when its beat scrolls into view. Driven by `open`, never
+// by the visitor (interactive=false): the locked model is "rest ajar,
+// tap to open" on product surfaces, and here it is an illustration.
+const Card3DViewer = lazy(() =>
+  import('@/components/card-3d-viewer').then((m) => ({ default: m.Card3DViewer })),
+);
 
 // Maker door: the real set for Mum / birthday / 60 / warm / her garden.
 const MAKER_FRONTS = ['/hiw/mum-1.webp', '/hiw/mum-2.webp', '/hiw/mum-3.webp'];
@@ -42,18 +57,21 @@ const QUESTIONS: Array<{ q: string; a: string }> = [
 ];
 const TYPE_MS = 35;
 
-const COPY: Record<Door, { eyebrow: string; sub: string; beats: Array<{ label: string; body: string }> }> = {
+const COPY: Record<Door, { eyebrow: string; heading: string; sub: string; foot?: string; beats: Array<{ label: string; body: string }> }> = {
   photo: {
-    eyebrow: 'From a photo',
-    sub: 'Three steps. Under ten minutes.',
+    eyebrow: 'How it works',
+    heading: 'Put them anywhere.',
+    sub: "A photo of them, the moment you picture and the words you'd say. We draw it, set it, print it and post it.",
+    foot: 'Printed on 280gsm card and posted to them or to you, with a free digital link to send on the day.',
     beats: [
-      { label: 'Start with a photo', body: 'One clear photo of them, and we check the likeness before anything is drawn.' },
-      { label: 'Describe the moment', body: 'A few words on the scene, and we draw them into it.' },
-      { label: 'Open it, then post it', body: 'Printed on 280gsm gloss and posted, with a free digital link to share.' },
+      { label: 'Start with a photo', body: 'Any clear photo of them. Selfies and group shots work. We check it will give a good likeness before anything is drawn.' },
+      { label: 'Describe the moment', body: "Type it the way you'd say it: abseiling off Big Ben, a beach in Cornwall, the front row at Wembley. We draw them into it." },
+      { label: 'Craft your message', body: "A line or a whole letter. We set it inside in the card's own style, so the inside belongs with the front." },
     ],
   },
   maker: {
     eyebrow: 'From six answers',
+    heading: 'How it works',
     sub: 'Six questions. Three cards. Yours in a minute.',
     beats: [
       { label: 'Six quick questions', body: "Who it's for, the occasion, what they're like: a minute of taps." },
@@ -207,98 +225,206 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
 }
 
 // ── photo door ────────────────────────────────────────────────────────
-/** 1. The photo fills the stage, a crop frame draws itself round the
- *  face, the photo tightens to it, "Looks good" lands. */
+/** The real 3D card in a beat. A flat image holds the frame until the
+ *  first WebGL frame paints, then cross-fades out, so nothing jumps.
+ *  `box` positions the canvas inside the stage; the open spread needs a
+ *  wider canvas than the closed card (see PhotoBeat3). */
+function Card3DStage({
+  c, front, inside, open, framing, minDistance, poster, alt, yaw = -0.12,
+}: {
+  c: Clock; front: string; inside: string; open: boolean; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw?: number;
+}) {
+  const [ready, setReady] = useState(false);
+  return (
+    <div className="absolute inset-0" role="img" aria-label={alt}>
+      <div className={`absolute inset-0 transition-opacity duration-500 ${ready ? 'opacity-0' : 'opacity-100'}`} aria-hidden="true">
+        {poster}
+      </div>
+      {c.play && (
+        <div className={`absolute inset-0 transition-opacity duration-500 ${ready ? 'opacity-100' : 'opacity-0'}`}>
+          <Suspense fallback={null}>
+            <Card3DViewer
+              frontImageUrl={front}
+              insideImageUrl={inside}
+              open={open}
+              interactive={false}
+              enableRotate={false}
+              enableZoom={false}
+              closedAngle={-0.5}
+              restYaw={yaw}
+              framingMargin={framing}
+              minDistance={minDistance}
+              maxDistance={12}
+              dprMax={1.5}
+              onFirstFrame={() => setReady(true)}
+              className="h-full w-full"
+            />
+          </Suspense>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A flat card for the poster frame, sitting where the 3D card will. */
+function FlatCard({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
+  return (
+    <div className={`absolute ${className}`}>
+      <CardImg src={src} alt={alt} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+    </div>
+  );
+}
+
+/** 1. The real selfie fills the stage; a frame draws round each face,
+ *  then "Both faces clear" lands. */
 function PhotoBeat1({ c }: { c: Clock }) {
+  const faces = [
+    'left-[11%] top-[13%] h-[46%] w-[36%]',
+    'left-[55%] top-[7%] h-[44%] w-[33%]',
+  ];
   return (
     <div className="absolute inset-0">
       <motion.img
         src={PHOTO_SOURCE}
-        alt="A photo of Mum"
-        width={900}
-        height={900}
+        alt="A selfie of two friends"
+        width={500}
+        height={500}
         loading="lazy"
         decoding="async"
         crossOrigin="anonymous"
         className="absolute inset-0 h-full w-full object-cover"
-        style={{ objectPosition: '50% 32%' }}
-        initial={from(c, { opacity: 0, scale: 1 })}
-        animate={c.play ? { opacity: 1, scale: 1.22 } : undefined}
-        transition={c.reduced ? { duration: 0 } : { opacity: { delay: c.base, duration: 0.5 }, scale: { delay: c.base + 1.5, duration: 1.0, ease: EASE } }}
+        initial={from(c, { opacity: 0, scale: 1.04 })}
+        animate={c.play ? { opacity: 1, scale: 1 } : undefined}
+        transition={tr(c, 0, 0.7)}
       />
-      {/* the crop frame: draws, holds, fades as the photo tightens */}
-      <motion.svg
-        viewBox="0 0 100 100"
-        className="absolute left-[22%] top-[12%] h-[52%] w-[56%]"
-        initial={from(c, { opacity: 1 })}
-        animate={c.play ? { opacity: 0 } : undefined}
-        transition={tr(c, 1.9, 0.5)}
-        aria-hidden="true"
-      >
-        <motion.rect
-          x="2" y="2" width="96" height="96" rx="6"
-          fill="none" stroke="#5c57d4" strokeWidth="2.5" strokeDasharray="14 10"
-          initial={from(c, { pathLength: 0 })}
-          animate={c.play ? { pathLength: 1 } : undefined}
-          transition={tr(c, 0.5, 0.9)}
+      {faces.map((pos, i) => (
+        <motion.div
+          key={pos}
+          aria-hidden="true"
+          className={`absolute rounded-xl border-2 border-white/95 shadow-[0_0_0_1px_rgba(33,29,25,0.08)] ${pos}`}
+          initial={from(c, { opacity: 0, scale: 1.18 })}
+          animate={c.play ? { opacity: 1, scale: 1 } : undefined}
+          transition={tr(c, 0.6 + i * 0.35, 0.55)}
         />
-      </motion.svg>
-      <ReadyChip c={c} at={2.6} label="Looks good" className="absolute bottom-4 left-4" />
+      ))}
+      <ReadyChip c={c} at={1.9} label="Both faces clear" className="absolute bottom-4 left-4" />
     </div>
   );
 }
 
-/** 2. The scene types itself, a bar draws it, and the drawn card rises
- *  into the lower half so the stage ends full. */
+/** 2. The scene types itself, a bar draws it, and the drawn card arrives
+ *  as the real 3D card, resting ajar, in the lower part of the stage. */
 function PhotoBeat2({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, SCENE_TEXT, 0.3);
-  const drawingAt = 0.3 + typeSecs(SCENE_TEXT) + 0.3;
-  const drawnAt = drawingAt + 1.1;
+  const drawingAt = 0.3 + typeSecs(SCENE_TEXT) + 0.25;
+  const drawnAt = drawingAt + 1.0;
   const drawing = usePhase(c, drawingAt);
   const drawn = usePhase(c, drawnAt);
   return (
-    <div className="absolute inset-0 flex flex-col px-[8%] pt-[9%]">
-      <motion.div
-        initial={from(c, { opacity: 0, y: 8 })}
-        animate={c.play ? { opacity: 1, y: 0 } : undefined}
-        transition={tr(c, 0, 0.5)}
-        className="rounded-xl border border-keeper-hair bg-white px-4 py-3.5 shadow-sm"
-      >
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">The scene</p>
-        <p className="mt-1 min-h-[1.5em] text-[17px] leading-snug text-keeper-ink">
-          {shown}
-          <Caret on={typing} />
-        </p>
-      </motion.div>
-      <div className={`mt-3 transition-opacity duration-300 ${drawing ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex items-center gap-2 text-[12px] text-keeper-meta">
-          {drawn ? <Check className="h-3.5 w-3.5 text-cta-dark" strokeWidth={2.5} aria-hidden="true" /> : null}
-          <span>{drawn ? 'Drawn' : 'Drawing it…'}</span>
-        </div>
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-keeper-hair/70">
-          <motion.div
-            className="h-full rounded-full bg-keeper-gold"
-            initial={from(c, { width: '0%' })}
-            animate={c.play ? { width: '100%' } : undefined}
-            transition={tr(c, drawingAt, 1.0)}
-          />
+    <div className="absolute inset-0">
+      <div className="absolute inset-x-[7%] top-[7%]">
+        <motion.div
+          initial={from(c, { opacity: 0, y: 8 })}
+          animate={c.play ? { opacity: 1, y: 0 } : undefined}
+          transition={tr(c, 0, 0.5)}
+          className="rounded-xl border border-keeper-hair bg-white px-4 py-3 shadow-sm"
+        >
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">The moment</p>
+          <p className="mt-1 min-h-[1.45em] text-[16px] leading-snug text-keeper-ink">
+            {shown}
+            <Caret on={typing} />
+          </p>
+        </motion.div>
+        <div className={`mt-2.5 transition-opacity duration-300 ${drawing ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="flex items-center gap-2 text-[12px] text-keeper-meta">
+            {drawn ? <Check className="h-3.5 w-3.5 text-cta-dark" strokeWidth={2.5} aria-hidden="true" /> : null}
+            <span>{drawn ? 'Drawn' : 'Drawing them in…'}</span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-keeper-hair/70">
+            <motion.div
+              className="h-full rounded-full bg-keeper-gold"
+              initial={from(c, { width: '0%' })}
+              animate={c.play ? { width: '100%' } : undefined}
+              transition={tr(c, drawingAt, 0.95)}
+            />
+          </div>
         </div>
       </div>
-      {/* the drawn front rises into the lower half */}
       <motion.div
-        className="mx-auto mt-auto mb-[6%] w-[52%]"
-        initial={from(c, { opacity: 0, y: 24, scale: 0.96 })}
-        animate={c.play ? { opacity: 1, y: 0, scale: 1 } : undefined}
-        transition={tr(c, drawnAt, 0.7)}
+        className="absolute inset-x-0 bottom-[7%] top-[42%]"
+        initial={from(c, { opacity: 0, y: 18 })}
+        animate={drawn || c.reduced ? { opacity: 1, y: 0 } : undefined}
+        transition={tr(c, 0, 0.7)}
       >
-        <CardImg src={PHOTO_FRONT} alt="Mum under the Northern Lights, the drawn card" className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+        <Card3DStage
+          c={c}
+          front={PHOTO_FRONT}
+          inside={PHOTO_INSIDE}
+          open={false}
+          framing={1.3}
+          minDistance={0.8}
+          alt="The drawn card: the two friends abseiling off Big Ben"
+          poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[40%] -translate-x-1/2 -translate-y-1/2" />}
+        />
       </motion.div>
     </div>
   );
 }
 
+/** 3. The message types itself, then the same 3D card opens and the
+ *  words are there inside, set in the card's own style. The canvas is
+ *  wider than the stage and slides right as the cover swings left, so
+ *  the closed card starts centred and the open spread ends centred. */
 function PhotoBeat3({ c }: { c: Clock }) {
-  return <OpenCard c={c} front={PHOTO_FRONT} inside={PHOTO_INSIDE} alt="Mum under the Northern Lights" />;
+  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.3);
+  const openAt = 0.3 + typeSecs(MESSAGE_TEXT) + 0.5;
+  const open = usePhase(c, openAt);
+  return (
+    <div className="absolute inset-0">
+      <div className="absolute inset-x-[7%] top-[7%] z-10">
+        <motion.div
+          initial={from(c, { opacity: 0, y: 8 })}
+          animate={c.play ? { opacity: 1, y: 0 } : undefined}
+          transition={tr(c, 0, 0.5)}
+          className="rounded-xl border border-keeper-hair bg-white px-4 py-3 shadow-sm"
+        >
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">Inside</p>
+          <p className="mt-1 min-h-[2.9em] text-[15px] leading-snug text-keeper-ink">
+            {shown}
+            <Caret on={typing} />
+          </p>
+        </motion.div>
+      </div>
+      {/* Measured from screenshots: the viewer's open cover swings TOWARD
+          the camera, so it projects ~1.4x the inside page's width. With the
+          page ~30% of the stage (framing 1.95), the open card spans
+          body-centre minus 57% to plus 15%, so the body sits at ~70% for
+          the whole open card to be centred: canvas 180% wide, left -20%.
+          Closed, the body is centred at 50%: shifted -20% of the stage,
+          which is -11.1% of the canvas. */}
+      <div className="absolute inset-x-0 bottom-[12%] top-[30%] overflow-hidden">
+        <motion.div
+          className="absolute inset-y-0 left-[-20%] w-[180%]"
+          initial={from(c, { x: '-11.1%' })}
+          animate={open || c.reduced ? { x: '0%' } : undefined}
+          transition={c.reduced ? { duration: 0 } : { duration: 1.0, ease: EASE }}
+        >
+          <Card3DStage
+            c={c}
+            front={PHOTO_FRONT}
+            inside={PHOTO_INSIDE}
+            open={open || c.reduced}
+            framing={1.95}
+            minDistance={0.9}
+            yaw={0}
+            alt="The card open, with the message set inside"
+            poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[22%] -translate-x-1/2 -translate-y-1/2" />}
+          />
+        </motion.div>
+      </div>
+      <ReadyChip c={c} at={openAt + 1.1} label="Set in the card's style" className="absolute bottom-4 left-4 z-10" />
+    </div>
+  );
 }
 
 // ── maker door ────────────────────────────────────────────────────────
@@ -443,9 +569,9 @@ export function HowItWorksSection({ door }: { door: Door }) {
         <Rise>
           <p className={EYEBROW}>{copy.eyebrow}</p>
           <h2 className={`mt-3 text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            How it works
+            {copy.heading}
           </h2>
-          <p className="mt-3 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">{copy.sub}</p>
+          <p className="mt-3 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-body">{copy.sub}</p>
         </Rise>
         <ol className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
           {copy.beats.map((b, i) => (
@@ -454,6 +580,12 @@ export function HowItWorksSection({ door }: { door: Door }) {
             </Beat>
           ))}
         </ol>
+        {copy.foot && (
+          <p className="mt-10 flex items-start gap-2.5 text-[15px] leading-relaxed text-keeper-body md:mt-12">
+            <Truck className="mt-0.5 h-4 w-4 shrink-0 text-keeper-gold" strokeWidth={1.75} aria-hidden="true" />
+            <span>{copy.foot}</span>
+          </p>
+        )}
       </div>
     </section>
   );
