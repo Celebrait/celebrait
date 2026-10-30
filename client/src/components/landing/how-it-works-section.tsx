@@ -22,12 +22,23 @@ import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
 type Door = 'photo' | 'maker';
 
-// Photo door (third pass, 2026-10-29). One story end to end, the same
+// Photo door (fourth pass, 2026-10-30). One story end to end, the same
 // Northern Lights card the hero and proof section use (Aidan: "Mum
 // northern lights was best"): her real selfie, the drawn front, and its
 // real inside, whose words are the ones typed in step 3. Steps follow
 // the hero's own promise: Start with a photo, Describe the moment,
 // Craft your message.
+//
+// The card is the product's real WebGL card in the product's own two
+// poses (Aidan 2026-10-30: "remember how the 3D is supposed to lie,
+// closed/open"). Step 2 is the card CLOSED, resting ajar exactly as the
+// hero, review step and public viewer rest it (closedAngle -0.38,
+// restYaw -0.12: the opening edge leans to the camera so you look into
+// the gap). Step 3 is the same card, same place, same size, arriving
+// closed and then swinging OPEN on the viewer's own spring, the motion
+// a tap gives it everywhere else on the site. Both viewers mount
+// hidden as the section comes near, so the card has painted before
+// its beat is due and the spinner is a beat, not a load.
 const PHOTO_SOURCE = '/proof-source-photo.webp';
 const PHOTO_FRONT = '/proof-card-front.webp';
 const PHOTO_INSIDE = '/proof-card-inside.webp';
@@ -83,6 +94,8 @@ const COPY: Record<Door, { eyebrow: string; heading: string; sub: string; foot?:
 // ── timing helpers ────────────────────────────────────────────────────
 interface Clock {
   play: boolean;
+  /** The section is near the viewport: warm the 3D cards. */
+  near: boolean;
   reduced: boolean;
   base: number;
   /** Tell the section this beat has finished, so the next one starts. */
@@ -234,36 +247,61 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
 }
 
 // ── photo door ────────────────────────────────────────────────────────
-/** The real 3D card in a beat. A flat image holds the frame until the
- *  first WebGL frame paints, then cross-fades out, so nothing jumps.
- *  The cover rests at `angle` (radians, negative = open toward the
- *  viewer) and never swings: these are illustrations, not controls. */
+// The card box inside a beat. Both card beats share it, so step 3's
+// card arrives where step 2's stands: the same card, now opened.
+//   - The region is the stage below the field (top 28%).
+//   - The canvas is a wide box centred on the region, well past the
+//     stage on every side, so the open cover is only ever cut by the
+//     stage edge, never by the canvas edge (Hero Card rule 1).
+//   - CARD_FRAMING sizes the closed card at ~58% of the stage, which
+//     is also the inside-right page once open.
+const REGION_TOP = '28%';
+const CANVAS_BOX = 'absolute left-[-30%] top-[-20%] h-[140%] w-[160%]';
+const CARD_FRAMING = 1.72;
+const CARD_MIN_DIST = 2.2;
+const REST_ANGLE = -0.38;
+const REST_YAW = -0.12;
+/** The open spread sits left of centre (the cover swings out to the
+ *  left and toward the camera), so the box slides right as the card
+ *  opens, keeping the spread centred with the inside page big. */
+const OPEN_SHIFT = '10%';
+
+/** The real 3D card in a beat. Mounts as soon as the section is near
+ *  (hidden) so textures and GL are live before the beat needs them; a
+ *  flat image holds the frame until the first WebGL frame paints, and
+ *  stands in for good if WebGL never does (see useReveal's ceiling).
+ *  interactive=false: these are illustrations, not controls. */
 function Card3DStage({
-  c, front, inside, angle, framing, minDistance, poster, alt, yaw, insideLeftLogo = true, onReady,
+  c, open, instantOpen, hover, poster, alt, insideLeftLogo = true, onReady,
 }: {
-  c: Clock; front: string; inside: string; angle: number; framing: number; minDistance: number; poster: React.ReactNode; alt: string; yaw: number; insideLeftLogo?: boolean; onReady?: () => void;
+  c: Clock; open: boolean; instantOpen?: boolean; hover?: boolean; poster: React.ReactNode; alt: string; insideLeftLogo?: boolean; onReady?: () => void;
 }) {
   const [ready, setReady] = useState(false);
   return (
     <div className="absolute inset-0" role="img" aria-label={alt}>
-      <div className={`absolute inset-0 transition-opacity duration-500 ${ready ? 'opacity-0' : 'opacity-100'}`} aria-hidden="true">
+      <div className={`absolute inset-0 transition-opacity duration-300 ${ready ? 'opacity-0' : 'opacity-100'}`} aria-hidden="true">
         {poster}
       </div>
-      {c.play && (
-        <div className={`absolute inset-0 transition-opacity duration-500 ${ready ? 'opacity-100' : 'opacity-0'}`}>
+      {(c.near || c.play) && (
+        <div
+          className={`absolute inset-0 transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
+          style={{ filter: 'drop-shadow(0 24px 32px rgba(33,29,25,0.14))' }}
+        >
           <Suspense fallback={null}>
             <Card3DViewer
-              frontImageUrl={front}
-              insideImageUrl={inside}
-              open={false}
+              frontImageUrl={PHOTO_FRONT}
+              insideImageUrl={PHOTO_INSIDE}
+              open={open}
+              instantOpen={instantOpen}
+              hover={hover}
               interactive={false}
               enableRotate={false}
               enableZoom={false}
-              closedAngle={angle}
+              closedAngle={REST_ANGLE}
+              restYaw={REST_YAW}
               insideLeftLogo={insideLeftLogo}
-              restYaw={yaw}
-              framingMargin={framing}
-              minDistance={minDistance}
+              framingMargin={CARD_FRAMING}
+              minDistance={CARD_MIN_DIST}
               maxDistance={12}
               dprMax={1.5}
               onFirstFrame={() => { setReady(true); onReady?.(); }}
@@ -284,6 +322,9 @@ function FlatCard({ src, alt, className = '' }: { src: string; alt: string; clas
     </div>
   );
 }
+// Where the closed card sits in the canvas box: centred, 58% of the
+// stage = 58/160 of the box's width.
+const POSTER_CLOSED = 'left-1/2 top-1/2 w-[36.25%] -translate-x-1/2 -translate-y-1/2';
 
 /** The white input the visitor types into on the real maker: a small
  *  caps label over the typed words. `lead` sits before the words (step
@@ -308,7 +349,7 @@ function Field({ label, lead, text, typing, placeholder }: { label: string; lead
 /** 1. Her real selfie fills the stage; a frame draws round her face,
  *  then the likeness check lands. */
 function PhotoBeat1({ c }: { c: Clock }) {
-  useDoneAt(c, 2.0);
+  useDoneAt(c, 1.5);
   return (
     <div className="absolute inset-0">
       <motion.img
@@ -322,16 +363,16 @@ function PhotoBeat1({ c }: { c: Clock }) {
         className="absolute inset-0 h-full w-full object-cover"
         initial={from(c, { opacity: 0, scale: 1.04 })}
         animate={c.play ? { opacity: 1, scale: 1 } : undefined}
-        transition={tr(c, 0, 0.7)}
+        transition={tr(c, 0, 0.6)}
       />
       <motion.div
         aria-hidden="true"
         className="absolute left-[29%] top-[15%] h-[44%] w-[39%] rounded-2xl border-2 border-white/95 shadow-[0_0_0_1px_rgba(33,29,25,0.08)]"
         initial={from(c, { opacity: 0, scale: 1.18 })}
         animate={c.play ? { opacity: 1, scale: 1 } : undefined}
-        transition={tr(c, 0.6, 0.55)}
+        transition={tr(c, 0.5, 0.45)}
       />
-      <ReadyChip c={c} at={1.4} label="Good likeness" className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={1.1} label="Good likeness" className="absolute bottom-4 left-4" />
     </div>
   );
 }
@@ -343,7 +384,7 @@ function Spinner({ on, label }: { on: boolean; label: string }) {
   return (
     <div
       aria-hidden={!on}
-      className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-300 ${on ? 'opacity-100' : 'opacity-0'}`}
+      className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-200 ${on ? 'opacity-100' : 'opacity-0'}`}
     >
       <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-brand/15 border-t-brand" />
       <span className="text-[13px] font-medium text-keeper-meta">{label}</span>
@@ -353,13 +394,14 @@ function Spinner({ on, label }: { on: boolean; label: string }) {
 
 /** The reveal for a beat that waits on its 3D card: no sooner than
  *  `at`, and only once the card has painted (so the spinner covers the
- *  load, not a blank box), with a ceiling so a slow GPU never strands
- *  the sequence: past `at + 3` s the poster image stands in. Tells the
- *  section the beat is finished `settle` seconds after the reveal. */
-function useReveal(c: Clock, at: number, settle = 0.9) {
+ *  load, not a blank box), with a ceiling so a machine without WebGL
+ *  never strands the sequence: past `at + 2` s the poster image stands
+ *  in. Tells the section the beat is finished `settle` seconds after
+ *  the reveal. */
+function useReveal(c: Clock, at: number, settle: number) {
   const [ready, setReady] = useState(false);
   const due = usePhase(c, at);
-  const giveUp = usePhase(c, at + 3);
+  const giveUp = usePhase(c, at + 2);
   const revealed = c.reduced || (due && (ready || giveUp));
   useEffect(() => {
     if (!revealed) return;
@@ -370,13 +412,14 @@ function useReveal(c: Clock, at: number, settle = 0.9) {
 }
 
 /** 2. Her photo and the moment, typed in one field; a spinner while we
- *  draw; then the front stands up, big, as the real 3D card resting
- *  ajar. Photo + words = this card. */
+ *  draw; then the front rises into place as the real card, closed and
+ *  resting ajar, floating over its ground shadow. Photo + words = this
+ *  card. */
 function PhotoBeat2({ c }: { c: Clock }) {
-  const { shown, typing } = useTyped(c, SCENE_TEXT, 0.4);
-  const drawingAt = 0.4 + typeSecs(SCENE_TEXT) + 0.25;
+  const { shown, typing } = useTyped(c, SCENE_TEXT, 0.3, 30);
+  const drawingAt = 0.3 + typeSecs(SCENE_TEXT, 30) + 0.2;
   const drawing = usePhase(c, drawingAt);
-  const { revealed, onReady } = useReveal(c, drawingAt + 1.4);
+  const { revealed, onReady } = useReveal(c, drawingAt + 0.9, 0.5);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
@@ -399,25 +442,21 @@ function PhotoBeat2({ c }: { c: Clock }) {
           placeholder="Where shall we put her?"
         />
       </div>
-      <div className="absolute inset-x-0 bottom-[3%] top-[31%]">
+      <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
         <Spinner on={drawing && !revealed} label="Drawing her in…" />
         <motion.div
-          className="absolute inset-0"
-          initial={from(c, { opacity: 0, y: 24 })}
+          className={CANVAS_BOX}
+          initial={from(c, { opacity: 0, y: 22 })}
           animate={revealed ? { opacity: 1, y: 0 } : undefined}
-          transition={c.reduced ? { duration: 0 } : { duration: 0.7, ease: EASE }}
+          transition={c.reduced ? { duration: 0 } : { duration: 0.55, ease: EASE }}
         >
           <Card3DStage
             c={c}
-            front={PHOTO_FRONT}
-            inside={PHOTO_INSIDE}
-            angle={-0.4}
-            yaw={0.1}
-            framing={1.32}
-            minDistance={0.6}
+            open={false}
+            hover={revealed}
             onReady={onReady}
-            alt="The drawn card: Mum under the Northern Lights"
-            poster={<FlatCard src={PHOTO_FRONT} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
+            alt="The drawn card, closed: Mum under the Northern Lights"
+            poster={<FlatCard src={PHOTO_FRONT} alt="" className={POSTER_CLOSED} />}
           />
         </motion.div>
       </div>
@@ -426,45 +465,47 @@ function PhotoBeat2({ c }: { c: Clock }) {
 }
 
 /** 3. The message types itself, a spinner while we set it, then the
- *  card arrives OPEN at the inside: the printed inside-right page fills
- *  most of the stage and the cover stands open off the left edge, so
- *  the words are big enough to read in the frame. No swing: it rests
- *  open. The canvas runs past the stage's right edge so the page sits
- *  right of centre and the cover is cut by the stage, not the canvas. */
+ *  same card arrives closed where it stood in step 2 and OPENS: the
+ *  cover swings out on the viewer's spring and the printed inside is
+ *  there behind it, the box sliding right so the open spread sits
+ *  centred with the inside page big. Reduced motion: open, still. */
 function PhotoBeat3({ c }: { c: Clock }) {
-  // The long line types faster than the short one: same feel, less wait.
-  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.4, 22);
-  const settingAt = 0.4 + typeSecs(MESSAGE_TEXT, 22) + 0.25;
+  const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.3, 18);
+  const settingAt = 0.3 + typeSecs(MESSAGE_TEXT, 18) + 0.2;
   const setting = usePhase(c, settingAt);
-  const { revealed, onReady } = useReveal(c, settingAt + 1.3);
+  const { revealed, onReady } = useReveal(c, settingAt + 0.7, 1.6);
+  // The swing starts once the closed card has landed.
+  const [open, setOpen] = useState(c.reduced);
+  useEffect(() => {
+    if (!revealed) return;
+    if (c.reduced) { setOpen(true); return; }
+    const t = window.setTimeout(() => setOpen(true), 450);
+    return () => window.clearTimeout(t);
+  }, [revealed, c.reduced]);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
         <Field label="Inside" text={shown} typing={typing} placeholder="What would you like to say?" />
       </div>
-      <div className="absolute inset-x-0 bottom-0 top-[34%]">
+      <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
         <Spinner on={setting && !revealed} label="Setting your words…" />
+        <motion.div
+          className={CANVAS_BOX}
+          initial={from(c, { opacity: 0, y: 22, x: '0%' })}
+          animate={revealed ? { opacity: 1, y: 0, x: open ? OPEN_SHIFT : '0%' } : undefined}
+          transition={c.reduced ? { duration: 0 } : { opacity: { duration: 0.45, ease: EASE }, y: { duration: 0.45, ease: EASE }, x: { duration: 1.0, ease: EASE } }}
+        >
+          <Card3DStage
+            c={c}
+            open={open}
+            instantOpen={c.reduced}
+            insideLeftLogo={false}
+            onReady={onReady}
+            alt="The card open at the inside, the message set in the card's style"
+            poster={<FlatCard src={open ? PHOTO_INSIDE : PHOTO_FRONT} alt="" className={POSTER_CLOSED} />}
+          />
+        </motion.div>
       </div>
-      <motion.div
-        className="absolute bottom-0 left-0 top-[34%] w-[124%]"
-        initial={from(c, { opacity: 0, x: 28 })}
-        animate={revealed ? { opacity: 1, x: 0 } : undefined}
-        transition={c.reduced ? { duration: 0 } : { duration: 0.8, ease: EASE }}
-      >
-        <Card3DStage
-          c={c}
-          front={PHOTO_FRONT}
-          inside={PHOTO_INSIDE}
-          angle={-2.35}
-          yaw={0}
-          insideLeftLogo={false}
-          framing={1.14}
-          minDistance={0.6}
-          onReady={onReady}
-          alt="The card open at the inside, the message set in the card's style"
-          poster={<FlatCard src={PHOTO_INSIDE} alt="" className="left-1/2 top-1/2 w-[50%] -translate-x-1/2 -translate-y-1/2" />}
-        />
-      </motion.div>
     </div>
   );
 }
@@ -555,6 +596,7 @@ function Beat({
   label,
   body,
   go,
+  near,
   onDone,
   liRef,
   children,
@@ -563,6 +605,7 @@ function Beat({
   label: string;
   body: string;
   go: boolean;
+  near: boolean;
   onDone: (i: number) => void;
   liRef: (el: HTMLLIElement | null) => void;
   children: (c: Clock) => React.ReactNode;
@@ -574,7 +617,7 @@ function Beat({
     sent.current = true;
     onDone(index);
   }, [onDone, index]);
-  const c: Clock = { play: go || reduced, reduced, base: 0, done };
+  const c: Clock = { play: go || reduced, near, reduced, base: 0, done };
   return (
     <li ref={liRef} className="flex flex-col">
       {/* The stage: paper ground, hairline, square at every width so the
@@ -612,6 +655,8 @@ export function HowItWorksSection({ door }: { door: Door }) {
   const n = stages.length;
 
   const els = useRef<Array<HTMLLIElement | null>>([]);
+  const listEl = useRef<HTMLOListElement | null>(null);
+  const [near, setNear] = useState(false);
   const [visible, setVisible] = useState<boolean[]>(() => Array(n).fill(false));
   const [done, setDone] = useState<boolean[]>(() => Array(n).fill(false));
   const [started, setStarted] = useState<boolean[]>(() => Array(n).fill(false));
@@ -631,7 +676,14 @@ export function HowItWorksSection({ door }: { door: Door }) {
       { threshold: 0.4 },
     );
     els.current.forEach((el) => el && io.observe(el));
-    return () => io.disconnect();
+    // Warm-up: once the list is within a viewport of the fold, mount
+    // the 3D cards (hidden) so they have painted before their beats.
+    const warm = new IntersectionObserver(
+      (entries) => { if (entries.some((e) => e.isIntersecting)) { setNear(true); warm.disconnect(); } },
+      { rootMargin: '100% 0px' },
+    );
+    if (listEl.current) warm.observe(listEl.current);
+    return () => { io.disconnect(); warm.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -655,7 +707,7 @@ export function HowItWorksSection({ door }: { door: Door }) {
           </h2>
           <p className="mt-3 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-body">{copy.sub}</p>
         </Rise>
-        <ol className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
+        <ol ref={listEl} className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
           {copy.beats.map((b, i) => (
             <Beat
               key={b.label}
@@ -663,6 +715,7 @@ export function HowItWorksSection({ door }: { door: Door }) {
               label={b.label}
               body={b.body}
               go={started[i]}
+              near={near}
               onDone={onDone}
               liRef={(el) => { els.current[i] = el; }}
             >
