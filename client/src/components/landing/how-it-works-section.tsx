@@ -255,15 +255,26 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
 //   - CARD_FRAMING sizes the closed card at ~58% of the stage, which
 //     is also the inside-right page once open.
 const REGION_TOP = '28%';
-const CANVAS_BOX = 'absolute left-[-30%] top-[-20%] h-[140%] w-[160%]';
-const CARD_FRAMING = 1.72;
+const CANVAS_BOX = 'pointer-events-none absolute left-[-30%] top-[-20%] h-[140%] w-[160%]';
+// Steps 2 and 3 have no box (Aidan 2026-10-30: "2 and 3 look kinda
+// weird in a container"): the card stands on the page like the hero
+// card, so it can be big. 1.62 puts the closed card at ~62% of the
+// stage, its foot and ground shadow just inside the stage's bottom.
+const CARD_FRAMING = 1.62;
 const CARD_MIN_DIST = 2.2;
 const REST_ANGLE = -0.38;
 const REST_YAW = -0.12;
 /** The open spread sits left of centre (the cover stands out to the
  *  left and toward the camera), so step 3's box sits shifted right,
  *  keeping the spread centred with the inside page big. */
-const OPEN_SHIFT = '10%';
+const OPEN_SHIFT = '14%';
+/** The open card is turned a touch the other way (right edge away),
+ *  so the cover, which stands out toward the camera, foreshortens
+ *  instead of flaring: the spread then fits the column with the
+ *  inside page as the star. A slightly wider framing eases the
+ *  perspective on the cover's near edge. */
+const OPEN_YAW = -0.3;
+const OPEN_FRAMING = 1.9;
 
 /** The real 3D card in a beat, there from the start: it mounts as
  *  soon as the section is near, and a flat image holds the frame until
@@ -271,9 +282,9 @@ const OPEN_SHIFT = '10%';
  *  does). No motion of its own; interactive=false: an illustration,
  *  not a control. */
 function Card3DStage({
-  c, open, instantOpen, poster, alt, insideLeftLogo = true,
+  c, open, instantOpen, poster, alt, insideLeftLogo = true, framing = CARD_FRAMING, yaw = REST_YAW,
 }: {
-  c: Clock; open: boolean; instantOpen?: boolean; poster: React.ReactNode; alt: string; insideLeftLogo?: boolean;
+  c: Clock; open: boolean; instantOpen?: boolean; poster: React.ReactNode; alt: string; insideLeftLogo?: boolean; framing?: number; yaw?: number;
 }) {
   const [ready, setReady] = useState(false);
   return (
@@ -296,9 +307,9 @@ function Card3DStage({
               enableRotate={false}
               enableZoom={false}
               closedAngle={REST_ANGLE}
-              restYaw={REST_YAW}
+              restYaw={yaw}
               insideLeftLogo={insideLeftLogo}
-              framingMargin={CARD_FRAMING}
+              framingMargin={framing}
               minDistance={CARD_MIN_DIST}
               maxDistance={12}
               dprMax={1.5}
@@ -320,27 +331,30 @@ function FlatCard({ src, alt, className = '' }: { src: string; alt: string; clas
     </div>
   );
 }
-// Where the closed card sits in the canvas box: centred, 58% of the
-// stage = 58/160 of the box's width.
-const POSTER_CLOSED = 'left-1/2 top-1/2 w-[36.25%] -translate-x-1/2 -translate-y-1/2';
+// Where the closed card sits in the canvas box: centred, ~62% of the
+// stage = (1.4 × 0.72 / CARD_FRAMING) / 1.6 of the box's width.
+const POSTER_CLOSED = 'left-1/2 top-1/2 w-[38.9%] -translate-x-1/2 -translate-y-1/2';
 
-/** The white input the visitor types into on the real maker: a small
- *  caps label over the typed words. `lead` sits before the words (step
- *  2's photo of Mum, so the field reads "this person, in this moment").
- *  Every size is in cqw (the stage is the container), so the field is
- *  the same fraction of the stage at every width and the card below
- *  always has the same room. `full` is the finished text: it is laid
- *  out invisibly underneath so the field is its final height from the
- *  start and never grows as the typing wraps. */
+/** What the visitor types, as a line written on the page: a small
+ *  caps label, the typed words, a hairline under them. No white box:
+ *  the stage has no box either, so a box here would be the only
+ *  chrome on the page and read as a screenshot of an app. `lead` sits
+ *  before the words (step 2's photo of Mum, so the line reads "this
+ *  person, in this moment"). Every size is in cqw (the stage is the
+ *  container), so the line is the same fraction of the stage at every
+ *  width and the card below always has the same room. `full` is the
+ *  finished text: it is laid out invisibly underneath so the line is
+ *  its final height from the start and never grows as the typing
+ *  wraps. */
 function Field({ label, lead, text, full, typing, placeholder }: { label: string; lead?: React.ReactNode; text: string; full: string; typing: boolean; placeholder: string }) {
   // On screen from the start, empty with its placeholder, so a step
-  // that is waiting its turn reads as "next", not as a blank box.
+  // that is waiting its turn reads as "next", not as a blank line.
   return (
-    <div className="flex items-center gap-[3.3cqw] rounded-[3.3cqw] border border-keeper-hair bg-white px-[3.9cqw] py-[3.3cqw] shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]">
+    <div className="flex items-center gap-[3.2cqw] border-b border-keeper-hair pb-[2.8cqw]">
       {lead}
       <div className="min-w-0 flex-1">
         <p className="text-[2.9cqw] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
-        <div className="relative mt-[0.5cqw] text-[4.2cqw] leading-snug text-keeper-ink">
+        <div className="relative mt-[0.9cqw] text-[4.4cqw] leading-snug text-keeper-ink">
           <span className="invisible" aria-hidden="true">{full}</span>
           <div className="absolute inset-0">
             {text ? <span>{text}</span> : <span className="text-keeper-meta/70">{placeholder}</span>}
@@ -383,16 +397,17 @@ function PhotoBeat1({ c }: { c: Clock }) {
   );
 }
 
-/** 2. Her photo and the moment, typed in one field, with the finished
- *  card already standing below it: the real card, closed, resting
- *  ajar. Nothing else moves (Aidan 2026-10-30: "just have both cards
- *  already there, no loading spinner"). Photo + words = this card. */
+/** 2. Her photo and the moment, typed on one line, with the finished
+ *  card already standing below it on the page: the real card, closed,
+ *  resting ajar. Nothing else moves (Aidan 2026-10-30: "just have both
+ *  cards already there, no loading spinner"). Photo + words = this
+ *  card. */
 function PhotoBeat2({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, SCENE_TEXT, 0.3, 30);
   useDoneAt(c, 0.3 + typeSecs(SCENE_TEXT, 30) + 0.4);
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-x-[6%] top-[6%] z-10">
+      <div className="absolute inset-x-0 top-[2%] z-10">
         <Field
           label="The moment"
           lead={
@@ -404,7 +419,7 @@ function PhotoBeat2({ c }: { c: Clock }) {
               loading="lazy"
               decoding="async"
               crossOrigin="anonymous"
-              className="h-[11cqw] w-[11cqw] shrink-0 rounded-[2.2cqw] object-cover ring-1 ring-keeper-hair"
+              className="h-[11cqw] w-[11cqw] shrink-0 rounded-[2.2cqw] object-cover ring-1 ring-keeper-hair shadow-[0_6px_14px_-8px_rgba(33,29,25,0.5)]"
             />
           }
           text={shown}
@@ -430,13 +445,14 @@ function PhotoBeat2({ c }: { c: Clock }) {
 /** 3. The message types itself (once step 2 has finished) over the
  *  same card already standing OPEN at the inside: the cover out to
  *  the left, the printed inside-right page big. No swing, no reveal:
- *  it rests open, the box shifted right so the spread sits centred. */
+ *  it rests open, the box shifted right so the spread sits centred.
+ *  Nothing crops the cover now, so the inside-left mark stays on. */
 function PhotoBeat3({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.3, 18);
   useDoneAt(c, 0.3 + typeSecs(MESSAGE_TEXT, 18) + 0.4);
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-x-[6%] top-[6%] z-10">
+      <div className="absolute inset-x-0 top-[2%] z-10">
         <Field label="Inside" text={shown} full={MESSAGE_TEXT} typing={typing} placeholder="What would you like to say?" />
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
@@ -445,7 +461,8 @@ function PhotoBeat3({ c }: { c: Clock }) {
             c={c}
             open
             instantOpen
-            insideLeftLogo={false}
+            framing={OPEN_FRAMING}
+            yaw={OPEN_YAW}
             alt="The card open at the inside, the message set in the card's style"
             poster={<FlatCard src={PHOTO_INSIDE} alt="" className={POSTER_CLOSED} />}
           />
@@ -542,6 +559,7 @@ function Beat({
   body,
   go,
   near,
+  framed,
   onDone,
   liRef,
   children,
@@ -551,6 +569,10 @@ function Beat({
   body: string;
   go: boolean;
   near: boolean;
+  /** A boxed stage (paper ground, hairline, clipped) for a beat that is
+   *  a picture, like step 1's photo. Off, the stage is an invisible
+   *  square and the beat's objects stand straight on the page. */
+  framed: boolean;
   onDone: (i: number) => void;
   liRef: (el: HTMLLIElement | null) => void;
   children: (c: Clock) => React.ReactNode;
@@ -565,10 +587,17 @@ function Beat({
   const c: Clock = { play: go || reduced, near, reduced, base: 0, done };
   return (
     <li ref={liRef} className="flex flex-col">
-      {/* The stage: paper ground, hairline, square at every width so the
-          phone sees the same composition as the desktop. Everything inside
-          is absolutely placed and clipped so no beat can push the column. */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)] [container-type:inline-size]">
+      {/* The stage: square at every width so the phone sees the same
+          composition as the desktop, and the three headings sit on one
+          line. Everything inside is absolutely placed so no beat can push
+          the column. Framed = a picture in a box; unframed = objects on
+          the page (the 3D canvas is transparent, so only the card and its
+          ground shadow are visible). */}
+      <div
+        className={`relative aspect-square w-full [container-type:inline-size] ${
+          framed ? 'overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)]' : ''
+        }`}
+      >
         {children(c)}
       </div>
       <div className="mt-5 flex items-baseline gap-3">
@@ -661,6 +690,7 @@ export function HowItWorksSection({ door }: { door: Door }) {
               body={b.body}
               go={started[i]}
               near={near}
+              framed={door !== 'photo' || i === 0}
               onDone={onDone}
               liRef={(el) => { els.current[i] = el; }}
             >
