@@ -34,11 +34,10 @@ type Door = 'photo' | 'maker';
 // closed/open"). Step 2 is the card CLOSED, resting ajar exactly as the
 // hero, review step and public viewer rest it (closedAngle -0.38,
 // restYaw -0.12: the opening edge leans to the camera so you look into
-// the gap). Step 3 is the same card, same place, same size, arriving
-// closed and then swinging OPEN on the viewer's own spring, the motion
-// a tap gives it everywhere else on the site. Both viewers mount
-// hidden as the section comes near, so the card has painted before
-// its beat is due and the spinner is a beat, not a load.
+// the gap). Step 3 is the same card, same place, same size, standing
+// OPEN at the inside. Both cards are simply THERE: no spinner, no
+// reveal, no swing, no float (Aidan 2026-10-30). The only motion in
+// steps 2 and 3 is the typing, step 3's starting when step 2's ends.
 const PHOTO_SOURCE = '/proof-source-photo.webp';
 const PHOTO_FRONT = '/proof-card-front.webp';
 const PHOTO_INSIDE = '/proof-card-inside.webp';
@@ -261,20 +260,20 @@ const CARD_FRAMING = 1.72;
 const CARD_MIN_DIST = 2.2;
 const REST_ANGLE = -0.38;
 const REST_YAW = -0.12;
-/** The open spread sits left of centre (the cover swings out to the
- *  left and toward the camera), so the box slides right as the card
- *  opens, keeping the spread centred with the inside page big. */
+/** The open spread sits left of centre (the cover stands out to the
+ *  left and toward the camera), so step 3's box sits shifted right,
+ *  keeping the spread centred with the inside page big. */
 const OPEN_SHIFT = '10%';
 
-/** The real 3D card in a beat. Mounts as soon as the section is near
- *  (hidden) so textures and GL are live before the beat needs them; a
- *  flat image holds the frame until the first WebGL frame paints, and
- *  stands in for good if WebGL never does (see useReveal's ceiling).
- *  interactive=false: these are illustrations, not controls. */
+/** The real 3D card in a beat, there from the start: it mounts as
+ *  soon as the section is near, and a flat image holds the frame until
+ *  the first WebGL frame paints (and stands in for good if WebGL never
+ *  does). No motion of its own; interactive=false: an illustration,
+ *  not a control. */
 function Card3DStage({
-  c, open, instantOpen, hover, poster, alt, insideLeftLogo = true, onReady,
+  c, open, instantOpen, poster, alt, insideLeftLogo = true,
 }: {
-  c: Clock; open: boolean; instantOpen?: boolean; hover?: boolean; poster: React.ReactNode; alt: string; insideLeftLogo?: boolean; onReady?: () => void;
+  c: Clock; open: boolean; instantOpen?: boolean; poster: React.ReactNode; alt: string; insideLeftLogo?: boolean;
 }) {
   const [ready, setReady] = useState(false);
   return (
@@ -293,7 +292,6 @@ function Card3DStage({
               insideImageUrl={PHOTO_INSIDE}
               open={open}
               instantOpen={instantOpen}
-              hover={hover}
               interactive={false}
               enableRotate={false}
               enableZoom={false}
@@ -304,7 +302,7 @@ function Card3DStage({
               minDistance={CARD_MIN_DIST}
               maxDistance={12}
               dprMax={1.5}
-              onFirstFrame={() => { setReady(true); onReady?.(); }}
+              onFirstFrame={() => setReady(true)}
               className="h-full w-full"
             />
           </Suspense>
@@ -377,49 +375,13 @@ function PhotoBeat1({ c }: { c: Clock }) {
   );
 }
 
-/** The wait between typing and the card: a quiet ring and one line,
- *  centred where the card will land. Sits in the 3D card's area so the
- *  eye is already there when the card arrives. */
-function Spinner({ on, label }: { on: boolean; label: string }) {
-  return (
-    <div
-      aria-hidden={!on}
-      className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-200 ${on ? 'opacity-100' : 'opacity-0'}`}
-    >
-      <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-brand/15 border-t-brand" />
-      <span className="text-[13px] font-medium text-keeper-meta">{label}</span>
-    </div>
-  );
-}
-
-/** The reveal for a beat that waits on its 3D card: no sooner than
- *  `at`, and only once the card has painted (so the spinner covers the
- *  load, not a blank box), with a ceiling so a machine without WebGL
- *  never strands the sequence: past `at + 2` s the poster image stands
- *  in. Tells the section the beat is finished `settle` seconds after
- *  the reveal. */
-function useReveal(c: Clock, at: number, settle: number) {
-  const [ready, setReady] = useState(false);
-  const due = usePhase(c, at);
-  const giveUp = usePhase(c, at + 2);
-  const revealed = c.reduced || (due && (ready || giveUp));
-  useEffect(() => {
-    if (!revealed) return;
-    const t = window.setTimeout(c.done, c.reduced ? 0 : settle * 1000);
-    return () => window.clearTimeout(t);
-  }, [revealed, c.done, c.reduced, settle]);
-  return { revealed, onReady: () => setReady(true) };
-}
-
-/** 2. Her photo and the moment, typed in one field; a spinner while we
- *  draw; then the front rises into place as the real card, closed and
- *  resting ajar, floating over its ground shadow. Photo + words = this
- *  card. */
+/** 2. Her photo and the moment, typed in one field, with the finished
+ *  card already standing below it: the real card, closed, resting
+ *  ajar. Nothing else moves (Aidan 2026-10-30: "just have both cards
+ *  already there, no loading spinner"). Photo + words = this card. */
 function PhotoBeat2({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, SCENE_TEXT, 0.3, 30);
-  const drawingAt = 0.3 + typeSecs(SCENE_TEXT, 30) + 0.2;
-  const drawing = usePhase(c, drawingAt);
-  const { revealed, onReady } = useReveal(c, drawingAt + 0.9, 0.5);
+  useDoneAt(c, 0.3 + typeSecs(SCENE_TEXT, 30) + 0.4);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
@@ -443,68 +405,42 @@ function PhotoBeat2({ c }: { c: Clock }) {
         />
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
-        <Spinner on={drawing && !revealed} label="Drawing her in…" />
-        <motion.div
-          className={CANVAS_BOX}
-          initial={from(c, { opacity: 0, y: 22 })}
-          animate={revealed ? { opacity: 1, y: 0 } : undefined}
-          transition={c.reduced ? { duration: 0 } : { duration: 0.55, ease: EASE }}
-        >
+        <div className={CANVAS_BOX}>
           <Card3DStage
             c={c}
             open={false}
-            hover={revealed}
-            onReady={onReady}
             alt="The drawn card, closed: Mum under the Northern Lights"
             poster={<FlatCard src={PHOTO_FRONT} alt="" className={POSTER_CLOSED} />}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
 }
 
-/** 3. The message types itself, a spinner while we set it, then the
- *  same card arrives closed where it stood in step 2 and OPENS: the
- *  cover swings out on the viewer's spring and the printed inside is
- *  there behind it, the box sliding right so the open spread sits
- *  centred with the inside page big. Reduced motion: open, still. */
+/** 3. The message types itself (once step 2 has finished) over the
+ *  same card already standing OPEN at the inside: the cover out to
+ *  the left, the printed inside-right page big. No swing, no reveal:
+ *  it rests open, the box shifted right so the spread sits centred. */
 function PhotoBeat3({ c }: { c: Clock }) {
   const { shown, typing } = useTyped(c, MESSAGE_TEXT, 0.3, 18);
-  const settingAt = 0.3 + typeSecs(MESSAGE_TEXT, 18) + 0.2;
-  const setting = usePhase(c, settingAt);
-  const { revealed, onReady } = useReveal(c, settingAt + 0.7, 1.6);
-  // The swing starts once the closed card has landed.
-  const [open, setOpen] = useState(c.reduced);
-  useEffect(() => {
-    if (!revealed) return;
-    if (c.reduced) { setOpen(true); return; }
-    const t = window.setTimeout(() => setOpen(true), 450);
-    return () => window.clearTimeout(t);
-  }, [revealed, c.reduced]);
+  useDoneAt(c, 0.3 + typeSecs(MESSAGE_TEXT, 18) + 0.4);
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
         <Field label="Inside" text={shown} typing={typing} placeholder="What would you like to say?" />
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
-        <Spinner on={setting && !revealed} label="Setting your words…" />
-        <motion.div
-          className={CANVAS_BOX}
-          initial={from(c, { opacity: 0, y: 22, x: '0%' })}
-          animate={revealed ? { opacity: 1, y: 0, x: open ? OPEN_SHIFT : '0%' } : undefined}
-          transition={c.reduced ? { duration: 0 } : { opacity: { duration: 0.45, ease: EASE }, y: { duration: 0.45, ease: EASE }, x: { duration: 1.0, ease: EASE } }}
-        >
+        <div className={CANVAS_BOX} style={{ transform: `translateX(${OPEN_SHIFT})` }}>
           <Card3DStage
             c={c}
-            open={open}
-            instantOpen={c.reduced}
+            open
+            instantOpen
             insideLeftLogo={false}
-            onReady={onReady}
             alt="The card open at the inside, the message set in the card's style"
-            poster={<FlatCard src={open ? PHOTO_INSIDE : PHOTO_FRONT} alt="" className={POSTER_CLOSED} />}
+            poster={<FlatCard src={PHOTO_INSIDE} alt="" className={POSTER_CLOSED} />}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
