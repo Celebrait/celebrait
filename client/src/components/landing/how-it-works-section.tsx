@@ -326,18 +326,26 @@ const POSTER_CLOSED = 'left-1/2 top-1/2 w-[36.25%] -translate-x-1/2 -translate-y
 
 /** The white input the visitor types into on the real maker: a small
  *  caps label over the typed words. `lead` sits before the words (step
- *  2's photo of Mum, so the field reads "this person, in this moment"). */
-function Field({ label, lead, text, typing, placeholder }: { label: string; lead?: React.ReactNode; text: string; typing: boolean; placeholder: string }) {
+ *  2's photo of Mum, so the field reads "this person, in this moment").
+ *  Every size is in cqw (the stage is the container), so the field is
+ *  the same fraction of the stage at every width and the card below
+ *  always has the same room. `full` is the finished text: it is laid
+ *  out invisibly underneath so the field is its final height from the
+ *  start and never grows as the typing wraps. */
+function Field({ label, lead, text, full, typing, placeholder }: { label: string; lead?: React.ReactNode; text: string; full: string; typing: boolean; placeholder: string }) {
   // On screen from the start, empty with its placeholder, so a step
   // that is waiting its turn reads as "next", not as a blank box.
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-keeper-hair bg-white px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]">
+    <div className="flex items-center gap-[3.3cqw] rounded-[3.3cqw] border border-keeper-hair bg-white px-[3.9cqw] py-[3.3cqw] shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]">
       {lead}
       <div className="min-w-0 flex-1">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
-        <div className="mt-0.5 text-[15px] leading-snug text-keeper-ink">
-          {text ? <span>{text}</span> : <span className="text-keeper-meta/70">{placeholder}</span>}
-          <Caret on={typing} />
+        <p className="text-[2.9cqw] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
+        <div className="relative mt-[0.5cqw] text-[4.2cqw] leading-snug text-keeper-ink">
+          <span className="invisible" aria-hidden="true">{full}</span>
+          <div className="absolute inset-0">
+            {text ? <span>{text}</span> : <span className="text-keeper-meta/70">{placeholder}</span>}
+            <Caret on={typing} />
+          </div>
         </div>
       </div>
     </div>
@@ -396,10 +404,11 @@ function PhotoBeat2({ c }: { c: Clock }) {
               loading="lazy"
               decoding="async"
               crossOrigin="anonymous"
-              className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-keeper-hair"
+              className="h-[11cqw] w-[11cqw] shrink-0 rounded-[2.2cqw] object-cover ring-1 ring-keeper-hair"
             />
           }
           text={shown}
+          full={SCENE_TEXT}
           typing={typing}
           placeholder="Where shall we put her?"
         />
@@ -428,7 +437,7 @@ function PhotoBeat3({ c }: { c: Clock }) {
   return (
     <div className="absolute inset-0">
       <div className="absolute inset-x-[6%] top-[6%] z-10">
-        <Field label="Inside" text={shown} typing={typing} placeholder="What would you like to say?" />
+        <Field label="Inside" text={shown} full={MESSAGE_TEXT} typing={typing} placeholder="What would you like to say?" />
       </div>
       <div className="absolute inset-x-0 bottom-0" style={{ top: REGION_TOP }}>
         <div className={CANVAS_BOX} style={{ transform: `translateX(${OPEN_SHIFT})` }}>
@@ -559,7 +568,7 @@ function Beat({
       {/* The stage: paper ground, hairline, square at every width so the
           phone sees the same composition as the desktop. Everything inside
           is absolutely placed and clipped so no beat can push the column. */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)] [container-type:inline-size]">
         {children(c)}
       </div>
       <div className="mt-5 flex items-baseline gap-3">
