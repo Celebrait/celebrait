@@ -114,7 +114,13 @@ const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
   },
   {
     path: '/gallery',
-    title: 'Gallery: Real Photo Cards, Start to Finish | Celebrait',
+    title: 'Gallery: Real Personalised Photo Cards, Fronts & Insides | Celebrait',
+    description:
+      'Every card here started as one photo. Browse real personalised cards, fronts and insides, from a Wembley birthday reveal to Mum under the Northern Lights.',
+  },
+  {
+    path: '/stories',
+    title: 'Real Stories: Photo Cards, Start to Finish | Celebrait',
     description:
       'Real personalised cards told as stories: the selfie each one began as, the words that were typed, and the printed card that arrived. See what one photo becomes.',
   },
@@ -137,7 +143,7 @@ export type BlogPostMeta = {
   readMinutes: number;
 };
 
-/** The gallery's stories (/gallery/:slug). Mirrors the slugs in
+/** The stories (/stories/:slug). Mirrors the slugs in
  *  client/src/lib/gallery-stories.ts — add here when adding there. */
 export const GALLERY_STORY_SEO: Array<{ slug: string; title: string; description: string }> = [
   {
@@ -221,7 +227,7 @@ const NOINDEX_PATHS: RegExp[] = [
 // 200. ADD HERE WHEN ADDING A ROUTE, or the new page 404s for crawlers.
 const KNOWN_ROUTES: RegExp[] = [
   /^\/$/,
-  /^\/(photo|create|keeper|card-capture|login|research|pricing|privacy-policy|terms-of-service|contact|blog|gallery|og|make|demo|door|door2|hero-poc)(\/|$)/,
+  /^\/(photo|create|keeper|card-capture|login|research|pricing|privacy-policy|terms-of-service|contact|blog|gallery|stories|og|make|demo|door|door2|hero-poc)(\/|$)/,
   /^\/(studio|admin|checkout)(\/|$)/,
   /^\/card\/[^/]+(\/|$)/,
   /^\/cards\/[^/]+(\/|$)/,
@@ -255,7 +261,7 @@ export function seoForPath(rawPath: string, rackEnabled = false, makerEnabled = 
   if (page) return page;
   const cat = catalogueSeoForPath(path);
   if (cat) return cat;
-  const g = path.match(/^\/gallery\/([a-z0-9-]+)$/);
+  const g = path.match(/^\/stories\/([a-z0-9-]+)$/);
   if (g) {
     const story = GALLERY_STORY_SEO.find((s) => s.slug === g[1]);
     if (story) return { path, title: story.title, description: story.description, ogType: 'article' };

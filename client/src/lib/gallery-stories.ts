@@ -1,8 +1,9 @@
 // client/src/lib/gallery-stories.ts
 //
 // The gallery's cards, told as stories. ONE list drives three places:
-//   • /gallery          — the wall (client/src/pages/gallery.tsx)
-//   • /gallery/:slug    — the story (client/src/pages/gallery-story.tsx)
+//   • /stories          — the index (client/src/pages/stories.tsx)
+//   • /stories/:slug    — the story (client/src/pages/gallery-story.tsx)
+// (/gallery is every card at a glance: gallery-examples.ts.)
 //   • /photo            — the "Real stories" section
 // Add a card = add an entry here, three shots in client/public/
 // gallery-img/, and a title + description for its slug in

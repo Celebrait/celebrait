@@ -1,85 +1,107 @@
-// /gallery — the wall. Every card we can show, each a tile that links
-// to its story (/gallery/:slug): simple here, detailed there. The
-// first card is featured large; the rest fill a grid. Same marketing
-// chrome as /blog: backdrop + KeeperHeader + footer.
-// Data: client/src/lib/gallery-stories.ts.
+// /gallery — every finished card, scannable. A grid of front shots;
+// hover (or tap) a card and it flips to its inside. No narrative here:
+// that is /stories, linked from the tiles that have one and from the
+// top of the page. Data: client/src/lib/gallery-examples.ts.
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Truck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { Rise } from '@/components/landing/rise';
-import { StoryTile } from '@/components/landing/story-tile';
-import { GALLERY_STORIES } from '@/lib/gallery-stories';
+import { GALLERY_EXAMPLES, type GalleryExample } from '@/lib/gallery-examples';
+import { MakeYoursBand } from '@/pages/stories';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 import { useSeo } from '@/lib/use-seo';
 
-export function MakeYoursBand() {
+/** One card. The button flips front ↔ inside on tap (phones have no
+ *  hover); hover previews the inside on a pointer. */
+function ExampleTile({ e }: { e: GalleryExample }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Rise className="rounded-3xl border border-keeper-hair bg-white/70 px-7 py-10 text-center md:px-12 md:py-14">
-      <h2 className={`text-[clamp(28px,3.8vw,40px)] leading-[1.08] ${DISPLAY}`}>Your photo next.</h2>
-      <p className="mx-auto mt-3 max-w-[46ch] text-[16px] leading-[1.65] text-keeper-body">
-        Any clear photo of them. Tell us where to put them. We check the likeness before anything is drawn.
-      </p>
-      <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <Link
-          href="/photo/make"
-          className="inline-flex h-12 items-center justify-center rounded-full bg-keeper-gold px-7 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-keeper-gold-deep"
-          data-testid="gallery-cta-make"
-        >
-          Make yours from a photo
-        </Link>
-        <Link
-          href="/photo#how-it-works"
-          className="inline-flex h-12 items-center justify-center rounded-full border border-keeper-hair bg-white px-7 text-[15px] font-semibold text-keeper-ink transition-colors hover:bg-keeper-paper"
-        >
-          See how it works
-        </Link>
+    <div className="group">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-pressed={open}
+        aria-label={`${e.title}: ${open ? 'show the front' : 'open the card'}`}
+        className="relative block w-full overflow-hidden rounded-3xl border border-keeper-hair bg-white text-left shadow-[0_28px_70px_-40px_rgba(33,29,25,0.45)] outline-none transition-transform duration-500 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-keeper-gold/60"
+        data-testid={`example-${e.id}`}
+      >
+        <img src={e.front} alt={e.alt} width={1024} height={1024} loading="lazy" decoding="async" crossOrigin="anonymous" className="aspect-square w-full object-cover" />
+        <img
+          src={e.inside}
+          alt=""
+          width={1024}
+          height={1024}
+          loading="lazy"
+          decoding="async"
+          crossOrigin="anonymous"
+          aria-hidden="true"
+          className={`absolute inset-0 aspect-square w-full object-cover transition-opacity duration-700 ease-out motion-reduce:transition-none ${
+            open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
+        />
+        <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-keeper-ink/70 px-3 py-1 text-[11.5px] font-medium text-white backdrop-blur">
+          {open ? 'Inside' : 'Front'}
+        </span>
+      </button>
+      <div className="mt-4 flex items-start justify-between gap-4 px-1">
+        <div className="min-w-0">
+          <p className="text-[16px] font-semibold text-keeper-ink">{e.title}</p>
+          <p className="mt-0.5 text-[14px] text-keeper-meta">{e.scene}</p>
+        </div>
+        {e.storySlug && (
+          <Link
+            href={`/stories/${e.storySlug}`}
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[13.5px] font-semibold text-keeper-gold"
+            data-testid={`example-story-${e.id}`}
+          >
+            The story
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+          </Link>
+        )}
       </div>
-      <p className="mt-5 flex items-center justify-center gap-2 text-[13px] text-keeper-meta">
-        <Truck className="h-4 w-4 text-keeper-gold" strokeWidth={1.75} aria-hidden="true" />
-        Printed once, just for them, and posted. Allow a week.
-      </p>
-    </Rise>
+    </div>
   );
 }
 
 export default function GalleryPage() {
   const [location] = useLocation();
   useSeo(location);
-  const [first, ...rest] = GALLERY_STORIES;
 
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-36 md:pt-40">
-        <Rise className="max-w-3xl">
-          <p className={EYEBROW}>The gallery</p>
-          <h1 className={`mt-3 text-[clamp(34px,5vw,56px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
-            Made from one photo.
-          </h1>
-          <p className="mt-4 max-w-[52ch] text-[17px] leading-[1.7] text-keeper-body">
-            Real cards, start to finish. Hover a card to see inside; open one for the selfie it began as, the
-            words that were typed, and what happened when it arrived.
-          </p>
+        <Rise className="flex flex-wrap items-end justify-between gap-x-10 gap-y-5">
+          <div className="max-w-3xl">
+            <p className={EYEBROW}>The gallery</p>
+            <h1 className={`mt-3 text-[clamp(34px,5vw,56px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
+              Every one from a photo.
+            </h1>
+            <p className="mt-4 max-w-[52ch] text-[17px] leading-[1.7] text-keeper-body">
+              Real cards, fronts and insides. Tap a card to open it.
+            </p>
+          </div>
+          <Link
+            href="/stories"
+            className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:decoration-keeper-gold"
+            data-testid="gallery-to-stories"
+          >
+            Read the stories behind them
+            <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+          </Link>
         </Rise>
 
-        {first && (
-          <Rise className="mt-14 md:mt-20" delay={0.08}>
-            <StoryTile s={first} featured />
-          </Rise>
-        )}
-
-        {rest.length > 0 && (
-          <div className="mt-20 grid gap-10 md:mt-28 md:grid-cols-3 md:gap-8">
-            {rest.map((s, i) => (
-              <Rise key={s.slug} delay={i * 0.08}>
-                <StoryTile s={s} />
-              </Rise>
-            ))}
-          </div>
-        )}
+        <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:mt-16 lg:grid-cols-3">
+          {GALLERY_EXAMPLES.map((e, i) => (
+            <Rise key={e.id} delay={(i % 3) * 0.07}>
+              <ExampleTile e={e} />
+            </Rise>
+          ))}
+        </div>
 
         <div className="mt-28 md:mt-36">
           <MakeYoursBand />

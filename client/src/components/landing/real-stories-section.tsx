@@ -1,7 +1,7 @@
 // client/src/components/landing/real-stories-section.tsx
 //
-// /photo's "Real stories": the gallery's first card, told in a line,
-// linking to its story and to the wall. Sits after the proof (photo →
+// /photo's "Real stories": the first story, told in a line, linking
+// to it and to /stories (all of them). Sits after the proof (photo →
 // card, in three examples): the proof says it works, this says what
 // it is for. Replaced the parked six-tile GallerySection (2026-10-31).
 
@@ -26,16 +26,16 @@ export function RealStoriesSection() {
             </h2>
           </div>
           <Link
-            href="/gallery"
+            href="/stories"
             className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:decoration-keeper-gold"
             data-testid="real-stories-all"
           >
-            See the gallery
+            All stories
             <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
           </Link>
         </Rise>
         <Rise className="mt-12" delay={0.08}>
-          <StoryTile s={first} featured />
+          <StoryTile s={first} featured flip={false} />
         </Rise>
         {rest.length > 0 && (
           <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">

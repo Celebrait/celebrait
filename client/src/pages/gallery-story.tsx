@@ -1,7 +1,7 @@
-// /gallery/:slug — one card, told in full: the shot of it closed beside
+// /stories/:slug — one card, told in full: the shot of it closed beside
 // the story, the selfie beside what was typed, the shot of it open
-// beside the sender's words, then "your photo next". The wall
-// (/gallery) is the simple layer; this is the detailed one.
+// beside the sender's words, then "your photo next". /stories lists
+// them; /gallery is every card at a glance.
 // Data: client/src/lib/gallery-stories.ts.
 import { Link, useLocation, useRoute } from 'wouter';
 import { ArrowLeft, ArrowRight, Camera, Check, PenLine, Star } from 'lucide-react';
@@ -10,7 +10,7 @@ import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { Rise } from '@/components/landing/rise';
 import { GALLERY_STORIES, storyBySlug, type GalleryStory } from '@/lib/gallery-stories';
-import { MakeYoursBand } from '@/pages/gallery';
+import { MakeYoursBand } from '@/pages/stories';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 import { useSeo, setRobotsMeta } from '@/lib/use-seo';
 import { useEffect } from 'react';
@@ -131,7 +131,7 @@ function Story({ s }: { s: GalleryStory }) {
 
 export default function GalleryStoryPage() {
   const [location] = useLocation();
-  const [, params] = useRoute('/gallery/:slug');
+  const [, params] = useRoute('/stories/:slug');
   const s = params?.slug ? storyBySlug(params.slug) : undefined;
   useSeo(location);
   // A slug we don't have is the client's not-found: noindex it.
@@ -147,12 +147,12 @@ export default function GalleryStoryPage() {
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-36 md:pt-40">
         <Rise className="mb-10 flex items-center justify-between gap-6 md:mb-14">
           <Link
-            href="/gallery"
+            href="/stories"
             className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-keeper-meta transition-colors hover:text-keeper-ink"
             data-testid="story-back"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-            All cards
+            All stories
           </Link>
           {s && <p className={EYEBROW}>Real stories · {s.chip}</p>}
         </Rise>
@@ -162,15 +162,15 @@ export default function GalleryStoryPage() {
         ) : (
           <div className="py-16 text-center">
             <h1 className={`text-[28px] ${DISPLAY}`}>We couldn&rsquo;t find that card</h1>
-            <Link href="/gallery" className="mt-4 inline-block text-[15px] font-semibold text-keeper-gold underline underline-offset-4">
-              Back to the gallery
+            <Link href="/stories" className="mt-4 inline-block text-[15px] font-semibold text-keeper-gold underline underline-offset-4">
+              Back to the stories
             </Link>
           </div>
         )}
 
         {next && (
           <Rise className="mt-20 flex justify-end md:mt-28">
-            <Link href={`/gallery/${next.slug}`} className="group inline-flex items-center gap-2 text-[16px] font-semibold text-keeper-ink">
+            <Link href={`/stories/${next.slug}`} className="group inline-flex items-center gap-2 text-[16px] font-semibold text-keeper-ink">
               Next card: {next.chip}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} aria-hidden="true" />
             </Link>
