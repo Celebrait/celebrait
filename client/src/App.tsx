@@ -123,6 +123,7 @@ const AdminOccasionStudioPage = lazy(() => import("@/pages/admin-occasion-studio
 const AdminEnginePage = lazy(() => import("@/pages/admin-engine"));
 const AdminGuidedMakerPage = lazy(() => import("@/pages/admin-guided-maker"));
 const DoorwayBPage = lazy(() => import("@/pages/doorway-b"));
+const GalleryPage = lazy(() => import("@/pages/gallery"));
 const GatePage = lazy(() => import("@/pages/gate"));
 const MakePage = lazy(() => import("@/pages/make"));
 // The self-driving three-card route for social video (admin-only).
@@ -243,6 +244,7 @@ function Router() {
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/contact" component={ContactPage} />
+          <Route path="/gallery" component={GalleryPage} />
           <Route path="/blog" component={BlogPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
           <Route path="/og" component={OgCard} />

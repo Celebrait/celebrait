@@ -149,6 +149,7 @@ export function KeeperHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ))}
+            <Link href="/gallery" className={`${navLink} ${location === '/gallery' ? navActive : ''}`} data-testid="nav-gallery">Gallery</Link>
             <Link href="/pricing" className={`${navLink} ${location === '/pricing' ? navActive : ''}`}>Pricing</Link>
           </nav>
 
@@ -190,6 +191,7 @@ export function KeeperHeader() {
                     <MobileGroup key={g.label} group={g} defaultOpen={g.matches(location)} onNavigate={() => setOpen(false)} />
                   ))}
                   <div className="mt-1 flex flex-col">
+                    <Link href="/gallery" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Gallery</Link>
                     <Link href="/pricing" onClick={() => setOpen(false)} className="block px-1 py-3 text-[16px] font-semibold text-keeper-ink">Pricing</Link>
                     {!isLoading && !isAuthenticated && (
                       <button type="button" onClick={() => { setOpen(false); openAuth('/studio'); }} className="px-1 py-2 text-left text-[14px] font-medium text-keeper-meta">Sign in</button>
