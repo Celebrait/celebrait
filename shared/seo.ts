@@ -152,6 +152,12 @@ export const GALLERY_STORY_SEO: Array<{ slug: string; title: string; description
     description:
       "The tickets were the present, the card was the reveal. How one selfie from a Tuesday night at the football became a printed card of Dad and Adam outside Wembley, inside and out.",
   },
+  {
+    slug: 'nana-budapest',
+    title: "Nana's 80th, from Hannah: a Budapest Card Made From One Selfie | Celebrait",
+    description:
+      'Eighty years old and the next adventure already booked. How one selfie from a Lake District walk became a printed card of Hannah and Nana by the Danube at sunset, two weeks before the trip.',
+  },
 ];
 
 export const BLOG_POSTS: BlogPostMeta[] = [

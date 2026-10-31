@@ -28,6 +28,8 @@ export interface GalleryStory {
   typed: { moment: string; inside: string };
   front: { src: string; alt: string };
   inside: { src: string; alt: string };
+  /** One line beside the open card: what ties the inside to the front. */
+  insideNote: string;
   review: { quote: string; by: string; stars: number };
   facts: string[];
   provenance: string;
@@ -63,6 +65,7 @@ export const GALLERY_STORIES: GalleryStory[] = [
       src: '/gallery-img/wembley-inside.webp',
       alt: "The card open, held in Dad's hand: Wembley Way at sunset with the message Dear Adam, Happy 8th birthday mate, we're off to Wembley to watch England! Love you so much, Mum & Dad x",
     },
+    insideNote: 'Same light, same Wembley. The message is set in the card\u2019s own hand, so the inside belongs with the front.',
     review: {
       quote:
         "He read it twice, looked at me, then screamed. It's him. It's actually him, in the shirt, outside Wembley. We'd have paid double. It's on the fridge until we go.",
@@ -72,6 +75,46 @@ export const GALLERY_STORIES: GalleryStory[] = [
     facts: ['Made from one selfie', 'Typed in about ten minutes', 'Printed once, posted Royal Mail 24'],
     provenance:
       'Made by the Celebrait team with our own photo, to show the route from selfie to doormat. The names are ours too.',
+  },
+  {
+    slug: 'nana-budapest',
+    chip: "Nana's 80th · from Hannah",
+    hook: 'Eighty years old, and the next adventure already booked.',
+    heading: 'Eighty years old, and the next adventure already booked.',
+    story: [
+      "Hannah and her Nana have walked the Lakes together every autumn since Hannah was small. For Nana's eightieth, Hannah booked the two of them a long weekend in Budapest, the one city Nana always said she'd get to.",
+      "She wanted the card to be the first glimpse of it. So she took the selfie from their last walk, above Derwentwater, and typed where they'd be in a fortnight: a wall by the Danube at sunset, Parliament lit up behind them, a glass of wine each.",
+      'Nana read the inside, looked at the front again, and asked if that was really her. It is. The card is going in her handbag for the flight.',
+    ],
+    photo: {
+      src: '/gallery-img/nana-source.webp',
+      alt: 'A selfie of Hannah and her Nana on a fell above Derwentwater, the lake and hills behind them',
+      caption: 'One selfie from a walk above Derwentwater. Big coats, grey sky, two big smiles.',
+    },
+    typed: {
+      moment:
+        'Me and Nana sitting on a riverside wall in Budapest at sunset, Parliament and the Chain Bridge lit up behind us, a glass of white wine each',
+      inside:
+        'Nana, wishing you all the joy in the world today on your 80th birthday, and this will be us in Budapest in 2 weeks! Love from your favourite grand daughter! xx',
+    },
+    front: {
+      src: '/gallery-img/nana-front.webp',
+      alt: 'The printed card standing on a mantelpiece: Hannah and Nana on a Budapest riverside wall at sunset, wine in hand, Parliament behind them, the stone carved Happy 80th Nana',
+    },
+    inside: {
+      src: '/gallery-img/nana-inside.webp',
+      alt: "The card open in Nana's hands: the Danube at sunset with the message Nana, wishing you all the joy in the world today on your 80th birthday, and this will be us in Budapest in 2 weeks! Love from your favourite grand daughter! xx",
+    },
+    insideNote: 'Same sunset, same river, the wine glasses gone and the message in their place. The inside belongs with the front.',
+    review: {
+      quote:
+        "She kept asking if that was really her. The scarf, the smile, all of it. She's eighty and she's taking a birthday card to Budapest in her handbag.",
+      by: 'Hannah, Nana\u2019s granddaughter',
+      stars: 5,
+    },
+    facts: ['Made from one selfie', 'Typed in about ten minutes', 'Printed once, posted Royal Mail 24'],
+    provenance:
+      'Made by the Celebrait team to show the route from selfie to doormat. The names are ours.',
   },
 ];
 

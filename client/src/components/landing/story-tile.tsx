@@ -13,7 +13,7 @@ import { DISPLAY } from '@/pages/doorway';
 
 /** `flip`: crossfade to the inside on hover. Off on the homepage (Aidan
  *  2026-10-31: "static front is fine"); on for /stories. */
-export function StoryTile({ s, featured = false, flip = true }: { s: GalleryStory; featured?: boolean; flip?: boolean }) {
+export function StoryTile({ s, featured = false, flip = true, reverse = false }: { s: GalleryStory; featured?: boolean; flip?: boolean; reverse?: boolean }) {
   const href = `/stories/${s.slug}`;
   return (
     <Link
@@ -23,7 +23,7 @@ export function StoryTile({ s, featured = false, flip = true }: { s: GalleryStor
       }`}
       data-testid={`story-tile-${s.slug}`}
     >
-      <figure className="relative overflow-hidden rounded-3xl border border-keeper-hair shadow-[0_32px_80px_-40px_rgba(33,29,25,0.45)] transition-transform duration-500 group-hover:-translate-y-1">
+      <figure className={`relative overflow-hidden rounded-3xl border border-keeper-hair shadow-[0_32px_80px_-40px_rgba(33,29,25,0.45)] transition-transform duration-500 group-hover:-translate-y-1 ${featured && reverse ? 'md:order-2' : ''}`}>
         <img src={s.front.src} alt={s.front.alt} width={1400} height={1400} loading="lazy" decoding="async" className="aspect-square w-full object-cover" />
         {flip && (
         <img
@@ -46,7 +46,7 @@ export function StoryTile({ s, featured = false, flip = true }: { s: GalleryStor
         </span>
         )}
       </figure>
-      <div className={featured ? 'mt-7 md:mt-0' : 'mt-5'}>
+      <div className={featured ? `mt-7 md:mt-0 ${reverse ? 'md:order-1' : ''}` : 'mt-5'}>
         <h3
           className={`${featured ? 'text-[clamp(28px,3.6vw,40px)]' : 'text-[22px]'} leading-[1.1] [text-wrap:balance] ${DISPLAY}`}
         >

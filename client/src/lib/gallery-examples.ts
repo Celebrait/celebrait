@@ -30,6 +30,15 @@ export const GALLERY_EXAMPLES: GalleryExample[] = [
     storySlug: 'wembley',
   },
   {
+    id: 'nana-budapest',
+    title: "Nana's 80th · from Hannah",
+    scene: 'By the Danube in Budapest at sunset',
+    front: '/gallery-img/nana-front.webp',
+    inside: '/gallery-img/nana-inside.webp',
+    alt: 'Hannah and Nana on a Budapest riverside wall at sunset, wine in hand, the stone carved Happy 80th Nana',
+    storySlug: 'nana-budapest',
+  },
+  {
     id: 'mum-northern-lights',
     title: "Mum's 60th",
     scene: 'Under the Northern Lights',

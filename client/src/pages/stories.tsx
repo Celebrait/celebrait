@@ -1,6 +1,6 @@
 // /stories — Real stories. Every card with a story, each a tile that
-// links to it (/stories/:slug). The first is featured large; the rest
-// fill a grid. The scannable wall of all cards is /gallery. Same marketing
+// links to it (/stories/:slug). Every story is a full row, the shot
+// alternating sides; stories are few and each deserves the width. The scannable wall of all cards is /gallery. Same marketing
 // chrome as /blog: backdrop + KeeperHeader + footer.
 // Data: client/src/lib/gallery-stories.ts.
 import { Link, useLocation } from 'wouter';
@@ -47,7 +47,6 @@ export function MakeYoursBand() {
 export default function StoriesPage() {
   const [location] = useLocation();
   useSeo(location);
-  const [first, ...rest] = GALLERY_STORIES;
 
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
@@ -66,21 +65,13 @@ export default function StoriesPage() {
           </p>
         </Rise>
 
-        {first && (
-          <Rise className="mt-14 md:mt-20" delay={0.08}>
-            <StoryTile s={first} featured />
-          </Rise>
-        )}
-
-        {rest.length > 0 && (
-          <div className="mt-20 grid gap-10 md:mt-28 md:grid-cols-3 md:gap-8">
-            {rest.map((s, i) => (
-              <Rise key={s.slug} delay={i * 0.08}>
-                <StoryTile s={s} />
-              </Rise>
-            ))}
-          </div>
-        )}
+        <div className="mt-14 space-y-20 md:mt-20 md:space-y-28">
+          {GALLERY_STORIES.map((s, i) => (
+            <Rise key={s.slug} delay={0.08}>
+              <StoryTile s={s} featured reverse={i % 2 === 1} />
+            </Rise>
+          ))}
+        </div>
 
         <div className="mt-28 md:mt-36">
           <MakeYoursBand />

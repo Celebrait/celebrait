@@ -112,9 +112,7 @@ function Story({ s }: { s: GalleryStory }) {
         </Rise>
         <Rise delay={0.1} className="md:order-1">
           <p className={EYEBROW}>The inside</p>
-          <p className="mt-3 max-w-[40ch] text-[17px] leading-[1.7] text-keeper-body">
-            Same light, same Wembley. The message is set in the card&rsquo;s own hand, so the inside belongs with the front.
-          </p>
+          <p className="mt-3 max-w-[40ch] text-[17px] leading-[1.7] text-keeper-body">{s.insideNote}</p>
           <blockquote className="mt-8 rounded-3xl border border-keeper-gold/30 bg-keeper-gold-wash/60 p-7 md:p-8">
             <Stars n={s.review.stars} />
             <p className={`mt-4 text-[22px] leading-[1.35] text-keeper-ink md:text-[24px] ${DISPLAY} font-semibold`}>
