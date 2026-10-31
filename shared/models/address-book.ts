@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, jsonb, timestamp, varchar, date, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, jsonb, timestamp, varchar, date, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
@@ -99,11 +99,19 @@ export type AddressBookEntry = typeof addressBookEntries.$inferSelect;
 export type InsertAddressBookEntry = typeof addressBookEntries.$inferInsert;
 
 export const insertAddressBookEntrySchema = createInsertSchema(addressBookEntries, {
-  name: z.string().trim().min(1, 'Name is required').max(80, 'Name is too long'),
-  relationship: z.string().trim().max(40).optional().nullable(),
-  email: z.string().email('Enter a valid email').optional().nullable().or(z.literal('')),
-  phone: z.string().trim().max(40).optional().nullable(),
-  notes: z.string().trim().max(500).optional().nullable(),
+  name: z.string().trim().min(1, 'Name is required').max(80, 'Name is too long (80 characters max)'),
+  relationship: z.string().trim().max(40, 'Relationship is too long (40 characters max)').optional().nullable(),
+  email: z.string().trim().email('Enter a valid email').optional().nullable().or(z.literal('')),
+  // Loose on purpose (international formats) — just a sanity bound on
+  // length so a pasted paragraph can't land in the phone column.
+  phone: z
+    .string()
+    .trim()
+    .max(40, 'Phone number is too long (40 characters max)')
+    .refine((v) => v === '' || /^[+\d][\d\s().-]{5,}$/.test(v), 'Enter a valid phone number')
+    .optional()
+    .nullable(),
+  notes: z.string().trim().max(500, 'Notes are too long (500 characters max)').optional().nullable(),
 }).omit({
   id: true,
   userId: true,
@@ -211,7 +219,8 @@ export const reminderLog = pgTable(
     occasionId: integer("occasion_id")
       .notNull()
       .references(() => recipientOccasions.id, { onDelete: "cascade" }),
-    /** 't_21' | 't_7' | 't_3' (V1). Future: 't_plus_1'. Free-text so
+    /** 't_21' | 't_10' | 't_7' since 2026-09-09 (older rows carry the
+     *  retired 't_3'). Future: 't_plus_1'. Free-text so
      *  new tiers don't require migration. */
     tier: text("tier").notNull(),
     /** Which year of the recurring occasion this fired for. Lets the
@@ -226,9 +235,12 @@ export const reminderLog = pgTable(
   },
   (t) => [
     // Hot-path query: "have we already fired tier X for occasion Y in
-    // year Z?" — supported by this composite index. Functions as the
-    // dedup key in app code.
-    index("reminder_log_dedup_idx").on(t.occasionId, t.tier, t.year),
+    // year Z?" — AND the dedup key. UNIQUE (audit 2026-07-27): the
+    // dispatcher's check-then-insert is racy across overlapping passes
+    // (manual admin trigger + cron, or two instances) — a plain index
+    // let both pass the check and double-email. The constraint makes the
+    // DB the arbiter; inserts use onConflictDoNothing.
+    uniqueIndex("reminder_log_dedup_idx").on(t.occasionId, t.tier, t.year),
     // Per-user listing for an admin debug page or future user-facing
     // "reminders I've sent" surface.
     index("reminder_log_user_idx").on(t.userId),
@@ -239,12 +251,12 @@ export type ReminderLogRow = typeof reminderLog.$inferSelect;
 export type InsertReminderLog = typeof reminderLog.$inferInsert;
 
 export const insertRecipientOccasionSchema = createInsertSchema(recipientOccasions, {
-  occasion: z.string().trim().min(1, 'Occasion is required').max(40),
+  occasion: z.string().trim().min(1, 'Occasion is required').max(40, 'Occasion is too long (40 characters max)'),
   // date arrives as 'YYYY-MM-DD' string; Drizzle's date column accepts
   // string. Allow null for "I don't know the date yet".
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD').nullable().optional(),
-  notes: z.string().trim().max(200).optional().nullable(),
-  suppressedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD').nullable().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date (YYYY-MM-DD)').nullable().optional(),
+  notes: z.string().trim().max(200, 'Occasion note is too long (200 characters max)').optional().nullable(),
+  suppressedUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a full date (YYYY-MM-DD)').nullable().optional(),
 }).omit({
   id: true,
   userId: true,

@@ -22,7 +22,12 @@ import connectPg from "connect-pg-simple";
 // ─── Session middleware ──────────────────────────────────────────────────────
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  // 30 days + rolling (below): greeting cards are an OCCASIONAL buy, so a
+  // 1-week fixed window meant returning users re-OTP'd constantly. Rolling
+  // extends the window on every visit, so anyone active within 30 days
+  // stays signed in and only genuinely-lapsed users re-auth (Kevin
+  // 2026-07-09). Passwordless stays low-friction for return visits.
+  const sessionTtl = 30 * 24 * 60 * 60 * 1000; // 30 days
   const isProd = process.env.NODE_ENV === "production";
 
   // Session store strategy:
@@ -49,6 +54,16 @@ export function getSession() {
       createTableIfMissing: false,
       ttl: sessionTtl,
       tableName: "sessions",
+      // NEON BILL (2026-10-07). connect-pg-simple prunes expired sessions
+      // on a timer whose default is every 15 minutes — a DELETE against
+      // production whether or not anyone has visited in a week. Neon
+      // suspends after 5 idle minutes and bills a 5-minute minimum per
+      // wake, so this one default kept the compute awake roughly half of
+      // every day with zero visitors (30.9 CU-hrs in the first week of
+      // October, same pace as September). Once a day is plenty: the
+      // table is small and a stale row is just an expired cookie nobody
+      // can present. See server/activity.ts for the same principle.
+      pruneSessionInterval: 24 * 60 * 60,
     });
   }
   // dev: leave `store` undefined → express-session uses MemoryStore.
@@ -56,11 +71,22 @@ export function getSession() {
   // production environment") — that's the intended signal in dev and
   // would be a red flag if it ever shows up in prod logs.
 
+  // Never let the repo-published dev fallback sign production cookies —
+  // a missing/typo'd SESSION_SECRET on Render must fail the boot, not
+  // silently downgrade session security (audit 2026-07-27; the central
+  // launch-guard also checks this — this throw is the local backstop).
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
   return session({
     secret: process.env.SESSION_SECRET || "celebrait-dev-session-secret",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    // Re-issue the cookie (reset maxAge) on each response so an active
+    // user's 30-day window keeps sliding forward — they stay signed in.
+    rolling: true,
     cookie: {
       httpOnly: true,
       // Secure cookies require HTTPS — fine in prod, breaks on localhost.

@@ -17,6 +17,14 @@ export interface ImageGenerationRequest {
    *  (Gemini: up to 14) pass them all. Providers that don't (OpenAI)
    *  silently ignore these. */
   additionalReferenceImages?: string[];
+  /** EDIT the primary reference rather than compose a new image from it
+   *  (the cameo: "this card, with them painted in"). Forces OpenAI onto
+   *  /v1/images/edits even when the variant prefers reference-conditioned
+   *  generation. Providers without a distinct edit path ignore it. */
+  editMode?: boolean;
+  /** How faithfully an edit preserves the input images' detail (faces,
+   *  lettering). OpenAI edits only. */
+  inputFidelity?: 'low' | 'high';
   /** Quality tier. Providers that don't support tiers ignore this. */
   quality: 'low' | 'medium' | 'high';
   /** Target image dimensions. Default: '1024x1024'. */
@@ -24,6 +32,11 @@ export interface ImageGenerationRequest {
   /** Which slot is being generated — providers can use different models
    *  per slot (e.g. Flash for front, Pro for inside). */
   slot?: string;
+  /** Hard ceiling for this one call, in ms. Default 6 min (a 'high'
+   *  render's worst case). The public makers pass ~90s for 'low' so a
+   *  stalled upstream can't hold a visitor's page for minutes
+   *  (2026-09-08: '/make hanging on Drawing the fronts for 3 minutes'). */
+  timeoutMs?: number;
 }
 
 export interface ImageGenerationResult {

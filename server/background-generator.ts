@@ -15,6 +15,7 @@ import {
 import { getProvider } from './providers/registry';
 import { ProviderError, isProviderError, type ProviderErrorKind } from './providers/errors';
 import { logGeneration } from './prompts/generation-log';
+import { inFlightCards } from './generation-registry';
 import { buildRefineInstruction, REFINE_SLOT } from './prompts/refine-scaffolds';
 import {
   savePngFiles,
@@ -23,6 +24,7 @@ import {
   loadStoredImageAsBase64,
   generatePrintResolutionFiles,
 } from './pipeline/storage/LocalStorageAdapter';
+import { publicImageUrl, loadStoredFileBuffer } from './image-storage';
 import {
   cards,
   cardAttempts,
@@ -38,11 +40,34 @@ import {
 import { resolveStyleDescription } from '@shared/style-descriptions';
 import { openai } from './utils/shared';
 
+// Load a card's stable image-key secret (cards.imageKey) — woven into its
+// image object keys so the public-bucket filenames can't be enumerated
+// from the sequential card id (security audit 2026-07-02). Returns null
+// for legacy rows with no key; the storage helpers then fall back to the
+// old card_<id>_ naming. Used by generation paths that don't already load
+// the card row (those add cards.imageKey to their projection instead).
+async function loadImageKey(cardId: number): Promise<string | null> {
+  try {
+    const [row] = await db
+      .select({ imageKey: cards.imageKey })
+      .from(cards)
+      .where(eq(cards.id, cardId))
+      .limit(1);
+    return row?.imageKey ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Fallback provider / quality used when the active prompt_active row has
 // null values. Matches the hardcoded behaviour this function had before
 // Phase 4b so existing cards keep generating unchanged.
 const FALLBACK_PROVIDER = 'openai';
-const FALLBACK_QUALITY = 'high' as const;
+// Default to 'medium' when a slot has no quality set in the Prompt Lab —
+// matches the intended config and is much faster than 'high' (high gpt-
+// image is ~1-5 min/image; medium ~30-60s). Slots with an explicit
+// quality in prompt_active still win; this only covers the unset case.
+const FALLBACK_QUALITY = 'medium' as const;
 const FALLBACK_SIZE = '1024x1024';
 
 // Regens are pinned to Gemini regardless of what the prompt_active
@@ -173,10 +198,20 @@ export function isStubMode(): boolean {
 }
 
 /** Runtime toggle for stub mode. Used by the dev panel. No-op in
- *  production. Doesn't persist across restarts (boot reads env again). */
+ *  production UNLESS ALLOW_STUB_TOGGLE=1 — that opt-in lets a TEST server
+ *  (which runs NODE_ENV=production on Render) use the live admin toggle so
+ *  you can flip stub on/off without a redeploy. A real prod deploy leaves
+ *  the flag unset, keeping the guard. Doesn't persist across instance
+ *  restarts (boot re-reads DEV_STUB_AI). */
 export function setStubMode(on: boolean): void {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('[STUDIO_GEN] Ignored stub-mode toggle attempt in production');
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_STUB_TOGGLE !== '1'
+  ) {
+    console.warn(
+      '[STUDIO_GEN] Ignored stub-mode toggle in production ' +
+        '(set ALLOW_STUB_TOGGLE=1 to allow it on a test server)',
+    );
     return;
   }
   stubModeOn = on;
@@ -249,6 +284,23 @@ function maybeThrowTestFailure(providerId: string): void {
  *  fast. With both initial-gen sides stubbed (front + inside) the total
  *  E2E "create a card" flow is ~3-4s rather than ~45s real. */
 const STUB_DELAY_MS = 1500;
+
+// Hard watchdog on a single provider gen so a stuck call can NEVER hang
+// the card forever (the "cycling quotes with nothing happening" symptom).
+// Generous on purpose: gpt-image high-quality is ~5 min worst case (see
+// the regen poll timeout), so this only fires on a TRUE hang, not a
+// legitimately-slow gen. On fire it rejects → the gen's catch flips the
+// card to failed/inside-failed → the user gets the retry screen instead
+// of an eternal wait.
+const PROVIDER_WATCHDOG_MS = 6 * 60 * 1000;
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms),
+    ),
+  ]);
+}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface BackgroundGenerationParams {
@@ -350,6 +402,17 @@ async function generateViaActiveConfig(params: {
 
 
 export async function generateCardInBackground(params: BackgroundGenerationParams): Promise<void> {
+  // Same in-flight registration as generateStudioCard (legacy combined
+  // path — kept registered so a live run is never swept as an orphan).
+  inFlightCards.add(params.cardId);
+  try {
+    return await generateCardInBackgroundInner(params);
+  } finally {
+    inFlightCards.delete(params.cardId);
+  }
+}
+
+async function generateCardInBackgroundInner(params: BackgroundGenerationParams): Promise<void> {
   const { cardId, userEmail, userName, generationType, answers, uploadedPhotoIds } = params;
 
   console.log(`[BG_GEN] Starting background generation for card ${cardId}, type: ${generationType}`);
@@ -389,7 +452,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         resolved: resolvedFront,
         referenceImages: params.imageDataArray,
       });
-      frontUrl = await savePngFiles(sceneImageUrl, cardId, 'front');
+      frontUrl = await savePngFiles(sceneImageUrl, cardId, 'front', await loadImageKey(cardId));
       frontOriginal = sceneImageUrl;
 
     } else {
@@ -420,7 +483,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
         resolved: resolvedInside,
         referenceImages: [frontImageForInside],
       });
-      insideUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
+      insideUrl = await savePngFiles(insideImageUrl, cardId, 'inside', await loadImageKey(cardId));
       insideOriginal = insideImageUrl;
     }
 
@@ -446,7 +509,7 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
     console.log(`[BG_GEN] Card ${cardId} generation completed successfully`);
 
     // --- GENERATE PRINT-RESOLUTION FILES (non-fatal) ---
-    await generatePrintResolutionFiles(cardId);
+    await generatePrintResolutionFiles(cardId, await loadImageKey(cardId));
 
     // No auto-email on generation complete — the Studio flow sends
     // the recipient / sender emails on order-paid, not card-ready.
@@ -485,15 +548,64 @@ export async function generateCardInBackground(params: BackgroundGenerationParam
 //   draft → generating → completed (happy path)
 //                     → failed     (provider error / safety block / etc.)
 
-export async function generateStudioCard(cardId: number): Promise<void> {
-  console.log(`[STUDIO_GEN] Starting Studio generation for card ${cardId}`);
+// Post-completion artifacts: print-resolution upscale + the card-ready
+// email + address-book upsert. Run inline by the legacy 'full' gen, and
+// by the /finalize step when a front-first card is signed off. All
+// non-fatal — generation already succeeded; these are icing.
+export async function finalizeCardArtifacts(
+  cardId: number,
+  state: CardDraftState,
+  userId: string | null,
+): Promise<void> {
+  await generatePrintResolutionFiles(cardId, await loadImageKey(cardId));
+  try {
+    await sendCardReadyEmailForCard(cardId, state, userId);
+  } catch (mailErr) {
+    console.error(`[STUDIO_GEN] card-ready email failed for ${cardId}:`, mailErr);
+  }
+  try {
+    await upsertAddressBookFromCard(cardId);
+  } catch (abErr) {
+    console.error(`[STUDIO_GEN] address-book upsert failed for ${cardId}:`, abErr);
+  }
+}
 
-  // ── Load draft state ─────────────────────────────────────────────
+export async function generateStudioCard(
+  cardId: number,
+  mode: 'front' | 'inside' | 'full' = 'full',
+): Promise<void> {
+  // Register BEFORE the first await so the stale-generation sweeper can
+  // never mistake this live run for a crash orphan (it flips orphaned
+  // `generating*` cards to failed — see server/recovery/stale-sweeper.ts).
+  inFlightCards.add(cardId);
+  try {
+    return await generateStudioCardInner(cardId, mode);
+  } finally {
+    inFlightCards.delete(cardId);
+  }
+}
+
+async function generateStudioCardInner(
+  cardId: number,
+  mode: 'front' | 'inside' | 'full' = 'full',
+): Promise<void> {
+  console.log(`[STUDIO_GEN] Starting Studio generation (${mode}) for card ${cardId}`);
+  // FRONT-FIRST flow: 'front' renders + saves the front then stops at
+  // status 'front-ready' (the inside is generated later, after the user
+  // approves the front, via mode='inside'). 'full' is the legacy
+  // single-job path (front → inside → completed) kept for back-compat.
+  const doFront = mode === 'front' || mode === 'full';
+  const doInside = mode === 'inside' || mode === 'full';
+
+  // ── Load draft state (+ persisted front, needed for mode='inside') ─
   const rows = await db
     .select({
       id: cards.id,
       userId: cards.userId,
       conversationData: cards.conversationData,
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      imageKey: cards.imageKey,
     })
     .from(cards)
     .where(eq(cards.id, cardId))
@@ -513,207 +625,261 @@ export async function generateStudioCard(cardId: number): Promise<void> {
   }
 
   try {
-    await storage.updateCard(cardId, { status: 'generating' });
-
-    // ── Load reference photos ────────────────────────────────────
-    const photoIds = state.photos?.photoIds ?? [];
-    if (photoIds.length === 0) {
-      throw new Error('No reference photos on this draft');
-    }
-    const photoRows = await db
-      .select()
-      .from(photos)
-      .where(inArray(photos.id, photoIds));
-
-    // Order photoRows to match the user's photoIds order. DB doesn't
-    // guarantee order on an IN query, and the primary photo is
-    // photoIds[0] in the draft.
-    const byId = new Map(photoRows.map((p) => [p.id, p]));
-    const orderedPhotos = photoIds
-      .map((id) => byId.get(id))
-      .filter((p): p is NonNullable<typeof p> => !!p);
-
-    // Prefer cropped version (tighter on the face → better likeness
-    // after the provider's downscale) when available. Photo paths are
-    // relative to stored_images/.
-    const referenceImages: string[] = [];
-    for (const p of orderedPhotos) {
-      const rel = p.croppedStoragePath ?? p.storagePath;
-      const abs = path.join(process.cwd(), 'stored_images', rel);
-      const buf = await fs.readFile(abs);
-      referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
-    }
-
-    // ── Build front-scene vars ───────────────────────────────────
     const artStyle = resolveStyleDescription(state.style?.mode, state.style?.custom);
-    const cardText = buildCardText(state);
-    const includeText = cardText.length > 0;
+    // Carries the saved front URL from the FRONT block into the INSIDE
+    // block. For a standalone mode='inside' call it's resolved from the
+    // card row (the front rendered on a prior invocation).
+    let frontStoredUrl: string | null = null;
 
-    // photoMode is read from the draft state — the user picked it on
-    // the Studio photo step. Legacy drafts predate the toggle, so we
-    // fall back to one_person (the overwhelmingly common case).
-    const photoMode = state.photos?.mode ?? 'one_person';
-
-    const resolvedFront = await resolveFrontScenePrompt({
-      scenePrompt: state.scene?.description ?? '',
-      userArtStyle: artStyle,
-      includeText,
-      cardText,
-      photoMode,
-      photoCount: orderedPhotos.length,
-      // textLayout is NOT set here — the resolver pulls it from the
-      // prompt_active row's vars (see Production View). Passing it
-      // explicitly would override the admin's choice.
-    });
-
-    console.log(
-      `[STUDIO_GEN] Front: provider=${resolvedFront.provider ?? 'openai(fallback)'} ` +
-        `quality=${resolvedFront.quality ?? 'high(fallback)'} ` +
-        `variant=${resolvedFront.variant ?? 'null'} ` +
-        `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
-    );
-
-    // ── DEV STUB or REAL ─────────────────────────────────────────────
-    // Stub mode (DEV_STUB_AI=1) reuses the first reference photo as the
-    // "rendered" front so the user's identity stays in the placeholder.
-    // Logs to generation_log with a _stub slot suffix and 0 cost so
-    // Cost Ledger / spend telemetry stays clean.
-    let frontImageUrl: string;
-    if (isStubMode() && referenceImages[0]) {
-      maybeThrowTestFailure(resolvedFront.provider ?? FALLBACK_PROVIDER);
-      await sleep(STUB_DELAY_MS);
-      frontImageUrl = referenceImages[0];
-      await logGeneration({
-        cardId,
-        slot: 'front_scene_stub',
-        templateId: resolvedFront.templateId,
-        templateVersion: resolvedFront.templateVersion,
-        provider: `${resolvedFront.provider ?? FALLBACK_PROVIDER}-stub`,
-        model: 'stub',
-        quality: resolvedFront.quality ?? FALLBACK_QUALITY,
-        costCents: 0,
-        durationMs: STUB_DELAY_MS,
-        success: true,
+    // ══ FRONT ════════════════════════════════════════════════════════
+    if (doFront) {
+      await storage.updateCard(cardId, {
+        status: mode === 'full' ? 'generating' : 'generating-front',
       });
-      console.log(`[STUDIO_GEN] STUB front for card ${cardId} (no provider call, $0)`);
-    } else {
-      frontImageUrl = await generateViaActiveConfig({
-        cardId,
-        resolved: resolvedFront,
-        referenceImages,
-      });
-    }
-    const frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front');
 
-    // Persist the front URL immediately while the inside is still
-    // drafting. The client's polling loop can now reveal the rendered
-    // front mid-flight (Stage 2 of the GeneratingView) instead of
-    // waiting another ~20s for the whole card to complete. Status
-    // stays 'generating' — the final updateCard below flips it to
-    // 'completed' once the inside has landed (or if inside is skipped).
-    await storage.updateCard(cardId, {
-      frontImageUrl: frontStoredUrl,
-    });
+      // ── Load reference photos ──────────────────────────────────
+      const photoIds = state.photos?.photoIds ?? [];
+      if (photoIds.length === 0) {
+        throw new Error('No reference photos on this draft');
+      }
+      const photoRows = await db
+        .select()
+        .from(photos)
+        .where(inArray(photos.id, photoIds));
 
-    // ── Build inside-mode vars + resolve the right template ───────
-    const insideMode = state.inside?.mode;
-    let resolvedInside: ResolvedPrompt | null = null;
-    if (insideMode === 'write') {
-      const insideText = buildInsideText(state);
-      resolvedInside = await resolveInsideWritePrompt({
-        insideText,
-        artStyle,
-      });
-    } else if (insideMode === 'blank') {
-      resolvedInside = await resolveInsideBlankPrompt({
-        insideText: '',
-        artStyle,
-      });
-    }
+      // Order photoRows to match the user's photoIds order. DB doesn't
+      // guarantee order on an IN query, and the primary photo is
+      // photoIds[0] in the draft.
+      const byId = new Map(photoRows.map((p) => [p.id, p]));
+      const orderedPhotos = photoIds
+        .map((pid) => byId.get(pid))
+        .filter((p): p is NonNullable<typeof p> => !!p);
 
-    let insideStoredUrl: string | null = null;
-    if (resolvedInside) {
+      // Prefer cropped version (tighter on the face → better likeness
+      // after the provider's downscale) when available. Photo paths are
+      // relative to stored_images/; loadStoredFileBuffer falls back to
+      // R2 when the local copy was wiped by a deploy (audit 2026-07-27).
+      const referenceImages: string[] = [];
+      for (const p of orderedPhotos) {
+        const rel = p.croppedStoragePath ?? p.storagePath;
+        const buf = await loadStoredFileBuffer(rel);
+        if (!buf) {
+          throw new Error(`Reference photo missing from storage: ${rel}`);
+        }
+        referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
+      }
+
+      // ── Build front-scene vars ─────────────────────────────────
+      const cardText = buildCardText(state);
+      const includeText = cardText.length > 0;
+
+      // photoMode is read from the draft state — the user picked it on
+      // the Studio photo step. Legacy drafts predate the toggle, so we
+      // fall back to one_person (the overwhelmingly common case).
+      const photoMode = state.photos?.mode ?? 'one_person';
+
+      const resolvedFront = await resolveFrontScenePrompt({
+        scenePrompt: state.scene?.description ?? '',
+        userArtStyle: artStyle,
+        includeText,
+        cardText,
+        photoMode,
+        photoCount: orderedPhotos.length,
+        // textLayout is NOT set here — the resolver pulls it from the
+        // prompt_active row's vars (see Production View). Passing it
+        // explicitly would override the admin's choice.
+      });
+
       console.log(
-        `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
-          `quality=${resolvedInside.quality ?? 'high(fallback)'} ` +
-          `templateId=${resolvedInside.templateId} v=${resolvedInside.templateVersion}`,
+        `[STUDIO_GEN] Front: provider=${resolvedFront.provider ?? 'openai(fallback)'} ` +
+          `quality=${resolvedFront.quality ?? `${FALLBACK_QUALITY}(fallback)`} ` +
+          `variant=${resolvedFront.variant ?? 'null'} ` +
+          `templateId=${resolvedFront.templateId} v=${resolvedFront.templateVersion}`,
       );
 
-      // Inside inherits style from the front via image-to-image edit.
-      const frontForInside = await loadStoredImageAsBase64(frontStoredUrl);
-      let insideImageUrl: string;
-      if (isStubMode()) {
-        maybeThrowTestFailure(resolvedInside.provider ?? FALLBACK_PROVIDER);
+      // ── DEV STUB or REAL ───────────────────────────────────────
+      // Stub mode (DEV_STUB_AI=1) reuses the first reference photo as the
+      // "rendered" front so the user's identity stays in the placeholder.
+      // Logs to generation_log with a _stub slot suffix and 0 cost so
+      // Cost Ledger / spend telemetry stays clean.
+      let frontImageUrl: string;
+      if (isStubMode() && referenceImages[0]) {
+        maybeThrowTestFailure(resolvedFront.provider ?? FALLBACK_PROVIDER);
         await sleep(STUB_DELAY_MS);
-        insideImageUrl = frontForInside; // reuse the front as the inside
+        frontImageUrl = referenceImages[0];
         await logGeneration({
           cardId,
-          slot: `${insideMode === 'write' ? 'inside_write' : 'inside_blank'}_stub`,
-          templateId: resolvedInside.templateId,
-          templateVersion: resolvedInside.templateVersion,
-          provider: `${resolvedInside.provider ?? FALLBACK_PROVIDER}-stub`,
+          slot: 'front_scene_stub',
+          templateId: resolvedFront.templateId,
+          templateVersion: resolvedFront.templateVersion,
+          provider: `${resolvedFront.provider ?? FALLBACK_PROVIDER}-stub`,
           model: 'stub',
-          quality: resolvedInside.quality ?? FALLBACK_QUALITY,
+          quality: resolvedFront.quality ?? FALLBACK_QUALITY,
           costCents: 0,
           durationMs: STUB_DELAY_MS,
           success: true,
         });
-        console.log(`[STUDIO_GEN] STUB inside for card ${cardId} (no provider call, $0)`);
+        console.log(`[STUDIO_GEN] STUB front for card ${cardId} (no provider call, $0)`);
       } else {
-        insideImageUrl = await generateViaActiveConfig({
-          cardId,
-          resolved: resolvedInside,
-          referenceImages: [frontForInside],
+        frontImageUrl = await withTimeout(
+          generateViaActiveConfig({
+            cardId,
+            resolved: resolvedFront,
+            referenceImages,
+          }),
+          PROVIDER_WATCHDOG_MS,
+          'Front generation',
+        );
+      }
+      frontStoredUrl = await savePngFiles(frontImageUrl, cardId, 'front', row.imageKey);
+
+      // Persist the front immediately so the client can reveal it. In
+      // 'full' mode status stays 'generating' until the inside lands;
+      // in 'front' mode we flip to 'front-ready' and STOP below.
+      await storage.updateCard(cardId, {
+        frontImageUrl: frontStoredUrl,
+      });
+
+      if (mode === 'front') {
+        await storage.updateCard(cardId, { status: 'front-ready' });
+        console.log(`[STUDIO_GEN] Card ${cardId} front-ready (inside deferred)`);
+        return;
+      }
+    }
+
+    // ══ INSIDE ═══════════════════════════════════════════════════════
+    if (doInside) {
+      if (mode === 'inside') {
+        await storage.updateCard(cardId, { status: 'generating-inside' });
+        // Separate invocation — the front already rendered + saved on a
+        // prior call. Resolve it from the row (prefer the relative
+        // path; same dual-source resolution runRegenAttempt uses).
+        if (!row.frontImageUrl && !row.frontImagePath) {
+          throw new Error('Cannot generate inside before front exists');
+        }
+        frontStoredUrl = row.frontImagePath
+          ? publicImageUrl(row.frontImagePath)
+          : row.frontImageUrl!;
+      }
+
+      // ── Build inside-mode vars + resolve the right template ──────
+      const insideMode = state.inside?.mode;
+      let resolvedInside: ResolvedPrompt | null = null;
+      if (insideMode === 'write') {
+        const insideText = buildInsideText(state);
+        resolvedInside = await resolveInsideWritePrompt({
+          insideText,
+          artStyle,
+        });
+      } else if (insideMode === 'blank') {
+        resolvedInside = await resolveInsideBlankPrompt({
+          insideText: '',
+          artStyle,
         });
       }
-      insideStoredUrl = await savePngFiles(insideImageUrl, cardId, 'inside');
-    }
 
-    // ── Persist + finalise ───────────────────────────────────────
-    await storage.updateCard(cardId, {
-      frontImageUrl: frontStoredUrl,
-      insideImageUrl: insideStoredUrl,
-      status: 'completed',
-    });
+      let insideStoredUrl: string | null = null;
+      let insideStoredPath: string | null = null;
+      if (resolvedInside) {
+        console.log(
+          `[STUDIO_GEN] Inside (${insideMode}): provider=${resolvedInside.provider ?? 'openai(fallback)'} ` +
+            `quality=${resolvedInside.quality ?? `${FALLBACK_QUALITY}(fallback)`} ` +
+            `templateId=${resolvedInside.templateId} v=${resolvedInside.templateVersion}`,
+        );
 
-    console.log(`[STUDIO_GEN] Card ${cardId} completed`);
+        // Inside inherits style from the front via image-to-image edit.
+        const frontForInside = await loadStoredImageAsBase64(frontStoredUrl!);
+        let insideImageUrl: string;
+        if (isStubMode()) {
+          maybeThrowTestFailure(resolvedInside.provider ?? FALLBACK_PROVIDER);
+          await sleep(STUB_DELAY_MS);
+          insideImageUrl = frontForInside; // reuse the front as the inside
+          await logGeneration({
+            cardId,
+            slot: `${insideMode === 'write' ? 'inside_write' : 'inside_blank'}_stub`,
+            templateId: resolvedInside.templateId,
+            templateVersion: resolvedInside.templateVersion,
+            provider: `${resolvedInside.provider ?? FALLBACK_PROVIDER}-stub`,
+            model: 'stub',
+            quality: resolvedInside.quality ?? FALLBACK_QUALITY,
+            costCents: 0,
+            durationMs: STUB_DELAY_MS,
+            success: true,
+          });
+          console.log(`[STUDIO_GEN] STUB inside for card ${cardId} (no provider call, $0)`);
+        } else {
+          insideImageUrl = await withTimeout(
+            generateViaActiveConfig({
+              cardId,
+              resolved: resolvedInside,
+              referenceImages: [frontForInside],
+            }),
+            PROVIDER_WATCHDOG_MS,
+            'Inside generation',
+          );
+        }
+        // Unique per-roll filename (+ canonical mirror, which print / PDF /
+        // fulfilment read by the stable name).
+        //
+        // "Change the inside" re-rolls the inside on the SAME card, and the
+        // old canonical-only save reused card_X_inside.png every time — so
+        // the URL never changed, the browser served the CACHED previous
+        // image, and the user saw "the exact same card again" even though a
+        // fresh one had been generated (Kevin 2026-07-14). Same class of bug
+        // the regen path already fixed; this path never got it.
+        //
+        // A fresh URL per roll fixes it at the source and survives a page
+        // reload (a client-side cache-bust would not). imagePath is stored
+        // too so path-based readers resolve the exact roll, not the mirror.
+        const roll = Date.now();
+        const saved = await savePngFilesForAttempt(
+          insideImageUrl,
+          cardId,
+          'inside',
+          roll,
+          row.imageKey,
+        );
+        insideStoredUrl = saved.url;
+        insideStoredPath = saved.attemptFilename;
+      }
 
-    // Print-resolution upscale — non-fatal, same as the legacy flow.
-    await generatePrintResolutionFiles(cardId);
+      // ── Persist + finalise ───────────────────────────────────────
+      // FRONT-FIRST: a standalone inside gen stops at 'inside-ready' so
+      // the user can preview/tweak/sign off the inside before the card
+      // assembles (mirrors the front-ready step). The finalize artifacts
+      // (print-res + emails + address book) run later via /finalize. The
+      // legacy 'full' path completes + finalizes inline, as before.
+      const finalStatus = mode === 'inside' ? 'inside-ready' : 'completed';
+      await storage.updateCard(cardId, {
+        // mode='inside' already has frontImageUrl on the row; only set
+        // it from the local var in the combined 'full' path.
+        ...(frontStoredUrl && mode === 'full' ? { frontImageUrl: frontStoredUrl } : {}),
+        insideImageUrl: insideStoredUrl,
+        ...(insideStoredPath ? { insideImagePath: insideStoredPath } : {}),
+        status: finalStatus,
+      });
 
-    // ── Notify the sender that their card is ready ─────────────────
-    // Studio's biggest funnel-recovery email: the user kicked off a
-    // ~45s generation and may have navigated away. Without this,
-    // the success path was silent (Comms PR1 audit, 2026-04-28).
-    // Non-fatal — generation succeeded, the email is icing.
-    try {
-      await sendCardReadyEmailForCard(cardId, state, row.userId);
-    } catch (mailErr) {
-      console.error(`[STUDIO_GEN] card-ready email failed for ${cardId}:`, mailErr);
-    }
+      console.log(`[STUDIO_GEN] Card ${cardId} ${finalStatus}`);
 
-    // ── Auto-save the recipient into the address book ──────────────
-    // First-card-for-Mum lands her in /studio/people/address-book
-    // automatically. Future cards typeahead-suggest her name. Fire-
-    // and-forget — failure is a quality-of-life dip, not a card-
-    // generation failure. See routes/address-book.ts for the dedup
-    // logic (case-insensitive name match, no-op if entry exists).
-    try {
-      await upsertAddressBookFromCard(cardId);
-    } catch (abErr) {
-      console.error(`[STUDIO_GEN] address-book upsert failed for ${cardId}:`, abErr);
+      if (finalStatus === 'completed') {
+        await finalizeCardArtifacts(cardId, state, row.userId);
+      }
     }
   } catch (err: any) {
-    console.error(`[STUDIO_GEN] Card ${cardId} FAILED:`, err?.message ?? err);
+    console.error(`[STUDIO_GEN] Card ${cardId} (${mode}) FAILED:`, err?.message ?? err);
+    // A standalone inside-gen failure keeps the (already-saved) front
+    // intact → 'inside-failed' so the client can retry just the inside,
+    // not 'failed' (which would mean the whole card never landed).
+    const failStatus: string = mode === 'inside' ? 'inside-failed' : 'failed';
     try {
       // Persist failure metadata when we have a typed ProviderError so
       // <GenerationErrorPanel> can render kind-specific copy + suggestions
       // instead of the generic "didn't land" view. Plain Errors fall
-      // through to status='failed' with metadata null — the panel's
-      // generic fallback handles those.
+      // through with metadata null — the panel's generic fallback handles
+      // those.
       const failurePayload = isProviderError(err)
         ? {
-            status: 'failed' as const,
+            status: failStatus,
             failureKind: err.kind,
             failureMessage: err.message,
             failureModelExplanation: err.modelExplanation,
@@ -722,7 +888,7 @@ export async function generateStudioCard(cardId: number): Promise<void> {
             failureSuggestions: err.suggestions,
             failureAt: new Date(),
           }
-        : { status: 'failed' as const };
+        : { status: failStatus };
       await db
         .update(cards)
         .set(failurePayload)
@@ -730,8 +896,8 @@ export async function generateStudioCard(cardId: number): Promise<void> {
     } catch (dbErr) {
       console.error(`[STUDIO_GEN] Failed to update status:`, dbErr);
     }
-    // Studio UI polls status — no email needed. Rethrow is deliberate
-    // NOT done: this is fire-and-forget from the request handler.
+    // Studio UI polls status — no email needed. Fire-and-forget from the
+    // request handler, so we deliberately do NOT rethrow.
   }
 }
 
@@ -766,12 +932,35 @@ async function sendCardReadyEmailForCard(
     user.email.split('@')[0]?.replace(/[._-]+/g, ' ').trim() ||
     null;
 
+  // Front image → email hero. Prefer the stored path (mapped through
+  // publicImageUrl to a canonical R2 URL); fall back to the legacy
+  // absolute url column.
+  const cardRows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1);
+  const cardRow = cardRows[0];
+  const cardImageUrl = cardRow?.frontImagePath
+    ? publicImageUrl(cardRow.frontImagePath)
+    : cardRow?.frontImageUrl ?? null;
+  const insideImageUrl = cardRow?.insideImagePath
+    ? publicImageUrl(cardRow.insideImagePath)
+    : cardRow?.insideImageUrl ?? null;
+
   await sendCardReadyEmail({
     senderEmail: user.email,
     senderName,
     recipientName: state.recipient?.name?.trim() || null,
     occasion: state.recipient?.occasion?.trim() || null,
     cardId,
+    cardImageUrl,
+    insideImageUrl,
   });
 }
 
@@ -898,21 +1087,21 @@ async function applyInsideStyleTweak(
   }
 }
 
-/** Hard cap on regens per (card, side). Effectively lifted for now
- *  (Kevin's call 2026-05-05) — set to 999 so iteration during the
- *  pre-launch testing window isn't blocked. Real strategy + tier
- *  thresholds revisit pre-launch as part of the pricing/regen-economics
- *  work (see memory: next_pricing_and_regen_economics.md).
+/** Hard cap on regens per (card, side). Was 999 ("unbounded for
+ *  testing", 2026-05-05); set to a REAL limit 2026-07-07 after Kevin's
+ *  regen test run — tweaks past a handful stop converging ("don't go
+ *  wild here, make subtle changes") and a fresh start beats attempt #9.
+ *  The client (regen-controls.tsx REGEN_HARD_CAP_PER_SIDE_UI — keep in
+ *  sync!) surfaces the cap gracefully before the server 429 is ever
+ *  hit: capped side's tweak box swaps for a "start fresh" panel.
  *
- *  Override at runtime via the REGEN_CAP_PER_SIDE env var; default 999
- *  is "unbounded for testing." Production launch should drop this
- *  back to a sane value (10–20) once paid usage is in.
+ *  Override at runtime via the REGEN_CAP_PER_SIDE env var.
  *
  *  Kept here rather than in the route so the limit lives next to the
  *  gen path that enforces it. The route also pre-checks and returns a
  *  friendly 429 when hit. */
 export const REGEN_HARD_CAP_PER_SIDE: number =
-  parseInt(process.env.REGEN_CAP_PER_SIDE ?? '999', 10) || 999;
+  parseInt(process.env.REGEN_CAP_PER_SIDE ?? '8', 10) || 8;
 
 /** Look up the next attempt number for (card, side). Used both by the
  *  regen entry point AND by the lazy backfill of attempt #1 on first
@@ -988,12 +1177,12 @@ async function ensureInitialAttemptRow(
   // pre-storage cards) this no-ops and the attempt keeps its
   // original url — selectAttempt back to it later will grab whatever
   // the URL points at, which is the best we can do for those rows.
-  const snapshotted = await snapshotCanonicalToAttempt(cardId, side, inserted.id);
+  const snapshotted = await snapshotCanonicalToAttempt(cardId, side, inserted.id, await loadImageKey(cardId));
   if (snapshotted) {
     await db
       .update(cardAttempts)
       .set({
-        imageUrl: `/images/${snapshotted}`,
+        imageUrl: publicImageUrl(snapshotted),
         imagePath: snapshotted,
       })
       .where(eq(cardAttempts.id, inserted.id));
@@ -1102,6 +1291,7 @@ export async function runRegenAttempt(
         frontImagePath: cards.frontImagePath,
         insideImageUrl: cards.insideImageUrl,
         insideImagePath: cards.insideImagePath,
+        imageKey: cards.imageKey,
       })
       .from(cards)
       .where(eq(cards.id, cardId))
@@ -1123,8 +1313,12 @@ export async function runRegenAttempt(
     const referenceImages: string[] = [];
     for (const p of orderedPhotos) {
       const rel = p.croppedStoragePath ?? p.storagePath;
-      const abs = path.join(process.cwd(), 'stored_images', rel);
-      const buf = await fs.readFile(abs);
+      // Local disk → R2 fallback (photos are mirrored on upload;
+      // Render's disk is wiped every deploy — audit 2026-07-27).
+      const buf = await loadStoredFileBuffer(rel);
+      if (!buf) {
+        throw new Error(`Reference photo missing from storage: ${rel}`);
+      }
       referenceImages.push(`data:${p.mimeType};base64,${buf.toString('base64')}`);
     }
 
@@ -1411,6 +1605,7 @@ export async function runRegenAttempt(
       cardId,
       side,
       attemptId,
+      card.imageKey,
     );
     const imagePathRel = attemptFilename;
 
@@ -1434,7 +1629,7 @@ export async function runRegenAttempt(
         })
         .where(eq(cards.id, cardId));
       // Re-run print-resolution upscale for the new front (non-fatal).
-      await generatePrintResolutionFiles(cardId).catch((err) =>
+      await generatePrintResolutionFiles(cardId, card.imageKey).catch((err) =>
         console.warn(`[STUDIO_GEN] print-res after front regen failed:`, err),
       );
     } else {
@@ -1458,7 +1653,23 @@ export async function runRegenAttempt(
       .update(cardAttempts)
       .set({
         status: 'failed',
-        errorCode: err?.code ?? 'server',
+        // Store the GenerationErrorKind ('safety' | 'server' | 'rate' |
+        // 'unknown') so the client can map it straight to the error
+        // panel's kind. Fire-and-forget regens surface failures via the
+        // /drafts projection (regenFailures), not the POST response —
+        // this column is the only failure signal the client gets. See
+        // next_regen_interaction_polish.md (G1).
+        // When the error has no meaningful typed kind ('unknown'/missing),
+        // fall back to the raw message (truncated) so the client's
+        // "technical details" shows something actionable — e.g. a
+        // deprecated-Gemini-model 404 or "GEMINI_API_KEY not configured" —
+        // instead of a useless "unknown".
+        errorCode:
+          err?.kind && err.kind !== 'unknown'
+            ? err.kind
+            : typeof err?.message === 'string' && err.message.trim()
+              ? err.message.slice(0, 300)
+              : (err?.code ?? err?.kind ?? 'server'),
       })
       .where(eq(cardAttempts.id, attemptId))
       .catch(() => {});

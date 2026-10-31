@@ -5,8 +5,14 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Up to 3 stacked notifications (was 1 — a second event silently replaced
+// the first, which is lossy when, say, two uploads fail at once).
+const TOAST_LIMIT = 3
+// Delay between a toast closing (exit animation) and being removed from
+// state. Was 1_000_000ms — the well-known shadcn footgun that kept every
+// dismissed toast in memory for ~16 minutes. 600ms just covers the exit
+// animation; Radix drives the actual visible auto-dismiss via `duration`.
+const TOAST_REMOVE_DELAY = 600
 
 type ToasterToast = ToastProps & {
   id: string

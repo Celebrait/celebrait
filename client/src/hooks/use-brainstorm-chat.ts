@@ -15,6 +15,7 @@
 // Studio page is open; navigating away loses it. Good enough for v1.
 
 import { useCallback, useState } from 'react';
+import { friendlyError } from '@/lib/friendly-error';
 import { apiRequest } from '@/lib/queryClient';
 import { getOccasionLabel } from '@/components/studio/scene-presets';
 
@@ -112,9 +113,9 @@ export interface BrainstormChatActions {
 // the per-phase ack copy and a startsWith-style detector that
 // recognises any plausible ack so we don't double up.
 const SKIP_ACK_BY_PHASE: Record<string, string> = {
-  scene_specifics: "Got it — I'll fill in the specifics.",
-  activity: "Got it — I'll pick the moment.",
-  clothing: "Got it — I'll pick the dress code.",
+  scene_specifics: "Got it. I'll fill in the specifics.",
+  activity: "Got it. I'll pick the moment.",
+  clothing: "Got it. I'll pick the dress code.",
 };
 function buildSkipAck(phase: string): string | null {
   return SKIP_ACK_BY_PHASE[phase] ?? null;
@@ -222,7 +223,7 @@ export function useBrainstormChat({
           setProposedScene(null);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Something went wrong.';
+        const message = friendlyError(err, 'Something went wrong.');
         setError(message);
       } finally {
         setIsLoading(false);
@@ -250,7 +251,7 @@ export function useBrainstormChat({
       getOccasionLabel(occasion.trim()) || 'celebration';
 
     const opener =
-      `Hello! ✨ Let's design the scene for the front of this ${occasionDisplay} card. We'll keep it scene-led — where it is, what's happening, the atmosphere. The people in your photos handle themselves.\n\n` +
+      `Hello! ✨ Let's design the scene for the front of this ${occasionDisplay} card. We'll keep it scene-led: where it is, what's happening, the atmosphere. The people in your photos handle themselves.\n\n` +
       `Where would you like the scene to take place?`;
     const openerMessage: BrainstormMessage = {
       id: `a-opener-${Date.now()}`,

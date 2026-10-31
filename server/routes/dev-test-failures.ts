@@ -24,7 +24,8 @@
 //                                        panel render.
 //
 // Hard guards:
-//   - All endpoints 404 in production (NODE_ENV check)
+//   - All endpoints 404 in production UNLESS ALLOW_STUB_TOGGLE=1 (set on
+//     the TEST server only — never in real prod). See devPanelBlocked().
 //   - inject-failure 400s if stub mode is OFF (real provider calls would
 //     burn tokens before consuming the injection — only safe inside the
 //     stub path)
@@ -58,6 +59,15 @@ function isProd(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
+// The whole dev panel (stub toggle + failure injection + spawn) is allowed
+// in production when opted in via ALLOW_STUB_TOGGLE=1 — so a TEST server can
+// exercise stub mode and error-state UI live. In real prod (flag unset) every
+// endpoint here 404s. inject-failure still self-guards on stub mode, and
+// spawn still requires auth + a photo, so the surface stays tightly bounded.
+function devPanelBlocked(): boolean {
+  return isProd() && process.env.ALLOW_STUB_TOGGLE !== '1';
+}
+
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
   return typeof id === 'string' && id.length > 0 ? id : null;
@@ -66,13 +76,13 @@ function getUserId(req: Request): string | null {
 export function registerDevTestFailureRoutes(app: Express): void {
   // ── GET /api/dev/stub-mode ───────────────────────────────────────────
   app.get('/api/dev/stub-mode', (_req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
     res.json({ on: isStubMode() });
   });
 
   // ── POST /api/dev/stub-mode ──────────────────────────────────────────
   app.post('/api/dev/stub-mode', (req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
     const { on } = req.body as { on: boolean };
     if (typeof on !== 'boolean') {
       return res
@@ -85,7 +95,7 @@ export function registerDevTestFailureRoutes(app: Express): void {
 
   // ── POST /api/dev/inject-failure ─────────────────────────────────────
   app.post('/api/dev/inject-failure', (req: Request, res: Response) => {
-    if (isProd()) return res.status(404).json({ message: 'Not found' });
+    if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
 
     if (!isStubMode()) {
       return res.status(400).json({
@@ -120,7 +130,7 @@ export function registerDevTestFailureRoutes(app: Express): void {
     '/api/dev/spawn-test-card',
     isAuthenticated,
     async (req: Request, res: Response) => {
-      if (isProd()) return res.status(404).json({ message: 'Not found' });
+      if (devPanelBlocked()) return res.status(404).json({ message: 'Not found' });
 
       const userId = getUserId(req);
       if (!userId) {
@@ -150,7 +160,13 @@ export function registerDevTestFailureRoutes(app: Express): void {
         // (isDraftReadyToGenerate in studio-drafts.ts).
         const draft: CardDraftState = {
           version: 1,
-          step: 6, // Review step — in case gen never starts (e.g. cap hit)
+          // Review step. Was 6 pre-V1-scope-cut when there were 7 steps;
+          // after the Style step was removed (2026-05-17, 37d7f4be) the
+          // Review step's index is 5. The stale `6` here made spawned
+          // cards land at currentStep=6 in the card-maker — no render
+          // branch matched → empty panel + all-green stepper (the
+          // failure-injection no-render bug, fixed 2026-05-22).
+          step: 5,
           recipient: {
             name: 'Sarah',
             occasion: 'birthday',
