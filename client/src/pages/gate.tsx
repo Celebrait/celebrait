@@ -275,7 +275,7 @@ export default function GatePage() {
                 'Printed and posted (or digital if you prefer)',
               ]}
               cta="Start with a photo"
-              proof={{ href: '/photo#proof', label: 'See the proof first' }}
+              proof={{ href: '/gallery', label: 'See a real card first' }}
               fine={[
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
                 [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],

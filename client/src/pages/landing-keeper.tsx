@@ -60,6 +60,7 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
+import { RealStoriesSection } from '@/components/landing/real-stories-section';
 import { GestureHints } from '@/components/gesture-hints';
 // The shared kit: display face, hero headline scale, the one primary
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
@@ -79,7 +80,6 @@ const heroCardInside = '/hero-card-inside.webp';
 // placeholder gallery section ("Any face. Any occasion." / "Real cards,
 // made in the Studio." + its 3D tiles). The hero 3D card STAYS. Flip to
 // false to bring the gallery back.
-const HIDE_GALLERY = true;
 // Proof section ("Greetings cards used to be boring") — the REAL worked
 // example, so the recipe and the result are the same card end to end:
 // this selfie of Mum + "Gazing at the Northern Lights" + "Happy 60th, Mum"
@@ -1258,55 +1258,10 @@ function ProofSection() {
 // components/landing/handover-section.tsx since 2026-10-09 — /create
 // carries the same section, so it had to leave this page.
 
-// ── 4. RANGE — The gallery wall (every card clickable) ──────────────
-
-// This section's ONE job is breadth: six occasions in a glance, so
-// Celebrait doesn't read as a birthday-card site. Nothing else on the page
-// makes that argument — OccasionCapture is a lead form, and it's
-// birthday-framed — and it's the argument the whole reminder/repeat-purchase
-// model rests on.
-//
-// ⚠ ASSETS: every `front` below is a PLACEHOLDER — all six currently show
-// the hero card. Kevin to generate SIX FRONTS, one per occasion, and drop
-// each in here. Only fronts: the tiles never open, so the inside is a
-// shared ~7% sliver (see AjarTile). The D-tags are the slot map and come
-// out WITH the real art. See next_keeper_assets_needed.
-const GALLERY: Array<{ tag: string; what: string; front: string }> = [
-  { tag: 'D1', what: "Kid's birthday", front: heroCardFront },
-  { tag: 'D2', what: 'Anniversary', front: heroCardFront },
-  { tag: 'D3', what: 'New baby', front: heroCardFront },
-  { tag: 'D4', what: 'Graduation', front: heroCardFront },
-  { tag: 'D5', what: "Father's Day", front: heroCardFront },
-  { tag: 'D6', what: 'Retirement', front: heroCardFront },
-];
-
-function GallerySection() {
-  return (
-    <section id="gallery" className="scroll-mt-32 px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-6xl">
-        <Rise className="text-center">
-          <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] ${DISPLAY}`}>
-            Any face. Any occasion.
-          </h2>
-          {/* Was "Made in the Studio this month — tap any card to open it."
-              Both halves had to go: the tap is gone, and "this month" is a
-              dated claim on an evergreen page — it has to stay true forever
-              and won't. */}
-          <p className="mt-3 text-[15px] text-keeper-body">
-            Real cards, made in the Studio.
-          </p>
-        </Rise>
-        <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
-          {GALLERY.map((g, i) => (
-            <Rise key={g.tag} delay={i * 0.08}>
-              <AjarTile tag={g.tag} what={g.what} front={g.front} />
-            </Rise>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+// ── 4. REAL STORIES — components/landing/real-stories-section.tsx ──
+// The six-tile gallery wall that was parked here (placeholder fronts,
+// HIDE_GALLERY) was replaced 2026-10-31 by one real card told in full,
+// linking to /gallery. AjarTile below stays for the carousel's trick.
 
 // ── 5. THE OBJECT ────────────────────────────────────────────────────
 
@@ -1651,13 +1606,14 @@ export default function LandingKeeper() {
         {/* The three steps the hero names, shown (Aidan 2026-10-11). */}
         <HowItWorksSection door="photo" />
         <ProofSection />
+        {/* One card told in full, linking to /gallery (2026-10-31). */}
+        <RealStoriesSection />
         <InsideSection />
         {/* Imagine it → describe it → send it (animated phone). Moved up to
             sit directly under THE INSIDE on Kevin's call (2026-07-16) —
             was down after OccasionCapture, beside the demo video. */}
         <ImagineDescribeShipSection />
         <HandoverSection />
-        {!HIDE_GALLERY && <GallerySection />}
         {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
             shot is an unfilled Prodigi-test-print placeholder and its specs
             already live in FAQ / pricing / the header banner. The function

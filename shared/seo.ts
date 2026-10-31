@@ -137,6 +137,17 @@ export type BlogPostMeta = {
   readMinutes: number;
 };
 
+/** The gallery's stories (/gallery/:slug). Mirrors the slugs in
+ *  client/src/lib/gallery-stories.ts — add here when adding there. */
+export const GALLERY_STORY_SEO: Array<{ slug: string; title: string; description: string }> = [
+  {
+    slug: 'wembley',
+    title: "Adam's 8th, from Dad: a Wembley Card Made From One Selfie | Celebrait",
+    description:
+      "The tickets were the present, the card was the reveal. How one selfie from a Tuesday night at the football became a printed card of Dad and Adam outside Wembley, inside and out.",
+  },
+];
+
 export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: 'how-to-turn-a-photo-into-a-greeting-card',
@@ -244,6 +255,11 @@ export function seoForPath(rawPath: string, rackEnabled = false, makerEnabled = 
   if (page) return page;
   const cat = catalogueSeoForPath(path);
   if (cat) return cat;
+  const g = path.match(/^\/gallery\/([a-z0-9-]+)$/);
+  if (g) {
+    const story = GALLERY_STORY_SEO.find((s) => s.slug === g[1]);
+    if (story) return { path, title: story.title, description: story.description, ogType: 'article' };
+  }
   const m = path.match(/^\/blog\/([a-z0-9-]+)$/);
   if (m) {
     const post = BLOG_POSTS.find((p) => p.slug === m[1]);
