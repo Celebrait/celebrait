@@ -61,7 +61,7 @@ export const GALLERY_STORIES: GalleryStory[] = [
     },
     inside: {
       src: '/gallery-img/wembley-inside.webp',
-      alt: "The card open: Wembley Way at sunset with the message Dear Adam, Happy 8th birthday mate, we're off to Wembley to watch England! Love you so much, Mum & Dad x",
+      alt: "The card open, held in Dad's hand: Wembley Way at sunset with the message Dear Adam, Happy 8th birthday mate, we're off to Wembley to watch England! Love you so much, Mum & Dad x",
     },
     review: {
       quote:
