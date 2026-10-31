@@ -1106,13 +1106,16 @@ function TestPanel({
               {/* Provider selector */}
               <div>
                 <Label className="text-xs">Provider</Label>
-                <div className="flex gap-2 mt-1">
+                {/* Wraps: eight providers no longer fit one row, and a
+                    non-wrapping row ran under the preview panel where the
+                    last three couldn't be clicked (Aidan 2026-10-31). */}
+                <div className="flex flex-wrap gap-2 mt-1">
                   {providers.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => p.available && setSelectedProvider(p.id)}
                       disabled={!p.available}
-                      className={`flex-1 px-3 py-2 text-xs rounded border transition-colors ${
+                      className={`min-w-0 px-3 py-2 text-xs rounded border text-left transition-colors ${
                         selectedProvider === p.id
                           ? 'border-violet-600 bg-violet-50 text-violet-700'
                           : p.available
