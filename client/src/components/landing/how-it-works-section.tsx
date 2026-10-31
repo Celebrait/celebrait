@@ -335,22 +335,22 @@ function FlatCard({ src, alt, className = '' }: { src: string; alt: string; clas
 // stage = (1.4 × 0.72 / CARD_FRAMING) / 1.6 of the box's width.
 const POSTER_CLOSED = 'left-1/2 top-1/2 w-[38.9%] -translate-x-1/2 -translate-y-1/2';
 
-/** What the visitor types, as a line written on the page: a small
- *  caps label, the typed words, a hairline under them. No white box:
- *  the stage has no box either, so a box here would be the only
- *  chrome on the page and read as a screenshot of an app. `lead` sits
- *  before the words (step 2's photo of Mum, so the line reads "this
+/** The white input the visitor types into on the real maker: a small
+ *  caps label over the typed words, in one white box. The stage has
+ *  no box, so this is the one container in the beat (Aidan
+ *  2026-10-31: "the text boxes should have a container"). `lead` sits
+ *  before the words (step 2's photo of Mum, so the field reads "this
  *  person, in this moment"). Every size is in cqw (the stage is the
- *  container), so the line is the same fraction of the stage at every
- *  width and the card below always has the same room. `full` is the
- *  finished text: it is laid out invisibly underneath so the line is
- *  its final height from the start and never grows as the typing
+ *  container), so the field is the same fraction of the stage at
+ *  every width and the card below always has the same room. `full` is
+ *  the finished text: it is laid out invisibly underneath so the field
+ *  is its final height from the start and never grows as the typing
  *  wraps. */
 function Field({ label, lead, text, full, typing, placeholder }: { label: string; lead?: React.ReactNode; text: string; full: string; typing: boolean; placeholder: string }) {
   // On screen from the start, empty with its placeholder, so a step
-  // that is waiting its turn reads as "next", not as a blank line.
+  // that is waiting its turn reads as "next", not as a blank box.
   return (
-    <div className="flex items-center gap-[3.2cqw] border-b border-keeper-hair pb-[2.8cqw]">
+    <div className="flex items-center gap-[3.2cqw] rounded-[3.3cqw] border border-keeper-hair bg-white px-[3.9cqw] py-[3cqw] shadow-[0_10px_24px_-18px_rgba(33,29,25,0.45)]">
       {lead}
       <div className="min-w-0 flex-1">
         <p className="text-[2.9cqw] font-semibold uppercase tracking-[0.14em] text-keeper-meta">{label}</p>
