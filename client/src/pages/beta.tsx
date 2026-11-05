@@ -133,7 +133,7 @@ export default function BetaPage() {
               <p className="mt-4 text-[13px] text-keeper-meta">About 10 minutes · one card · the model we’ll launch with</p>
               <div className="mt-6">
                 {open ? (
-                  <Link href="/photo" className={primary} data-testid="beta-door-photo">Test the photo route <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href="/photo/make" className={primary} data-testid="beta-door-photo">Test the photo route <ArrowRight className="h-4 w-4" /></Link>
                 ) : (
                   <button type="button" disabled className={primary}>Test the photo route</button>
                 )}
@@ -149,7 +149,7 @@ export default function BetaPage() {
               <p className="mt-4 text-[13px] text-keeper-meta">About 2 minutes · three concepts · the quicker model</p>
               <div className="mt-6">
                 {open ? (
-                  <Link href="/create" className={secondary} data-testid="beta-door-maker">Test the three-card route <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href="/make" className={secondary} data-testid="beta-door-maker">Test the three-card route <ArrowRight className="h-4 w-4" /></Link>
                 ) : (
                   <button type="button" disabled className={secondary}>Test the three-card route</button>
                 )}

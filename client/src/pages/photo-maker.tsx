@@ -230,7 +230,7 @@ export default function PhotoMakerPage() {
       <Shell>
         <div className="mb-3 flex justify-end">
           {/* Leaving = nothing of theirs stays in this browser. */}
-          <Link href="/photo" onClick={() => { void discardGuestSession(); m.reset(); }} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          <Link href={betaMode ? '/beta' : '/photo'} onClick={() => { void discardGuestSession(); m.reset(); }} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={[...PUBLIC_STEPS]} current={currentStep} furthest={furthest} onJump={setStep} />
@@ -240,7 +240,7 @@ export default function PhotoMakerPage() {
           {/* The lead-time notice lives INSIDE the question container
               (Aidan 2026-09-10) — one-off prints, allow a week — so it's
               read with the question, not as page chrome. */}
-          <LeadTimeNotice className="mb-5 sm:mb-6" />
+          <LeadTimeNotice className="mb-5 sm:mb-6" link={!betaMode} />
           <h1 className="mx-auto mb-5 max-w-2xl font-display text-xl font-bold tracking-[-0.015em] text-keeper-ink sm:mb-6 sm:text-2xl">
             {headline(currentStep, state)}
           </h1>

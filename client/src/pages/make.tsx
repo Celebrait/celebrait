@@ -499,7 +499,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className="mb-3 flex justify-end">
-          <Link href="/create" className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          <Link href={betaMode ? '/beta' : '/create'} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
@@ -508,7 +508,7 @@ export default function MakePage() {
           {/* The lead-time notice lives INSIDE the question container
               (Aidan 2026-09-10) — one-off prints, allow a week — read
               with the question, before twenty minutes of crafting. */}
-          <LeadTimeNotice className="mb-5 sm:mb-6" />
+          <LeadTimeNotice link={!betaMode} className="mb-5 sm:mb-6" />
           <BriefQuestions
             skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
             initialStep={brief.who.trim() ? 1 : 0}
@@ -834,7 +834,7 @@ export default function MakePage() {
               }}>
               {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated || betaMode ? 'Keep it in my studio' : 'Sign in to keep it'}
             </button>
-            <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
+            <button type="button" onClick={() => navigate(betaMode ? '/beta' : '/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
           <p className={helper}>{betaMode ? 'Nothing to pay during the beta. Keeping it puts it in your studio.' : <>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</>}</p>
