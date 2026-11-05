@@ -174,7 +174,15 @@ async function writeDevEmailSink(params: EmailParams): Promise<void> {
   }
 }
 
+/** Throwaway tester accounts (research + beta doors) — no mailbox
+ *  exists, so never hand Brevo a bounce. */
+const TESTER_DOMAIN = /@testers\.celebrait\.co\.uk$/i;
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  if (TESTER_DOMAIN.test(params.to)) {
+    console.log(`[EMAIL] skipped (tester account) → ${params.to}: "${params.subject}"`);
+    return true;
+  }
   // Preview short-circuit — when running inside renderEmailForPreview(),
   // capture the rendered parts into the request-scoped cell and skip
   // SMTP entirely. Returns true so the caller's existing happy-path

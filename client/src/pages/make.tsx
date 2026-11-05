@@ -26,7 +26,8 @@ import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor,
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
-import { useBetaMode, betaFeedbackHref } from '@/hooks/use-beta';
+import { useBetaMode, betaFeedbackHref, openBetaSession } from '@/hooks/use-beta';
+import { useQueryClient } from '@tanstack/react-query';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
@@ -181,6 +182,7 @@ export default function MakePage() {
   const [, navigate] = useLocation();
   // Beta (2026-11-05): no money buttons — save, then the feedback form.
   const betaMode = useBetaMode();
+  const qc = useQueryClient();
   const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
   // The doorway finishes the questions and hands over with go=1: no
   // re-asking, straight into the wait.
@@ -820,16 +822,22 @@ export default function MakePage() {
                     // Signed in: the row is already theirs. Guest: sign in,
                     // then come back to claim it by token.
                     if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
+                    else if (betaMode) {
+                      // Beta tester: no sign-in — open their throwaway studio,
+                      // then the ?claim effect above adopts the card.
+                      navigate(`/make?claim=${s.cardId}`);
+                      openBetaSession(qc).catch((e: any) => { setSaveError(friendlyError(e, 'Couldn’t open your studio. Try again')); setSaving(''); });
+                    }
                     else { setSaving(''); openAuth(`/make?claim=${s.cardId}`); }
                   })
                   .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
-              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated ? 'Keep it in my studio' : 'Sign in to keep it'}
+              {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated || betaMode ? 'Keep it in my studio' : 'Sign in to keep it'}
             </button>
             <button type="button" onClick={() => navigate('/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
-          <p className={helper}>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</p>
+          <p className={helper}>{betaMode ? 'Nothing to pay during the beta. Keeping it puts it in your studio.' : <>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</>}</p>
         </div>
       </MakeShell>
     );

@@ -30,7 +30,7 @@
 // a locked visitor spending generations by calling the APIs directly.
 
 import type { Express, NextFunction, Request, Response } from 'express';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
@@ -225,6 +225,30 @@ export function registerSiteLock(app: Express): void {
       }
     }
     res.json({ ok: true, tag });
+  });
+
+  // POST /api/beta/session — no sign-up for testers (Aidan 2026-11-05:
+  // "no sign up needed for this route"). Same trick as the research
+  // door (research.ts): silently mint a throwaway account and log the
+  // browser in, so the studio's whole authed pipeline runs untouched.
+  // Tester accounts live on the testers.celebrait.co.uk domain — the
+  // mailer skips them (email-service.ts) and they're easy to purge.
+  app.post('/api/beta/session', async (req, res) => {
+    const lock = await getSiteLock();
+    if (!lock.betaMode || !(await isBetaTester(req))) return res.status(403).json({ message: 'Join the beta first.', code: 'beta' });
+    try {
+      const existing = (req as any).session?.otpUserId;
+      if (typeof existing === 'string' && existing.length > 0) return res.json({ ok: true, reused: true });
+      const [u] = await db.insert(users).values({
+        email: `beta+${randomUUID().slice(0, 12)}@testers.celebrait.co.uk`,
+        firstName: 'Beta tester',
+      }).returning({ id: users.id });
+      (req as any).session.otpUserId = u.id;
+      res.json({ ok: true, reused: false });
+    } catch (err) {
+      console.error('[beta] session mint failed:', err);
+      res.status(500).json({ message: 'Could not open your studio. Try again.' });
+    }
   });
 
   const feedbackSchema = z.object({

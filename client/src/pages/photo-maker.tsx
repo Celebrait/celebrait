@@ -26,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useBetaMode, openBetaSession } from '@/hooks/use-beta';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -89,6 +91,9 @@ export default function PhotoMakerPage() {
   const search = useSearch();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { openAuth, authOpen } = useAuthModal();
+  // Beta testers never see a sign-up: Generate opens a throwaway studio.
+  const betaMode = useBetaMode();
+  const qc = useQueryClient();
 
   // Reminder / gate deep-links seed the recipient, as /studio/new-card does.
   const seed = useMemo(() => {
@@ -259,10 +264,16 @@ export default function PhotoMakerPage() {
               photos={photos.filter((p) => (state.photos?.photoIds ?? []).includes(p.id))}
               allReady={allReady}
               authed={!authLoading && isAuthenticated}
+              beta={betaMode}
               error={transferError}
               onEdit={setStep}
               onSignUp={() => { try { sessionStorage.setItem(PENDING_KEY, '1'); } catch { /* ignore */ } openAuth('/photo/make?claim=1'); }}
               onGenerate={() => void runTransfer()}
+              onBetaGenerate={async () => {
+                setTransferError(null);
+                try { await openBetaSession(qc); } catch (err: any) { setTransferError(friendlyError(err, "Couldn't open your studio. Try again.")); return; }
+                void runTransfer();
+              }}
             />
           )}
         </div>
@@ -290,16 +301,20 @@ export default function PhotoMakerPage() {
 }
 
 /** The gate: the card as a brief, then one button. */
-function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, onGenerate }: {
+function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSignUp, onGenerate, onBetaGenerate }: {
   state: CardDraftState;
   photos: Array<{ id: number; thumbnailPath: string; label: string | null }>;
   allReady: boolean;
   authed: boolean;
+  beta: boolean;
   error: string | null;
   onEdit: (i: number) => void;
   onSignUp: () => void;
   onGenerate: () => void;
+  onBetaGenerate: () => void;
 }) {
+  // Beta tester, signed out: no account to make, nothing to pay.
+  const betaGuest = beta && !authed;
   const occ = state.recipient?.occasion?.trim();
   const rows: Array<[string, ReactNode, number]> = [
     ['For', `${state.recipient?.name?.trim() || '–'}${occ ? ` · ${getOccasionLabel(occ)}` : ''}`, 0],
@@ -325,22 +340,24 @@ function GateStep({ state, photos, allReady, authed, error, onEdit, onSignUp, on
 
       <div className="mt-6 rounded-xl border-2 border-brand bg-brand-muted p-5 sm:p-6">
         <p className="font-display text-lg font-bold text-keeper-ink">
-          {authed ? 'Ready when you are.' : 'One free account, then we draw.'}
+          {authed || betaGuest ? 'Ready when you are.' : 'One free account, then we draw.'}
         </p>
         <p className="mt-1 text-[14px] leading-relaxed text-keeper-body">
-          {authed
-            ? 'Your card is saved to your studio and drawn there, a few minutes on our bigger image model.'
-            : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
-          {' '}Nothing to pay until you print ({formatMoney(cardPrice('photo'))}).
+          {betaGuest
+            ? 'This is the beta, so there’s no account to make and nothing to pay. We open a studio for you and draw the card there, a few minutes on our bigger image model.'
+            : authed
+              ? 'Your card is saved to your studio and drawn there, a few minutes on our bigger image model.'
+              : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
+          {!betaGuest && <> Nothing to pay until you print ({formatMoney(cardPrice('photo'))}).</>}
         </p>
         {error && <p className="mt-3 text-[13px] text-accent-red-dark">{error}</p>}
         <Button
-          onClick={authed ? onGenerate : onSignUp}
+          onClick={authed ? onGenerate : betaGuest ? onBetaGenerate : onSignUp}
           disabled={!allReady}
           className="mt-4 w-full bg-go text-go-foreground hover:bg-go-hover disabled:opacity-50 sm:w-auto"
           data-testid="btn-photo-maker-generate"
         >
-          <Sparkles className="mr-1.5 h-4 w-4" /> {authed ? 'Generate' : 'Sign up to generate'}
+          <Sparkles className="mr-1.5 h-4 w-4" /> {authed || betaGuest ? 'Generate' : 'Sign up to generate'}
         </Button>
         {!allReady && <p className="mt-2 text-[12.5px] text-keeper-meta">Something's missing above. Tap Edit to fill it in.</p>}
       </div>

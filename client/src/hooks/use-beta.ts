@@ -13,7 +13,8 @@
 //
 // Admins see the real buttons: Aidan rehearses checkout while testers
 // can't reach it.
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, type QueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 
 interface LockState {
@@ -70,6 +71,14 @@ export function useBetaTester(): boolean {
 export function useBetaMinimalChrome(): boolean {
   const { data, isAdmin } = useLockState();
   return !isAdmin && data?.beta === true;
+}
+
+/** No sign-up for testers: mint the throwaway studio account and wait
+ *  until the auth query agrees, so the next page sees them signed in. */
+export async function openBetaSession(qc: QueryClient): Promise<void> {
+  await apiRequest('POST', '/api/beta/session', {});
+  await qc.invalidateQueries({ queryKey: ['/api/auth/user'] });
+  void qc.invalidateQueries({ queryKey: ['/api/site-lock'] });
 }
 
 /** Where every "give feedback" CTA goes. */
