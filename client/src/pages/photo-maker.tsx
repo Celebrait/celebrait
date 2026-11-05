@@ -270,8 +270,11 @@ export default function PhotoMakerPage() {
               onSignUp={() => { try { sessionStorage.setItem(PENDING_KEY, '1'); } catch { /* ignore */ } openAuth('/photo/make?claim=1'); }}
               onGenerate={() => void runTransfer()}
               onBetaGenerate={async () => {
+                // Show the wait screen at once — minting the studio takes a
+                // beat and a dead button reads as a glitch (Aidan 2026-11-05).
                 setTransferError(null);
-                try { await openBetaSession(qc); } catch (err: any) { setTransferError(friendlyError(err, "Couldn't open your studio. Try again.")); return; }
+                setTransfer('Opening your studio…');
+                try { await openBetaSession(qc); } catch (err: any) { setTransfer(null); setTransferError(friendlyError(err, "Couldn't open your studio. Try again.")); return; }
                 void runTransfer();
               }}
             />

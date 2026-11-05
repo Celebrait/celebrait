@@ -42,6 +42,7 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/use-auth';
+import { useBetaMinimalChrome, betaFeedbackHref } from '@/hooks/use-beta';
 import logoSrc from '../assets/logo-mark.webp';
 import { FabNewCard } from '@/components/studio/fab-new-card';
 import { StudioHints } from '@/components/studio/studio-hints';
@@ -221,6 +222,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function StudioLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  // Beta testers (2026-11-05, Aidan "not crazy on taking them into the
+  // studio"): the studio is just the room the card is drawn in. No
+  // sidebar, no bell, no account, no coachmarks — the wordmark back to
+  // /beta, a beta label and the feedback link.
+  const beta = useBetaMinimalChrome();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -230,6 +236,28 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
   const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
+
+  if (beta) {
+    return (
+      <div className="min-h-screen bg-keeper-paper flex flex-col">
+        <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
+          <Link href="/beta" className="flex items-center" aria-label="Beta home">
+            <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
+          </Link>
+          <span className="hidden sm:inline-flex items-center rounded-full border border-keeper-hair bg-white/70 px-3 py-1 text-[12px] text-keeper-meta">Beta · nothing is charged</span>
+          <div className="flex-1" />
+          <Link href={betaFeedbackHref()} className="inline-flex items-center gap-1.5 rounded-full bg-keeper-ink px-4 py-2 text-[13px] font-semibold text-keeper-paper transition-colors hover:bg-black" data-testid="beta-studio-feedback">
+            <MessageSquareText className="w-4 h-4" strokeWidth={1.75} /> Give feedback
+          </Link>
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-keeper-paper flex">
