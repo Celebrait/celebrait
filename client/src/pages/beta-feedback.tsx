@@ -86,7 +86,7 @@ export default function BetaFeedbackPage() {
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
-      <KeeperHeader />
+      <KeeperHeader minimal />
       <main className="mx-auto max-w-2xl px-6 pb-24 pt-36 md:pt-40">
         {done ? (
           <Rise className="rounded-3xl border border-emerald-200 bg-emerald-50/60 px-7 py-12 text-center md:px-12" >
@@ -172,7 +172,7 @@ export default function BetaFeedbackPage() {
           </>
         )}
       </main>
-      <MarketingFooter />
+      <MarketingFooter minimal />
     </div>
   );
 }

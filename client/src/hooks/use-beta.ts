@@ -64,6 +64,14 @@ export function useBetaTester(): boolean {
   return data?.beta === true;
 }
 
+/** true = this visitor is a beta tester and NOT an admin → the header
+ *  and footer drop every site link (Aidan 2026-11-05: "remove all other
+ *  site links so nobody can fish around - inc. from the menu"). */
+export function useBetaMinimalChrome(): boolean {
+  const { data, isAdmin } = useLockState();
+  return !isAdmin && data?.beta === true;
+}
+
 /** Where every "give feedback" CTA goes. */
 export function betaFeedbackHref(opts: { cardId?: number | string | null; route?: 'photo' | 'maker' } = {}): string {
   const q = new URLSearchParams();

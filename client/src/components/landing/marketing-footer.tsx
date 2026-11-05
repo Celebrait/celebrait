@@ -13,6 +13,7 @@ import { Instagram, ArrowRight } from 'lucide-react';
 import logoSrc from '@/assets/logo-mark.webp';
 import { useAuth } from '@/hooks/use-auth';
 import { useMakerEnabled } from '@/hooks/use-maker';
+import { useBetaMinimalChrome } from '@/hooks/use-beta';
 import { copyFor } from '@shared/market-copy';
 import { CookieSettingsLink } from '@/components/consent-banner';
 
@@ -133,9 +134,30 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
   );
 }
 
-export function MarketingFooter({ cta = 'default' }: { cta?: FooterCtaMode } = {}) {
+/** The beta sign-off (2026-11-05): legal links and the copyright line
+ *  only — no CTA, no Company/Help columns, nothing to fish around in. */
+function MinimalFooter() {
+  return (
+    <footer className="border-t border-keeper-hair bg-keeper-paper">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-[13px] text-keeper-meta md:flex-row">
+        <p>© {new Date().getFullYear()} Celebrait · {copyFor().madeIn}</p>
+        <nav className="flex items-center gap-5" aria-label="Legal">
+          {LEGAL.map((l) => (
+            <Link key={l.href} href={l.href} className="transition-colors hover:text-keeper-ink">{l.label}</Link>
+          ))}
+          <CookieSettingsLink className="transition-colors hover:text-keeper-ink" />
+        </nav>
+      </div>
+    </footer>
+  );
+}
+
+export function MarketingFooter({ cta = 'default', minimal: minimalProp = false }: { cta?: FooterCtaMode; minimal?: boolean } = {}) {
   const [path] = useLocation();
   const maker = useMakerEnabled() === true;
+  const minimalChrome = useBetaMinimalChrome();
+  const minimal = minimalProp || minimalChrome;
+  if (minimal) return <MinimalFooter />;
   return (
     <footer className="relative isolate overflow-hidden bg-keeper-ink text-keeper-paper">
       {/* Warm marigold glow bleeding down from the top edge. */}

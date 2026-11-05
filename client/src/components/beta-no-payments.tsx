@@ -14,7 +14,7 @@ export function BetaNoPayments({ cardId, route = 'photo' }: { cardId?: number | 
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
-      <KeeperHeader />
+      <KeeperHeader minimal />
       <main className="mx-auto max-w-2xl px-6 pb-24 pt-36 md:pt-40">
         <div className="rounded-3xl border border-keeper-gold/30 bg-white/80 px-7 py-10 text-center md:px-12" data-testid="beta-no-payments">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-keeper-gold-wash text-keeper-gold">

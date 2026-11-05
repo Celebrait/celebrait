@@ -26,6 +26,7 @@ import { Cake, Camera, ChevronDown, Menu, Sparkles, TreePine, type LucideIcon } 
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { useMakerEnabled } from '@/hooks/use-maker';
+import { useBetaMinimalChrome } from '@/hooks/use-beta';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { TickerBanner } from '@/components/landing/ticker-banner';
@@ -80,8 +81,13 @@ function ItemRow({ item, compact = false }: { item: MenuItem; compact?: boolean 
   );
 }
 
-export function KeeperHeader() {
+/** `minimal` — the beta pages (2026-11-05): wordmark, sign in / studio
+ *  and nothing else, so a tester can't wander off into the site. Also
+ *  forced on for every beta tester wherever they are. */
+export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boolean } = {}) {
   const { isAuthenticated, isLoading } = useAuth();
+  const minimalChrome = useBetaMinimalChrome();
+  const minimal = minimalProp || minimalChrome;
   const { openAuth } = useAuthModal();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
@@ -101,7 +107,7 @@ export function KeeperHeader() {
   const hideCta = location === '/photo/make' || location.startsWith('/buy/') || location.startsWith('/order/');
   const onPhotoLp = location === '/photo' || location === '/keeper' || (location === '/' && !maker);
 
-  const cta = hideCta ? null : onGate ? (
+  const cta = hideCta || minimal ? null : onGate ? (
     /* On the gate the header must not answer the page's own question —
        it just brings the two doors into view. */
     <button type="button" onClick={() => document.getElementById('doors')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={ctaCls}>
@@ -117,15 +123,15 @@ export function KeeperHeader() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[150]">
-      <TickerBanner />
+      {!minimal && <TickerBanner />}
       <div className="px-4 pt-5">
         <header className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between rounded-full border border-keeper-hair bg-white/75 pl-4 pr-1.5 shadow-[0_12px_40px_-18px_rgba(33,29,25,0.35)] backdrop-blur-md sm:pl-5 sm:pr-2">
-          <Link href="/" className="flex items-center" aria-label="Celebrait home">
+          <Link href={minimal ? '/beta' : '/'} className="flex items-center" aria-label={minimal ? 'Beta home' : 'Celebrait home'}>
             <img src={celebraitLogo} alt="Celebrait" className="h-8 w-auto sm:h-9" />
           </Link>
 
           {/* Desktop row */}
-          <nav className="hidden items-center gap-5 md:flex" aria-label="Main">
+          {!minimal && <nav className="hidden items-center gap-5 md:flex" aria-label="Main">
             {groups.map((g) => g.items.length === 1 ? (
               <Link key={g.label} href={g.items[0].href} className={`${navLink} ${g.matches(location) ? navActive : ''}`} data-testid={`nav-${g.label.split(' ')[0].toLowerCase()}`}>
                 {g.label}
@@ -152,7 +158,7 @@ export function KeeperHeader() {
             <Link href="/gallery" className={`${navLink} ${location === '/gallery' ? navActive : ''}`} data-testid="nav-gallery">Gallery</Link>
             <Link href="/stories" className={`${navLink} ${location.startsWith('/stories') ? navActive : ''}`} data-testid="nav-stories">Stories</Link>
             <Link href="/pricing" className={`${navLink} ${location === '/pricing' ? navActive : ''}`}>Pricing</Link>
-          </nav>
+          </nav>}
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             {!isLoading && isAuthenticated ? (
@@ -172,7 +178,7 @@ export function KeeperHeader() {
             )}
 
             {/* Phones: the same menu in a sheet, groups unfolding in place. */}
-            <Sheet open={open} onOpenChange={setOpen}>
+            {!minimal && <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <button type="button" aria-label="Menu" className="flex h-10 w-10 items-center justify-center rounded-full text-keeper-ink md:hidden" data-testid="nav-menu">
                   <Menu className="h-5 w-5" strokeWidth={1.75} />
@@ -201,7 +207,7 @@ export function KeeperHeader() {
                   </div>
                 </nav>
               </SheetContent>
-            </Sheet>
+            </Sheet>}
           </div>
         </header>
       </div>

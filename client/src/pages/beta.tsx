@@ -74,7 +74,7 @@ export default function BetaPage() {
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
-      <KeeperHeader />
+      <KeeperHeader minimal />
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-36 md:pt-40">
         {/* ── Hero ── */}
         <Rise className="mx-auto max-w-3xl text-center">
@@ -185,21 +185,18 @@ export default function BetaPage() {
               </Rise>
             ))}
           </div>
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {GALLERY_EXAMPLES.slice(0, 6).map((e, i) => (
-              <Rise key={e.id} delay={i * 0.03}>
-                <Link href={e.storySlug ? `/stories/${e.storySlug}` : '/gallery'} className="group block overflow-hidden rounded-xl border border-keeper-hair bg-white">
-                  <img src={e.front} alt={e.alt} loading="lazy" decoding="async" className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                  <span className="block truncate px-3 py-2 text-[12px] text-keeper-body">{e.title}</span>
-                </Link>
+          {/* The two real cards (team-made, Aidan 2026-11-05: only these,
+              and no links out — testers stay on the beta). */}
+          <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-4">
+            {GALLERY_EXAMPLES.filter((e) => e.storySlug).map((e, i) => (
+              <Rise key={e.id} delay={i * 0.05}>
+                <figure className="overflow-hidden rounded-2xl border border-keeper-hair bg-white">
+                  <img src={e.front} alt={e.alt} loading="lazy" decoding="async" className="aspect-square w-full object-cover" />
+                  <figcaption className="px-4 py-3 text-[13px] font-medium text-keeper-ink">{e.title}</figcaption>
+                </figure>
               </Rise>
             ))}
           </div>
-          <p className="mt-5 text-center text-[14px] text-keeper-body">
-            <Link href="/gallery" className="font-semibold text-keeper-gold underline underline-offset-2">Every card in the gallery</Link>
-            <span className="mx-2 text-keeper-meta">·</span>
-            <Link href="/stories" className="font-semibold text-keeper-gold underline underline-offset-2">The stories behind them</Link>
-          </p>
         </section>
 
         {/* ── What we need ── */}
@@ -260,7 +257,7 @@ export default function BetaPage() {
           </Rise>
         </section>
       </main>
-      <MarketingFooter />
+      <MarketingFooter minimal />
     </div>
   );
 }
