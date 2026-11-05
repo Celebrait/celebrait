@@ -20,6 +20,7 @@ import { Link, useLocation } from 'wouter';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
+import { useBetaMode } from '@/hooks/use-beta';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -75,6 +76,11 @@ export function TickerBanner() {
     const t = window.setInterval(() => setSlot((s) => (s + 1) % 2), HOLD_MS);
     return () => window.clearInterval(t);
   }, []);
+
+  // Beta (2026-11-05): a "50% off" offer over a site that sells nothing is
+  // a lie — no strip at all while beta mode is on.
+  const betaMode = useBetaMode();
+  if (betaMode) return null;
 
   const msg = 'flex items-center gap-2 whitespace-nowrap font-sans text-[11.5px] font-medium text-white underline-offset-2 hover:underline sm:text-[12.5px] transition-opacity duration-500 motion-reduce:transition-none';
 

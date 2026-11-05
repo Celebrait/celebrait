@@ -39,6 +39,12 @@ export async function ensureLaunchColumns(): Promise<void> {
       recipient_name text, occasion_date text, created_at timestamp default now()
     )`);
     await db.execute(sql`alter table marketing_leads add column if not exists occasion_type text`);
+    // 2026-11-05: beta-testing joins + feedback forms (/beta, /admin/feedback).
+    await db.execute(sql`create table if not exists beta_feedback (
+      id serial primary key, created_at timestamptz not null default now(), kind text not null,
+      tag text, route text, card_id integer, user_id text, rating integer, would_pay text, price text,
+      best text, worst text, notes text, email text, path text, user_agent text
+    )`);
     // 2026-10-08: the concept engine's ledger rows gain a per-call stage
     // ('archetype' | 'writer' | 'writer-repair' | 'sense' | 'sense-repair')
     // and the floors that fired on that round (JSON array). Until now

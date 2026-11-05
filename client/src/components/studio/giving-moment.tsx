@@ -26,6 +26,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useBetaMode, betaFeedbackHref } from '@/hooks/use-beta';
 import {
   Mail,
   HandHeart,
@@ -80,6 +81,7 @@ export function GivingMoment({
   saveDelivery,
 }: GivingMomentProps) {
   const [, setLocation] = useLocation();
+  const betaMode = useBetaMode();
 
   const them = recipientName || 'them';
   const CARD_BASE = cardPrice(cardSource) + shippingPrice();
@@ -150,7 +152,8 @@ export function GivingMoment({
     } finally {
       setSubmitting(false);
     }
-    setLocation(`/checkout/${cardId}?product=${resolved.format}`);
+    // Beta (2026-11-05): no checkout — the feedback form instead.
+    setLocation(betaMode ? betaFeedbackHref({ cardId, route: 'photo' }) : `/checkout/${cardId}?product=${resolved.format}`);
   };
 
   const canContinue = !!destination && !submitting;

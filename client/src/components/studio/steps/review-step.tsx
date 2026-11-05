@@ -36,6 +36,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useBetaMode, betaFeedbackHref } from '@/hooks/use-beta';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
@@ -1655,6 +1656,8 @@ function RevealView({
   }, [isReady, showReveal]);
 
   const [, setLocation] = useLocation();
+  // Beta (2026-11-05): nothing is for sale — the send CTA becomes the feedback form.
+  const betaMode = useBetaMode();
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -1975,16 +1978,18 @@ function RevealView({
                         // sender), so it skips the Giving Moment and
                         // goes straight to checkout. A written inside
                         // gets the Giving Moment screen.
-                        insideMode === 'blank'
-                          ? `/checkout/${cardId}?product=print`
-                          : `/studio/card/${cardId}/give`,
+                        betaMode
+                          ? betaFeedbackHref({ cardId, route: 'photo' })
+                          : insideMode === 'blank'
+                            ? `/checkout/${cardId}?product=print`
+                            : `/studio/card/${cardId}/give`,
                       )
                     }
                     className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
                     size="lg"
                     data-testid="btn-buy-card"
                   >
-                    Send this card
+                    {betaMode ? 'Finish & give feedback' : 'Send this card'}
                   </Button>
                   <StartAgainButton cardId={cardId} />
                 </motion.div>

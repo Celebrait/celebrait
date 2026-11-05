@@ -26,6 +26,7 @@ import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor,
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
+import { useBetaMode, betaFeedbackHref } from '@/hooks/use-beta';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
@@ -178,6 +179,8 @@ export default function MakePage() {
   const rack = useRackEnabled() === true; // the shelf escape only while the rack sells
   useEffect(() => { const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; document.head.appendChild(m); return () => { m.remove(); }; }, []);
   const [, navigate] = useLocation();
+  // Beta (2026-11-05): no money buttons — save, then the feedback form.
+  const betaMode = useBetaMode();
   const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
   // The doorway finishes the questions and hands over with go=1: no
   // re-asking, straight into the wait.
@@ -802,10 +805,10 @@ export default function MakePage() {
                 if (!chosenFront) return;
                 setSaving('buy'); setSaveError('');
                 saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
-                  .then((s) => navigate(`/buy/${s.cardId}`))
+                  .then((s) => navigate(betaMode ? betaFeedbackHref({ cardId: s.cardId, route: 'maker' }) : `/buy/${s.cardId}`))
                   .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
-              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Buy it for {formatMoney(cardPrice('maker'))}
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {betaMode ? 'Save it & give feedback' : `Buy it for ${formatMoney(cardPrice('maker'))}`}
             </button>
             <button type="button" disabled={!!saving || !chosenFront}
               className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"

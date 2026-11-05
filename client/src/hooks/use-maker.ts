@@ -15,7 +15,7 @@ import { createElement, Fragment, type ReactNode } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 
-interface LockState { locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled?: boolean; makerEnabled?: boolean }
+interface LockState { locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled?: boolean; makerEnabled?: boolean; beta?: boolean }
 
 /** true = the three-card route (/create, /make) is open to this visitor;
  *  false = parked (photo route only); undefined = not known yet.
@@ -38,7 +38,8 @@ export function useMakerEnabled(): boolean | undefined {
   if ((user as { isAdmin?: boolean } | null | undefined)?.isAdmin === true) return true;
   if (isError) return false;
   if (!data) return undefined;
-  return data.makerEnabled === true;
+  // Beta testers (joined at /beta) get both routes while the beta is on.
+  return data.makerEnabled === true || data.beta === true;
 }
 
 /** Renders its children only while the three-card route is open to this

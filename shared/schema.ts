@@ -147,6 +147,30 @@ export const marketingLeads = pgTable("marketing_leads", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Beta-testing feedback (2026-11-05): one row per tester join (kind
+// 'join') and per submitted form ('feedback'). Written by
+// server/routes/site-lock.ts, read at /admin/feedback. Created at boot by
+// ensureLaunchColumns (server/startup-schema.ts) — no manual prod SQL.
+export const betaFeedback = pgTable("beta_feedback", {
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  kind: text("kind").notNull(),
+  /** Where the tester came from: /beta?t=<tag> (or utm_campaign). */
+  tag: text("tag"),
+  route: text("route"),
+  cardId: integer("card_id"),
+  userId: text("user_id"),
+  rating: integer("rating"),
+  wouldPay: text("would_pay"),
+  price: text("price"),
+  best: text("best"),
+  worst: text("worst"),
+  notes: text("notes"),
+  email: text("email"),
+  path: text("path"),
+  userAgent: text("user_agent"),
+});
+
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   cardId: integer("card_id").notNull().references(() => cards.id),

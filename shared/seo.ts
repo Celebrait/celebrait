@@ -119,6 +119,16 @@ const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
       'Every card here started as one photo. Browse real personalised cards, fronts and insides, from a Wembley birthday reveal to Mum under the Northern Lights.',
   },
   {
+    path: '/beta',
+    title: 'Beta Test Celebrait: Make a Card, Tell Us What You Think',
+    description: 'Celebrait is in beta. Make a personalised card from one photo, or from a few questions, for free. Nothing is charged. Then tell us honestly what you thought.',
+  },
+  {
+    path: '/beta/feedback',
+    title: 'Beta Feedback | Celebrait',
+    description: 'Two minutes of honest feedback on the card you made during the Celebrait beta.',
+  },
+  {
     path: '/stories',
     title: 'Real Stories: Photo Cards, Start to Finish | Celebrait',
     description:
@@ -233,7 +243,7 @@ const NOINDEX_PATHS: RegExp[] = [
 // 200. ADD HERE WHEN ADDING A ROUTE, or the new page 404s for crawlers.
 const KNOWN_ROUTES: RegExp[] = [
   /^\/$/,
-  /^\/(photo|create|keeper|card-capture|login|research|pricing|privacy-policy|terms-of-service|contact|blog|gallery|stories|og|make|demo|door|door2|hero-poc)(\/|$)/,
+  /^\/(photo|create|keeper|card-capture|login|research|pricing|privacy-policy|terms-of-service|contact|blog|gallery|stories|beta|og|make|demo|door|door2|hero-poc)(\/|$)/,
   /^\/(studio|admin|checkout)(\/|$)/,
   /^\/card\/[^/]+(\/|$)/,
   /^\/cards\/[^/]+(\/|$)/,

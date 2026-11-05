@@ -31,19 +31,19 @@
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { siteSettings, users } from '@shared/schema';
+import { betaFeedback, siteSettings, users } from '@shared/schema';
 import { requireAdmin } from './admin-card-lab';
 
-interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean }
+interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string }
 const KEY = 'site_lock';
 const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '' };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
@@ -59,7 +59,7 @@ export async function getSiteLock(): Promise<LockValue> {
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);
     const v = rows[0]?.value as Partial<LockValue> | undefined;
-    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true };
+    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true, betaMode: v.betaMode === true, betaCode: typeof v.betaCode === 'string' ? v.betaCode : '' };
   } catch {
     // Table not there yet (first boot) — the default holds.
   }
@@ -80,6 +80,28 @@ function readCookie(req: Request, name: string): string | null {
 }
 
 const sameToken = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+
+// BETA TESTING (Aidan 2026-11-05: "a landing page BETA — NO payments —
+// testing only — then I will lock the site down"). A switch beside the
+// maker's. While `betaMode` is on: /beta hands out a tester cookie
+// (POST /api/beta/join, optionally behind `betaCode`), testers see both
+// routes and get through the lock, and the checkout door refuses
+// everyone but admins. Joins and forms land in beta_feedback.
+const BETA_COOKIE = 'celebrait_beta';
+const BETA_TAG_COOKIE = 'celebrait_beta_tag';
+const betaToken = (code: string) =>
+  createHmac('sha256', process.env.SESSION_SECRET ?? 'celebrait-site-lock').update(`site-beta:${code.trim().toLowerCase()}`).digest('hex').slice(0, 40);
+/** Did this visitor join at /beta (and is the beta still on)? */
+export async function isBetaTester(req: Request): Promise<boolean> {
+  const lock = await getSiteLock();
+  if (!lock.betaMode) return false;
+  const c = readCookie(req, BETA_COOKIE);
+  return !!c && sameToken(c, betaToken(lock.betaCode));
+}
+/** A share tag (`/beta?t=fb-pod-1`) as a short slug, or null. */
+const cleanTag = (s: unknown): string | null =>
+  (typeof s === 'string' ? s.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) : '') || null;
+const userAgentOf = (req: Request) => String(req.headers['user-agent'] ?? '').slice(0, 300) || null;
 
 async function isAdminSession(req: Request): Promise<boolean> {
   const id = (req as any).session?.otpUserId;
@@ -103,14 +125,17 @@ export async function makerOpen(): Promise<boolean> {
 /** Is this request through the gate? (+ the rack and maker flags, so the
  *  SPA learns them from the one request it already makes on every load.
  *  The maker flag is the raw switch; the client lets admins through.) */
-export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean }> {
+export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; beta: boolean; betaNeedsCode: boolean }> {
   const lock = await getSiteLock();
   const hasPassword = lock.password.trim().length > 0;
-  const { rackEnabled, makerEnabled } = lock;
-  if (!lock.locked) return { locked: false, allowed: true, hasPassword, rackEnabled, makerEnabled };
+  const { rackEnabled, makerEnabled, betaMode } = lock;
+  const beta = await isBetaTester(req);
+  const flags = { hasPassword, rackEnabled, makerEnabled, betaMode, beta, betaNeedsCode: betaMode && lock.betaCode.trim().length > 0 };
+  if (!lock.locked) return { locked: false, allowed: true, ...flags };
   const cookie = readCookie(req, COOKIE);
-  if (hasPassword && cookie && sameToken(cookie, passToken(lock.password))) return { locked: true, allowed: true, hasPassword, rackEnabled, makerEnabled };
-  return { locked: true, allowed: await isAdminSession(req), hasPassword, rackEnabled, makerEnabled };
+  // Beta testers are through the lock by virtue of having joined.
+  if (beta || (hasPassword && cookie && sameToken(cookie, passToken(lock.password)))) return { locked: true, allowed: true, ...flags };
+  return { locked: true, allowed: await isAdminSession(req), ...flags };
 }
 
 // The APIs that make things (and cost money) — closed to locked visitors.
@@ -126,19 +151,22 @@ const MAKER_API = /^\/api\/make\/(concepts|render|render-inside|ip-safe-art|came
 // A few tries per address, then a pause — the password is a share code,
 // not a login, but it shouldn't be guessable by brute force.
 const tries = new Map<string, { n: number; at: number }>();
-function tooMany(ip: string): boolean {
+const feedbackTries = new Map<string, { n: number; at: number }>();
+function hit(map: Map<string, { n: number; at: number }>, ip: string, max: number): boolean {
   const now = Date.now();
-  const t = tries.get(ip);
-  if (!t || now - t.at > 10 * 60_000) { tries.set(ip, { n: 1, at: now }); return false; }
+  const t = map.get(ip);
+  if (!t || now - t.at > 10 * 60_000) { map.set(ip, { n: 1, at: now }); return false; }
   t.n += 1;
-  return t.n > 12;
+  return t.n > max;
 }
+const tooMany = (ip: string) => hit(tries, ip, 12);
+const ipOf = (req: Request) => String(req.headers['x-forwarded-for'] ?? req.ip ?? '').split(',')[0].trim();
 
 export function registerSiteLock(app: Express): void {
   app.use(async (req: Request, res: Response, next: NextFunction) => {
     if (!MAKER_API.test(req.path)) return next();
     try {
-      if ((await getSiteLock()).makerEnabled || (await isAdminSession(req))) return next();
+      if ((await getSiteLock()).makerEnabled || (await isBetaTester(req)) || (await isAdminSession(req))) return next();
       return res.status(409).json({ message: "That way of making a card isn't open yet", code: 'closed' });
     } catch {
       return next();
@@ -154,6 +182,85 @@ export function registerSiteLock(app: Express): void {
     } catch {
       return next();
     }
+  });
+
+  // BETA: NO PAYMENTS. The one door that takes money (both /buy and
+  // /checkout post to it) refuses while beta mode is on — admins excepted,
+  // so Aidan can still rehearse checkout. The rack's door too, for safety.
+  const CHECKOUT_API = /^\/api\/(studio\/cards\/[^/]+\/checkout|shop\/[^/]+\/checkout|shop\/checkout)(\/|$)/;
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== 'POST' || !CHECKOUT_API.test(req.path)) return next();
+    try {
+      if (!(await getSiteLock()).betaMode || (await isAdminSession(req))) return next();
+      return res.status(409).json({ message: 'Celebrait is in beta testing — nothing is for sale yet.', code: 'beta' });
+    } catch {
+      return next();
+    }
+  });
+
+  // Join the beta: the tester cookie (+ the pass cookie, so the lock lets
+  // them in), tagged with where they came from. One 'join' row per new
+  // cookie, so /admin/feedback can count arrivals against forms.
+  app.post('/api/beta/join', async (req, res) => {
+    const lock = await getSiteLock();
+    if (!lock.betaMode) return res.status(409).json({ message: 'Beta testing is closed right now.', code: 'closed' });
+    const want = lock.betaCode.trim();
+    const given = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    if (want) {
+      if (tooMany(ipOf(req))) return res.status(429).json({ message: 'Too many tries. Have a breather and try again shortly.' });
+      if (!given || !sameToken(betaToken(given), betaToken(want))) return res.status(401).json({ message: 'That’s not the beta code.', code: 'code' });
+    }
+    const tag = cleanTag(req.body?.tag);
+    const opts = { httpOnly: true, sameSite: 'lax' as const, secure: IS_PROD, maxAge: 60 * 24 * 60 * 60 * 1000, path: '/' };
+    const token = betaToken(want);
+    const already = readCookie(req, BETA_COOKIE);
+    res.cookie(BETA_COOKIE, token, opts);
+    if (tag) res.cookie(BETA_TAG_COOKIE, tag, opts);
+    if (lock.password.trim()) res.cookie(COOKIE, passToken(lock.password), opts);
+    if (!already || !sameToken(already, token)) {
+      try {
+        await db.insert(betaFeedback).values({ kind: 'join', tag, path: typeof req.body?.path === 'string' ? req.body.path.slice(0, 200) : null, userAgent: userAgentOf(req) });
+      } catch (e) {
+        console.warn('[beta] join row failed:', (e as Error)?.message ?? e);
+      }
+    }
+    res.json({ ok: true, tag });
+  });
+
+  const feedbackSchema = z.object({
+    route: z.enum(['photo', 'maker', 'both', 'looked']).optional(),
+    cardId: z.number().int().positive().optional(),
+    rating: z.number().int().min(1).max(5).optional(),
+    wouldPay: z.enum(['yes', 'maybe', 'no']).optional(),
+    price: z.string().trim().max(60).optional(),
+    best: z.string().trim().max(1500).optional(),
+    worst: z.string().trim().max(1500).optional(),
+    notes: z.string().trim().max(3000).optional(),
+    email: z.string().trim().max(200).optional(),
+    path: z.string().trim().max(200).optional(),
+  });
+  app.post('/api/beta/feedback', async (req, res) => {
+    const lock = await getSiteLock();
+    if (!lock.betaMode && !(await isAdminSession(req))) return res.status(409).json({ message: 'Beta testing is closed right now.', code: 'closed' });
+    if (hit(feedbackTries, ipOf(req), 30)) return res.status(429).json({ message: 'That’s plenty for now — thank you. Try again later.' });
+    const parsed = feedbackSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: 'Something in the form didn’t look right.' });
+    const d = parsed.data;
+    if (d.rating == null && !d.wouldPay && !d.best && !d.worst && !d.notes) return res.status(400).json({ message: 'Tell us at least one thing.' });
+    const uid = (req as any).session?.otpUserId;
+    await db.insert(betaFeedback).values({
+      kind: 'feedback', tag: readCookie(req, BETA_TAG_COOKIE), route: d.route ?? null, cardId: d.cardId ?? null,
+      userId: typeof uid === 'string' && uid ? uid : null, rating: d.rating ?? null, wouldPay: d.wouldPay ?? null,
+      price: d.price || null, best: d.best || null, worst: d.worst || null, notes: d.notes || null, email: d.email || null,
+      path: d.path || null, userAgent: userAgentOf(req),
+    });
+    res.json({ ok: true });
+  });
+
+  app.get('/api/admin/feedback', async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+    const rows = await db.select().from(betaFeedback).orderBy(desc(betaFeedback.id)).limit(1000);
+    res.json({ rows });
   });
 
   app.get('/api/site-lock', async (req, res) => {
@@ -182,7 +289,7 @@ export function registerSiteLock(app: Express): void {
     res.json(await getSiteLock());
   });
 
-  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional() });
+  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional(), betaMode: z.boolean().optional(), betaCode: z.string().trim().max(40).optional() });
   app.put('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     const parsed = putSchema.safeParse(req.body);

@@ -28,6 +28,8 @@ import { adConsentPayload } from '@/lib/consent';
 import { pixelFlush, track } from '@/lib/pixel';
 import { useParams, Link } from 'wouter';
 import { Loader2, Lock, ShieldCheck, Truck } from 'lucide-react';
+import { useBetaMode } from '@/hooks/use-beta';
+import { BetaNoPayments } from '@/components/beta-no-payments';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
@@ -72,6 +74,7 @@ export default function BuyPage() {
   const params = useParams<{ cardId: string }>();
   const cardId = Number(params.cardId);
   const token = typeof window !== 'undefined' ? sessionStorage.getItem(rackTokenKey(cardId)) ?? '' : '';
+  const betaMode = useBetaMode();
 
   const [card, setCard] = useState<ShopCard | null>(null);
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading');
@@ -193,6 +196,9 @@ export default function BuyPage() {
       setBusy(false);
     }
   };
+
+  // Beta (2026-11-05): no payments. The server refuses the checkout door too.
+  if (betaMode) return <BetaNoPayments cardId={cardId} route="maker" />;
 
   if (state === 'loading') {
     return (

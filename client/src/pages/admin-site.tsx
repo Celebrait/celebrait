@@ -7,13 +7,13 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { AlertTriangle, CheckCircle2, Circle, LayoutGrid, Loader2, Lock, LockOpen, Sparkles, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, FlaskConical, LayoutGrid, Loader2, Lock, LockOpen, Sparkles, XCircle } from 'lucide-react';
 import { cardPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { publicOrigin } from '@shared/market';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean }
+interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string }
 interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string; warn?: boolean }
 interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
 
@@ -68,9 +68,10 @@ export default function AdminSitePage() {
     queryFn: async () => { const r = await fetch('/api/admin/site-lock', { credentials: 'include' }); if (!r.ok) throw new Error('load'); return r.json(); },
   });
   const [password, setPassword] = useState('');
+  const [betaCode, setBetaCode] = useState('');
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
-  useEffect(() => { if (data) setPassword(data.password); }, [data]);
+  useEffect(() => { if (data) { setPassword(data.password); setBetaCode(data.betaCode ?? ''); } }, [data]);
 
   const save = async (patch: Partial<Lock>) => {
     setSaving(true); setNote('');
@@ -136,6 +137,39 @@ export default function AdminSitePage() {
           className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.makerEnabled ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
           {data.makerEnabled ? 'Park the route' : 'Open the route'}
         </button>
+      </div>
+
+      {/* BETA TESTING (Aidan 2026-11-05): a landing page for testers,
+          both routes open to them, NO payments anywhere while it's on.
+          Share /beta?t=<where> so /admin/feedback can group by source. */}
+      <div className={`mt-4 rounded-2xl border p-5 ${data.betaMode ? 'border-emerald-300 bg-emerald-50' : 'border-keeper-hair bg-white'}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <FlaskConical className={`h-6 w-6 ${data.betaMode ? 'text-emerald-600' : 'text-keeper-meta'}`} />
+            <div>
+              <p className="font-semibold text-keeper-ink">{data.betaMode ? 'Beta testing: on' : 'Beta testing: off'}</p>
+              <p className="text-[13px] text-keeper-body">{data.betaMode ? 'Testers join at /beta, see both routes and get through the lock. Checkout refuses everyone but you.' : 'Off: /beta says the beta is closed; Buy buttons and checkout work as normal.'}</p>
+            </div>
+          </div>
+          <button type="button" disabled={saving} onClick={() => save({ betaMode: !data.betaMode })}
+            className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.betaMode ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
+            {data.betaMode ? 'Stop the beta' : 'Start the beta'}
+          </button>
+        </div>
+        <div className="mt-4 border-t border-keeper-hair/70 pt-4">
+          <label htmlFor="beta-code" className="block text-sm font-semibold text-keeper-ink">Beta code <span className="font-normal text-keeper-meta">(optional)</span></label>
+          <p className="mt-0.5 text-[13px] text-keeper-body">Leave blank and anyone with the link is in. Set one and /beta asks for it (a link with ?code= skips the question). Changing it signs testers out.</p>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <input id="beta-code" value={betaCode} onChange={(e) => setBetaCode(e.target.value.slice(0, 40))} autoCapitalize="none"
+              className="h-11 flex-1 rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
+            <button type="button" disabled={saving || betaCode.trim() === (data.betaCode ?? '')} onClick={() => save({ betaCode: betaCode.trim() })}
+              className="h-11 rounded-full bg-keeper-ink px-5 text-sm font-semibold text-keeper-paper disabled:opacity-40">Save code</button>
+          </div>
+          <p className="mt-3 text-[13px] text-keeper-body">
+            Share link: <code className="rounded bg-keeper-paper px-1.5 py-0.5 text-[12px] text-keeper-ink">{share}/beta?t=fb-pod-1{data.betaCode ? `&code=${encodeURIComponent(data.betaCode)}` : ''}</code>
+            <span className="block mt-1">Change <code className="text-[12px]">t=</code> per group so the <Link href="/admin/feedback" className="font-medium text-brand-dark underline underline-offset-2">feedback</Link> says where each tester came from.</span>
+          </p>
+        </div>
       </div>
 
       <LaunchReadiness />

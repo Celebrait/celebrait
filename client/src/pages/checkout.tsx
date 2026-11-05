@@ -23,6 +23,8 @@ import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
+import { useBetaMode } from '@/hooks/use-beta';
+import { BetaNoPayments } from '@/components/beta-no-payments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -142,6 +144,7 @@ function totalsFor(
 export default function CheckoutPage() {
   const [, params] = useRoute<{ cardId: string }>('/checkout/:cardId');
   const [, setLocation] = useLocation();
+  const betaMode = useBetaMode();
   const { toast } = useToast();
   const cardId = params ? parseInt(params.cardId, 10) : NaN;
 
@@ -431,6 +434,9 @@ export default function CheckoutPage() {
       </CheckoutLayout>
     );
   }
+  // Beta (2026-11-05): no payments. The server refuses the checkout door too.
+  if (betaMode) return <BetaNoPayments cardId={params?.cardId} route="photo" />;
+
   if (isLoading) {
     return (
       <CheckoutLayout backHref={backHref}>

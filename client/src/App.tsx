@@ -136,6 +136,10 @@ const AdminSitePage = lazy(() => import("@/pages/admin-site"));
 const ResearchMakerPage = lazy(() => import("@/pages/research-maker"));
 const ResearchPhotoPage = lazy(() => import("@/pages/research-photo"));
 const BuyPage = lazy(() => import("@/pages/buy"));
+// Beta testing (2026-11-05): the tester door, the feedback form, the readout.
+const BetaPage = lazy(() => import("@/pages/beta"));
+const BetaFeedbackPage = lazy(() => import("@/pages/beta-feedback"));
+const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback"));
 // A component (not inline JSX) so the query is read when the route
 // renders, not when App last rendered.
 // Retired experiment URLs (launch audit Phase 3): /door and /door2 were
@@ -251,6 +255,8 @@ function Router() {
           <Route path="/stories/:slug" component={GalleryStoryPage} />
           {/* Stories lived under /gallery for an hour on 2026-10-31. */}
           <Route path="/gallery/:slug">{(p) => <Redirect to={`/stories/${p.slug}`} replace />}</Route>
+          <Route path="/beta" component={BetaPage} />
+          <Route path="/beta/feedback" component={BetaFeedbackPage} />
           <Route path="/blog" component={BlogPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
           <Route path="/og" component={OgCard} />
@@ -486,6 +492,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminSitePage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/feedback">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminFeedbackPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>

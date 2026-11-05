@@ -12,13 +12,14 @@ import { useAuth } from '@/hooks/use-auth';
 // The advertising-cookie ask rides with the open site only, so it never
 // sits on the launching-soon page. Inert without META_PIXEL_ID.
 import { ConsentBanner } from '@/components/consent-banner';
+import { BetaBar } from '@/components/beta-bar';
 
 const ComingSoonPage = lazy(() => import('@/pages/coming-soon'));
 
 // Always open: signing in, the back office, legal pages, and links that
 // already went out to real people (a recipient's card, an order).
 const OPEN: RegExp[] = [
-  /^\/login/, /^\/admin/, /^\/demo/, /^\/privacy-policy/, /^\/terms-of-service/, /^\/contact/,
+  /^\/login/, /^\/admin/, /^\/demo/, /^\/beta(\/|$)/, /^\/privacy-policy/, /^\/terms-of-service/, /^\/contact/,
   /^\/c\//, /^\/card\/[^/]+\/view/, /^\/order\//, /^\/checkout\/(success|cancelled)/,
   /^\/card-capture/, /^\/og(\/|$)/,
 ];
@@ -39,7 +40,7 @@ export function SiteGate({ children }: { children: ReactNode }) {
     retry: 1,
   });
 
-  if (OPEN.some((re) => re.test(location))) return <>{children}<ConsentBanner /></>;
+  if (OPEN.some((re) => re.test(location))) return <>{children}<ConsentBanner /><BetaBar /></>;
   if (!data && !isError) return <div className="min-h-screen bg-keeper-paper" />;
   // If the check itself fails, fail OPEN like the server middleware does
   // (server/routes/site-lock.ts `catch { return next(); }`): a transient
@@ -48,7 +49,7 @@ export function SiteGate({ children }: { children: ReactNode }) {
   // server-side regardless, so nothing costly leaks through.
   if (isError) {
     console.warn('[site-gate] lock check failed — showing the site');
-    return <>{children}<ConsentBanner /></>;
+    return <>{children}<ConsentBanner /><BetaBar /></>;
   }
   if (data && data.locked && !data.allowed) {
     return (
@@ -57,5 +58,5 @@ export function SiteGate({ children }: { children: ReactNode }) {
       </Suspense>
     );
   }
-  return <>{children}<ConsentBanner /></>;
+  return <>{children}<ConsentBanner /><BetaBar /></>;
 }
