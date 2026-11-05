@@ -13,17 +13,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Camera, Check, Loader2, MessageSquareHeart, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Camera, Check, Loader2, MessageSquareHeart, Sparkles } from 'lucide-react';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { Rise } from '@/components/landing/rise';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
-import { GALLERY_EXAMPLES } from '@/lib/gallery-examples';
 import { useSeo, setRobotsMeta } from '@/lib/use-seo';
 import { useBetaState, betaFeedbackHref } from '@/hooks/use-beta';
-import { cardPrice } from '@shared/pricing';
-import { formatMoney } from '@shared/market';
 
 const primary = 'inline-flex h-12 items-center justify-center gap-2 rounded-full bg-keeper-gold px-7 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-keeper-gold-deep disabled:cursor-not-allowed disabled:opacity-40';
 const secondary = 'inline-flex h-12 items-center justify-center gap-2 rounded-full border border-keeper-hair bg-white px-7 text-[15px] font-semibold text-keeper-ink transition-colors hover:bg-keeper-paper disabled:cursor-not-allowed disabled:opacity-40';
@@ -69,7 +66,6 @@ export default function BetaPage() {
   }, [loaded, betaMode, tester, needsCode, codeParam, join]);
 
   const open = tester;
-  const price = formatMoney(cardPrice('photo'));
 
   return (
     <div className="keeper-serif min-h-screen overflow-x-clip">
@@ -137,7 +133,7 @@ export default function BetaPage() {
               <p className="mt-4 text-[13px] text-keeper-meta">About 10 minutes · one card · the model we’ll launch with</p>
               <div className="mt-6">
                 {open ? (
-                  <Link href="/photo/make" className={primary} data-testid="beta-door-photo">Test the photo route <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href="/photo" className={primary} data-testid="beta-door-photo">Test the photo route <ArrowRight className="h-4 w-4" /></Link>
                 ) : (
                   <button type="button" disabled className={primary}>Test the photo route</button>
                 )}
@@ -163,86 +159,6 @@ export default function BetaPage() {
           {!open && loaded && betaMode && (
             <p className="mt-4 text-center text-[13px] text-keeper-meta">The doors open once you’re in.</p>
           )}
-        </section>
-
-        {/* ── What it makes ── */}
-        <section className="mt-20 md:mt-28">
-          <Rise className="text-center">
-            <p className={EYEBROW}>What it makes</p>
-            <h2 className={`mt-3 text-[clamp(28px,4vw,44px)] leading-[1.06] ${DISPLAY}`}>One photo in. A whole card out.</h2>
-          </Rise>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {[
-              { src: '/hero-real-source.webp', label: '1 · The photo they send', alt: 'The source photo, a phone snap of the person' },
-              { src: '/hero-real-card.webp', label: '2 · The front, drawn around them', alt: 'The finished card front, printed and standing on a table' },
-              { src: '/hero-real-open.webp', label: '3 · The inside, written for them', alt: 'The card open, showing the inside message' },
-            ].map((s, i) => (
-              <Rise key={s.src} delay={i * 0.05}>
-                <figure className="overflow-hidden rounded-2xl border border-keeper-hair bg-white">
-                  <img src={s.src} alt={s.alt} loading="lazy" decoding="async" className="aspect-square w-full object-cover" />
-                  <figcaption className="px-4 py-3 text-[13px] font-medium text-keeper-ink">{s.label}</figcaption>
-                </figure>
-              </Rise>
-            ))}
-          </div>
-          {/* The two real cards (team-made, Aidan 2026-11-05: only these,
-              and no links out — testers stay on the beta). */}
-          <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-4">
-            {GALLERY_EXAMPLES.filter((e) => e.storySlug).map((e, i) => (
-              <Rise key={e.id} delay={i * 0.05}>
-                <figure className="overflow-hidden rounded-2xl border border-keeper-hair bg-white">
-                  <img src={e.front} alt={e.alt} loading="lazy" decoding="async" className="aspect-square w-full object-cover" />
-                  <figcaption className="px-4 py-3 text-[13px] font-medium text-keeper-ink">{e.title}</figcaption>
-                </figure>
-              </Rise>
-            ))}
-          </div>
-        </section>
-
-        {/* ── What we need ── */}
-        <section className="mt-20 md:mt-28">
-          <Rise className="text-center">
-            <p className={EYEBROW}>What we need from you</p>
-            <h2 className={`mt-3 text-[clamp(28px,4vw,44px)] leading-[1.06] ${DISPLAY}`}>Make one, then two minutes of honesty.</h2>
-          </Rise>
-          <ol className="mt-10 grid gap-5 md:grid-cols-3">
-            {[
-              { n: '1', t: 'Make a card', d: 'Pick a route above. Use a real person and a real occasion, the way you would if it were going in the post.' },
-              { n: '2', t: 'Look at it properly', d: 'Open it, read the inside, imagine it on their mantelpiece. Would it make them smile? Would you be proud to have sent it?' },
-              { n: '3', t: 'Tell us', d: `Five quick questions, including the one we most want answered: would you pay ${price} for it, printed and posted?` },
-            ].map((s, i) => (
-              <Rise key={s.n} delay={i * 0.05}>
-                <li className="h-full rounded-3xl border border-keeper-hair bg-white/80 p-7">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-keeper-gold text-[14px] font-semibold text-white">{s.n}</span>
-                  <h3 className={`mt-4 text-[22px] leading-[1.15] ${DISPLAY}`}>{s.t}</h3>
-                  <p className="mt-2 text-[15px] leading-[1.6] text-keeper-body">{s.d}</p>
-                </li>
-              </Rise>
-            ))}
-          </ol>
-        </section>
-
-        {/* ── On / off ── */}
-        <section className="mt-20 md:mt-28">
-          <div className="grid gap-5 md:grid-cols-2">
-            <Rise className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-7">
-              <h3 className={`text-[22px] leading-[1.15] ${DISPLAY}`}>On during the beta</h3>
-              <ul className="mt-4 space-y-2.5 text-[15px] text-keeper-body">
-                {['Making cards on both routes, free, a few a day', 'Saving them to your studio and coming back', 'The likeness check on your photo before anything is drawn', 'Deleting a card, which deletes the photo with it'].map((t) => (
-                  <li key={t} className="flex gap-2.5"><Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2} /> {t}</li>
-                ))}
-              </ul>
-            </Rise>
-            <Rise className="rounded-3xl border border-keeper-hair bg-white/80 p-7" delay={0.05}>
-              <h3 className={`text-[22px] leading-[1.15] ${DISPLAY}`}>Off during the beta</h3>
-              <ul className="mt-4 space-y-2.5 text-[15px] text-keeper-body">
-                {['Payments. There is nothing to buy and no card details are asked for', 'Printing and posting. Cards stay on screen for now', 'Stock cards and anything that isn’t made for one person'].map((t) => (
-                  <li key={t} className="flex gap-2.5"><X className="mt-1 h-4 w-4 shrink-0 text-keeper-meta" strokeWidth={2} /> {t}</li>
-                ))}
-              </ul>
-              <p className="mt-4 text-[13px] text-keeper-meta">Your photo is only used to make your card. <Link href="/privacy-policy" className="underline underline-offset-2">Privacy</Link>.</p>
-            </Rise>
-          </div>
         </section>
 
         {/* ── Feedback band ── */}

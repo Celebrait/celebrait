@@ -6,6 +6,7 @@
 // one-line hook. Links to the story (/stories/:slug). `featured` lays the shot beside
 // the words at desktop width; otherwise the words sit under the shot.
 
+import type React from 'react';
 import { Link } from 'wouter';
 import { ArrowRight } from 'lucide-react';
 import type { GalleryStory } from '@/lib/gallery-stories';
@@ -13,11 +14,15 @@ import { DISPLAY } from '@/pages/doorway';
 
 /** `flip`: crossfade to the inside on hover. Off on the homepage (Aidan
  *  2026-10-31: "static front is fine"); on for /stories. */
-export function StoryTile({ s, featured = false, flip = true, reverse = false }: { s: GalleryStory; featured?: boolean; flip?: boolean; reverse?: boolean }) {
+/** `link=false` — the beta (2026-11-05): the tile is a plain figure,
+ *  nothing to read on, no way out to /stories. */
+export function StoryTile({ s, featured = false, flip = true, reverse = false, link = true }: { s: GalleryStory; featured?: boolean; flip?: boolean; reverse?: boolean; link?: boolean }) {
   const href = `/stories/${s.slug}`;
+  // A plain div wears the same classes; cast once so JSX stays one tree.
+  const Wrap = (link ? Link : 'div') as unknown as React.ComponentType<Record<string, unknown>>;
   return (
-    <Link
-      href={href}
+    <Wrap
+      {...(link ? { href } : {})}
       className={`group block rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-keeper-gold/60 ${
         featured ? 'md:grid md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-14' : ''
       }`}
@@ -55,11 +60,11 @@ export function StoryTile({ s, featured = false, flip = true, reverse = false }:
         <p className={`mt-3 max-w-[48ch] text-keeper-body ${featured ? 'text-[17px] leading-[1.65]' : 'text-[15px] leading-relaxed'}`}>
           {s.story[0]}
         </p>
-        <span className="mt-5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-gold">
+        {link && <span className="mt-5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-gold">
           Read the story
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} aria-hidden="true" />
-        </span>
+        </span>}
       </div>
-    </Link>
+    </Wrap>
   );
 }

@@ -170,9 +170,10 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
               </Link>
             ) : (
               <>
-                <button type="button" onClick={() => openAuth('/studio')} className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block">
+                {/* Testers never need an account (2026-11-05). */}
+                {!minimal && <button type="button" onClick={() => openAuth('/studio')} className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block">
                   Sign in
-                </button>
+                </button>}
                 {cta}
               </>
             )}

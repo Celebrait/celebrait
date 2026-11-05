@@ -45,6 +45,7 @@ import {
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import { useMakerEnabled } from '@/hooks/use-maker';
+import { useBetaMinimalChrome } from '@/hooks/use-beta';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
@@ -1583,6 +1584,10 @@ function OccasionCaptureSection() {
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function LandingKeeper() {
+  // Beta testers (2026-11-05: "no links to main site"): the page is the
+  // photo route's front door and nothing else — no stories link, no
+  // 3-dates offer, no first-order price, no invite modal.
+  const beta = useBetaMinimalChrome();
   // (Hero imagery preloading moved to index.html <link rel="preload">
   // — the JS-side version here couldn't start until the bundle ran,
   // which was exactly the delay it was trying to hide. crossOrigin
@@ -1607,7 +1612,7 @@ export default function LandingKeeper() {
         <HowItWorksSection door="photo" />
         <ProofSection />
         {/* One card told in full, linking to /gallery (2026-10-31). */}
-        <RealStoriesSection />
+        <RealStoriesSection hideLink={beta} />
         <InsideSection />
         {/* Imagine it → describe it → send it (animated phone). Moved up to
             sit directly under THE INSIDE on Kevin's call (2026-07-16) —
@@ -1622,10 +1627,10 @@ export default function LandingKeeper() {
             the Occasions promo — the free-card mechanic is the same capture
             play with a real account + three dates instead of a lone email.
             Function preserved below for re-add if ever wanted. */}
-        <OccasionsPromoSection />
+        {!beta && <OccasionsPromoSection />}
         {/* DemoVideoSection removed 2026-07-24 (Kevin). Component preserved
             for easy re-add. */}
-        <PriceSection />
+        {!beta && <PriceSection />}
         <FaqSection />
       </main>
       <MarketingFooter />
@@ -1633,7 +1638,7 @@ export default function LandingKeeper() {
           pill (replaced the old make-your-own FloatingPill, Kevin
           2026-08-03). Signed-in visitors see none of it (they have the
           world band; the header CTA still covers "make a card"). */}
-      <FreeCardInvite />
+      {!beta && <FreeCardInvite />}
     </div>
   );
 }

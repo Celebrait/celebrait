@@ -12,7 +12,8 @@ import { StoryTile } from '@/components/landing/story-tile';
 import { GALLERY_STORIES } from '@/lib/gallery-stories';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
-export function RealStoriesSection() {
+/** `hideLink` — the beta (2026-11-05): no way out to /stories. */
+export function RealStoriesSection({ hideLink = false }: { hideLink?: boolean } = {}) {
   const [first, ...rest] = GALLERY_STORIES;
   if (!first) return null;
   return (
@@ -25,23 +26,23 @@ export function RealStoriesSection() {
               One photo. The whole story.
             </h2>
           </div>
-          <Link
+          {!hideLink && <Link
             href="/stories"
             className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:decoration-keeper-gold"
             data-testid="real-stories-all"
           >
             All stories
             <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-          </Link>
+          </Link>}
         </Rise>
         <Rise className="mt-12" delay={0.08}>
-          <StoryTile s={first} featured flip={false} />
+          <StoryTile s={first} featured flip={false} link={!hideLink} />
         </Rise>
         {rest.length > 0 && (
           <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
             {rest.slice(0, 3).map((s, i) => (
               <Rise key={s.slug} delay={i * 0.08}>
-                <StoryTile s={s} />
+                <StoryTile s={s} link={!hideLink} />
               </Rise>
             ))}
           </div>
