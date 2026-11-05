@@ -88,6 +88,8 @@ export default function CardViewerPage() {
   // "Rendered more hooks than during the previous render" the moment the
   // data lands — third time this pattern has bitten the codebase.
   const claimFreeCard = useClaimFreeCard();
+  // Hooks before any early return (React #310 on prod, 2026-11-05).
+  const betaMode = useBetaMode();
   const shortToken = shortParams?.token ?? null;
   const cardIdParam = legacyParams ? parseInt(legacyParams.id, 10) : NaN;
 
@@ -232,7 +234,6 @@ export default function CardViewerPage() {
   // Beta (2026-11-05): the site is locked and nothing is on offer, so a
   // recipient's "make your own" is the tester door, tagged so the funnel
   // shows who arrived from a shared card.
-  const betaMode = useBetaMode();
   const createHref = betaMode ? '/beta?t=card' : isAuthenticated ? '/studio/new-card' : null;
 
   return (
