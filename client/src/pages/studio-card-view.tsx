@@ -34,6 +34,7 @@ import { occasionLabelMid } from '@/lib/occasion-label';
 import { CardKindChip } from '@/components/studio/card-kind-chip';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { FreeShareBlock } from '@/components/free-share-block';
 import { useMarkCardSeen } from '@/hooks/use-card-ready-notifications';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardDraftState, CardSide } from '@shared/schema';
@@ -691,69 +692,6 @@ function PaidActions({
 // this UI never calling it. Copy leans on "preview": the link is the
 // pitch for the printed thing, not a substitute for it.
 // ─────────────────────────────────────────────────────────────────────
-
-function FreeShareBlock({ cardId }: { cardId: number }) {
-  const { toast } = useToast();
-  const [busy, setBusy] = useState(false);
-  const [url, setUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const getLink = async () => {
-    if (url) return url;
-    const res = await apiRequest(
-      'POST',
-      `/api/studio/cards/${cardId}/share-token`,
-    );
-    const body = (await res.json()) as { shareUrl?: string };
-    if (!body.shareUrl) throw new Error('No link returned');
-    const abs = `${window.location.origin}${body.shareUrl}`;
-    setUrl(abs);
-    return abs;
-  };
-
-  const share = async () => {
-    // Copy, don't open the native share sheet (Aidan 2026-08-07: "the
-    // button click should just copy the link"). The sheet added a modal
-    // decision on top of a one-decision action — and its stays-open
-    // state caused the double-tap error this replaced. Copy is instant,
-    // repeatable, and pastes anywhere.
-    if (busy) return;
-    setBusy(true);
-    try {
-      const link = await getLink();
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2500);
-    } catch (err: any) {
-      toast({
-        title: "Couldn't copy the link",
-        description: friendlyError(err, 'Try again in a moment.'),
-        variant: 'destructive',
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="text-center">
-      <button
-        type="button"
-        onClick={share}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-keeper-meta underline-offset-2 hover:text-keeper-ink hover:underline disabled:opacity-50"
-        data-testid="btn-free-share"
-      >
-        <Share2 className="h-3.5 w-3.5" />
-        {copied ? 'Link copied. Paste it anywhere' : 'Or copy a digital preview link, free'}
-      </button>
-      <p className="mt-1 text-[11px] text-keeper-meta">
-        They'll see the card on any screen. The real thing still wants a
-        letterbox.
-      </p>
-    </div>
-  );
-}
 
 // (BuyDialog + BuyOption + pricing helpers removed 2026-05-20 — the
 //  send/buy flow now navigates to /studio/card/:id/give → /checkout

@@ -26,7 +26,7 @@ import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor,
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
-import { useBetaMode, betaFeedbackHref, openBetaSession } from '@/hooks/use-beta';
+import { useBetaMode, betaFeedbackHref, openBetaSession, betaEvent } from '@/hooks/use-beta';
 import { useQueryClient } from '@tanstack/react-query';
 import { rackTokenKey } from '@/pages/buy';
 import { AjarTile } from '@/components/catalogue/ajar-tile';
@@ -188,6 +188,9 @@ export default function MakePage() {
   // re-asking, straight into the wait.
   const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
   const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
+  // Funnel (beta): opened the builder; saw a finished card.
+  useEffect(() => { if (betaMode) betaEvent('builder', { route: 'maker' }); }, [betaMode]);
+  useEffect(() => { if (betaMode && phase === 'done') betaEvent('card', { route: 'maker' }); }, [betaMode, phase]);
   const [failMsg, setFailMsg] = useState('');
   const [failCode, setFailCode] = useState<FailCode>('unknown');
   // Latest cells for code that runs after awaits (the all-failed check).
@@ -807,7 +810,17 @@ export default function MakePage() {
                 if (!chosenFront) return;
                 setSaving('buy'); setSaveError('');
                 saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
-                  .then((s) => navigate(betaMode ? betaFeedbackHref({ cardId: s.cardId, route: 'maker' }) : `/buy/${s.cardId}`))
+                  .then(async (s) => {
+                    if (!betaMode) { navigate(`/buy/${s.cardId}`); return; }
+                    // Beta: claim the card into the tester's (silent) studio
+                    // account first, so the free digital link on the thank-you
+                    // page can be minted for it.
+                    try {
+                      if (!isAuthenticated) await openBetaSession(qc);
+                      await fetch(`/api/make/cards/${s.cardId}/claim`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: s.cardToken }) });
+                    } catch { /* the form still works without the link */ }
+                    navigate(betaFeedbackHref({ cardId: s.cardId, route: 'maker' }));
+                  })
                   .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
               }}>
               {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {betaMode ? 'Save it & give feedback' : `Buy it for ${formatMoney(cardPrice('maker'))}`}

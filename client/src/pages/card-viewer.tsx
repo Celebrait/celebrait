@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { GestureHints } from '@/components/gesture-hints';
 import { useAuth } from '@/hooks/use-auth';
+import { useBetaMode } from '@/hooks/use-beta';
 import { useToast } from '@/hooks/use-toast';
 import { useClaimFreeCard } from '@/components/landing/ticker-banner';
 import logoSrc from '../assets/logo-mark.webp';
@@ -228,7 +229,11 @@ export default function CardViewerPage() {
   // landing behaviour too: "your followers get one free" arrives HERE,
   // so this click is where that promise has to come true.
   // (claimFreeCard hook is declared at the top — see note there.)
-  const createHref = isAuthenticated ? '/studio/new-card' : null;
+  // Beta (2026-11-05): the site is locked and nothing is on offer, so a
+  // recipient's "make your own" is the tester door, tagged so the funnel
+  // shows who arrived from a shared card.
+  const betaMode = useBetaMode();
+  const createHref = betaMode ? '/beta?t=card' : isAuthenticated ? '/studio/new-card' : null;
 
   return (
     <Shell>

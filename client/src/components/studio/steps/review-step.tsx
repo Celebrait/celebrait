@@ -36,7 +36,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
-import { useBetaMode, betaFeedbackHref } from '@/hooks/use-beta';
+import { useBetaMode, betaFeedbackHref, betaEvent } from '@/hooks/use-beta';
+import { FreeShareBlock } from '@/components/free-share-block';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import type { CardDraftState, StepId } from '@shared/schema';
@@ -1658,6 +1659,8 @@ function RevealView({
   const [, setLocation] = useLocation();
   // Beta (2026-11-05): nothing is for sale — the send CTA becomes the feedback form.
   const betaMode = useBetaMode();
+  // Funnel: a tester saw a finished card.
+  useEffect(() => { if (betaMode && showReveal) betaEvent('card', { route: 'photo', cardId }); }, [betaMode, showReveal, cardId]);
   const [open, setOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -1993,6 +1996,9 @@ function RevealView({
                   </Button>
                   <StartAgainButton cardId={cardId} />
                 </motion.div>
+                {betaMode && (
+                  <FreeShareBlock cardId={cardId} label="Or copy a free digital link to this card" sub="Opens as the card above, on any phone." className="mt-5" />
+                )}
               </motion.div>
             )}
           </AnimatePresence>

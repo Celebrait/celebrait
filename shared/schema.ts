@@ -157,6 +157,8 @@ export const betaFeedback = pgTable("beta_feedback", {
   kind: text("kind").notNull(),
   /** Where the tester came from: /beta?t=<tag> (or utm_campaign). */
   tag: text("tag"),
+  /** Per-browser anonymous id (cookie), so the funnel can count people, not rows. */
+  visitor: text("visitor"),
   route: text("route"),
   cardId: integer("card_id"),
   userId: text("user_id"),

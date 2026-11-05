@@ -89,6 +89,13 @@ const sameToken = (a: string, b: string) => a.length === b.length && timingSafeE
 // everyone but admins. Joins and forms land in beta_feedback.
 const BETA_COOKIE = 'celebrait_beta';
 const BETA_TAG_COOKIE = 'celebrait_beta_tag';
+/** Per-browser anonymous id, minted at join. Every beta_feedback row
+ *  carries it so the readout can count PEOPLE through the funnel. */
+const BETA_VISITOR_COOKIE = 'celebrait_beta_id';
+const visitorOf = (req: Request): string | null => {
+  const v = readCookie(req, BETA_VISITOR_COOKIE);
+  return v && /^[a-f0-9-]{8,40}$/i.test(v) ? v : null;
+};
 const betaToken = (code: string) =>
   createHmac('sha256', process.env.SESSION_SECRET ?? 'celebrait-site-lock').update(`site-beta:${code.trim().toLowerCase()}`).digest('hex').slice(0, 40);
 /** Did this visitor join at /beta (and is the beta still on)? */
@@ -214,12 +221,15 @@ export function registerSiteLock(app: Express): void {
     const opts = { httpOnly: true, sameSite: 'lax' as const, secure: IS_PROD, maxAge: 60 * 24 * 60 * 60 * 1000, path: '/' };
     const token = betaToken(want);
     const already = readCookie(req, BETA_COOKIE);
+    let visitor = visitorOf(req);
+    const newVisitor = !visitor;
+    if (!visitor) { visitor = randomUUID().slice(0, 12); res.cookie(BETA_VISITOR_COOKIE, visitor, opts); }
     res.cookie(BETA_COOKIE, token, opts);
     if (tag) res.cookie(BETA_TAG_COOKIE, tag, opts);
     if (lock.password.trim()) res.cookie(COOKIE, passToken(lock.password), opts);
-    if (!already || !sameToken(already, token)) {
+    if (newVisitor || !already || !sameToken(already, token)) {
       try {
-        await db.insert(betaFeedback).values({ kind: 'join', tag, path: typeof req.body?.path === 'string' ? req.body.path.slice(0, 200) : null, userAgent: userAgentOf(req) });
+        await db.insert(betaFeedback).values({ kind: 'join', tag, visitor, path: typeof req.body?.path === 'string' ? req.body.path.slice(0, 200) : null, userAgent: userAgentOf(req) });
       } catch (e) {
         console.warn('[beta] join row failed:', (e as Error)?.message ?? e);
       }
@@ -244,11 +254,41 @@ export function registerSiteLock(app: Express): void {
         firstName: 'Beta tester',
       }).returning({ id: users.id });
       (req as any).session.otpUserId = u.id;
+      // Ties the account to the group and the browser for the funnel.
+      try {
+        await db.insert(betaFeedback).values({ kind: 'session', tag: readCookie(req, BETA_TAG_COOKIE), visitor: visitorOf(req), userId: u.id, userAgent: userAgentOf(req) });
+      } catch (e) { console.warn('[beta] session row failed:', (e as Error)?.message ?? e); }
       res.json({ ok: true, reused: false });
     } catch (err) {
       console.error('[beta] session mint failed:', err);
       res.status(500).json({ message: 'Could not open your studio. Try again.' });
     }
+  });
+
+  // POST /api/beta/event — the funnel's two middle steps, fired by the
+  // client once per browser: 'builder' (opened /photo/make or /make) and
+  // 'card' (saw a finished card). Testers only; cheap; deduped client-side.
+  const eventTries = new Map<string, { n: number; at: number }>();
+  const eventSchema = z.object({
+    kind: z.enum(['builder', 'card']),
+    route: z.enum(['photo', 'maker']).optional(),
+    cardId: z.number().int().positive().optional(),
+    path: z.string().trim().max(200).optional(),
+  });
+  app.post('/api/beta/event', async (req, res) => {
+    if (!(await isBetaTester(req))) return res.status(403).json({ message: 'Join the beta first.', code: 'beta' });
+    if (hit(eventTries, ipOf(req), 60)) return res.status(429).json({ message: 'Too many.' });
+    const parsed = eventSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: 'Bad event.' });
+    const d = parsed.data;
+    const uid = (req as any).session?.otpUserId;
+    try {
+      await db.insert(betaFeedback).values({
+        kind: d.kind, tag: readCookie(req, BETA_TAG_COOKIE), visitor: visitorOf(req), route: d.route ?? null, cardId: d.cardId ?? null,
+        userId: typeof uid === 'string' && uid ? uid : null, path: d.path || null, userAgent: userAgentOf(req),
+      });
+    } catch (e) { console.warn('[beta] event row failed:', (e as Error)?.message ?? e); }
+    res.json({ ok: true });
   });
 
   const feedbackSchema = z.object({
@@ -273,7 +313,7 @@ export function registerSiteLock(app: Express): void {
     if (d.rating == null && !d.wouldPay && !d.best && !d.worst && !d.notes) return res.status(400).json({ message: 'Tell us at least one thing.' });
     const uid = (req as any).session?.otpUserId;
     await db.insert(betaFeedback).values({
-      kind: 'feedback', tag: readCookie(req, BETA_TAG_COOKIE), route: d.route ?? null, cardId: d.cardId ?? null,
+      kind: 'feedback', tag: readCookie(req, BETA_TAG_COOKIE), visitor: visitorOf(req), route: d.route ?? null, cardId: d.cardId ?? null,
       userId: typeof uid === 'string' && uid ? uid : null, rating: d.rating ?? null, wouldPay: d.wouldPay ?? null,
       price: d.price || null, best: d.best || null, worst: d.worst || null, notes: d.notes || null, email: d.email || null,
       path: d.path || null, userAgent: userAgentOf(req),

@@ -45,6 +45,9 @@ export async function ensureLaunchColumns(): Promise<void> {
       tag text, route text, card_id integer, user_id text, rating integer, would_pay text, price text,
       best text, worst text, notes text, email text, path text, user_agent text
     )`);
+    // 2026-11-05: per-browser id so /admin/feedback can show a funnel per
+    // group (joined → opened a builder → made a card → gave feedback).
+    await db.execute(sql`alter table beta_feedback add column if not exists visitor text`);
     // 2026-10-08: the concept engine's ledger rows gain a per-call stage
     // ('archetype' | 'writer' | 'writer-repair' | 'sense' | 'sense-repair')
     // and the floors that fired on that round (JSON array). Until now

@@ -14,6 +14,7 @@ import { Rise } from '@/components/landing/rise';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 import { useSeo, setRobotsMeta } from '@/lib/use-seo';
 import { useBetaState } from '@/hooks/use-beta';
+import { FreeShareBlock } from '@/components/free-share-block';
 import { cardPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 
@@ -38,6 +39,7 @@ export default function BetaFeedbackPage() {
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const cardId = params.get('card');
+  const cardNum = cardId && /^\d+$/.test(cardId) ? Number(cardId) : null;
   const routeParam = params.get('route');
   const { betaMode, loaded } = useBetaState();
   const price = formatMoney(cardPrice('photo'));
@@ -92,10 +94,16 @@ export default function BetaFeedbackPage() {
           <Rise className="rounded-3xl border border-emerald-200 bg-emerald-50/60 px-7 py-12 text-center md:px-12" >
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check className="h-6 w-6" strokeWidth={2} /></span>
             <h1 className={`mt-5 text-[clamp(28px,4vw,40px)] leading-[1.08] ${DISPLAY}`} data-testid="beta-feedback-done">Thank you. That helps.</h1>
-            <p className="mx-auto mt-3 max-w-[44ch] text-[16px] leading-[1.65] text-keeper-body">Every answer is read by a person. If you fancy another go, the doors are still open.</p>
+            <p className="mx-auto mt-3 max-w-[44ch] text-[16px] leading-[1.65] text-keeper-body">Every answer is read by a person.</p>
+            {cardNum != null && (
+              <div className="mx-auto mt-8 max-w-md rounded-2xl border border-keeper-hair bg-white px-6 py-6" data-testid="beta-free-card">
+                <p className={`text-[22px] leading-[1.15] ${DISPLAY}`}>Your card, free to send.</p>
+                <p className="mt-2 text-[14px] leading-[1.6] text-keeper-body">Copy the link and send it to them. It opens as the card you just saw, on any phone. No account needed at their end either.</p>
+                <FreeShareBlock cardId={cardNum} prominent label="Copy my card’s link" copiedLabel="Copied. Paste it anywhere" sub={null} className="mt-5" />
+              </div>
+            )}
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/beta#routes" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-keeper-gold px-7 text-[15px] font-semibold text-white transition-colors hover:bg-keeper-gold-deep">Make another <ArrowRight className="h-4 w-4" /></Link>
-              <Link href="/gallery" className="inline-flex h-12 items-center justify-center rounded-full border border-keeper-hair bg-white px-7 text-[15px] font-semibold text-keeper-ink transition-colors hover:bg-keeper-paper">See the gallery</Link>
             </div>
           </Rise>
         ) : (

@@ -81,6 +81,17 @@ export async function openBetaSession(qc: QueryClient): Promise<void> {
   void qc.invalidateQueries({ queryKey: ['/api/site-lock'] });
 }
 
+/** Funnel events ('builder' = opened a builder, 'card' = saw a finished
+ *  card). Fire-and-forget, once per browser per kind+route+card. */
+export function betaEvent(kind: 'builder' | 'card', opts: { route?: 'photo' | 'maker'; cardId?: number | null } = {}): void {
+  const key = `celebrait:beta-ev:${kind}:${opts.route ?? ''}:${opts.cardId ?? ''}`;
+  try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch { /* fine */ }
+  const body: Record<string, unknown> = { kind, path: window.location.pathname.slice(0, 200) };
+  if (opts.route) body.route = opts.route;
+  if (typeof opts.cardId === 'number' && opts.cardId > 0) body.cardId = opts.cardId;
+  fetch('/api/beta/event', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => { /* never block the flow */ });
+}
+
 /** Where every "give feedback" CTA goes. */
 export function betaFeedbackHref(opts: { cardId?: number | string | null; route?: 'photo' | 'maker' } = {}): string {
   const q = new URLSearchParams();

@@ -27,7 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient } from '@tanstack/react-query';
-import { useBetaMode, openBetaSession } from '@/hooks/use-beta';
+import { useBetaMode, openBetaSession, betaEvent } from '@/hooks/use-beta';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
 import { KeeperHeader } from '@/components/landing/keeper-header';
@@ -94,6 +94,7 @@ export default function PhotoMakerPage() {
   // Beta testers never see a sign-up: Generate opens a throwaway studio.
   const betaMode = useBetaMode();
   const qc = useQueryClient();
+  useEffect(() => { if (betaMode) betaEvent('builder', { route: 'photo' }); }, [betaMode]);
 
   // Reminder / gate deep-links seed the recipient, as /studio/new-card does.
   const seed = useMemo(() => {

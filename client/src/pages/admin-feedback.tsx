@@ -11,7 +11,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface Row {
-  id: number; createdAt: string; kind: 'join' | 'feedback'; tag: string | null; route: string | null;
+  id: number; createdAt: string; kind: 'join' | 'session' | 'builder' | 'card' | 'feedback'; tag: string | null; visitor?: string | null; route: string | null;
   cardId: number | null; userId: string | null; rating: number | null; wouldPay: string | null; price: string | null;
   best: string | null; worst: string | null; notes: string | null; email: string | null; path: string | null; userAgent: string | null;
 }
@@ -41,9 +41,26 @@ export default function AdminFeedbackPage() {
   const pay = { yes: 0, maybe: 0, no: 0 } as Record<string, number>;
   for (const r of forms) if (r.wouldPay && r.wouldPay in pay) pay[r.wouldPay] += 1;
 
+  // The funnel: PEOPLE (distinct per-browser ids) at each stage, per
+  // group. Rows from before the id existed count as their own person.
+  const funnel = useMemo(() => {
+    const stages = ['join', 'builder', 'card', 'feedback'] as const;
+    const byTag = new Map<string, Record<string, Set<string>>>();
+    for (const r of rows) {
+      if (!(stages as readonly string[]).includes(r.kind)) continue;
+      const t = r.tag ?? '(untagged)';
+      if (!byTag.has(t)) byTag.set(t, Object.fromEntries(stages.map((s) => [s, new Set<string>()])));
+      byTag.get(t)![r.kind].add(r.visitor ?? `row-${r.id}`);
+    }
+    const all = Object.fromEntries(stages.map((s) => [s, new Set<string>()])) as Record<string, Set<string>>;
+    Array.from(byTag.values()).forEach((sets) => { for (const s of stages) Array.from(sets[s]).forEach((v) => all[s].add(v)); });
+    const line = (t: string, sets: Record<string, Set<string>>) => ({ tag: t, join: sets.join.size, builder: sets.builder.size, card: sets.card.size, feedback: sets.feedback.size });
+    return { groups: Array.from(byTag.entries()).map(([t, sets]) => line(t, sets)).sort((a, b) => b.join - a.join), all: line('All', all) };
+  }, [rows]);
+
   const exportCsv = () => {
-    const head = ['id', 'created_at', 'kind', 'tag', 'route', 'card_id', 'rating', 'would_pay', 'best', 'worst', 'notes', 'email', 'path'];
-    const lines = [head.join(','), ...rows.map((r) => [r.id, r.createdAt, r.kind, r.tag, r.route, r.cardId, r.rating, r.wouldPay, r.best, r.worst, r.notes, r.email, r.path].map(csvEscape).join(','))];
+    const head = ['id', 'created_at', 'kind', 'tag', 'visitor', 'route', 'card_id', 'rating', 'would_pay', 'best', 'worst', 'notes', 'email', 'path'];
+    const lines = [head.join(','), ...rows.map((r) => [r.id, r.createdAt, r.kind, r.tag, r.visitor ?? '', r.route, r.cardId, r.rating, r.wouldPay, r.best, r.worst, r.notes, r.email, r.path].map(csvEscape).join(','))];
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `celebrait-beta-feedback-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
@@ -85,6 +102,31 @@ export default function AdminFeedbackPage() {
           </div>
         ))}
       </div>
+
+      {funnel.all.join > 0 && (
+        <div className="mt-8 overflow-x-auto rounded-2xl border border-keeper-hair bg-white">
+          <div className="border-b border-keeper-hair px-4 py-3">
+            <p className="text-[12px] uppercase tracking-[0.12em] text-keeper-meta">Funnel by group</p>
+            <p className="mt-0.5 text-[13px] text-keeper-body">People, not rows: one browser counts once at each stage. Opened = reached a builder; Made = saw a finished card.</p>
+          </div>
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead className="bg-keeper-paper text-[12px] uppercase tracking-[0.1em] text-keeper-meta">
+              <tr>{['Group', 'Joined', 'Opened a builder', 'Made a card', 'Gave feedback'].map((h) => <th key={h} className="px-3 py-2.5 font-medium">{h}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-keeper-hair text-keeper-body">
+              {[...funnel.groups, ...(funnel.groups.length > 1 ? [funnel.all] : [])].map((g) => (
+                <tr key={g.tag} className={g.tag === 'All' ? 'font-semibold text-keeper-ink' : ''} data-testid={`funnel-${g.tag}`}>
+                  <td className="px-3 py-2.5">{g.tag}</td>
+                  <td className="px-3 py-2.5">{g.join}</td>
+                  <td className="px-3 py-2.5">{g.builder}{g.join ? <span className="ml-1.5 text-keeper-meta">{Math.round((g.builder / g.join) * 100)}%</span> : null}</td>
+                  <td className="px-3 py-2.5">{g.card}{g.join ? <span className="ml-1.5 text-keeper-meta">{Math.round((g.card / g.join) * 100)}%</span> : null}</td>
+                  <td className="px-3 py-2.5">{g.feedback}{g.join ? <span className="ml-1.5 text-keeper-meta">{Math.round((g.feedback / g.join) * 100)}%</span> : null}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {forms.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-dashed border-keeper-hair p-8 text-center text-sm text-keeper-body">No feedback yet{joins.length ? ` — ${joins.length} ${joins.length === 1 ? 'person has' : 'people have'} joined` : ''}.</p>
