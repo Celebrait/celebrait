@@ -522,12 +522,11 @@ export default function AdminGuidedMakerPage() {
         {question === 'interest' && (
           <>
             <h1 className="text-2xl font-semibold text-stone-800">
-              What’s one thing you want the card to mention?
+              What should the card be about?
               <span className="ml-2 inline-block translate-y-[-2px] rounded-full bg-brand-muted/50 px-2.5 py-1 align-middle text-xs font-semibold text-brand-dark">optional</span>
             </h1>
             <p className="mt-2 text-sm text-stone-500">
-              A passion, a place, a plan, a party theme, a claim to fame, a running joke —
-              whatever you’d bring up first about them. The more specific, the better the card.
+              One thing about them. We build the whole card around it.
             </p>
             <Input value={interest} onChange={(e) => setInterest(e.target.value)} placeholder={placeholder} className="mt-6 h-12" />
             <p className="mt-3 text-xs text-stone-400">Or skip it — we’ll make it a beautiful birthday card, no homework.</p>

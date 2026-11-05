@@ -426,8 +426,10 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
 
         {question === 'interest' && (
           <>
-            <p className={s.h1}>What's {whoPossessive(brief)} thing?</p>
-            {!minimal && <p className={s.sub}>The one thing you'd bring up first about them: a passion, a place, a plan, a running joke. This is what makes the card theirs, so the more specific, the better.</p>}
+            {/* Reframed 2026-11-05 (Aidan): the sender is choosing what the
+                card is about, not describing a personality. */}
+            <p className={s.h1}>What should {whoPossessive(brief)} card be about?</p>
+            {!minimal && <p className={s.sub}>One thing about {brief.gender ?? 'them'}. We build the whole card around it.</p>}
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
             <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={minimal ? undefined : placeholder} aria-label="Their thing" rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
