@@ -41,6 +41,29 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   portraitPhotoId: integer("portrait_photo_id"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  // Explicit consent to marketing email (card reminders, occasional
+  // offers). GDPR/PECR: unticked by default → false until the user opts
+  // in at signup. Transactional/own-card emails don't depend on this.
+  marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
+  /** First-touch attribution captured client-side (UTM/referrer of the
+   *  visit that first brought them here) and stored once at signup —
+   *  the join between traffic sources and actual customers. Shape:
+   *  shared/models/analytics.ts `Attribution`. Null for pre-feature
+   *  users and direct/unknown arrivals. */
+  attribution: jsonb("attribution"),
+  /** Free-first-card redemption (Moments rewards, 2026-08-03). Earned by
+   *  adding 3 key dates; consumed exactly once, on the PAID webhook of the
+   *  order it was applied to — never on session create, so an abandoned
+   *  checkout can't burn it. NULL = not yet redeemed. Eligibility itself
+   *  is DERIVED (≥3 dated occasions + this being null), never stored. */
+  freeCardRedeemedAt: timestamp("free_card_redeemed_at"),
+  /** The studio_orders.id that consumed the credit — audit trail. */
+  freeCardOrderId: varchar("free_card_order_id"),
+  /** Dates-nudge flow stamps (2026-08-04): each of the two add-your-dates
+   *  nudge emails sends AT MOST once per account. Only opted-in (PECR),
+   *  under-3-dates, unredeemed accounts ever enter the flow. */
+  datesNudgeD2SentAt: timestamp("dates_nudge_d2_sent_at"),
+  datesNudgeD7SentAt: timestamp("dates_nudge_d7_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

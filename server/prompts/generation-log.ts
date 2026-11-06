@@ -67,6 +67,13 @@ export interface LogGenerationInput {
   success: boolean;
   /** Structured error kind on failure; null on success. */
   errorCode?: string | null;
+  /** Which step of a multi-call pipeline this row is (the concept engine:
+   *  'archetype' | 'writer' | 'writer-repair' | 'sense' | 'sense-repair').
+   *  Omit for single-call slots. */
+  stage?: string | null;
+  /** The floors that fired on this round's output — stored as a JSON
+   *  array so an audit can read which floors fire. Writer rows only. */
+  violations?: string[] | null;
 }
 
 export async function logGeneration(input: LogGenerationInput): Promise<void> {
@@ -89,6 +96,10 @@ export async function logGeneration(input: LogGenerationInput): Promise<void> {
       durationMs: input.durationMs,
       success: input.success,
       errorCode: input.errorCode ?? null,
+      stage: input.stage ?? null,
+      // Bounded: a repair round can carry a dozen long sentences; 4k
+      // chars keeps the row readable and the column cheap.
+      violations: input.violations?.length ? JSON.stringify(input.violations).slice(0, 4000) : null,
     };
     await db.insert(generationLog).values(row);
   } catch (err: any) {
