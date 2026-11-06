@@ -43,7 +43,7 @@ const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '', freeFirstCard: false, freeFirstCardTotal: 500, freeFirstCardDaily: 50 };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '', freeFirstCard: false, freeFirstCardTotal: 100, freeFirstCardDaily: 25 };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {

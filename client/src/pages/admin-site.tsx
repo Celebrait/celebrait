@@ -199,13 +199,13 @@ export default function AdminSitePage() {
           <div>
             <label htmlFor="cap-total" className="block text-sm font-semibold text-keeper-ink">Total free cards</label>
             <p className="mt-0.5 text-[13px] text-keeper-body">Counts paid orders where the card was £0. At the cap, the site says half price instead.</p>
-            <input id="cap-total" inputMode="numeric" value={capTotal} onChange={(e) => setCapTotal(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={String(data.freeFirstCardTotal ?? 500)}
+            <input id="cap-total" inputMode="numeric" value={capTotal} onChange={(e) => setCapTotal(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={String(data.freeFirstCardTotal ?? 100)}
               className="mt-2 h-11 w-full rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
           </div>
           <div>
             <label htmlFor="cap-daily" className="block text-sm font-semibold text-keeper-ink">Per day</label>
             <p className="mt-0.5 text-[13px] text-keeper-body">A brake if a post goes big. Resets at midnight UTC.</p>
-            <input id="cap-daily" inputMode="numeric" value={capDaily} onChange={(e) => setCapDaily(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder={String(data.freeFirstCardDaily ?? 50)}
+            <input id="cap-daily" inputMode="numeric" value={capDaily} onChange={(e) => setCapDaily(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder={String(data.freeFirstCardDaily ?? 25)}
               className="mt-2 h-11 w-full rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
           </div>
           <div className="sm:col-span-2">
