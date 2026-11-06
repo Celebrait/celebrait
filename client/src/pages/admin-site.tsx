@@ -7,13 +7,13 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { AlertTriangle, CheckCircle2, Circle, FlaskConical, LayoutGrid, Loader2, Lock, LockOpen, Sparkles, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, FlaskConical, Gift, LayoutGrid, Loader2, Lock, LockOpen, Sparkles, XCircle } from 'lucide-react';
 import { cardPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
 import { publicOrigin } from '@shared/market';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string }
+interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string; freeFirstCard?: boolean; freeFirstCardTotal?: number; freeFirstCardDaily?: number; freeFirstCardUsage?: { open: boolean; usedTotal: number; usedToday: number } }
 interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string; warn?: boolean }
 interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
 
@@ -69,6 +69,8 @@ export default function AdminSitePage() {
   });
   const [password, setPassword] = useState('');
   const [betaCode, setBetaCode] = useState('');
+  const [capTotal, setCapTotal] = useState('');
+  const [capDaily, setCapDaily] = useState('');
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
   useEffect(() => { if (data) { setPassword(data.password); setBetaCode(data.betaCode ?? ''); } }, [data]);
@@ -169,6 +171,49 @@ export default function AdminSitePage() {
             Share link: <code className="rounded bg-keeper-paper px-1.5 py-0.5 text-[12px] text-keeper-ink">{share}/beta?t=fb-pod-1{data.betaCode ? `&code=${encodeURIComponent(data.betaCode)}` : ''}</code>
             <span className="block mt-1">Change <code className="text-[12px]">t=</code> per group so the <Link href="/admin/feedback" className="font-medium text-brand-dark underline underline-offset-2">feedback</Link> says where each tester came from.</span>
           </p>
+        </div>
+      </div>
+
+      {/* THE LAUNCH OFFER (Aidan 2026-11-06, the social ad): the first PHOTO
+          card is on us — £0, postage paid by the customer — one per account
+          (three dates), one per address, UK only, under these caps. */}
+      <div className={`mt-4 rounded-2xl border p-5 ${data.freeFirstCard ? 'border-emerald-300 bg-emerald-50' : 'border-keeper-hair bg-white'}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Gift className={`h-6 w-6 ${data.freeFirstCard ? 'text-emerald-600' : 'text-keeper-meta'}`} />
+            <div>
+              <p className="font-semibold text-keeper-ink">{data.freeFirstCard ? 'First card on us: on' : 'First card on us: off'}</p>
+              <p className="text-[13px] text-keeper-body">
+                {data.freeFirstCard
+                  ? `The first photo card is £0 at checkout (customer pays postage) after three dates. ${data.freeFirstCardUsage?.open ? 'Open now.' : 'CAP HIT — the site has fallen back to half price.'} Used: ${data.freeFirstCardUsage?.usedTotal ?? 0} of ${data.freeFirstCardTotal ?? 0} total, ${data.freeFirstCardUsage?.usedToday ?? 0} of ${data.freeFirstCardDaily ?? 0} today.`
+                  : 'Off: the standing offer is half price on the first card. Switch on to match the ad ("your first card’s on us, seriously").'}
+              </p>
+            </div>
+          </div>
+          <button type="button" disabled={saving} onClick={() => save({ freeFirstCard: !data.freeFirstCard })}
+            className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.freeFirstCard ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-cta text-cta-foreground hover:bg-cta-hover'}`}>
+            {data.freeFirstCard ? 'Switch off' : 'Switch on'}
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 border-t border-keeper-hair/70 pt-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="cap-total" className="block text-sm font-semibold text-keeper-ink">Total free cards</label>
+            <p className="mt-0.5 text-[13px] text-keeper-body">Counts paid orders where the card was £0. At the cap, the site says half price instead.</p>
+            <input id="cap-total" inputMode="numeric" value={capTotal} onChange={(e) => setCapTotal(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={String(data.freeFirstCardTotal ?? 500)}
+              className="mt-2 h-11 w-full rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
+          </div>
+          <div>
+            <label htmlFor="cap-daily" className="block text-sm font-semibold text-keeper-ink">Per day</label>
+            <p className="mt-0.5 text-[13px] text-keeper-body">A brake if a post goes big. Resets at midnight UTC.</p>
+            <input id="cap-daily" inputMode="numeric" value={capDaily} onChange={(e) => setCapDaily(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder={String(data.freeFirstCardDaily ?? 50)}
+              className="mt-2 h-11 w-full rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
+          </div>
+          <div className="sm:col-span-2">
+            <button type="button" disabled={saving || (!capTotal && !capDaily)}
+              onClick={() => { const patch: Partial<Lock> = {}; if (capTotal) patch.freeFirstCardTotal = Number(capTotal); if (capDaily) patch.freeFirstCardDaily = Number(capDaily); void save(patch).then(() => { setCapTotal(''); setCapDaily(''); }); }}
+              className="h-11 rounded-full bg-keeper-ink px-5 text-sm font-semibold text-keeper-paper disabled:opacity-40">Save caps</button>
+            <span className="ml-3 text-[13px] text-keeper-body">Photo route only. Three-card and rack stay at half price.</span>
+          </div>
         </div>
       </div>
 

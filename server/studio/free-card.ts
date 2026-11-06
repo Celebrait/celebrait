@@ -57,6 +57,27 @@ export async function countKeyDates(userId: string): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
+/** THE LAUNCH OFFER's one-per-address guard (2026-11-06): has a card
+ *  already gone out on us to this delivery address? Matched on postcode
+ *  + first line, whitespace and case ignored, PAID orders only. */
+export async function addressHadFreeCard(addr: { line1?: string | null; postcode?: string | null } | null | undefined): Promise<boolean> {
+  const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const pc = norm(addr?.postcode); const l1 = norm(addr?.line1);
+  if (!pc || !l1) return false;
+  const rows = await db
+    .select({ id: studioOrders.id })
+    .from(studioOrders)
+    .where(and(
+      eq(studioOrders.freeCardApplied, true),
+      eq(studioOrders.printAmount, 0),
+      eq(studioOrders.paymentStatus, 'paid'),
+      sql`lower(regexp_replace(coalesce(${studioOrders.shippingAddress}->>'postcode', ''), '[^a-zA-Z0-9]', '', 'g')) = ${pc}`,
+      sql`lower(regexp_replace(coalesce(${studioOrders.shippingAddress}->>'line1', ''), '[^a-zA-Z0-9]', '', 'g')) = ${l1}`,
+    ))
+    .limit(1);
+  return rows.length > 0;
+}
+
 export async function getFreeCardStatus(userId: string): Promise<FreeCardStatus> {
   const [keyDates, userRows] = await Promise.all([
     countKeyDates(userId),

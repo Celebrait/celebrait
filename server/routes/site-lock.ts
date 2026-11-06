@@ -31,19 +31,19 @@
 
 import type { Express, NextFunction, Request, Response } from 'express';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { betaFeedback, siteSettings, users } from '@shared/schema';
+import { betaFeedback, siteSettings, studioOrders, users } from '@shared/schema';
 import { requireAdmin } from './admin-card-lab';
 
-interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string }
+interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string; freeFirstCard: boolean; freeFirstCardTotal: number; freeFirstCardDaily: number }
 const KEY = 'site_lock';
 const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '' };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '', freeFirstCard: false, freeFirstCardTotal: 500, freeFirstCardDaily: 50 };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
@@ -59,11 +59,41 @@ export async function getSiteLock(): Promise<LockValue> {
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);
     const v = rows[0]?.value as Partial<LockValue> | undefined;
-    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true, betaMode: v.betaMode === true, betaCode: typeof v.betaCode === 'string' ? v.betaCode : '' };
+    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true, betaMode: v.betaMode === true, betaCode: typeof v.betaCode === 'string' ? v.betaCode : '', freeFirstCard: v.freeFirstCard === true, freeFirstCardTotal: typeof v.freeFirstCardTotal === 'number' ? v.freeFirstCardTotal : DEFAULT.freeFirstCardTotal, freeFirstCardDaily: typeof v.freeFirstCardDaily === 'number' ? v.freeFirstCardDaily : DEFAULT.freeFirstCardDaily };
   } catch {
     // Table not there yet (first boot) — the default holds.
   }
   cache = { at: Date.now(), value };
+  return value;
+}
+
+// THE LAUNCH OFFER (Aidan 2026-11-06): "your first card's on us,
+// seriously". The first PHOTO card is £0 at checkout (postage paid) while
+// the switch is on and the caps hold. Counts come from PAID orders where
+// the credit zeroed the card; cached a minute so the shell's
+// /api/site-lock read doesn't hit the database on every page load.
+export interface FreeFirstCardState { enabled: boolean; open: boolean; usedTotal: number; usedToday: number; total: number; daily: number }
+let freeCache: { at: number; value: FreeFirstCardState } | null = null;
+export async function freeFirstCardOpen(): Promise<FreeFirstCardState> {
+  const lock = await getSiteLock();
+  if (freeCache && Date.now() - freeCache.at < 60_000 && freeCache.value.enabled === lock.freeFirstCard) return freeCache.value;
+  let usedTotal = 0, usedToday = 0;
+  if (lock.freeFirstCard) {
+    try {
+      const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+      const base = and(eq(studioOrders.freeCardApplied, true), eq(studioOrders.printAmount, 0), eq(studioOrders.paymentStatus, 'paid'));
+      const [t, d] = await Promise.all([
+        db.select({ n: sql<number>`count(*)::int` }).from(studioOrders).where(base),
+        db.select({ n: sql<number>`count(*)::int` }).from(studioOrders).where(and(base, gte(studioOrders.createdAt, dayStart))),
+      ]);
+      usedTotal = t[0]?.n ?? 0; usedToday = d[0]?.n ?? 0;
+    } catch (e) { console.warn('[FIRST-CARD] count failed:', (e as Error)?.message ?? e); }
+  }
+  const value: FreeFirstCardState = {
+    enabled: lock.freeFirstCard, usedTotal, usedToday, total: lock.freeFirstCardTotal, daily: lock.freeFirstCardDaily,
+    open: lock.freeFirstCard && usedTotal < lock.freeFirstCardTotal && usedToday < lock.freeFirstCardDaily,
+  };
+  freeCache = { at: Date.now(), value };
   return value;
 }
 
@@ -132,12 +162,12 @@ export async function makerOpen(): Promise<boolean> {
 /** Is this request through the gate? (+ the rack and maker flags, so the
  *  SPA learns them from the one request it already makes on every load.
  *  The maker flag is the raw switch; the client lets admins through.) */
-export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; beta: boolean; betaNeedsCode: boolean }> {
+export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; beta: boolean; betaNeedsCode: boolean; freeFirstCard: boolean }> {
   const lock = await getSiteLock();
   const hasPassword = lock.password.trim().length > 0;
   const { rackEnabled, makerEnabled, betaMode } = lock;
   const beta = await isBetaTester(req);
-  const flags = { hasPassword, rackEnabled, makerEnabled, betaMode, beta, betaNeedsCode: betaMode && lock.betaCode.trim().length > 0 };
+  const flags = { hasPassword, rackEnabled, makerEnabled, betaMode, beta, betaNeedsCode: betaMode && lock.betaCode.trim().length > 0, freeFirstCard: (await freeFirstCardOpen()).open };
   if (!lock.locked) return { locked: false, allowed: true, ...flags };
   const cookie = readCookie(req, COOKIE);
   // Beta testers are through the lock by virtue of having joined.
@@ -349,20 +379,20 @@ export function registerSiteLock(app: Express): void {
 
   app.get('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
-    cache = null;
-    res.json(await getSiteLock());
+    cache = null; freeCache = null;
+    res.json({ ...(await getSiteLock()), freeFirstCardUsage: await freeFirstCardOpen() });
   });
 
-  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional(), betaMode: z.boolean().optional(), betaCode: z.string().trim().max(40).optional() });
+  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional(), betaMode: z.boolean().optional(), betaCode: z.string().trim().max(40).optional(), freeFirstCard: z.boolean().optional(), freeFirstCardTotal: z.number().int().min(0).max(100000).optional(), freeFirstCardDaily: z.number().int().min(0).max(10000).optional() });
   app.put('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     const parsed = putSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: 'Invalid settings.' });
-    cache = null;
+    cache = null; freeCache = null;
     const next = { ...(await getSiteLock()), ...parsed.data };
     await db.insert(siteSettings).values({ key: KEY, value: next })
       .onConflictDoUpdate({ target: siteSettings.key, set: { value: next, updatedAt: sql`now()` } });
-    cache = null;
-    res.json(next);
+    cache = null; freeCache = null;
+    res.json({ ...next, freeFirstCardUsage: await freeFirstCardOpen() });
   });
 }

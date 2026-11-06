@@ -44,6 +44,7 @@ import {
   DEFAULT_SHIPPING_TIER,
   type ShippingTierId,
 } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney, market, type MarketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 
@@ -123,11 +124,13 @@ function totalsFor(
    *  while the card is still loading; falls back to the photo price,
    *  which is the historic product and the safest over-estimate. */
   cardSource?: string,
+  /** The launch offer is open and this is a photo card: £0, not half. */
+  onUs = false,
 ) {
   // Priced by the door that made this card, mirroring the server so the
   // shown total always equals the charge (UX_THREE_DOORS.md §8a).
   const printPrice = cardPrice(cardSource);
-  const printAmount = freeCard ? firstOrderPrice(cardSource) : printPrice;
+  const printAmount = freeCard ? (onUs ? 0 : firstOrderPrice(cardSource)) : printPrice;
   const digitalAmount = 0;
   const shippingAmount = compCode ? 0 : shippingPrice(tier);
   const stickerAmount = envelopeStickerPrice(addSticker, shipTo);
@@ -279,6 +282,12 @@ export default function CheckoutPage() {
   // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
   // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
   const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack';
+  // THE LAUNCH OFFER (2026-11-06): first PHOTO card on us while the switch
+  // is open. The server re-checks the address (one per address, UK only)
+  // and falls back to half price if it must — the Stripe page shows the
+  // real total either way.
+  const onUsOpen = useFirstCardOnUs();
+  const onUs = freeCardApplied && onUsOpen && card?.source === 'photo';
   const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';
@@ -287,11 +296,11 @@ export default function CheckoutPage() {
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source),
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source, onUs),
     // card.source was missing here (audit 2026-09-09): the memo ran once
     // with the card still loading and priced every maker card as a photo
     // card (£6.99 shown, £5.99 charged).
-    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode, card?.source],
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode, card?.source, onUs],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -553,7 +562,7 @@ export default function CheckoutPage() {
                     </span>
                     {formatMoney(totals.total)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
-                      inc. postage, 50% off your first card
+                      inc. postage, {onUs ? 'your first card on us' : '50% off your first card'}
                     </span>
                   </p>
                 ) : (
@@ -762,7 +771,7 @@ export default function CheckoutPage() {
                 label="Printed card"
                 sub={
                   freeCardApplied
-                    ? 'Your first card, on us'
+                    ? (onUs ? 'Your first card, on us' : 'Your first card, half price')
                     : 'Square, 280gsm gloss art card'
                 }
                 amount={totals.printAmount}

@@ -24,7 +24,8 @@ import {
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
@@ -78,6 +79,7 @@ export function WorldSection({
    *  already cover the moments. */
   showRiver?: boolean;
 }) {
+  const onUs = useFirstCardOnUs();
   // The offer quotes the photo card while the three-card route is parked.
   const offer = useMakerEnabled() === true ? 'maker' : 'photo';
   const [addOpen, setAddOpen] = useState(false);
@@ -213,15 +215,19 @@ export function WorldSection({
         <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
           {unlocked ? (
             <>
-              <b className="text-keeper-ink">Your first card’s half price:</b>{' '}
-              <span className="line-through">{formatMoney(cardPrice(offer))}</span> {formatMoney(firstOrderPrice(offer))}, plus postage.
+              {onUs ? (
+                <><b className="text-keeper-ink">Your first card’s on us:</b> just {formatMoney(shippingPrice())} postage.</>
+              ) : (
+                <><b className="text-keeper-ink">Your first card’s half price:</b>{' '}
+                <span className="line-through">{formatMoney(cardPrice(offer))}</span> {formatMoney(firstOrderPrice(offer))}, plus postage.</>
+              )}{' '}
               It’s waiting whenever a moment comes round.
             </>
           ) : (
             <>
-              <b className="text-keeper-ink">50% off your first card.</b>{' '}
+              <b className="text-keeper-ink">{onUs ? 'Your first card’s on us.' : '50% off your first card.'}</b>{' '}
               {3 - keyDates} more {3 - keyDates === 1 ? 'date' : 'dates'}, any
-              day that matters, and it’s half price.
+              day that matters, and it’s {onUs ? 'yours' : 'half price'}.
             </>
           )}
         </p>

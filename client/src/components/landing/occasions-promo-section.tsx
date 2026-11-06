@@ -22,7 +22,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { daysToChristmas } from '@/lib/moments';
 import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
-import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
 
@@ -34,6 +35,7 @@ const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
  *  £5.99→£2.99 for a card that is £6.99→£3.49 at checkout. Mounted on
  *  /photo (default) and, since 2026-10-09, on /create as `maker`. */
 export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
+  const onUs = useFirstCardOnUs();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -71,11 +73,19 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
             Tell us the days that matter: birthdays, anniversaries, the lot.
             We watch them all year and nudge you in good time, so the card's
             made in slippers, not in a panic. And for telling us three?{' '}
-            <strong className="text-keeper-ink">
-              50% off your first card
-            </strong>:{' '}
-            <span className="line-through">{formatMoney(cardPrice(door))}</span> <b>{formatMoney(firstOrderPrice(door))}</b>, plus
-            postage.
+            {onUs ? (
+              <>
+                <strong className="text-keeper-ink">Your first card’s on us.</strong> Seriously. Just {formatMoney(shippingPrice())} postage.
+              </>
+            ) : (
+              <>
+                <strong className="text-keeper-ink">
+                  50% off your first card
+                </strong>:{' '}
+                <span className="line-through">{formatMoney(cardPrice(door))}</span> <b>{formatMoney(firstOrderPrice(door))}</b>, plus
+                postage.
+              </>
+            )}
           </p>
 
           <div className="mt-7 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -85,7 +95,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
               className="rounded-full bg-go px-7 py-3.5 text-base font-semibold text-go-foreground shadow-sm transition-colors hover:bg-go-hover"
               data-testid="occasions-promo-claim"
             >
-              Claim 50% off
+              {onUs ? 'Claim my free card' : 'Claim 50% off'}
             </button>
             <p className="text-[12.5px] text-keeper-meta">
               One per account. Takes about a minute.
@@ -128,8 +138,8 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
                   </div>
                 </div>
                 <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
-                  <b className="text-keeper-ink">50% off your first card.</b> 1
-                  more date, any day that matters, and it's half price.
+                  <b className="text-keeper-ink">{onUs ? 'Your first card’s on us.' : '50% off your first card.'}</b> 1
+                  more date, any day that matters, and it's {onUs ? 'yours' : 'half price'}.
                 </p>
               </div>
               <span className="shrink-0 self-start rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground sm:self-auto">

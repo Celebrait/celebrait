@@ -30,13 +30,14 @@ import { shipPhrase } from '@shared/market-copy';
 import {
   getFreeCardStatus,
   consumeFreeCardCredit,
+  addressHadFreeCard,
 } from '../studio/free-card';
 import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import { touchCheckout } from '../activity';
 import { sendMetaPurchase } from '../meta-capi';
-import { rackOpen } from './site-lock';
+import { rackOpen, freeFirstCardOpen } from './site-lock';
 import {
   sendRecipientCardArrivedEmail,
   sendSenderOrderConfirmedEmail,
@@ -59,6 +60,7 @@ import {
   OFFERED_SHIPPING_TIER_IDS,
   type ShippingTierId,
   firstOrderPrice,
+  FREE_FIRST_CARD_SOURCE,
 } from '@shared/pricing';
 
 // Pricing in pence — sourced from shared/pricing.ts. Client checkout
@@ -356,7 +358,21 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // The SERVER decides from the stored card.source — a crafted POST
         // can't buy a photo card at rack price.
         // Market-aware (shared/pricing): pence in GB, cents in ZA.
-        const printAmount0 = freeCardApplied ? firstOrderPrice(card.source) : cardPrice(card.source);
+        // THE LAUNCH OFFER (Aidan 2026-11-06): the first PHOTO card is on us —
+        // £0 for the card, postage paid — while the /admin/site switch is on
+        // and under its caps, UK addresses only, one per delivery address
+        // (users.free_card_* already makes it one per account). Anything
+        // else falls back to the half-price credit above.
+        let firstCardOnUs = false;
+        if (freeCardApplied && card.source === FREE_FIRST_CARD_SOURCE) {
+          const offer = await freeFirstCardOpen();
+          const addr = body.shippingAddress as { line1?: string; postcode?: string; country?: string } | undefined;
+          const uk = !addr?.country || /^(gb|uk|united kingdom|england|scotland|wales|northern ireland)$/i.test(addr.country.trim());
+          const addressUsed = offer.open && uk ? await addressHadFreeCard(addr) : false;
+          firstCardOnUs = offer.open && uk && !addressUsed;
+          if (!firstCardOnUs) console.log(`[FIRST-CARD] card ${cardId}: on-us not applied (open=${offer.open} uk=${uk} addressUsed=${addressUsed}) — half price instead`);
+        }
+        const printAmount0 = freeCardApplied ? (firstCardOnUs ? 0 : firstOrderPrice(card.source)) : cardPrice(card.source);
         const digitalAmount = 0;
         const shippingAmount0 = shippingPrice(shippingTier);
 
@@ -572,7 +588,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           currency: market().currency,
           customerEmail: body.customerEmail,
           customerName: body.customerName,
-          description: freeCardApplied ? `${productName} · first card, 50% off` : productName,
+          description: freeCardApplied ? `${productName} · ${firstCardOnUs ? 'first card, on us' : 'first card, 50% off'}` : productName,
           // GB: "posted Royal Mail 24 tracked" exactly as before; ZA: "sent by courier".
           productDescription: `Printed to order on 280gsm card, ${shipPhrase(market()).replace(', tracked', ' tracked')}. Free digital link included.`,
           imageUrl: frontPublic ?? undefined,

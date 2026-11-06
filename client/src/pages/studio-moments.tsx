@@ -51,11 +51,13 @@ import {
 } from '@/lib/moments';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { MomentIcon } from '@/components/studio/moment-icon';
-import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
 
 export default function StudioMomentsPage() {
+  const onUs = useFirstCardOnUs();
   // The three-card route parked (2026-10-29): the offer quotes the photo
   // card and "Make your card" opens the photo studio.
   const maker = useMakerEnabled() === true;
@@ -152,12 +154,17 @@ export default function StudioMomentsPage() {
             {unlocked ? (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  Unlocked: 50% off your first card
+                  {onUs ? 'Unlocked: your first card’s on us' : 'Unlocked: 50% off your first card'}
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  <span className="line-through text-keeper-meta">{formatMoney(cardPrice(offer))}</span>{' '}
-                  <span className="font-semibold text-go">{formatMoney(firstOrderPrice(offer))}</span> plus
-                  postage. It’s waiting whenever a moment comes round.
+                  {onUs ? (
+                    <>Seriously. Just <span className="font-semibold text-go">{formatMoney(shippingPrice())}</span> postage.</>
+                  ) : (
+                    <><span className="line-through text-keeper-meta">{formatMoney(cardPrice(offer))}</span>{' '}
+                    <span className="font-semibold text-go">{formatMoney(firstOrderPrice(offer))}</span> plus
+                    postage.</>
+                  )}{' '}
+                  It’s waiting whenever a moment comes round.
                 </p>
                 <Link href={maker ? '/make' : '/studio/new-card'}>
                   <Button
@@ -172,13 +179,13 @@ export default function StudioMomentsPage() {
             ) : (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  50% off your first card
+                  {onUs ? 'Your first card’s on us. Seriously.' : '50% off your first card'}
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   Add {3 - ringFilled} more key{' '}
                   {3 - ringFilled === 1 ? 'date' : 'dates'} (a birthday, an
                   anniversary, any day that matters) and your first card is
-                  half price. We’ll watch every date you add, forever.
+                  {onUs ? ' yours, just postage' : ' half price'}. We’ll watch every date you add, forever.
                 </p>
               </>
             )}

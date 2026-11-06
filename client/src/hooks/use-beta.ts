@@ -21,9 +21,11 @@ interface LockState {
   locked: boolean; allowed: boolean; hasPassword: boolean;
   rackEnabled?: boolean; makerEnabled?: boolean;
   betaMode?: boolean; beta?: boolean; betaNeedsCode?: boolean;
+  /** The launch offer is live: first photo card on us (use-first-card-offer.ts). */
+  freeFirstCard?: boolean;
 }
 
-function useLockState() {
+export function useLockState() {
   const { user } = useAuth();
   const u = user as { id?: string; isAdmin?: boolean } | null | undefined;
   const q = useQuery<LockState>({

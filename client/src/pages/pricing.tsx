@@ -27,6 +27,7 @@ import { useMakerEnabled } from '@/hooks/use-maker';
 import { useSeo } from '@/lib/use-seo';
 import { copyFor } from '@shared/market-copy';
 import { cardPrice, firstOrderPrice, shippingPrice, MAKE_TIME, type CardSource } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney, market } from '@shared/market';
 
 
@@ -84,6 +85,7 @@ const INCLUDED = [
 ];
 
 export default function PricingPage() {
+  const onUs = useFirstCardOnUs();
   useSeo('/pricing');
   const { isAuthenticated, isLoading } = useAuth();
   const photoHref = !isLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
@@ -185,7 +187,9 @@ export default function PricingPage() {
               <ul className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-keeper-body">
                 {maker
                   ? <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account.</li>
-                  : <li><span className="font-semibold text-keeper-ink">Your first card is half price, {formatMoney(firstOrderPrice('photo'))}</span> when you add three dates that matter to your studio. One per account.</li>}
+                  : onUs
+                    ? <li><span className="font-semibold text-keeper-ink">Your first card’s on us, just {formatMoney(shippingPrice())} postage,</span> when you add three dates that matter to your studio. One per account, one per address, UK addresses.</li>
+                    : <li><span className="font-semibold text-keeper-ink">Your first card is half price, {formatMoney(firstOrderPrice('photo'))}</span> when you add three dates that matter to your studio. One per account.</li>}
                 <li><span className="font-semibold text-keeper-ink">Personalised cards can't be cancelled</span> once printing begins. We say so before you pay.</li>
                 <li><span className="font-semibold text-keeper-ink">Making is free.</span> Roll again, change the details, start over. You only pay when you post one.</li>
                 <li><span className="font-semibold text-keeper-ink">No logos, brands or famous faces</span> on the front. Your answers set the scene; we draw it.</li>

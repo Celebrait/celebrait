@@ -67,6 +67,7 @@ import { GestureHints } from '@/components/gesture-hints';
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
 import { DISPLAY, H1, BTN_PRIMARY, BTN_PRIMARY_LG } from '@/pages/doorway';
 import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 // Pence → "£6.99". The same one-liner the three-card doorway keeps locally.
@@ -1307,6 +1308,8 @@ function ObjectSection() {
 // ── 7. PRICE ─────────────────────────────────────────────────────────
 
 function PriceSection() {
+  // The launch offer (2026-11-06): the first card on us while it's open.
+  const onUs = useFirstCardOnUs();
   return (
     <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
       <div className="mx-auto max-w-3xl text-center">
@@ -1321,11 +1324,11 @@ function PriceSection() {
               Still no "limited time" — there is no end date, and a
               perpetual urgency claim is the kind the ASA upholds against. */}
           <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-keeper-meta">
-            Half price on your first card
+            {onUs ? 'Your first card’s on us. Seriously.' : 'Half price on your first card'}
           </p>
           <div className="mt-2 flex items-baseline justify-center gap-4">
             <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
-              {formatMoney(firstOrderPrice('photo'))}
+              {onUs ? 'Free' : formatMoney(firstOrderPrice('photo'))}
             </span>
             <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
               <span className="sr-only">Normally </span>
@@ -1333,7 +1336,7 @@ function PriceSection() {
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            Plus {formatMoney(shippingPrice())} standard postage. One per account;
+            {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} standard postage. One per account{onUs ? ', one per address' : ''};
             after that, photo cards are {formatMoney(cardPrice('photo'))} plus postage. Make and preview as
             many as you like for free. You only pay when you post one.
             Our cards are one-off prints, so please allow at least a week from order to arrival.

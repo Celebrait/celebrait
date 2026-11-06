@@ -438,6 +438,11 @@ export function genCostUsdX100ToGbp(costCentsX100: number): number {
 // everyday `cardPriceGBP` (never inflated for the strike-through — CAP
 // Code). Rounded DOWN to the penny so the customer never loses a fraction.
 export const FIRST_ORDER_DISCOUNT = 0.5;
+/** THE LAUNCH OFFER (Aidan 2026-11-06, the social ad's promise): the
+ *  first card from THIS door is on us — £0 for the card, postage paid by
+ *  the customer — while the /admin/site switch is on and under its caps.
+ *  Otherwise the half-price offer above applies. Photo route only. */
+export const FREE_FIRST_CARD_SOURCE: CardSource = 'photo';
 export function firstOrderPriceGBP(source: Parameters<typeof cardPriceGBP>[0]): number {
   return firstOrderPrice(source, 'GB');
 }

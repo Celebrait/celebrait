@@ -17,7 +17,8 @@
 import { useEffect, useState } from 'react';
 import { Gift, Truck } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { cardPrice, firstOrderPrice } from '@shared/pricing';
+import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
 import { useBetaMode } from '@/hooks/use-beta';
@@ -80,6 +81,7 @@ export function TickerBanner() {
   // Beta (2026-11-05): a "50% off" offer over a site that sells nothing is
   // a lie — no strip at all while beta mode is on.
   const betaMode = useBetaMode();
+  const onUs = useFirstCardOnUs();
   if (betaMode) return null;
 
   const msg = 'flex items-center gap-2 whitespace-nowrap font-sans text-[11.5px] font-medium text-white underline-offset-2 hover:underline sm:text-[12.5px] transition-opacity duration-500 motion-reduce:transition-none';
@@ -101,14 +103,27 @@ export function TickerBanner() {
       >
         {/* Coral trial (Aidan 2026-09-04): the warm accent on the OFFER only. */}
         <Gift className="h-3.5 w-3.5 shrink-0 text-accent-coral" aria-hidden="true" />
-        <span className="sm:hidden">
-          Add 3 dates that matter for <b className="text-accent-coral">50% off</b> your first card. Claim it ›
-        </span>
-        <span className="hidden sm:inline">
-          Tell us 3 dates that matter and your first card is{' '}
-          <span className="line-through opacity-70">{formatMoney(cardPrice(door))}</span> <b className="text-accent-coral">{formatMoney(firstOrderPrice(door))}</b>.
-          Claim it ›
-        </span>
+        {onUs ? (
+          <>
+            <span className="sm:hidden">
+              Your first card’s <b className="text-accent-coral">on us</b>. Seriously. Claim it ›
+            </span>
+            <span className="hidden sm:inline">
+              Tell us 3 dates that matter and your first card’s <b className="text-accent-coral">on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage. Claim it ›
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="sm:hidden">
+              Add 3 dates that matter for <b className="text-accent-coral">50% off</b> your first card. Claim it ›
+            </span>
+            <span className="hidden sm:inline">
+              Tell us 3 dates that matter and your first card is{' '}
+              <span className="line-through opacity-70">{formatMoney(cardPrice(door))}</span> <b className="text-accent-coral">{formatMoney(firstOrderPrice(door))}</b>.
+              Claim it ›
+            </span>
+          </>
+        )}
       </button>
 
       <Link
