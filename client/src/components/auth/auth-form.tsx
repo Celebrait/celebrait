@@ -161,11 +161,29 @@ export function AuthForm({
   // so designers/founder can review the form chrome while signed in.
   // Gated to import.meta.env.DEV so a stray query param can't expose
   // the auth UI to authed prod users (harmless but noisy).
+  //
+  // Escape hatch: `?switch=1` signs the current session out FIRST and
+  // reloads the bare form. The beta's throwaway tester accounts have no
+  // Sign out button, so an admin who tried the beta flow in their own
+  // browser was bounced straight back into the tester studio and could
+  // never reach /admin (Aidan 2026-11-07).
   const initialAuthRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (isLoading) return;
     if (initialAuthRef.current === null) {
       initialAuthRef.current = isAuthenticated;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('switch') === '1') {
+        params.delete('switch');
+        const next = window.location.pathname + (params.toString() ? `?${params}` : '');
+        if (isAuthenticated) {
+          void fetch('/api/auth/otp/logout', { method: 'POST', credentials: 'include' })
+            .catch(() => undefined)
+            .finally(() => window.location.replace(next));
+          return;
+        }
+        window.history.replaceState({}, '', next);
+      }
       const previewMode =
         import.meta.env.DEV &&
         new URLSearchParams(window.location.search).get('preview') === '1';

@@ -22,6 +22,7 @@ import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
 import { useBetaMode } from '@/hooks/use-beta';
+import { useAuth } from '@/hooks/use-auth';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -52,7 +53,15 @@ export function useClaimFreeCard() {
   const [location, setLocation] = useLocation();
   // While the three-card route is parked, `/` renders the photo page too.
   const maker = useMakerEnabled() === true;
+  const { isAuthenticated } = useAuth();
   return () => {
+    // Signed in already: the invite modal refuses to open (it's a sign-up
+    // surface), so "Claim it" went nowhere (Aidan 2026-11-07). The dates
+    // live on Moments — that IS the claim for an account.
+    if (isAuthenticated) {
+      setLocation('/studio/moments');
+      return;
+    }
     // The invite modal mounts on the PHOTO landing page — /photo since
     // the gate took / (2026-09-03).
     if (location === '/photo' || location === '/keeper' || (location === '/' && !maker)) {
