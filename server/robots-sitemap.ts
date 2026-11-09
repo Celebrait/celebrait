@@ -8,6 +8,7 @@
 // so there is one source of truth.
 
 import { publicOrigin } from '@shared/market';
+import { GALLERY_STORY_SEO } from '@shared/seo';
 
 /** Public marketing pages only. Deliberately excluded: /studio + /admin +
  *  /checkout (auth-gated), /card/* and /c/* (private recipient links),
@@ -19,6 +20,9 @@ const SITEMAP_PAGES: { path: string; changefreq: string; priority: string }[] = 
   { path: '/', changefreq: 'weekly', priority: '1.0' },
   { path: '/photo', changefreq: 'weekly', priority: '0.9' },
   { path: '/create', changefreq: 'weekly', priority: '0.9' },
+  { path: '/gallery', changefreq: 'weekly', priority: '0.8' },
+  { path: '/stories', changefreq: 'weekly', priority: '0.8' },
+  ...GALLERY_STORY_SEO.map((st) => ({ path: `/stories/${st.slug}`, changefreq: 'monthly', priority: '0.7' })),
   { path: '/pricing', changefreq: 'monthly', priority: '0.8' },
   { path: '/contact', changefreq: 'yearly', priority: '0.5' },
   { path: '/blog', changefreq: 'weekly', priority: '0.7' },
@@ -33,38 +37,18 @@ const hostOf = (origin: string) => origin.replace(/^https?:\/\//, '').replace(/^
 
 export function renderRobotsTxt(origin: string = publicOrigin()): string {
   return `# ${hostOf(origin)}
-# Public marketing pages are crawlable; everything operational, personal
-# or internal is not. Note Disallow is a CRAWL instruction, not access
-# control — the real protection on /studio, /admin and /checkout is the
-# auth gate. This just keeps them out of search results.
+# Everything except the API may be crawled. Private and internal pages
+# (/studio, /admin, /checkout, /login, /c/ share links, /order/, /keeper,
+# /card-capture, /og …) are kept out of search results by a real
+# noindex — meta tag + X-Robots-Tag header, shared/seo.ts — NOT by a
+# Disallow here. A Disallow stops Google fetching the page, so it never
+# sees the noindex and lists the bare URL anyway ("Indexed, though
+# blocked by robots.txt", Search Console 2026-11-09). Access control on
+# the private pages is the auth gate and the share token, never this file.
 
 User-agent: *
 
-# Signed-in product surfaces (auth-gated; nothing to index)
-Disallow: /studio
-Disallow: /admin
-Disallow: /checkout
-Disallow: /login
-
-# Recipient card links — these are private, token-gated moments between
-# two people. They must never appear in a search result. (/c/ is the
-# short share form; both also carry noindex.)
-Disallow: /card/
-Disallow: /c/
-
-# Orders are private by uuid
-Disallow: /order/
-
-# Design reference only — an alias of /photo, noindexed as well
-Disallow: /keeper
-
-# Internal tooling + asset stages (unlisted, not for humans arriving cold)
-# (/hero-poc and /door now 301 home / to /create, so they're not listed —
-# a Disallow would stop crawlers from seeing the redirect.)
-Disallow: /card-capture
-Disallow: /og
-
-# API surface
+# API surface — JSON, nothing to index
 Disallow: /api/
 
 Sitemap: ${origin}/sitemap.xml

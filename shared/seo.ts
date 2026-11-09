@@ -229,11 +229,20 @@ export function catalogueSeoForPath(path: string): PageSeo | null {
 // robots.txt only stops the CRAWL (a URL can still be listed from
 // links); these get a real noindex (meta + X-Robots-Tag) too.
 // (launch audit 2026-10-06, Phase 3)
+// Search Console 2026-11-09 ("Indexed, though blocked by robots.txt"):
+// a robots Disallow HIDES the noindex from Google, which then lists the
+// bare URL from inbound links. So these are no longer disallowed in
+// robots.txt (server/robots-sitemap.ts) — the noindex here is what keeps
+// them out of results. Keep the two in step.
 const NOINDEX_PATHS: RegExp[] = [
   /^\/keeper$/, // design reference, duplicate of /photo
   /^\/c\//, // share links — a private moment between two people
   /^\/card\/\d+\/view(\/|$)/, // legacy long share form
   /^\/order\//, // private by uuid
+  /^\/(studio|admin|checkout)(\/|$)/, // signed-in product surfaces
+  /^\/login(\/|$)/, // sign-in form
+  /^\/buy\//, // checkout by card id
+  /^\/(card-capture|og|research|demo|door2?)(\/|$)/, // internal tooling + asset stages
 ];
 
 // Mirror of the router (client/src/App.tsx): every prefix a real route
