@@ -13,8 +13,14 @@ import { GALLERY_STORIES } from '@/lib/gallery-stories';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
 /** `hideLink` — the beta (2026-11-05): no way out to /stories. */
+// Aidan 2026-11-10: /photo shows Nana's 80th alone. The rest live on
+// /stories ("All stories"). Falls back to the first story if the slug
+// ever changes, so the section never silently disappears.
+const FEATURED_SLUG = 'nana-budapest';
+
 export function RealStoriesSection({ hideLink = false }: { hideLink?: boolean } = {}) {
-  const [first, ...rest] = GALLERY_STORIES;
+  const first = GALLERY_STORIES.find((s) => s.slug === FEATURED_SLUG) ?? GALLERY_STORIES[0];
+  const rest: typeof GALLERY_STORIES = [];
   if (!first) return null;
   return (
     <section id="real-stories" className="scroll-mt-32 px-6 py-24 md:py-32">
