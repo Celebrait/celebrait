@@ -9,9 +9,10 @@
 // documents update.
 //
 // ⚠️ TODO(founder + solicitor) before real customers or real payments:
-//   • legalName / address / companyNumber — the real registered entity.
-//     (Aidan 2026-09-23: "there is no registered entity atm just
-//     testing", so these are deliberately still unset.)
+//   • legalName / address — SET for GB 2026-11-10: Aidan trades as a
+//     sole trader ("Aidan Chant, trading as Celebrait"), so there is no
+//     company number. If a Ltd is formed, swap legalName + add the
+//     Companies House number here and every page/email follows.
 //   • icoNumber — register at ico.org.uk (data-protection fee) and add it.
 //   • Confirm SUPPORT_EMAIL actually exists and is monitored; the
 //     documents, the contact page and the FAQ all promise replies to it.
@@ -49,11 +50,11 @@ const set = (v: string): string | null => {
 
 const RAW = {
   /** Registered legal entity (the party the user contracts with). */
-  legalName: "[Legal entity name, e.g. Celebrait Ltd]",
+  legalName: ZA ? "[Legal entity name, e.g. Celebrait Ltd]" : "Aidan Chant",
   /** Registered / principal business address. */
-  address: ZA ? "[Registered / business address, South Africa]" : "[Registered / business address, United Kingdom]",
+  address: ZA ? "[Registered / business address, South Africa]" : "36 Bleasdale Road, Wythenshawe, Manchester M22 5FF",
   /** Companies House number, if a limited company (else leave blank). */
-  companyNumber: ZA ? "[CIPC registration number, if applicable]" : "[Companies House number, if applicable]",
+  companyNumber: ZA ? "[CIPC registration number, if applicable]" : "", // sole trader: no company number
   /** Data-protection registration: ICO number (GB) / Information
    *  Regulator registration of the Information Officer (ZA). */
   icoNumber: ZA ? "[Information Regulator registration, see note]" : "[ICO registration number, see note]",
@@ -99,8 +100,8 @@ export const PRE_LAUNCH_NOTE =
   "Registered-entity details will be published here before any card is sold. " +
   "In the meantime the contact addresses below reach us and are monitored.";
 
-export const PRIVACY_LAST_UPDATED = "1 July 2026";
-export const TERMS_LAST_UPDATED = "1 July 2026";
+export const PRIVACY_LAST_UPDATED = "10 November 2026";
+export const TERMS_LAST_UPDATED = "10 November 2026";
 
 /** Env override for the email footer (MAIL_POSTAL_ADDRESS /
  *  LEGAL_ENTITY_NAME) — lets Phase 0 flip the trader line on Render
