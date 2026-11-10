@@ -1265,31 +1265,6 @@ function ProofSection() {
 // HIDE_GALLERY) was replaced 2026-10-31 by one real card told in full,
 // linking to /gallery. AjarTile below stays for the carousel's trick.
 
-// ── THE MAGIC'S DIGITAL ──────────────────────────────────────────────
-// Aidan 2026-11-10, his words verbatim: why a printed card when anyone
-// can prompt an image. Sits directly above Real stories, so the story
-// that follows is the proof of the claim.
-
-function DigitalMagicSection() {
-  return (
-    <section id="the-card" className="scroll-mt-32 px-6 py-24 md:py-32" data-testid="digital-magic">
-      <Rise className="mx-auto max-w-3xl">
-        <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-          The magic’s digital. The card isn’t.
-        </h2>
-        <p className="mt-6 text-[17px] leading-relaxed text-keeper-body md:text-[19px]">
-          It’s 2026, anyone can write a prompt and conjure up an image. But a custom
-          greetings card with a front and inside that belong together, pressed onto
-          280gsm gloss and posted to someone you care about. That’s Celebrait.
-        </p>
-        <p className="mt-6 font-display text-[22px] font-semibold leading-snug text-keeper-ink md:text-[26px]">
-          Thoughtful, funny, gloriously daft: that’s you.
-        </p>
-      </Rise>
-    </section>
-  );
-}
-
 // ── 5. THE OBJECT ────────────────────────────────────────────────────
 
 function ObjectSection() {
@@ -1640,10 +1615,11 @@ export default function LandingKeeper() {
         <HowItWorksSection door="photo" />
         <ProofSection />
         {/* One card told in full, linking to /gallery (2026-10-31). */}
-        {/* Why a printed card at all (Aidan 2026-11-10), then the proof. */}
-        <DigitalMagicSection />
-        <RealStoriesSection hideLink={beta} />
+        {/* THE INSIDE ("The magic's digital. The card isn't.") moved above
+            Real stories (Aidan 2026-11-10): the claim, then the story that
+            proves it. */}
         <InsideSection />
+        <RealStoriesSection hideLink={beta} />
         {/* Imagine it → describe it → send it (animated phone). Moved up to
             sit directly under THE INSIDE on Kevin's call (2026-07-16) —
             was down after OccasionCapture, beside the demo video. */}
