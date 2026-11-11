@@ -40,7 +40,8 @@ import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { useLocalCardMaker } from '@/hooks/use-local-card-maker';
 import { GuestPhotoContext, useGuestPhotos, getGuestPhotoBlobs, clearGuestPhotos, discardGuestSession, photoThumbSrc } from '@/lib/guest-photos';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
-import { cardPrice } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 
 
@@ -317,6 +318,11 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
   onGenerate: () => void;
   onBetaGenerate: () => void;
 }) {
+  // The launch offer, said at the moment they're asked to sign up
+  // (Aidan 2026-11-11): this box told someone from a "first card's on
+  // us" ad that printing costs the full price, with no postage either.
+  // Hook first, above everything (see the hooks-before-returns rule).
+  const onUs = useFirstCardOnUs();
   // Beta tester, signed out: no account to make, nothing to pay.
   const betaGuest = beta && !authed;
   const occ = state.recipient?.occasion?.trim();
@@ -350,10 +356,26 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
           {betaGuest
             ? 'This is the beta, so there’s no account to make and nothing to pay. We open a studio for you and draw the card there, a few minutes on our bigger image model.'
             : authed
-              ? 'Your card is saved to your studio and drawn there, a few minutes on our bigger image model.'
+              ? 'Your card is saved to your studio and drawn there. It takes a few minutes.'
               : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
-          {!betaGuest && <> Nothing to pay until you print ({formatMoney(cardPrice('photo'))}).</>}
+          {!betaGuest && <> Making it is free, and there’s nothing to pay until you print.</>}
         </p>
+        {/* What printing costs, offer first when it's on. Conditions sit
+            in the same breath as "on us" (three dates, postage). */}
+        {!betaGuest && (
+          <p className="mt-2 text-[14px] leading-relaxed text-keeper-body" data-testid="gate-price-line">
+            {onUs ? (
+              <>
+                <b className="text-keeper-ink">Your first card’s on us</b> when you save three dates that matter. You just pay{' '}
+                {formatMoney(shippingPrice())} postage. After that, cards are {formatMoney(cardPrice('photo'))} plus postage.
+              </>
+            ) : (
+              <>
+                Printed and posted, a card is {formatMoney(cardPrice('photo'))} plus {formatMoney(shippingPrice())} postage.
+              </>
+            )}
+          </p>
+        )}
         {error && <p className="mt-3 text-[13px] text-accent-red-dark">{error}</p>}
         <Button
           onClick={authed ? onGenerate : betaGuest ? onBetaGenerate : onSignUp}
