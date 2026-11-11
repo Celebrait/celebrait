@@ -56,7 +56,6 @@ import { HandoverSection } from '@/components/landing/handover-section';
 import { InsideSection } from '@/components/landing/inside-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
 export { ShimmerWord };
-import { ImagineDescribeShipSection } from '@/components/landing/imagine-describe-ship-section';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
@@ -1806,10 +1805,14 @@ export default function LandingKeeper() {
         </div>
         {/* RealStoriesSection removed from /photo (Aidan 2026-11-11): the
             hero's "Read the stories" link goes to /stories instead. */}
-        {/* Imagine it → describe it → send it (animated phone). Moved up to
-            sit directly under THE INSIDE on Kevin's call (2026-07-16) —
-            was down after OccasionCapture, beside the demo video. */}
-        <ImagineDescribeShipSection />
+        {/* ImagineDescribeShipSection ("Imagine it. Describe it. Send it.")
+            removed 2026-11-12 (Aidan). Its whole content was the BRAINSTORM
+            CHAT, on a phone and in the line "brainstorm with us" — and the
+            chat is signed-in only (decision of 2026-09-04, reaffirmed
+            today), while the page's main button goes to the signed-out
+            maker. The page was promising something a new visitor can't
+            find. Component kept in components/landing for the studio's
+            own use or a later return. */}
         <HandoverSection />
         {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
             shot is an unfilled Prodigi-test-print placeholder and its specs
