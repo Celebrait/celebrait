@@ -39,6 +39,7 @@ import {
   Type,
   PenLine,
   Play,
+  BookOpen,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -61,7 +62,6 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
-import { RealStoriesSection } from '@/components/landing/real-stories-section';
 import { GestureHints } from '@/components/gesture-hints';
 // The shared kit: display face, hero headline scale, the one primary
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
@@ -560,6 +560,9 @@ function prefetchVideo() {
 
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
+  // Beta testers get no way off the photo route (2026-11-05), so the
+  // stories link hides for them; the video stays.
+  const betaChrome = useBetaMinimalChrome();
   // `started` gates the poster overlay + the native controls: the modal
   // opens on a clean poster, and the chrome only appears once it's
   // actually playing. Reset on end so the poster + play button come
@@ -603,6 +606,9 @@ function HeroProof() {
 
   return (
     <div className="relative">
+      {/* Image + the "started as this" snap share their own box, so the
+          snap hangs off the IMAGE, not off the links below it. */}
+      <div className="relative">
       {/* The object itself — the proof it's not a digital gimmick. */}
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-[0_28px_70px_-24px_rgba(33,29,25,0.45)]">
         {/* Nana's 80th (Aidan 2026-11-10) — the same card Real stories
@@ -639,6 +645,7 @@ function HeroProof() {
           started as this
         </p>
       </div>
+      </div>
 
       {/* Watch-her-open-it — secondary to the main CTA on purpose.
           Prefetch on INTENT (hover/touch-start), not page load: the clip
@@ -646,20 +653,33 @@ function HeroProof() {
           it would tax every mobile visit for nothing. Hovering or
           starting a tap gives a few hundred ms head start, which is
           usually the whole download. */}
-      <div className="mt-10 flex justify-end sm:mt-12">
+      {/* Two big links (Aidan 2026-11-11), replacing the small
+          "Watch her open it" pill: read the stories, or watch the video.
+          The video still prefetches on intent, not on page load. */}
+      <div className="mt-20 grid gap-3 sm:mt-24 sm:grid-cols-2">
+        {!betaChrome && (
+          <Link
+            href="/stories"
+            className="flex items-center justify-center gap-2.5 rounded-full border-2 border-brand bg-white px-6 py-4 text-[16px] font-semibold text-keeper-ink shadow-sm transition-colors hover:bg-brand-muted/40"
+            data-testid="hero-read-stories"
+          >
+            <BookOpen className="h-5 w-5 text-brand-dark" strokeWidth={2} aria-hidden="true" />
+            Read the stories
+          </Link>
+        )}
         <button
           type="button"
           onPointerEnter={prefetchVideo}
           onTouchStart={prefetchVideo}
           onFocus={prefetchVideo}
           onClick={() => setPlaying(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white px-4 py-2.5 text-[13px] font-semibold text-keeper-ink shadow-sm transition-colors hover:border-brand hover:text-brand-dark"
+          className={`flex items-center justify-center gap-2.5 rounded-full border-2 border-brand bg-white px-6 py-4 text-[16px] font-semibold text-keeper-ink shadow-sm transition-colors hover:bg-brand-muted/40 ${betaChrome ? 'sm:col-span-2' : ''}`}
           data-testid="hero-play-reaction"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white">
-            <Play className="ml-[1px] h-3 w-3 fill-current" strokeWidth={0} />
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand text-white">
+            <Play className="ml-[2px] h-3.5 w-3.5 fill-current" strokeWidth={0} />
           </span>
-          Watch her open it
+          Watch the video
         </button>
       </div>
 
@@ -1599,7 +1619,8 @@ export default function LandingKeeper() {
             Real stories (Aidan 2026-11-10): the claim, then the story that
             proves it. */}
         <InsideSection />
-        <RealStoriesSection hideLink={beta} />
+        {/* RealStoriesSection removed from /photo (Aidan 2026-11-11): the
+            hero's "Read the stories" link goes to /stories instead. */}
         {/* Imagine it → describe it → send it (animated phone). Moved up to
             sit directly under THE INSIDE on Kevin's call (2026-07-16) —
             was down after OccasionCapture, beside the demo video. */}
