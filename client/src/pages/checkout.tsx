@@ -22,7 +22,7 @@ import { pixelFlush, track } from '@/lib/pixel';
 import { useRoute, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Loader2, Package, Sparkles, Tag } from 'lucide-react';
+import { Check, Gift, Loader2, Package, Sparkles, Tag } from 'lucide-react';
 import { useBetaMode } from '@/hooks/use-beta';
 import { BetaNoPayments } from '@/components/beta-no-payments';
 import { Button } from '@/components/ui/button';
@@ -288,6 +288,14 @@ export default function CheckoutPage() {
   // real total either way.
   const onUsOpen = useFirstCardOnUs();
   const onUs = freeCardApplied && onUsOpen && card?.source === 'photo';
+  // THE GAP (found 2026-11-11): the landing page's main button goes
+  // straight to the maker, so an ad visitor could reach this page with
+  // no dates saved and see the full price with no word about the offer
+  // they clicked on. Say how to unlock it, right under the price.
+  const datesToGo = Math.max(0, 3 - (freeCard?.keyDates ?? 0));
+  const offerLocked =
+    !!freeCard && !freeCard.redeemed && datesToGo > 0 && !!card && card.source !== 'rack';
+  const lockedOnUs = offerLocked && onUsOpen && card?.source === 'photo';
   const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';
@@ -572,6 +580,35 @@ export default function CheckoutPage() {
                       inc. postage
                     </span>
                   </p>
+                )}
+                {offerLocked && (
+                  <div
+                    className="mt-4 rounded-xl border border-brand/40 bg-brand-muted px-4 py-3.5"
+                    data-testid="checkout-offer-locked"
+                  >
+                    <p className="flex items-start gap-2 text-[14px] leading-snug text-keeper-ink">
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-brand-dark" aria-hidden="true" />
+                      <span>
+                        <b>{lockedOnUs ? 'Your first card’s on us.' : '50% off your first card.'}</b>{' '}
+                        Add {datesToGo === 3 ? 'three dates' : datesToGo === 1 ? 'one more date' : `${datesToGo} more dates`} that
+                        matter and {lockedOnUs
+                          ? <>this card is free. You just pay {formatMoney(shippingPrice())} postage.</>
+                          : <>this card is {formatMoney(firstOrderPrice(card?.source))} plus postage.</>}
+                      </span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <Link
+                        href={`/studio/moments?back=${encodeURIComponent(`/checkout/${cardId}`)}`}
+                        className="inline-flex items-center rounded-full bg-go px-4 py-2 text-[13px] font-semibold text-go-foreground transition-colors hover:bg-go-hover"
+                        data-testid="checkout-add-dates"
+                      >
+                        Add my dates
+                      </Link>
+                      <span className="text-[11.5px] text-keeper-meta">
+                        Takes about a minute. Your card is saved. One per account{lockedOnUs ? ' and address, UK only' : ''}.
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

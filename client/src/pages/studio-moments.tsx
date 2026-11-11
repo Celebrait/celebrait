@@ -27,7 +27,7 @@
 // occasions, /api/user/address-book for people-count states). National
 // dates are a client-side table — they're public facts, not user data.
 
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   CalendarHeart,
@@ -62,6 +62,11 @@ export default function StudioMomentsPage() {
   // card and "Make your card" opens the photo studio.
   const maker = useMakerEnabled() === true;
   const offer = maker ? 'maker' : 'photo';
+  // Sent here from checkout to unlock the offer (2026-11-11): once the
+  // third date is in, the button goes BACK to that card, not to a new one.
+  // Only an internal /checkout/<id> path is honoured.
+  const backParam = new URLSearchParams(useSearch()).get('back') ?? '';
+  const backToCard = /^\/checkout\/\d+$/.test(backParam) ? backParam : null;
   // The 15-second sheet replaces every link to the address-book ADMIN
   // form on this page (Kevin's audit: the add flow IS the product).
   const [addOpen, setAddOpen] = useState(false);
@@ -166,13 +171,13 @@ export default function StudioMomentsPage() {
                   )}{' '}
                   It’s waiting whenever a moment comes round.
                 </p>
-                <Link href={maker ? '/make' : '/studio/new-card'}>
+                <Link href={backToCard ?? (maker ? '/make' : '/studio/new-card')}>
                   <Button
                     size="sm"
                     className="mt-2 rounded-full bg-go hover:bg-go-hover text-go-foreground"
                     data-testid="btn-make-free-card"
                   >
-                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Make your card
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> {backToCard ? 'Back to your card' : 'Make your card'}
                   </Button>
                 </Link>
               </>

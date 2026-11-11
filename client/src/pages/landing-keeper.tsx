@@ -1338,10 +1338,11 @@ function PriceSection() {
             </span>
           </div>
           <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} standard postage. One per account{onUs ? ', one per address' : ''};
-            after that, photo cards are {formatMoney(cardPrice('photo'))} plus postage. Make and preview as
-            many as you like for free. You only pay when you post one.
-            Our cards are one-off prints, so please allow at least a week from order to arrival.
+            When you save three dates that matter. {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} standard
+            postage. One per account{onUs ? ' and address, UK only' : ''}; after that, photo cards
+            are {formatMoney(cardPrice('photo'))} plus postage. Make and preview as many as you like for free.
+            You only pay when you post one. Our cards are one-off prints, so please allow at least
+            a week from order to arrival.
           </p>
           <div className="mt-8">
             <PrimaryCta large />
