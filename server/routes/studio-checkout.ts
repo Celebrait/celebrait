@@ -506,6 +506,10 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             totalAmount,
             freeCardApplied,
             compCode,
+            // Stamp the real provider at insert, not after the gateway
+            // call: the column defaults to 'stub', and a row left that
+            // way was confirmable through dev-confirm (audit 2026-11-11).
+            paymentProvider: getPaymentProvider().name,
             // Ads measurement: the choice, and matching signals ONLY when
             // the customer said yes (server/meta-capi.ts reads both).
             adConsent: typeof body.adConsent === 'boolean' ? body.adConsent : null,
@@ -822,7 +826,12 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         const order = rows[0];
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.userId !== userId) return res.status(403).json({ message: 'Not your order' });
-        if (order.paymentProvider !== 'stub') {
+        // BOTH must be stub (security audit 2026-11-11). The row alone
+        // was the gate, and a row is 'stub' by column default until the
+        // Stripe call returns — so with live Stripe + live Prodigi a
+        // signed-in user could confirm their own unpaid order (a legacy
+        // row, a failed Stripe call, or a race) and have it printed.
+        if (getPaymentProvider().name !== 'stub' || order.paymentProvider !== 'stub') {
           return res.status(404).json({ message: 'Dev-confirm only available for stub provider' });
         }
         const result = await markOrderPaidAndDispatch(orderId);

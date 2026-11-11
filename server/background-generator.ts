@@ -642,10 +642,17 @@ async function generateStudioCardInner(
       if (photoIds.length === 0) {
         throw new Error('No reference photos on this draft');
       }
-      const photoRows = await db
-        .select()
-        .from(photos)
-        .where(inArray(photos.id, photoIds));
+      // OWNER-SCOPED (security audit 2026-11-11). The draft state is
+      // client-supplied JSON and photo ids are sequential, so without
+      // this a draft could name ANOTHER customer's photo id and have
+      // their face drawn into a card. Only the card owner's own uploads
+      // are ever loaded; a card with no owner loads none.
+      const photoRows = row.userId
+        ? await db
+            .select()
+            .from(photos)
+            .where(and(inArray(photos.id, photoIds), eq(photos.userId, row.userId)))
+        : [];
 
       // Order photoRows to match the user's photoIds order. DB doesn't
       // guarantee order on an IN query, and the primary photo is
@@ -654,6 +661,9 @@ async function generateStudioCardInner(
       const orderedPhotos = photoIds
         .map((pid) => byId.get(pid))
         .filter((p): p is NonNullable<typeof p> => !!p);
+      if (orderedPhotos.length === 0) {
+        throw new Error('No reference photos on this draft belong to its owner');
+      }
 
       // Prefer cropped version (tighter on the face → better likeness
       // after the provider's downscale) when available. Photo paths are
@@ -1286,6 +1296,7 @@ export async function runRegenAttempt(
     // ── Load draft state + photos ────────────────────────────────────
     const cardRows = await db
       .select({
+        userId: cards.userId,
         conversationData: cards.conversationData,
         frontImageUrl: cards.frontImageUrl,
         frontImagePath: cards.frontImagePath,
@@ -1302,8 +1313,12 @@ export async function runRegenAttempt(
     if (!state || state.version !== 1) throw new Error('No valid draft state');
 
     const photoIds = state.photos?.photoIds ?? [];
-    const photoRows = photoIds.length
-      ? await db.select().from(photos).where(inArray(photos.id, photoIds))
+    // Owner-scoped, same rule as the first-generation path above.
+    const photoRows = photoIds.length && card.userId
+      ? await db
+          .select()
+          .from(photos)
+          .where(and(inArray(photos.id, photoIds), eq(photos.userId, card.userId)))
       : [];
     const byId = new Map(photoRows.map((p) => [p.id, p]));
     const orderedPhotos = photoIds
