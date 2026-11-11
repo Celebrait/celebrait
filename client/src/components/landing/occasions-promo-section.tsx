@@ -58,7 +58,11 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
 
   return (
     <section id="dates" className="scroll-mt-32 px-6 py-24 md:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      {/* grid-cols-1 = minmax(0,1fr): without it the implicit column sizes
+          to the year-ahead strip's min-width (340px+) and the whole section
+          ran off the right edge on phones (Aidan's iPhone, 2026-11-11). The
+          strip scrolls inside its own box instead. */}
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* ── Copy column ── */}
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-dark">
