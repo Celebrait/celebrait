@@ -149,14 +149,20 @@ app.use((req, res, next) => {
   app.get("/c", (_req, res) => res.redirect(302, CARD_QR_DESTINATION));
   // /door2 was the three-card doorway's experiment URL; /create is the
   // canonical one the gate links to. 301 so search engines consolidate.
-  app.get("/door2", (req, res) =>
-    res.redirect(301, req.originalUrl.replace(/^\/door2/, "/create")),
-  );
+  // While the three-card route is parked both go straight to the photo
+  // page (302, so nothing caches it past the reopening) instead of
+  // through /create, which only bounced the visitor on (audit 2026-11-11).
+  const oldDoor = (from: RegExp) => async (req: Request, res: Response) => {
+    const { getSiteLock } = await import("./routes/site-lock");
+    const open = (await getSiteLock().catch(() => null))?.makerEnabled === true;
+    return open
+      ? res.redirect(301, req.originalUrl.replace(from, "/create"))
+      : res.redirect(302, "/photo");
+  };
+  app.get("/door2", oldDoor(/^\/door2/));
   // Retired experiments (launch audit Phase 3): /door carried a stale
   // "first one's on us" offer; /hero-poc was the scroll-hero stage.
-  app.get("/door", (req, res) =>
-    res.redirect(301, req.originalUrl.replace(/^\/door/, "/create")),
-  );
+  app.get("/door", oldDoor(/^\/door/));
   app.get("/hero-poc", (_req, res) => res.redirect(301, "/"));
   // robots.txt + sitemap.xml carry the market's origin, so they are
   // rendered, not static (server/robots-sitemap.ts). Before the static

@@ -262,6 +262,15 @@ const KNOWN_ROUTES: RegExp[] = [
 ];
 
 export function isKnownRoutePath(path: string): boolean {
+  // A story or blog post that doesn't exist is a real 404 (+ noindex),
+  // not a 200 with a not-found screen — the audit of 2026-11-11 found
+  // /stories/anything and /blog/anything answering 200 and indexable.
+  // Both lists live in this file; a new story/post must be added here
+  // anyway for its title and description.
+  const story = path.match(/^\/stories\/([^/]+)\/?$/);
+  if (story) return GALLERY_STORY_SEO.some((g) => g.slug === story[1]);
+  const post = path.match(/^\/blog\/([^/]+)\/?$/);
+  if (post) return BLOG_POSTS.some((b) => b.slug === post[1]);
   return KNOWN_ROUTES.some((re) => re.test(path));
 }
 
