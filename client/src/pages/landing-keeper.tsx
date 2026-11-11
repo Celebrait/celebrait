@@ -1312,7 +1312,9 @@ function PriceSection() {
   const onUs = useFirstCardOnUs();
   return (
     <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
-      <div className="mx-auto max-w-3xl text-center">
+      {/* White panel (variation pass 2026-11-11): the offer is the one
+          block on the page that should read as an object, not more page. */}
+      <div className="mx-auto max-w-3xl rounded-[32px] border border-keeper-hair bg-white px-6 py-14 text-center shadow-[0_30px_80px_-40px_rgba(33,29,25,0.35)] sm:px-12 md:py-16">
         <Rise>
           {/* THE OFFER HERE IS THE ONE CHECKOUT APPLIES. This block sold a
               FREE first card ("just pay £2.95 postage") until 2026-10-06,
@@ -1607,6 +1609,7 @@ export default function LandingKeeper() {
       <CelebrationBackdrop
         background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)"
         permanentFade
+        fadeOutAfterHero
       />
       <KeeperHeader />
       <main className="pt-32">
@@ -1618,7 +1621,19 @@ export default function LandingKeeper() {
         {/* THE INSIDE ("The magic's digital. The card isn't.") moved above
             Real stories (Aidan 2026-11-10): the claim, then the story that
             proves it. */}
-        <InsideSection />
+        {/* Variation pass (2026-11-11): the page was nine sections on one
+            unbroken paper ground. This one gets a full-bleed violet-tint
+            band with hairline edges, and carries the mid-page button —
+            five sections in a row had none. */}
+        <div className="border-y border-brand/15 bg-brand-muted" data-testid="band-inside">
+          <InsideSection />
+          <div className="-mt-10 px-6 pb-20 text-center md:-mt-14 md:pb-24">
+            <PrimaryCta large />
+            <p className="mt-3 text-[12px] text-keeper-meta">
+              Free to make. No payment details needed.
+            </p>
+          </div>
+        </div>
         {/* RealStoriesSection removed from /photo (Aidan 2026-11-11): the
             hero's "Read the stories" link goes to /stories instead. */}
         {/* Imagine it → describe it → send it (animated phone). Moved up to

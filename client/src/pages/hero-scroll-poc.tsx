@@ -196,7 +196,8 @@ export function MakeYourOwnSection() {
 export function CelebrationBackdrop({
   background,
   permanentFade = false,
-}: { background?: string; permanentFade?: boolean } = {}) {
+  fadeOutAfterHero = false,
+}: { background?: string; permanentFade?: boolean; fadeOutAfterHero?: boolean } = {}) {
   const reduced = useReducedMotion();
   const { scrollY } = useScroll();
   // Cache the viewport height (refreshed on resize) instead of reading
@@ -218,7 +219,16 @@ export function CelebrationBackdrop({
   // permanentFade (keeper landing): the field sits at the faded floor
   // from the first paint — same look the scroll fade produces, but
   // everywhere including the hero (Kevin 2026-07-04).
+  // fadeOutAfterHero (photo LP, 2026-11-11): the field belongs to the
+  // hero only. Fixed behind nine sections it made every screen look like
+  // the last one, so it fades from the floor to nothing as the hero
+  // leaves (0.35vh → 0.9vh) and each section below gets its own ground.
   const fieldOpacity = useTransform(scrollY, (y) => {
+    if (fadeOutAfterHero) {
+      const vh = vhRef.current;
+      const t = clamp((y - vh * 0.35) / (vh * 0.9 - vh * 0.35), 0, 1);
+      return FIELD_FLOOR * (1 - t);
+    }
     if (permanentFade) return FIELD_FLOOR;
     const vh = vhRef.current;
     const t = clamp((y - vh * 0.4) / (vh * 1.0 - vh * 0.4), 0, 1);
@@ -232,7 +242,7 @@ export function CelebrationBackdrop({
       />
       <motion.div
         className="pointer-events-none fixed inset-0 -z-10"
-        style={{ opacity: reduced ? 1 : fieldOpacity }}
+        style={{ opacity: reduced && !fadeOutAfterHero ? 1 : fieldOpacity }}
       >
         <FloatingCards cards={FLOATING_DESKTOP} mask={DESKTOP_MASK} className="hidden md:block" />
         <FloatingCards cards={FLOATING_MOBILE} mask={MOBILE_MASK} className="md:hidden" />
