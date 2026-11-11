@@ -56,8 +56,12 @@ const REDIRECT_HOSTS = new Set(
 );
 // Liveness for Render's health check: no database, no HTML shell. Point
 // Render's "Health Check Path" here so its pings can never wake Neon.
+// X-Build = the commit Render built (2026-11-11): a server-only deploy
+// doesn't change the client bundle hash, so this is the only way to
+// confirm from outside which build is answering.
+const BUILD_SHA = (process.env.RENDER_GIT_COMMIT ?? "local").slice(0, 8);
 app.get("/healthz", (_req, res) => {
-  res.set("Cache-Control", "no-store").type("text/plain").send("ok");
+  res.set("Cache-Control", "no-store").set("X-Build", BUILD_SHA).type("text/plain").send("ok");
 });
 
 app.use((req, res, next) => {
