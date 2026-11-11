@@ -106,28 +106,6 @@ export default function PhotoMakerPage() {
   }, []);
   const m = useLocalCardMaker(PUBLIC_STEPS.length, seed as Partial<CardDraftState> | undefined);
   const { state, update, setStep, goNext, goBack, currentStep, furthest } = m;
-  // A scene idea tapped on the landing page (?scene=…, 2026-11-12).
-  // Applied once on arrival and written over whatever scene an earlier
-  // draft in this tab had: tapping an idea is asking for that scene. The
-  // recipient seed above only fires on an EMPTY draft, so the name is
-  // filled here too when there isn't one yet. The param is then stripped,
-  // so a refresh or the back button can't re-apply it over their edits.
-  const [pickedScene, setPickedScene] = useState<string | null>(null);
-  useEffect(() => {
-    const qp = new URLSearchParams(window.location.search);
-    const scene = qp.get('scene')?.trim().slice(0, 300);
-    if (!scene) return;
-    const cur = m.stateRef.current;
-    const name = qp.get('recipient')?.trim();
-    update({
-      scene: { ...cur.scene, description: scene, source: 'suggestion' },
-      ...(name && !cur.recipient?.name?.trim() ? { recipient: { ...cur.recipient, name } } : {}),
-    });
-    setPickedScene(scene);
-    qp.delete('scene');
-    window.history.replaceState({}, '', window.location.pathname + (qp.toString() ? `?${qp}` : ''));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const photos = useGuestPhotos();
 
   const ready = (i: number) =>
@@ -265,13 +243,6 @@ export default function PhotoMakerPage() {
               (Aidan 2026-09-10) — one-off prints, allow a week — so it's
               read with the question, not as page chrome. */}
           <LeadTimeNotice className="mb-5 sm:mb-6" link={!betaMode} />
-          {/* They tapped an idea on the landing page: say it came with
-              them, until they reach the scene step and see it there. */}
-          {pickedScene && currentStep < 2 && (
-            <p className="mx-auto mb-5 max-w-2xl rounded-xl border border-brand/40 bg-brand-muted px-4 py-3 text-[13.5px] leading-snug text-keeper-body" data-testid="picked-scene-note">
-              <b className="text-keeper-ink">Your scene’s saved:</b> “{pickedScene}”. You can change it at the scene step.
-            </p>
-          )}
           <h1 className="mx-auto mb-5 max-w-2xl font-display text-xl font-bold tracking-[-0.015em] text-keeper-ink sm:mb-6 sm:text-2xl">
             {headline(currentStep, state)}
           </h1>

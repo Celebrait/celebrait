@@ -1814,9 +1814,10 @@ export default function LandingKeeper() {
             maker. The page was promising something a new visitor can't
             find. Component kept in components/landing for the studio's
             own use or a later return. */}
-        {/* What took its place: scenes to steal, each a link into the
-            maker with the scene already written (2026-11-12). */}
-        <SceneIdeasSection />
+        {/* What took its place (2026-11-12): a demo of the maker's "Get
+            scene ideas" box — type a few words, get three scenes. That
+            helper is open to signed-out visitors. Not interactive. */}
+        <SceneIdeasSection cta={<PrimaryCta />} />
         <HandoverSection />
         {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
             shot is an unfilled Prodigi-test-print placeholder and its specs
