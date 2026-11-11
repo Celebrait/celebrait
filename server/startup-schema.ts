@@ -60,6 +60,25 @@ export async function ensureLaunchColumns(): Promise<void> {
     // server-side Purchase event. See server/meta-capi.ts.
     await db.execute(sql`alter table studio_orders add column if not exists ad_consent boolean`);
     await db.execute(sql`alter table studio_orders add column if not exists ad_match jsonb`);
+    // 2026-11-11: comp codes (creator gifting). The table and the order
+    // column were only ever created by drizzle-kit on dev, and nobody
+    // could confirm prod had them — the checkout INSERT writes comp_code
+    // on every order, so a missing column would 500 the first real sale.
+    // Mirrors shared/models/comp-codes.ts exactly.
+    await db.execute(sql`create table if not exists comp_codes (
+      id serial primary key,
+      code varchar(32) not null unique,
+      label text not null,
+      covers_shipping boolean not null default true,
+      covers_card boolean not null default false,
+      max_uses integer not null default 1,
+      uses integer not null default 0,
+      expires_at timestamp,
+      active boolean not null default true,
+      notes text,
+      created_at timestamp default now()
+    )`);
+    await db.execute(sql`alter table studio_orders add column if not exists comp_code varchar(32)`);
   } catch (err) {
     console.warn('[SCHEMA] launch column check failed:', (err as Error)?.message ?? err);
   }

@@ -119,7 +119,7 @@ function totalsFor(
    *  optimistically zeroes postage; the server validates the real code
    *  at order create and refuses the request if it's bad, so a made-up
    *  code can only ever change pixels, not what's charged. */
-  compCode?: boolean,
+  compCode?: { card: boolean; shipping: boolean } | null,
   /** Which door made this card — decides its price (§8a). Undefined
    *  while the card is still loading; falls back to the photo price,
    *  which is the historic product and the safest over-estimate. */
@@ -130,9 +130,9 @@ function totalsFor(
   // Priced by the door that made this card, mirroring the server so the
   // shown total always equals the charge (UX_THREE_DOORS.md §8a).
   const printPrice = cardPrice(cardSource);
-  const printAmount = freeCard ? (onUs ? 0 : firstOrderPrice(cardSource)) : printPrice;
+  const printAmount = compCode?.card ? 0 : freeCard ? (onUs ? 0 : firstOrderPrice(cardSource)) : printPrice;
   const digitalAmount = 0;
-  const shippingAmount = compCode ? 0 : shippingPrice(tier);
+  const shippingAmount = compCode?.shipping ? 0 : shippingPrice(tier);
   const stickerAmount = envelopeStickerPrice(addSticker, shipTo);
   return {
     printAmount,
@@ -263,6 +263,44 @@ export default function CheckoutPage() {
     }
   });
   const [showCompCode, setShowCompCode] = useState(() => compCode.length > 0);
+  // What the typed code actually does, asked of the server (2026-11-11).
+  // Until this existed the page said "Postage on us" for any text at all
+  // and never knew a code could cover the card too. null = nothing typed
+  // or still checking; the totals only change on a confirmed code.
+  const [compInfo, setCompInfo] = useState<
+    { ok: true; coversCard: boolean; coversShipping: boolean } | { ok: false; reason: string } | null
+  >(null);
+  const [compChecking, setCompChecking] = useState(false);
+  useEffect(() => {
+    const code = compCode.trim();
+    setCompInfo(null);
+    if (!code) { setCompChecking(false); return; }
+    setCompChecking(true);
+    let stale = false;
+    const t = window.setTimeout(async () => {
+      try {
+        const r = await fetch('/api/studio/comp-code/check', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        const j = await r.json().catch(() => null);
+        if (stale) return;
+        setCompInfo(
+          j?.ok === true
+            ? { ok: true, coversCard: j.coversCard === true, coversShipping: j.coversShipping === true }
+            : { ok: false, reason: j?.reason ?? "That code isn't valid." },
+        );
+      } catch {
+        if (!stale) setCompInfo({ ok: false, reason: "We couldn't check that code. Try again." });
+      } finally {
+        if (!stale) setCompChecking(false);
+      }
+    }, 450);
+    return () => { stale = true; window.clearTimeout(t); };
+  }, [compCode]);
+  const compApplied = compInfo?.ok ? { card: compInfo.coversCard, shipping: compInfo.coversShipping } : null;
 
   // Free-first-card credit (Moments rewards): earned by adding 3 key
   // dates, spent here. Display-only truth — the server re-derives
@@ -304,11 +342,11 @@ export default function CheckoutPage() {
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compCode.trim().length > 0, card?.source, onUs),
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compApplied, card?.source, onUs),
     // card.source was missing here (audit 2026-09-09): the memo ran once
     // with the card still loading and priced every maker card as a photo
     // card (£6.99 shown, £5.99 charged).
-    [effectiveTier, shipTo, addSticker, freeCardApplied, compCode, card?.source, onUs],
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compApplied?.card, compApplied?.shipping, card?.source, onUs],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -581,7 +619,7 @@ export default function CheckoutPage() {
                     </span>
                   </p>
                 )}
-                {offerLocked && (
+                {offerLocked && !compApplied?.card && (
                   <div
                     className="mt-4 rounded-xl border border-brand/40 bg-brand-muted px-4 py-3.5"
                     data-testid="checkout-offer-locked"
@@ -867,8 +905,20 @@ export default function CheckoutPage() {
                     data-testid="input-comp-code"
                   />
                   {compCode.trim() && (
-                    <span className="text-[11.5px] text-green-700 whitespace-nowrap">
-                      Postage on us
+                    <span
+                      className={`text-[11.5px] whitespace-nowrap ${compInfo?.ok ? 'text-green-700' : compInfo ? 'text-red-600' : 'text-keeper-meta'}`}
+                      data-testid="comp-code-status"
+                      aria-live="polite"
+                    >
+                      {compChecking || !compInfo
+                        ? 'Checking…'
+                        : !compInfo.ok
+                          ? compInfo.reason
+                          : compInfo.coversCard && compInfo.coversShipping
+                            ? 'Card and postage on us'
+                            : compInfo.coversCard
+                              ? 'Card on us'
+                              : 'Postage on us'}
                     </span>
                   )}
                 </div>

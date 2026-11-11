@@ -33,6 +33,7 @@ import {
   addressHadFreeCard,
 } from '../studio/free-card';
 import { validateCompCode, consumeCompCode } from '../studio/comp-code';
+import { rateLimitHit } from '../simple-rate-limit';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import { touchCheckout } from '../activity';
@@ -802,6 +803,30 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       }
     },
   );
+
+  // ── POST /api/studio/comp-code/check ─────────────────────────────
+  // What does this code do? (2026-11-11.) The checkout page used to show
+  // "Postage on us" the moment ANYTHING was typed, valid or not, and had
+  // no way to know a code also covered the card. Read-only: nothing is
+  // consumed here (that happens on the paid flip). Signed-in only and
+  // rate-limited, so it can't be used to guess codes.
+  app.post('/api/studio/comp-code/check', isAuthenticated, async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+    if (rateLimitHit(`comp-check:${userId}`, 20, 10 * 60 * 1000)) {
+      return res.status(429).json({ ok: false, reason: 'Too many tries. Give it a few minutes.' });
+    }
+    try {
+      const comp = await validateCompCode(req.body?.code);
+      if (!comp.ok || !comp.code) {
+        return res.json({ ok: false, reason: comp.reason ?? "That code isn't valid." });
+      }
+      res.json({ ok: true, coversCard: comp.code.coversCard, coversShipping: comp.code.coversShipping });
+    } catch (err) {
+      console.error('[COMP-CODE] check error:', err);
+      res.status(500).json({ ok: false, reason: "We couldn't check that code. Try again." });
+    }
+  });
 
   // ── POST /api/studio/orders/:id/dev-confirm ──────────────────────
   // Stub-only: mark the order paid without hitting a real gateway.

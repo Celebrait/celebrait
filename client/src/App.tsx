@@ -140,6 +140,7 @@ const BuyPage = lazy(() => import("@/pages/buy"));
 const BetaPage = lazy(() => import("@/pages/beta"));
 const BetaFeedbackPage = lazy(() => import("@/pages/beta-feedback"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback"));
+const AdminCodesPage = lazy(() => import("@/pages/admin-codes"));
 // A component (not inline JSX) so the query is read when the route
 // renders, not when App last rendered.
 // Retired experiment URLs (launch audit Phase 3): /door and /door2 were
@@ -499,6 +500,13 @@ function Router() {
             <RequireAdmin>
               <AdminLayout>
                 <AdminFeedbackPage />
+              </AdminLayout>
+            </RequireAdmin>
+          </Route>
+          <Route path="/admin/codes">
+            <RequireAdmin>
+              <AdminLayout>
+                <AdminCodesPage />
               </AdminLayout>
             </RequireAdmin>
           </Route>
