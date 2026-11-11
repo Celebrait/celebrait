@@ -95,7 +95,10 @@ export default function GalleryPage() {
           </Link>
         </Rise>
 
-        <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:mt-16 lg:grid-cols-3">
+        {/* Two columns while the wall is short (2 cards, 2026-11-11): a
+            three-column grid left an empty third. Go back to
+            lg:grid-cols-3 once there are five or more. */}
+        <div className={`mt-12 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:mt-16 ${GALLERY_EXAMPLES.length >= 5 ? 'lg:grid-cols-3' : 'max-w-4xl'}`}>
           {GALLERY_EXAMPLES.map((e, i) => (
             <Rise key={e.id} delay={(i % 3) * 0.07}>
               <ExampleTile e={e} />

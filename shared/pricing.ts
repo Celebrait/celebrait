@@ -385,7 +385,13 @@ export type CardSource = 'rack' | 'maker' | 'photo';
 export const CARD_PRICES_GBP: Record<CardSource, number> = {
   rack: 499,   // pre-made stock, no generation spend
   maker: 599,  // written and drawn for them (~£0.21 of tokens)
-  photo: 699,  // the differentiator, highest production cost
+  // £4.99 since 2026-11-11 (Aidan: "drop my price to £4.99 plus postage";
+  // the rival, The Card Studio, sells at £4.99). Was £6.99. ⚠️ The ladder
+  // above no longer holds: photo now equals rack and undercuts maker.
+  // Both of those doors are parked (rackEnabled / makerEnabled off), so
+  // nothing on the live site shows it — re-price them before reopening.
+  // client/index.html's JSON-LD states this price by hand; keep in step.
+  photo: 499,
 };
 
 /** The GBP price (minor units) of a card from a given door. Unknown or

@@ -38,36 +38,8 @@ export const GALLERY_EXAMPLES: GalleryExample[] = [
     alt: 'Hannah and Nana on a Budapest riverside wall at sunset, wine in hand, the stone carved Happy 80th Nana',
     storySlug: 'nana-budapest',
   },
-  {
-    id: 'mum-northern-lights',
-    title: "Mum's 60th",
-    scene: 'Under the Northern Lights',
-    front: '/proof-card-front.webp',
-    inside: '/proof-card-inside.webp',
-    alt: 'Mum in a parka under the Northern Lights, the front reading Happy 60th Mum',
-  },
-  {
-    id: 'new-york-anniversary',
-    title: '10 years · for Sarah',
-    scene: 'On a rooftop in New York at sunset',
-    front: '/hero-card-front.webp',
-    inside: '/hero-card-inside.webp',
-    alt: 'A couple toasting on a New York rooftop at sunset, the front reading Happy Anniversary Baby',
-  },
-  {
-    id: 'big-ben',
-    title: 'Best friends',
-    scene: 'Abseiling off Big Ben',
-    front: '/proof-bigben-front.webp',
-    inside: '/proof-bigben-inside.webp',
-    alt: 'Two friends abseiling down the face of Big Ben',
-  },
-  {
-    id: 'times-square',
-    title: 'For Sarah',
-    scene: 'Going viral in Times Square',
-    front: '/proof-timessquare-front.webp',
-    inside: '/proof-timessquare-inside.webp',
-    alt: 'Sarah filming herself in the middle of Times Square',
-  },
+  // Aidan 2026-11-11: the gallery shows these two only. The other four
+  // (Mum / Northern Lights, New York, Big Ben, Times Square) came off and
+  // will be replaced with real-life photos of printed cards. Their art
+  // still lives on /photo's scenes row and how-it-works.
 ];

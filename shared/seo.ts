@@ -116,7 +116,7 @@ const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
     path: '/gallery',
     title: 'Gallery: Real Personalised Photo Cards, Fronts & Insides | Celebrait',
     description:
-      'Every card here started as one photo. Browse real personalised cards, fronts and insides, from a Wembley birthday reveal to Mum under the Northern Lights.',
+      'Every card here started as one photo. Browse real personalised cards, fronts and insides, from a Wembley birthday reveal to Nana’s 80th by the Danube.',
   },
   {
     path: '/beta',
