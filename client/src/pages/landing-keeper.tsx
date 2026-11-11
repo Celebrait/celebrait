@@ -51,7 +51,6 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
 import { Rise } from '@/components/landing/rise';
-import { SceneIdeasSection } from '@/components/landing/scene-ideas-section';
 import { ShimmerWord } from '@/components/landing/shimmer-word';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { InsideSection } from '@/components/landing/inside-section';
@@ -1814,10 +1813,11 @@ export default function LandingKeeper() {
             maker. The page was promising something a new visitor can't
             find. Component kept in components/landing for the studio's
             own use or a later return. */}
-        {/* What took its place (2026-11-12, third build): a short film in
-            a phone — a few words → three scenes → one picked → a real
-            card. Not interactive. History in the component's header. */}
-        <SceneIdeasSection cta={<PrimaryCta />} />
+        {/* Nothing replaced it. A "scene ideas" section was built three
+            ways on 2026-11-12 (a tappable list of scenes, the helper box
+            at full size, a film in a phone ending on a real card) and
+            Aidan binned all three. Don't rebuild one without asking him
+            what he pictures first. The last version is in git: cd2359c9. */}
         <HandoverSection />
         {/* ObjectSection ("Made to be kept") removed 2026-07-24 — its macro
             shot is an unfilled Prodigi-test-print placeholder and its specs
