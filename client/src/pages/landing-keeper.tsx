@@ -841,34 +841,12 @@ function HeroSection() {
         </Rise>
 
         <div className="md:col-start-1 md:row-start-2">
-          {/* The recipe in one line — three beats joined by purple (brand)
-              arrows, then the payoff. Inline reads as a single flow rather
-              than a choppy stacked list (Kevin 2026-07-14). Wraps gracefully
-              on narrow columns without ever orphaning an arrow (arrows are
-              glued to the step before them). */}
-          <div className="max-w-[30rem] md:mt-6">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[17px] font-medium text-keeper-ink">
-              <span className="whitespace-nowrap">
-                Start with a photo
-                <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
-              </span>
-              <span className="whitespace-nowrap">
-                Describe the moment
-                <ArrowRight className="mb-0.5 ml-2 inline h-4 w-4 text-brand-dark" strokeWidth={2.25} aria-hidden="true" />
-              </span>
-              <span className="whitespace-nowrap">Craft your message</span>
-            </div>
-            <p className="mt-3 text-[16px] leading-[1.6] text-keeper-body">
-              The result? A close to perfect greetings card they'll{' '}
-              <span className="font-medium text-keeper-ink">probably keep</span> for{' '}
-              {formatMoney(cardPrice('photo'))}. From photo to print-ready in 7–10 minutes*
-            </p>
-            {/* The wink — the asterisk is the joke, so keep it quiet and
-                right under the claim it qualifies. */}
-            <p className="mt-1.5 text-[12px] leading-snug text-keeper-meta">
-              *Possible, but you might prefer to take longer
-            </p>
-          </div>
+          {/* One plain line (Aidan 2026-11-11): replaced the three-step
+              recipe, the £ price and the 7–10 minutes wink. */}
+          <p className="max-w-[30rem] text-[17px] leading-[1.6] text-keeper-body md:mt-6">
+            Celebrait turns your photo into any scene imaginable to create mind blowing
+            custom greetings cards. Print ready in under ten minutes.
+          </p>
           <div className="mt-8">
             <PrimaryCta large />
             <p className="mt-3 text-[12px] text-keeper-meta">
