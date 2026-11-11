@@ -137,13 +137,13 @@
          was rebuilt around real photographs, these still pointed at the
          3D card textures — so the browser spent its first, most
          contended connections on two images that had moved BELOW the
-         fold, while the actual LCP element (hero-real-card.webp) wasn't
+         fold, while the actual LCP element (then hero-real-card.webp, now hero-nana-card.webp) wasn't
          preloaded at all and queued behind them.
 
          crossorigin is not decoration, it's cache-key matching: a
          preload whose CORS mode differs from the eventual fetch is
          ignored and the file downloads TWICE.
-           - hero-real-*  → plain <img>, no crossOrigin  → omit it.
+           - hero-nana-* (was hero-real-*) → plain <img>, no crossOrigin → omit it.
            - hero-card-*  → r3f anonymous textures       → keep it. -->
     <!-- These three belong to the PHOTO page's hero only. Since the gate
          took over / (2026-09-03) a static preload here cost every other
@@ -154,8 +154,8 @@
         var p = location.pathname.replace(/\/$/, '');
         if (p !== '/photo' && p !== '/keeper') return;
         [
-          ['/hero-real-card.webp', 'high', false],
-          ['/hero-real-source.webp', 'low', false],
+          ['/hero-nana-card.webp', 'high', false],
+          ['/hero-nana-source.webp', 'low', false],
           ['/hero-card-front.webp', 'low', true],
         ].forEach(function (x) {
           var l = document.createElement('link');

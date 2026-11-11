@@ -605,9 +605,11 @@ function HeroProof() {
     <div className="relative">
       {/* The object itself — the proof it's not a digital gimmick. */}
       <div className="relative overflow-hidden rounded-2xl bg-white shadow-[0_28px_70px_-24px_rgba(33,29,25,0.45)]">
+        {/* Nana's 80th (Aidan 2026-11-10) — the same card Real stories
+            tells in full further down. Cropped 3:2 from gallery-img. */}
         <img
-          src="/hero-real-card.webp"
-          alt="A printed Celebrait card standing on a desk beside its envelope"
+          src="/hero-nana-card.webp"
+          alt="A printed Celebrait card: Hannah and her Nana on a Budapest riverside wall at sunset, reading Happy 80th Nana"
           className="h-full w-full object-cover"
           width={1100}
           height={734}
@@ -627,8 +629,8 @@ function HeroProof() {
       <div className="absolute -bottom-6 -left-3 w-[34%] -rotate-6 sm:-bottom-8 sm:-left-6 sm:w-[30%]">
         <div className="rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_16px_36px_-12px_rgba(33,29,25,0.45)]">
           <img
-            src="/hero-real-source.webp"
-            alt="The everyday phone photo this card was made from"
+            src="/hero-nana-source.webp"
+            alt="The everyday selfie this card was made from: Hannah and her Nana on a Lake District walk"
             className="block h-full w-full rounded-sm object-cover"
             style={{ aspectRatio: '3/4' }}
           />
