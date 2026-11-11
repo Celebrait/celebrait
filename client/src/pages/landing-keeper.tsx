@@ -1043,6 +1043,116 @@ const PROOF_EXAMPLES: ProofExample[] = [
   NEW_YORK_EXAMPLE,
 ];
 
+// ── 2b. THE SCENES ROW (2026-11-11) ──────────────────────────────────
+// Replaces the one-card carousel on /photo. Three real cards side by
+// side, each with the photo it started as and the scene that was typed:
+// the proof comes from the product, no reviews needed. Tap a card to see
+// its inside. Mum / Northern Lights is left out on purpose — the
+// how-it-works section one screen up already walks through that card,
+// and the page was showing it three times running. ProofSection (the
+// carousel, with its openable card) is kept below for an easy swap back.
+const SCENE_ROW: ProofExample[] = [BIG_BEN_EXAMPLE, TIMES_SQUARE_EXAMPLE, NEW_YORK_EXAMPLE];
+
+function SceneTile({ e }: { e: ProofExample }) {
+  const [inside, setInside] = useState(false);
+  return (
+    <li className="w-[76%] max-w-[340px] shrink-0 snap-center md:w-auto md:max-w-none">
+      <button
+        type="button"
+        onClick={() => setInside((v) => !v)}
+        aria-pressed={inside}
+        aria-label={inside ? 'Show the front of this card' : 'Show the inside of this card'}
+        className="group relative block w-full text-left"
+        data-testid={`scene-tile-${e.id}`}
+      >
+        <span className="relative block aspect-square overflow-hidden rounded-[10px] bg-white shadow-[0_26px_60px_-28px_rgba(33,29,25,0.5)] ring-1 ring-black/5">
+          <img
+            src={e.cardFront}
+            alt={e.cardAlt}
+            loading="lazy"
+            decoding="async"
+            width={900}
+            height={900}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 motion-reduce:transition-none ${inside ? 'opacity-0' : 'opacity-100'}`}
+          />
+          <img
+            src={e.cardInside}
+            alt={`The inside of the card: ${e.insideMessage}`}
+            loading="lazy"
+            decoding="async"
+            width={900}
+            height={900}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 motion-reduce:transition-none ${inside ? 'opacity-100' : 'opacity-0'}`}
+          />
+          <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-keeper-ink shadow-sm">
+            {inside ? 'See the front' : 'See inside'}
+          </span>
+        </span>
+        {/* The ordinary photo it started as — same tilted snap as the hero. */}
+        <span className="absolute -bottom-5 -left-3 block w-[30%] -rotate-6 rounded-md border-[5px] border-white bg-stone-100 shadow-[0_14px_30px_-12px_rgba(33,29,25,0.5)]">
+          <img
+            src={e.sourcePhoto}
+            alt={e.sourceAlt}
+            loading="lazy"
+            decoding="async"
+            width={500}
+            height={500}
+            className="block aspect-square w-full rounded-sm object-cover"
+          />
+        </span>
+      </button>
+      <div className="mt-9 pl-1 text-left">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">The scene they typed</p>
+        <p className="mt-1.5 font-display text-[20px] font-bold leading-snug tracking-[-0.01em] text-keeper-ink">
+          “{e.scene}”
+        </p>
+        <p className="mt-1 text-[14px] text-keeper-meta">On the front: {e.frontText}</p>
+      </div>
+    </li>
+  );
+}
+
+function ScenesRowSection() {
+  const reduced = useReducedMotion();
+  const beta = useBetaMinimalChrome();
+  return (
+    <section id="proof" className="scroll-mt-32 py-16 md:pb-32 md:pt-16">
+      <Rise className="mx-auto max-w-4xl px-6 text-center">
+        {/* The page's one big centred statement: every other heading is 44px. */}
+        <h2 className={`text-[clamp(34px,5.6vw,64px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
+          Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be boring
+        </h2>
+        <p className="mt-5 text-[19px] leading-[1.5] text-keeper-body md:text-[21px]">
+          You describe the scene. We make it real.
+        </p>
+      </Rise>
+      {/* Phones: a swipeable row with the next card peeking. Desktop: three across. */}
+      <ul
+        className="mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-8 pt-2 md:mx-auto md:mt-16 md:grid md:max-w-6xl md:grid-cols-3 md:gap-10 md:overflow-visible md:pb-0"
+        style={{ scrollbarWidth: 'none' }}
+        data-testid="scenes-row"
+      >
+        {SCENE_ROW.map((e) => (
+          <SceneTile key={e.id} e={e} />
+        ))}
+      </ul>
+      <div className="mt-8 flex flex-col items-center gap-4 px-6 md:mt-14">
+        <PrimaryCta />
+        {!beta && (
+          <Link
+            href="/gallery"
+            className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:decoration-keeper-gold"
+            data-testid="scenes-row-gallery"
+          >
+            See every card in the gallery
+            <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+          </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function ProofSection() {
   const reduced = useReducedMotion();
   const [cardOpen, setCardOpen] = useState(false);
@@ -1674,7 +1784,9 @@ export default function LandingKeeper() {
         <HeroSection />
         {/* The three steps the hero names, shown (Aidan 2026-10-11). */}
         <HowItWorksSection door="photo" pairedBelow cta={<PrimaryCta />} />
-        <ProofSection />
+        {/* The scenes row replaced the one-card carousel here (2026-11-11);
+            ProofSection is kept in this file for a swap back. */}
+        <ScenesRowSection />
         {/* One card told in full, linking to /gallery (2026-10-31). */}
         {/* THE INSIDE ("The magic's digital. The card isn't.") moved above
             Real stories (Aidan 2026-11-10): the claim, then the story that
