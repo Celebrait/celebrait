@@ -620,7 +620,10 @@ function Beat({
  * One IntersectionObserver for the three, so their visibility lands in
  * a single update and the chain can't race.
  */
-export function HowItWorksSection({ door }: { door: Door }) {
+/** `pairedBelow` tightens the desktop gap to the section that follows
+ *  (the photo LP pairs this with its gallery); `cta` is a button the page
+ *  supplies, shown under the steps. Both added 2026-11-11. */
+export function HowItWorksSection({ door, pairedBelow = false, cta }: { door: Door; pairedBelow?: boolean; cta?: React.ReactNode }) {
   const copy = COPY[door];
   const stages: Array<(c: Clock) => React.ReactNode> =
     door === 'photo'
@@ -672,7 +675,7 @@ export function HowItWorksSection({ door }: { door: Door }) {
   }, []);
 
   return (
-    <section id="how-it-works" className="scroll-mt-32 px-6 py-24 md:py-32">
+    <section id="how-it-works" className={`scroll-mt-32 px-6 py-16 md:pt-32 ${pairedBelow ? 'md:pb-16' : 'md:pb-32'}`}>
       <div className="mx-auto max-w-6xl">
         <Rise>
           <p className={EYEBROW}>{copy.eyebrow}</p>
@@ -704,6 +707,7 @@ export function HowItWorksSection({ door }: { door: Door }) {
             <span>{copy.foot}</span>
           </p>
         )}
+        {cta && <div className="mt-8 md:mt-10">{cta}</div>}
       </div>
     </section>
   );

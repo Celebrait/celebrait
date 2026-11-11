@@ -223,12 +223,12 @@ function AssetSlot({
 // code", which is the strongest reason we have for paying that cost.
 // The invite modal is mounted on this page and listens for CLAIM_EVENT,
 // same mechanism the ticker and the corner pill already use.
-function PrimaryCta({ large = false }: { large?: boolean }) {
+function PrimaryCta({ large = false, fullOnMobile = false }: { large?: boolean; fullOnMobile?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const authed = !isLoading && isAuthenticated;
   // Violet go primary (2026-09-04): one primary treatment across the
   // gate, /create and this page; the header's ink pill stays secondary.
-  const cls = large ? BTN_PRIMARY_LG : BTN_PRIMARY;
+  const cls = `${large ? BTN_PRIMARY_LG : BTN_PRIMARY}${fullOnMobile ? ' w-full sm:w-auto' : ''}`;
   return authed ? (
     <Link href="/studio/new-card" className={cls} data-testid="keeper-cta">
       Make a card. It's free
@@ -558,11 +558,21 @@ function prefetchVideo() {
   }
 }
 
+const HERO_VIDEO_EVENT = 'celebrait:hero-video';
+
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
   // Beta testers get no way off the photo route (2026-11-05), so the
   // stories link hides for them; the video stays.
   const betaChrome = useBetaMinimalChrome();
+  // The phone layout renders its two links in the text column, under the
+  // primary button (2026-11-11), so they ask this component to open the
+  // video rather than owning a second player.
+  useEffect(() => {
+    const open = () => setPlaying(true);
+    window.addEventListener(HERO_VIDEO_EVENT, open);
+    return () => window.removeEventListener(HERO_VIDEO_EVENT, open);
+  }, []);
   // `started` gates the poster overlay + the native controls: the modal
   // opens on a clean poster, and the chrome only appears once it's
   // actually playing. Reset on end so the poster + play button come
@@ -656,7 +666,7 @@ function HeroProof() {
       {/* Two big links (Aidan 2026-11-11), replacing the small
           "Watch her open it" pill: read the stories, or watch the video.
           The video still prefetches on intent, not on page load. */}
-      <div className="mt-20 grid gap-3 sm:mt-24 sm:grid-cols-2">
+      <div className="mt-24 hidden gap-3 md:grid md:grid-cols-2">
         {!betaChrome && (
           <Link
             href="/stories"
@@ -763,6 +773,8 @@ function HeroSection() {
   // The other door shows only while the three-card route is open
   // (/admin/site, 2026-10-29: photo route only for launch).
   const maker = useMakerEnabled() === true;
+  const onUs = useFirstCardOnUs();
+  const betaChrome = useBetaMinimalChrome();
   const [persona, setPersona] = useState(0);
   // Shuffled display order (mum pinned first). Stable for the session —
   // useState's lazy init runs the shuffle once on mount.
@@ -804,7 +816,7 @@ function HeroSection() {
   }, [reduced]);
 
   return (
-    <section ref={sectionRef} className="px-6 pb-20 pt-10 md:pb-28 md:pt-20">
+    <section ref={sectionRef} className="px-6 pb-12 pt-10 md:pb-12 md:pt-20">
       {/* Explicit row/col placement so MOBILE order is
           headline → the proof photo → copy → CTA. Stacking the columns
           naively buried the card photo below a full screen of text and
@@ -860,17 +872,31 @@ function HeroSection() {
           <HeroProof />
         </Rise>
 
-        <div className="md:col-start-1 md:row-start-2">
+        {/* PHONE ORDER (2026-11-11, all three reviews): image → the primary
+            button, full width → the offer line → description → the two
+            links. Desktop keeps description first. The top margin on
+            phones clears the "started as this" snap that hangs off the
+            image. */}
+        <div className="flex flex-col md:col-start-1 md:row-start-2">
           {/* One plain line (Aidan 2026-11-11): replaced the three-step
               recipe, the £ price and the 7–10 minutes wink. */}
-          <p className="max-w-[30rem] text-[17px] leading-[1.6] text-keeper-body md:mt-6">
+          <p className="order-2 mt-7 max-w-[30rem] text-[17px] leading-[1.6] text-keeper-body md:order-1 md:mt-6">
             Celebrait turns your photo into any scene imaginable to create mind blowing
             custom greetings cards. Print ready in under ten minutes.
           </p>
-          <div className="mt-8">
-            <PrimaryCta large />
-            <p className="mt-3 text-[12px] text-keeper-meta">
-              Free to make. No payment details needed.
+          <div className="order-1 mt-10 md:order-2 md:mt-8">
+            <PrimaryCta large fullOnMobile />
+            {/* The offer where the decision is made, conditions included
+                (ASA: "free" shows its terms). Falls back when it's off. */}
+            <p className="mt-3 text-[12.5px] leading-snug text-keeper-meta" data-testid="hero-offer-line">
+              {onUs ? (
+                <>
+                  <b className="font-semibold text-keeper-ink">First card free when you save three dates.</b>{' '}
+                  {formatMoney(shippingPrice())} postage. No payment details to start.
+                </>
+              ) : (
+                'Free to make. No payment details needed.'
+              )}
             </p>
             {/* The other door (the gate, 2026-09-03): each landing page
                 points at the other. */}
@@ -883,7 +909,34 @@ function HeroSection() {
               </p>
             )}
           </div>
-          <TrustChips />
+          {/* The two links, phones only (desktop shows them big under the
+              image, in HeroProof). Smaller than the primary on purpose. */}
+          <div className={`order-3 mt-6 grid gap-2.5 md:hidden ${betaChrome ? '' : 'grid-cols-2'}`}>
+            {!betaChrome && (
+              <Link
+                href="/stories"
+                className="flex items-center justify-center gap-2 rounded-full border border-keeper-hair bg-white px-3 py-3 text-[14px] font-semibold text-keeper-ink"
+                data-testid="hero-read-stories-mobile"
+              >
+                <BookOpen className="h-4 w-4 text-brand-dark" strokeWidth={2} aria-hidden="true" />
+                Read the stories
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(HERO_VIDEO_EVENT))}
+              className="flex items-center justify-center gap-2 rounded-full border border-keeper-hair bg-white px-3 py-3 text-[14px] font-semibold text-keeper-ink"
+              data-testid="hero-play-reaction-mobile"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white">
+                <Play className="ml-[1px] h-2.5 w-2.5 fill-current" strokeWidth={0} />
+              </span>
+              Watch the video
+            </button>
+          </div>
+          <div className="order-4">
+            <TrustChips />
+          </div>
         </div>
 
       </div>
@@ -1078,7 +1131,7 @@ function ProofSection() {
   };
 
   return (
-    <section id="proof" className="scroll-mt-32 px-6 py-24 md:py-32">
+    <section id="proof" className="scroll-mt-32 px-6 py-16 md:pb-32 md:pt-16">
       <div className="mx-auto max-w-5xl text-center">
         {/* px-1 mirrors the slides' own px-1 inset, so this column's left
             edge lines up with the recipe column's on mobile too (where the
@@ -1245,6 +1298,10 @@ function ProofSection() {
             </div>
           )}
         </Rise>
+        {/* A button after the proof (2026-11-11): most of the page had none. */}
+        <div className="mt-10 text-center md:mt-12">
+          <PrimaryCta />
+        </div>
       </div>
     </section>
   );
@@ -1311,7 +1368,7 @@ function PriceSection() {
   // The launch offer (2026-11-06): the first card on us while it's open.
   const onUs = useFirstCardOnUs();
   return (
-    <section id="price" className="scroll-mt-32 px-6 py-24 md:py-32">
+    <section id="price" className="scroll-mt-32 px-6 py-16 md:pb-32 md:pt-16">
       {/* White panel (variation pass 2026-11-11): the offer is the one
           block on the page that should read as an object, not more page. */}
       <div className="mx-auto max-w-3xl rounded-[32px] border border-keeper-hair bg-white px-6 py-14 text-center shadow-[0_30px_80px_-40px_rgba(33,29,25,0.35)] sm:px-12 md:py-16">
@@ -1616,7 +1673,7 @@ export default function LandingKeeper() {
       <main className="pt-32">
         <HeroSection />
         {/* The three steps the hero names, shown (Aidan 2026-10-11). */}
-        <HowItWorksSection door="photo" />
+        <HowItWorksSection door="photo" pairedBelow cta={<PrimaryCta />} />
         <ProofSection />
         {/* One card told in full, linking to /gallery (2026-10-31). */}
         {/* THE INSIDE ("The magic's digital. The card isn't.") moved above
@@ -1628,7 +1685,7 @@ export default function LandingKeeper() {
             five sections in a row had none. */}
         <div className="border-y border-brand/15 bg-brand-muted" data-testid="band-inside">
           <InsideSection />
-          <div className="-mt-10 px-6 pb-20 text-center md:-mt-14 md:pb-24">
+          <div className="-mt-4 px-6 pb-14 text-center md:-mt-14 md:pb-24">
             <PrimaryCta large />
             <p className="mt-3 text-[12px] text-keeper-meta">
               Free to make. No payment details needed.

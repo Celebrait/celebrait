@@ -78,7 +78,7 @@ export function InsideSection() {
   const reduced = useReducedMotion();
 
   return (
-    <section className="px-6 py-24 md:py-32">
+    <section className="px-6 py-16 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <Rise>
           {/* NB: this copy originally held BACK on the bin/keep beat because

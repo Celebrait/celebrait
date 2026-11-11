@@ -57,7 +57,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
   });
 
   return (
-    <section id="dates" className="scroll-mt-32 px-6 py-24 md:py-32">
+    <section id="dates" className="scroll-mt-32 px-6 py-16 md:pb-16 md:pt-32">
       {/* grid-cols-1 = minmax(0,1fr): without it the implicit column sizes
           to the year-ahead strip's min-width (340px+) and the whole section
           ran off the right edge on phones (Aidan's iPhone, 2026-11-11). The

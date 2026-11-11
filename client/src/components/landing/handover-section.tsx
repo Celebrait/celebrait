@@ -59,7 +59,7 @@ export function HandoverSection() {
     // text left, staggered pair of shots right (Kevin 2026-07-17), so the
     // two picture-led sections rhyme instead of each inventing a layout.
     // #delivery is the footer's anchor; scroll-mt clears the fixed header.
-    <section id="delivery" className="scroll-mt-32 px-6 py-24 md:py-32">
+    <section id="delivery" className="scroll-mt-32 px-6 py-16 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-[0.85fr_1.15fr] md:gap-16">
         <Rise>
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>

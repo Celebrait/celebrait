@@ -139,7 +139,7 @@ export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}
   const maker = useMakerEnabled() === true;
   const FAQS = forMarket(door === 'maker' ? MAKER_FAQS : photoFaqs(rack, maker));
   return (
-    <section id="faq" className="snap-center relative scroll-mt-32 py-24 md:py-32">
+    <section id="faq" className="snap-center relative scroll-mt-32 py-16 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array
           so it can never drift from what's on screen (Google requires
           schema content to match visible content). Rendered client-side;
