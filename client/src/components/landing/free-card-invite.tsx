@@ -182,6 +182,14 @@ export function FreeCardInvite() {
     };
   }, [open]);
 
+  // ⚠️ EVERY HOOK STAYS ABOVE THE EARLY RETURN BELOW. This one sat
+  // under it from 2026-11-06 to 2026-11-11: whenever the sign-in check
+  // was still loading on the first render (`signedOut` false → return
+  // null) and then resolved, one more hook ran than before and React
+  // threw #310 — the WHOLE landing page fell to the error screen on
+  // most fresh loads. Found by the live walkthrough audit.
+  const onUs = useFirstCardOnUs();
+
   // Stay mounted while a claim is mid-flight even though verify has
   // signed the user in — unmounting here killed AuthForm's welcome step
   // (first-name capture) and its /studio redirect, stranding the new
@@ -197,7 +205,6 @@ export function FreeCardInvite() {
   // Step-aware copy for the embedded claim flow. The email step keeps
   // the gift front and centre; code/welcome mirror the standard auth
   // copy so the mechanics feel familiar.
-  const onUs = useFirstCardOnUs();
   const claimCopy =
     authStep === 'email'
       ? {
