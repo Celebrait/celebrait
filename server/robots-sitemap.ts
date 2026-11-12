@@ -8,7 +8,7 @@
 // so there is one source of truth.
 
 import { publicOrigin } from '@shared/market';
-import { GALLERY_STORY_SEO } from '@shared/seo';
+import { GALLERY_OPEN, GALLERY_STORY_SEO } from '@shared/seo';
 
 /** Public marketing pages only. Deliberately excluded: /studio + /admin +
  *  /checkout (auth-gated), /card/* and /c/* (private recipient links),
@@ -20,7 +20,7 @@ const SITEMAP_PAGES: { path: string; changefreq: string; priority: string }[] = 
   { path: '/', changefreq: 'weekly', priority: '1.0' },
   { path: '/photo', changefreq: 'weekly', priority: '0.9' },
   { path: '/create', changefreq: 'weekly', priority: '0.9' },
-  { path: '/gallery', changefreq: 'weekly', priority: '0.8' },
+  ...(GALLERY_OPEN ? [{ path: '/gallery', changefreq: 'weekly', priority: '0.8' }] : []),
   { path: '/stories', changefreq: 'weekly', priority: '0.8' },
   ...GALLERY_STORY_SEO.map((st) => ({ path: `/stories/${st.slug}`, changefreq: 'monthly', priority: '0.7' })),
   { path: '/pricing', changefreq: 'monthly', priority: '0.8' },

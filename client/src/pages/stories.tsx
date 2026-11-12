@@ -13,6 +13,7 @@ import { StoryTile } from '@/components/landing/story-tile';
 import { GALLERY_STORIES } from '@/lib/gallery-stories';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 import { useSeo } from '@/lib/use-seo';
+import { GALLERY_OPEN } from '@shared/seo';
 
 export function MakeYoursBand() {
   return (
@@ -60,8 +61,13 @@ export default function StoriesPage() {
           </h1>
           <p className="mt-4 max-w-[52ch] text-[17px] leading-[1.7] text-keeper-body">
             Real cards, start to finish: the selfie each one began as, the words that were typed, and what
-            happened when it arrived. For every card at a glance, see the{' '}
-            <Link href="/gallery" className="font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 hover:decoration-keeper-gold">gallery</Link>.
+            happened when it arrived.
+            {GALLERY_OPEN && (
+              <>
+                {' '}For every card at a glance, see the{' '}
+                <Link href="/gallery" className="font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 hover:decoration-keeper-gold">gallery</Link>.
+              </>
+            )}
           </p>
         </Rise>
 

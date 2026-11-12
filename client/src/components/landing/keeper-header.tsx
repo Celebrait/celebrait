@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { GALLERY_OPEN } from '@shared/seo';
 
 interface MenuItem { label: string; href: string; sub: string; icon: LucideIcon }
 interface MenuGroup { label: string; items: readonly MenuItem[]; matches: (path: string) => boolean }
@@ -155,7 +156,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
                 </DropdownMenuContent>
               </DropdownMenu>
             ))}
-            <Link href="/gallery" className={`${navLink} ${location === '/gallery' ? navActive : ''}`} data-testid="nav-gallery">Gallery</Link>
+            {GALLERY_OPEN && <Link href="/gallery" className={`${navLink} ${location === '/gallery' ? navActive : ''}`} data-testid="nav-gallery">Gallery</Link>}
             <Link href="/stories" className={`${navLink} ${location.startsWith('/stories') ? navActive : ''}`} data-testid="nav-stories">Stories</Link>
             <Link href="/pricing" className={`${navLink} ${location === '/pricing' ? navActive : ''}`}>Pricing</Link>
           </nav>}
@@ -199,7 +200,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
                     <MobileGroup key={g.label} group={g} defaultOpen={g.matches(location)} onNavigate={() => setOpen(false)} />
                   ))}
                   <div className="mt-1 flex flex-col">
-                    <Link href="/gallery" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Gallery</Link>
+                    {GALLERY_OPEN && <Link href="/gallery" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Gallery</Link>}
                     <Link href="/stories" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Stories</Link>
                     <Link href="/pricing" onClick={() => setOpen(false)} className="block px-1 py-3 text-[16px] font-semibold text-keeper-ink">Pricing</Link>
                     {!isLoading && !isAuthenticated && (

@@ -69,6 +69,7 @@ import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
+import { GALLERY_OPEN } from '@shared/seo';
 // Pence → "£6.99". The same one-liner the three-card doorway keeps locally.
 // Hero art lives in client/public (NOT bundled assets) so index.html
 // can <link rel="preload"> it — the download starts in parallel with
@@ -1137,7 +1138,7 @@ function ScenesRowSection() {
       </ul>
       <div className="mt-8 flex flex-col items-center gap-4 px-6 md:mt-14">
         <PrimaryCta />
-        {!beta && (
+        {!beta && GALLERY_OPEN && (
           <Link
             href="/gallery"
             className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:decoration-keeper-gold"

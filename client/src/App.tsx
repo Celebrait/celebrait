@@ -58,6 +58,7 @@ import LandingKeeper from "@/pages/landing-keeper";
 import LoginPage from "@/pages/login";
 import PricingPage from "@/pages/pricing";
 import NotFound from "@/pages/not-found";
+import { GALLERY_OPEN } from '@shared/seo';
 
 // ---- Lazy pages ------------------------------------------------------------
 // React.lazy requires default exports. For modules that ship multiple
@@ -251,7 +252,8 @@ function Router() {
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/contact" component={ContactPage} />
-          <Route path="/gallery" component={GalleryPage} />
+          {/* Closed for now (shared/seo.ts GALLERY_OPEN): go to the stories. */}
+          <Route path="/gallery">{GALLERY_OPEN ? <GalleryPage /> : <Redirect to="/stories" replace />}</Route>
           <Route path="/stories" component={StoriesPage} />
           <Route path="/stories/:slug" component={GalleryStoryPage} />
           {/* Stories lived under /gallery for an hour on 2026-10-31. */}

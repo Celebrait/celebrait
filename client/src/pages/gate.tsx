@@ -40,6 +40,7 @@ import { useSeo } from '@/lib/use-seo';
 import { copyFor } from '@shared/market-copy';
 import { cardPrice, shippingPrice, MAKE_TIME } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
+import { GALLERY_OPEN } from '@shared/seo';
 
 
 interface DoorProps {
@@ -275,7 +276,7 @@ export default function GatePage() {
                 'Printed and posted (or digital if you prefer)',
               ]}
               cta="Start with a photo"
-              proof={{ href: '/gallery', label: 'See a real card first' }}
+              proof={GALLERY_OPEN ? { href: '/gallery', label: 'See a real card first' } : { href: '/stories', label: 'Read a real story first' }}
               fine={[
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
                 [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],

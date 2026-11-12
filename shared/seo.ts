@@ -261,6 +261,14 @@ const KNOWN_ROUTES: RegExp[] = [
   /^\/order\/[^/]+\/?$/,
 ];
 
+/** THE GALLERY SWITCH (Aidan 2026-11-12: "remove the Gallery page for
+ *  now, there's not enough content" — two cards). While false: no link
+ *  to /gallery anywhere, it's out of the sitemap, noindexed, and both
+ *  server and client send /gallery to /stories (302, so nothing caches
+ *  past the reopening). Flip to true when the wall has cards again; the
+ *  page (client/src/pages/gallery.tsx) and its list are untouched. */
+export const GALLERY_OPEN = false;
+
 export function isKnownRoutePath(path: string): boolean {
   // A story or blog post that doesn't exist is a real 404 (+ noindex),
   // not a 200 with a not-found screen — the audit of 2026-11-11 found
@@ -282,6 +290,7 @@ export function isKnownRoutePath(path: string): boolean {
  *  client redirects to /photo meanwhile. */
 export function robotsForPath(path: string, rackEnabled = false, makerEnabled = false): string | null {
   if (NOINDEX_PATHS.some((re) => re.test(path))) return 'noindex,nofollow';
+  if (!GALLERY_OPEN && /^\/gallery\/?$/.test(path)) return 'noindex';
   if (!rackEnabled && /^\/cards(\/|$)/.test(path)) return 'noindex';
   if (!makerEnabled && /^\/(create|make)(\/|$)/.test(path)) return 'noindex';
   if (!isKnownRoutePath(path)) return 'noindex';

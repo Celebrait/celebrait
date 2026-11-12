@@ -168,6 +168,12 @@ app.use((req, res, next) => {
   // "first one's on us" offer; /hero-poc was the scroll-hero stage.
   app.get("/door", oldDoor(/^\/door/));
   app.get("/hero-poc", (_req, res) => res.redirect(301, "/"));
+  // The gallery is closed for now (shared/seo.ts GALLERY_OPEN): old links
+  // land on the stories instead of a page with two cards on it.
+  app.get("/gallery", async (_req, res, next) => {
+    const { GALLERY_OPEN } = await import("@shared/seo");
+    return GALLERY_OPEN ? next() : res.redirect(302, "/stories");
+  });
   // robots.txt + sitemap.xml carry the market's origin, so they are
   // rendered, not static (server/robots-sitemap.ts). Before the static
   // handler and Vite, so nothing else can answer these paths.
