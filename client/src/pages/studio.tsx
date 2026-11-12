@@ -412,7 +412,7 @@ function ActivityColumn({
           border: 'border-cta/60 bg-cta-light/40',
           accentBar: 'bg-cta',
           iconColor: 'text-cta-hover',
-          badge: 'bg-cta text-white',
+          badge: 'bg-cta text-cta-foreground',
         }
       : accentTone === 'brand'
         ? {

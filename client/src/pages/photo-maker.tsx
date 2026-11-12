@@ -385,7 +385,10 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
         <Button
           onClick={authed ? onGenerate : betaGuest ? onBetaGenerate : onSignUp}
           disabled={!allReady}
-          className="mt-4 w-full bg-go text-go-foreground hover:bg-go-hover disabled:opacity-50 sm:w-auto"
+          // Green only when this press actually starts the drawing (the
+          // commit-button rule, 2026-11-12). "Sign up to generate" just
+          // opens the sign-up, so it stays violet.
+          className={`mt-4 w-full disabled:opacity-50 sm:w-auto ${authed || betaGuest ? 'bg-cta text-cta-foreground hover:bg-cta-hover' : 'bg-go text-go-foreground hover:bg-go-hover'}`}
           data-testid="btn-photo-maker-generate"
         >
           <Sparkles className="mr-1.5 h-4 w-4" /> {authed || betaGuest ? 'Generate' : 'Sign up to generate'}

@@ -52,7 +52,9 @@ export default {
           hover: '#4ac437',       // slightly deeper — hover
           light: '#e0f8db',       // pale green — readiness backgrounds / badge bg
           dark: '#166534',        // forest — deep-green TEXT on the light tint (badges)
-          foreground: '#ffffff',
+          // Ink, not white (2026-11-12): white on this lime is about 1.9:1,
+          // far under the 4.5:1 AA minimum; keeper-ink on it is about 9:1.
+          foreground: '#211D19',
         },
         // ── `go` = the ACTION-BUTTON treatment (2026-07-09) ───────────
         // Split out of `cta` so we can A/B the primary-button colour

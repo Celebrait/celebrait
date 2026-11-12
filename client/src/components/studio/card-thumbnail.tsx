@@ -166,7 +166,7 @@ export function CardThumbnail({ card, takesCount }: CardThumbnailProps) {
         )}
         {isReadyToSend && !isJustFinished && (
           <div
-            className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-cta text-white text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
+            className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-cta text-cta-foreground text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-1 shadow-sm"
             data-testid={`chip-ready-to-send-${card.id}`}
           >
             Ready to send

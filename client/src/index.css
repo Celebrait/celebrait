@@ -73,11 +73,22 @@
   --radius: 0.5rem;
 
   /* Everyday action-button treatment ("go" token) — LOCKED to purple
-     2026-07-09 (Kevin: ink too editorial for the studio; green reserved
-     strictly for the super-important commit moments — New card / Generate
-     / Make the inside / Send / Pay — which are pinned green via `cta`
-     regardless of this token). The A/B switcher was removed once purple
-     won, so everyday buttons can never render green. */
+     2026-07-09 (Kevin: ink too editorial for the studio).
+
+     THE BUTTON COLOUR RULE (tightened 2026-11-12, Aidan agreed):
+       GREEN (`cta`) only for a button that COMMITS you to something you
+       can't casually undo. That is three moments in the whole product:
+         1. drawing the card (Generate / Make the inside)
+         2. Send this card
+         3. Pay
+       VIOLET (`go`) for everything else, on the public site and in the
+       studio alike: Make a card, New card, Start the card, Next, Add
+       someone's day, Continue to payment…
+     "New card" was green until this date; it only opens the maker, so it
+     moved to violet. Green as a STATUS (Ready to send, done ticks) is
+     separate and unchanged. An all-green studio was tested the same day
+     and rejected: when every button is green, green means nothing.
+     Text on green is ink (`cta.foreground`), never white. */
   --go: #5c57d4;        /* brand violet (keeper-gold) */
   --go-hover: #4a45c0;  /* deeper violet */
   --go-fg: #ffffff;

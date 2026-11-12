@@ -118,14 +118,17 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 py-4 overflow-y-auto">
       {/* Pinned primary CTA. Links to the new-card flow — same target as
-          the FAB. Green (cta) — "New card" is a decided super-important
-          moment (start of the value loop), matching the grid tile; reads
-          as the primary action regardless of which page the user is on. */}
+          the FAB. VIOLET since 2026-11-12 (it was green): the rule is now
+          that green is ONLY for a button that commits you — draw the
+          card, Send this card, Pay (see index.css `--go`). Opening the
+          maker commits to nothing, and violet matches "Make a card" on
+          the public site. Still pinned, still the loudest thing in the
+          sidebar. */}
       <div className="px-3 mb-4">
         <Link
           href="/studio/new-card"
           onClick={onNavigate}
-          className="flex items-center justify-center gap-2 w-full bg-cta hover:bg-cta-hover text-cta-foreground rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
+          className="flex items-center justify-center gap-2 w-full bg-go hover:bg-go-hover text-go-foreground rounded-full py-2.5 text-sm font-semibold transition-colors shadow-sm"
           data-testid="nav-new-card-cta"
           data-hint="new-card"
         >
