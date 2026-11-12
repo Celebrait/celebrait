@@ -239,7 +239,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
 
   if (beta) {
     return (
-      <div className="min-h-screen bg-keeper-paper flex flex-col">
+      <div className="go-green min-h-screen bg-keeper-paper flex flex-col">
         <header className="relative z-40 h-16 bg-white/70 backdrop-blur-md border-b border-keeper-hair flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
           <Link href="/beta" className="flex items-center" aria-label="Beta home">
             <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
@@ -260,7 +260,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-keeper-paper flex">
+    <div className="go-green min-h-screen bg-keeper-paper flex">
       {/* ─── Sidebar (desktop, sm and up) ─── */}
       <aside className="relative z-40 hidden sm:flex w-56 bg-white/70 backdrop-blur-md border-r border-keeper-hair flex-col flex-shrink-0">
         <SidebarContent />
