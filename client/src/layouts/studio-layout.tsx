@@ -348,7 +348,11 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
             (Week 1 dashboard rebuild) — the layout no longer owns the
             greeting h1, so each surface can tune its own copy. */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          {/* On phones the floating "New card" button sits over the bottom
+              80px of the screen. With only 24px of padding the last rows of
+              a page (and their "See all" links) could never be scrolled out
+              from under it (studio review 2026-11-12). */}
+          <div className={`max-w-6xl mx-auto px-4 sm:px-8 pt-6 sm:py-10 ${showFab ? 'pb-28' : 'pb-6'}`}>
             {children}
           </div>
         </main>

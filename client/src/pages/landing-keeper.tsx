@@ -51,7 +51,7 @@ import { MarketingFooter } from '@/components/landing/marketing-footer';
 import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
 import { Rise } from '@/components/landing/rise';
-import { ShimmerWord } from '@/components/landing/shimmer-word';
+import { Highlight, ShimmerWord } from '@/components/landing/shimmer-word';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { InsideSection } from '@/components/landing/inside-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
@@ -1120,7 +1120,7 @@ function ScenesRowSection() {
       <Rise className="mx-auto max-w-4xl px-6 text-center">
         {/* The page's one big centred statement: every other heading is 44px. */}
         <h2 className={`text-[clamp(34px,5.6vw,64px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
-          Greetings cards <ShimmerWord reduced={!!reduced}>used</ShimmerWord> to be boring
+          Greetings cards <Highlight>used</Highlight> to be boring
         </h2>
         <p className="mt-5 text-[19px] leading-[1.5] text-keeper-body md:text-[21px]">
           You describe the scene. We make it real.

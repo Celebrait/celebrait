@@ -12,7 +12,20 @@
 // prefers-reduced-motion: the ink-to-violet gradient stays, the wave stops.
 // (Moved out of landing-keeper.tsx 2026-10-09; that page re-exports it.)
 
+//
+// 2026-11-12: the shimmer is now the HERO's alone (and /create's). The
+// other headings wear `Highlight` below — the studio's plain violet
+// phrase ("Nan's birthday is in 8 days"). Mid-sweep the gradient made
+// one word look like a single mis-coloured letter in any still frame,
+// and its px-1 padding nudged the word out of line with the text above.
+
 import { motion } from 'framer-motion';
+
+/** The studio's emphasis, on the landing pages: one phrase in brand
+ *  violet. No motion, no padding. */
+export function Highlight({ children }: { children: React.ReactNode }) {
+  return <span className="text-keeper-gold">{children}</span>;
+}
 
 export function ShimmerWord({
   children,

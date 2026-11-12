@@ -38,7 +38,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { cardPrice, shippingPrice } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
-import { LeadTimeNotice } from '@/components/lead-time-notice';
 import type { CardDraftState } from '@shared/schema';
 import { copyFor } from '@shared/market-copy';
 
@@ -182,9 +181,10 @@ export function GivingMoment({
           {formatMoney(CARD_BASE)} inc. postage, with a free digital link to
           share.
         </p>
-        {/* The lead-time notice, before the address form (Aidan
-            2026-09-09): one-off prints, allow a week. */}
-        <LeadTimeNotice link={false} className="mt-2" />
+        {/* The lead-time notice used to repeat here (2026-09-09). The
+            studio layout already pins the same sentence at the top of
+            every studio page, so this screen said it twice within 300px
+            (studio review 2026-11-12). The pinned one stays. */}
       </div>
 
       <section className="space-y-2.5" data-testid="giving-moment-destination">

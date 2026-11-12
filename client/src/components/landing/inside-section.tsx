@@ -14,9 +14,8 @@
 // too. Door-agnostic copy (a prompt, an image, a card — true of both
 // doors), so no `door` prop.
 
-import { useReducedMotion } from 'framer-motion';
 import { Rise } from '@/components/landing/rise';
-import { ShimmerWord } from '@/components/landing/shimmer-word';
+import { Highlight } from '@/components/landing/shimmer-word';
 import { DISPLAY } from '@/pages/doorway';
 
 // Panel C lifestyle shots — same scene, front card + open card.
@@ -75,7 +74,6 @@ function CardPair({
 }
 
 export function InsideSection() {
-  const reduced = useReducedMotion();
 
   return (
     <section className="px-6 py-16 md:py-32">
@@ -89,7 +87,7 @@ export function InsideSection() {
               NB2: the old "in the card's own hand" implied handwriting; the
               inside is SET TYPE (see project_inside_message_is_typography). */}
           <h2 className={`text-[clamp(30px,4.4vw,44px)] leading-[1.08] [text-wrap:balance] ${DISPLAY}`}>
-            The <ShimmerWord reduced={!!reduced}>magic's</ShimmerWord> digital. The card isn't.
+            The <Highlight>magic's</Highlight> digital. The card isn't.
           </h2>
           {/* NB: kraft is the ENVELOPE, not the card — the card is a 280gsm
               gloss-coated art card (HP Indigo). See faq-section, pricing.tsx,
@@ -102,7 +100,7 @@ export function InsideSection() {
             together, pressed onto 280gsm
             gloss and posted to someone you care about.{' '}
             <strong className="font-semibold">
-              <ShimmerWord reduced={!!reduced}>That's Celebrait</ShimmerWord>.
+              <Highlight>That's Celebrait</Highlight>.
             </strong>{' '}
             Thoughtful, funny, gloriously daft: that's you.
           </p>

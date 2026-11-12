@@ -21,7 +21,7 @@ import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useSearch } from 'wouter';
 import { ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
-import { StepChips } from '@/components/step-chips';
+import { Stepper } from '@/components/studio/stepper';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -235,7 +235,12 @@ export default function PhotoMakerPage() {
           <Link href={betaMode ? '/beta' : '/photo'} onClick={() => { void discardGuestSession(); m.reset(); }} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
-          <StepChips steps={[...PUBLIC_STEPS]} current={currentStep} furthest={furthest} onJump={setStep} />
+          <Stepper
+            steps={PUBLIC_STEPS.map((s, index) => ({ id: s.id, label: s.label, index, locked: 'locked' in s && s.locked }))}
+            currentStep={currentStep}
+            furthestStep={furthest}
+            onStepClick={setStep}
+          />
         </div>
 
         <div className="min-h-[380px] rounded-2xl border border-keeper-hair bg-white p-6 sm:p-10">
