@@ -20,7 +20,8 @@ import { Plus, Gift } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { daysToChristmas } from '@/lib/moments';
+import { countdownLabel, daysToChristmas } from '@/lib/moments';
+import { MomentIcon } from '@/components/studio/moment-icon';
 import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
 import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
@@ -28,6 +29,10 @@ import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
 
 const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
+/** How far off the two example dates sit: one near enough to light up
+ *  (the studio highlights anything within 30 days), one comfortably not. */
+const MUM_IN_DAYS = 18;
+const ANNIV_IN_DAYS = 96;
 
 /** `door` picks the price the offer quotes (the ticker does the same):
  *  the number must be the number THIS door will charge — the line was
@@ -51,10 +56,11 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
     }
   };
 
-  const todayLabel = new Date().toLocaleDateString(market().locale, {
-    day: 'numeric',
-    month: 'short',
-  });
+  // The example rows' dates, always in the future relative to today.
+  const inDays = (n: number) =>
+    new Date(Date.now() + n * 86_400_000).toLocaleDateString(market().locale, { day: 'numeric', month: 'long' });
+  const mumDate = inDays(MUM_IN_DAYS);
+  const annivDate = inDays(ANNIV_IN_DAYS);
 
   return (
     <section id="dates" className="scroll-mt-32 px-6 py-16 md:pb-16 md:pt-32">
@@ -152,67 +158,62 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
             </div>
           </div>
 
-          {/* The Year Ahead card, live. */}
+          {/* THE OCCASIONS PAGE'S OWN ROWS (studio review, 2026-11-12).
+              This used to be a one-off "year ahead" timeline drawn only
+              here; the rows below are the exact design a signed-in
+              customer sees on /studio/moments — same icon tile, same
+              "name · occasion", same countdown pill, same dashed
+              invitation row — so the example is the product, not a
+              drawing of it. Dates are computed, so it never goes stale.
+              (It was also the min-width strip that pushed this section
+              off the side of phones.) */}
           <div className="mt-4">
             <div className="flex items-baseline justify-between px-1">
               <p className="font-display text-[17px] font-semibold tracking-[-0.01em] text-keeper-ink">
-                The year ahead
+                Your occasions
               </p>
               <span className="text-[12px] font-bold text-brand">Whole year ›</span>
             </div>
-            <div className="mt-2 rounded-2xl border border-stone-200 bg-white px-2 pb-2 pt-1">
-              <div className="ya-scroll overflow-x-auto">
-              <div className="relative flex min-w-[340px] px-1 pb-3 pt-7">
-                <div
-                  aria-hidden
-                  className="absolute left-3 right-3 top-[62px] h-[3px] rounded bg-[#E9E6F8]"
-                />
-                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
-                  <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
-                    {new Date()
-                      .toLocaleDateString(market().locale, { month: 'short' })
-                      .toUpperCase()}
-                  </span>
-                  <div className="z-[1] mt-[30px] h-3 w-3 rounded-full bg-keeper-ink" />
-                  <span className="text-[13px] font-bold leading-tight text-keeper-ink">
-                    Today
-                  </span>
-                  <span className="text-[11px] text-keeper-meta">{todayLabel}</span>
+            <div className="mt-2 space-y-2">
+              {/* Near: the highlighted row, with its nudge to make the card. */}
+              <div className="flex items-center gap-3 rounded-2xl border border-brand/40 bg-white p-3 shadow-sm sm:gap-4 sm:p-3.5">
+                <MomentIcon occasion="birthday" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14.5px] font-semibold text-keeper-ink">
+                    Mum<span className="font-normal text-keeper-body"> · Birthday</span>
+                  </p>
+                  <p className="text-[12px] text-keeper-meta">{mumDate}</p>
                 </div>
-                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
-                  <div className="z-[1] mt-[27px] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-brand bg-brand-muted">
-                    <Plus className="h-2.5 w-2.5 text-brand" strokeWidth={4} />
-                  </div>
-                  <span className="text-[13px] font-bold leading-tight text-brand">
-                    Add a day
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-brand-foreground">
+                    {countdownLabel(MUM_IN_DAYS)}
                   </span>
-                  <span className="text-[11px] text-keeper-meta">any day</span>
-                </div>
-                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
-                  <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
-                    NOV
-                  </span>
-                  <span className="z-[1] mt-[26px] block h-[18px] w-[18px] rounded-full border-2 border-white bg-brand shadow-[0_0_0_2px_#5c57d4]" />
-                  <span className="max-w-[100px] truncate text-center text-[13px] font-bold leading-tight text-keeper-ink">
-                    Mum's birthday
-                  </span>
-                  <span className="rounded-full bg-brand-muted px-2 py-0.5 text-[10.5px] font-bold text-brand-dark">
-                    in 3 wks
-                  </span>
-                </div>
-                <div className="relative flex min-w-[84px] flex-1 flex-col items-center gap-1.5">
-                  <span className="absolute top-1 text-[10px] font-bold tracking-[0.14em] text-keeper-meta">
-                    DEC
-                  </span>
-                  <span className="z-[1] mt-[26px] block h-[18px] w-[18px] rounded-full border-2 border-dashed border-[#B9B3E8] bg-white" />
-                  <span className="text-center text-[13px] font-semibold leading-tight text-keeper-body">
-                    Christmas
-                  </span>
-                  <span className="rounded-full border border-dashed border-[#C9C4EE] px-2 py-0.5 text-[10.5px] font-semibold text-keeper-meta">
-                    in {daysToChristmas()} days
-                  </span>
+                  <span className="text-[11.5px] font-medium text-brand">Make the card ›</span>
                 </div>
               </div>
+              {/* Further off: quiet, with the promise. */}
+              <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3 sm:gap-4 sm:p-3.5">
+                <MomentIcon occasion="anniversary" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14.5px] font-semibold text-keeper-ink">
+                    Sam & Jo<span className="font-normal text-keeper-body"> · Anniversary</span>
+                  </p>
+                  <p className="text-[12px] text-keeper-meta">{annivDate}. We’ll nudge you in plenty of time</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-semibold text-keeper-body">
+                  {countdownLabel(ANNIV_IN_DAYS)}
+                </span>
+              </div>
+              {/* On every calendar: the dashed invitation. */}
+              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-3 sm:gap-4 sm:p-3.5">
+                <MomentIcon occasion="christmas" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14.5px] font-semibold text-keeper-ink">Christmas</p>
+                  <p className="text-[12px] text-keeper-meta">25 December · in {daysToChristmas()} days</p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-stone-300 bg-white px-2.5 py-1 text-[11.5px] font-medium text-keeper-ink">
+                  <Plus className="h-3 w-3" strokeWidth={2.5} /> Add them
+                </span>
               </div>
             </div>
           </div>

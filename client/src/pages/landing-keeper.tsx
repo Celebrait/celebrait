@@ -443,13 +443,22 @@ function CssAjarCard({
   frontUrl,
   insideUrl,
   open,
+  openDeg = -150,
+  hingeOrigin = false,
 }: {
   frontUrl: string;
   insideUrl: string;
   open: boolean;
+  /** Cover angle when open. -150 flings it wide (the single-card
+   *  carousel); the three-across row passes a narrower one. */
+  openDeg?: number;
+  /** Put the vanishing point on the hinge. With it at the centre (the
+   *  default) perspective alone throws an upright cover ~70px past the
+   *  card's left edge; on the hinge, the cover stays beside the card. */
+  hingeOrigin?: boolean;
 }) {
   return (
-    <div className="absolute inset-0" style={{ perspective: '1200px' }}>
+    <div className="absolute inset-0" style={{ perspective: '1200px', perspectiveOrigin: hingeOrigin ? '0% 50%' : undefined }}>
       {/* Inside page — revealed as the cover swings open. */}
       <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-white shadow-[0_20px_44px_-20px_rgba(33,29,25,0.35)]">
         <img
@@ -469,7 +478,7 @@ function CssAjarCard({
         className="absolute inset-0"
         style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
         initial={false}
-        animate={{ rotateY: open ? -150 : -24 }}
+        animate={{ rotateY: open ? openDeg : -24 }}
         transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
       >
         <div
@@ -1052,44 +1061,40 @@ const PROOF_EXAMPLES: ProofExample[] = [
 // and the page was showing it three times running. ProofSection (the
 // carousel, with its openable card) is kept below for an easy swap back.
 const SCENE_ROW: ProofExample[] = [BIG_BEN_EXAMPLE, TIMES_SQUARE_EXAMPLE, NEW_YORK_EXAMPLE];
+/** How far a card in the row swings open. The carousel's single card went
+ *  to -150°, which throws the cover a whole card-width to the left; three
+ *  across there's only the gap. Just past upright shows the whole inside
+ *  with the cover edge-on beside it. */
+const SCENE_OPEN_DEG = -97;
 
-function SceneTile({ e }: { e: ProofExample }) {
-  const [inside, setInside] = useState(false);
+function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onToggle: () => void }) {
   return (
-    <li className="w-[76%] max-w-[340px] shrink-0 snap-center md:w-auto md:max-w-none">
+    <li className={`relative w-[76%] max-w-[340px] shrink-0 snap-center md:w-auto md:max-w-none ${open ? 'z-20' : 'z-0'}`}>
+      {/* A REAL OPENABLE CARD (studio review, 2026-11-12): the studio's
+          best moment is the card you tap open, and the landing page had
+          none since the carousel went. Same CSS card the carousel used
+          (two images and a hinged cover, no WebGL), so three cost six
+          <img>s. Locked interaction model: rests ajar, tap to open, tap to
+          close, nothing else. One open at a time. */}
       <button
         type="button"
-        onClick={() => setInside((v) => !v)}
-        aria-pressed={inside}
-        aria-label={inside ? 'Show the front of this card' : 'Show the inside of this card'}
+        onClick={onToggle}
+        aria-pressed={open}
+        aria-label={open ? `Close the card: ${e.cardAlt}` : `Open the card: ${e.cardAlt}`}
         className="group relative block w-full text-left"
         data-testid={`scene-tile-${e.id}`}
       >
-        <span className="relative block aspect-square overflow-hidden rounded-[10px] bg-white shadow-[0_26px_60px_-28px_rgba(33,29,25,0.5)] ring-1 ring-black/5">
-          <img
-            src={e.cardFront}
-            alt={e.cardAlt}
-            loading="lazy"
-            decoding="async"
-            width={900}
-            height={900}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 motion-reduce:transition-none ${inside ? 'opacity-0' : 'opacity-100'}`}
-          />
-          <img
-            src={e.cardInside}
-            alt={`The inside of the card: ${e.insideMessage}`}
-            loading="lazy"
-            decoding="async"
-            width={900}
-            height={900}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 motion-reduce:transition-none ${inside ? 'opacity-100' : 'opacity-0'}`}
-          />
-          <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-keeper-ink shadow-sm">
-            {inside ? 'See the front' : 'See inside'}
+        <span className="relative block aspect-square">
+          <CssAjarCard frontUrl={e.cardFront} insideUrl={e.cardInside} open={open} openDeg={SCENE_OPEN_DEG} hingeOrigin />
+          <span className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-keeper-ink shadow-sm">
+            {open ? 'Tap to close' : 'Tap to open'}
           </span>
         </span>
-        {/* The ordinary photo it started as — same tilted snap as the hero. */}
-        <span className="absolute -bottom-5 -left-3 block w-[30%] -rotate-6 rounded-md border-[5px] border-white bg-stone-100 shadow-[0_14px_30px_-12px_rgba(33,29,25,0.5)]">
+        {/* The ordinary photo it started as — same tilted snap as the hero.
+            Steps aside while the card is open so it can't sit on the message. */}
+        <span
+          className={`absolute -bottom-5 -left-3 z-10 block w-[30%] -rotate-6 rounded-md border-[5px] border-white bg-stone-100 shadow-[0_14px_30px_-12px_rgba(33,29,25,0.5)] transition-opacity duration-300 motion-reduce:transition-none ${open ? 'opacity-0' : 'opacity-100'}`}
+        >
           <img
             src={e.sourcePhoto}
             alt={e.sourceAlt}
@@ -1113,8 +1118,10 @@ function SceneTile({ e }: { e: ProofExample }) {
 }
 
 function ScenesRowSection() {
-  const reduced = useReducedMotion();
   const beta = useBetaMinimalChrome();
+  // Which card is open. One at a time: an open cover swings into the gap
+  // beside it, and two open neighbours would collide.
+  const [openId, setOpenId] = useState<string | null>(null);
   return (
     <section id="proof" className="scroll-mt-32 py-16 md:pb-32 md:pt-16">
       <Rise className="mx-auto max-w-4xl px-6 text-center">
@@ -1133,7 +1140,7 @@ function ScenesRowSection() {
         data-testid="scenes-row"
       >
         {SCENE_ROW.map((e) => (
-          <SceneTile key={e.id} e={e} />
+          <SceneTile key={e.id} e={e} open={openId === e.id} onToggle={() => setOpenId((cur) => (cur === e.id ? null : e.id))} />
         ))}
       </ul>
       <div className="mt-8 flex flex-col items-center gap-4 px-6 md:mt-14">
