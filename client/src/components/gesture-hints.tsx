@@ -35,6 +35,10 @@ interface GestureHintsProps {
    *  surfaces like the Keeper hero where the same tap closes the
    *  card again. */
   openLabel?: string;
+  /** Glyph colour. Green (`cta`) in the studio; `brand` violet on the
+   *  public site, which carries no green (button colour rule,
+   *  2026-11-12). */
+  tone?: 'cta' | 'brand';
 }
 
 export function GestureHints({
@@ -44,6 +48,7 @@ export function GestureHints({
   hideRotateHint = false,
   alwaysVisible = false,
   openLabel,
+  tone = 'cta',
 }: GestureHintsProps) {
   const [visible, setVisible] = useState(false);
 
@@ -55,7 +60,7 @@ export function GestureHints({
 
   const HintsRow = (
     <div className="flex items-center gap-6 sm:gap-10">
-      <Hint label={open && openLabel ? openLabel : 'Tap to open'}>
+      <Hint label={open && openLabel ? openLabel : 'Tap to open'} tone={tone}>
         <TapGlyph />
       </Hint>
       {!hideRotateHint && (
@@ -99,16 +104,18 @@ function Hint({
   label,
   children,
   hideOnMobile,
+  tone = 'cta',
 }: {
   label: string;
   children: React.ReactNode;
   hideOnMobile?: boolean;
+  tone?: 'cta' | 'brand';
 }) {
   return (
     <div
       className={`flex flex-col items-center gap-1.5 ${hideOnMobile ? 'hidden sm:flex' : ''}`}
     >
-      <div className="w-9 h-9 flex items-center justify-center text-cta">
+      <div className={`w-9 h-9 flex items-center justify-center ${tone === 'brand' ? 'text-brand' : 'text-cta'}`}>
         {children}
       </div>
       {/* Label crossfades when it changes (e.g. Tap to open → Tap to

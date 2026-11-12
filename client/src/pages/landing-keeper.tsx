@@ -451,6 +451,7 @@ function CssAjarCard({
   open,
   openDeg = -150,
   hingeOrigin = false,
+  smooth = false,
 }: {
   frontUrl: string;
   insideUrl: string;
@@ -462,6 +463,11 @@ function CssAjarCard({
    *  default) perspective alone throws an upright cover ~70px past the
    *  card's left edge; on the hinge, the cover stays beside the card. */
   hingeOrigin?: boolean;
+  /** Swing on an eased curve that lands and stops, instead of the
+   *  spring. The spring overshoots its target and settles back; on a
+   *  cover lying across the next card that reads as a shudder at the
+   *  end (Aidan 2026-11-12: "a bit jittery when they open"). */
+  smooth?: boolean;
 }) {
   return (
     <div className="absolute inset-0" style={{ perspective: '1200px', perspectiveOrigin: hingeOrigin ? '0% 50%' : undefined }}>
@@ -482,10 +488,16 @@ function CssAjarCard({
       {/* Cover — hinged on the left edge; rests ajar (-16°), opens (-150°). */}
       <motion.div
         className="absolute inset-0"
-        style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center' }}
+        // willChange keeps the cover on its own compositor layer for the
+        // whole swing, so the artwork isn't re-rasterised frame by frame.
+        style={{ transformStyle: 'preserve-3d', transformOrigin: 'left center', willChange: 'transform' }}
         initial={false}
         animate={{ rotateY: open ? openDeg : -24 }}
-        transition={{ type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }}
+        transition={
+          smooth
+            ? { type: 'tween', duration: 0.75, ease: [0.22, 1, 0.36, 1] }
+            : { type: 'spring', stiffness: 65, damping: 13, mass: 0.9 }
+        }
       >
         <div
           className="absolute inset-0 overflow-hidden rounded-[6px] shadow-[0_10px_26px_-12px_rgba(33,29,25,0.4)]"
@@ -1089,32 +1101,39 @@ function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onTo
         onClick={onToggle}
         aria-pressed={open}
         aria-label={open ? `Close the card: ${e.cardAlt}` : `Open the card: ${e.cardAlt}`}
-        className="group relative block w-full text-left"
+        className="group block w-full text-left"
         data-testid={`scene-tile-${e.id}`}
       >
         <span className="relative block aspect-square">
-          <CssAjarCard frontUrl={e.cardFront} insideUrl={e.cardInside} open={open} openDeg={SCENE_OPEN_DEG} />
-          <span className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-keeper-ink shadow-sm">
-            {open ? 'Tap to close' : 'Tap to open'}
+          <CssAjarCard frontUrl={e.cardFront} insideUrl={e.cardInside} open={open} openDeg={SCENE_OPEN_DEG} smooth />
+          {/* The ordinary photo it started as — same tilted snap as the
+              hero. Steps aside while the card is open so it can't sit on
+              the message. */}
+          <span
+            className={`absolute -bottom-5 -left-3 z-10 block w-[30%] -rotate-6 rounded-md border-[5px] border-white bg-stone-100 shadow-[0_14px_30px_-12px_rgba(33,29,25,0.5)] transition-opacity duration-300 motion-reduce:transition-none ${open ? 'opacity-0' : 'opacity-100'}`}
+          >
+            <img
+              src={e.sourcePhoto}
+              alt={e.sourceAlt}
+              loading="lazy"
+              decoding="async"
+              width={500}
+              height={500}
+              className="block aspect-square w-full rounded-sm object-cover"
+            />
           </span>
         </span>
-        {/* The ordinary photo it started as — same tilted snap as the hero.
-            Steps aside while the card is open so it can't sit on the message. */}
-        <span
-          className={`absolute -bottom-5 -left-3 z-10 block w-[30%] -rotate-6 rounded-md border-[5px] border-white bg-stone-100 shadow-[0_14px_30px_-12px_rgba(33,29,25,0.5)] transition-opacity duration-300 motion-reduce:transition-none ${open ? 'opacity-0' : 'opacity-100'}`}
-        >
-          <img
-            src={e.sourcePhoto}
-            alt={e.sourceAlt}
-            loading="lazy"
-            decoding="async"
-            width={500}
-            height={500}
-            className="block aspect-square w-full rounded-sm object-cover"
-          />
+        {/* THE SIGNPOST — the studio's own pulsing "Tap to open" hint,
+            under every card (Aidan 2026-11-12: the row "needs tap to open
+            feature"; a small corner pill wasn't being read as one). It
+            lives INSIDE the button, so tapping the hint opens the card
+            too. Fixed-height slot so nothing below shifts as it fades in
+            or its label swaps. Violet here; the studio's is green. */}
+        <span className="flex h-[76px] items-start justify-center pt-3">
+          <GestureHints open={open} hideRotateHint hideZoomHint openLabel="Tap to close" tone="brand" mountDelayMs={400} />
         </span>
       </button>
-      <div className="mt-9 pl-1 text-left">
+      <div className="mt-2 pl-1 text-left">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">The scene they typed</p>
         <p className="mt-1.5 font-display text-[20px] font-bold leading-snug tracking-[-0.01em] text-keeper-ink">
           “{e.scene}”
