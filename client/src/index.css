@@ -90,18 +90,6 @@
   --slate-gray: 25 5% 45%;
 }
 
-/* TEST 2026-11-12 (Aidan: "I think test green"). Inside the studio the
-   everyday action buttons take the green that New card / Send / Pay
-   already wear, so the studio has ONE button colour. This reverses the
-   2026-07-09 rule above for the studio only; the public site keeps
-   violet. Applied by the `go-green` class on StudioLayout's wrappers.
-   To drop the test: remove that class (two places) and this block. */
-.go-green {
-  --go: #5fd94a;
-  --go-hover: #4ac437;
-  --go-fg: #ffffff;
-}
-
 /* The body opacity transition that used to live here was removed
    2026-04-27. No JS in the codebase actively flips body opacity, so
    the rule was only ever triggered by ambient browser state changes
