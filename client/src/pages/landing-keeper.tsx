@@ -1809,7 +1809,11 @@ const BAND_ICONS: Array<{ src: string; cls: string; tilt: number; delay: number 
 function BandIcons() {
   const reduced = useReducedMotion();
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0" data-testid="band-icons">
+    // FADED, LIKE THE HERO'S (Aidan 2026-11-12). The hero's icon field
+    // sits at 0.28 (FIELD_FLOOR in hero-scroll-poc.tsx); same value here
+    // so the two read as one family. At full strength they competed
+    // with the photographs.
+    <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.28]" data-testid="band-icons">
       {BAND_ICONS.map((ic, i) => (
         <motion.img
           key={i}
