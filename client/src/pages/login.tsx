@@ -1,40 +1,24 @@
 // client/src/pages/login.tsx
 //
-// Boxed split-pane sign-in. Auth + Landing sprint, Piece A1 (2026-05-01).
+// Branded centred sign-in — matched to the homepage (2026-06-25).
 //
-// Structure (per the design spec):
-//
-//   ┌─────────────────────────────────────────────────────────┐
-//   │ ╔══════════════════════╤══════════════════════╗         │
-//   │ ║  [Logo]              │                      ║         │
-//   │ ║                      │   ┌──────────────┐   ║         │
-//   │ ║  Pick up where       │   │  Static card │   ║         │
-//   │ ║  you left off.       │   │   poster on  │   ║         │
-//   │ ║                      │   │  cream wash  │   ║         │
-//   │ ║  [Continue Google]   │   └──────────────┘   ║         │
-//   │ ║  ─── or ───          │                      ║         │
-//   │ ║  [Email]             │   "For the people    ║         │
-//   │ ║  [Send code (cta)]   │    who matter…"      ║         │
-//   │ ║                      │                      ║         │
-//   │ ║  Trust line          │                      ║         │
-//   │ ╚══════════════════════╧══════════════════════╝         │
-//   └─────────────────────────────────────────────────────────┘
-//   bg-surface canvas, centred container card.
-//
-// Mobile: hero pane hides; form pane fills the boxed card. The card
-// stays visible (rounded-2xl) — even on mobile, the boxed treatment is
-// the design language. Goes full-width with margin gutter.
-//
-// Login is an INFORMATION surface (per HERO_CARD.md), so the right
-// pane gets a STATIC card poster, not a Three.js viewer. Saves ~250kB
-// of JS, reads more dignified than an auto-rotating card on a sign-in
-// screen.
+//   • Page background: the homepage's white→lilac wash + the floating
+//     celebration icons (heart/ring/cake/present/celebrate/ribbon),
+//     faint + drifting, so /login feels like the same world as `/`.
+//   • A single centred sign-in box sits over the field. Primary button
+//     is violet (brand), matching the homepage hero CTA.
 
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AuthForm, authHeadingCopy, type AuthStep } from '@/components/auth/auth-form';
 import { toast } from '@/hooks/use-toast';
-import logoSrc from '@/assets/Logo2.png';
-import fathersDayFront from '@/assets/fathers-day-front.png';
+import logoSrc from '@/assets/logo-mark.webp';
+import heartIcon from '@/assets/icons/heart.png';
+import ringIcon from '@/assets/icons/ring.png';
+import cakeIcon from '@/assets/icons/cake.png';
+import presentIcon from '@/assets/icons/present.png';
+import celebrateIcon from '@/assets/icons/celebrate.png';
+import ribbonIcon from '@/assets/icons/ribbon.png';
 
 // Maps the ?error=… code that the Google OAuth callback bounces with
 // onto a user-readable message. Keeps the failure path visible.
@@ -77,140 +61,97 @@ const GOOGLE_ERROR_COPY: Record<string, { title: string; description: string }> 
   },
 };
 
+// The floating celebration field — same icons as the homepage backdrop,
+// here static (no scroll coupling) and spread around the centred box.
+// Top icons sit smaller + fainter (depth), bottom icons larger + warmer.
+const FLOAT_ICONS = [
+  { src: heartIcon, pos: 'top-[10%] left-[8%]', size: 74, opacity: 0.5, tilt: -8, delay: 0 },
+  { src: ringIcon, pos: 'top-[14%] right-[9%]', size: 68, opacity: 0.5, tilt: 7, delay: 1.4 },
+  { src: celebrateIcon, pos: 'top-[46%] left-[6%]', size: 60, opacity: 0.4, tilt: -5, delay: 2.2, hideSm: true },
+  { src: ribbonIcon, pos: 'top-[42%] right-[6%]', size: 60, opacity: 0.4, tilt: 6, delay: 0.8, hideSm: true },
+  { src: cakeIcon, pos: 'bottom-[10%] left-[11%]', size: 112, opacity: 0.7, tilt: -9, delay: 0.6 },
+  { src: presentIcon, pos: 'bottom-[13%] right-[10%]', size: 108, opacity: 0.68, tilt: 8, delay: 1.9 },
+];
+
+function FloatingField({ reduced }: { reduced: boolean }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {FLOAT_ICONS.map((ic, i) => (
+        <motion.img
+          key={i}
+          src={ic.src}
+          alt=""
+          className={`absolute ${ic.pos} ${ic.hideSm ? 'hidden lg:block' : ''}`}
+          style={{ width: ic.size, opacity: ic.opacity, rotate: ic.tilt }}
+          initial={{ y: 0 }}
+          animate={reduced ? undefined : { y: [0, -14, 0] }}
+          transition={
+            reduced ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: ic.delay }
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function LoginPage() {
-  // Mirror the AuthForm's step so the headline above the form swaps
-  // copy in sync. The form owns the state machine; the page owns the
-  // typography. AuthForm fires onStepChange whenever it transitions.
+  const reduced = useReducedMotion() ?? false;
+  // Mirror the AuthForm's step so the headline above the form swaps copy
+  // in sync. The form owns the state machine; the page owns the typography.
   const [step, setStep] = useState<AuthStep>('email');
-  const [email] = useState(''); // for "We sent a code to …" — not currently used; subline is generic until we hoist email up too. Keeping the slot for the future.
+  const [email] = useState('');
   const { heading, subline } = authHeadingCopy(step, email);
 
   // Surface Google OAuth callback errors as a toast on first paint.
-  // Strips the `?error=` from the URL so a refresh doesn't re-toast.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const errorCode = params.get('error');
     if (!errorCode) return;
-    const copy = GOOGLE_ERROR_COPY[errorCode] ?? {
-      title: 'Sign-in failed',
-      description: errorCode,
-    };
+    const copy = GOOGLE_ERROR_COPY[errorCode] ?? { title: 'Sign-in failed', description: errorCode };
     toast({ ...copy, variant: 'destructive' });
     params.delete('error');
     const newSearch = params.toString();
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}`,
-    );
+    window.history.replaceState(null, '', `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}`);
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center relative overflow-hidden">
-      {/* Whisper-quiet ambient blobs — coral top-left, amber bottom-
-          right. Brand warmth without competing with the boxed card. */}
-      <div
-        aria-hidden
-        className="absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full blur-3xl opacity-25 pointer-events-none"
-        style={{ background: 'radial-gradient(closest-side, #ffe4ef, transparent 70%)' }}
-      />
-      <div
-        aria-hidden
-        className="absolute -bottom-40 -right-40 w-[520px] h-[520px] rounded-full blur-3xl opacity-25 pointer-events-none"
-        style={{ background: 'radial-gradient(closest-side, #fef3c7, transparent 70%)' }}
-      />
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10"
+      style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f3f2fb 100%)' }}
+    >
+      {/* Homepage floating-icon field, behind the box. */}
+      <FloatingField reduced={reduced} />
 
-      {/* The boxed container card — 50/50 split on desktop, form-only
-          on mobile. Big soft shadow, generous rounded corners. */}
+      {/* Single centred sign-in box. */}
       <div
-        className="relative w-full max-w-[1040px] mx-4 my-8 md:mx-12 md:my-12 bg-surface-card rounded-2xl md:rounded-3xl border border-stone-200 overflow-hidden grid grid-cols-1 md:grid-cols-2"
+        className="relative z-10 w-full max-w-[440px] rounded-2xl border border-stone-200 bg-surface-card p-8 sm:p-10 md:rounded-3xl"
         style={{
-          boxShadow:
-            '0 30px 80px -30px rgba(15,23,42,0.18), 0 12px 24px -12px rgba(15,23,42,0.08)',
-          minHeight: '620px',
+          boxShadow: '0 30px 80px -30px rgba(15,23,42,0.18), 0 12px 24px -12px rgba(15,23,42,0.08)',
         }}
       >
-        {/* ── Form pane ───────────────────────────────────────────── */}
-        <div className="flex flex-col p-8 md:p-12 lg:p-14">
-          {/* Logo top-left */}
-          <img src={logoSrc} alt="Celebrait" className="h-8 self-start" />
+        <img src={logoSrc} alt="Celebrait" className="h-8" />
 
-          {/* 64px gap → headline. Centred vertically within the
-              remaining height so the form sits comfortably regardless
-              of how tall the card ends up. */}
-          <div className="flex-1 flex flex-col justify-center mt-12 md:mt-14">
-            <div className="mb-8">
-              <h1 className="text-3xl md:text-4xl font-semibold text-ink tracking-tight leading-[1.1]">
-                {heading}
-              </h1>
-              <p className="text-sm text-ink-soft mt-3 max-w-[36ch]">{subline}</p>
-            </div>
-
-            <AuthForm onStepChange={setStep} />
-
-            <p className="text-[11px] text-stone-400 mt-6">
-              By continuing you agree to our{' '}
-              <a
-                href="/terms-of-service"
-                className="underline-offset-2 hover:underline hover:text-stone-600"
-              >
-                Terms
-              </a>{' '}
-              and{' '}
-              <a
-                href="/privacy-policy"
-                className="underline-offset-2 hover:underline hover:text-stone-600"
-              >
-                Privacy Policy
-              </a>
-              .
-            </p>
-          </div>
+        <div className="mb-8 mt-10">
+          <h1 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink">
+            {heading}
+          </h1>
+          <p className="mt-3 max-w-[36ch] text-sm text-ink-soft">{subline}</p>
         </div>
 
-        {/* ── Hero pane ───────────────────────────────────────────── */}
-        {/* Hidden on mobile per spec — the static card adds nothing
-            for a user who's already at /login on a phone. */}
-        <div
-          className="hidden md:flex relative items-center justify-center p-10 lg:p-14"
-          style={{
-            background:
-              'radial-gradient(900px 680px at 50% 40%, #fff8ec 0%, #fef7ed 50%, #fbeed5 100%)',
-          }}
-        >
-          {/* Card poster — framed, drop-shadowed, with a manufactured
-              contact shadow underneath so it feels grounded on the
-              cream surface. */}
-          <div className="relative flex flex-col items-center max-w-[440px] w-full">
-            <div className="relative w-[min(90%,360px)] aspect-square">
-              <img
-                src={fathersDayFront}
-                alt="A Celebrait greeting card"
-                className="absolute inset-0 w-full h-full object-cover rounded-2xl"
-                style={{
-                  boxShadow:
-                    '0 30px 60px -20px rgba(15,23,42,0.32), 0 12px 24px -12px rgba(15,23,42,0.16)',
-                }}
-                // @ts-expect-error — fetchpriority is valid HTML, types lag
-                fetchpriority="high"
-              />
-              <div
-                aria-hidden
-                className="absolute left-1/2 -translate-x-1/2 -bottom-5 h-5 w-[78%] rounded-[50%] blur-2xl opacity-50"
-                style={{
-                  background:
-                    'radial-gradient(closest-side, rgba(15,23,42,0.45), transparent 70%)',
-                }}
-              />
-            </div>
+        {/* accent="brand" → the violet sign-in button (matches homepage). */}
+        <AuthForm onStepChange={setStep} accent="brand" />
 
-            {/* Pull-quote — the only typographic moment on this side.
-                Italic body, ink-soft, kept narrow. */}
-            <p className="text-base md:text-lg text-ink-soft italic text-center mt-12 max-w-[28ch] leading-relaxed">
-              For the people who matter — in their hands by Friday.
-            </p>
-          </div>
-        </div>
+        <p className="mt-6 text-[11px] text-stone-400">
+          By continuing you agree to our{' '}
+          <a href="/terms-of-service" className="underline-offset-2 hover:text-stone-600 hover:underline">
+            Terms
+          </a>{' '}
+          and{' '}
+          <a href="/privacy-policy" className="underline-offset-2 hover:text-stone-600 hover:underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

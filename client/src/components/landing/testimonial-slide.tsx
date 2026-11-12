@@ -66,7 +66,7 @@ function VideoTile({ videoSrc, poster }: VideoTileProps) {
           <button
             type="button"
             disabled
-            aria-label="Recipient video — coming soon"
+            aria-label="Recipient video, coming soon"
             className="group relative w-16 h-16 md:w-20 md:h-20 rounded-full bg-cta text-cta-foreground flex items-center justify-center shadow-2xl cursor-not-allowed ring-4 ring-white/30"
           >
             <Play
@@ -154,7 +154,7 @@ export function TestimonialSlide({ testimonial }: TestimonialSlideProps) {
       </div>
 
       <p className="text-center text-sm text-ink-soft mt-8" data-testid="testimonial-caption">
-        {recipientFirstName} — {occasion}
+        {recipientFirstName} · {occasion}
       </p>
     </div>
   );

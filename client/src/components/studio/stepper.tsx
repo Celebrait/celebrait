@@ -4,32 +4,55 @@
 // steps, shows which is current, and lets the user click any earlier
 // step to jump back. Earlier = any step they've already passed.
 
-import { Check } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import { CARD_MAKER_STEPS } from '@shared/schema';
+
+/** One step as the stepper draws it. `index` is the TRUE step index the
+ *  maker uses (they can have gaps); `locked` is a finale that is never
+ *  tappable and wears a lock instead of a number. */
+export interface StepperStep {
+  id: string;
+  label: string;
+  index: number;
+  locked?: boolean;
+}
 
 interface StepperProps {
   currentStep: number;
   /** Highest step index the user has reached — earlier ones can be clicked. */
   furthestStep: number;
   onStepClick: (step: number) => void;
+  /** Defaults to the studio maker's steps. The signed-out photo maker
+   *  passes its own (2026-11-12: one stepper design for both makers; it
+   *  used pill chips before). */
+  steps?: StepperStep[];
 }
 
-export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps) {
+// The Inside step left the linear walk 2026-07-07 (the message is now
+// written AFTER the front reveal — see the front-first re-sequence in
+// review-step.tsx). Its chip is hidden and the displayed numbers are
+// renumbered, but TRUE step indexes are preserved for clicks/highlights
+// so nothing else re-indexes (re-indexing has caused two prod bugs).
+const VISIBLE_STEPS = CARD_MAKER_STEPS.map((s, index) => ({ ...s, index })).filter(
+  (s) => s.id !== 'inside',
+);
+
+export function Stepper({ currentStep, furthestStep, onStepClick, steps = VISIBLE_STEPS }: StepperProps) {
   return (
     <div
       className="flex items-center gap-1 sm:gap-2 w-full"
       role="tablist"
       aria-label="Card maker steps"
     >
-      {CARD_MAKER_STEPS.map((s, i) => {
-        const isCurrent = i === currentStep;
-        const isDone = i < furthestStep;
-        const canJump = i <= furthestStep;
+      {steps.map((s, pos) => {
+        const isCurrent = s.index === currentStep;
+        const isDone = s.index < furthestStep && !s.locked;
+        const canJump = s.index <= furthestStep && !s.locked;
         return (
           <div key={s.id} className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
             <button
               type="button"
-              onClick={() => canJump && onStepClick(i)}
+              onClick={() => canJump && onStepClick(s.index)}
               disabled={!canJump}
               aria-current={isCurrent ? 'step' : undefined}
               className={`group flex items-center gap-2 min-w-0 text-left ${
@@ -43,28 +66,30 @@ export function Stepper({ currentStep, furthestStep, onStepClick }: StepperProps
                     ? 'bg-brand text-brand-foreground ring-2 ring-brand-light'
                     : isDone
                       ? 'bg-cta text-cta-foreground'
-                      : 'bg-stone-100 text-stone-400 shadow-none'
+                      : 'bg-stone-100 text-keeper-meta shadow-none'
                 }`}
               >
-                {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : i + 1}
+                {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : s.locked ? <Lock className="w-3.5 h-3.5" /> : pos + 1}
               </span>
+              {/* On phones only the CURRENT step carries its word; a row
+                  of bare numbers told nobody where they were. */}
               <span
-                className={`hidden md:inline text-xs sm:text-sm truncate transition-colors ${
+                className={`${isCurrent ? 'inline' : 'hidden md:inline'} text-xs sm:text-sm truncate transition-colors ${
                   isCurrent
-                    ? 'text-ink font-semibold'
+                    ? 'text-keeper-ink font-semibold'
                     : isDone
                       ? 'text-cta-hover'
-                      : 'text-stone-400'
+                      : 'text-keeper-meta'
                 }`}
               >
                 {s.label}
               </span>
             </button>
             {/* Connector line — not after the last step */}
-            {i < CARD_MAKER_STEPS.length - 1 && (
+            {pos < steps.length - 1 && (
               <span
                 className={`flex-1 h-px rounded-full transition-colors ${
-                  isDone ? 'bg-cta' : 'bg-stone-200'
+                  isDone ? 'bg-cta' : 'bg-keeper-hair'
                 }`}
               />
             )}

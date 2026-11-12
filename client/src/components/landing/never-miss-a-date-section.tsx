@@ -11,6 +11,7 @@
 
 import { motion } from 'framer-motion';
 import { Bell, BookHeart, Calendar } from 'lucide-react';
+import { marketId } from '@shared/market';
 
 interface BookEntry {
   initial: string;
@@ -24,7 +25,7 @@ interface BookEntry {
 const BOOK: BookEntry[] = [
   {
     initial: 'M',
-    name: 'Mum',
+    name: marketId() === 'ZA' ? 'Mom' : 'Mum',
     relationship: 'Mother',
     occasion: '70th birthday',
     daysUntil: 18,
@@ -68,19 +69,19 @@ function ReminderTimeline() {
           {
             tier: 'T-21',
             title: 'Three weeks ahead',
-            body: 'Warm prompt — plenty of time to make and post.',
+            body: 'Warm prompt, with plenty of time to make and post.',
             delay: 0,
           },
           {
             tier: 'T-7',
             title: 'One week ahead',
-            body: 'Nudge — last shipping window for standard delivery.',
+            body: 'Nudge: last shipping window for standard delivery.',
             delay: 0.15,
           },
           {
             tier: 'T-3',
             title: 'Three days ahead',
-            body: 'Pivot to digital — still time to land in their inbox.',
+            body: 'Pivot to digital. Still time to land in their inbox.',
             delay: 0.3,
           },
         ].map((row) => (

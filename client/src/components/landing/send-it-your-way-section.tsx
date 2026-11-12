@@ -18,8 +18,13 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { Truck, Sparkles, Zap, MailOpen, Globe } from 'lucide-react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
+import { Truck, Sparkles, Package, MailOpen, Globe } from 'lucide-react';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
+import { cardPriceFrom, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { copyFor } from '@shared/market-copy';
+
+const COPY = copyFor();
 
 /** Auto-looping envelope-opening mock. Just CSS transforms — full
  *  Lottie/three.js for one section is overkill. The animation runs on
@@ -120,23 +125,23 @@ interface PrintFeature {
 const PRINT_FEATURES: PrintFeature[] = [
   {
     icon: Sparkles,
-    title: 'Premium 350gsm card',
-    body: 'Uncoated, archival-quality stock. Feels heavier than the supermarket norm.',
+    title: 'Premium 280gsm gloss card',
+    body: 'Gloss-coated art card, HP Indigo digital print. Crisp, vivid colour.',
+  },
+  {
+    icon: Package,
+    title: 'One-off prints, made just for them',
+    body: 'Every card is printed once, after you order it. No shelf, no stock. Up to three working days in the print lab.',
   },
   {
     icon: Truck,
-    title: 'Standard delivery, 3–5 days',
-    body: 'Tracked, posted from London. Kraft envelope, no plastic wrap.',
-  },
-  {
-    icon: Zap,
-    title: 'Overnight option',
-    body: 'Order before 2pm — on the doorstep next day.',
+    title: 'Then posted: allow at least a week',
+    body: `${COPY.za ? 'Sent by courier' : 'Royal Mail 24'} for ${formatMoney(shippingPrice())}${COPY.za ? '' : ', usually the next working day'}. Please allow at least a week from order to arrival. Tell us the date at checkout and we'll say if it'll make it.`,
   },
   {
     icon: Globe,
-    title: 'UK launch · more soon',
-    body: 'United Kingdom today. South Africa, Europe and the US in the pipeline.',
+    title: COPY.za ? 'South Africa first · more soon' : 'UK launch · more soon',
+    body: COPY.za ? 'Anywhere in South Africa today. More countries in the pipeline.' : 'United Kingdom today. South Africa, Europe and the US in the pipeline.',
   },
 ];
 
@@ -149,13 +154,13 @@ export function SendItYourWaySection() {
             Send it your way
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold text-ink tracking-tight leading-[1.05]">
-            Digital, printed,
+            Printed, posted,
             <br />
-            or both.
+            and shareable.
           </h2>
           <p className="text-lg text-ink-soft mt-6 leading-relaxed max-w-[52ch]">
-            A free private link they can open in any browser, an animated card
-            posted in 350gsm stock, or both. You choose.
+            A premium 280gsm gloss card, posted {COPY.anywhere}, and every
+            one comes with a free private link to share too.
           </p>
         </div>
 
@@ -169,10 +174,10 @@ export function SendItYourWaySection() {
           >
             <EnvelopeMock />
             <h3 className="text-2xl font-semibold text-ink tracking-tight mt-8 mb-3">
-              A private link, animated.
+              A link to share, too.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed">
-              Recipients open the card in any browser — no app, no signup.
+              Recipients open the card in any browser. No app, no signup.
               Watch the envelope, open the card, replay it forever. Free with
               every Celebrait.
             </p>
@@ -190,8 +195,8 @@ export function SendItYourWaySection() {
               Printed and posted.
             </h3>
             <p className="text-base text-ink-soft leading-relaxed mb-8">
-              From £7.99 — printed on premium uncoated stock, posted in a kraft
-              envelope.
+              From {formatMoney(cardPriceFrom())} plus postage. HP Indigo printed on 280gsm gloss card,
+              posted in a kraft envelope.
             </p>
 
             <div className="space-y-5">

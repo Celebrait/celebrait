@@ -39,11 +39,13 @@
 import type { Express, Request, Response } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
+import { publicOrigin } from '@shared/market';
 import {
   cards,
   users,
   type CardDraftState,
 } from '@shared/schema';
+import { publicImageUrl } from '../image-storage';
 import {
   sendCardReadyEmail,
   sendGenerationFailedEmail,
@@ -55,8 +57,14 @@ import {
   sendDropOffRecoveryEmail,
   sendDropOffTweakEmail,
   sendDropOffLastCallEmail,
+  sendReminderEmail,
+  sendOtpEmail,
+  sendMakeYourOwnLinkEmail,
+  sendWelcomeEmail,
+  sendEarlyAccessConfirmEmail,
   renderEmailForPreview,
   sendEmail,
+  type ReminderTier,
 } from '../email-service';
 
 async function isAdmin(req: Request): Promise<boolean> {
@@ -104,12 +112,19 @@ async function loadCardContext(cardId: number | undefined): Promise<{
   state: CardDraftState | null;
   ownerEmail: string | null;
   ownerFirstName: string | null;
+  /** Absolute front/inside URLs for hero previews (null when no card art). */
+  cardImageUrl: string | null;
+  insideImageUrl: string | null;
 } | null> {
   if (!cardId) return null;
   const rows = await db
     .select({
       conversationData: cards.conversationData,
       userId: cards.userId,
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      insideImagePath: cards.insideImagePath,
+      insideImageUrl: cards.insideImageUrl,
     })
     .from(cards)
     .where(eq(cards.id, cardId))
@@ -117,8 +132,14 @@ async function loadCardContext(cardId: number | undefined): Promise<{
   const row = rows[0];
   if (!row) return null;
   const state = (row.conversationData as CardDraftState | null) ?? null;
+  const cardImageUrl = row.frontImagePath
+    ? publicImageUrl(row.frontImagePath)
+    : row.frontImageUrl ?? null;
+  const insideImageUrl = row.insideImagePath
+    ? publicImageUrl(row.insideImagePath)
+    : row.insideImageUrl ?? null;
   if (!row.userId) {
-    return { state, ownerEmail: null, ownerFirstName: null };
+    return { state, ownerEmail: null, ownerFirstName: null, cardImageUrl, insideImageUrl };
   }
   const userRows = await db
     .select({ email: users.email, firstName: users.firstName })
@@ -129,6 +150,8 @@ async function loadCardContext(cardId: number | undefined): Promise<{
     state,
     ownerEmail: userRows[0]?.email ?? null,
     ownerFirstName: userRows[0]?.firstName ?? null,
+    cardImageUrl,
+    insideImageUrl,
   };
 }
 
@@ -173,6 +196,13 @@ const KNOWN_TEMPLATES = [
   'dropoff-recovery',
   'dropoff-tweak',
   'dropoff-last-call',
+  'reminder-t21',
+  'reminder-t10',
+  'reminder-t7',
+  'otp',
+  'make-your-own',
+  'welcome',
+  'early-access',
 ] as const;
 
 type KnownTemplate = (typeof KNOWN_TEMPLATES)[number];
@@ -195,9 +225,17 @@ async function dispatchTemplate(
      *  template needs both a recipient AND a sender (e.g. recipient-
      *  card-arrived). */
     adminContact: { email: string; firstName: string | null };
+    /** Absolute front/inside URLs from the loaded card (null when dummy). */
+    cardImageUrl: string | null;
+    insideImageUrl: string | null;
   },
 ): Promise<boolean> {
-  const { targetTo, vars, cardId, body, adminContact } = args;
+  const { targetTo, vars, cardId, body, adminContact, cardImageUrl, insideImageUrl } = args;
+  // Real card art when a cardId is given; sample front + inside otherwise
+  // so both heroes still render in a dummy preview.
+  const origin = publicOrigin();
+  const sampleFront = cardImageUrl ?? `${origin}/hero-card-front.webp`;
+  const sampleInside = insideImageUrl ?? `${origin}/hero-card-inside.webp`;
   switch (template) {
     case 'card-ready': {
       return sendCardReadyEmail({
@@ -206,6 +244,8 @@ async function dispatchTemplate(
         recipientName: vars.recipientName,
         occasion: vars.occasion,
         cardId: cardId ?? 0,
+        cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'generation-failed': {
@@ -216,7 +256,7 @@ async function dispatchTemplate(
     case 'recipient-card-arrived': {
       const shareUrl =
         body.shareUrl ??
-        `${process.env.PUBLIC_APP_ORIGIN ?? 'https://celebrait.co.za'}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
+        `${publicOrigin()}/card/${cardId ?? 0}/view?t=TEST_TOKEN`;
       return sendRecipientCardArrivedEmail({
         recipientEmail: targetTo,
         recipientName: vars.recipientName,
@@ -232,14 +272,18 @@ async function dispatchTemplate(
         senderName: vars.senderName,
         recipientName: vars.recipientName,
         occasion: vars.occasion,
-        includesPrint: body.includesPrint ?? false,
+        includesPrint: body.includesPrint ?? true,
         includesDigital: body.includesDigital ?? true,
-        totalAmount: body.totalAmount ?? 4900, // R49.00
-        currency: body.currency ?? 'ZAR',
+        totalAmount: body.totalAmount ?? 899, // £8.99 printed card (shared/pricing.ts)
+        currency: body.currency ?? 'GBP',
         orderId: body.orderId ?? `test_${cardId ?? 'X'}`,
+        cardId: cardId ?? 1,
         scheduledSendAt: body.scheduledSendAt
           ? new Date(body.scheduledSendAt)
           : null,
+        // Preview the guest variant with { "isGuest": true } in the body.
+        isGuest: body.isGuest === true,
+        shareUrl: body.shareUrl ?? null,
       });
     }
     case 'sender-card-opened': {
@@ -247,6 +291,8 @@ async function dispatchTemplate(
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
+        cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'sender-print-shipped': {
@@ -259,6 +305,8 @@ async function dispatchTemplate(
           body.trackingUrl ?? 'https://example.com/track/TEST-TRK-1234',
         courier: body.courier ?? 'Aramex',
         etaWindow: body.etaWindow ?? 'Tue–Thu next week',
+        cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'sender-print-delivered': {
@@ -266,6 +314,8 @@ async function dispatchTemplate(
         senderEmail: targetTo,
         senderName: vars.senderName,
         recipientName: vars.recipientName,
+        cardImageUrl: sampleFront,
+        insideImageUrl: sampleInside,
       });
     }
     case 'dropoff-recovery': {
@@ -293,6 +343,66 @@ async function dispatchTemplate(
         recipientName: vars.recipientName,
         occasion: vars.occasion,
         cardId: cardId ?? 0,
+      });
+    }
+    case 'reminder-t21':
+    case 'reminder-t10':
+    case 'reminder-t7': {
+      // Occasion reminders. The tier is encoded in the template name so
+      // no extra input is needed — daysUntil defaults from the tier (a
+      // body.daysUntil override is honoured). lastCardImage = the "last
+      // time you sent this" hero (real card art if a cardId is given,
+      // else a sample).
+      const origin = publicOrigin();
+      const tierMap: Record<
+        'reminder-t21' | 'reminder-t10' | 'reminder-t7',
+        { tier: ReminderTier; daysUntil: number }
+      > = {
+        'reminder-t21': { tier: 't_21', daysUntil: 21 },
+        'reminder-t10': { tier: 't_10', daysUntil: 10 },
+        'reminder-t7': { tier: 't_7', daysUntil: 7 },
+      };
+      const { tier, daysUntil } = tierMap[template];
+      const startCardUrl =
+        `${origin}/studio/new-card?recipient=${encodeURIComponent(vars.recipientName)}` +
+        `&occasion=${encodeURIComponent(vars.occasion)}`;
+      return sendReminderEmail({
+        senderEmail: targetTo,
+        senderName: vars.senderName,
+        recipientName: vars.recipientName,
+        occasion: vars.occasion,
+        daysUntil: typeof body.daysUntil === 'number' ? body.daysUntil : daysUntil,
+        tier,
+        startCardUrl,
+        lastCardImageUrl: sampleFront,
+        lastInsideImageUrl: sampleInside,
+      });
+    }
+    case 'otp': {
+      // A dummy code for the preview; body.code overrides if supplied.
+      const code =
+        typeof body.code === 'string' && body.code.trim() ? body.code.trim() : '204815';
+      return sendOtpEmail(targetTo, code);
+    }
+    case 'make-your-own': {
+      // Lead-capture "here's your link" email. body.occasionDate toggles
+      // the occasion-nudge variant.
+      return sendMakeYourOwnLinkEmail(targetTo, {
+        recipientName: vars.recipientName,
+        occasionDate: body.occasionDate ?? null,
+      });
+    }
+    case 'welcome': {
+      return sendWelcomeEmail({ email: targetTo, firstName: vars.senderName });
+    }
+    case 'early-access': {
+      // Pre-launch list confirmation. body.marketingOptIn toggles the
+      // extra "card ideas after launch" line, which only appears for
+      // people who actually ticked the box on the launching-soon page.
+      return sendEarlyAccessConfirmEmail({
+        email: targetTo,
+        firstName: vars.recipientName,
+        marketingOptIn: body.marketingOptIn === true,
       });
     }
     default: {
@@ -342,6 +452,8 @@ export function registerAdminTestEmailRoutes(app: Express): void {
           cardId,
           body,
           adminContact,
+          cardImageUrl: cardCtx?.cardImageUrl ?? null,
+          insideImageUrl: cardCtx?.insideImageUrl ?? null,
         });
         res.json({ ok: sent, template, to: targetTo, vars });
       } catch (err: any) {
@@ -400,6 +512,8 @@ export function registerAdminTestEmailRoutes(app: Express): void {
             cardId,
             body,
             adminContact,
+            cardImageUrl: cardCtx?.cardImageUrl ?? null,
+            insideImageUrl: cardCtx?.insideImageUrl ?? null,
           }),
         );
         if (!captured) {

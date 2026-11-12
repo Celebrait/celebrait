@@ -39,26 +39,96 @@ import {
   cards,
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
+import { publicImageUrl } from '../image-storage';
 
 function getUserId(req: Request): string | null {
   const id = (req as any).session?.otpUserId;
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-interface EntryWithOccasions extends AddressBookEntry {
-  occasions: RecipientOccasionRow[];
+/** Tiny shape returned alongside an address-book entry to give the
+ *  list UI a visual anchor — the front art of the most recent card
+ *  this person was sent. Null when nothing's been sent yet (the row
+ *  falls back to a letter avatar). Just front for now; inside isn't
+ *  needed for a list thumbnail and keeps the payload small. */
+interface LastSentCard {
+  frontImageUrl: string;
+  /** ISO timestamp of when the card was completed. Renders as a soft
+   *  "Last sent 14 Mar 2026" line on the address-book row — the memory
+   *  shelf framing from next_address_book_reminders_retention.md.
+   *  Client formats locally so we don't bake a locale on the server. */
+  sentAt: string;
 }
 
-/** Hydrate an entry with its occasions in one extra query. Two-query
- *  shape (entry then occasions) is cleaner than a left-join + group
- *  for V1; the cron will do its own optimised query path. */
+interface EntryWithOccasions extends AddressBookEntry {
+  occasions: RecipientOccasionRow[];
+  /** Most recent completed card sent to this recipient (matched by
+   *  case-insensitive name on cards.conversationData.recipient.name).
+   *  Drives the row thumbnail — turns the address book from a
+   *  contacts list into a memory shelf. See
+   *  next_address_book_reminders_retention.md. */
+  lastCard: LastSentCard | null;
+}
+
+/** Look up the front image of the most recent completed card a user
+ *  sent to a recipient (matched loosely by name). Returns null if
+ *  nothing's been sent. Mirrors the dashboard's image-resolution
+ *  pattern: prefer the on-disk `/images/<path>` when frontImagePath
+ *  is set (1-year cache), fall back to the legacy frontImageUrl. */
+async function findLastSentCardForName(
+  userId: string,
+  name: string,
+): Promise<LastSentCard | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const rows = await db
+    .select({
+      frontImagePath: cards.frontImagePath,
+      frontImageUrl: cards.frontImageUrl,
+      createdAt: cards.createdAt,
+    })
+    .from(cards)
+    .where(
+      and(
+        eq(cards.userId, userId),
+        eq(cards.status, 'completed'),
+        sql`lower(${cards.conversationData}->'recipient'->>'name') = lower(${trimmed})`,
+      ),
+    )
+    .orderBy(desc(cards.createdAt))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const url = row.frontImagePath
+    ? publicImageUrl(row.frontImagePath)
+    : row.frontImageUrl;
+  if (!url) return null;
+  // createdAt is non-null in the schema (defaultNow().notNull()) but
+  // Drizzle's inferred type allows null because the column is
+  // technically nullable at the DB layer until a row is inserted.
+  // Fall back to "now" defensively — never null in practice for a
+  // completed card row.
+  return {
+    frontImageUrl: url,
+    sentAt: (row.createdAt ?? new Date()).toISOString(),
+  };
+}
+
+/** Hydrate an entry with its occasions AND its most recent sent card
+ *  (the row thumbnail anchor). Two extra queries per entry; runs them
+ *  in parallel so it's still effectively one round-trip per entry.
+ *  Pre-launch list sizes are small enough that the N+1 doesn't matter;
+ *  if the address book grows large we batch this with a left-join. */
 async function hydrateEntry(entry: AddressBookEntry): Promise<EntryWithOccasions> {
-  const occs = await db
-    .select()
-    .from(recipientOccasions)
-    .where(eq(recipientOccasions.addressBookEntryId, entry.id))
-    .orderBy(recipientOccasions.date);
-  return { ...entry, occasions: occs };
+  const [occs, lastCard] = await Promise.all([
+    db
+      .select()
+      .from(recipientOccasions)
+      .where(eq(recipientOccasions.addressBookEntryId, entry.id))
+      .orderBy(recipientOccasions.date),
+    findLastSentCardForName(entry.userId, entry.name),
+  ]);
+  return { ...entry, occasions: occs, lastCard };
 }
 
 /** Find an entry by case-insensitive name match within a user's
@@ -217,9 +287,60 @@ const occIdParamSchema = z.object({
 
 const updateEntrySchema = insertAddressBookEntrySchema.partial();
 
+// The entry id comes from the URL on the occasion routes — the body never
+// carries it. Validating the raw insert schema there demanded
+// `addressBookEntryId` and 400'd every "add an occasion" from the edit
+// form (launch audit 2026-10-06, studio P1).
+const occasionBodySchema = insertRecipientOccasionSchema.omit({ addressBookEntryId: true });
+
 const createWithOccasionsSchema = insertAddressBookEntrySchema.extend({
-  occasions: z.array(insertRecipientOccasionSchema.omit({ addressBookEntryId: true })).optional(),
+  occasions: z.array(occasionBodySchema).optional(),
 });
+
+/** Field labels for validation copy — the customer reads these. */
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Name',
+  relationship: 'Relationship',
+  email: 'Email',
+  phone: 'Phone number',
+  notes: 'Notes',
+  address: 'Address',
+  occasions: 'Occasion',
+  occasion: 'Occasion',
+  date: 'Date',
+  yearSpecific: 'Year setting',
+  suppressedUntil: 'Skip-until date',
+};
+
+/** Turn the first zod issue into one sentence that names the field —
+ *  "Name is required", "Enter a valid email" — instead of the generic
+ *  "Invalid input" the form used to toast (launch audit 2026-10-06). The
+ *  schemas carry customer-facing messages for their own rules; this
+ *  covers zod's defaults (missing / wrong type / too long). */
+const ZOD_DEFAULT_MESSAGE = /^(String|Number|Array|Invalid|Required|Expected|Too (big|small))/;
+
+function zodMessage(err: z.ZodError): string {
+  const issue = err.issues[0];
+  if (!issue) return 'Please check the form and try again';
+  // Schema-authored copy ("Enter a valid email", "Phone number is too long
+  // (40 characters max)") already names what to fix — pass it through.
+  if (!ZOD_DEFAULT_MESSAGE.test(issue.message)) return issue.message;
+  // Last named segment of the path — `occasions.0.date` → "date".
+  const key = [...issue.path].reverse().find((p): p is string => typeof p === 'string') ?? '';
+  const label = FIELD_LABELS[key] ?? 'This field';
+  switch (issue.code) {
+    case 'invalid_type':
+      return issue.received === 'undefined' || issue.received === 'null'
+        ? `${label} is required`
+        : `${label} isn't in the right format`;
+    case 'too_small':
+      return `${label} is required`;
+    case 'too_big':
+      return `${label} is too long`;
+    default:
+      return `${label} isn't valid`;
+  }
+}
 
 export function registerAddressBookRoutes(app: Express): void {
   // GET /api/user/address-book — list all entries with their occasions
@@ -305,6 +426,89 @@ export function registerAddressBookRoutes(app: Express): void {
   );
 
   // POST /api/user/address-book — manual create (with optional occasions)
+  // ── POST /api/studio/cards/:id/save-for-later ───────────────────
+  // Carina's feedback (2026-08-07): she'd made a card months before the
+  // occasion and couldn't see how NOT to buy it immediately. The moment
+  // someone defers is also the one moment they'll happily tell us WHEN
+  // the occasion is -- so this sets the date on the occasion row that
+  // card completion already auto-created (date null until now). A draft
+  // with a date is a reminder with the card already made.
+  app.post(
+    '/api/studio/cards/:id/save-for-later',
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+      const cardId = parseInt(req.params.id, 10);
+      if (!Number.isFinite(cardId)) {
+        return res.status(400).json({ message: 'Invalid id' });
+      }
+      const rawDate = typeof req.body?.date === 'string' ? req.body.date.trim() : '';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+
+      try {
+        const cardRows = await db
+          .select({ userId: cards.userId, conversationData: cards.conversationData })
+          .from(cards)
+          .where(eq(cards.id, cardId))
+          .limit(1);
+        const card = cardRows[0];
+        if (!card) return res.status(404).json({ message: 'Card not found' });
+        if (card.userId !== userId) {
+          return res.status(403).json({ message: 'Not your card' });
+        }
+
+        // No date given -> nothing to record; the save itself is implicit
+        // (drafts always persist). Still a 200 so the client copy can say
+        // "saved" honestly.
+        if (!date) return res.json({ saved: true, dateSet: false });
+
+        const state = (card.conversationData as CardDraftState | null) ?? null;
+        const recipientName = state?.recipient?.name?.trim();
+        const occasion = state?.recipient?.occasion?.trim() || 'other';
+        if (!recipientName) return res.json({ saved: true, dateSet: false });
+
+        let entry = await findEntryByNameCI(userId, recipientName);
+        if (!entry) {
+          const [created] = await db
+            .insert(addressBookEntries)
+            .values({ userId, name: recipientName })
+            .returning();
+          entry = created;
+        }
+        const existing = await db
+          .select({ id: recipientOccasions.id, date: recipientOccasions.date })
+          .from(recipientOccasions)
+          .where(
+            and(
+              eq(recipientOccasions.addressBookEntryId, entry.id),
+              eq(recipientOccasions.occasion, occasion),
+            ),
+          )
+          .limit(1);
+        if (existing.length === 0) {
+          await db.insert(recipientOccasions).values({
+            addressBookEntryId: entry.id,
+            userId,
+            occasion,
+            date,
+            yearSpecific: false,
+          });
+        } else {
+          // They just told us the date -- newest information wins.
+          await db
+            .update(recipientOccasions)
+            .set({ date })
+            .where(eq(recipientOccasions.id, existing[0].id));
+        }
+        res.json({ saved: true, dateSet: true });
+      } catch (err: any) {
+        console.error('[ADDRESS_BOOK] save-for-later failed:', err?.message ?? err);
+        res.status(500).json({ message: 'Could not save the date' });
+      }
+    },
+  );
+
   app.post('/api/user/address-book', isAuthenticated, async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });
@@ -312,7 +516,7 @@ export function registerAddressBookRoutes(app: Express): void {
     const parsed = createWithOccasionsSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
-        message: 'Invalid input',
+        message: zodMessage(parsed.error),
         errors: parsed.error.flatten().fieldErrors,
       });
     }
@@ -330,26 +534,27 @@ export function registerAddressBookRoutes(app: Express): void {
         });
       }
 
-      const [created] = await db
-        .insert(addressBookEntries)
-        .values({ userId, ...entryData } as any)
-        .returning();
-
-      // Insert any occasions atomically-ish (best-effort; partial
-      // failure here just leaves the entry without those occasions —
-      // user can re-add).
-      if (occasions && occasions.length > 0) {
-        await db.insert(recipientOccasions).values(
-          occasions.map((o) => ({
-            addressBookEntryId: created.id,
-            userId,
-            occasion: o.occasion,
-            date: o.date ?? null,
-            yearSpecific: o.yearSpecific ?? false,
-            notes: o.notes ?? null,
-          })),
-        );
-      }
+      // One transaction: a failed occasion insert must not leave a
+      // half-saved person behind (launch audit 2026-10-06).
+      const created = await db.transaction(async (tx) => {
+        const [entry] = await tx
+          .insert(addressBookEntries)
+          .values({ userId, ...entryData } as any)
+          .returning();
+        if (occasions && occasions.length > 0) {
+          await tx.insert(recipientOccasions).values(
+            occasions.map((o) => ({
+              addressBookEntryId: entry.id,
+              userId,
+              occasion: o.occasion,
+              date: o.date ?? null,
+              yearSpecific: o.yearSpecific ?? false,
+              notes: o.notes ?? null,
+            })),
+          );
+        }
+        return entry;
+      });
 
       res.status(201).json(await hydrateEntry(created));
     } catch (err: any) {
@@ -372,7 +577,7 @@ export function registerAddressBookRoutes(app: Express): void {
       const bodyParse = updateEntrySchema.safeParse(req.body);
       if (!bodyParse.success) {
         return res.status(400).json({
-          message: 'Invalid input',
+          message: zodMessage(bodyParse.error),
           errors: bodyParse.error.flatten().fieldErrors,
         });
       }
@@ -452,10 +657,10 @@ export function registerAddressBookRoutes(app: Express): void {
       const idParse = idParamSchema.safeParse(req.params);
       if (!idParse.success) return res.status(400).json({ message: 'Invalid id' });
 
-      const bodyParse = insertRecipientOccasionSchema.safeParse(req.body);
+      const bodyParse = occasionBodySchema.safeParse(req.body);
       if (!bodyParse.success) {
         return res.status(400).json({
-          message: 'Invalid input',
+          message: zodMessage(bodyParse.error),
           errors: bodyParse.error.flatten().fieldErrors,
         });
       }
@@ -506,10 +711,10 @@ export function registerAddressBookRoutes(app: Express): void {
       const parsed = occIdParamSchema.safeParse(req.params);
       if (!parsed.success) return res.status(400).json({ message: 'Invalid ids' });
 
-      const bodyParse = insertRecipientOccasionSchema.partial().safeParse(req.body);
+      const bodyParse = occasionBodySchema.partial().safeParse(req.body);
       if (!bodyParse.success) {
         return res.status(400).json({
-          message: 'Invalid input',
+          message: zodMessage(bodyParse.error),
           errors: bodyParse.error.flatten().fieldErrors,
         });
       }
