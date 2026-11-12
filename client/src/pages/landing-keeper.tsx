@@ -1061,11 +1061,13 @@ const PROOF_EXAMPLES: ProofExample[] = [
 // and the page was showing it three times running. ProofSection (the
 // carousel, with its openable card) is kept below for an easy swap back.
 const SCENE_ROW: ProofExample[] = [BIG_BEN_EXAMPLE, TIMES_SQUARE_EXAMPLE, NEW_YORK_EXAMPLE];
-/** How far a card in the row swings open. The carousel's single card went
- *  to -150°, which throws the cover a whole card-width to the left; three
- *  across there's only the gap. Just past upright shows the whole inside
- *  with the cover edge-on beside it. */
-const SCENE_OPEN_DEG = -97;
+/** How far a card in the row swings open. At -104° the cover comes
+ *  forward and lands over the card to its left. That overlap is WANTED
+ *  (Aidan 2026-11-12: "happy with it covering its neighbour, creates
+ *  depth") — a version that kept the cover inside the gap (-97°, vanishing
+ *  point on the hinge) was tried and dropped. The carousel's -150° would
+ *  throw it a full card-width, which is too far three across. */
+const SCENE_OPEN_DEG = -104;
 
 function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onToggle: () => void }) {
   return (
@@ -1085,7 +1087,7 @@ function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onTo
         data-testid={`scene-tile-${e.id}`}
       >
         <span className="relative block aspect-square">
-          <CssAjarCard frontUrl={e.cardFront} insideUrl={e.cardInside} open={open} openDeg={SCENE_OPEN_DEG} hingeOrigin />
+          <CssAjarCard frontUrl={e.cardFront} insideUrl={e.cardInside} open={open} openDeg={SCENE_OPEN_DEG} />
           <span className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-keeper-ink shadow-sm">
             {open ? 'Tap to close' : 'Tap to open'}
           </span>
@@ -1119,8 +1121,8 @@ function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onTo
 
 function ScenesRowSection() {
   const beta = useBetaMinimalChrome();
-  // Which card is open. One at a time: an open cover swings into the gap
-  // beside it, and two open neighbours would collide.
+  // Which card is open. One at a time: an open cover swings out over the
+  // card beside it, and two open neighbours would collide.
   const [openId, setOpenId] = useState<string | null>(null);
   return (
     <section id="proof" className="scroll-mt-32 py-16 md:pb-32 md:pt-16">
