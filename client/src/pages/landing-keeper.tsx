@@ -1150,7 +1150,7 @@ function ScenesRowSection() {
   // card beside it, and two open neighbours would collide.
   const [openId, setOpenId] = useState<string | null>(null);
   return (
-    <section id="proof" className="scroll-mt-32 py-16 md:pb-32 md:pt-16">
+    <section id="proof" className="scroll-mt-32 pb-10 pt-16 md:pb-16 md:pt-16">
       <Rise className="mx-auto max-w-4xl px-6 text-center">
         {/* The page's one big centred statement: every other heading is 44px. */}
         <h2 className={`text-[clamp(34px,5.6vw,64px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
@@ -1170,8 +1170,9 @@ function ScenesRowSection() {
           <SceneTile key={e.id} e={e} open={openId === e.id} onToggle={() => setOpenId((cur) => (cur === e.id ? null : e.id))} />
         ))}
       </ul>
-      <div className="mt-8 flex flex-col items-center gap-4 px-6 md:mt-14">
-        <PrimaryCta />
+      {/* No button here any more: the offer panel directly below carries
+          it, and two "Make a card" buttons 300px apart read as a stutter. */}
+      <div className="mt-2 flex flex-col items-center gap-4 px-6 md:mt-4">
         {!beta && GALLERY_OPEN && (
           <Link
             href="/gallery"
@@ -1512,25 +1513,38 @@ function PriceSection() {
   // The launch offer (2026-11-06): the first card on us while it's open.
   const onUs = useFirstCardOnUs();
   return (
-    <section id="price" className="scroll-mt-32 px-6 py-16 md:pb-32 md:pt-16">
-      {/* White panel (variation pass 2026-11-11): the offer is the one
-          block on the page that should read as an object, not more page. */}
-      <div className="mx-auto max-w-3xl rounded-[32px] border border-keeper-hair bg-white px-6 py-14 text-center shadow-[0_30px_80px_-40px_rgba(33,29,25,0.35)] sm:px-12 md:py-16">
+    <section id="price" className="scroll-mt-32 px-6 pb-16 pt-2 md:pb-28 md:pt-0">
+      {/* THE OFFER, AS THE PAGE'S LEAD ITEM (Aidan 2026-11-12: "does this
+          need to stand out more?" — yes). Same words and conditions as
+          before; what changed is the ORDER they're read in:
+            the claim → "Free" → what it costs you → the button → small print.
+          It was a plain white box whose biggest element after "Free" was
+          a four-line paragraph mixing the offer's terms, the regular
+          price and the delivery warning, with "just £2.95 postage" (the
+          line that makes "free" believable) buried in it.
+          Treatment = the site's rule for a lead item: violet tint +
+          violet border, no dark panel. Coral is the offer's accent and
+          appears here as it does on the ticker and the popup; it sits on
+          26px+ bold type because the darker coral is ~3.3:1 on this tint
+          (fine for large text, not for small). The three trust chips
+          were the hero's, repeated; gone.
+
+          THE OFFER HERE IS THE ONE CHECKOUT APPLIES. Every number comes
+          from shared/pricing, so it cannot drift from the bill, and the
+          three-dates condition sits in the same breath as "Free" (ASA:
+          a free claim shows its terms). Still no "limited time": there
+          is no end date, and perpetual urgency is upheld against. */}
+      <div className="mx-auto max-w-3xl rounded-[32px] border-2 border-brand bg-brand-muted px-6 py-12 text-center shadow-[0_30px_80px_-44px_rgba(92,87,212,0.55)] sm:px-12 md:py-16">
         <Rise>
-          {/* THE OFFER HERE IS THE ONE CHECKOUT APPLIES. This block sold a
-              FREE first card ("just pay £2.95 postage") until 2026-10-06,
-              two screens below three banners stating the real offer — and
-              checkout only ever applies firstOrderPriceGBP, which is 50%.
-              A visitor promised free and charged £3.49 is a complaint and
-              an ASA-upholdable claim. The numbers come from shared/pricing
-              now, so this line cannot drift from the bill again.
-              Still no "limited time" — there is no end date, and a
-              perpetual urgency claim is the kind the ASA upholds against. */}
-          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-keeper-meta">
-            {onUs ? 'Your first card’s on us. Seriously.' : 'Half price on your first card'}
-          </p>
-          <div className="mt-2 flex items-baseline justify-center gap-4">
-            <span className={`text-[clamp(56px,9vw,96px)] ${DISPLAY}`}>
+          <h2 className={`text-[clamp(22px,3.2vw,30px)] leading-tight [text-wrap:balance] ${DISPLAY}`}>
+            {onUs ? (
+              <>Your first card’s <span className="text-accent-coral-dark">on us</span>. Seriously.</>
+            ) : (
+              <><span className="text-accent-coral-dark">Half price</span> on your first card.</>
+            )}
+          </h2>
+          <div className="mt-3 flex items-baseline justify-center gap-4">
+            <span className={`text-[clamp(76px,13vw,136px)] leading-[0.95] ${DISPLAY}`}>
               {onUs ? 'Free' : formatMoney(firstOrderPrice('photo'))}
             </span>
             <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
@@ -1538,17 +1552,17 @@ function PriceSection() {
               <s>{formatMoney(cardPrice('photo'))}</s>
             </span>
           </div>
-          <p className="mx-auto mt-3 max-w-[56ch] text-[17px] leading-[1.6] text-keeper-body">
-            When you save three dates that matter. {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} standard
-            postage. One per account{onUs ? ' and address, UK only' : ''}; after that, photo cards
-            are {formatMoney(cardPrice('photo'))} plus postage. Make and preview as many as you like for free.
-            You only pay when you post one. Our cards are one-off prints, so please allow at least
-            a week from order to arrival.
+          <p className="mx-auto mt-4 max-w-[30ch] text-[19px] font-medium leading-snug text-keeper-ink md:max-w-none md:text-[21px]">
+            {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} postage when you save three dates that matter.
           </p>
-          <div className="mt-8">
+          <div className="mt-7">
             <PrimaryCta large />
           </div>
-          <TrustChips center />
+          <p className="mx-auto mt-6 max-w-[62ch] text-[13px] leading-relaxed text-keeper-meta" data-testid="price-small-print">
+            One per account{onUs ? ' and address, UK only' : ''}. After that, photo cards are{' '}
+            {formatMoney(cardPrice('photo'))} plus postage. Make and preview as many as you like for free; you only pay
+            when you post one. Our cards are one-off prints, so please allow at least a week from order to arrival.
+          </p>
         </Rise>
       </div>
     </section>
@@ -1863,6 +1877,10 @@ export default function LandingKeeper() {
         {/* The scenes row replaced the one-card carousel here (2026-11-11);
             ProofSection is kept in this file for a swap back. */}
         <ScenesRowSection />
+        {/* The offer, moved up from the foot of the page (2026-11-12): a
+            visitor from the "first card's on us" ad used to scroll past
+            six sections to find it. Now it follows the proof. */}
+        {!beta && <PriceSection />}
         {/* One card told in full, linking to /gallery (2026-10-31). */}
         {/* THE INSIDE ("The magic's digital. The card isn't.") moved above
             Real stories (Aidan 2026-11-10): the claim, then the story that
@@ -1913,7 +1931,6 @@ export default function LandingKeeper() {
         {!beta && <OccasionsPromoSection />}
         {/* DemoVideoSection removed 2026-07-24 (Kevin). Component preserved
             for easy re-add. */}
-        {!beta && <PriceSection />}
         <FaqSection />
       </main>
       <MarketingFooter />
