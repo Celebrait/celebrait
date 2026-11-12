@@ -52,6 +52,12 @@ import celebraitLogo from '@/assets/celebrait.webp';
 import { FaqSection } from '@/components/landing/faq-section';
 import { Rise } from '@/components/landing/rise';
 import { Highlight, ShimmerWord } from '@/components/landing/shimmer-word';
+import bandHeart from '@/assets/icons/heart.png';
+import bandRing from '@/assets/icons/ring.png';
+import bandCake from '@/assets/icons/cake.png';
+import bandPresent from '@/assets/icons/present.png';
+import bandCelebrate from '@/assets/icons/celebrate.png';
+import bandRibbon from '@/assets/icons/ribbon.png';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { InsideSection } from '@/components/landing/inside-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
@@ -1765,6 +1771,44 @@ function OccasionCaptureSection() {
 
 // ── Page ─────────────────────────────────────────────────────────────
 
+// ── The violet band's icons ──────────────────────────────────────────
+// The same six celebration icons as the hero backdrop and the sign-in
+// page, placed in the band's own margins: the strip above the heading,
+// the strip around the button, and the outer gutters. Decoration only
+// (aria-hidden, no pointer events), sitting BEHIND the copy and photos.
+// They bob gently; still for reduced motion. Phones get the four corner
+// ones, smaller, so nothing lands on the text.
+const BAND_ICONS: Array<{ src: string; cls: string; tilt: number; delay: number }> = [
+  { src: bandHeart, cls: 'left-[3%] top-3 w-11 md:left-[5%] md:top-[7%] md:w-[84px]', tilt: -8, delay: 0 },
+  { src: bandRing, cls: 'right-[3%] top-4 w-10 md:right-[6%] md:top-[9%] md:w-[74px]', tilt: 7, delay: 1.4 },
+  { src: bandCelebrate, cls: 'hidden md:block md:left-[45%] md:top-[4%] md:w-[54px]', tilt: -5, delay: 2.2 },
+  { src: bandRibbon, cls: 'hidden md:block md:bottom-[5%] md:left-[27%] md:w-[58px]', tilt: 6, delay: 0.8 },
+  { src: bandCake, cls: 'bottom-3 left-[3%] w-12 md:bottom-[6%] md:left-[7%] md:w-[108px]', tilt: -9, delay: 0.6 },
+  { src: bandPresent, cls: 'bottom-3 right-[3%] w-12 md:bottom-[7%] md:right-[7%] md:w-[104px]', tilt: 8, delay: 1.9 },
+];
+
+function BandIcons() {
+  const reduced = useReducedMotion();
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0" data-testid="band-icons">
+      {BAND_ICONS.map((ic, i) => (
+        <motion.img
+          key={i}
+          src={ic.src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className={`absolute h-auto ${ic.cls}`}
+          style={{ rotate: ic.tilt }}
+          initial={{ y: 0 }}
+          animate={reduced ? undefined : { y: [0, -10, 0] }}
+          transition={reduced ? undefined : { duration: 7, repeat: Infinity, ease: 'easeInOut', delay: ic.delay }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function LandingKeeper() {
   // Beta testers (2026-11-05: "no links to main site"): the page is the
   // photo route's front door and nothing else — no stories link, no
@@ -1804,13 +1848,19 @@ export default function LandingKeeper() {
             unbroken paper ground. This one gets a full-bleed violet-tint
             band with hairline edges, and carries the mid-page button —
             five sections in a row had none. */}
-        <div className="border-y border-brand/15 bg-brand-muted" data-testid="band-inside">
-          <InsideSection />
-          <div className="-mt-4 px-6 pb-14 text-center md:-mt-14 md:pb-24">
-            <PrimaryCta large />
-            <p className="mt-3 text-[12px] text-keeper-meta">
-              Free to make. No payment details needed.
-            </p>
+        <div className="relative overflow-hidden border-y border-brand/15 bg-brand-muted" data-testid="band-inside">
+          {/* The celebration icons, on the violet (Aidan 2026-11-12). They
+              fade out behind the page after the hero; this band is where
+              they come back, sitting in its margins. */}
+          <BandIcons />
+          <div className="relative z-10">
+            <InsideSection />
+            <div className="-mt-4 px-6 pb-14 text-center md:-mt-14 md:pb-24">
+              <PrimaryCta large />
+              <p className="mt-3 text-[12px] text-keeper-meta">
+                Free to make. No payment details needed.
+              </p>
+            </div>
           </div>
         </div>
         {/* RealStoriesSection removed from /photo (Aidan 2026-11-11): the
