@@ -62,6 +62,15 @@ export function useClaimFreeCard() {
       setLocation('/studio/moments');
       return;
     }
+    // On the three-card door the offer is that door's own (half price on
+    // the first card for three dates), claimed by signing up and adding
+    // the dates. It used to go to the photo page's invite, which promises
+    // a free PHOTO card: the wrong offer for someone who came for three
+    // cards, and it walked ad traffic off the route under test (2026-11-17).
+    if (maker && /^\/(create|make)(\/|$)/.test(location)) {
+      setLocation(`/login?redirect=${encodeURIComponent('/studio/moments')}`);
+      return;
+    }
     // The invite modal mounts on the PHOTO landing page — /photo since
     // the gate took / (2026-09-03).
     if (location === '/photo' || location === '/keeper' || (location === '/' && !maker)) {
@@ -90,7 +99,9 @@ export function TickerBanner() {
   // Beta (2026-11-05): a "50% off" offer over a site that sells nothing is
   // a lie — no strip at all while beta mode is on.
   const betaMode = useBetaMode();
-  const onUs = useFirstCardOnUs();
+  // The free first card is a PHOTO card. On the three-card door the line
+  // must quote what that door charges (half price), never "on us".
+  const onUs = useFirstCardOnUs() && door === 'photo';
   if (betaMode) return null;
 
   const msg = 'flex items-center gap-2 whitespace-nowrap font-sans text-[11.5px] font-medium text-white underline-offset-2 hover:underline sm:text-[12.5px] transition-opacity duration-500 motion-reduce:transition-none';

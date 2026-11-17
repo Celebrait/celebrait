@@ -76,6 +76,19 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     hookLine: 'Watch us make a card for Dad. 60. Canal fishing every Sunday.',
     message: 'Happy 60th, Dad. Tight lines and quiet Sundays — you’ve earned every one.',
   },
+  // The three-card ad (2026-11-17, "Forty thousand cards for anyone.
+  // Three for him."): the phone section of the rack ad. The typed line is
+  // what she says in the voiceover, so the screen and the script agree.
+  'dad-60-shed': {
+    who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light humour',
+    thing: 'His shed, his air fryer, and what he paid for the house in 1994', cant: 'Golf', front: 'role', name: 'Dave',
+    dear: 'Dear Dad,', from: 'Love, Hannah x',
+    hookLine: 'Three things about Dad. Three cards back.',
+    insideBy: 'me',
+    message: 'Happy 60th, Dad. Sixty years, one shed, and the best chips in Manchester. Never change.',
+    // No photo here on purpose: the dad's photo is added in the builder,
+    // so it can be the same man as the ad's closing shot.
+  },
   'mate-30-fiveaside': {
     who: 'Best mate', occasion: 'Birthday', age: '30', vibe: 'Cheeky',
     thing: 'Five-a-side on Thursdays, still thinks he can play', cant: 'Losing', front: 'name', name: 'Tom',
@@ -1225,8 +1238,10 @@ function AskRow({ label: text, on, onChange }: { label: string; on: boolean; onC
   );
 }
 
-function DemoSetup({ onRun }: { onRun: (cfg: DemoConfig) => void }) {
-  const [cfg, setCfg] = useState<DemoConfig>({ ...DEMO_PRESETS['mum-70-garden'], hook: true, countdown: 3 });
+/** `start` = a preset key the form opens filled in with (/demo?start=dad-60-shed),
+ *  so a version can be set up from a link and still take a photo upload. */
+function DemoSetup({ onRun, start }: { onRun: (cfg: DemoConfig) => void; start?: string }) {
+  const [cfg, setCfg] = useState<DemoConfig>({ ...(DEMO_PRESETS[start ?? ''] ?? DEMO_PRESETS['mum-70-garden']), hook: true, countdown: 3 });
   const set = (patch: Partial<DemoConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const canRole = NAME_LIKE.includes(cfg.who);
   const ask = cfg.askOnScreen ?? {};
@@ -1709,7 +1724,7 @@ export default function DemoPage() {
     return () => { m.remove(); st.remove(); document.documentElement.classList.remove('demo-cursor-on'); };
   }, []);
   if (replayId && !cfg) return <div className="p-8 text-sm text-keeper-body">{linkErr || 'Loading the saved run…'}</div>;
-  if (!cfg) return <DemoSetup onRun={setCfg} />;
+  if (!cfg) return <DemoSetup onRun={setCfg} start={q.get('start') ?? undefined} />;
   const s = cfg.scale ?? 1;
   const run = cfg.route === 'photo' ? <PhotoRoute cfg={cfg} ground={false} /> : <DemoRun cfg={cfg} ground={false} />;
   // THE STAGE — a 9:16 column, always, on every screen.

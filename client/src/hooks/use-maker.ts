@@ -15,7 +15,27 @@ import { createElement, Fragment, type ReactNode } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 
-interface LockState { locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled?: boolean; makerEnabled?: boolean; beta?: boolean }
+interface LockState { locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled?: boolean; makerEnabled?: boolean; makerLinkOnly?: boolean; beta?: boolean }
+
+// LINK ONLY (Aidan 2026-11-17: test the two routes separately, each with
+// its own ad). With `makerLinkOnly` on and the main switch off, the
+// three-card route is open ONLY to a visitor who arrived at /create (or
+// /make): the homepage, menus, footer and sitemap stay photo-only for
+// everyone else, so the photo numbers stay clean. Arriving leaves a mark
+// in this browser, so the rest of the site (basket, order page, their
+// studio) keeps treating the route as open when they come back.
+const DOOR_KEY = 'celebrait:maker-door';
+const DOOR_PATH = /^\/(create|make)(\/|$)/;
+function cameByTheDoor(): boolean {
+  if (typeof window === 'undefined') return false;
+  const onDoor = DOOR_PATH.test(window.location.pathname);
+  try {
+    if (onDoor) { window.localStorage.setItem(DOOR_KEY, '1'); return true; }
+    return window.localStorage.getItem(DOOR_KEY) === '1';
+  } catch {
+    return onDoor; // private window / storage blocked: open while they are on it
+  }
+}
 
 /** true = the three-card route (/create, /make) is open to this visitor;
  *  false = parked (photo route only); undefined = not known yet.
@@ -39,7 +59,8 @@ export function useMakerEnabled(): boolean | undefined {
   if (isError) return false;
   if (!data) return undefined;
   // Beta testers (joined at /beta) get both routes while the beta is on.
-  return data.makerEnabled === true || data.beta === true;
+  if (data.makerEnabled === true || data.beta === true) return true;
+  return data.makerLinkOnly === true && cameByTheDoor();
 }
 
 /** Renders its children only while the three-card route is open to this

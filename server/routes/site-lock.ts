@@ -37,13 +37,13 @@ import { db } from '../db';
 import { betaFeedback, siteSettings, studioOrders, users } from '@shared/schema';
 import { requireAdmin } from './admin-card-lab';
 
-interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string; freeFirstCard: boolean; freeFirstCardTotal: number; freeFirstCardDaily: number }
+interface LockValue { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; makerLinkOnly: boolean; betaMode: boolean; betaCode: string; freeFirstCard: boolean; freeFirstCardTotal: number; freeFirstCardDaily: number }
 const KEY = 'site_lock';
 const COOKIE = 'celebrait_pass';
 const IS_PROD = process.env.NODE_ENV === 'production';
 // Until an admin saves one: locked on the live site, open in dev, with a
 // starter share password to change at /admin/site.
-const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, betaMode: false, betaCode: '', freeFirstCard: false, freeFirstCardTotal: 100, freeFirstCardDaily: 25 };
+const DEFAULT: LockValue = { locked: IS_PROD, password: 'unbinnable', rackEnabled: false, makerEnabled: false, makerLinkOnly: false, betaMode: false, betaCode: '', freeFirstCard: false, freeFirstCardTotal: 100, freeFirstCardDaily: 25 };
 
 let cache: { at: number; value: LockValue } | null = null;
 export async function getSiteLock(): Promise<LockValue> {
@@ -59,7 +59,7 @@ export async function getSiteLock(): Promise<LockValue> {
   try {
     const rows = await db.select().from(siteSettings).where(eq(siteSettings.key, KEY)).limit(1);
     const v = rows[0]?.value as Partial<LockValue> | undefined;
-    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true, betaMode: v.betaMode === true, betaCode: typeof v.betaCode === 'string' ? v.betaCode : '', freeFirstCard: v.freeFirstCard === true, freeFirstCardTotal: typeof v.freeFirstCardTotal === 'number' ? v.freeFirstCardTotal : DEFAULT.freeFirstCardTotal, freeFirstCardDaily: typeof v.freeFirstCardDaily === 'number' ? v.freeFirstCardDaily : DEFAULT.freeFirstCardDaily };
+    if (v) value = { locked: v.locked === true, password: typeof v.password === 'string' ? v.password : DEFAULT.password, rackEnabled: v.rackEnabled === true, makerEnabled: v.makerEnabled === true, makerLinkOnly: v.makerLinkOnly === true, betaMode: v.betaMode === true, betaCode: typeof v.betaCode === 'string' ? v.betaCode : '', freeFirstCard: v.freeFirstCard === true, freeFirstCardTotal: typeof v.freeFirstCardTotal === 'number' ? v.freeFirstCardTotal : DEFAULT.freeFirstCardTotal, freeFirstCardDaily: typeof v.freeFirstCardDaily === 'number' ? v.freeFirstCardDaily : DEFAULT.freeFirstCardDaily };
   } catch {
     // Table not there yet (first boot) — the default holds.
   }
@@ -162,12 +162,12 @@ export async function makerOpen(): Promise<boolean> {
 /** Is this request through the gate? (+ the rack and maker flags, so the
  *  SPA learns them from the one request it already makes on every load.
  *  The maker flag is the raw switch; the client lets admins through.) */
-export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; beta: boolean; betaNeedsCode: boolean; freeFirstCard: boolean }> {
+export async function siteAllowed(req: Request): Promise<{ locked: boolean; allowed: boolean; hasPassword: boolean; rackEnabled: boolean; makerEnabled: boolean; makerLinkOnly: boolean; betaMode: boolean; beta: boolean; betaNeedsCode: boolean; freeFirstCard: boolean }> {
   const lock = await getSiteLock();
   const hasPassword = lock.password.trim().length > 0;
-  const { rackEnabled, makerEnabled, betaMode } = lock;
+  const { rackEnabled, makerEnabled, makerLinkOnly, betaMode } = lock;
   const beta = await isBetaTester(req);
-  const flags = { hasPassword, rackEnabled, makerEnabled, betaMode, beta, betaNeedsCode: betaMode && lock.betaCode.trim().length > 0, freeFirstCard: (await freeFirstCardOpen()).open };
+  const flags = { hasPassword, rackEnabled, makerEnabled, makerLinkOnly, betaMode, beta, betaNeedsCode: betaMode && lock.betaCode.trim().length > 0, freeFirstCard: (await freeFirstCardOpen()).open };
   if (!lock.locked) return { locked: false, allowed: true, ...flags };
   const cookie = readCookie(req, COOKIE);
   // Beta testers are through the lock by virtue of having joined.
@@ -203,7 +203,10 @@ export function registerSiteLock(app: Express): void {
   app.use(async (req: Request, res: Response, next: NextFunction) => {
     if (!MAKER_API.test(req.path)) return next();
     try {
-      if ((await getSiteLock()).makerEnabled || (await isBetaTester(req)) || (await isAdminSession(req))) return next();
+      // LINK ONLY (2026-11-17): the route is shut on the site but open to
+      // whoever arrives at /create from an ad, so its APIs must answer.
+      const lock = await getSiteLock();
+      if (lock.makerEnabled || lock.makerLinkOnly || (await isBetaTester(req)) || (await isAdminSession(req))) return next();
       return res.status(409).json({ message: "That way of making a card isn't open yet", code: 'closed' });
     } catch {
       return next();
@@ -383,7 +386,7 @@ export function registerSiteLock(app: Express): void {
     res.json({ ...(await getSiteLock()), freeFirstCardUsage: await freeFirstCardOpen() });
   });
 
-  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional(), betaMode: z.boolean().optional(), betaCode: z.string().trim().max(40).optional(), freeFirstCard: z.boolean().optional(), freeFirstCardTotal: z.number().int().min(0).max(100000).optional(), freeFirstCardDaily: z.number().int().min(0).max(10000).optional() });
+  const putSchema = z.object({ locked: z.boolean().optional(), password: z.string().trim().max(60).optional(), rackEnabled: z.boolean().optional(), makerEnabled: z.boolean().optional(), makerLinkOnly: z.boolean().optional(), betaMode: z.boolean().optional(), betaCode: z.string().trim().max(40).optional(), freeFirstCard: z.boolean().optional(), freeFirstCardTotal: z.number().int().min(0).max(100000).optional(), freeFirstCardDaily: z.number().int().min(0).max(10000).optional() });
   app.put('/api/admin/site-lock', async (req, res) => {
     if (!(await requireAdmin(req, res))) return;
     const parsed = putSchema.safeParse(req.body);

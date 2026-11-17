@@ -13,7 +13,7 @@ import { formatMoney } from '@shared/market';
 import { publicOrigin } from '@shared/market';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; betaMode: boolean; betaCode: string; freeFirstCard?: boolean; freeFirstCardTotal?: number; freeFirstCardDaily?: number; freeFirstCardUsage?: { open: boolean; usedTotal: number; usedToday: number } }
+interface Lock { locked: boolean; password: string; rackEnabled: boolean; makerEnabled: boolean; makerLinkOnly?: boolean; betaMode: boolean; betaCode: string; freeFirstCard?: boolean; freeFirstCardTotal?: number; freeFirstCardDaily?: number; freeFirstCardUsage?: { open: boolean; usedTotal: number; usedToday: number } }
 interface LaunchCheck { id: string; group: string; label: string; ok: boolean | null; detail: string; warn?: boolean }
 interface LaunchReport { checks: LaunchCheck[]; blocking: number; manual: number; env: string }
 
@@ -140,6 +140,27 @@ export default function AdminSitePage() {
           {data.makerEnabled ? 'Park the route' : 'Open the route'}
         </button>
       </div>
+
+      {/* LINK ONLY (Aidan 2026-11-17): for testing the three-card route
+          with its own ad. /create works for whoever lands on it; the
+          homepage, menus and sitemap stay photo-only. Only matters while
+          the main switch above is parked. */}
+      {!data.makerEnabled && (
+        <div data-testid="maker-link-only" className={`mt-2 flex items-center justify-between gap-4 rounded-2xl border p-5 ${data.makerLinkOnly ? 'border-brand/40 bg-brand-muted' : 'border-keeper-hair bg-white'}`}>
+          <div>
+            <p className="font-semibold text-keeper-ink">{data.makerLinkOnly ? 'Three-card route: open by link only' : 'Three-card route: link closed'}</p>
+            <p className="text-[13px] text-keeper-body">
+              {data.makerLinkOnly
+                ? 'Anyone who lands on celebrait.co.uk/create can make a three-card card. The homepage, menus and Google still show the photo route only. Point the three-card ad here.'
+                : 'Open /create for ad traffic without changing the rest of the site.'}
+            </p>
+          </div>
+          <button type="button" disabled={saving} onClick={() => save({ makerLinkOnly: !data.makerLinkOnly })}
+            className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${data.makerLinkOnly ? 'border border-keeper-hair bg-white text-keeper-ink hover:border-keeper-ink' : 'bg-go text-white hover:opacity-90'}`}>
+            {data.makerLinkOnly ? 'Close the link' : 'Open by link only'}
+          </button>
+        </div>
+      )}
 
       {/* BETA TESTING (Aidan 2026-11-05): a landing page for testers,
           both routes open to them, NO payments anywhere while it's on.

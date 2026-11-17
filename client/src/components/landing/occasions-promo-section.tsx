@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { countdownLabel, daysToChristmas } from '@/lib/moments';
 import { MomentIcon } from '@/components/studio/moment-icon';
-import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
+import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
 import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
@@ -40,7 +40,9 @@ const ANNIV_IN_DAYS = 96;
  *  £5.99→£2.99 for a card that is £6.99→£3.49 at checkout. Mounted on
  *  /photo (default) and, since 2026-10-09, on /create as `maker`. */
 export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
-  const onUs = useFirstCardOnUs();
+  // The free first card is a PHOTO card: the three-card door quotes its
+  // own offer (half price), never "on us" (2026-11-17).
+  const onUs = useFirstCardOnUs() && door === 'photo';
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -51,8 +53,10 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
       // The invite modal is mounted on the photo landing page.
       window.dispatchEvent(new CustomEvent(CLAIM_EVENT));
     } else {
-      // No modal on /create — same trip the ticker makes from anywhere else.
-      setLocation(`/photo?${CLAIM_PARAM}=1`);
+      // No modal on /create: sign up, then the dates page, which is where
+      // this door's offer is earned. (It used to go to the photo page's
+      // invite, which promises a different offer for a different card.)
+      setLocation(`/login?redirect=${encodeURIComponent('/studio/moments')}`);
     }
   };
 
