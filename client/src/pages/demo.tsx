@@ -1714,7 +1714,13 @@ export default function DemoPage() {
       .then((j) => {
         const run = toReplay(j.run);
         const clipKey = (CLIPS.find((c) => c.key === q.get('clip'))?.key ?? 'full') as ClipKey;
-        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], hook: q.get('hook') === 'typed', countdown: 0, opener: q.get('opener') === 'card', waits: q.get('waits') === 'short' ? 'short' : 'real' };
+        // ?ask=who,occasion,age puts those questions on screen in a replay
+        // from a link (the builder has tick boxes for the same thing).
+        // ?timer=off hides the "time taken" clock: with short waits it would
+        // claim a speed the real thing does not have.
+        const ask = (q.get('ask') ?? '').split(',');
+        const askOnScreen = { who: ask.includes('who'), occasion: ask.includes('occasion'), age: ask.includes('age') };
+        const base: DemoConfig = { ...DEMO_PRESETS['mum-70-garden'], hook: q.get('hook') === 'typed', countdown: 0, opener: q.get('opener') === 'card', waits: q.get('waits') === 'short' ? 'short' : 'real', askOnScreen, ...(q.get('timer') === 'off' ? { timer: false } : {}) };
         setCfg(configFromRun(run, base, clipKey));
       })
       .catch(() => setLinkErr('Could not load that saved run.'));
