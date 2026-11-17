@@ -81,8 +81,10 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
   // what she says in the voiceover, so the screen and the script agree.
   'dad-60-shed': {
     who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light humour',
-    thing: 'His shed, his air fryer, and what he paid for the house in 1994', cant: 'Golf', front: 'role', name: 'Dave',
+    thing: 'His shed, his air fryer, and what he paid for the house in 1994', cant: 'Self-service checkouts', front: 'role', name: 'Dave',
     dear: 'Dear Dad,', from: 'Love, Hannah x',
+    // Not 'Golf' as the can't-stand: the engine drew a golf flag as the
+    // foil, on a card for an ad whose whole joke is "not another golf card".
     hookLine: 'Three things about Dad. Three cards back.',
     insideBy: 'me',
     message: 'Happy 60th, Dad. Sixty years, one shed, and the best chips in Manchester. Never change.',
