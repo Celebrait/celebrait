@@ -16,13 +16,14 @@
 
 import { useEffect, useState } from 'react';
 import { Gift, Truck } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { useMakerEnabled } from '@/hooks/use-maker';
 import { useBetaMode } from '@/hooks/use-beta';
 import { useAuth } from '@/hooks/use-auth';
+import { christmasPhase } from '@shared/christmas';
 
 /** Fired when the offer is tapped. The landing page's FreeCardInvite
  *  listens and opens the claim modal. */
@@ -85,16 +86,30 @@ export function useClaimFreeCard() {
 
 const HOLD_MS = 8000;
 
+/** The Christmas ad's journey (/create and /make carrying
+ *  occasion=christmas, while Christmas orders are open) runs with NO offer
+ *  (Aidan 2026-11-18: "lets have no offer"): the ad sells the card at its
+ *  price, so the strip must not dangle half price over it. */
+function isChristmasVisit(path: string, search: string): boolean {
+  return /^\/(create|make)(\/|$)/.test(path)
+    && new URLSearchParams(search).get('occasion') === 'christmas'
+    && christmasPhase() === 'open';
+}
+
 export function TickerBanner() {
   const [tickerPath] = useLocation();
+  const search = useSearch();
   const door = doorFor(tickerPath, useMakerEnabled() === true);
   const claimTap = useClaimFreeCard();
+  const noOffer = isChristmasVisit(tickerPath, search);
   // 0 = the offer, 1 = the honest lead line.
-  const [slot, setSlot] = useState(0);
+  const [rotating, setSlot] = useState(0);
   useEffect(() => {
     const t = window.setInterval(() => setSlot((s) => (s + 1) % 2), HOLD_MS);
     return () => window.clearInterval(t);
   }, []);
+  // No offer to rotate to: the honest line holds.
+  const slot = noOffer ? 1 : rotating;
 
   // Beta (2026-11-05): a "50% off" offer over a site that sells nothing is
   // a lie — no strip at all while beta mode is on.
@@ -113,7 +128,7 @@ export function TickerBanner() {
       data-testid="ticker-banner"
       aria-live="polite"
     >
-      <button
+      {!noOffer && <button
         type="button"
         onClick={claimTap}
         aria-hidden={slot !== 0}
@@ -144,7 +159,7 @@ export function TickerBanner() {
             </span>
           </>
         )}
-      </button>
+      </button>}
 
       <Link
         href="/pricing"
@@ -154,8 +169,10 @@ export function TickerBanner() {
         data-testid="ticker-honest-lead"
       >
         <Truck className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden="true" />
+        {/* Phones get the short form: the full line is 391px wide at this
+            size and ran off both edges of a 375px screen (found 2026-11-18). */}
         <span className="sm:hidden">
-          One-off prints. Please <b>allow at least a week</b> from order to arrival ›
+          One-off prints. Please <b>allow at least a week</b> ›
         </span>
         <span className="hidden sm:inline">
           Our cards are one-off prints. Please <b>allow at least a week</b> from order to arrival ›

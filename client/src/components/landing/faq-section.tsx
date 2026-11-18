@@ -145,7 +145,10 @@ const christmasMakerFaqs = (base: FaqEntry[]): FaqEntry[] => [
   },
   ...base.map((f) => (f.q === 'How does it work?'
     ? { ...f, a: f.a.replace("Six quick questions: who it's for, the occasion, what they're like.", "Five quick questions: who it's for and what they're like.") }
-    : f)),
+    // No offer on the Christmas page (Aidan 2026-11-18): the price, plain.
+    : f.q === 'What does it cost?'
+      ? { ...f, a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Making and previewing is free; you only pay when you print one.` }
+      : f)),
 ];
 
 export function FaqSection({ door = 'photo', christmas = false }: { door?: 'photo' | 'maker'; /** The Christmas landing page. */ christmas?: boolean } = {}) {

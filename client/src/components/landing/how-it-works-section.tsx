@@ -58,7 +58,13 @@ const Card3DViewer = lazy(() =>
 // Dad / Christmas / 60 / funny / "His shed, his air fryer, and what he
 // paid for the house in 1994" / Dave, kept under client/public/hiw.
 // Five rows, not six: the Christmas page arrives with the occasion chosen.
-interface MakerSet { fronts: string[]; pick: number; inside: string; who: string; pickAlt: string; questions: Array<{ q: string; a: string }> }
+interface MakerSet {
+  fronts: string[]; pick: number; inside: string; who: string; pickAlt: string; questions: Array<{ q: string; a: string }>;
+  /** Step 4, "put them in it": the photo, and the picked card as the
+   *  engine redrew it from that photo. Only a set that has one gets the
+   *  fourth step. */
+  cameo?: { photo: string; front: string };
+}
 const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
   default: {
     fronts: ['/hiw/mum-1.webp', '/hiw/mum-2.webp', '/hiw/mum-3.webp'],
@@ -81,6 +87,10 @@ const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
     inside: '/hiw/xmas-dad-inside.webp',
     who: 'Dad',
     pickAlt: 'Unexpected item in the bagging area',
+    // The engine's real redraw of the picked card from the ad's own
+    // (generated, nobody real) photo of Dad: same route a customer's
+    // photo takes on /make (cameoMode 'redraw'), run once 2026-11-18.
+    cameo: { photo: '/hiw/xmas-dad-photo.webp', front: '/hiw/xmas-dad-cameo.webp' },
     questions: [
       { q: "Who's it for?", a: 'Dad' },
       { q: 'How old', a: '60' },
@@ -121,7 +131,11 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
     beats: [
       { label: 'Five quick questions', body: "Who it's for and what they're like: a minute of taps." },
       { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
-      { label: 'Pick one, write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
+      { label: 'Pick one, write the inside', body: 'Keep our words, change them or leave it blank.' },
+      // Step 4 (Aidan 2026-11-18: "add a add photo step optional number
+      // 4"). On /make the photo is offered straight after the pick; it
+      // sits last here because it is the one step you can skip.
+      { label: 'Add their photo, if you like', body: "Optional. Give us a clear photo and we redraw your card with them in it. You see both and choose. Then it's printed and posted, with a free digital link." },
     ],
   },
 };
@@ -236,7 +250,7 @@ function CardImg({ src, alt, className = '' }: { src: string; alt: string; class
  * behind it. Starts centred as a closed card, settles centred as the
  * open spread, then the lime chip lands. Reduced motion: open, still.
  */
-function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string; inside: string; at?: number; alt: string }) {
+function OpenCard({ c, front, inside, at = 0.2, alt, chip = 'Printed and posted' }: { c: Clock; front: string; inside: string; at?: number; alt: string; /** The lime chip that lands once the card is open. */ chip?: string }) {
   const open = c.play;
   const T = c.reduced ? 0 : c.base + at;
   const D = c.reduced ? 0 : 1.1;
@@ -276,7 +290,7 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
           />
         </motion.div>
       </motion.div>
-      <ReadyChip c={c} at={at + 1.2} label="Printed and posted" className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={at + 1.2} label={chip} className="absolute bottom-4 left-4" />
     </div>
   );
 }
@@ -584,9 +598,50 @@ function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
 
 /** 3. The picked card opens: cover swings, the inside is already
  *  printed, the chip lands. */
-function MakerBeat3({ c, set }: { c: Clock; set: MakerSet }) {
+function MakerBeat3({ c, set, chip }: { c: Clock; set: MakerSet; chip?: string }) {
   useDoneAt(c, 1.9);
-  return <OpenCard c={c} front={set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} />;
+  return <OpenCard c={c} front={set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} chip={chip} />;
+}
+
+/** 4 (optional). Their photo lands on the picked card, and the card
+ *  becomes the engine's redraw with them in it: same idea, same words,
+ *  same hand. One crossfade, then it holds. */
+function MakerBeat4({ c, set }: { c: Clock; set: MakerSet }) {
+  useDoneAt(c, 2.1);
+  if (!set.cameo) return null;
+  return (
+    <div className="absolute inset-0">
+      <div className="absolute left-[10%] top-[8%] w-[64%]">
+        <CardImg src={set.fronts[set.pick]} alt="" className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+        <motion.div
+          className="absolute inset-0"
+          initial={from(c, { opacity: 0 })}
+          animate={c.play ? { opacity: 1 } : undefined}
+          transition={tr(c, 1.0, 0.7)}
+        >
+          <CardImg src={set.cameo.front} alt={`${set.pickAlt}, redrawn with ${set.who} in it`} className="ring-1 ring-keeper-hair" />
+        </motion.div>
+      </div>
+      {/* The photo they added: a small print, tilted, overlapping the
+          card's lower right corner (the hero's "started as this" print,
+          in little). Never the top: that is where the card's words are. */}
+      <motion.img
+        src={set.cameo.photo}
+        alt={`The photo of ${set.who} that was added`}
+        width={500}
+        height={500}
+        loading="lazy"
+        decoding="async"
+        crossOrigin="anonymous"
+        className="absolute left-[63%] top-[50%] w-[31%] rounded-[6px] border-[3px] border-white object-cover shadow-[0_14px_28px_-14px_rgba(33,29,25,0.6)]"
+        style={{ aspectRatio: '1 / 1' }}
+        initial={from(c, { opacity: 0, y: 14, rotate: 14 })}
+        animate={c.play ? { opacity: 1, y: 0, rotate: 6 } : undefined}
+        transition={tr(c, 0.25, 0.55)}
+      />
+      <ReadyChip c={c} at={1.7} label={`With ${set.who} in it`} className="absolute bottom-4 left-4" />
+    </div>
+  );
 }
 
 // ── the section ───────────────────────────────────────────────────────
@@ -667,8 +722,13 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
   const stages: Array<(c: Clock) => React.ReactNode> =
     door === 'photo'
       ? [(c) => <PhotoBeat1 c={c} />, (c) => <PhotoBeat2 c={c} />, (c) => <PhotoBeat3 c={c} />]
-      : [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />, (c) => <MakerBeat3 c={c} set={set} />];
-  const n = stages.length;
+      : [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />,
+        // With a fourth step to come, step 3 ends on the inside, not the post.
+        (c) => <MakerBeat3 c={c} set={set} chip={copy.beats.length > 3 ? 'Inside, set to match' : undefined} />,
+        (c) => <MakerBeat4 c={c} set={set} />];
+  // Four beats only where the copy has four (the Christmas page).
+  const n = copy.beats.length;
+  const four = n > 3;
 
   const els = useRef<Array<HTMLLIElement | null>>([]);
   const listEl = useRef<HTMLOListElement | null>(null);
@@ -723,7 +783,9 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
           </h2>
           <p className="mt-3 max-w-[52ch] text-[17px] leading-[1.6] text-keeper-body">{copy.sub}</p>
         </Rise>
-        <ol ref={listEl} className="mt-12 grid gap-10 md:mt-16 md:grid-cols-3 md:gap-8">
+        {/* Four beats sit two by two from tablet up: four across would
+            squeeze step 1's rows past its square. */}
+        <ol ref={listEl} className={`mt-12 grid gap-10 md:mt-16 md:gap-8 ${four ? 'md:max-w-4xl md:grid-cols-2 md:gap-y-12' : 'md:grid-cols-3'}`}>
           {copy.beats.map((b, i) => (
             <Beat
               key={b.label}

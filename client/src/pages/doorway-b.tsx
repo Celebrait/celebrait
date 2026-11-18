@@ -203,7 +203,9 @@ export default function DoorwayBPage() {
             beats, drawn with the carousel's own fronts (Aidan 2026-10-11). */}
         <HowItWorksSection door="maker" christmas={xmas} />
         <HandoverSection />
-        <OccasionsPromoSection door="maker" />
+        {/* No offer on the Christmas page (Aidan 2026-11-18): this section
+            is the dates offer, so it goes; the ticker drops it too. */}
+        {!xmas && <OccasionsPromoSection door="maker" />}
         <InsideSection />
         <FaqSection door="maker" christmas={xmas} />
       </main>
