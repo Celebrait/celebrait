@@ -526,7 +526,35 @@ const CHRISTMAS_TONES: Record<string, string> = {
   warm: `TONE HERE — WARM AT CHRISTMAS: the year's gratitude landing at the moment the year pauses — what they were to you all year, the ritual of them at Christmas, the room they make feel like Christmas. The fond aftermath and the quiet morning belong to THIS register. ABSOLUTELY NO swearing of any grade — not the strong words, not bloody/bollocks/arse: warmth carries this card, and a swear on a warm Christmas card is a register failure, not an edge.`,
   funny: `TONE HERE — FUNNY AT CHRISTMAS: the family Christmas observed — the dinner politics, the rituals this person owns, the role they play in the day, the season's absurdities reported straight. NO swearing of any grade — the laugh is the product and swearing is rude's register, not funny's seasoning.`,
 };
-export function christmasProfile(tone: string | undefined): OccasionProfile {
+/** ── THE DRAWN CHRISTMAS (lab variant, 2026-11-18) ──────────────────
+ *  The core above holds the season back in the PICTURE: one festive
+ *  object at most, the season lending only its light. Three times a
+ *  buyer's eye has said the result is not a Christmas card ("Left 2,
+ *  zero Xmas?", the Merry Christmas floor, and a grey shed card that
+ *  read as a tool catalogue). A Christmas card stands on a mantelpiece
+ *  for three weeks and is judged from across the room, so this variant
+ *  splits the rule: the person still leads the WORDS, the season
+ *  dresses the PICTURE. Two swaps on the core and nothing else, so the
+ *  before/after measures this change alone. Production since
+ *  2026-11-18 (bench: server/scripts/christmas-look-bench.ts; pictures
+ *  reading as Christmas at a glance went from about 7 of 30 to about 22
+ *  of 30 across ten briefs, and the floor below never had to fire). */
+const CHRISTMAS_DRAWN_LEAD = `so the person leads the WORDS and the idea, and Christmas dresses the PICTURE. The strongest shape FUSES their world with the season's own rituals: their thing meeting Christmas morning, their place dressed for December. A card that works for anyone's Christmas has failed exactly as a card that works for any fan has, and so has a card that could hang on the rack in June.`;
+const CHRISTMAS_DRAWN_PICTURE = `⚠️ THE PICTURE IS A CHRISTMAS CARD AT A GLANCE, ON EVERY CARD, NOT ONE OF THREE. This card stands on a mantelpiece among twenty others and is judged from across the room before a word is read: a stranger must call it a Christmas card from the artwork alone. So each art_direction draws THEIR WORLD AT CHRISTMAS, the place, kit or ritual that is theirs, dressed the way it truly is in December, and NAMES what is drawn. The routes: the weather (snow settled on it, frost on the glass), the dressing (lights strung, a wreath, paper chains, the tree where that place would have one), the table (crackers, paper crowns, the pudding), the wrapping, or the cast. The season fills the scene at a scale the eye catches FIRST; one small festive object on a shelf does not count (observed: a box of tree lights on a workbench in an otherwise grey shed, read by a buyer as a tool catalogue). The words "December", "festive" and "winter light" draw nothing. THE THREE CARDS CARRY THE SEASON THREE DIFFERENT WAYS, never snow three times. The whisper card and the type-led card are not exempt: theirs is drawn quietly or carried by the ground and the lettering, but it is drawn. STILL BANNED: a tree, bauble or tinsel parked beside a subject it has nothing to do with. The season belongs IN their scene, never next to it.
+COLOUR: Christmas does not own red-green-gold, and three cards in that uniform is the observed failure. The person's world lends the hues; the season lends its light and, where the dressing brings them, its own colours. One card may go properly festive, never all three.`;
+const CHRISTMAS_CORE_DRAWN = (() => {
+  const leadFrom = CHRISTMAS_CORE.indexOf('so the person leads and Christmas inflects');
+  const leadTo = CHRISTMAS_CORE.indexOf('\n', leadFrom);
+  const colourFrom = CHRISTMAS_CORE.indexOf('COLOUR: Christmas does not own');
+  if (leadFrom < 0 || leadTo < 0 || colourFrom < 0) throw new Error('CHRISTMAS_CORE changed shape: update CHRISTMAS_CORE_DRAWN');
+  return CHRISTMAS_CORE.slice(0, leadFrom) + CHRISTMAS_DRAWN_LEAD + CHRISTMAS_CORE.slice(leadTo, colourFrom) + CHRISTMAS_DRAWN_PICTURE;
+})();
+/** What counts as Christmas DRAWN: things an eye can see in the
+ *  artwork. Deliberately excludes the abstract words the old floor
+ *  accepted ("December", "festive", "carol") because they draw nothing. */
+export const CHRISTMAS_DRAWN_RE = /\bsnow(y|ed|fall|flakes?|drifts?|bound|[- ]covered|[- ]capped|[- ]dusted)?\b|\bfrost(ed|y)?\b|\bicicles?\b|\b(fairy|tree|christmas|string|strings of|strung) lights\b|\blights strung\b|\bchristmas (tree|jumper|pudding|dinner|cards?|crackers?|stockings?|hat|wreath|decorations?|wrapping|presents?|gifts?|star|table|cake|market|bunting)\b|\b(fir|spruce|pine) (tree|branch|branches|sprig|sprigs)\b|\bwreaths?\b|\bholly\b|\bmistletoe\b|\brobins?\b|\bsanta\b|\bfather christmas\b|\breindeers?\b|\bantlers\b|\bsnowm[ae]n\b|\bel(f|ves)\b|\bsleighs?\b|\bstockings?\b|\bbaubles?\b|\btinsel\b|\bgarlands?\b|\bpaper[- ](chains?|crowns?|hats?)\b|\bcrackers?\b|\bcandy canes?\b|\bgingerbread\b|\bmince pies?\b|\bpudding\b|\bturkey\b|\bpigs in blankets\b|\bsprouts?\b|\bmulled\b|\badvent calendars?\b|\bnativity\b|\bpoinsettias?\b|\bnutcrackers?\b|\bsnow globes?\b|\byule log\b|\bwrapping paper\b|\bgift[- ]?wrap(ped)?\b|\bwrapped (presents?|gifts?|parcels?|box(es)?)\b|\b(presents|gifts|parcels) (under|beneath|piled|stacked|tied|wrapped)\b/i;
+export function christmasProfile(tone: string | undefined, look: 'current' | 'drawn' = 'drawn'): OccasionProfile {
+  const CHRISTMAS_CORE_FOR = look === 'drawn' ? CHRISTMAS_CORE_DRAWN : CHRISTMAS_CORE;
   const t = tone === 'mix' ? 'mix' : (tone ?? 'funny');
   const za = serverMarketId() === 'ZA';
   const toneText = za && t === 'mix'
@@ -535,7 +563,7 @@ export function christmasProfile(tone: string | undefined): OccasionProfile {
     : t === 'mix'
     ? `ONE OF EACH AT CHRISTMAS: each slot's tone applies ONLY to its own card. The rude slot follows the rude rules; the funny and warm cards carry NO swearing of any grade.\n${CHRISTMAS_TONES.rude}`
     : CHRISTMAS_TONES[t] ?? CHRISTMAS_TONES.funny;
-  return PROFILE('christmas', 'full', `${CHRISTMAS_CORE}\n${toneText}`);
+  return PROFILE('christmas', 'full', `${CHRISTMAS_CORE_FOR}\n${toneText}`);
 }
 
 export const OCCASION_PROFILES: Record<string, OccasionProfile> = {
@@ -867,6 +895,14 @@ export const conceptsSchema = z.object({
    *  the phrasebook greeting on the front and opener inside, placed by
    *  code, the rest English. Ignored unless MARKET=ZA. */
   language: z.enum(['en', 'af', 'zu', 'xh']).default('en'),
+  /** THE CHRISTMAS LOOK (2026-11-18, Aidan: "should this Ad be
+   *  Christmasy"). 'drawn' = every Christmas card's PICTURE must read as
+   *  Christmas at a glance (see CHRISTMAS_CORE_DRAWN and the
+   *  christmas-not-drawn floor). PRODUCTION SINCE 2026-11-18: Aidan
+   *  approved the ten-brief before/after ("Yes looks great"), so every
+   *  door gets 'drawn' by default. 'current' is the old rule, kept for
+   *  the lab's comparisons and honoured on the ADMIN door only. */
+  christmasLook: z.enum(['current', 'drawn']).optional(),
 });
 
 interface CardConcept {
@@ -1627,7 +1663,7 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
   }
 }
 
-export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string; language?: CardLanguage; greeting?: string }): string[] {
+export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots?: Array<{ register: string }>, opts?: { restingYear?: number; contextAge?: number; rudeSlot?: number; occasionKey?: string; language?: CardLanguage; greeting?: string; christmasDrawn?: boolean }): string[] {
   const v: string[] = [];
   if (cards.length !== 3) return ['not-three-cards'];
   const fronts = cards.map((c) => String(c.front_text ?? ''));
@@ -2010,6 +2046,15 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
       // zero Christmas on its face).
       // Skipped on `af` (English occasion words) and on a fixed front (the
       // greeting IS the occasion's own greeting).
+      // THE DRAWN CHRISTMAS (2026-11-18): the floor below passes on one WORD
+      // anywhere ("cold December strip light" carried a grey shed), and
+      // on the greeting alone with nothing festive drawn. Under
+      // christmasDrawn the ARTWORK must name something an eye can see.
+      // Language-independent (art_direction is always English).
+      if (opts.christmasDrawn && opts.occasionKey === 'christmas') cards.forEach((c, i) => {
+        if (!CHRISTMAS_DRAWN_RE.test(arts[i]))
+          v.push(`christmas-not-drawn: card ${i + 1}'s ARTWORK shows nothing a stranger would read as Christmas from across a room. Words on the front do not count here, and neither do "December", "festive" or "winter light". Redraw its art_direction as THEIR world at Christmas and name what is drawn (snow or frost on it, lights strung, a wreath, paper chains, the table's crackers and crowns, the wrapping, or the cast), filling the scene and not one small object. Keep the card's idea and its line`);
+      });
       if (!af && !fixedFront) cards.forEach((c, i) => {
         if (!(re.test(fronts[i]) || re.test(arts[i])))
           v.push(`occasion-missing: card ${i + 1} never lands ${opts.occasionKey} on its FACE — front words or artwork; the inside doesn't count because a rack browser never sees it. Right now this card could be any week of the year: fold the season into its own world (its light, one of its objects in the kit, or the words), never a stapled prop`);
@@ -2538,6 +2583,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             'swear-variety — no swear word on two fronts of one set',
             'swear-on-clean — clean registers carry no swearing of any grade',
             'greeting-missing — one christmas front says Merry Christmas',
+            'christmas-not-drawn — EVERY christmas card\'s ARTWORK names something festive an eye can see (snow, lights, a wreath, the table, the cast); words do not count',
             'cast-missing — kids\' christmas brings Santa/reindeer/snowman on at least one card',
             'kids-length / kids-adult-frame — ≤16-word fronts and no office vocabulary for recipients 12 and under',
             'occasion-missing — EVERY card lands the occasion on its FACE (front words or artwork; the inside is invisible on a rack)',
@@ -2595,9 +2641,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
      *  else is the typed occasion lowercased (= the world key, now the
      *  client sends keys). */
     const occKey = classified.key === 'birthday' ? 'birthday' : body.occasion.trim().toLowerCase();
+    // The drawn Christmas is production (see conceptsSchema.christmasLook).
+    // Only the admin door may ask for the old rule back, for comparisons.
+    // ZA stays on the old rule: Christmas there is midsummer, and this
+    // variant's weather route is snow and frost.
+    const xmasDrawn = classified.key === 'christmas' && serverMarketId() !== 'ZA'
+      && !(body.christmasLook === 'current' && (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/'));
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
-      : classified.key === 'christmas' ? christmasProfile(body.tone)
+      : classified.key === 'christmas' ? christmasProfile(body.tone, xmasDrawn ? 'drawn' : 'current')
       : classified;
     const serious = occProfile.humour === 'off';
     // THE CARD'S LANGUAGE (ZA only, 2026-10-16). v2 only: the classic
@@ -3140,7 +3192,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           violations = v2Verify(concepts, v2b, hints, slots, { restingYear,
             rudeSlot: mixTones && mixTones.includes('rude') ? mixTones.indexOf('rude') : xmasHero ?? undefined,
             contextAge: occProfile.key !== 'birthday' && statedAgeValue !== null ? statedAgeValue : undefined,
-            occasionKey: occKey, language: cardLang, greeting: phrase?.greeting });
+            occasionKey: occKey, language: cardLang, greeting: phrase?.greeting, christmasDrawn: xmasDrawn });
           // The sense referee rides the same loop: its violations repair
           // exactly like the code floors' and ship visibly when standing.
           // Not on a greeting card: it judges FRONT lines, and that front
