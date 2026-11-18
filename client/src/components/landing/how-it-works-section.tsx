@@ -60,9 +60,9 @@ const Card3DViewer = lazy(() =>
 // Five rows, not six: the Christmas page arrives with the occasion chosen.
 interface MakerSet {
   fronts: string[]; pick: number; inside: string; who: string; pickAlt: string; questions: Array<{ q: string; a: string }>;
-  /** Step 4, "put them in it": the photo, and the picked card as the
-   *  engine redrew it from that photo. Only a set that has one gets the
-   *  fourth step. */
+  /** The photo step, "put them in it": the photo, and the picked card as
+   *  the engine redrew it from that photo. Only a set that has one gets
+   *  the extra step. */
   cameo?: { photo: string; front: string };
 }
 const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
@@ -131,11 +131,11 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
     beats: [
       { label: 'Five quick questions', body: "Who it's for and what they're like: a minute of taps." },
       { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
-      { label: 'Pick one, write the inside', body: 'Keep our words, change them or leave it blank.' },
-      // Step 4 (Aidan 2026-11-18: "add a add photo step optional number
-      // 4"). On /make the photo is offered straight after the pick; it
-      // sits last here because it is the one step you can skip.
-      { label: 'Add their photo, if you like', body: "Optional. Give us a clear photo and we redraw your card with them in it. You see both and choose. Then it's printed and posted, with a free digital link." },
+      // The photo step (Aidan 2026-11-18). First built as step 4, then
+      // swapped with the inside ("swap 3/4") so the page runs in the
+      // maker's own order: pick, photo if you like, then the inside.
+      { label: 'Pick one, add their photo if you like', body: 'The photo is optional. Give us a clear one and we redraw your pick with them in it. You see both and choose.' },
+      { label: 'Write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
     ],
   },
 };
@@ -250,7 +250,7 @@ function CardImg({ src, alt, className = '' }: { src: string; alt: string; class
  * behind it. Starts centred as a closed card, settles centred as the
  * open spread, then the lime chip lands. Reduced motion: open, still.
  */
-function OpenCard({ c, front, inside, at = 0.2, alt, chip = 'Printed and posted' }: { c: Clock; front: string; inside: string; at?: number; alt: string; /** The lime chip that lands once the card is open. */ chip?: string }) {
+function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string; inside: string; at?: number; alt: string }) {
   const open = c.play;
   const T = c.reduced ? 0 : c.base + at;
   const D = c.reduced ? 0 : 1.1;
@@ -290,7 +290,7 @@ function OpenCard({ c, front, inside, at = 0.2, alt, chip = 'Printed and posted'
           />
         </motion.div>
       </motion.div>
-      <ReadyChip c={c} at={at + 1.2} label={chip} className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={at + 1.2} label="Printed and posted" className="absolute bottom-4 left-4" />
     </div>
   );
 }
@@ -598,15 +598,15 @@ function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
 
 /** 3. The picked card opens: cover swings, the inside is already
  *  printed, the chip lands. */
-function MakerBeat3({ c, set, chip }: { c: Clock; set: MakerSet; chip?: string }) {
+function MakerBeat3({ c, set, front }: { c: Clock; set: MakerSet; /** The cover, when it isn't the picked front as dealt. */ front?: string }) {
   useDoneAt(c, 1.9);
-  return <OpenCard c={c} front={set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} chip={chip} />;
+  return <OpenCard c={c} front={front ?? set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} />;
 }
 
-/** 4 (optional). Their photo lands on the picked card, and the card
- *  becomes the engine's redraw with them in it: same idea, same words,
- *  same hand. One crossfade, then it holds. */
-function MakerBeat4({ c, set }: { c: Clock; set: MakerSet }) {
+/** The optional photo step (third of four). Their photo lands on the
+ *  picked card, and the card becomes the engine's redraw with them in
+ *  it: same idea, same words, same hand. One crossfade, then it holds. */
+function MakerPhotoBeat({ c, set }: { c: Clock; set: MakerSet }) {
   useDoneAt(c, 2.1);
   if (!set.cameo) return null;
   return (
@@ -722,12 +722,14 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
   const stages: Array<(c: Clock) => React.ReactNode> =
     door === 'photo'
       ? [(c) => <PhotoBeat1 c={c} />, (c) => <PhotoBeat2 c={c} />, (c) => <PhotoBeat3 c={c} />]
-      : [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />,
-        // With a fourth step to come, step 3 ends on the inside, not the post.
-        (c) => <MakerBeat3 c={c} set={set} chip={copy.beats.length > 3 ? 'Inside, set to match' : undefined} />,
-        (c) => <MakerBeat4 c={c} set={set} />];
-  // Four beats only where the copy has four (the Christmas page).
-  const n = copy.beats.length;
+      : copy.beats.length > 3
+        // Four beats (the Christmas page): the photo step sits between the
+        // pick and the inside, and the card that opens is the one with
+        // them in it, so the last two frames are one story.
+        ? [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />,
+          (c) => <MakerPhotoBeat c={c} set={set} />, (c) => <MakerBeat3 c={c} set={set} front={set.cameo?.front} />]
+        : [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />, (c) => <MakerBeat3 c={c} set={set} />];
+  const n = stages.length;
   const four = n > 3;
 
   const els = useRef<Array<HTMLLIElement | null>>([]);
