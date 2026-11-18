@@ -26,6 +26,7 @@ import { db } from '../db';
 import { cards, cardTemplates, orderItems, studioOrders } from '@shared/schema';
 import { cardPrice, firstOrderPrice } from '@shared/pricing';
 import { getFreeCardStatus } from '../studio/free-card';
+import { christmasFullPrice } from '@shared/christmas';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
 import { markOrderPaidAndDispatch } from './studio-checkout';
@@ -173,7 +174,10 @@ export function registerShopRoutes(app: Express): void {
       // billed £2.99 (audit). Mirror the SAME rule the checkout uses.
       const listPrice = cardPrice(card.source);
       let price = listPrice;
-      if (owns && card.source !== 'rack') {
+      // Same exception the checkout makes: a three-card Christmas card is
+      // full price while Christmas orders are open (shared/christmas.ts).
+      const fullPrice = christmasFullPrice(card.source, (card.conversationData as RackCardState | null)?.recipient?.occasion);
+      if (owns && card.source !== 'rack' && !fullPrice) {
         try {
           if ((await getFreeCardStatus(sessionUser)).eligible) price = firstOrderPrice(card.source);
         } catch (err) {

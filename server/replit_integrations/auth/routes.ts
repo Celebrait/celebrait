@@ -6,6 +6,7 @@ import { db } from "../../db";
 import { otpCodes, users } from "@shared/models/auth";
 import { eq, and, gt, lt, ne } from "drizzle-orm";
 import { sendOtpEmail, sendWelcomeEmail } from "../../email-service";
+import { arrivedForChristmasCards } from "@shared/christmas";
 import { rateLimitHit, rateLimitClear, clientIp } from "../../simple-rate-limit";
 
 // Local dev bypass: when DEV_AUTH_ACCEPT_ANY_CODE=1, the OTP verify endpoint
@@ -274,7 +275,9 @@ export function registerAuthRoutes(app: Express): void {
         user = newUser;
         // Welcome email — once, on account creation. Fire-and-forget so it
         // never blocks or fails sign-in.
-        sendWelcomeEmail({ email: normalizedEmail, firstName: firstName || null }).catch((err) =>
+        // The Christmas ad's signups get the welcome without the offer:
+        // their card is full price (shared/christmas.ts).
+        sendWelcomeEmail({ email: normalizedEmail, firstName: firstName || null, offer: !arrivedForChristmasCards((attribution as { landingPath?: string } | null | undefined)?.landingPath) }).catch((err) =>
           console.error("[AUTH] welcome email failed:", err),
         );
       }

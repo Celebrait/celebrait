@@ -32,6 +32,7 @@ import {
   consumeFreeCardCredit,
   addressHadFreeCard,
 } from '../studio/free-card';
+import { christmasFullPrice } from '@shared/christmas';
 import { validateCompCode, consumeCompCode } from '../studio/comp-code';
 import { rateLimitHit } from '../simple-rate-limit';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
@@ -336,7 +337,10 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // put the photo route back on the front door (2026-09-03) and the
         // ticker promises "50% off your first card" on both landing pages.
         // The rack never does.
-        const freeCardApplied = userId
+        // CHRISTMAS AD (2026-11-18): a three-card Christmas card is sold at
+        // full price while Christmas orders are open (shared/christmas.ts).
+        // The credit is left alone for the customer's next card.
+        const freeCardApplied = userId && !christmasFullPrice(card.source, state?.recipient?.occasion)
           ? (await getFreeCardStatus(userId)).eligible && card.source !== 'rack'
           : false;
 

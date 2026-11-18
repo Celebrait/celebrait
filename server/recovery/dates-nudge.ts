@@ -23,6 +23,7 @@ import { db } from '../db';
 import { users } from '@shared/schema';
 import { countKeyDates, FREE_CARD_KEY_DATES } from '../studio/free-card';
 import { sendDatesNudgeEmail } from '../email-service';
+import { arrivedForChristmasCards } from '@shared/christmas';
 
 interface NudgeTier {
   name: 'd2' | 'd7';
@@ -63,6 +64,7 @@ export async function runDatesNudgeDispatch(opts?: {
         id: users.id,
         email: users.email,
         firstName: users.firstName,
+        attribution: users.attribution,
       })
       .from(users)
       .where(
@@ -79,6 +81,11 @@ export async function runDatesNudgeDispatch(opts?: {
 
     for (const u of candidates) {
       try {
+        // The Christmas ad's signups are sold their card at full price
+        // (shared/christmas.ts): no "you're N dates from half price" while
+        // that holds. Not stamped, so the nudge can still go once
+        // Christmas orders close.
+        if (arrivedForChristmasCards((u.attribution as { landingPath?: string } | null)?.landingPath)) continue;
         const keyDates = await countKeyDates(u.id);
         if (keyDates >= FREE_CARD_KEY_DATES) {
           // Flow exit: they've unlocked — stamp both tiers so we never

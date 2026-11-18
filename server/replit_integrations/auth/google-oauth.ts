@@ -36,6 +36,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { users } from '@shared/models/auth';
 import { sendWelcomeEmail } from '../../email-service';
+import { arrivedForChristmasCards } from '@shared/christmas';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -264,7 +265,10 @@ export function registerGoogleAuthRoutes(app: Express): void {
         user = newUser;
         isNewAccount = true;
         // Welcome email — once, on Google signup. Fire-and-forget.
-        sendWelcomeEmail({ email: normalizedEmail, firstName: info.given_name || null }).catch(
+        // No first-touch record on this path, so the page they are heading
+        // back to stands in: signing up from the three-card maker during
+        // the Christmas ad gets the welcome without the offer.
+        sendWelcomeEmail({ email: normalizedEmail, firstName: info.given_name || null, offer: !arrivedForChristmasCards(finalRedirect.split('?')[0]) }).catch(
           (err) => console.error('[AUTH] welcome email failed (google):', err),
         );
       }

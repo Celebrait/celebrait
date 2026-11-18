@@ -752,6 +752,44 @@ export async function sendEarlyAccessConfirmEmail(params: {
   });
 }
 
+// ── Welcome, no offer (the Christmas ad's signups, 2026-11-18) ───────
+// Same hello as the welcome below with the offer box, the offer subject
+// and the claim button taken out: the one thing to do next is make the
+// card they came for.
+async function sendPlainWelcomeEmail(params: { email: string; firstName?: string | null }): Promise<boolean> {
+  const { email, firstName } = params;
+  const makeUrl = `${PUBLIC_ORIGIN}/make`;
+  const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
+  const body = `
+    <p style="margin: 0 0 16px;">${greeting}</p>
+    <p style="margin: 0 0 16px;">
+      Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
+      Tell us who it's for and one thing about them, and we write and
+      illustrate three to choose from, printed properly and posted
+      ${copyFor().anywhere}.
+    </p>
+    <p style="margin: 0 0 8px;">
+      It's free to make and there's no rush to buy a thing. Your cards are
+      saved in your studio whenever you come back.
+    </p>
+  `;
+  const html = chassis({
+    preheader: 'Three cards to choose from, written and drawn for one person.',
+    heading: "You're in. Let's make someone's day.",
+    heroImages: [
+      {
+        src: `${PUBLIC_ORIGIN}/og-image.jpg`,
+        alt: 'A real photo of a couple, turned into a personalised illustrated anniversary card',
+      },
+    ],
+    bodyHtml: body,
+    cta: { label: 'Make a card', href: makeUrl },
+  });
+  const text =
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted ${copyFor().anywhere}.\n\nIt's free to make and there's no rush to buy a thing. Your cards are saved in your studio whenever you come back.\n\nMake a card: ${makeUrl}\n\nAidan at Celebrait`;
+  return sendEmail({ to: email, subject: 'Welcome to Celebrait', html, text });
+}
+
 // ── Welcome (fired once on signup) ───────────────────────────────────
 // Warm hello + a nudge to make the first card. Fired from the OTP-verify
 // and Google new-user branches (fire-and-forget). No card hero — they
@@ -760,8 +798,14 @@ export async function sendEarlyAccessConfirmEmail(params: {
 export async function sendWelcomeEmail(params: {
   email: string;
   firstName?: string | null;
+  /** false = the plain welcome, no first-card offer: for someone who came
+   *  in through the Christmas ad, whose card is sold at full price
+   *  (shared/christmas.ts). Promising them an offer the checkout won't
+   *  give would be a lie. Default true. */
+  offer?: boolean;
 }): Promise<boolean> {
   const { email, firstName } = params;
+  if (params.offer === false) return sendPlainWelcomeEmail({ email, firstName });
   // Land on the studio home — the free-card band + Year Ahead pick the
   // story up exactly where this email leaves it.
   const studioUrl = `${PUBLIC_ORIGIN}/studio`;

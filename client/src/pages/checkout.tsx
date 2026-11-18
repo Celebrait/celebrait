@@ -45,6 +45,7 @@ import {
   type ShippingTierId,
 } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
+import { christmasFullPrice } from '@shared/christmas';
 import { formatMoney, market, type MarketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 
@@ -56,7 +57,7 @@ interface CardSummary {
   frontImageUrl: string | null;
   insideImageUrl: string | null;
   state?: {
-    recipient?: { name?: string | null };
+    recipient?: { name?: string | null; occasion?: string | null };
     /** Inside mode — 'blank' means the user deliberately left the
      *  inside empty to handwrite it themselves. Drives the blank-
      *  inside fallback warning + the structural skip into a
@@ -319,7 +320,11 @@ export default function CheckoutPage() {
   });
   // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
   // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
-  const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack';
+  // CHRISTMAS AD (2026-11-18): a three-card Christmas card is full price
+  // while Christmas orders are open; the server makes the same exception
+  // (shared/christmas.ts), so no offer is shown and none is applied.
+  const fullPrice = christmasFullPrice(card?.source, card?.state?.recipient?.occasion);
+  const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack' && !fullPrice;
   // THE LAUNCH OFFER (2026-11-06): first PHOTO card on us while the switch
   // is open. The server re-checks the address (one per address, UK only)
   // and falls back to half price if it must — the Stripe page shows the
@@ -332,7 +337,7 @@ export default function CheckoutPage() {
   // they clicked on. Say how to unlock it, right under the price.
   const datesToGo = Math.max(0, 3 - (freeCard?.keyDates ?? 0));
   const offerLocked =
-    !!freeCard && !freeCard.redeemed && datesToGo > 0 && !!card && card.source !== 'rack';
+    !!freeCard && !freeCard.redeemed && datesToGo > 0 && !!card && card.source !== 'rack' && !fullPrice;
   const lockedOnUs = offerLocked && onUsOpen && card?.source === 'photo';
   const effectiveTier: ShippingTierId = shippingTier;
 

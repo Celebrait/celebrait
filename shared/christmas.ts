@@ -61,3 +61,30 @@ export function christmasOrderLine(now: Date = new Date()): string {
 export function isChristmasNeedBy(needBy: Date, now: Date = new Date()): boolean {
   return christmasPhase(now) !== 'off' && dayStart(needBy) <= dayStart(CHRISTMAS_DAY);
 }
+
+// ── FULL PRICE FOR THE CHRISTMAS AD (Aidan 2026-11-18: "make them pay
+// full price") ──────────────────────────────────────────────────────────
+// The Christmas landing page carries no offer, so the checkout must not
+// hand one out either. The rule is by CARD, not by visitor, so the server
+// can check it and a crafted request can't dodge it: a three-card card
+// (source 'maker') made for Christmas takes no first-card credit while
+// Christmas orders are open. The credit is not burned: it waits for the
+// customer's next card. Photo cards and rack cards are untouched.
+
+/** True = this card is sold at its full price: no first-card offer is
+ *  shown for it and none is applied. Used by both checkouts, server and
+ *  client, so the quoted price is the charged price. */
+export function christmasFullPrice(
+  source: string | null | undefined,
+  occasion: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  return source === 'maker' && /christmas/i.test(occasion ?? '') && christmasPhase(now) === 'open';
+}
+
+/** True = this account's first touch was the three-card door (/create or
+ *  /make) while Christmas orders are open: the Christmas ad's traffic.
+ *  Their emails must not promise an offer the checkout won't give. */
+export function arrivedForChristmasCards(landingPath: string | null | undefined, now: Date = new Date()): boolean {
+  return /^\/(create|make)(\/|$)/.test(landingPath ?? '') && christmasPhase(now) === 'open';
+}
