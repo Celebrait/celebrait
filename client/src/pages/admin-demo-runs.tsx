@@ -122,13 +122,13 @@ export default function AdminDemoRunsPage() {
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
                 {r.frontUrls.map((u, i) => (
                   <figure key={i} className={`overflow-hidden rounded-xl border ${i === r.picked_index ? 'border-brand ring-2 ring-brand/30' : 'border-keeper-hair'}`}>
-                    <img src={u} alt="" className="aspect-square w-full object-cover" />
+                    <img src={u} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" />
                     <figcaption className="px-2 py-1 text-[11px] text-keeper-meta">{i === r.picked_index ? 'Picked · ' : ''}front {i + 1}</figcaption>
                   </figure>
                 ))}
-                {r.photoUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.photoUrl} alt="" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">photo</figcaption></figure>}
-                {r.cameoUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.cameoUrl} alt="" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">with them in it</figcaption></figure>}
-                {r.insideUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.insideUrl} alt="" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">inside</figcaption></figure>}
+                {r.photoUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.photoUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">photo</figcaption></figure>}
+                {r.cameoUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.cameoUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">with them in it</figcaption></figure>}
+                {r.insideUrl && <figure className="overflow-hidden rounded-xl border border-keeper-hair"><img src={r.insideUrl} alt="" crossOrigin="anonymous" className="aspect-square w-full object-cover" /><figcaption className="px-2 py-1 text-[11px] text-keeper-meta">inside</figcaption></figure>}
               </div>
               <details className="mt-3 text-[12px] text-keeper-body">
                 <summary className="cursor-pointer text-keeper-meta">Words, concepts and beats</summary>
