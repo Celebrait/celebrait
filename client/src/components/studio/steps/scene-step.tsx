@@ -36,12 +36,21 @@
 // decision that there should be ONE "stuck?" affordance. If its usage
 // stays near zero (scene.source is logged), retire it.
 //
+// TWO CLEAR ROUTES 2026-11-18 (Aidan: "give the user 2 panels to choose
+// from that are crystal clear in what each route entails"). The step
+// now opens on a chooser: "Give me scene ideas" and "I'll write it
+// myself", each listing its three steps. Picking one opens only that
+// route's box underneath; you can switch at any time and both still
+// land in the same editable "Your scene" box. The first-run captions on
+// the old path buttons are gone: the panels say it every time. The chat
+// (signed-in only) is a text link under the panels.
+//
 // Cost is not a constraint here: gpt-4o-mini, ~£0.0005 per set of
 // three — 0.24% of a card. Rerolls are UNCAPPED (Aidan 2026-08-13,
 // "don't limit the user") — an earlier 3-set cap was a UX-signal idea
 // that in practice just told an engaged user no.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { Loader2, RefreshCw, Check, Sparkles, PenLine, MessageCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -87,8 +96,7 @@ const PLACEHOLDER_PAUSE_MS = 2500;
 const TYPE_CHAR_MS = 45;
 // Backspace speed — faster than typing so the loop doesn't drag.
 const BACKSPACE_CHAR_MS = 20;
-/** Seen-flag for the first-run path-button captions. */
-const SCENE_PATHS_GUIDE_KEY = 'celebrait:scene-paths-guide:v1';
+type SceneRoute = 'ideas' | 'write';
 
 /** Rotating examples for the BRIEF. Deliberately fragments, lowercase,
  *  comma-separated — the shape teaches more than any label can: short,
@@ -140,26 +148,14 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
   const [editorOpen, setEditorOpen] = useState(
     () => (state.scene?.description ?? '').trim().length > 0,
   );
-  /** First-run guide captions on the path buttons (Aidan 2026-08-13),
-   *  same philosophy as the studio-home hints: per-device localStorage
-   *  ledger, never blocking. Captions show until the user has taken any
-   *  path once; the flag is written on first use but the captions don't
-   *  collapse mid-session (no layout jump under the pointer) — the
-   *  compact version greets them next visit. */
-  const [showPathGuide] = useState(() => {
-    try {
-      return localStorage.getItem(SCENE_PATHS_GUIDE_KEY) !== '1';
-    } catch {
-      return true;
-    }
+  /** Which of the two routes is open. Nothing is preselected on a fresh
+   *  step: the panels are the question. Coming back to a scene reopens
+   *  the route it was made by. */
+  const [route, setRoute] = useState<SceneRoute | null>(() => {
+    if (!(state.scene?.description ?? '').trim()) return null;
+    return state.scene?.source === 'manual' ? 'write' : 'ideas';
   });
-  const markPathUsed = () => {
-    try {
-      localStorage.setItem(SCENE_PATHS_GUIDE_KEY, '1');
-    } catch {
-      /* private mode — captions just show again next time */
-    }
-  };
+  const ideasRef = useRef<HTMLElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const briefRef = useRef<HTMLTextAreaElement | null>(null);
   const [briefFocused, setBriefFocused] = useState(false);
@@ -220,14 +216,16 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
     onError: (err: any) => {
       toast({
         title: "Couldn't get suggestions",
-        description: friendlyError(err, 'Write your own below, or talk it through with us.'),
+        description: friendlyError(
+          err,
+          guest ? 'You can write your own scene instead.' : 'Write your own, or talk it through with us.',
+        ),
         variant: 'destructive',
       });
     },
   });
 
   const acceptSuggestion = (s: SceneSuggestion) => {
-    markPathUsed();
     setSuggestOpen(false);
     setLocal(s.text);
     setChosenId(s.id);
@@ -250,10 +248,17 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
     }, 80);
   };
 
-  const openEditorToWrite = () => {
-    markPathUsed();
-    setEditorOpen(true);
+  const chooseWrite = () => {
+    setRoute('write');
     setTimeout(() => textareaRef.current?.focus(), 80);
+  };
+
+  /** No autofocus here: the brief's rotating examples only play while it
+   *  is empty and unfocused, and they teach the shape better than a
+   *  blinking cursor does. Just bring the box into view. */
+  const chooseIdeas = () => {
+    setRoute('ideas');
+    setTimeout(() => ideasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
   };
 
   /** "These aren't it — let me steer differently." Closes the picker
@@ -261,6 +266,7 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
    *  instead of a guess. Spends nothing. */
   const backToBrief = () => {
     setSuggestOpen(false);
+    setRoute('ideas');
     setTimeout(() => briefRef.current?.focus(), 120);
   };
 
@@ -403,33 +409,90 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
 
   const busy = suggestMutation.isPending;
   const firstName = (state.recipient?.name ?? '').trim().split(/\s+/)[0] || '';
+  const them = firstName || 'them';
+  // The editor shows for the write route, once an idea has been picked,
+  // and whenever there is already a scene to edit.
+  const showEditor = route === 'write' || editorOpen || local.trim().length > 0;
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* ── The idea panel ─────────────────────────────────────────
-          One visual object, not a stack of form controls: the brief
-          steers, the tiles answer, the footer offers the two escape
-          hatches. Tinted ground so the white tiles read as the content
-          and the panel as the tool. */}
-      <section
-        className="rounded-2xl border border-brand/15 bg-gradient-to-b from-brand-muted/40 via-brand-muted/15 to-brand-muted/5 p-4 sm:p-5 space-y-4"
-        data-testid="scene-suggestions"
+      {/* ── The choice ─────────────────────────────────────────────
+          Two equal panels. Each says who it suits, what it is and the
+          three things that happen, so nobody has to guess what a button
+          will do. Stacked on phones, ideas first. */}
+      <p className="text-sm text-keeper-body">
+        Two ways to do this. Pick one, and you can switch at any time.
+      </p>
+      {/* On phones, once a route is chosen the two panels shrink to a
+          side-by-side switch (name + tick only), so the box you just
+          opened sits right under your thumb instead of a screen below. */}
+      <div
+        className={`grid gap-3 sm:grid-cols-2 ${route ? 'grid-cols-2' : ''}`}
+        role="group"
+        aria-label="How to set the scene"
       >
-        <div className="flex items-center justify-between">
-          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-dark">
-            <Sparkles className="w-3.5 h-3.5" />
-            Get scene ideas
-          </p>
-          {firstName && (
-            <p className="text-[11px] text-keeper-meta">
-              made for {firstName}
-            </p>
-          )}
-        </div>
+        <RouteCard
+          active={route === 'ideas'}
+          compact={route !== null}
+          onClick={chooseIdeas}
+          icon={<Sparkles className="h-4 w-4" />}
+          kicker="Not sure what to put?"
+          title="Give me scene ideas"
+          steps={[
+            `Type a few words about ${them}`,
+            'We write three scenes',
+            'Pick one and change any word you like',
+          ]}
+          testId="btn-scene-get-ideas"
+        />
+        <RouteCard
+          active={route === 'write'}
+          compact={route !== null}
+          onClick={chooseWrite}
+          icon={<PenLine className="h-4 w-4" />}
+          kicker="Know the moment already?"
+          title="I'll write it myself"
+          steps={[
+            firstName ? `Say where ${firstName} is and what's happening` : "Say where they are and what's happening",
+            'Keep it to a sentence or two',
+            'We draw the card front from your words',
+          ]}
+          testId="btn-scene-write-own"
+        />
+      </div>
 
-        {/* The brief — steering, not a form field. Optional by design:
-            blank still returns three, inferred from the occasion. */}
-        <div className="space-y-1.5">
+      {/* The chat is the one "stuck?" affordance, signed-in only. A link,
+          not a third panel: the choice above stays a choice of two. */}
+      {!guest && (
+        <p className="text-sm text-keeper-body">
+          Can't decide?{' '}
+          <button
+            type="button"
+            onClick={() => setBrainstormOpen(true)}
+            className="inline-flex items-center gap-1 font-semibold text-brand-dark underline-offset-4 hover:underline"
+            data-testid="btn-scene-ai-help"
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            Chat it through with us
+          </button>
+        </p>
+      )}
+
+      {/* ── Route 1: ideas ─────────────────────────────────────────
+          The brief steers, the picker answers. Tinted ground so it reads
+          as belonging to the selected panel above. */}
+      {route === 'ideas' && (
+        <motion.section
+          ref={ideasRef}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+          className="rounded-2xl border border-brand/15 bg-gradient-to-b from-brand-muted/40 via-brand-muted/15 to-brand-muted/5 p-4 sm:p-5 space-y-2"
+          data-testid="scene-suggestions"
+        >
+          <Label htmlFor="scene-brief" className="text-sm font-semibold text-keeper-ink">
+            A few words about {them}
+          </Label>
           {/* Stacks under 640px — side-by-side crushed the input to
               three visible words, and the brief is the steering wheel. */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -477,85 +540,21 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
           {/* Responds to what they've done, so the panel feels like a
               conversation rather than a form: encouragement when empty,
               acknowledgement once they've typed. */}
-          <p className="text-[11px] text-keeper-meta">
+          <p className="text-xs text-keeper-meta">
             {brief.trim().length === 0
               ? "Even one word helps. We'll turn it into three scenes. Or just hit the button and we'll start you off."
               : brief.trim().length < 12
                 ? "Good start. Add another detail or two and they'll sound more like them."
                 : "That's plenty to work with."}
           </p>
-        </div>
-
-      </section>
-
-      {/* ── The other two ways in (Aidan 2026-08-13) ───────────────
-          Real cards, equal to each other, deliberately NOT equal to the
-          Suggest panel above — the product keeps its opinion about the
-          best path while making all three visible. First visit carries a
-          one-line guide under each title (studio-hints philosophy,
-          localStorage ledger); once any path has been used the captions
-          collapse and the buttons compact. "Write my own" disappears
-          when the editor is open — its job is done. */}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        {!editorOpen && (
-          <button
-            type="button"
-            onClick={openEditorToWrite}
-            className="flex-1 rounded-xl border border-keeper-hair bg-white p-3.5 text-left shadow-sm hover:border-brand/60 hover:shadow-md hover:-translate-y-px transition-all"
-            data-testid="btn-scene-write-own"
-          >
-            <span className="flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted/60 text-brand-dark">
-                <PenLine className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-keeper-ink">
-                  Write my own scene
-                </span>
-                {showPathGuide && (
-                  <span className="mt-0.5 block text-xs leading-snug text-keeper-meta">
-                    Know the moment already? Type it straight in.
-                  </span>
-                )}
-              </span>
-            </span>
-          </button>
-        )}
-{!guest && (
-        <button
-          type="button"
-          onClick={() => {
-            markPathUsed();
-            setBrainstormOpen(true);
-          }}
-          className="flex-1 rounded-xl border border-keeper-hair bg-white p-3.5 text-left shadow-sm hover:border-brand/60 hover:shadow-md hover:-translate-y-px transition-all"
-          data-testid="btn-scene-ai-help"
-        >
-          <span className="flex items-start gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-muted/60 text-brand-dark">
-              <MessageCircle className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-keeper-ink">
-                Chat with us to find the perfect scene
-              </span>
-              {showPathGuide && (
-                <span className="mt-0.5 block text-xs leading-snug text-keeper-meta">
-                  Not sure yet? A quick back-and-forth to find it.
-                </span>
-              )}
-            </span>
-          </span>
-        </button>
-        )}
-      </div>
+        </motion.section>
+      )}
 
       {/* ── Your scene ─────────────────────────────────────────────
-          Progressive reveal: an empty editor under the tiles read as a
-          second job to do. It appears when a tile is picked (latched
-          open from then on) or on request below. Still the single
-          convergence point every path lands in. */}
-      {editorOpen ? (
+          Where both routes land. Open straight away on the write route;
+          on the ideas route it appears once a scene has been picked, so
+          an empty box never reads as a second job to do. */}
+      {showEditor ? (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -568,8 +567,10 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
             >
               Your scene
             </Label>
-            <span className="text-[11px] text-keeper-meta">
-              edit freely, this exact text guides the artwork
+            <span className="text-xs text-keeper-meta">
+              {route === 'write' && local.trim().length === 0
+                ? 'a sentence or two is plenty'
+                : 'edit freely, this exact text guides the artwork'}
             </span>
           </div>
           <Textarea
@@ -578,6 +579,8 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
             value={local}
             onChange={(e) => {
               setLocal(e.target.value);
+              // Once there is a scene, the box stays for the rest of the visit.
+              if (e.target.value.trim()) setEditorOpen(true);
               // Editing breaks the tie to the tile it came from — the
               // source enum still records it as suggestion_edited.
               setChosenId(null);
@@ -588,7 +591,14 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
               setFocused(false);
               commit();
             }}
-            placeholder={placeholderText}
+            // The typed-out examples stop on focus (they'd fight the
+            // cursor). The write route focuses the box straight away, so
+            // hold one still example there rather than a blank box.
+            placeholder={
+              focused && local.length === 0 && placeholders[0]
+                ? `For example: ${placeholders[0]}`
+                : placeholderText
+            }
             rows={6}
             className={`mt-1.5 min-h-[140px] text-base resize-y bg-white focus-visible:border-brand focus-visible:ring-brand/20 transition-all duration-500 ${
               justFilled
@@ -774,6 +784,80 @@ export function SceneStep({ state, onChange, cardId, guest = false }: SceneStepP
         }}
       />
     </div>
+  );
+}
+
+/** One of the two routes on the chooser. A single big button: the
+ *  situation it suits, the route's name, the three things that happen,
+ *  and whether it is the one that's open. Spans, not a list, because a
+ *  button may only hold phrasing content. */
+function RouteCard({
+  active,
+  compact,
+  onClick,
+  icon,
+  kicker,
+  title,
+  steps,
+  testId,
+}: {
+  active: boolean;
+  /** Phones only: name and tick, no steps. Wider screens always show it all. */
+  compact: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  kicker: string;
+  title: string;
+  steps: string[];
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      data-testid={testId}
+      className={`group flex h-full flex-col rounded-2xl border text-left transition-all sm:p-5 ${
+        compact ? 'p-3' : 'p-4'
+      } ${
+        active
+          ? 'border-brand bg-brand-muted/50 ring-2 ring-brand/25 shadow-md'
+          : 'border-keeper-hair bg-white shadow-sm hover:-translate-y-px hover:border-brand/60 hover:shadow-md'
+      }`}
+    >
+      <span className="flex items-center justify-between gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark">
+          {icon}
+        </span>
+        <span
+          aria-hidden
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+            active ? 'border-brand-dark bg-brand-dark text-brand-foreground' : 'border-keeper-hair bg-white group-hover:border-brand/60'
+          }`}
+        >
+          {active && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+        </span>
+      </span>
+      <span className={`mt-3 text-xs font-semibold uppercase tracking-wider text-brand-dark ${compact ? 'hidden sm:block' : 'block'}`}>
+        {kicker}
+      </span>
+      <span className={`block font-semibold leading-snug text-keeper-ink sm:mt-1 sm:text-lg ${compact ? 'mt-2.5 text-[15px]' : 'mt-1 text-lg'}`}>
+        {title}
+      </span>
+      <span className={`mt-3 flex-col gap-2 ${compact ? 'hidden sm:flex' : 'flex'}`}>
+        {steps.map((step, i) => (
+          <span key={i} className="flex items-start gap-2.5 text-sm leading-snug text-keeper-body">
+            <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-light text-[11px] font-bold text-brand-dark">
+              {i + 1}
+            </span>
+            <span>{step}</span>
+          </span>
+        ))}
+      </span>
+      <span className={`mt-auto pt-4 text-sm font-semibold text-brand-dark ${compact ? 'hidden sm:block' : 'block'}`}>
+        {active ? 'Selected' : 'Choose this'}
+      </span>
+    </button>
   );
 }
 
