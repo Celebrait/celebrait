@@ -27,6 +27,7 @@
 // The structure can ship now; numbers lock after data.
 
 import { MARKETS, formatMoney, marketId, type MarketId } from './market';
+import { christmasPhase, isChristmasNeedBy, CHRISTMAS_LAST_POST } from './christmas';
 
 export type CurrencyCode = 'GBP' | 'ZAR';
 
@@ -314,7 +315,16 @@ export function arrivalVerdict(needBy: Date, from: Date = new Date()): ArrivalVe
   const { earliest, latest } = deliveryWindow(from);
   const day = 24 * 60 * 60 * 1000;
   const spareDays = Math.round((needBy.getTime() - latest.getTime()) / day);
-  const tone: ArrivalTone = spareDays >= 0 ? 'ok' : needBy.getTime() >= earliest.getTime() ? 'tight' : 'late';
+  let tone: ArrivalTone = spareDays >= 0 ? 'ok' : needBy.getTime() >= earliest.getTime() ? 'tight' : 'late';
+  // THE CHRISTMAS POST (2026-11-18). The sum above only knows weekends:
+  // it told an order placed on Friday 18 December that it would arrive
+  // on Christmas Day. Past the last order date, anything needed by
+  // Christmas is never promised; once Royal Mail's last posting date is
+  // here, a card printed to order cannot be posted in time at all.
+  if (christmasPhase(from) === 'closed' && isChristmasNeedBy(needBy, from)) {
+    const posted = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime() >= CHRISTMAS_LAST_POST.getTime();
+    tone = posted ? 'late' : tone === 'ok' ? 'tight' : tone;
+  }
   return { tone, spareDays, earliest, latest };
 }
 

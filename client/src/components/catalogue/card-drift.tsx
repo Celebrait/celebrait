@@ -40,6 +40,9 @@ interface CardDriftProps {
   /** The peek's onward button (off on the pre-launch page, where it would
    *  lead to a locked page). */
   peekCta?: boolean;
+  /** Where "Make yours" leads, when the page knows better than the route
+   *  (the Christmas landing page keeps its occasion). */
+  makeHref?: string;
 }
 
 const shuffle = <T,>(a: T[]): T[] => { const p = [...a]; for (let i = p.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; };
@@ -74,7 +77,7 @@ export function useDriftCards(size = 20, padFrom: string | null = 'birthday', en
   return { cards, loaded };
 }
 
-export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false, cards: given, peekCta = true }: CardDriftProps) {
+export function CardDrift({ size = 20, padFrom = 'birthday', className = '', peek = false, cards: given, peekCta = true, makeHref: makeHrefGiven }: CardDriftProps) {
   const own = useDriftCards(size, given ? null : padFrom, !given);
   const cards = given ?? own.cards;
   const loaded = given ? true : own.loaded;
@@ -85,7 +88,8 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
   // with one quiet way onward. Unknown counts as parked (never flash the shop).
   const rack = useRackEnabled() === true;
   const peekMode = peek || !rack;
-  const makeHref = useMakeYoursHref();
+  const routeMakeHref = useMakeYoursHref();
+  const makeHref = makeHrefGiven ?? routeMakeHref;
   // Nothing picked yet → render nothing at all (the page hides the block).
   if (loaded && !cards.length) return null;
   if (!cards.length) {

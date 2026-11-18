@@ -22,6 +22,7 @@ import {
   ORDER_AHEAD_DAYS,
   HONEST_LEAD_LINE,
 } from '@shared/pricing';
+import { christmasPhase, christmasOrderLine, isChristmasNeedBy } from '@shared/christmas';
 
 const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -48,6 +49,10 @@ export function NeedByField({
   const verdict = needBy ? arrivalVerdict(needBy, today) : null;
   const who = recipientName?.trim() || 'them';
   const by = formatDayMonth(expectedBy(today));
+  // Christmas (2026-11-18): the season's own line, said whether or not
+  // they give a date, and a plain reason when the verdict is held back.
+  const xmasLine = christmasOrderLine(today);
+  const xmasHeld = !!needBy && christmasPhase(today) === 'closed' && isChristmasNeedBy(needBy, today);
 
   return (
     <div className={compact ? 'space-y-2.5' : 'space-y-3'}>
@@ -96,6 +101,11 @@ export function NeedByField({
             <span className="font-semibold">The post won't make it by then.</span> Ordered today, expect it by {by}.
             You can still order it, and send {who} the free digital link on the day, so they open something from you either way.
           </span>
+        </p>
+      )}
+      {xmasLine && (!verdict || xmasHeld) && (
+        <p className="text-xs font-medium leading-relaxed text-keeper-ink" data-testid="need-by-christmas">
+          {xmasHeld ? `${xmasLine} The Christmas post is slower than usual.` : xmasLine}
         </p>
       )}
       {/* Too late this time → the reminders (Aidan 2026-09-09: "sign up,

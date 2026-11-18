@@ -53,20 +53,46 @@ const Card3DViewer = lazy(() =>
 );
 
 // Maker door: the real set for Mum / birthday / 60 / warm / her garden.
-const MAKER_FRONTS = ['/hiw/mum-1.webp', '/hiw/mum-2.webp', '/hiw/mum-3.webp'];
-const MAKER_PICK = 1; // "The greenhouse can wait."
-const MAKER_INSIDE = '/hiw/mum-inside.webp';
-const QUESTIONS: Array<{ q: string; a: string }> = [
-  { q: "Who's it for?", a: 'Mum' },
-  { q: 'The occasion', a: 'Birthday' },
-  { q: 'How old', a: '60' },
-  { q: 'The vibe', a: 'Warm' },
-  { q: 'What they love', a: 'Her garden' },
-  { q: 'Their name', a: 'Linda' },
-];
+// CHRISTMAS (2026-11-18): the ad's own Dad, so the ad, the landing page
+// and this section show the same three cards. Real engine output for
+// Dad / Christmas / 60 / funny / "His shed, his air fryer, and what he
+// paid for the house in 1994" / Dave, kept under client/public/hiw.
+// Five rows, not six: the Christmas page arrives with the occasion chosen.
+interface MakerSet { fronts: string[]; pick: number; inside: string; who: string; pickAlt: string; questions: Array<{ q: string; a: string }> }
+const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
+  default: {
+    fronts: ['/hiw/mum-1.webp', '/hiw/mum-2.webp', '/hiw/mum-3.webp'],
+    pick: 1, // "The greenhouse can wait."
+    inside: '/hiw/mum-inside.webp',
+    who: 'Mum',
+    pickAlt: 'The greenhouse can wait',
+    questions: [
+      { q: "Who's it for?", a: 'Mum' },
+      { q: 'The occasion', a: 'Birthday' },
+      { q: 'How old', a: '60' },
+      { q: 'The vibe', a: 'Warm' },
+      { q: 'What they love', a: 'Her garden' },
+      { q: 'Their name', a: 'Linda' },
+    ],
+  },
+  christmas: {
+    fronts: ['/hiw/xmas-dad-1.webp', '/hiw/xmas-dad-2.webp', '/hiw/xmas-dad-3.webp'],
+    pick: 1, // "Unexpected item in the bagging area."
+    inside: '/hiw/xmas-dad-inside.webp',
+    who: 'Dad',
+    pickAlt: 'Unexpected item in the bagging area',
+    questions: [
+      { q: "Who's it for?", a: 'Dad' },
+      { q: 'How old', a: '60' },
+      { q: 'The vibe', a: 'Funny' },
+      { q: 'What they love', a: 'Shed, air fryer' },
+      { q: 'Their name', a: 'Dave' },
+    ],
+  },
+};
 const TYPE_MS = 35;
 
-const COPY: Record<Door, { eyebrow: string; heading: string; sub: string; foot?: string; beats: Array<{ label: string; body: string }> }> = {
+const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; sub: string; foot?: string; beats: Array<{ label: string; body: string }> }> = {
   photo: {
     eyebrow: 'How it works',
     heading: 'Put them anywhere.',
@@ -84,6 +110,16 @@ const COPY: Record<Door, { eyebrow: string; heading: string; sub: string; foot?:
     sub: 'Six questions. Three cards. Yours in a minute.',
     beats: [
       { label: 'Six quick questions', body: "Who it's for, the occasion, what they're like: a minute of taps." },
+      { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
+      { label: 'Pick one, write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
+    ],
+  },
+  makerChristmas: {
+    eyebrow: 'From five answers',
+    heading: 'How it works',
+    sub: 'Five questions. Three Christmas cards. Yours in a minute.',
+    beats: [
+      { label: 'Five quick questions', body: "Who it's for and what they're like: a minute of taps." },
       { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
       { label: 'Pick one, write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
     ],
@@ -475,7 +511,8 @@ function PhotoBeat3({ c }: { c: Clock }) {
 // ── maker door ────────────────────────────────────────────────────────
 /** 1. Six questions, six answers: the rows fill the stage top to
  *  bottom, each answer landing with its check, then the deal button. */
-function MakerBeat1({ c }: { c: Clock }) {
+function MakerBeat1({ c, set }: { c: Clock; set: MakerSet }) {
+  const QUESTIONS = set.questions;
   const step = 0.22;
   useDoneAt(c, 0.9 + QUESTIONS.length * step);
   return (
@@ -522,12 +559,12 @@ const FAN = [
   { x: '0%', rotate: 0, y: 0 },
   { x: '40%', rotate: 8, y: 12 },
 ];
-function MakerBeat2({ c }: { c: Clock }) {
+function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
   useDoneAt(c, 1.9);
   return (
     <div className="absolute inset-0">
       <div className="absolute left-[28%] top-[24%] w-[44%]">
-        {MAKER_FRONTS.map((src, i) => (
+        {set.fronts.map((src, i) => (
           <motion.div
             key={src}
             className="absolute inset-x-0 top-0"
@@ -536,7 +573,7 @@ function MakerBeat2({ c }: { c: Clock }) {
             animate={c.play ? { opacity: 1, x: FAN[i].x, rotate: FAN[i].rotate, y: FAN[i].y } : undefined}
             transition={tr(c, 0.2 + i * 0.18, 0.8)}
           >
-            <CardImg src={src} alt={`Card ${i + 1} of three for Mum`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+            <CardImg src={src} alt={`Card ${i + 1} of three for ${set.who}`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
           </motion.div>
         ))}
       </div>
@@ -547,9 +584,9 @@ function MakerBeat2({ c }: { c: Clock }) {
 
 /** 3. The picked card opens: cover swings, the inside is already
  *  printed, the chip lands. */
-function MakerBeat3({ c }: { c: Clock }) {
+function MakerBeat3({ c, set }: { c: Clock; set: MakerSet }) {
   useDoneAt(c, 1.9);
-  return <OpenCard c={c} front={MAKER_FRONTS[MAKER_PICK]} inside={MAKER_INSIDE} alt="The greenhouse can wait" />;
+  return <OpenCard c={c} front={set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} />;
 }
 
 // ── the section ───────────────────────────────────────────────────────
@@ -623,12 +660,14 @@ function Beat({
 /** `pairedBelow` tightens the desktop gap to the section that follows
  *  (the photo LP pairs this with its gallery); `cta` is a button the page
  *  supplies, shown under the steps. Both added 2026-11-11. */
-export function HowItWorksSection({ door, pairedBelow = false, cta }: { door: Door; pairedBelow?: boolean; cta?: React.ReactNode }) {
-  const copy = COPY[door];
+export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = false }: { door: Door; pairedBelow?: boolean; cta?: React.ReactNode; /** The Christmas landing page: the ad's Dad set and five questions. */ christmas?: boolean }) {
+  const xmas = christmas && door === 'maker';
+  const copy = COPY[xmas ? 'makerChristmas' : door];
+  const set = MAKER_SETS[xmas ? 'christmas' : 'default'];
   const stages: Array<(c: Clock) => React.ReactNode> =
     door === 'photo'
       ? [(c) => <PhotoBeat1 c={c} />, (c) => <PhotoBeat2 c={c} />, (c) => <PhotoBeat3 c={c} />]
-      : [(c) => <MakerBeat1 c={c} />, (c) => <MakerBeat2 c={c} />, (c) => <MakerBeat3 c={c} />];
+      : [(c) => <MakerBeat1 c={c} set={set} />, (c) => <MakerBeat2 c={c} set={set} />, (c) => <MakerBeat3 c={c} set={set} />];
   const n = stages.length;
 
   const els = useRef<Array<HTMLLIElement | null>>([]);

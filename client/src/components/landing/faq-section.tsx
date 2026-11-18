@@ -23,6 +23,7 @@ import {
   HONEST_LEAD_LINE,
 } from '@shared/pricing';
 import { formatMoney } from '@shared/market';
+import { christmasPhase, CHRISTMAS_LAST_ORDER_LABEL } from '@shared/christmas';
 
 
 interface FaqEntry {
@@ -134,10 +135,23 @@ const forMarket = (faqs: FaqEntry[]): FaqEntry[] =>
 
 /** `door` picks the answer set: the photo door's ten (default, /photo) or
  *  the three-card door's six (/create). Same chrome either way. */
-export function FaqSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
+// CHRISTMAS (2026-11-18): the ad's landing page leads with the question
+// a December buyer actually has, and its "how it works" answer counts
+// five questions (the occasion arrives chosen). Date from shared/christmas.
+const christmasMakerFaqs = (base: FaqEntry[]): FaqEntry[] => [
+  {
+    q: 'Will it arrive for Christmas?',
+    a: `Yes, if you order by ${CHRISTMAS_LAST_ORDER_LABEL}. Each card is printed to order, which takes up to three working days, then posted Royal Mail 24, tracked. Order after that and it may arrive after Christmas. The free digital link arrives instantly either way.`,
+  },
+  ...base.map((f) => (f.q === 'How does it work?'
+    ? { ...f, a: f.a.replace("Six quick questions: who it's for, the occasion, what they're like.", "Five quick questions: who it's for and what they're like.") }
+    : f)),
+];
+
+export function FaqSection({ door = 'photo', christmas = false }: { door?: 'photo' | 'maker'; /** The Christmas landing page. */ christmas?: boolean } = {}) {
   const rack = useRackEnabled() === true;
   const maker = useMakerEnabled() === true;
-  const FAQS = forMarket(door === 'maker' ? MAKER_FAQS : photoFaqs(rack, maker));
+  const FAQS = forMarket(door === 'maker' ? (christmas && christmasPhase() === 'open' ? christmasMakerFaqs(MAKER_FAQS) : MAKER_FAQS) : photoFaqs(rack, maker));
   return (
     <section id="faq" className="snap-center relative scroll-mt-32 py-16 md:py-32">
       {/* FAQPage structured data — generated FROM the visible FAQS array

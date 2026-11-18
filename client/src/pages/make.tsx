@@ -511,7 +511,7 @@ export default function MakePage() {
           {/* The lead-time notice lives INSIDE the question container
               (Aidan 2026-09-10) — one-off prints, allow a week — read
               with the question, before twenty minutes of crafting. */}
-          <LeadTimeNotice link={!betaMode} className="mb-5 sm:mb-6" />
+          <LeadTimeNotice link={!betaMode} className="mb-5 sm:mb-6" occasion={brief.occasion} />
           <BriefQuestions
             skin="landing" brief={brief} onChange={setBrief} onDone={() => void generate()}
             initialStep={brief.who.trim() ? 1 : 0}

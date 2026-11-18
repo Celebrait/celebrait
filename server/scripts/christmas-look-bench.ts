@@ -84,7 +84,12 @@ async function main(): Promise<void> {
   };
 
   const jobs: Array<{ arm: Arm; brief: (typeof BRIEFS)[number] }> = [];
-  for (const brief of BRIEFS) for (const arm of arms) jobs.push({ arm, brief });
+  // --brief dad: one brief only (the ad's Dad, run several times into
+  // separate outDirs to pick the best three fronts).
+  const bi = process.argv.indexOf('--brief');
+  const only = bi > -1 ? process.argv[bi + 1] : null;
+  for (const brief of BRIEFS) if (!only || brief.id === only) for (const arm of arms) jobs.push({ arm, brief });
+  if (!jobs.length) throw new Error(`No brief called "${only}"`);
   let cents = 0;
 
   const runOne = async ({ arm, brief }: (typeof jobs)[number]): Promise<void> => {

@@ -36,6 +36,8 @@ import { HowItWorksSection } from '@/components/landing/how-it-works-section';
 import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
 import { InsideSection } from '@/components/landing/inside-section';
 import { FaqSection } from '@/components/landing/faq-section';
+import { christmasPhase } from '@shared/christmas';
+import { CHRISTMAS_WALL } from '@/lib/christmas-wall';
 
 
 
@@ -56,6 +58,20 @@ export default function DoorwayBPage() {
   // "Get started" swaps the hero copy for the questions, same spot. A
   // brief already in the URL means they're mid-way — open on the questions.
   const [started, setStarted] = useState<boolean>(() => brief.who.trim().length > 0);
+  // THE CHRISTMAS PAGE (2026-11-18): the Christmas ad lands on
+  // /create?occasion=christmas. While Christmas orders are open that link
+  // turns this page Christmas: the last order date up top, Christmas
+  // already answered (five questions, not six), Christmas cards on the
+  // wall and in "how it works", and no link out to the photo route (the
+  // two routes are being tested separately, each with its own ad). Read
+  // once on arrival; after the cut-off the same link gets the everyday
+  // page with a line saying Christmas orders have closed.
+  const [xmasArrival] = useState<'open' | 'closed' | null>(() => {
+    if (brief.occasion !== 'christmas') return null;
+    const phase = christmasPhase();
+    return phase === 'off' ? null : phase;
+  });
+  const xmas = xmasArrival === 'open';
   // A short beat between the tap and the first question (Aidan: "a
   // loading spinner in the question area once clicked get started") —
   // the swap is instant, so this is acknowledgement, not waiting: 650ms.
@@ -85,7 +101,8 @@ export default function DoorwayBPage() {
         {/* ── The hero IS step one of the builder ── */}
         <section className={`pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-6xl px-6">
-            <p className={EYEBROW}>Unbinnable Greetings Cards</p>
+            {xmasArrival && <LeadTimeNotice occasion="christmas" link={false} className="mb-5 max-w-xl" />}
+            <p className={EYEBROW}>{xmas ? 'Unbinnable Christmas cards' : 'Unbinnable Greetings Cards'}</p>
             {starting ? (
               <div className="mt-4 flex min-h-[300px] max-w-3xl items-center justify-center" role="status" aria-label="Loading the questions">
                 <Loader2 className="h-14 w-14 animate-spin text-keeper-gold" strokeWidth={1.5} />
@@ -97,14 +114,16 @@ export default function DoorwayBPage() {
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
                 <h1 className={`mt-4 max-w-[26ch] text-[clamp(30px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
-                  Why settle for a card that's anything but{' '}
+                  Why settle for a {xmas ? 'Christmas ' : ''}card that's anything but{' '}
                   <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
                     <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
                   </span>?
                 </h1>
                 <p className={`max-w-[36rem] ${SUB}`}>
-                  In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.
-                  Thoughtful, funny, gloriously daft?{' '}
+                  {xmas
+                    ? 'Answer five quick questions and get 3 personalised Christmas cards to choose from. Then write the inside.'
+                    : 'In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.'}
+                  {' '}Thoughtful, funny, gloriously daft?{' '}
                   <span className="font-semibold text-keeper-ink">Over to you.</span>
                 </p>
                 <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -112,7 +131,7 @@ export default function DoorwayBPage() {
                     className={BTN_PRIMARY_LG}>
                     <Sparkles className="h-4 w-4" /> Get started
                   </button>
-                  <span className="text-[13px] text-keeper-meta">Six quick questions · 3–5 minutes start to finish</span>
+                  <span className="text-[13px] text-keeper-meta">{xmas ? 'Five' : 'Six'} quick questions · 3–5 minutes start to finish</span>
                 </div>
               </>
             ) : (
@@ -121,13 +140,14 @@ export default function DoorwayBPage() {
                  page only changes at "Write their three cards" (→ /make). */
               <div className="mt-6 max-w-3xl">
                 <BriefQuestions skin="landing" compact brief={brief} onChange={setBrief}
-                  initialStep={!brief.who ? 0 : !brief.occasion ? 1 : 2}
+                  hide={xmas ? ['occasion'] : undefined}
+                  initialStep={!brief.who ? 0 : xmas || !brief.occasion ? 1 : 2}
                   onDone={(b) => navigate(`/make?${briefToSearch(b)}&go=1`)} />
                 {/* The hand-off (go=1) skips /make's brief panel, so this
                     is the last screen before the three are drawn: the same
                     honest line the photo route shows before its spend
                     (launch audit 2026-10-06, parity). */}
-                <LeadTimeNotice className="mt-5 max-w-xl" />
+                {!xmasArrival && <LeadTimeNotice className="mt-5 max-w-xl" occasion={brief.occasion} />}
               </div>
             )}
 
@@ -136,8 +156,10 @@ export default function DoorwayBPage() {
                   live at /photo and each page points at the other. */}
               <p className="text-[14px] text-keeper-body">
                 <span className="text-keeper-meta">{formatMoney(cardPrice('maker'))} · nothing to pay until you print</span>
+                {!xmas && <>
                 <span className="mx-2 text-keeper-hair">|</span>
                 <Link href="/photo" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Got a photo of them? Put them in the picture →</Link>
+                </>}
               </p>
             </div>
           </div>
@@ -145,10 +167,10 @@ export default function DoorwayBPage() {
           {/* ── The wall: real cards, drifting ── */}
           <div className="mt-12 md:mt-16">
             <div className="mx-auto max-w-6xl px-6">
-              <p className={EYEBROW}>{rack ? 'From the rack · made for real people' : 'Made for real people'}</p>
+              <p className={EYEBROW}>{xmas ? 'Each one drawn from a few answers' : rack ? 'From the rack · made for real people' : 'Made for real people'}</p>
             </div>
             <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
-              <CardDrift />
+              {xmas ? <CardDrift cards={CHRISTMAS_WALL} makeHref="/make?occasion=christmas" /> : <CardDrift />}
             </div>
           </div>
 
@@ -179,11 +201,11 @@ export default function DoorwayBPage() {
             two doors can't drift apart. */}
         {/* Six questions, three cards, the inside: the route in three
             beats, drawn with the carousel's own fronts (Aidan 2026-10-11). */}
-        <HowItWorksSection door="maker" />
+        <HowItWorksSection door="maker" christmas={xmas} />
         <HandoverSection />
         <OccasionsPromoSection door="maker" />
         <InsideSection />
-        <FaqSection door="maker" />
+        <FaqSection door="maker" christmas={xmas} />
       </main>
       <MarketingFooter />
     </div>
