@@ -1921,7 +1921,9 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   {
     const AIMED_HER = /\b(bitch(?:es)?)\b/i;
     const AIMED_HIM = /\b(bastards?|pricks?|twats?)\b/i;
-    const PEERS = new Set(['sister', 'brother', 'best mate', 'friend', 'partner', 'anyone']);
+    // Spouses and partners by any name, and cousins, are peers (the
+    // recipient list gained them 2026-11-19; only 'partner' was here).
+    const PEERS = new Set(['sister', 'brother', 'best mate', 'friend', 'partner', 'wife', 'husband', 'girlfriend', 'boyfriend', 'cousin', 'anyone']);
     const who = b.who.trim().toLowerCase();
     const dir = b.gender !== 'unspecified' ? b.gender : who === 'sister' ? 'her' : who === 'brother' ? 'him' : null;
     cards.forEach((c, i) => {
@@ -2681,6 +2683,22 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // conceptsSchema.frontWordOn). Only the admin door may ask for the
     // old one-card rule back, for comparisons.
     const nameOnAll = !(body.frontWordOn === 'one' && (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/'));
+    // The first name is "inside only" when the buyer chose something ELSE
+    // for the front (Dad, or nothing). Since 2026-11-19 the front can be
+    // a few words of the buyer's own, and those words often CONTAIN the
+    // name ("Big Dave", "Nanny Pat"): then the name is on the front by
+    // their choice, and telling the writer "never on a front" while the
+    // referee demanded "Big Dave" on every card would be a contradiction
+    // no repair round could satisfy.
+    // Read where it is used, not here: a greeting-language card clears the
+    // front word further down, and the name must then go inside.
+    const insideOnlyNameNow = (): string | undefined => {
+      const first = body.recipientName?.trim();
+      const front = body.frontWord?.trim() ?? '';
+      if (!first || first === front) return undefined;
+      const inFront = new RegExp(`(^|[^a-z])${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`, 'i').test(front);
+      return inFront ? undefined : first;
+    };
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
       : classified.key === 'christmas' ? christmasProfile(body.tone, xmasDrawn ? 'drawn' : 'current')
@@ -2737,7 +2755,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ? `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ ALL THREE cards carry it. The buyer asked for it on the front, so a card without it has failed. On each card it sits in the front words (front_text), or is lettered into the artwork itself (then art_direction says where and quotes it exactly). Designed in, never bolted on: no "To ${body.frontWord.trim()}" label stapled to a finished card. VARY HOW across the three — one card LEADS with it, set large in the card's own lettering or AS the artwork; the other two fold it into their own line or a drawn detail of their world (a mug, a sign, a tag, a door). Never the same placement three times, and each card is still its own idea: the word is the only thing the three share. ONCE PER CARD IS ENOUGH: when it is in a card's front words, do not also letter it into that card's artwork (observed on the first bench: "Dad" in the headline, on a drawer label and on a sign, all on one card). Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred).`
           : `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ EXACTLY ONE card LEADS with it, designed in: set large in the card's own lettering, or AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred). The other two fronts do not carry it.`)
         : `FRONT WORD: none — no name and no relationship word on any of the three fronts.`,
-      body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? `Recipient's first name (INSIDE only, never on a front): "${body.recipientName.trim()}"` : '',
+      insideOnlyNameNow() ? `Recipient's first name (INSIDE only, never on a front): "${insideOnlyNameNow()}"` : '',
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
       // real failure. "Never the joke" stops gendered stereotyping — a
       // woman who fishes gets the same fishing world, not a pink rod —
@@ -2962,7 +2980,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
         interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky,
         name: body.frontWord?.trim() || undefined,
         nameOnAll,
-        insideName: body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? body.recipientName.trim() : undefined,
+        insideName: insideOnlyNameNow(),
         generic: fullyGeneric };
       // THE SET'S METER (law 10: instrument before arguing). Every ms is
       // wall-clock around a provider call; one structured line per set

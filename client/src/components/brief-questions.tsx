@@ -26,27 +26,36 @@ const ZA = marketId() === 'ZA';
 
 // ── the brief ────────────────────────────────────────────────────────
 export type Vibe = 'funny' | 'warm' | 'rude' | 'mix';
-/** What leads the front of the one name-led card (Aidan 2026-09-15:
- *  a Dad card with DAVE across it "kinda weird… they might want Dad
- *  there instead"). 'role' = the relationship word (Dad), 'name' = the
- *  first name, 'none' = no name or relationship word on any front. */
-export type FrontWord = 'role' | 'name' | 'none';
+/** What goes on the front of all three cards (Aidan 2026-09-15: a Dad
+ *  card with DAVE across it "kinda weird… they might want Dad there
+ *  instead"). 'role' = the relationship word (Dad), 'name' = the first
+ *  name, 'none' = no name or relationship word on any front,
+ *  'custom' = a few words of the buyer's own ("Big Dave", "Nanny Pat"),
+ *  kept in `frontText` so it is never mistaken for their first name
+ *  (Aidan 2026-11-19: "they should be able to write anything they want"). */
+export type FrontWord = 'role' | 'name' | 'custom' | 'none';
+/** Short on purpose: it rides on all three fronts beside our own line. A
+ *  whole headline of the buyer's own is a different product (lab first). */
+export const FRONT_TEXT_MAX = 25;
 export interface Brief {
   who: string; gender: 'him' | 'her' | null; occasion: string; age: string;
   vibe: Vibe; thing: string; cant: string; name: string; front: FrontWord;
+  /** The buyer's own words for the front, when `front` is 'custom'. */
+  frontText: string;
   /** The card's language (ZA only, 2026-10-16). Always 'en' in GB. */
   lang: CardLanguage;
 }
-export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '', front: 'none', lang: 'en' });
+export const emptyBrief = (): Brief => ({ who: '', gender: null, occasion: '', age: '', vibe: 'mix', thing: '', cant: '', name: '', front: 'none', frontText: '', lang: 'en' });
 /** The languages this occasion can be written in (ZA). English first, always. */
 export const languagesFor = (occasion: string) => (ZA ? CARD_LANGUAGES.filter((l) => cardLanguageAvailable(l.id, occasion)) : CARD_LANGUAGES.filter((l) => l.id === 'en'));
 /** The language the engine is asked for: the buyer's choice when this
  *  occasion offers it, English otherwise (or in GB). */
 export const briefLanguage = (b: Pick<Brief, 'lang' | 'occasion'>): CardLanguage => (ZA && cardLanguageAvailable(b.lang, b.occasion) ? b.lang : 'en');
 /** The literal word the engine may set on the front, or nothing. */
-export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'>): string | undefined {
+export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'> & { frontText?: string }): string | undefined {
   if (b.front === 'role') return NAME_LIKE.has(b.who.trim()) ? b.who.trim() : undefined;
   if (b.front === 'name') return b.name.trim() || undefined;
+  if (b.front === 'custom') return (b.frontText ?? '').trim().slice(0, FRONT_TEXT_MAX) || undefined;
   return undefined;
 }
 
@@ -63,14 +72,24 @@ export const VIBE_SUB: Record<Vibe, string> = { funny: VIBE_META.funny.sub, warm
 /** "Mum" in GB, "Mom" in ZA: for example copy. */
 export const MUM_WORD = ZA ? 'Mom' : 'Mum';
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
+// Wife, Husband, Girlfriend, Boyfriend, Auntie, Uncle and Cousin added
+// 2026-11-19 (Aidan: "the recipients selector needs more… my mate
+// mentioned husband wife"): the list had "Partner" and nothing else for
+// the person most cards are bought for. Partners sit straight after the
+// parents, where people look first.
 const GB_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
+  { label: 'Wife', implies: 'her' }, { label: 'Husband', implies: 'him' },
+  { label: 'Girlfriend', implies: 'her' }, { label: 'Boyfriend', implies: 'him' },
+  { label: 'Partner' },
   { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
   { label: 'Sister', implies: 'her' }, { label: 'Brother', implies: 'him' },
   { label: 'Daughter', implies: 'her' }, { label: 'Son', implies: 'him' },
   { label: 'Granddaughter', implies: 'her' }, { label: 'Grandson', implies: 'him' },
+  { label: 'Auntie', implies: 'her' }, { label: 'Uncle', implies: 'him' },
   { label: 'Niece', implies: 'her' }, { label: 'Nephew', implies: 'him' },
-  { label: 'Partner' }, { label: 'Best mate' }, { label: 'Friend' },
+  { label: 'Cousin' },
+  { label: 'Best mate' }, { label: 'Friend' },
   { label: 'Colleague' }, { label: 'Someone else' },
 ];
 const ZA_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
@@ -85,7 +104,7 @@ const ZA_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Colleague' }, { label: 'Someone else' },
 ];
 export const RECIPIENTS = ZA ? ZA_RECIPIENTS : GB_RECIPIENTS;
-const AMBIGUOUS = new Set(['Partner', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
+const AMBIGUOUS = new Set(['Partner', 'Cousin', 'Best mate', 'Friend', 'Colleague', 'Someone else']);
 /** The relations people use AS a name ("How old is Mum?"). Every other
  *  chip is a role and needs "your" in front of it — "How old is
  *  Partner?" read as a bug (Aidan 2026-09-09). */
@@ -128,7 +147,14 @@ const THING_EXAMPLES: Record<string, string[]> = {
   Grandson: ['Toy Story', 'dinosaurs, all of them, by name', 'football boots for Christmas', 'Lego, everywhere'],
   Niece: ['her ballet exam', 'Harry Potter', 'the new puppy', 'baking with Nan'],
   Nephew: ['Pokémon cards', 'his new bike', 'Spider-Man', 'the school play'],
+  Wife: ['wild swimming', 'our trip to Lisbon', 'the dog she loves more than me', 'her book club, and its wine'],
+  Husband: ['30 years of questionable golf', 'his coffee machine', 'the shed he calls an office', 'terrible puns'],
+  Girlfriend: ['her houseplants, all 40 of them', 'our first holiday in Greece', 'true crime podcasts', 'stealing my hoodies'],
+  Boyfriend: ['five-a-side on Thursdays', 'his trainers', 'our first flat', 'the PlayStation'],
   Partner: ['30 years of questionable golf', 'our trip to Lisbon', 'the dog we talk about more than each other', 'terrible puns'],
+  Auntie: ['her garden', 'a cruise every spring', 'the best trifle in the family', 'bingo with the girls'],
+  Uncle: ['his vinyl collection', 'fishing', 'the pub quiz', 'the same joke every Christmas'],
+  Cousin: ['festivals every summer', 'her new puppy', 'the family group chat', 'Sunday league'],
   'Best mate': ['that stag do in Prague', 'the Sunday league', 'the air fryer obsession', 'twenty years of bad decisions'],
   Friend: ['wild swimming', 'the book club', 'Ibiza with the girls in June', 'the pub quiz, every Thursday'],
   Colleague: ['the office coffee machine', 'the spreadsheets', 'retiring after 25 years', 'the Friday quiz'],
@@ -174,7 +200,8 @@ export function readBriefFromSearch(search: string): Brief {
     thing: (q.get('thing') ?? '').slice(0, 120),
     cant: (q.get('cant') ?? '').slice(0, 60),
     name,
-    front: f === 'role' || f === 'name' || f === 'none' ? f : defaultFront(who, name),
+    front: f === 'role' || f === 'name' || f === 'none' || f === 'custom' ? f : defaultFront(who, name),
+    frontText: (q.get('ft') ?? '').slice(0, FRONT_TEXT_MAX),
     lang: ZA && isCardLanguage(q.get('lang')) ? (q.get('lang') as CardLanguage) : 'en',
   };
 }
@@ -192,6 +219,7 @@ export function briefToSearch(b: Brief): string {
   if (b.cant) q.set('cant', b.cant);
   if (b.name) q.set('name', b.name);
   if (b.front !== defaultFront(b.who, b.name)) q.set('front', b.front);
+  if (b.front === 'custom' && b.frontText.trim()) q.set('ft', b.frontText.trim());
   if (ZA && b.lang && b.lang !== 'en') q.set('lang', b.lang);
   return q.toString();
 }
@@ -449,8 +477,21 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 <button type="button" className={s.chip(shown('front', brief.front === 'role'))} onClick={() => { touch('front'); set({ front: 'role' }); }}>{brief.who.trim()}</button>
               )}
               <button type="button" className={s.chip(shown('front', brief.front === 'name'))} onClick={() => { touch('front'); set({ front: 'name' }); }}>Their name</button>
+              {/* A few words of their own: a nickname, "Nanny Pat", "Big
+                  Dave" (Aidan 2026-11-19). It rides on all three fronts
+                  exactly as a name does. */}
+              <button type="button" className={s.chip(shown('front', brief.front === 'custom'))} onClick={() => { touch('front'); set({ front: 'custom' }); }} data-testid="front-custom">Something else</button>
               <button type="button" className={s.chip(shown('front', brief.front === 'none'))} onClick={() => { touch('front'); set({ front: 'none' }); }}>Nothing</button>
             </div>
+            {brief.front === 'custom' && (
+              <>
+                <Input value={brief.frontText} onChange={(e) => set({ frontText: e.target.value.slice(0, FRONT_TEXT_MAX) })} maxLength={FRONT_TEXT_MAX} placeholder={ph('A nickname or a few words, e.g. Big Dave')} aria-label="Your own words for the front" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} data-testid="front-custom-text" />
+                {!minimal && <p className={s.helper}>Up to {FRONT_TEXT_MAX} characters. {brief.frontText.trim() ? 'It’ll be printed exactly as you type it, so worth a double-check.' : 'It goes on the front as you type it.'}</p>}
+                {/* Their name is asked for separately so the words above
+                    are never used as a name inside the card. */}
+                <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder={ph('Their name, for the inside')} aria-label="Their first name, for the inside" className={`${s.input} mt-3`} onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
+              </>
+            )}
             {brief.front === 'name' && (
               <>
                 <Input value={brief.name} onChange={(e) => set({ name: e.target.value.slice(0, 40) })} placeholder={ph('Their first name')} aria-label="Their first name" className={`${s.input} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next(); }} />
