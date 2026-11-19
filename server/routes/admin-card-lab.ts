@@ -92,7 +92,12 @@ function conceptParams(maxTokens: number, temperature: number) {
   // completions API rejects it for the gpt-5.5 alias ("invalid model
   // ID") — measured 2026-08-17, don't re-add without testing. Latency
   // is chosen by MODEL instead; see the timing table in the commit.
-  return { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4 };
+  // CONCEPT_WRITER_EFFORT (2026-11-19, bench only until proven): the 5.6 and
+  // 6.x writers think for far longer by default (first draft 34-74s
+  // against gpt-5.4's ~15s), so a newer writer is only usable with its
+  // effort dialled down. Unset in production: the request is unchanged.
+  const effort = process.env.CONCEPT_WRITER_EFFORT?.trim() as 'low' | 'medium' | 'high' | '' | undefined;
+  return { model: CONCEPT_MODEL, max_completion_tokens: maxTokens * 4, ...(effort ? { reasoning_effort: effort } : {}) };
 }
 
 /** The ARCHETYPE and SENSE calls are helpers — short JSON, no craft —
