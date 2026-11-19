@@ -5,7 +5,10 @@
  * front word (a role word, short names, a hard-to-spell one, a child's),
  * run through the engine the way the customer maker runs them.
  *
- *   npx tsx server/scripts/front-word-bench.ts <outDir> [--only one|all] [--parallel 3] [--brief <id>]
+ *   npx tsx server/scripts/front-word-bench.ts <outDir> [--only one|all] [--parallel 3] [--brief <id>] [--briefs <file.json>]
+ *
+ * --briefs swaps the six built-in briefs for a JSON array of the same
+ * shape (how the landing page walls' example sets were made, 2026-11-19).
  *
  * Arm 'all' is production (every front carries the word); 'one' is the
  * rule it replaced, reachable only through the admin door. Default: 'all'
@@ -14,7 +17,7 @@
  * Dev database only. Each set is about 5p of writing plus 3 drawings.
  */
 import 'dotenv/config';
-import { writeFile, mkdir, access } from 'node:fs/promises';
+import { writeFile, mkdir, access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import express from 'express';
 import { eq } from 'drizzle-orm';
@@ -36,6 +39,7 @@ const BRIEFS = [
   { id: 'daughter-evie', occasion: 'Christmas', who: 'Daughter', gender: 'her', age: 8, tone: 'funny', frontWord: 'Evie', recipientName: 'Evie',
     interest: 'Horses, slime, and her guinea pig Biscuit' },
 ] as const;
+type BenchBrief = { id: string; occasion: string; who: string; gender: string; age: number | null; tone: string; frontWord?: string; recipientName?: string; interest: string };
 
 type Arm = 'one' | 'all';
 const exists = async (p: string) => { try { await access(p); return true; } catch { return false; } };
@@ -65,7 +69,9 @@ async function main(): Promise<void> {
     return j;
   };
 
-  const jobs = BRIEFS.filter((b) => !only || b.id === only).flatMap((brief) => arms.map((arm) => ({ arm, brief })));
+  const briefsFile = arg('--briefs');
+  const briefs: BenchBrief[] = briefsFile ? JSON.parse(await readFile(briefsFile, 'utf8')) : (BRIEFS as unknown as BenchBrief[]);
+  const jobs = briefs.filter((b) => !only || b.id === only).flatMap((brief) => arms.map((arm) => ({ arm, brief })));
   let cents = 0;
   const runOne = async ({ arm, brief }: (typeof jobs)[number]): Promise<void> => {
     const dir = path.join(outDir, arm);
@@ -74,12 +80,12 @@ async function main(): Promise<void> {
     if (await exists(file)) { console.log(`skip ${arm}/${brief.id}`); return; }
     const t0 = Date.now();
     const { id, ...b } = brief;
-    const set = await post('concepts', { ...b, pipeline: 'celebrait', freeComposition: true, memory: false, frontWordOn: arm });
+    const set = await post('concepts', { ...b, age: b.age ?? undefined, pipeline: 'celebrait', freeComposition: true, memory: false, frontWordOn: arm });
     const concepts: any[] = set.concepts ?? [];
     if (concepts.length !== 3) throw new Error(`${arm}/${id}: ${concepts.length} concepts`);
     cents += set.meter?.cents ?? 0;
-    const word = new RegExp(`\\b${brief.frontWord}\\b`, 'i');
-    const carries = concepts.map((c) => (word.test(c.front_text ?? '') ? 'words' : word.test(c.art_direction ?? '') ? 'artwork' : 'MISSING'));
+    const word = brief.frontWord ? new RegExp(`\\b${brief.frontWord}\\b`, 'i') : null;
+    const carries = concepts.map((c) => (!word ? 'none asked' : word.test(c.front_text ?? '') ? 'words' : word.test(c.art_direction ?? '') ? 'artwork' : 'MISSING'));
     const renders = await Promise.all(concepts.map(async (c, i) => {
       try {
         const rj = await post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
