@@ -7,6 +7,8 @@
  *
  *   npx tsx server/scripts/front-word-bench.ts <outDir> [--only one|all] [--parallel 3] [--brief <id>] [--briefs <file.json>]
  *
+ * --no-render writes the three concepts only (no drawings): for measuring
+ * the writing, the rounds and the wait, at about 5c a set.
  * --briefs swaps the six built-in briefs for a JSON array of the same
  * shape (how the landing page walls' example sets were made, 2026-11-19).
  *
@@ -51,6 +53,7 @@ async function main(): Promise<void> {
   const arms: Arm[] = [(arg('--only') as Arm) ?? 'all'];
   const parallel = Number(arg('--parallel') ?? 3);
   const only = arg('--brief');
+  const noRender = process.argv.includes('--no-render');
 
   const row = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true)).limit(1);
   const adminId = process.env.LAB_ADMIN_USER_ID ?? row[0]?.id;
@@ -87,6 +90,7 @@ async function main(): Promise<void> {
     const word = brief.frontWord ? new RegExp(`\\b${brief.frontWord}\\b`, 'i') : null;
     const carries = concepts.map((c) => (!word ? 'none asked' : word.test(c.front_text ?? '') ? 'words' : word.test(c.art_direction ?? '') ? 'artwork' : 'MISSING'));
     const renders = await Promise.all(concepts.map(async (c, i) => {
+      if (noRender) return { ok: true, skipped: true };
       try {
         const rj = await post('render', { front_text: c.front_text, art_direction: c.art_direction, palette: c.palette,
           typeface: c.typeface, format: c.format ?? 'hero', characters: 'objects', freeStyle: true });
@@ -99,7 +103,7 @@ async function main(): Promise<void> {
       } catch (e) { return { ok: false, error: String(e).slice(0, 200) }; }
     }));
     await writeFile(file, JSON.stringify({ arm, brief, concepts, carries, violations: set.violations ?? [], meter: set.meter ?? null, renders }, null, 2), 'utf8');
-    console.log(`done ${arm}/${id} in ${Math.round((Date.now() - t0) / 1000)}s rounds=${set.meter?.rounds} standing=${JSON.stringify(set.violations ?? [])} carries=${carries.join('/')} :: ${concepts.map((c) => `"${c.front_text}"`).join(' / ')}`);
+    console.log(`done ${arm}/${id} in ${Math.round((Date.now() - t0) / 1000)}s rounds=${set.meter?.rounds} round1=${JSON.stringify((set.meter?.perRound?.[0] ?? []).map((v: string) => v.split(':')[0]))} standing=${JSON.stringify(set.violations ?? [])} carries=${carries.join('/')} :: ${concepts.map((c) => `"${c.front_text}"`).join(' / ')}`);
   };
 
   let next = 0;

@@ -2170,9 +2170,29 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // left is subject matter, and a subject appears on ONE card per set.
   {
     const CRAFT = new Set(['lettered','ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly','their','there','where','which','every','while','being','through','under','over','about'].map((w) => w));
+    // PRECISION PASS (2026-11-19). Measured on 32 customer-shaped sets:
+    // this floor fired on 21 of them in round one and was the commonest
+    // reason a set paid for a repair round (about ten seconds), and most
+    // of the hits were not a repeated OBJECT at all. Three fixes:
+    //  1. Words that describe rather than name a thing are skipped:
+    //     adverbs (neatly), participles (lettered, coloured, shown) and
+    //     -ing forms (glowing), bar the nouns that share those endings.
+    //  2. A few more words that are never the motif (inside, vintage…).
+    //  3. On a Christmas set, festive DRESSING is exempt. The drawn-
+    //     Christmas floor above asks every card to show snow, lights, a
+    //     wreath or paper chains, and this floor then failed the set for
+    //     drawing them twice ("lights" 4 times, "paper" 3 in the bench).
+    //     The cast and the food (Santa, the pudding, the crackers) are
+    //     NOT exempt: two Santa cards is still one card twice.
+    const DESCRIBES = new Set(['inside','outside','shown','vintage','coloured','colored','landscape','bright','golden','gentle','little','whisper','whole','plain','along','among','beyond','toward','towards','within','setup']);
+    const NOUNS_THAT_LOOK_LIKE_DESCRIPTIONS = new Set(['holly','family','jelly','belly','butterfly','dragonfly','firefly','pudding','stocking','building','ceiling','string','spring','railing','painting','bunting','icing','stuffing','wrapping','clothing','evening','morning','wedding','awning','swing','sling','flowerbed','sunbed','bunkbed','bobsled','seaweed','tweed','steed']);
+    const describes = (w: string) => DESCRIBES.has(w)
+      || (!NOUNS_THAT_LOOK_LIKE_DESCRIPTIONS.has(w) && (/[a-z]{4,}ly$/.test(w) || /[a-z]{3,}[^e]ed$/.test(w) || /[a-z]{3,}ing$/.test(w)));
+    const FESTIVE_DRESSING = new Set(['christmas','festive','december','winter','wintry','snowy','snowfall','snowflake','snowflakes','frost','frosted','frosty','icicle','icicles','lights','fairy','strung','string','strings','twinkling','wreath','wreaths','holly','mistletoe','garland','garlands','tinsel','bauble','baubles','paper','chain','chains','crown','crowns','bunting','ribbon','ribbons','candle','candles','glitter']);
+    const festive = opts?.occasionKey === 'christmas';
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
-      new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w) && !isFrontWord(w)) ?? [])
+      new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w) && !isFrontWord(w) && !describes(w) && !(festive && FESTIVE_DRESSING.has(w))) ?? [])
         .forEach((w) => seenArt.set(w, (seenArt.get(w) ?? 0) + 1));
     }
     const artDupes = Array.from(seenArt.entries()).filter(([, n]) => n >= 2);
