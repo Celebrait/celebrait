@@ -22,7 +22,7 @@ import { CropDialog } from '@/components/studio/crop-dialog';
 import { PhotoConsentLine, PhotoTips, readPhotoConsent, rememberPhotoConsent } from '@/components/photo-consent-tips';
 import { likenessNoteForSet, ANALYSIS_GATE_MS, type PhotoSetNote } from '@/lib/photo-likeness';
 import { toast } from '@/hooks/use-toast';
-import { BriefQuestions, readBriefFromSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, VIBE_SUB, MUM_WORD, frontWordOf, briefLanguage, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
+import { BriefQuestions, readBriefFromSearch, briefToSearch, isBriefComplete, occasionLabelFor, ageOf, isKidBrief, whoPhrase, whoPossessive, VIBE_LABEL, VIBE_SUB, MUM_WORD, frontWordOf, briefLanguage, type Brief, type Vibe, type QuestionKey } from '@/components/brief-questions';
 import { StepChips, type StepChip } from '@/components/step-chips';
 import { MakeNarration } from '@/components/make-narration';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
@@ -33,6 +33,8 @@ import { AjarTile } from '@/components/catalogue/ajar-tile';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { useSeo } from '@/lib/use-seo';
+import { rememberMadeCard, forgetMadeCard, madeCardFromSearch, type MadeCard } from '@/lib/made-cards';
+import { MadeCardsRow } from '@/components/made-cards-row';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { cardPrice, HONEST_LEAD_LINE } from '@shared/pricing';
 import { formatMoney, marketId } from '@shared/market';
@@ -108,6 +110,11 @@ interface CardCell { concept: Concept; imageUrl?: string; error?: string; code?:
   /** The lettering read back off this front didn't match the words (ZA languages). */
   textFailed?: boolean }
 type Phase = 'brief' | 'generating' | 'results' | 'cameo' | 'signoff' | 'done' | 'failed' | 'capped';
+/** A card this browser saved earlier, as the one cell the finished screen
+ *  reads. Only its front and words survive; that is all that screen needs. */
+const madeCell = (m: MadeCard): CardCell => ({ concept: { angle: '', front_text: m.frontText, art_direction: '' }, imageUrl: m.front });
+/** How many earlier sets are kept in memory (three drawings each). */
+const EARLIER_SETS = 3;
 
 // ── the landing's classes (Aidan 2026-09-03: "not sure we need to flip
 // into a studio style look from the homepage — can't we just stay where
@@ -183,11 +190,15 @@ export default function MakePage() {
   // Beta (2026-11-05): no money buttons — save, then the feedback form.
   const betaMode = useBetaMode();
   const qc = useQueryClient();
-  const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
+  // A CARD MADE EARLIER (Aidan 2026-11-19: a finished card must be
+  // retrievable after "make another"). /make?card=<id> opens a card this
+  // browser saved (lib/made-cards) straight on its finished screen.
+  const madeAtOpen = useRef<MadeCard | null>(typeof window !== 'undefined' ? madeCardFromSearch(window.location.search) : null).current;
+  const [brief, setBrief] = useState<Brief>(() => readBriefFromSearch(madeAtOpen ? madeAtOpen.search : typeof window !== 'undefined' ? window.location.search : ''));
   // The doorway finishes the questions and hands over with go=1: no
   // re-asking, straight into the wait.
-  const autoGo = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
-  const [phase, setPhase] = useState<Phase>(autoGo.current ? 'generating' : 'brief');
+  const autoGo = useRef(!madeAtOpen && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('go') === '1' && isBriefComplete(brief));
+  const [phase, setPhase] = useState<Phase>(madeAtOpen ? 'done' : autoGo.current ? 'generating' : 'brief');
   // Funnel (beta): opened the builder; saw a finished card.
   useEffect(() => { if (betaMode) betaEvent('builder', { route: 'maker' }); }, [betaMode]);
   useEffect(() => { if (betaMode && phase === 'done') betaEvent('card', { route: 'maker' }); }, [betaMode, phase]);
@@ -229,14 +240,24 @@ export default function MakePage() {
   // guest owns it — the rack's pattern, so /buy needs nothing new.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { openAuth } = useAuthModal();
-  const [saved, setSaved] = useState<{ cardId: number; cardToken: string } | null>(null);
+  const [saved, setSaved] = useState<{ cardId: number; cardToken: string } | null>(madeAtOpen ? { cardId: madeAtOpen.cardId, cardToken: madeAtOpen.cardToken } : null);
   const [saving, setSaving] = useState<'' | 'buy' | 'keep'>('');
   /** "Roll again" asks the vibe first, then re-deals. */
   const [askVibe, setAskVibe] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const savedRef = useRef<{ cardId: number; cardToken: string } | null>(null);
-  const saveCard = async (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string) => {
-    if (savedRef.current) return savedRef.current;
+  const savedRef = useRef<{ cardId: number; cardToken: string } | null>(madeAtOpen ? { cardId: madeAtOpen.cardId, cardToken: madeAtOpen.cardToken } : null);
+  /** The save in flight. The finished screen saves on its own the moment
+   *  it appears (below), so a quick tap on Buy or Keep must join that
+   *  save, never start a second one and mint two rows. */
+  const savingRef = useRef<Promise<{ cardId: number; cardToken: string }> | null>(null);
+  const saveCard = (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string): Promise<{ cardId: number; cardToken: string }> => {
+    if (savedRef.current) return Promise.resolve(savedRef.current);
+    if (savingRef.current) return savingRef.current;
+    const p = saveCardNow(front, inside, c, mode, msg).finally(() => { savingRef.current = null; });
+    savingRef.current = p;
+    return p;
+  };
+  const saveCardNow = async (front: string, inside: string | null, c: Concept, mode: 'ours' | 'own', msg: string) => {
     const j = await makePost('cards', {
       frontImageUrl: front, insideImageUrl: inside, cameo: cameoKept && !!cameoUrl, insideMode: mode,
       brief: { who: brief.who.trim(), gender: brief.gender, age: ageNum, interest: brief.thing.trim() || undefined, dislike: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, tone: brief.vibe, occasion: occasionLabel },
@@ -246,8 +267,34 @@ export default function MakePage() {
     const s = { cardId: j.cardId as number, cardToken: j.cardToken as string };
     try { sessionStorage.setItem(rackTokenKey(s.cardId), s.cardToken); } catch { /* private mode: buy still works this session */ }
     savedRef.current = s; setSaved(s);
+    // Remember it in this browser so it can be opened again after "make
+    // another", a reload or a closed tab (lib/made-cards). The public
+    // image addresses come back from the save; the drawings themselves
+    // are far too big to keep here.
+    if (typeof j.frontImageUrl === 'string') {
+      rememberMadeCard({
+        cardId: s.cardId, cardToken: s.cardToken, front: j.frontImageUrl, inside: typeof j.insideImageUrl === 'string' ? j.insideImageUrl : null,
+        frontText: c.front_text ?? '', who: whoName, occasion: occasionLabel, search: briefToSearch(brief), at: Date.now(),
+      });
+    }
     return s;
   };
+  /** Open a card this browser made earlier, on the finished screen. */
+  const openMade = (m: MadeCard) => {
+    const s = { cardId: m.cardId, cardToken: m.cardToken };
+    try { sessionStorage.setItem(rackTokenKey(s.cardId), s.cardToken); } catch { /* private mode */ }
+    savedRef.current = s; savingRef.current = null; setSaved(s); setSaveError(''); setSaving('');
+    setBrief(readBriefFromSearch(m.search));
+    setCells([madeCell(m)]); setPicked(0); setCameoUrl(null); setCameoKept(false);
+    setInsideUrl(m.inside); setInsideTextFailed(false);
+    setPhase('done');
+    window.scrollTo({ top: 0 });
+  };
+  // Opened by link: the token has to be in this session for /buy.
+  useEffect(() => {
+    if (!madeAtOpen) return;
+    try { sessionStorage.setItem(rackTokenKey(madeAtOpen.cardId), madeAtOpen.cardToken); } catch { /* private mode */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // "Keep it": sign in, come back here with ?claim=<id>, adopt the card
   // by its token, then on to the studio. (The token can't ride the
   // session — OTP verify regenerates it — so it lives in the browser.)
@@ -264,9 +311,13 @@ export default function MakePage() {
   }, [authLoading, isAuthenticated]);
   const forWho = whoPossessive(brief);
 
-  const [cells, setCells] = useState<CardCell[]>([]);
+  const [cells, setCells] = useState<CardCell[]>(() => (madeAtOpen ? [madeCell(madeAtOpen)] : []));
   useEffect(() => { cellsRef.current = cells; }, [cells]);
-  const [picked, setPicked] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(madeAtOpen ? 0 : null);
+  /** Sets dealt before the one on screen (newest first), so "roll again"
+   *  or a failed re-deal never throws away cards the maker liked. Kept in
+   *  memory only: the drawings are megabytes each. */
+  const [earlier, setEarlier] = useState<CardCell[][]>([]);
   const [cameoSrc, setCameoSrc] = useState<string | null>(null);
   /** The CROPPED photo, kept so "try again" can re-run the same one and
    *  the QA pass can compare against it. */
@@ -294,7 +345,7 @@ export default function MakePage() {
   /** A crop held back by a red verdict — swapped, or used anyway. */
   const [cameoHeld, setCameoHeld] = useState<string | null>(null);
   const cameoFileRef = useRef<HTMLInputElement>(null);
-  const [insideUrl, setInsideUrl] = useState<string | null>(null);
+  const [insideUrl, setInsideUrl] = useState<string | null>(madeAtOpen?.inside ?? null);
   const [insideBusy, setInsideBusy] = useState(false);
   /** The inside's opener didn't read back as written (ZA isiZulu/isiXhosa). */
   const [insideTextFailed, setInsideTextFailed] = useState(false);
@@ -317,6 +368,11 @@ export default function MakePage() {
 
   // ── generation ──
   const generate = async (tone: Vibe = brief.vibe) => {
+    // The three on screen are about to be replaced: keep the drawn ones.
+    const outgoing = cellsRef.current.filter((c) => c.imageUrl && !c.error);
+    if (phase !== 'done' && outgoing.length) setEarlier((prev) => [outgoing.map((c) => ({ concept: c.concept, imageUrl: c.imageUrl })), ...prev].slice(0, EARLIER_SETS));
+    // A new set is a new card: whatever was saved belongs to the old one.
+    savedRef.current = null; savingRef.current = null; setSaved(null);
     setPhase('generating'); setCells([]); setPicked(null); setInsideUrl(null);
     setCameoUrl(null); setCameoKept(false); setCameoError(''); setFailMsg('');
     setWaitConcepts(null); setLanded(0);
@@ -478,12 +534,42 @@ export default function MakePage() {
       const body = joined ? { mode: 'own', message: joined } : { mode: 'blank' };
       // ZA isiZulu/isiXhosa: the opener is read back, if it's still in their words.
       const ir = await makePost('render-inside', { ...body, palette: c.palette, typeface: c.typeface, art_direction: c.art_direction, characters: 'objects', freeStyle: true, direction: c.direction, ...textCheckFor(c, c.opener && joined.includes(c.opener) ? c.opener : undefined) });
+      // A new inside makes a new finished card: the row saved for the old
+      // one (if any) is stale, so drop it from this browser's list and let
+      // the finished screen save again.
+      if (savedRef.current) { forgetMadeCard(savedRef.current.cardId); savedRef.current = null; savingRef.current = null; setSaved(null); }
       setInsideUrl(ir.imageUrl); setInsideTextFailed(ir.textCheck === 'failed'); setPhase('done');
     } catch (e: any) { setFailMsg(friendlyError(e, 'The inside didn’t render. Try again')); }
     finally { setInsideBusy(false); }
   };
 
   const chosenFront = picked !== null ? (cameoKept && cameoUrl ? cameoUrl : cells[picked]?.imageUrl) : undefined;
+  const insideWords = [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n');
+  // SAVED THE MOMENT IT IS FINISHED (Aidan 2026-11-19). It used to wait
+  // for Buy or Keep ("nothing is written until the card is wanted"), so
+  // "Make another", the back button or a closed tab lost the card. A
+  // failure here is silent: Buy and Keep save again and say so.
+  useEffect(() => {
+    if (phase !== 'done' || picked === null || !chosenFront || savedRef.current) return;
+    const cell = cells[picked]; if (!cell) return;
+    saveCard(chosenFront, insideUrl, cell.concept, insideMode, insideWords).catch(() => { /* Buy / Keep will retry and report */ });
+  }, [phase, picked, chosenFront, insideUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Pick a card from the three on screen and move on to the photo step. */
+  const pickCard = (i: number, cell: CardCell, fresh = false) => {
+    setPicked(i);
+    if (fresh || picked !== i || !message.trim()) setMessage(cell.concept.inside_text ?? '');
+    setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null);
+    setPhase('cameo');
+  };
+  /** Bring an earlier set back as the three on screen (the current three
+   *  take its place in the earlier list). */
+  const bringBack = (setIndex: number): CardCell[] | null => {
+    const set = earlier[setIndex]; if (!set) return null;
+    const current = cells.filter((c) => c.imageUrl && !c.error).map((c) => ({ concept: c.concept, imageUrl: c.imageUrl }));
+    setEarlier((prev) => [...(current.length ? [current] : []), ...prev.filter((_, j) => j !== setIndex)].slice(0, EARLIER_SETS));
+    setCells(set); setPicked(null); setInsideUrl(null); setFailMsg('');
+    return set;
+  };
   const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
 
   // ── step 1: the questions — one at a time (shared with the doorway) ──
@@ -520,6 +606,7 @@ export default function MakePage() {
             onStepChange={(i, qs) => { setBriefStep(i); setBriefQuestions(qs); setBriefFurthest((f) => Math.max(f, i)); }}
           />
         </div>
+        <MadeCardsRow onOpen={openMade} className="mt-6" label="Cards you’ve finished" />
       </MakeShell>
     );
   }
@@ -534,6 +621,7 @@ export default function MakePage() {
             <p className="text-sm text-keeper-body mb-6 max-w-sm mx-auto">{failMsg}</p>
             <div className="flex flex-wrap justify-center gap-3">
               {phase === 'failed' && <button type="button" onClick={() => void generate()} className={primary}>Try again</button>}
+              {earlier.length > 0 && <button type="button" onClick={() => { if (bringBack(0)) setPhase('results'); }} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium" data-testid="back-to-earlier"><ArrowLeft className="w-4 h-4" /> Back to your last three</button>}
               {phase === 'capped' && <Link href="/studio" className={primary}>Sign in to keep going</Link>}
               <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Change the details</button>
               {rack && <Link href={`/cards/${brief.occasion}`} className={`${textLink} self-center`}>Or take one off the shelf</Link>}
@@ -603,7 +691,7 @@ export default function MakePage() {
             {cells.map((c, i) => (
               <div key={i}>
               <button type="button" disabled={!c.imageUrl || c.retrying}
-                onClick={() => { setPicked(i); if (picked !== i || !message.trim()) setMessage(c.concept.inside_text ?? ''); setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null); setPhase('cameo'); }}
+                onClick={() => pickCard(i, c)}
                 className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-keeper-gold disabled:cursor-default"
                 aria-label={c.imageUrl ? `Choose this card: ${c.concept.front_text}` : c.concept.front_text}>
                 {c.imageUrl && !c.retrying
@@ -636,6 +724,23 @@ export default function MakePage() {
               <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 px-5 py-2.5 text-sm font-medium text-keeper-ink transition-colors hover:border-keeper-gold">Change the details</button>
             </div>
           </div>
+          {/* Rolling again never loses a card (Aidan 2026-11-19): the sets
+              dealt before this one stay here; a tap picks that card. */}
+          {earlier.length > 0 && (
+            <div className="mt-6 border-t border-keeper-hair pt-5" data-testid="earlier-cards">
+              <p className="text-[12px] font-medium text-keeper-meta">Your earlier cards. Tap one to pick it instead.</p>
+              <div className="mt-2 flex gap-3 overflow-x-auto pb-1">
+                {earlier.flatMap((set, si) => set.map((c, ci) => (
+                  <button key={`${si}-${ci}`} type="button" aria-label={`Pick this earlier card: ${c.concept.front_text}`}
+                    onClick={() => { const back = bringBack(si); if (back) pickCard(ci, back[ci], true); }}
+                    className="block w-[84px] shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                    <img src={c.imageUrl} alt={c.concept.front_text} crossOrigin="anonymous" className="aspect-square w-full rounded-[6px] border border-keeper-hair object-cover transition-colors hover:border-brand" />
+                  </button>
+                )))}
+              </div>
+            </div>
+          )}
+          <MadeCardsRow onOpen={openMade} className="mt-6 border-t border-keeper-hair pt-5" label="Cards you’ve finished" />
         </div>
       </MakeShell>
     );
@@ -809,7 +914,7 @@ export default function MakePage() {
               onClick={() => {
                 if (!chosenFront) return;
                 setSaving('buy'); setSaveError('');
-                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideWords)
                   .then(async (s) => {
                     if (!betaMode) { navigate(`/buy/${s.cardId}`); return; }
                     // Beta: claim the card into the tester's (silent) studio
@@ -830,7 +935,7 @@ export default function MakePage() {
               onClick={() => {
                 if (!chosenFront) return;
                 setSaving('keep'); setSaveError('');
-                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, [dear.trim(), message.trim(), from.trim()].filter(Boolean).join('\n\n'))
+                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideWords)
                   .then((s) => {
                     // Signed in: the row is already theirs. Guest: sign in,
                     // then come back to claim it by token.
@@ -847,10 +952,13 @@ export default function MakePage() {
               }}>
               {saving === 'keep' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={1.75} />} {isAuthenticated || betaMode ? 'Keep it in my studio' : 'Sign in to keep it'}
             </button>
-            <button type="button" onClick={() => navigate(betaMode ? '/beta' : '/create')} className={textLink}>Make another</button>
+            {/* The card on screen is already saved (above), so this loses
+                nothing. A Christmas maker goes back to the Christmas page. */}
+            <button type="button" onClick={() => navigate(betaMode ? '/beta' : brief.occasion === 'christmas' ? '/create?occasion=christmas' : '/create')} className={textLink}>Make another</button>
           </div>
           {saveError && <p className="mt-3 text-sm text-accent-red-dark">{saveError}</p>}
-          <p className={helper}>{betaMode ? 'Nothing to pay during the beta. Keeping it puts it in your studio.' : <>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? 'Saved. It’s yours for this session.' : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</>}</p>
+          <p className={helper}>{betaMode ? 'Nothing to pay during the beta. Keeping it puts it in your studio.' : <>Made for them · {formatMoney(cardPrice('maker'))} + postage, printed to order in {copyFor().country}. {saved ? (isAuthenticated ? 'Saved to your studio, so you can make another and come back to this one.' : 'Saved on this device, so you can make another and come back to this one.') : 'Keeping it puts it in your studio; buying takes you straight to checkout.'}</>}</p>
+          <MadeCardsRow onOpen={openMade} exclude={saved?.cardId ?? null} className="mt-6 border-t border-keeper-hair pt-5" label="Other cards you’ve finished" />
         </div>
       </MakeShell>
     );

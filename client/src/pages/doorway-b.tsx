@@ -20,6 +20,7 @@ import { useReducedMotion } from 'framer-motion';
 import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '@/components/brief-questions';
 import { ShimmerWord } from '@/pages/landing-keeper';
 import { KeeperHeader } from '@/components/landing/keeper-header';
+import { MadeCardsRow } from '@/components/made-cards-row';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
@@ -161,6 +162,10 @@ export default function DoorwayBPage() {
                 <Link href="/photo" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Got a photo of them? Put them in the picture →</Link>
                 </>}
               </p>
+              {/* Back from "Make another", or back another day: the cards
+                  this browser already finished, one tap from reopening
+                  (Aidan 2026-11-19). Nothing renders for a first visit. */}
+              <MadeCardsRow className="mt-6" />
             </div>
           </div>
 
