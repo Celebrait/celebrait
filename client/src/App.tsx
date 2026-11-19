@@ -47,6 +47,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { SiteGate } from "@/components/site-gate";
 import { useRackEnabled } from "@/hooks/use-rack";
 import { useMakerEnabled } from "@/hooks/use-maker";
+import { useAuth } from "@/hooks/use-auth";
 
 // ---- Eager pages -----------------------------------------------------------
 // Critical-path or trivially small. Worth shipping in the main chunk.
@@ -167,8 +168,15 @@ function HomeRoute() {
 }
 function MakerRoute({ children }: { children: ReactNode }) {
   const maker = useMakerEnabled();
-  if (maker !== true) return <Redirect to="/photo" replace />;
-  return <>{children}</>;
+  // Admins always see the route, but who is signed in arrives a beat after
+  // the first render: redirecting straight away bounced a signed-in admin
+  // to /photo on every fresh load of /create (found 2026-11-18, when Aidan
+  // could not open the Christmas page from its link). Hold the page blank
+  // until the answer is in; a guest waits the same instant, then is sent on.
+  const { isLoading: authLoading } = useAuth();
+  if (maker === true) return <>{children}</>;
+  if (authLoading) return null;
+  return <Redirect to="/photo" replace />;
 }
 function HomeRedirect() {
   return <Redirect to="/" replace />;
