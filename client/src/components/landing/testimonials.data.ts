@@ -22,37 +22,18 @@ export type Testimonial = {
   vibePhoto?: string;
 };
 
-export const testimonials: Testimonial[] = [
-  {
-    id: 'sil-congrats-g',
-    recipientFirstName: 'G',
-    occasion: 'Congratulations',
-    videoSrc: '',
-    videoPoster: '',
-    frontPhoto: '',
-    insidePhoto: '',
-    backPhoto: '',
-  },
-  // STUB ENTRIES — delete once real recipient packages land. Only here
-  // so Kevin can see the peek carousel + chrome with >1 slide.
-  {
-    id: 'stub-2',
-    recipientFirstName: 'Placeholder',
-    occasion: 'Birthday',
-    videoSrc: '',
-    videoPoster: '',
-    frontPhoto: '',
-    insidePhoto: '',
-    backPhoto: '',
-  },
-  {
-    id: 'stub-3',
-    recipientFirstName: 'Placeholder',
-    occasion: 'Anniversary',
-    videoSrc: '',
-    videoPoster: '',
-    frontPhoto: '',
-    insidePhoto: '',
-    backPhoto: '',
-  },
-];
+// Empty until real recipient packages land. An empty array unmounts the
+// whole testimonials section (see the section component) — which is
+// correct: better no section than "Placeholder" grey tiles on the public
+// page under "Real cards. Real reactions." (audit 2026-07-02).
+//
+// To add the first real one (the SIL "Congratulations, G" slide), drop
+// its assets in and add an entry like:
+//   {
+//     id: 'sil-congrats-g',
+//     recipientFirstName: 'G',
+//     occasion: 'Congratulations',
+//     videoSrc: '/testimonials/sil-g.mp4',  videoPoster: '…',
+//     frontPhoto: '…', insidePhoto: '…', backPhoto: '…',
+//   }
+export const testimonials: Testimonial[] = [];

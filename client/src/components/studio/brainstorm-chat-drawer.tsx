@@ -102,12 +102,12 @@ export function BrainstormChatDrawer({
         side="right"
         className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col gap-0"
       >
-        <SheetHeader className="px-5 py-4 border-b border-stone-200 text-left">
-          <SheetTitle className="flex items-center gap-2 text-base font-semibold text-ink">
+        <SheetHeader className="px-5 py-4 border-b border-keeper-hair text-left">
+          <SheetTitle className="flex items-center gap-2 text-base font-semibold text-keeper-ink">
             <Sparkles className="w-4 h-4 text-brand" strokeWidth={1.75} />
             Brainstorm the scene
           </SheetTitle>
-          <SheetDescription className="text-xs text-stone-500">
+          <SheetDescription className="text-xs text-keeper-meta">
             A few quick questions, and we'll draft a scene paragraph
             you can drop straight in.
           </SheetDescription>
@@ -151,7 +151,7 @@ export function BrainstormChatDrawer({
 
           {chat.isLoading && <TypingIndicator />}
           {chat.error && (
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="text-xs text-accent-red-dark bg-accent-red-light border border-accent-red/25 rounded-lg px-3 py-2">
               {chat.error}
             </div>
           )}
@@ -159,7 +159,7 @@ export function BrainstormChatDrawer({
         </div>
 
         {/* Input */}
-        <div className="px-5 py-4 border-t border-stone-200 bg-white">
+        <div className="px-5 py-4 border-t border-keeper-hair bg-white">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -185,7 +185,7 @@ export function BrainstormChatDrawer({
               type="submit"
               size="icon"
               disabled={!input.trim() || chat.isLoading}
-              className="bg-brand hover:bg-brand-dark text-brand-foreground shrink-0"
+              className="bg-go hover:bg-go-hover text-brand-foreground shrink-0"
               data-testid="btn-brainstorm-send"
             >
               <Send className="w-4 h-4" />
@@ -214,7 +214,7 @@ function ProposedSceneCard({ scene }: { scene: string }) {
         <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-brand-dark mb-1.5">
           Proposed scene
         </p>
-        <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed text-keeper-ink whitespace-pre-wrap">
           {scene}
         </p>
       </div>
@@ -231,7 +231,7 @@ function MessageBubble({ message }: { message: BrainstormMessage }) {
         className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed ${
           isUser
             ? 'bg-brand text-brand-foreground'
-            : 'bg-white border border-stone-200 text-ink'
+            : 'bg-white border border-keeper-hair text-keeper-ink'
         }`}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
@@ -244,7 +244,7 @@ function MessageBubble({ message }: { message: BrainstormMessage }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="bg-white border border-stone-200 rounded-2xl px-4 py-3 inline-flex items-center gap-1">
+      <div className="bg-white border border-keeper-hair rounded-2xl px-4 py-3 inline-flex items-center gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-bounce" />
         <span
           className="w-1.5 h-1.5 rounded-full bg-stone-400 animate-bounce"
@@ -310,7 +310,7 @@ function ActionButtons({
               key={i}
               type="button"
               onClick={() => onChooseSuggestion(s)}
-              className="text-left text-sm leading-snug px-3 py-2 rounded-lg bg-white border border-brand-light hover:border-brand hover:bg-brand-muted text-ink transition-colors max-w-full"
+              className="text-left text-sm leading-snug px-3 py-2 rounded-lg bg-white border border-brand-light hover:border-brand hover:bg-brand-muted text-keeper-ink transition-colors max-w-full"
               data-testid={`btn-brainstorm-suggestion-${i}`}
             >
               <span className="font-medium text-brand mr-2">
@@ -335,7 +335,7 @@ function ActionButtons({
         <Button
           type="button"
           onClick={onAccept}
-          className="bg-cta hover:bg-cta-hover text-cta-foreground text-sm"
+          className="bg-go hover:bg-go-hover text-go-foreground text-sm"
           data-testid="btn-brainstorm-accept"
         >
           <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />

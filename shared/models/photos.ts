@@ -24,6 +24,28 @@ export interface CropBounds {
   height: number;
 }
 
+/** Stored result of the likeness assessment (see server/photos/analyze.ts,
+ *  which owns the canonical FaceAssessment/LikenessAssessment types — this
+ *  is the persisted shape, kept loose so a prompt-side field addition
+ *  doesn't need a migration). */
+export interface PhotoLikeness {
+  verdict: 'strong' | 'usable' | 'weak';
+  reason: string;
+  advice: string;
+  biggestFacePx?: number;
+  faces: Array<{
+    sizeInFrame: string;
+    angle: string;
+    eyesVisible: string;
+    occlusions: string[];
+    expression: string;
+    expressionRisk: boolean;
+    lighting: string;
+    focus: string;
+    headHeightPct?: number;
+  }>;
+}
+
 export const photos = pgTable(
   "photos",
   {
@@ -81,6 +103,15 @@ export const photos = pgTable(
     /** When the analysis ran (null = pending; non-null = done, whether
      *  successful or not — we don't retry to avoid LLM cost loops). */
     analyzedAt: timestamp("analyzed_at"),
+
+    /** Likeness assessment from server/photos/analyze.ts —
+     *  "can an image model rebuild these faces in a new scene?"
+     *  Shape: { faces: [...], verdict: 'strong'|'usable'|'weak',
+     *  reason, advice, biggestFacePx }. Runs on the CROPPED image, i.e.
+     *  exactly what generation sends the provider. Null = pending,
+     *  failed, or uploaded before this shipped (2026-07-31) — callers
+     *  MUST treat null as "say nothing", never as "weak". */
+    likeness: jsonb("likeness").$type<PhotoLikeness>(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

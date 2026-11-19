@@ -155,7 +155,21 @@ export function classifyOpenAIError(
 
 // ─── Safety detection: Gemini ────────────────────────────────────────────────
 
-const GEMINI_SAFETY_REASONS = new Set(['SAFETY', 'RECITATION', 'BLOCKLIST']);
+// Includes Google's modern IMAGE-model refusal codes. Gemini image
+// gen/edit now declines with IMAGE_SAFETY / PROHIBITED_CONTENT /
+// IMAGE_OTHER / SPII (e.g. when asked to EDIT a photo of a real person),
+// none of which were in the old set — so those refusals were silently
+// misclassified as 'unknown' and surfaced as a useless error.
+const GEMINI_SAFETY_REASONS = new Set([
+  'SAFETY',
+  'RECITATION',
+  'BLOCKLIST',
+  'IMAGE_SAFETY',
+  'IMAGE_PROHIBITED_CONTENT',
+  'IMAGE_OTHER',
+  'PROHIBITED_CONTENT',
+  'SPII',
+]);
 
 /**
  * Classify a Gemini error. Can be called with either a thrown SDK error
@@ -245,13 +259,22 @@ export function classifyGeminiError(
     });
   }
 
-  // Unknown
+  // Unknown — fold the finishReason + any model text into the message so
+  // the panel's technical details are diagnosable instead of a bare
+  // "unknown" (the reason was being thrown away here).
+  const detail = [
+    finishReason && `finishReason=${finishReason}`,
+    modelText?.slice(0, 200),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return new ProviderError({
     kind: 'unknown',
-    code: 'unknown',
-    message,
+    code: finishReason || 'unknown',
+    message: detail ? `${message} (${detail})` : message,
     retryable: false,
     httpStatus: 500,
+    modelExplanation: modelText?.slice(0, 500) || null,
     provider: providerId,
     cause: rawError,
   });

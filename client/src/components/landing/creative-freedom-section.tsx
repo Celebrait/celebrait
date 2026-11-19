@@ -22,8 +22,8 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Wand2 } from 'lucide-react';
 import { useState } from 'react';
-import fathersDayFront from '@/assets/fathers-day-front.png';
-import fathersDayInside from '@/assets/fathers-day-inside-new.png';
+import fathersDayFront from '@/assets/fathers-day-front.jpg';
+import fathersDayInside from '@/assets/fathers-day-inside-new.jpg';
 
 // Placeholder style options — when Kevin curates real example cards
 // per art style, swap `previewSrc` per row.
@@ -228,7 +228,7 @@ export function CreativeFreedomSection() {
           </div>
           <div className="lg:col-span-5">
             <h3 className="text-2xl md:text-3xl font-semibold text-ink tracking-tight">
-              Brainstorm with the AI.
+              Brainstorm it with us.
             </h3>
             <p className="text-base text-ink-soft mt-4 leading-relaxed">
               Stuck? Riff with us. Chat through the scene, the mood, the small
@@ -242,7 +242,7 @@ export function CreativeFreedomSection() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent-coral-dark shrink-0" />
-                Add inside jokes, pets, places — they're the magic
+                Add inside jokes, pets, places. They're the magic
               </li>
               <li className="flex items-start gap-3">
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-accent-coral-dark shrink-0" />
@@ -259,7 +259,7 @@ export function CreativeFreedomSection() {
               House styles, or your own.
             </h3>
             <p className="text-base text-ink-soft mt-4 leading-relaxed">
-              Pick a curated style from our house, or describe your own — pencil
+              Pick a curated style from our house, or describe your own: pencil
               sketch, comic strip, oil painting on canvas, whatever fits the
               recipient. The look is yours.
             </p>

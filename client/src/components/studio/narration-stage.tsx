@@ -71,7 +71,7 @@ export function NarrationStage({ mode, state }: NarrationStageProps) {
       <div className="relative flex flex-col items-center gap-10 px-6 max-w-[760px] w-full">
         {/* Small label at top — signals this is the making moment,
             not a loading screen. Small caps, barely there. */}
-        <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400 font-medium">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-keeper-meta font-medium">
           Crafting
         </p>
 
@@ -84,7 +84,7 @@ export function NarrationStage({ mode, state }: NarrationStageProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-              className="text-3xl sm:text-4xl md:text-5xl font-semibold text-ink text-center leading-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-[-0.015em] text-keeper-ink text-center leading-tight"
               data-testid={isReady ? 'narration-ready-line' : 'narration-headline'}
               data-beat-id={currentBeat.id}
             >
@@ -127,14 +127,14 @@ function BeatPartSpan({ part }: { part: BeatPart }) {
       // Rendered with curly quotes so a fragment reads as quoted
       // material, not a typed string.
       return (
-        <span className="italic text-ink/85">
+        <span className="italic text-keeper-ink/85">
           {'\u201C'}
           {part.text}
           {'\u201D'}
         </span>
       );
     case 'em':
-      return <span className="italic text-ink/75">{part.text}</span>;
+      return <span className="italic text-keeper-ink/75">{part.text}</span>;
   }
 }
 

@@ -49,8 +49,8 @@ export function PhotoLibraryDrawer({
             <Loader2 className="w-5 h-5 animate-spin text-brand" />
           </div>
         ) : !photos || photos.length === 0 ? (
-          <div className="text-center py-12 text-sm text-stone-500">
-            <ImageOff className="w-8 h-8 mx-auto mb-2 text-stone-300" />
+          <div className="text-center py-12 text-sm text-keeper-meta">
+            <ImageOff className="w-8 h-8 mx-auto mb-2 text-keeper-meta" />
             No saved photos yet.
           </div>
         ) : (
@@ -65,7 +65,7 @@ export function PhotoLibraryDrawer({
                   className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                     isCurrent
                       ? 'border-brand ring-2 ring-brand-light'
-                      : 'border-stone-200 hover:border-stone-400'
+                      : 'border-keeper-hair hover:border-stone-400'
                   }`}
                   data-testid={`photo-library-${p.id}`}
                   title={p.label ?? p.originalFilename}
