@@ -16,7 +16,7 @@
 // empty boxes.
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Check, Truck } from 'lucide-react';
+import { ArrowRight, Check, Truck } from 'lucide-react';
 import { EASE, Rise } from '@/components/landing/rise';
 import { DISPLAY, EYEBROW } from '@/pages/doorway';
 
@@ -119,9 +119,11 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
     heading: 'How it works',
     sub: 'Six questions. Three cards. Yours in a minute.',
     beats: [
-      { label: 'Six quick questions', body: "Who it's for, the occasion, what they're like: a minute of taps." },
-      { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
-      { label: 'Pick one, write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
+      // Same wording as the Christmas page's four (Aidan 2026-11-19), less
+      // the photo step: this set has no "with them in it" example yet.
+      { label: 'Answer six quick questions', body: "Who it's for, the occasion, what they're like: a minute of taps." },
+      { label: 'Get three bespoke designs in under a minute', body: 'Written and drawn from your answers.' },
+      { label: 'Choose one. Write the inside (or leave blank to handwrite)', body: "Keep our words or change them. Then it's printed and posted, with a free digital link." },
     ],
   },
   makerChristmas: {
@@ -129,13 +131,15 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
     heading: 'How it works',
     sub: 'Five questions. Three Christmas cards. Yours in a minute.',
     beats: [
-      { label: 'Five quick questions', body: "Who it's for and what they're like: a minute of taps." },
-      { label: 'We write and draw three', body: 'Three fronts, written and drawn from your answers, in under a minute.' },
+      // The four headings are Aidan's own words (2026-11-19); the lines
+      // under them only add what the heading has not already said.
+      { label: 'Answer five quick questions', body: "Who it's for and what they're like: a minute of taps." },
+      { label: 'Get three bespoke designs in under a minute', body: 'Written and drawn from your answers.' },
       // The photo step (Aidan 2026-11-18). First built as step 4, then
       // swapped with the inside ("swap 3/4") so the page runs in the
       // maker's own order: pick, photo if you like, then the inside.
-      { label: 'Pick one, add their photo if you like', body: 'The photo is optional. Give us a clear one and we redraw your pick with them in it. You see both and choose.' },
-      { label: 'Write the inside', body: "Keep our words, change them or leave it blank. Then it's printed and posted, with a free digital link." },
+      { label: 'Choose one. Add a photo if you like', body: 'Give us a clear photo and we redraw your pick with them in it. You see both and choose.' },
+      { label: 'Write the inside (or leave blank to handwrite)', body: "Keep our words or change them. Then it's printed and posted, with a free digital link." },
     ],
   },
 };
@@ -603,43 +607,53 @@ function MakerBeat3({ c, set, front }: { c: Clock; set: MakerSet; /** The cover,
   return <OpenCard c={c} front={front ?? set.fronts[set.pick]} inside={set.inside} alt={set.pickAlt} />;
 }
 
-/** The optional photo step (third of four). Their photo lands on the
- *  picked card, and the card becomes the engine's redraw with them in
- *  it: same idea, same words, same hand. One crossfade, then it holds. */
+/** The optional photo step (third of four), drawn as a before and after
+ *  (Aidan 2026-11-19: "can we get the small original one with arrows
+ *  showing transformation?"). Left: the card they picked and the photo
+ *  they added, both small. An arrow from each. Right: the engine's redraw
+ *  of that card with them in it, big. Same idea, same words, same hand. */
 function MakerPhotoBeat({ c, set }: { c: Clock; set: MakerSet }) {
-  useDoneAt(c, 2.1);
+  useDoneAt(c, 2.2);
   if (!set.cameo) return null;
+  const small = 'absolute left-0 w-[28%]';
+  const caption = 'mt-[1.4cqw] block text-center text-[3cqw] leading-none text-keeper-meta';
+  const arrow = 'absolute left-[29.5%] flex h-[7cqw] w-[7cqw] items-center justify-center rounded-full bg-brand-muted text-brand-dark';
   return (
     <div className="absolute inset-0">
-      <div className="absolute left-[10%] top-[8%] w-[64%]">
-        <CardImg src={set.fronts[set.pick]} alt="" className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
-        <motion.div
-          className="absolute inset-0"
-          initial={from(c, { opacity: 0 })}
-          animate={c.play ? { opacity: 1 } : undefined}
-          transition={tr(c, 1.0, 0.7)}
-        >
-          <CardImg src={set.cameo.front} alt={`${set.pickAlt}, redrawn with ${set.who} in it`} className="ring-1 ring-keeper-hair" />
-        </motion.div>
-      </div>
-      {/* The photo they added: a small print, tilted, overlapping the
-          card's lower right corner (the hero's "started as this" print,
-          in little). Never the top: that is where the card's words are. */}
-      <motion.img
-        src={set.cameo.photo}
-        alt={`The photo of ${set.who} that was added`}
-        width={500}
-        height={500}
-        loading="lazy"
-        decoding="async"
-        crossOrigin="anonymous"
-        className="absolute left-[63%] top-[50%] w-[31%] rounded-[6px] border-[3px] border-white object-cover shadow-[0_14px_28px_-14px_rgba(33,29,25,0.6)]"
-        style={{ aspectRatio: '1 / 1' }}
-        initial={from(c, { opacity: 0, y: 14, rotate: 14 })}
-        animate={c.play ? { opacity: 1, y: 0, rotate: 6 } : undefined}
-        transition={tr(c, 0.25, 0.55)}
-      />
-      <ReadyChip c={c} at={1.7} label={`With ${set.who} in it`} className="absolute bottom-2 left-0" />
+      {/* before: the pick as dealt */}
+      <motion.div className={`${small} top-[4%]`}
+        initial={from(c, { opacity: 0, x: -10 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.15, 0.5)}>
+        <CardImg src={set.fronts[set.pick]} alt={`${set.pickAlt}, as first drawn`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+        <span className={caption}>Your pick</span>
+      </motion.div>
+      {/* plus: the photo they added */}
+      <motion.div className={`${small} top-[43%]`}
+        initial={from(c, { opacity: 0, x: -10 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.4, 0.5)}>
+        <img
+          src={set.cameo.photo}
+          alt={`The photo of ${set.who} that was added`}
+          width={500}
+          height={500}
+          loading="lazy"
+          decoding="async"
+          crossOrigin="anonymous"
+          className={`block aspect-square w-full rounded-[6px] border-[3px] border-white object-cover ${CARD_SHADOW}`}
+        />
+        <span className={caption}>Their photo</span>
+      </motion.div>
+      {/* the arrows: one from each small picture to the result */}
+      {['top-[14%]', 'top-[53%]'].map((top, i) => (
+        <motion.span key={top} aria-hidden="true" className={`${arrow} ${top}`}
+          initial={from(c, { opacity: 0, x: -6 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.8 + i * 0.12, 0.4)}>
+          <ArrowRight className="h-[4cqw] w-[4cqw]" strokeWidth={2.25} />
+        </motion.span>
+      ))}
+      {/* after: the same card, redrawn with them in it */}
+      <motion.div className="absolute left-[39%] top-[8%] w-[61%]"
+        initial={from(c, { opacity: 0, scale: 0.96 })} animate={c.play ? { opacity: 1, scale: 1 } : undefined} transition={tr(c, 1.1, 0.7)}>
+        <CardImg src={set.cameo.front} alt={`${set.pickAlt}, redrawn with ${set.who} in it`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
+      </motion.div>
+      <ReadyChip c={c} at={1.8} label={`With ${set.who} in it`} className="absolute bottom-2 left-0" />
     </div>
   );
 }
