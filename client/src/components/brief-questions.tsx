@@ -13,7 +13,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTypewriter } from '@/hooks/use-typewriter';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { OCCASION_ICON } from '@/components/studio/steps/recipient-step';
 import { OCCASION_OPTIONS, getOccasionLabel } from '@/components/studio/scene-presets';
 import { marketId } from '@shared/market';
@@ -64,7 +63,6 @@ export const VIBE_SUB: Record<Vibe, string> = { funny: VIBE_META.funny.sub, warm
 /** "Mum" in GB, "Mom" in ZA: for example copy. */
 export const MUM_WORD = ZA ? 'Mom' : 'Mum';
 const VIBES: Vibe[] = ['funny', 'warm', 'rude', 'mix'];
-const DISLIKE_ON: Vibe[] = ['funny', 'rude', 'mix'];
 const GB_RECIPIENTS: Array<{ label: string; implies?: 'him' | 'her' }> = [
   { label: 'Mum', implies: 'her' }, { label: 'Dad', implies: 'him' },
   { label: 'Nan', implies: 'her' }, { label: 'Grandad', implies: 'him' },
@@ -213,9 +211,9 @@ export type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'di
  *  Cheeky off under 18, which matters at Christmas as much as a
  *  birthday); dislike only when there's humour to feed. */
 export function questionsFor(b: Brief, askDislike = false): QuestionKey[] {
-  // 'dislike' is no longer a step of its own (Aidan 2026-09-06): when the
-  // vibe has humour in it, the interest question's Next offers it as a
-  // one-off prompt instead — see jokeAsk in BriefQuestions.
+  // 'dislike' is not a step of its own (Aidan 2026-09-06), and the
+  // pop-up that asked it instead is gone too (2026-11-19): customers are
+  // not asked for a dislike at all.
   // /demo can still ask it as its own page (Aidan 2026-09-16).
   const q: QuestionKey[] = askDislike ? ['who', 'occasion', 'age', 'vibe', 'interest', 'dislike', 'name'] : ['who', 'occasion', 'age', 'vibe', 'interest', 'name'];
   void b;
@@ -320,17 +318,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
   const set = (patch: Partial<Brief>) => onChange({ ...brief, ...patch });
   const canNext = question === 'who' ? brief.who.trim().length > 0 : question === 'occasion' ? isBriefComplete(brief) : question === 'interest' ? brief.thing.trim().length > 0 : true;
   const optionalQ = question === 'age' || question === 'dislike' || question === 'name';
-  // The joke prompt: once, on the interest step's Next, only when the vibe
-  // can carry a joke and they haven't given us a dislike already.
-  const [jokeAsk, setJokeAsk] = useState(false);
-  const [jokeAsked, setJokeAsked] = useState(false);
-  const advance = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
-  const next = () => {
-    // Not in the filmed demo — the popup gets in the way (Aidan 2026-09-16).
-    if (!minimal && !askDislike && question === 'interest' && !jokeAsked && DISLIKE_ON.includes(brief.vibe) && !brief.cant.trim()) { setJokeAsk(true); return; }
-    advance();
-  };
-  const closeJoke = () => { setJokeAsked(true); setJokeAsk(false); advance(); };
+  // The "Fancy a joke on one of them?" pop-up used to interrupt the
+  // interest step's Next to ask for something they can't stand. Dropped
+  // (Aidan 2026-11-19: "drop the joke pop up, not needed"). The dislike
+  // is now only ever asked as its own page, on /demo (askDislike).
+  const next = () => { if (!isLast) setQIndex(idx + 1); else onDone(brief); };
   const back = () => { if (idx > 0) setQIndex(idx - 1); };
 
   const isOtherPicked = brief.occasion === 'other' || (!!brief.occasion && !isKnownOccasion(brief.occasion));
@@ -447,10 +439,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           <>
             {/* The buyer chooses the front word (Aidan 2026-09-15): the
                 relationship word for Mum/Dad/Nan/Grandad, the first name,
-                or nothing. One card leads with it; the engine gets the
-                literal word via frontWordOf(). */}
+                or nothing. ALL THREE cards carry it (Aidan 2026-11-19: "all
+                3 must serve with the name on"; it was one card until then);
+                the engine gets the literal word via frontWordOf(). */}
             <p className={s.h1}>What goes on the front?{optionalTag}</p>
-            {!minimal && <p className={s.sub}>One of your three cards leads with it, sometimes as the artwork itself.</p>}
+            {!minimal && <p className={s.sub}>It goes on all three of your cards, sometimes as the artwork itself.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {NAME_LIKE.has(brief.who.trim()) && (
                 <button type="button" className={s.chip(shown('front', brief.front === 'role'))} onClick={() => { touch('front'); set({ front: 'role' }); }}>{brief.who.trim()}</button>
@@ -483,24 +476,6 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
           </>
         )}
       </div>
-
-      <Dialog open={jokeAsk} onOpenChange={(o) => { if (!o) closeJoke(); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl font-bold text-keeper-ink">Fancy a joke on one of them?</DialogTitle>
-            <DialogDescription className="text-[14px] leading-relaxed text-keeper-body">
-              {minimal
-                ? 'Tell us one thing they can’t stand.'
-                : 'Tell us something they can’t stand, like the rival team, mornings, oat milk or slow walkers, and we’ll build one of the three around it. Making light of the thing they hate, never of them.'}
-            </DialogDescription>
-          </DialogHeader>
-          <Input value={brief.cant} onChange={(e) => set({ cant: e.target.value.slice(0, 60) })} placeholder={minimal ? undefined : 'The rival team / mornings / slow walkers'} aria-label="Something they can't stand" className={s.input} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') closeJoke(); }} />
-          <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
-            <button type="button" onClick={() => { set({ cant: '' }); closeJoke(); }} className={s.skip}>No thanks</button>
-            <button type="button" onClick={closeJoke} disabled={!brief.cant.trim()} className={s.next}>Add it <ChevronRight className="w-4 h-4" /></button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">

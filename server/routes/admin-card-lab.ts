@@ -903,6 +903,12 @@ export const conceptsSchema = z.object({
    *  door gets 'drawn' by default. 'current' is the old rule, kept for
    *  the lab's comparisons and honoured on the ADMIN door only. */
   christmasLook: z.enum(['current', 'drawn']).optional(),
+  /** THE FRONT WORD ON ALL THREE (Aidan 2026-11-19: "if a user asks for
+   *  the persons name on the card, all 3 must serve with the name on").
+   *  'all' is production: every front carries the buyer's front word.
+   *  'one' is the rule it replaced (exactly one card leads with it) and
+   *  only the admin door may ask for it back, for comparisons. */
+  frontWordOn: z.enum(['one', 'all']).optional(),
 });
 
 interface CardConcept {
@@ -1452,8 +1458,11 @@ const v2SaysOccasion = (t: string) =>
 interface V2Brief {
   who: string; gender: 'him' | 'her' | 'unspecified'; age: number | null;
   interest: string; dislikes?: string; tone: string; cheeky: boolean;
-  /** THE FRONT WORD — what exactly one front leads with ("Dad", "Dave"). */
+  /** THE FRONT WORD the buyer chose for the front ("Dad", "Dave"). */
   name?: string;
+  /** true = every front carries it (production since 2026-11-19);
+   *  false = exactly one front leads with it (the old rule, lab only). */
+  nameOnAll?: boolean;
   /** A first name given for the INSIDE only — no front may carry it. */
   insideName?: string;
   generic?: boolean;
@@ -2088,19 +2097,32 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   if (b.name) {
     // ⚠️ EXACT-NAME FLOOR. If a front uses the name it must match
     // letter-for-letter — a near-miss ("Evy" for "Evie") is the worst
-    // printable error there is. And at most ONE front carries it.
+    // printable error there is. Then the count: EVERY card carries it
+    // (nameOnAll, production), or exactly one (the old rule, lab only).
     const escaped = b.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const exact = new RegExp(`\\b${escaped}\\b`, 'i');
     const stem = b.name.slice(0, Math.max(3, b.name.length - 2)).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const nearMiss = new RegExp(`\\b${stem}\\w*\\b`, 'i');
     if (fronts.some((f) => !exact.test(f) && nearMiss.test(f))) v.push(`name-misspelt: the recipient's name must be spelled EXACTLY "${b.name}"`);
-    if (fronts.filter((f) => exact.test(f)).length > 1) v.push('name-everywhere: at most one front carries the name');
-    // And the FLOOR, not just the ceiling: the brief promised "one card
-    // will design it in" — a given name that appears nowhere broke the
-    // promise (observed: "Rob", three cards, none his, 2026-08-28).
-    // Front or artwork counts: the name AS the artwork is the genre.
-    if (!cards.some((c, i) => exact.test(fronts[i]) || exact.test(arts[i]))) {
-      v.push(`name-missing: the brief gave the front word "${b.name}" and promised one card designs it in — exactly ONE card must carry it, strongest as the front's own artwork`);
+    if (b.nameOnAll) {
+      // The buyer asked for it on the front and was told it goes on all
+      // three: a card without it is a broken promise, per card. Front
+      // words or artwork lettering both count (the name AS the artwork is
+      // the genre), so a card that letters it into the picture passes.
+      cards.forEach((c, i) => {
+        if (!exact.test(fronts[i]) && !exact.test(arts[i])) {
+          v.push(`name-missing: card ${i + 1} does not carry the front word "${b.name}" — the buyer asked for it on the front, so ALL THREE cards carry it: in the front words, or lettered into the artwork (quote it in art_direction)`);
+        }
+      });
+    } else {
+      if (fronts.filter((f) => exact.test(f)).length > 1) v.push('name-everywhere: at most one front carries the name');
+      // And the FLOOR, not just the ceiling: the brief promised "one card
+      // will design it in" — a given name that appears nowhere broke the
+      // promise (observed: "Rob", three cards, none his, 2026-08-28).
+      // Front or artwork counts: the name AS the artwork is the genre.
+      if (!cards.some((c, i) => exact.test(fronts[i]) || exact.test(arts[i]))) {
+        v.push(`name-missing: the brief gave the front word "${b.name}" and promised one card designs it in — exactly ONE card must carry it, strongest as the front's own artwork`);
+      }
     }
   }
   if (b.insideName) {
@@ -2124,8 +2146,16 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   }
   const seen = new Map<string, number>();
   const briefWords = new Set(`${b.interest} ${b.who} ${opts?.occasionKey ?? ''}`.toLowerCase().match(/[a-z']{4,}/g) ?? []);
+  // The front word is on every card BY DESIGN (nameOnAll), in the words
+  // and often quoted in the art direction too: it is never a shared-vocab
+  // or shared-motif hit. Matched bare, quoted ('rob') and possessive
+  // (evie's). Observed on the first bench: "'rob'" and "'evie'" flagged as
+  // a motif drawn twice, which sent the writer a repair note that
+  // contradicted the brief.
+  const frontWordParts = new Set(b.nameOnAll && b.name ? b.name.toLowerCase().match(/[a-z]+/g) ?? [] : []);
+  const isFrontWord = (w: string) => frontWordParts.size > 0 && frontWordParts.has(w.replace(/^'+|'+$/g, '').replace(/'s$/, ''));
   for (const f of fronts) {
-    new Set(f.toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w)) ?? [])
+    new Set(f.toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !isFrontWord(w)) ?? [])
       .forEach((w) => seen.set(w, (seen.get(w) ?? 0) + 1));
   }
   const dupes = Array.from(seen.entries()).filter(([w, n]) => n >= 2 && !['still','another','birthday','happy','years','about','being'].includes(w));
@@ -2137,10 +2167,10 @@ export function v2Verify(cards: CardConcept[], b: V2Brief, hints: V2Hints, slots
   // words that describe every art direction are stoplisted; what's
   // left is subject matter, and a subject appears on ONE card per set.
   {
-    const CRAFT = new Set(['ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly','their','there','where','which','every','while','being','through','under','over','about'].map((w) => w));
+    const CRAFT = new Set(['lettered','ground','type','card','small','large','tiny','huge','bold','clean','crisp','quiet','drawn','illustration','illustrated','graphic','poster','colour','color','black','white','cream','scene','still','life','close','style','beneath','across','beside','centre','center','composition','caption','lettering','numeral','number','words','line','edges','frame','light','space','background','detail','details','texture','shadow','shadows','arranged','forming','forms','above','below','behind','between','against','around','corner','upper','lower','front','right','holds','holding','sitting','standing','placed','single','giant','oversized','delicate','simple','compositional','centred','centered','chosen','choosing','showing','reading','visible','warmly','their','there','where','which','every','while','being','through','under','over','about'].map((w) => w));
     const seenArt = new Map<string, number>();
     for (const a2 of arts) {
-      new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w)) ?? [])
+      new Set(String(a2).toLowerCase().match(/[a-z']{5,}/g)?.filter((w) => !briefWords.has(w) && !CRAFT.has(w) && !isFrontWord(w)) ?? [])
         .forEach((w) => seenArt.set(w, (seenArt.get(w) ?? 0) + 1));
     }
     const artDupes = Array.from(seenArt.entries()).filter(([, n]) => n >= 2);
@@ -2587,7 +2617,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
             'cast-missing — kids\' christmas brings Santa/reindeer/snowman on at least one card',
             'kids-length / kids-adult-frame — ≤16-word fronts and no office vocabulary for recipients 12 and under',
             'occasion-missing — EVERY card lands the occasion on its FACE (front words or artwork; the inside is invisible on a rack)',
-            'name-missing / number-twice / age-artwork — the name lands exactly once; the milestone number behaves',
+            'name-missing / number-twice / age-artwork — the front word lands on EVERY card (2026-11-19; it was exactly one); the milestone number behaves',
             'shared-lead / colour-thread — no two cards lead the same hue; no ink stitches all three — EXCEPT a named subject\'s own colour (a club, a brand), which may lead every card (2026-09-03: the United set went teal/blue because this floor allowed red once)',
             'shared-vocab / shared-motif — each card has its own words and drawn objects',
             'generic-artwork / generic-set — illustrated cards draw from THEIR world',
@@ -2647,6 +2677,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // variant's weather route is snow and frost.
     const xmasDrawn = classified.key === 'christmas' && serverMarketId() !== 'ZA'
       && !(body.christmasLook === 'current' && (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/'));
+    // The front word on all three is production (see
+    // conceptsSchema.frontWordOn). Only the admin door may ask for the
+    // old one-card rule back, for comparisons.
+    const nameOnAll = !(body.frontWordOn === 'one' && (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/'));
     const occProfile = classified.key === 'birthday'
       ? birthdayProfile(body.tone, body.age ?? statedAge(body.occasion))
       : classified.key === 'christmas' ? christmasProfile(body.tone, xmasDrawn ? 'drawn' : 'current')
@@ -2699,7 +2733,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
           : `Recipient: NOT SPECIFIED — this is a RACK card that has to work for whoever picks it up. ⚠️ NO relationship word anywhere on the front: no Mum, Dad, Nan, Grandad, sister, brother, mate, friend. No name, no "to my ___". Nothing that assumes who is sending it or who is receiving it. Write it so a daughter, a mate and a colleague could all reasonably buy it, and let the subject carry the whole card. Register stays warm and middle — neither a nan's softness nor a mate's edge.`)
         : `Recipient: ${body.who}`,
       body.frontWord?.trim()
-        ? `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ EXACTLY ONE card LEADS with it, designed in: set large in the card's own lettering, or AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred). The other two fronts do not carry it.`
+        ? (nameOnAll
+          ? `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ ALL THREE cards carry it. The buyer asked for it on the front, so a card without it has failed. On each card it sits in the front words (front_text), or is lettered into the artwork itself (then art_direction says where and quotes it exactly). Designed in, never bolted on: no "To ${body.frontWord.trim()}" label stapled to a finished card. VARY HOW across the three — one card LEADS with it, set large in the card's own lettering or AS the artwork; the other two fold it into their own line or a drawn detail of their world (a mug, a sign, a tag, a door). Never the same placement three times, and each card is still its own idea: the word is the only thing the three share. ONCE PER CARD IS ENOUGH: when it is in a card's front words, do not also letter it into that card's artwork (observed on the first bench: "Dad" in the headline, on a drawer label and on a sign, all on one card). Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred).`
+          : `FRONT WORD: "${body.frontWord.trim()}" — ⚠️ EXACTLY ONE card LEADS with it, designed in: set large in the card's own lettering, or AS the artwork. Spell it EXACTLY as given, letter for letter — a misspelled word on a printed card is the worst error we can make. It proves nothing else about them (no gender, age or era inferred). The other two fronts do not carry it.`)
         : `FRONT WORD: none — no name and no relationship word on any of the three fronts.`,
       body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? `Recipient's first name (INSIDE only, never on a front): "${body.recipientName.trim()}"` : '',
       // ⚠️ TWO DIFFERENT RULES, and having only the first one caused a
@@ -2925,6 +2961,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const v2b: V2Brief = { who: body.who, gender: body.gender, age: body.age ?? statedAgeValue,
         interest: interestText, dislikes: body.dislikes?.trim() || undefined, tone: body.tone, cheeky: effectiveCheeky,
         name: body.frontWord?.trim() || undefined,
+        nameOnAll,
         insideName: body.recipientName?.trim() && body.recipientName.trim() !== body.frontWord?.trim() ? body.recipientName.trim() : undefined,
         generic: fullyGeneric };
       // THE SET'S METER (law 10: instrument before arguing). Every ms is
