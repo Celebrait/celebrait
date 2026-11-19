@@ -66,16 +66,24 @@ interface MakerSet {
   cameo?: { photo: string; front: string };
 }
 const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
+  // EVERYDAY (2026-11-19): Mum / birthday / 58 / warm / her garden /
+  // Linda, real engine output under the name rule (the name is on all
+  // three). It replaced the October "greenhouse can wait" set, which had
+  // no names on and no "with them in it" card, so the everyday page could
+  // not show the photo step (Aidan: any design change on the Christmas
+  // page "must reflect on the main 3 route lander"). The photo is a
+  // made-up portrait, nobody real (server/scripts/wall-portraits.ts).
   default: {
-    fronts: ['/hiw/mum-1.webp', '/hiw/mum-2.webp', '/hiw/mum-3.webp'],
-    pick: 1, // "The greenhouse can wait."
-    inside: '/hiw/mum-inside.webp',
+    fronts: ['/hiw/linda-1.webp', '/hiw/linda-2.webp', '/hiw/linda-3.webp'],
+    pick: 1, // "Linda makes a garden look easy."
+    inside: '/hiw/linda-inside.webp',
     who: 'Mum',
-    pickAlt: 'The greenhouse can wait',
+    pickAlt: 'Linda makes a garden look easy',
+    cameo: { photo: '/hiw/linda-photo.webp', front: '/hiw/linda-cameo.webp' },
     questions: [
       { q: "Who's it for?", a: 'Mum' },
       { q: 'The occasion', a: 'Birthday' },
-      { q: 'How old', a: '60' },
+      { q: 'How old', a: '58' },
       { q: 'The vibe', a: 'Warm' },
       { q: 'What they love', a: 'Her garden' },
       { q: 'Their name', a: 'Linda' },
@@ -119,11 +127,13 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
     heading: 'How it works',
     sub: 'Six questions. Three cards. Yours in a minute.',
     beats: [
-      // Same wording as the Christmas page's four (Aidan 2026-11-19), less
-      // the photo step: this set has no "with them in it" example yet.
+      // The same four steps as the Christmas page, in Aidan's words
+      // (2026-11-19: design changes there "must reflect on the main 3
+      // route lander"). Six questions here: the occasion is asked.
       { label: 'Answer six quick questions', body: "Who it's for, the occasion, what they're like: a minute of taps." },
       { label: 'Get three bespoke designs in under a minute', body: 'Written and drawn from your answers.' },
-      { label: 'Choose one. Write the inside (or leave blank to handwrite)', body: "Keep our words or change them. Then it's printed and posted, with a free digital link." },
+      { label: 'Choose one. Add a photo if you like', body: 'Give us a clear photo and we redraw your pick with them in it. You see both and choose.' },
+      { label: 'Write the inside (or leave blank to handwrite)', body: "Keep our words or change them. Then it's printed and posted, with a free digital link." },
     ],
   },
   makerChristmas: {
@@ -579,10 +589,16 @@ const FAN = [
 ];
 function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
   useDoneAt(c, 1.9);
+  // The middle card is the one on top. When the next step is "choose
+  // one", the pick sits to the side here, so the three steps that follow
+  // are not the same picture three times (Aidan 2026-11-19: "a bit
+  // samey").
+  const order = set.cameo ? [set.pick, ...set.fronts.map((_, i) => i).filter((i) => i !== set.pick)] : set.fronts.map((_, i) => i);
+  const fronts = order.map((i) => set.fronts[i]);
   return (
     <div className="absolute inset-0">
-      <div className="absolute left-[28%] top-[24%] w-[44%]">
-        {set.fronts.map((src, i) => (
+      <div className="absolute left-[28%] top-[10%] w-[44%]">
+        {fronts.map((src, i) => (
           <motion.div
             key={src}
             className="absolute inset-x-0 top-0"
@@ -595,7 +611,6 @@ function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
           </motion.div>
         ))}
       </div>
-      <ReadyChip c={c} at={1.4} label="Three, written and drawn" className="absolute bottom-2 left-0" />
     </div>
   );
 }
@@ -621,13 +636,13 @@ function MakerPhotoBeat({ c, set }: { c: Clock; set: MakerSet }) {
   return (
     <div className="absolute inset-0">
       {/* before: the pick as dealt */}
-      <motion.div className={`${small} top-[4%]`}
+      <motion.div className={`${small} top-[3%]`}
         initial={from(c, { opacity: 0, x: -10 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.15, 0.5)}>
         <CardImg src={set.fronts[set.pick]} alt={`${set.pickAlt}, as first drawn`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
         <span className={caption}>Your pick</span>
       </motion.div>
       {/* plus: the photo they added */}
-      <motion.div className={`${small} top-[43%]`}
+      <motion.div className={`${small} top-[49%]`}
         initial={from(c, { opacity: 0, x: -10 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.4, 0.5)}>
         <img
           src={set.cameo.photo}
@@ -642,23 +657,26 @@ function MakerPhotoBeat({ c, set }: { c: Clock; set: MakerSet }) {
         <span className={caption}>Their photo</span>
       </motion.div>
       {/* the arrows: one from each small picture to the result */}
-      {['top-[14%]', 'top-[53%]'].map((top, i) => (
+      {['top-[16%]', 'top-[62%]'].map((top, i) => (
         <motion.span key={top} aria-hidden="true" className={`${arrow} ${top}`}
           initial={from(c, { opacity: 0, x: -6 })} animate={c.play ? { opacity: 1, x: 0 } : undefined} transition={tr(c, 0.8 + i * 0.12, 0.4)}>
           <ArrowRight className="h-[4cqw] w-[4cqw]" strokeWidth={2.25} />
         </motion.span>
       ))}
       {/* after: the same card, redrawn with them in it */}
-      <motion.div className="absolute left-[39%] top-[8%] w-[61%]"
+      <motion.div className="absolute left-[39%] top-[6%] w-[61%]"
         initial={from(c, { opacity: 0, scale: 0.96 })} animate={c.play ? { opacity: 1, scale: 1 } : undefined} transition={tr(c, 1.1, 0.7)}>
         <CardImg src={set.cameo.front} alt={`${set.pickAlt}, redrawn with ${set.who} in it`} className={`ring-1 ring-keeper-hair ${CARD_SHADOW}`} />
       </motion.div>
-      <ReadyChip c={c} at={1.8} label={`With ${set.who} in it`} className="absolute bottom-2 left-0" />
     </div>
   );
 }
 
 // ── the section ───────────────────────────────────────────────────────
+/** The three-card steps' stage shapes, in order: the question rows, the
+ *  fan, the before and after, the open card. */
+const MAKER_ASPECT = ['aspect-square', 'aspect-[4/3]', 'aspect-[5/4]', 'aspect-[4/3]'];
+
 function Beat({
   index,
   label,
@@ -668,6 +686,8 @@ function Beat({
   framed,
   onDone,
   liRef,
+  headFirst = false,
+  aspect = 'aspect-square',
   children,
 }: {
   index: number;
@@ -681,6 +701,13 @@ function Beat({
   framed: boolean;
   onDone: (i: number) => void;
   liRef: (el: HTMLLIElement | null) => void;
+  /** Words above the picture, a numbered badge and a rule between steps
+   *  (the three-card pages). See the note where it is used. */
+  headFirst?: boolean;
+  /** The stage's shape. Square unless the step's picture is wide: with
+   *  no box round it, a square stage left dead space under a fan or an
+   *  open card. */
+  aspect?: string;
   children: (c: Clock) => React.ReactNode;
 }) {
   const reduced = !!useReducedMotion();
@@ -691,6 +718,30 @@ function Beat({
     onDone(index);
   }, [onDone, index]);
   const c: Clock = { play: go || reduced, near, reduced, base: 0, done };
+  const stageBox = `relative ${aspect} w-full [container-type:inline-size] ${
+    framed ? 'overflow-hidden rounded-2xl border border-keeper-hair bg-keeper-paper shadow-[0_18px_42px_-30px_rgba(33,29,25,0.3)]' : ''
+  }`;
+  if (headFirst) {
+    // WORDS FIRST (Aidan 2026-11-19, after the boxes came off: "a bit
+    // samey and not clear what each section relates to"). With no box, a
+    // heading UNDER its picture sat as close to the next step's picture as
+    // to its own. So each step now opens with its number and heading, the
+    // picture follows directly beneath, and a hairline closes the step on
+    // a phone. The heading block has a fixed minimum height from tablet up
+    // so the pictures in a row still line up.
+    return (
+      <li ref={liRef} className={`flex flex-col ${index > 0 ? 'border-t border-keeper-hair pt-8 md:border-0 md:pt-0' : ''}`}>
+        <div className="md:min-h-[8.5rem]">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-muted text-[13px] font-semibold tabular-nums text-brand-dark" aria-hidden="true">{index + 1}</span>
+            <h3 className="text-[19px] leading-snug text-keeper-ink"><span className="sr-only">Step {index + 1}: </span>{label}</h3>
+          </div>
+          <p className="mt-2 max-w-[38ch] pl-10 text-[15px] leading-relaxed text-keeper-body">{body}</p>
+        </div>
+        <div className={`${stageBox} mt-4`}>{children(c)}</div>
+      </li>
+    );
+  }
   return (
     <li ref={liRef} className="flex flex-col">
       {/* The stage: square at every width so the phone sees the same
@@ -801,7 +852,7 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
         </Rise>
         {/* Four beats sit two by two from tablet up: four across would
             squeeze step 1's rows past its square. */}
-        <ol ref={listEl} className={`mt-12 grid gap-10 md:mt-16 md:gap-8 ${four ? 'md:max-w-4xl md:grid-cols-2 md:gap-y-12' : 'md:grid-cols-3'}`}>
+        <ol ref={listEl} className={`mt-12 grid md:mt-16 md:gap-8 ${door === 'maker' ? 'gap-6' : 'gap-10'} ${four ? 'md:max-w-4xl md:grid-cols-2 md:gap-y-14' : 'md:grid-cols-3'}`}>
           {copy.beats.map((b, i) => (
             <Beat
               key={b.label}
@@ -815,6 +866,8 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
               // door's cards (Aidan 2026-11-19: "don't really need
               // containers… remember we removed them?").
               framed={door === 'photo' && i === 0}
+              headFirst={door === 'maker'}
+              aspect={door === 'maker' ? MAKER_ASPECT[i] : undefined}
               onDone={onDone}
               liRef={(el) => { els.current[i] = el; }}
             >
