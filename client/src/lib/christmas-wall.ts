@@ -1,30 +1,39 @@
 // client/src/lib/christmas-wall.ts — the Christmas landing page's wall
 //
-// Fourteen fronts for /create?occasion=christmas (2026-11-18). Real
-// engine output from the Christmas look test: each was written and drawn
-// from a typed brief (who, age, vibe, what they love). ⚠️ The briefs were
-// OURS, written to test the engine, so the page must not call these
-// cards "made for real people" (DMCC: no invented customers). The label
-// on the page says what is true: each one drawn from a few answers.
+// Fourteen fronts for /create?occasion=christmas. Rebuilt 2026-11-19
+// (Aidan: the carousel should be "a mix of ones with people in the photo
+// and also have names on", names on the majority, "it will feel super
+// personal"): ten carry the name or word the brief asked for, six have the
+// person drawn in, four are plain.
+//
+// All real engine output. The named ones come from briefs run through the
+// production front-word rule (server/scripts/front-word-bench.ts); the
+// ones with a person are those cards redrawn by the maker's own "put them
+// in it" route (server/scripts/wall-cameo.ts) from portrait photos made
+// for the purpose (server/scripts/wall-portraits.ts).
+// ⚠️ NOBODY HERE IS REAL: the briefs and the faces are OURS, so the page
+// must not call these cards "made for real people" or a customer's (DMCC:
+// no invented customers). The label says what is true: each one drawn
+// from a few answers.
 // Images live in client/public/xmas-wall as WebP. Negative ids: these are
 // not catalogue rows and must never collide with one.
 import type { CatalogueCard } from '@/components/catalogue/rack-wall';
 
 const FRONTS: string[] = [
-  'Merry Christmas to the only walk improved by a tiny coat, then gin',
-  'Merry Christmas. Eyes down. Pens up.',
-  'First tracks. Then crackers.',
-  "Merry Christmas to Biscuit's favourite cuddler",
-  'Merry Christmas. Fully shed-uled.',
-  'Santa took the dawn dip.',
-  'Merry Christmas to the one who gets everyone to reply',
-  'Christmas in the shed. Five more, then back in for pudding.',
-  'Slime in full Christmas mode',
-  'Seed topped up. Robins fed. Santa held to inspection.',
-  'Santa agrees. That was a decent price for a house.',
-  'Christmas belongs at the table with good books, sharp takes and proper digressions.',
-  'Evening plan: armchair, blanket, telly, headlines, gone.',
-  'The air fryer earns Christmas.',
+  "Merry Christmas, Grandad. Watering round first.", // name, person
+  "Nan. Merry Christmas, eyes down for mince pies.", // name
+  "Jess takes the sausage dog out and the suspects with her.", // name, person
+  "Santa agrees. That was a decent price for a house.",
+  "Dave knows exactly which gadget earns its place at Christmas. The air fryer, obviously.", // name, person
+  "Evie’s Christmas list. Biscuit fed. Biscuit cosy. Santa inspected.", // name
+  "Sarah. Christmas Day starts after the lake and before the oven.", // name, person
+  "Merry Christmas Tom. The washing up can see itself out", // name
+  "First tracks. Then crackers.",
+  "Rob knows the Christmas coffee order.", // name, person
+  "Dad. Shed first. Christmas second.", // name
+  "Linda keeps the border in order", // name, person
+  "Evening plan: armchair, blanket, telly, headlines, gone.",
+  "Merry Christmas to the one who gets everyone to reply",
 ];
 
 export const CHRISTMAS_WALL: CatalogueCard[] = FRONTS.map((front_text, i) => ({

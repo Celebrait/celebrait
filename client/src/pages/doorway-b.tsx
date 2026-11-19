@@ -21,6 +21,7 @@ import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '
 import { ShimmerWord } from '@/pages/landing-keeper';
 import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MadeCardsRow } from '@/components/made-cards-row';
+import { MAKER_WALL } from '@/lib/maker-wall';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { TrustChips } from '@/pages/landing-keeper';
@@ -172,10 +173,17 @@ export default function DoorwayBPage() {
           {/* ── The wall: real cards, drifting ── */}
           <div className="mt-12 md:mt-16">
             <div className="mx-auto max-w-6xl px-6">
-              <p className={EYEBROW}>{xmas ? 'Each one drawn from a few answers' : rack ? 'From the rack · made for real people' : 'Made for real people'}</p>
+              {/* The fixed walls are OUR examples (made-up briefs and faces),
+                  so the label must not say "made for real people" (DMCC).
+                  Only the rack's own stock keeps the old line. */}
+              <p className={EYEBROW}>{rack && !xmas ? 'From the rack · made for real people' : 'Each one drawn from a few answers'}</p>
             </div>
             <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
-              {xmas ? <CardDrift cards={CHRISTMAS_WALL} makeHref="/make?occasion=christmas" /> : <CardDrift />}
+              {/* Names on most, people in some (Aidan 2026-11-19). While the
+                  rack sells, the everyday page still shows the rack. */}
+              {xmas ? <CardDrift cards={CHRISTMAS_WALL} makeHref="/make?occasion=christmas" />
+                : rack ? <CardDrift />
+                : <CardDrift cards={MAKER_WALL} />}
             </div>
           </div>
 
