@@ -290,7 +290,7 @@ function OpenCard({ c, front, inside, at = 0.2, alt }: { c: Clock; front: string
           />
         </motion.div>
       </motion.div>
-      <ReadyChip c={c} at={at + 1.2} label="Printed and posted" className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={at + 1.2} label="Printed and posted" className="absolute bottom-2 left-0" />
     </div>
   );
 }
@@ -530,7 +530,7 @@ function MakerBeat1({ c, set }: { c: Clock; set: MakerSet }) {
   const step = 0.22;
   useDoneAt(c, 0.9 + QUESTIONS.length * step);
   return (
-    <div className="absolute inset-0 flex flex-col justify-center gap-[2.6%] px-[8%] py-[7%]">
+    <div className="absolute inset-0 flex flex-col justify-center gap-[2.6%] py-[4%]">
       {QUESTIONS.map((row, i) => (
         <motion.div
           key={row.q}
@@ -591,7 +591,7 @@ function MakerBeat2({ c, set }: { c: Clock; set: MakerSet }) {
           </motion.div>
         ))}
       </div>
-      <ReadyChip c={c} at={1.4} label="Three, written and drawn" className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={1.4} label="Three, written and drawn" className="absolute bottom-2 left-0" />
     </div>
   );
 }
@@ -639,7 +639,7 @@ function MakerPhotoBeat({ c, set }: { c: Clock; set: MakerSet }) {
         animate={c.play ? { opacity: 1, y: 0, rotate: 6 } : undefined}
         transition={tr(c, 0.25, 0.55)}
       />
-      <ReadyChip c={c} at={1.7} label={`With ${set.who} in it`} className="absolute bottom-4 left-4" />
+      <ReadyChip c={c} at={1.7} label={`With ${set.who} in it`} className="absolute bottom-2 left-0" />
     </div>
   );
 }
@@ -796,7 +796,11 @@ export function HowItWorksSection({ door, pairedBelow = false, cta, christmas = 
               body={b.body}
               go={started[i]}
               near={near}
-              framed={door !== 'photo' || i === 0}
+              // Only the photo door's first beat is a picture in a box. The
+              // three-card beats stand straight on the page, like the photo
+              // door's cards (Aidan 2026-11-19: "don't really need
+              // containers… remember we removed them?").
+              framed={door === 'photo' && i === 0}
               onDone={onDone}
               liRef={(el) => { els.current[i] = el; }}
             >
