@@ -7,6 +7,9 @@
  *
  *   npx tsx server/scripts/front-word-bench.ts <outDir> [--only one|all] [--parallel 3] [--brief <id>] [--briefs <file.json>]
  *
+ * --door make sends the concepts request through the CUSTOMER door
+ * (/api/make/concepts) instead of the lab's, so what is timed is what a
+ * customer waits for (the lab door waits for one more sense check).
  * --no-render writes the three concepts only (no drawings): for measuring
  * the writing, the rounds and the wait, at about 5c a set.
  * --briefs swaps the six built-in briefs for a JSON array of the same
@@ -54,6 +57,7 @@ async function main(): Promise<void> {
   const parallel = Number(arg('--parallel') ?? 3);
   const only = arg('--brief');
   const noRender = process.argv.includes('--no-render');
+  const door = arg('--door') === 'make' ? 'make' : 'admin/card-lab';
 
   const row = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true)).limit(1);
   const adminId = process.env.LAB_ADMIN_USER_ID ?? row[0]?.id;
@@ -66,7 +70,7 @@ async function main(): Promise<void> {
   const server = app.listen(0);
   const port = (server.address() as any).port;
   const post = async (route: string, body: unknown): Promise<any> => {
-    const r = await fetch(`http://localhost:${port}/api/admin/card-lab/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch(`http://localhost:${port}/api/${route === 'concepts' ? door : 'admin/card-lab'}/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j: any = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(`${route} ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
     return j;
@@ -83,7 +87,7 @@ async function main(): Promise<void> {
     if (await exists(file)) { console.log(`skip ${arm}/${brief.id}`); return; }
     const t0 = Date.now();
     const { id, ...b } = brief;
-    const set = await post('concepts', { ...b, age: b.age ?? undefined, pipeline: 'celebrait', freeComposition: true, memory: false, frontWordOn: arm });
+    const set = await post('concepts', { ...b, age: b.age ?? undefined, pipeline: 'celebrait', freeComposition: true, memory: false, ...(door === 'make' ? {} : { frontWordOn: arm }) });
     const concepts: any[] = set.concepts ?? [];
     if (concepts.length !== 3) throw new Error(`${arm}/${id}: ${concepts.length} concepts`);
     cents += set.meter?.cents ?? 0;
@@ -103,7 +107,7 @@ async function main(): Promise<void> {
       } catch (e) { return { ok: false, error: String(e).slice(0, 200) }; }
     }));
     await writeFile(file, JSON.stringify({ arm, brief, concepts, carries, violations: set.violations ?? [], meter: set.meter ?? null, renders }, null, 2), 'utf8');
-    console.log(`done ${arm}/${id} in ${Math.round((Date.now() - t0) / 1000)}s rounds=${set.meter?.rounds} round1=${JSON.stringify((set.meter?.perRound?.[0] ?? []).map((v: string) => v.split(':')[0]))} standing=${JSON.stringify(set.violations ?? [])} carries=${carries.join('/')} :: ${concepts.map((c) => `"${c.front_text}"`).join(' / ')}`);
+    console.log(`done ${arm}/${id} in ${Math.round((Date.now() - t0) / 1000)}s writing=${Math.round((set.meter?.totalMs ?? 0) / 100) / 10}s rounds=${set.meter?.rounds} round1=${JSON.stringify((set.meter?.perRound?.[0] ?? []).map((v: string) => v.split(':')[0]))} standing=${JSON.stringify(set.violations ?? [])} carries=${carries.join('/')} :: ${concepts.map((c) => `"${c.front_text}"`).join(' / ')}`);
   };
 
   let next = 0;

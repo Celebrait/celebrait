@@ -36,11 +36,12 @@
 import type { Express, Request, Response } from 'express';
 import { desc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { db } from '../db';
-import { cardGenerations, cardTemplates, users, researchRenders, cards } from '@shared/schema';
+import { cardGenerations, cardTemplates, users, researchRenders, cards, LLM_SLOTS } from '@shared/schema';
 import { isMilestone } from '@shared/catalogue';
 import { hasAiDash, stripAiDash } from '@shared/no-dash';
 import { serverMarketId } from '@shared/market';
@@ -235,8 +236,23 @@ export const requireGuestMaker = (kind: string) => async (req: Request, res: Res
 };
 
 type Gate = (req: Request, res: Response) => Promise<boolean>;
+// WHICH DOOR (2026-11-19). The same handlers serve the lab (/api/admin/…),
+// the research link and the customer maker (/api/make/…). Every model
+// call they make is logged for the Cost Ledger, and until now every row
+// said slot 'card_lab', which the ledger's customer view excludes as R&D:
+// the three-card route went live with its spend invisible (CLAUDE.md hard
+// rule 5). The door is carried through the request here so each ledger
+// row can say whose spend it is, without threading a flag through a dozen
+// helpers.
+const doorStore = new AsyncLocalStorage<{ customer: boolean }>();
+/** The Cost Ledger slot for a model call made on this request. */
+const ledgerSlot = (): string => (doorStore.getStore()?.customer ? LLM_SLOTS.THREE_CARD : 'card_lab');
 const guarded = (gate: Gate, h: (req: Request, res: Response) => Promise<unknown> | void) =>
-  async (req: Request, res: Response) => { if (await gate(req, res)) await h(req, res); };
+  async (req: Request, res: Response) => {
+    if (!(await gate(req, res))) return;
+    const customer = (req.originalUrl ?? req.path ?? '').startsWith('/api/make/');
+    await doorStore.run({ customer }, async () => { await h(req, res); });
+  };
 
 // ── THE HOUSE STYLE — "Celebrait Quirky" ─────────────────────────────
 // Direction locked from Aidan's three references (2026-08-15): the
@@ -747,7 +763,11 @@ RECIPIENT SEAMS worth mining when the brief points at them: for a mum, the FAMIL
  *  generic celebration profile — the writer already mines unknown
  *  occasions' worlds; the profile just keeps the machinery aimed. */
 const OCCASION_MATCHERS: Array<[RegExp, string]> = [
-  [/sympath|condolen|bereave|loss of|passed away|passing|funeral|memorial|sorry for/i, 'sympathy'],
+  // "passing" and "sorry for" used to match bare, so "Passing her driving
+  // test" and "Sorry for forgetting" were written as SYMPATHY cards
+  // (humour off, the classic chain). Found in the 2026-11-19 audit. They
+  // now need the words that make them a bereavement.
+  [/sympath|condolen|bereave|loss of|passed away|passing away|passing of|\b(his|her|their|your|sad|sudden|recent)\s+passing\b|funeral|memorial|sorry for (your|the|their|his|her) loss/i, 'sympathy'],
   [/get well|recovery|recover|operation|hospital|feel better|poorly/i, 'getwell'],
   [/father'?s day|fathers day/i, 'fathersday'],
   [/mother'?s day|mothers day|mothering sunday/i, 'mothersday'],
@@ -1641,10 +1661,24 @@ ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: th
 ` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
 }
 
+/** Ceilings for the three-card route's text calls (2026-11-19). None had
+ *  one: the SDK's own default is ten minutes, behind a customer page that
+ *  gives up at 90 seconds. Generous on purpose; they exist to stop a
+ *  stalled call, never to hurry a healthy one (a normal set is ~4s
+ *  archetype, ~15s writer, ~3-5s sense). */
+const ARCHETYPE_TIMEOUT_MS = 30_000;
+const WRITER_TIMEOUT_MS = 70_000;
+const SENSE_TIMEOUT_MS = 30_000;
+/** Past this, a set skips its repair round: better three cards carrying
+ *  a note than a page that times out at 90 seconds and starts again. */
+const REPAIR_BUDGET_MS = 55_000;
+
 export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: CardConcept[], recipientAge?: number | null, interest?: string | null, layBuyer = true,
   /** Instrumentation only (2026-10-08): which round this is, and a hook
    *  the caller uses to total the set's wall-clock and spend. */
-  opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void; language?: CardLanguage }): Promise<string[]> {
+  opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void; language?: CardLanguage;
+    /** Cancels the call when the customer has gone (see the concepts handler). */
+    signal?: AbortSignal }): Promise<string[]> {
   try {
     const t0 = Date.now();
     const p = helperParams(700, 0.2);
@@ -1655,14 +1689,12 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
-    });
+    }, { signal: opts?.signal, timeout: SENSE_TIMEOUT_MS });
     // The sense referee runs up to twice a set — it was spending unlogged,
     // then logged with duration 0 and no stage. Real ms, real model.
     const ms = Date.now() - t0;
     const cents = chatUsageCents(p.model, r.usage);
     opts?.onMetered?.({ ms, cents, model: p.model });
-    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
-      provider: 'openai', model: p.model, quality: null, costCents: cents, durationMs: ms, success: true, stage: opts?.stage ?? 'sense' });
     const parsed = JSON.parse(r.choices[0]?.message?.content ?? '{}');
     const out: string[] = [];
     (Array.isArray(parsed.cards) ? parsed.cards : []).forEach((c: any, i: number) => {
@@ -1670,6 +1702,11 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
         if (typeof viol === 'string' && viol.trim()) out.push(`sense: card ${i + 1} — ${viol.trim()}`);
       });
     });
+    // Its own row now carries its own verdict (2026-11-19): on the customer
+    // door the post-repair check runs after the response has gone, so the
+    // writer's row can no longer carry these notes for it.
+    void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
+      provider: 'openai', model: p.model, quality: null, costCents: cents, durationMs: ms, success: true, stage: opts?.stage ?? 'sense', violations: out });
     return out;
   } catch (err) {
     console.warn('[CARD-LAB:v2] sense referee failed (non-fatal):', (err as Error)?.message ?? err);
@@ -2708,6 +2745,15 @@ export function registerAdminCardLabRoutes(app: Express): void {
     // conceptsSchema.frontWordOn). Only the admin door may ask for the
     // old one-card rule back, for comparisons.
     const nameOnAll = !(body.frontWordOn === 'one' && (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/'));
+    /** The lab (studio builder, benches). Everything else is a maker's page. */
+    const labDoor = (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/');
+    // THE CUSTOMER HAS GONE (2026-11-19). The maker's page gives up on this
+    // call at 90 seconds and quietly asks again; nothing here noticed, so
+    // the abandoned run carried on to the end and both were paid for. When
+    // the connection closes before we have answered, cancel what is in
+    // flight.
+    const gone = new AbortController();
+    res.on('close', () => { if (!res.writableEnded) gone.abort(); });
     // The first name is "inside only" when the buyer chose something ELSE
     // for the front (Dad, or nothing). Since 2026-11-19 the front can be
     // a few words of the buyer's own, and those words often CONTAIN the
@@ -3027,12 +3073,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
                 : ''}${restingSeamText ? `\n\n${restingSeamText}` : ''}${groundRestText ? `\n\n${groundRestText}` : ''}${seamBudgetText ? `\n\n${seamBudgetText}` : ''}` },
           ],
           response_format: { type: 'json_object' },
-        });
+        }, { signal: gone.signal, timeout: ARCHETYPE_TIMEOUT_MS });
         meter.archetype = Date.now() - archT0;
         {
           const archCents = chatUsageCents(archP.model, archRes.usage);
           meter.cents += archCents;
-          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
             provider: 'openai', model: archP.model, quality: null, costCents: archCents, durationMs: meter.archetype, success: true, stage: 'archetype' });
         }
         const arch = JSON.parse(archRes.choices[0]?.message?.content ?? '{}');
@@ -3256,7 +3302,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
                  { role: 'assistant', content: JSON.stringify({ concepts }) },
                  { role: 'user', content: `Your set broke these floors:\n${violations.map((x) => '- ' + x).join('\n')}\nFix ONLY what is named, keep everything good, return the complete corrected JSON.` }],
             response_format: { type: 'json_object' },
-          });
+          }, { signal: gone.signal, timeout: WRITER_TIMEOUT_MS });
           const genMs = Date.now() - genT0;
           const genCents = chatUsageCents(CONCEPT_MODEL, gen.usage);
           meter.writer.push(genMs); meter.cents += genCents; meter.rounds = round + 1;
@@ -3277,18 +3323,33 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // exactly like the code floors' and ship visibly when standing.
           // Not on a greeting card: it judges FRONT lines, and that front
           // is the phrasebook's, which no repair round may touch.
-          if (!phrase) violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
-            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; }, language: cardLang }));
+          // THE LAST SENSE CHECK IS OFF THE CUSTOMER'S CLOCK (2026-11-19).
+          // After the repair round there is no third round, and the maker's
+          // page never reads `violations`: the customer was waiting 3-5
+          // seconds, on nearly every set, for a verdict nothing used. On a
+          // maker's door it now runs after the answer has gone, for the
+          // ledger only (its row carries its notes). The lab still waits
+          // for it, because the studio shows standing notes.
+          const lastRound = round === 1;
+          if (!phrase && lastRound && !labDoor) {
+            void v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true, { stage: 'sense-repair', language: cardLang });
+          } else if (!phrase) violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
+            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; }, language: cardLang, signal: gone.signal }));
           if (!phrase) violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
           meter.perRound.push(violations);
           // The writer row is logged AFTER the referees so it carries this
           // round's violations — the ledger answers "which floors fire"
           // without anyone grepping a console.
-          void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
             provider: 'openai', model: CONCEPT_MODEL, quality: null, costCents: genCents, durationMs: genMs, success: true,
             stage: round === 0 ? 'writer' : 'writer-repair', violations });
           if (!violations.length) break;
           console.warn(`[CARD-LAB:v2] round ${round + 1} violations:`, violations);
+          // No time left for a repair: ship the first draft with its notes.
+          if (round === 0 && Date.now() - setT0 > REPAIR_BUDGET_MS) {
+            console.warn(`[CONCEPTS] set ${setId} skipped its repair round: ${Date.now() - setT0}ms gone already`);
+            break;
+          }
         }
         const totalMs = Date.now() - setT0;
         const helper = helperParams(0, 0);
@@ -3341,6 +3402,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // losing its set to a transient error is worse than a classic
         // set the lab can see is classic.
         const adminDoor = (req.originalUrl ?? req.path ?? '').startsWith('/api/admin/');
+        // The customer left and we cancelled: not a failure, and nobody to answer.
+        if (gone.signal.aborted) { console.warn(`[CONCEPTS] set ${setId} cancelled after ${Date.now() - setT0}ms: the page had gone`); return; }
         console.error(`[CONCEPTS] set ${setId} FAILED after ${Date.now() - setT0}ms — ${adminDoor ? 'admin door, falling back to classic' : '502, no classic fallback'}:`, err);
         if (!adminDoor) return res.status(502).json({ message: 'That one didn’t come together — give it another go', code: 'server' });
       }
@@ -3542,7 +3605,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
 
       void logGeneration({
         cardId: null,
-        slot: 'card_lab',
+        slot: ledgerSlot(),
         templateId: null,
         templateVersion: null,
         provider: 'openai',
@@ -3637,7 +3700,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           });
         }
         void logGeneration({
-          cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
           provider: 'openai', model: CONCEPT_MODEL, quality: null,
           costCents: chatUsageCents(CONCEPT_MODEL, review.usage),
           durationMs: 0, success: true,
@@ -4010,7 +4073,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
           prompt, quality: 'low', size: '1024x1024', slot: 'card_lab',
         });
         void logGeneration({
-          cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+          cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
           provider: result.provider, model: result.model, quality: 'low',
           costCents: result.costCents, durationMs: result.durationMs, success: true,
         });
@@ -4059,7 +4122,7 @@ export function registerAdminCardLabRoutes(app: Express): void {
       const result = await provider.refine!(body.imageUrl, instruction + extra);
       void logGeneration({
         cardId: null,
-        slot: 'card_lab',
+        slot: ledgerSlot(),
         templateId: null,
         templateVersion: null,
         provider: result.provider,
@@ -4171,7 +4234,7 @@ THE WORLD: ${body.interest ?? 'as implied by the front text'}${attempt ? `
           ],
           response_format: { type: 'json_object' },
         });
-        void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+        void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
           provider: 'openai', model: CONCEPT_MODEL, quality: null,
           costCents: chatUsageCents(CONCEPT_MODEL, gen.usage),
           durationMs: 0, success: true });
@@ -4312,7 +4375,7 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
       });
       void logGeneration({
         cardId: null,
-        slot: 'card_lab',
+        slot: ledgerSlot(),
         templateId: null,
         templateVersion: null,
         provider: result.provider,
@@ -4427,7 +4490,7 @@ function renderFailureCode(err: any): 'safety' | 'rate' | 'server' | 'auth' | 't
         cardBytes: card.bytes, cardMimeType: card.mimeType,
         photoBytes: photo.bytes, photoMimeType: photo.mimeType,
       });
-      void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+      void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
         provider: 'gemini', model, quality: null, costCents: llmCostCents(model, promptTokens, outputTokens), durationMs, success: !!result });
       // Fail OPEN: a QA check that blocks curation is worse than none.
       // `result: null` means "no opinion", and the UI shows no badge.
@@ -4491,8 +4554,12 @@ export async function generateInsideImage(o: { mode: 'auto' | 'own' | 'blank'; m
     `Square 1024x1024 — the INSIDE page of the card. ${IS_THE_CARD_ITSELF}`,
     o.extraInstruction ?? '',
   ].filter(Boolean).join('\n');
-  const result = await getProvider(o.provider ?? PRODUCTION_IMAGE_PROVIDER).generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab' });
-  void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+  const result = await getProvider(o.provider ?? PRODUCTION_IMAGE_PROVIDER).generate({ prompt, quality: o.quality ?? 'low', size: '1024x1024', slot: 'card_lab',
+    // The fronts have had this ceiling since 2026-09-08; the inside had
+    // none, so a stalled call could run six minutes behind a page that
+    // gives up at 100 seconds.
+    timeoutMs: (o.quality ?? 'low') === 'low' ? 90_000 : undefined });
+  void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
     provider: result.provider, model: result.model, quality: o.quality ?? 'low',
     costCents: result.costCents, durationMs: result.durationMs, success: true });
   return result;
@@ -4527,13 +4594,13 @@ export async function readBackCardText(imageUrl: string, expected: string, o: { 
     const ok = textCheckPasses(expected, transcription);
     const line = `lang=${o.language} panel=${o.panel} attempt=${o.attempt ?? 1} ok=${ok} expected=${JSON.stringify(expected)} read=${JSON.stringify(transcription.replace(/\s+/g, ' ').trim())}`;
     console.log(`[TEXT-CHECK] ${line} ${ms}ms`);
-    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+    void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
       provider: 'openai', model, quality: null, costCents: cents, durationMs: ms, success: true, stage: 'text-check', violations: ok ? null : [line] });
     return { ok, transcription, ms, cents, model };
   } catch (err: any) {
     const ms = Date.now() - t0;
     console.warn(`[TEXT-CHECK] lang=${o.language} panel=${o.panel} attempt=${o.attempt ?? 1} ok=unknown (check failed, fail open): ${err?.message ?? err}`);
-    void logGeneration({ cardId: null, slot: 'card_lab', templateId: null, templateVersion: null,
+    void logGeneration({ cardId: null, slot: ledgerSlot(), templateId: null, templateVersion: null,
       provider: 'openai', model, quality: null, costCents: 0, durationMs: ms, success: false, errorCode: 'text-check-failed', stage: 'text-check' });
     return { ok: null, transcription: null, ms, cents: 0, model };
   }

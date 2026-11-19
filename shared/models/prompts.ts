@@ -58,6 +58,11 @@ export const LLM_SLOTS = {
   SCENE_SUGGEST: 'scene_suggest',     // the scene helper
   BRAINSTORM: 'brainstorm',           // AI brainstorm chat
   INSIDE_TEXT: 'inside_text_helper',  // parked for Premium; pre-wired
+  // The three-card route's customer door (/api/make/*): writing, checking
+  // and drawing before any card row exists. Until 2026-11-19 these rows
+  // were logged as 'card_lab' with the lab's own runs, so the ledger's
+  // customer view left the whole route out. The lab keeps 'card_lab'.
+  THREE_CARD: 'three_card',
 } as const;
 
 /** Card-less slots that are nevertheless REAL customer spend. Anything
