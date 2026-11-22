@@ -121,7 +121,9 @@ async function main(): Promise<void> {
   }));
   console.log(`\nconcept spend this run: ${cents.toFixed(1)}c (renders are logged to the cost ledger separately)`);
   if (failures.length) console.log(`failures:\n${failures.join('\n')}`);
-  await new Promise((r) => setTimeout(r, 2500));
+  // The customer door's last sense check runs after the response: give it
+  // time to land (and log) before the process goes.
+  await new Promise((r) => setTimeout(r, door === 'make' ? 9000 : 2500));
   server.close();
   process.exit(failures.length ? 2 : 0);
 }
