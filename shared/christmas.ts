@@ -8,9 +8,15 @@
 // WHY 14 DECEMBER: Royal Mail's last recommended posting date for 1st
 // Class / Tracked 24 in 2026 is Monday 21 December. A card is printed to
 // order (up to three working days), so an order on Monday 14th is posted
-// by Thursday 17th, two working days clear. ⚠️ Prodigi's own Christmas
-// cut-off was not published when this was written: check it and move
-// CHRISTMAS_LAST_ORDER earlier if theirs is.
+// by Thursday 17th, two working days clear.
+//
+// CHECKED AGAINST PRODIGI 2026-11-23 (prodigi.com/christmas-delivery-dates,
+// classic greetings cards to the UK): Standard last order Thursday 17
+// December, Express Friday 18 December. Those are "recommended, not
+// guaranteed" and Prodigi may still revise them, so look again in early
+// December. The 14th is three days inside Prodigi's date and Aidan chose
+// to keep it rather than sell to the 16th: a late Christmas card is a
+// refund and a bad review.
 //
 // GB only. ZA prints and couriers by hand on its own calendar.
 
