@@ -39,8 +39,9 @@ async function main() {
   const parallel = Number(arg('--parallel') ?? 8);
   const limit = Number(arg('--limit') ?? 0);
   const effort = arg('--effort') as 'low' | 'medium' | 'high' | undefined;
-  /** --anchor v2: the list-aware subject-anchor wording (SUBJECT_ANCHOR_V2). */
-  const anchorV2 = arg('--anchor') === 'v2';
+  /** The list-aware subject-anchor wording (SUBJECT_ANCHOR_V2) is production,
+   *  so it is the default here too; --anchor v1 judges with the old wording. */
+  const anchorV2 = arg('--anchor') !== 'v1';
   if (!out || !dirs.length) { console.error('usage: sense-judge-bench.ts <out.json> --sets dir[,dir] --models a,b [--runs 2]'); process.exit(1); }
 
   let sets: Array<{ key: string; s: SetFile }> = [];

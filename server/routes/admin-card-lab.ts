@@ -896,8 +896,10 @@ export const conceptsSchema = z.object({
    *  WORSE and only 3 ended clean. Lab door only until a bench and Aidan
    *  say otherwise; production stays on 'set'. */
   repairMode: z.enum(['set', 'card']).optional(),
-  /** The sense judge's subject-anchor wording: 'v2' reads a list of
-   *  interests as a list (SUBJECT_ANCHOR_V2). Lab door only until approved. */
+  /** The sense judge's subject-anchor wording. 'v2' reads a list of
+   *  interests as a list (SUBJECT_ANCHOR_V2) and is PRODUCTION since
+   *  2026-11-23 (Aidan's go, after the bench below). Only the lab door may
+   *  ask for the old 'v1' wording, to compare against it. */
   senseAnchor: z.enum(['v1', 'v2']).optional(),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
@@ -1659,7 +1661,11 @@ export function stockPunCheck(fronts: string[], recentFronts: string[]): string[
 }
 
 /** The subject-anchor floor, reworded so a LIST of interests is read as
- *  a list (2026-11-23, lab only until benched and approved). The original
+ *  a list (2026-11-23). PRODUCTION wording since the same day: on 16
+ *  fresh sets it took first-draft notes from 5.6 to 2.4 and sets clean at
+ *  the end from 3 to 7, and on 96 finished cards it cut flags from 23% to
+ *  13% while still flagging 10 of the 15 cards the old wording flagged
+ *  twice running. The original
  *  was written for one named subject ("Man United") and tells the judge
  *  "EVERY front must name it". Customers type lists ("Gin, true crime
  *  podcasts, and her sausage dog"), and the judge then flagged a gin card
@@ -3361,7 +3367,9 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // VISIBLY below; the ledger now records which floors they were.
         // Per-card repair is LAB ONLY until approved (see conceptsSchema.repairMode).
         const perCard = body.repairMode === 'card' && labDoor;
-        const anchorV2 = body.senseAnchor === 'v2' && labDoor;
+        // List-aware subject anchor is production; only the lab door may ask
+        // for the old wording back (see conceptsSchema.senseAnchor).
+        const anchorV2 = !(body.senseAnchor === 'v1' && labDoor);
         meter.repairMode = perCard ? 'card' : 'set';
         let target = { cards: [] as number[], open: true };
         for (let round = 0; round < 2; round++) {
