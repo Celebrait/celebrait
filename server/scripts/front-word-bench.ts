@@ -7,6 +7,8 @@
  *
  *   npx tsx server/scripts/front-word-bench.ts <outDir> [--only one|all] [--parallel 3] [--brief <id>] [--briefs <file.json>]
  *
+ * --repair card|set picks how the repair round works (lab door only):
+ * 'set' rewrites all three, 'card' rewrites only the flagged cards.
  * --door make sends the concepts request through the CUSTOMER door
  * (/api/make/concepts) instead of the lab's, so what is timed is what a
  * customer waits for (the lab door waits for one more sense check).
@@ -58,6 +60,8 @@ async function main(): Promise<void> {
   const only = arg('--brief');
   const noRender = process.argv.includes('--no-render');
   const door = arg('--door') === 'make' ? 'make' : 'admin/card-lab';
+  const repair = arg('--repair');
+  const anchor = arg('--anchor');
 
   const row = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true)).limit(1);
   const adminId = process.env.LAB_ADMIN_USER_ID ?? row[0]?.id;
@@ -87,7 +91,7 @@ async function main(): Promise<void> {
     if (await exists(file)) { console.log(`skip ${arm}/${brief.id}`); return; }
     const t0 = Date.now();
     const { id, ...b } = brief;
-    const set = await post('concepts', { ...b, age: b.age ?? undefined, pipeline: 'celebrait', freeComposition: true, memory: false, ...(door === 'make' ? {} : { frontWordOn: arm }) });
+    const set = await post('concepts', { ...b, age: b.age ?? undefined, pipeline: 'celebrait', freeComposition: true, memory: false, ...(door === 'make' ? {} : { frontWordOn: arm, ...(repair ? { repairMode: repair } : {}), ...(anchor ? { senseAnchor: anchor } : {}) }) });
     const concepts: any[] = set.concepts ?? [];
     if (concepts.length !== 3) throw new Error(`${arm}/${id}: ${concepts.length} concepts`);
     cents += set.meter?.cents ?? 0;

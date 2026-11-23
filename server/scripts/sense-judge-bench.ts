@@ -39,6 +39,8 @@ async function main() {
   const parallel = Number(arg('--parallel') ?? 8);
   const limit = Number(arg('--limit') ?? 0);
   const effort = arg('--effort') as 'low' | 'medium' | 'high' | undefined;
+  /** --anchor v2: the list-aware subject-anchor wording (SUBJECT_ANCHOR_V2). */
+  const anchorV2 = arg('--anchor') === 'v2';
   if (!out || !dirs.length) { console.error('usage: sense-judge-bench.ts <out.json> --sets dir[,dir] --models a,b [--runs 2]'); process.exit(1); }
 
   let sets: Array<{ key: string; s: SetFile }> = [];
@@ -62,7 +64,7 @@ async function main() {
         const r = await client.chat.completions.create({
           model: j.model, max_completion_tokens: 2800, ...(effort ? { reasoning_effort: effort } : {}),
           messages: [
-            { role: 'system', content: senseSystemPrompt(j.s.brief.age, j.s.brief.interest, true) },
+            { role: 'system', content: senseSystemPrompt(j.s.brief.age, j.s.brief.interest, true, undefined, { anchorV2 }) },
             { role: 'user', content: j.s.concepts.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
           ],
           response_format: { type: 'json_object' },

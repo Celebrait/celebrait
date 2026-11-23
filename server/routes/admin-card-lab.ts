@@ -888,6 +888,17 @@ export const conceptsSchema = z.object({
    *  default on every door; the occasion builder exposes an off switch
    *  purely so the same brief can be run both ways for the test plan. */
   layBuyerFloor: z.boolean().optional(),
+  /** HOW THE REPAIR ROUND WORKS (2026-11-23). 'set' = the writer returns
+   *  all three cards and they replace the set wholesale (how it has always
+   *  worked). 'card' = only the flagged cards are rewritten and merged
+   *  back in code, so a card that passed cannot be changed by the repair.
+   *  Measured on 45 sets on 'set': notes fell 4.2 to 2.7, but 10 sets got
+   *  WORSE and only 3 ended clean. Lab door only until a bench and Aidan
+   *  say otherwise; production stays on 'set'. */
+  repairMode: z.enum(['set', 'card']).optional(),
+  /** The sense judge's subject-anchor wording: 'v2' reads a list of
+   *  interests as a list (SUBJECT_ANCHOR_V2). Lab door only until approved. */
+  senseAnchor: z.enum(['v1', 'v2']).optional(),
   /** Recipient's first name, to be DESIGNED IN — lettered in the card's
    *  own style, sometimes as the artwork itself ("EVIE IS ONE"). Not a
    *  placeholder: the real name, generated in (Aidan 2026-08-20). */
@@ -1647,7 +1658,18 @@ export function stockPunCheck(fronts: string[], recentFronts: string[]): string[
   return v;
 }
 
-export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null, layBuyer = true, language?: CardLanguage): string {
+/** The subject-anchor floor, reworded so a LIST of interests is read as
+ *  a list (2026-11-23, lab only until benched and approved). The original
+ *  was written for one named subject ("Man United") and tells the judge
+ *  "EVERY front must name it". Customers type lists ("Gin, true crime
+ *  podcasts, and her sausage dog"), and the judge then flagged a gin card
+ *  for not also being about the podcasts and the dog: 18 of 58 first-draft
+ *  sense notes in one bench, each one a repair instruction to cram the
+ *  whole list into one card. */
+const SUBJECT_ANCHOR_V2 = (interest: string) => `- THE SUBJECT ANCHOR: the brief's subject is "${interest}". If that lists SEVERAL things, each card needs only ONE of them: judge a card against the one item it is about, and never flag a card for leaving the others out. An everyday thing (a garden, gin, cycling, a shed, a dog) is its own anchor: a card that plainly shows or says it has passed. Only where the item a card is about is a SPECIFIC named show, film, book, team or place must that card name it or unmistakably anchor it — answering a named subject with its generic CATEGORY (telly-in-general for a named sitcom, football-in-general for a named club) fails. Judge anchored cards at a knowing buyer's half-second: the reference must be the subject's most famous tier and land instantly for someone who knows it — depth of fandom never excuses a second read.
+`;
+
+export function senseSystemPrompt(recipientAge?: number | null, interest?: string | null, layBuyer = true, language?: CardLanguage, opts?: { anchorV2?: boolean }): string {
   return `You are the SENSE referee for printed greeting cards. For each numbered front line, first WRITE THE SCENE: one plain sentence of who is doing what, where, from the line (and its artwork note) alone, as a stranger would read it in ONE second at a card rack${layBuyer ? ' — a stranger who knows the recipient but has never done their hobby' : ''}. Then judge these floors:
 - PARSE: the line reads as natural English — no snapped grammar (observed fail: "Merry Christmas to the one where Boxing Day really starts" — a person is a WHO, never a WHERE). ⚠️ PUNS MUST PARSE TOO — the GARDEN-PATH PUN fails here: wordplay that substitutes into an idiom but leaves the literal sentence ungrammatical, forcing the reader to re-group the words ("You can spot a fake tortilla aisle away" — the dropped article makes it read as a fake tortilla-aisle; "an aisle away" parses AND keeps the joke; a real buyer's verdict was "makes zero sense"). Read every pun as plain English first: if the surface sentence is broken until you find the substitution, it FAILS.
 - FIRST READ: no telegram of fragments the reader must reconstruct; no invented compound that doesn't resolve to a picture in one beat ("carrier-bag royalty", "night version"); no slang term that doesn't fit the recipient; no joke about a situation the card never states. ⚠️ You CAN decode all of these — the buyer gives it one second; judge at their speed, not yours.
@@ -1656,9 +1678,49 @@ ${layBuyer ? `- LAY BUYER (2026-09-13): the person BUYING knows the recipient, n
 ` : ''}
 - SWEAR-STRIP (only where a front carries swearing): delete the swears; what remains must still be a joke someone could laugh at. A standalone two-word swear sentence tagged onto a clean claim ("F***ing obviously.") fails even when the claim survives — the swear is decoration, not register.
 ${typeof recipientAge === 'number' && recipientAge <= 12 ? `- THE CHILD TEST: this card is FOR a ${recipientAge}-year-old. Read each line as the child hearing it aloud: they must receive it at once and feel delighted. Irony, knowing understatement, jokes ABOUT their world for the adult's benefit, and anything needing decoding FAIL — the wink is allowed on AT MOST one card of the set, and even there the child's own reading must still land.
-` : ''}${interest?.trim() ? `- THE SUBJECT ANCHOR: the brief's subject is "${interest.trim()}". If that names a SPECIFIC show, film, book, team or place, EVERY front must name it or unmistakably anchor it — answering a named subject with its generic CATEGORY (telly-in-general for a named sitcom, football-in-general for a named club) fails the set's whole reason for existing; flag every card that could be about the category rather than the subject. Judge anchored cards at a knowing buyer's half-second: the reference must be the subject's most famous tier and land instantly for someone who knows it — depth of fandom never excuses a second read.
+` : ''}${interest?.trim() && opts?.anchorV2 ? SUBJECT_ANCHOR_V2(interest.trim()) : interest?.trim() ? `- THE SUBJECT ANCHOR: the brief's subject is "${interest.trim()}". If that names a SPECIFIC show, film, book, team or place, EVERY front must name it or unmistakably anchor it — answering a named subject with its generic CATEGORY (telly-in-general for a named sitcom, football-in-general for a named club) fails the set's whole reason for existing; flag every card that could be about the category rather than the subject. Judge anchored cards at a knowing buyer's half-second: the reference must be the subject's most famous tier and land instantly for someone who knows it — depth of fandom never excuses a second read.
 ` : ''}${language === 'af' ? `- LANGUAGE: these lines are written in AFRIKAANS for Afrikaans readers. Wherever this prompt says English, read Afrikaans: judge sense and the first read in Afrikaans, never English idiom or word choice.
 ` : ''}Return STRICT JSON: {"cards":[{"scene":"...","violations":["..."]},...]} — violations in plain words naming what broke, empty array when the card passes. Do not rewrite lines; do not judge style, colour or humour quality — ONLY whether a stranger receives the line.`;
+}
+
+// ── PER-CARD REPAIR (2026-11-23) ──────────────────────────────────────
+/** Most serious first. The repair round gets one go: a wrong name or a
+ *  card that never shows its occasion matters more than two cards sharing
+ *  a colour family, and a flat list gave the writer no way to know. */
+const FLOOR_RANK: Array<[RegExp, number]> = [
+  [/^(name-|ip-floor|unmasked-swear|swear-on-clean|mask-counterfeit|gender-clash|kids-|banned-word|not-three-cards)/, 0],
+  [/^(occasion-|greeting-missing|christmas-not-drawn|cast-missing|generic-|invented-year|age-|number-|rude-|mix-family|year-rest|sense)/, 1],
+  [/^(length|no-dash|shared-vocab|stock-pun|swear-|aimed-swear|ui-idiom|civic-seam|phrase-exact|za-register)/, 2],
+];
+export const floorRank = (violation: string): number => FLOOR_RANK.find(([re]) => re.test(violation))?.[1] ?? 3;
+export const bySeriousness = (violations: string[]): string[] => [...violations].sort((a, b) => floorRank(a) - floorRank(b));
+
+/** Which cards a set of violations is ABOUT (0-based), and whether any of
+ *  them names no card at all. Most floors say "card N". A pair ("cards 1
+ *  and 3") costs the LATER card, so the earlier one is kept. A quoted word
+ *  ("lights" is drawn on more than one card) costs every card that has it
+ *  except the first. What cannot be pinned to a card is `open`: the writer
+ *  chooses the one card that fixes it. */
+export function cardsFlagged(violations: string[], cards: CardConcept[]): { cards: number[]; open: boolean } {
+  const hit = new Set<number>(); let open = false;
+  const fronts = cards.map((c) => String(c.front_text ?? '').toLowerCase());
+  const arts = cards.map((c) => String(c.art_direction ?? '').toLowerCase());
+  for (const v of violations) {
+    const pair = v.match(/\bcards (\d) and (\d)\b/);
+    const single = Array.from(v.matchAll(/\bcard (\d)\b/g)).map((m) => Number(m[1]) - 1).filter((i) => i >= 0 && i < cards.length);
+    const quoted = v.match(/^(shared-motif|shared-vocab): "([^"]+)"/);
+    if (pair) hit.add(Math.max(Number(pair[1]), Number(pair[2])) - 1);
+    else if (single.length) single.forEach((i) => hit.add(i));
+    else if (quoted) {
+      const word = quoted[2].replace(/^'+|'+$/g, '').toLowerCase();
+      const where = (quoted[1] === 'shared-motif' ? arts : fronts).map((t, i) => (t.includes(word) ? i : -1)).filter((i) => i >= 0);
+      if (where.length >= 2) where.slice(1).forEach((i) => hit.add(i)); else open = true;
+    } else if (/^invented-year/.test(v)) {
+      const where = fronts.map((t, i) => (/\b(19|20)\d\d\b/.test(t) ? i : -1)).filter((i) => i >= 0);
+      if (where.length) where.forEach((i) => hit.add(i)); else open = true;
+    } else open = true;
+  }
+  return { cards: Array.from(hit).sort((a, b) => a - b), open };
 }
 
 /** Ceilings for the three-card route's text calls (2026-11-19). None had
@@ -1678,14 +1740,16 @@ export async function v2SenseCheck(client: NonNullable<typeof openai>, cards: Ca
    *  the caller uses to total the set's wall-clock and spend. */
   opts?: { stage?: 'sense' | 'sense-repair'; onMetered?: (m: { ms: number; cents: number; model: string }) => void; language?: CardLanguage;
     /** Cancels the call when the customer has gone (see the concepts handler). */
-    signal?: AbortSignal }): Promise<string[]> {
+    signal?: AbortSignal;
+    /** The list-aware subject-anchor wording (lab only for now). */
+    anchorV2?: boolean }): Promise<string[]> {
   try {
     const t0 = Date.now();
     const p = helperParams(700, 0.2);
     const r = await client.chat.completions.create({
       ...p,
       messages: [
-        { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer, opts?.language) },
+        { role: 'system', content: senseSystemPrompt(recipientAge, interest, layBuyer, opts?.language, { anchorV2: opts?.anchorV2 }) },
         { role: 'user', content: cards.map((c, i) => `${i + 1}. FRONT: ${c.front_text}\n   ARTWORK: ${String(c.art_direction ?? '').slice(0, 160)}`).join('\n') },
       ],
       response_format: { type: 'json_object' },
@@ -3058,7 +3122,10 @@ export function registerAdminCardLabRoutes(app: Express): void {
       // at the end, and each ledger row carries its own stage + ms.
       const setId = Math.random().toString(36).slice(2, 8);
       const setT0 = Date.now();
-      const meter = { archetype: 0, writer: [] as number[], sense: [] as number[], cents: 0, rounds: 0, perRound: [] as string[][] };
+      const meter = { archetype: 0, writer: [] as number[], sense: [] as number[], cents: 0, rounds: 0, perRound: [] as string[][],
+        // For the repair bench: the first draft's fronts, which cards the
+        // first round flagged, and which cards the repair actually replaced.
+        firstFronts: [] as string[], flagged: [] as number[], flaggedOpen: false, repaired: [] as number[], repairMode: 'set' as 'set' | 'card' };
       try {
         // 1. ARCHETYPE + referee vocabulary in one call.
         const archT0 = Date.now();
@@ -3292,21 +3359,65 @@ export function registerAdminCardLabRoutes(app: Express): void {
         // third round was buying a few fewer yellow-box lines at the
         // price of the deadline. Standing violations still ship
         // VISIBLY below; the ledger now records which floors they were.
+        // Per-card repair is LAB ONLY until approved (see conceptsSchema.repairMode).
+        const perCard = body.repairMode === 'card' && labDoor;
+        const anchorV2 = body.senseAnchor === 'v2' && labDoor;
+        meter.repairMode = perCard ? 'card' : 'set';
+        let target = { cards: [] as number[], open: true };
         for (let round = 0; round < 2; round++) {
           const genT0 = Date.now();
+          const previous = concepts;
+          // Round two only. Which cards the notes are about, and whether
+          // the writer is being asked for those cards alone.
+          if (round === 1) { target = cardsFlagged(violations, previous); meter.flagged = target.cards; meter.flaggedOpen = target.open; }
+          const targeted = round === 1 && perCard && previous.length === 3 && (target.cards.length > 0 || target.open) && !(target.cards.length === 3);
+          const keep = [0, 1, 2].filter((i) => !target.cards.includes(i));
+          const repairAsk = targeted
+            ? `Your set broke these floors, most serious first:\n${bySeriousness(violations).map((x) => '- ' + x).join('\n')}\n\n${
+              target.cards.length ? `REWRITE ONLY card ${target.cards.map((i) => i + 1).join(' and card ')}.` : ''}${
+              target.open ? ` ${target.cards.length ? 'For a floor above that names no card, fix it inside a card you are already rewriting if you can; otherwise' : 'These floors name no card:'} change the ONE card that fixes it most naturally.` : ''}${
+              keep.length && !target.open ? ` Card ${keep.map((i) => i + 1).join(' and card ')} passed and will be kept exactly as ${keep.length > 1 ? 'they are' : 'it is'}: do not rewrite or return ${keep.length > 1 ? 'them' : 'it'}.` : ' Every card you do not change is kept exactly as it is: do not return it.'}\nA rewritten card keeps its slot (its angle, register and territory) and must not borrow the words, objects or leading colour of a card that is staying.\nReturn JSON {"concepts":[...]} holding ONLY the card(s) you rewrote, each with every field as before plus "card": its number (1, 2 or 3).`
+            : `Your set broke these floors:\n${violations.map((x) => '- ' + x).join('\n')}\nFix ONLY what is named, keep everything good, return the complete corrected JSON.`;
           const gen = await openai.chat.completions.create({
             ...conceptParams(2200, 0.7),
             messages: round === 0
               ? [{ role: 'system', content: sys }, { role: 'user', content: userMsg }]
               : [{ role: 'system', content: sys }, { role: 'user', content: userMsg },
                  { role: 'assistant', content: JSON.stringify({ concepts }) },
-                 { role: 'user', content: `Your set broke these floors:\n${violations.map((x) => '- ' + x).join('\n')}\nFix ONLY what is named, keep everything good, return the complete corrected JSON.` }],
+                 { role: 'user', content: repairAsk }],
             response_format: { type: 'json_object' },
           }, { signal: gone.signal, timeout: WRITER_TIMEOUT_MS });
           const genMs = Date.now() - genT0;
           const genCents = chatUsageCents(CONCEPT_MODEL, gen.usage);
           meter.writer.push(genMs); meter.cents += genCents; meter.rounds = round + 1;
-          concepts = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as CardConcept[])
+          const returned = ((JSON.parse(gen.choices[0]?.message?.content ?? '{}').concepts ?? []) as Array<CardConcept & { card?: number }>);
+          let nextSet: CardConcept[] = returned;
+          if (targeted) {
+            // THE MERGE. Only cards the notes were about may change. With
+            // an open note the writer may also change ONE card of its
+            // choosing. Anything else it sent back is ignored, so a card
+            // that passed is byte-for-byte the card that passed.
+            const allowed = new Set(target.cards);
+            const merged = [...previous];
+            let extraUsed = false;
+            const numbered = returned.every((c) => Number.isInteger(c?.card) && (c.card as number) >= 1 && (c.card as number) <= 3);
+            const items = numbered ? returned.map((c) => ({ i: (c.card as number) - 1, c }))
+              : returned.length === 3 ? returned.map((c, i) => ({ i, c }))
+              : returned.length === target.cards.length ? returned.map((c, k) => ({ i: target.cards[k], c }))
+              : [];
+            for (const { i, c } of items) {
+              const differs = String(c.front_text ?? '') !== String(previous[i]?.front_text ?? '') || String(c.art_direction ?? '') !== String(previous[i]?.art_direction ?? '');
+              const mayChange = allowed.has(i) || (target.open && !extraUsed && differs);
+              if (!mayChange) continue;
+              if (!allowed.has(i)) extraUsed = true;
+              const { card: _n, ...rest } = c as CardConcept & { card?: number };
+              void _n;
+              merged[i] = rest as CardConcept;
+              meter.repaired.push(i);
+            }
+            nextSet = merged;
+          } else if (round === 1) meter.repaired = [0, 1, 2];
+          concepts = nextSet
             // Free-comp writers ramble in the metadata fields; every
             // downstream schema caps format/angle at 160, so the clamp
             // lives HERE — once, at the source (observed: a
@@ -3332,11 +3443,12 @@ export function registerAdminCardLabRoutes(app: Express): void {
           // for it, because the studio shows standing notes.
           const lastRound = round === 1;
           if (!phrase && lastRound && !labDoor) {
-            void v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true, { stage: 'sense-repair', language: cardLang });
+            void v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true, { stage: 'sense-repair', language: cardLang, anchorV2 });
           } else if (!phrase) violations = violations.concat(await v2SenseCheck(openai, concepts, statedAgeValue, interestText, body.layBuyerFloor ?? true,
-            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; }, language: cardLang, signal: gone.signal }));
+            { stage: round === 0 ? 'sense' : 'sense-repair', onMetered: (m) => { meter.sense.push(m.ms); meter.cents += m.cents; }, language: cardLang, signal: gone.signal, anchorV2 }));
           if (!phrase) violations = violations.concat(stockPunCheck(concepts.map((c) => c.front_text ?? ''), recentAnyFronts));
           meter.perRound.push(violations);
+          if (round === 0) meter.firstFronts = concepts.map((c) => String(c.front_text ?? ''));
           // The writer row is logged AFTER the referees so it carries this
           // round's violations — the ledger answers "which floors fire"
           // without anyone grepping a console.
@@ -3389,7 +3501,8 @@ export function registerAdminCardLabRoutes(app: Express): void {
           ledger: { resting: restingSeams.map((sm) => sm.name), paleGroundResting: !!groundRestText, seamBudget: !!seamBudgetText },
           // The meter rides the response too, so a harness measures the
           // thing the customer waited for without parsing server logs.
-          meter: { setId, rounds: meter.rounds, totalMs, archetypeMs: meter.archetype, writerMs: meter.writer, senseMs: meter.sense, cents: Math.round(meter.cents * 100) / 100, perRound: meter.perRound } });
+          meter: { setId, rounds: meter.rounds, totalMs, archetypeMs: meter.archetype, writerMs: meter.writer, senseMs: meter.sense, cents: Math.round(meter.cents * 100) / 100, perRound: meter.perRound,
+            repairMode: meter.repairMode, firstFronts: meter.firstFronts, flagged: meter.flagged, flaggedOpen: meter.flaggedOpen, repaired: meter.repaired } });
       } catch (err) {
         // ⚠️ NO DOUBLE PIPELINE FOR CUSTOMERS (2026-10-08). Falling into
         // classic after a v2 throw meant ~5 more calls and ~50 s more on
