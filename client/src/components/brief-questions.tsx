@@ -9,7 +9,7 @@
 // itself round-trips through the URL (briefToSearch / readBriefFromSearch)
 // so refresh, back and the hand-off to /make all carry it.
 
-import { useMemo, useState, useEffect } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useTypewriter } from '@/hooks/use-typewriter';
@@ -59,13 +59,16 @@ export function frontWordOf(b: Pick<Brief, 'who' | 'name' | 'front'> & { frontTe
   return undefined;
 }
 
-export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: ZA ? 'Playful' : 'Cheekier' };
-/** Customer-facing labels only — the engine still receives funny/warm/rude/mix. */
+export const VIBE_LABEL: Record<Vibe, string> = { mix: 'One of each', funny: 'All funny', warm: 'All warm', rude: ZA ? 'Playful' : 'All rude' };
+/** Customer-facing labels only — the engine still receives funny/warm/rude/mix.
+ *  "Rude", not "Cheeky" (Aidan 2026-11-24): the tile switches on proper
+ *  swearing, and "Cheeky" undersold it. "Can’t decide?" left the mix
+ *  tile’s label for the divider drawn above it. */
 const VIBE_META: Record<Vibe, { label: string; sub: string }> = {
-  funny: { label: 'Light humour', sub: 'a good laugh, kindly meant' },
+  funny: { label: 'Light Humour', sub: 'a good laugh, kindly meant' },
   warm: { label: 'Warm', sub: 'heartfelt, the kind they keep' },
-  rude: ZA ? { label: 'Playful', sub: 'light teasing, kindly meant' } : { label: 'Cheeky', sub: 'proper swearing, tastefully starred out' },
-  mix: { label: 'Can’t decide? One of each', sub: 'three cards, three vibes, you choose after' },
+  rude: ZA ? { label: 'Playful', sub: 'light teasing, kindly meant' } : { label: 'Rude', sub: 'proper swearing, tastefully starred out' },
+  mix: { label: 'One of each', sub: 'three cards, three vibes, you choose after' },
 };
 /** The vibe sub-lines, for pages that draw their own vibe tiles (/make's re-deal). */
 export const VIBE_SUB: Record<Vibe, string> = { funny: VIBE_META.funny.sub, warm: VIBE_META.warm.sub, rude: VIBE_META.rude.sub, mix: VIBE_META.mix.sub };
@@ -236,7 +239,7 @@ export const isBriefComplete = (b: Brief) => b.who.trim().length > 0 && b.occasi
 export type QuestionKey = 'who' | 'occasion' | 'age' | 'vibe' | 'interest' | 'dislike' | 'name';
 /** The research maker's order; occasion after who; age on EVERY
  *  occasion (Aidan 2026-09-03: it arms the kids register and switches
- *  Cheeky off under 18, which matters at Christmas as much as a
+ *  Rude off under 18, which matters at Christmas as much as a
  *  birthday); dislike only when there's humour to feed. */
 export function questionsFor(b: Brief, askDislike = false): QuestionKey[] {
   // 'dislike' is not a step of its own (Aidan 2026-09-06), and the
@@ -429,15 +432,28 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
               {VIBES.map((t) => {
                 const off = t === 'rude' && isKid;
                 // "One of each" is the escape hatch, not a fourth flavour:
-                // last, after a rule, dashed, no fill.
+                // last, dashed, no fill, and under a drawn "Can’t decide?"
+                // divider. Spacing and a dashed edge alone still read as a
+                // fourth option in the same list (Aidan 2026-11-24: "make the
+                // one of each more obviously separate"). The filmed demo keeps
+                // its screens free of helper copy, so there it just says "or".
                 const mix = t === 'mix';
                 return (
-                  <button key={t} type="button" disabled={off} onClick={() => { touch('vibe'); set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(shown('vibe', brief.vibe === t))} w-full disabled:opacity-40 ${mix ? 'mt-4 border-dashed bg-transparent' : ''}`}>
+                  <Fragment key={t}>
+                  {mix && (
+                    <div className="flex items-center gap-3 pt-3 pb-1" aria-hidden="true">
+                      <span className="h-px flex-1 bg-keeper-hair" />
+                      <span className="text-[13px] font-medium text-keeper-body">{minimal ? 'or' : 'Can’t decide?'}</span>
+                      <span className="h-px flex-1 bg-keeper-hair" />
+                    </div>
+                  )}
+                  <button type="button" disabled={off} onClick={() => { touch('vibe'); set({ vibe: t }); setQIndex(idx + 1); }} className={`${s.tile(shown('vibe', brief.vibe === t))} w-full disabled:opacity-40 ${mix ? 'border-dashed bg-transparent' : ''}`}>
                     {minimal
                       ? <span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}{off ? ' (not under 18)' : ''}</span>
                       : <span className="min-w-0"><span className="block text-sm font-medium text-keeper-ink">{VIBE_META[t].label}</span><span className="block text-xs text-keeper-meta">{off ? 'off for under-18s' : VIBE_META[t].sub}</span></span>}
                     {shown('vibe', brief.vibe === t) && <span className={s.tick}><Check className="w-3 h-3" strokeWidth={3} /></span>}
                   </button>
+                  </Fragment>
                 );
               })}
             </div>
@@ -449,7 +465,11 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
             {/* Reframed 2026-11-05 (Aidan): the sender is choosing what the
                 card is about, not describing a personality. */}
             <p className={s.h1}>What should {whoPossessive(brief)} card be about?</p>
-            {!minimal && <p className={s.sub}>One thing about {brief.gender ?? 'them'}. We build the whole card around it.</p>}
+            {/* "One thing… the whole card around it" was only half true (Aidan
+                2026-11-24: "Is this accurate? One thing?"). The box takes a
+                list, customers type lists, and the engine gives each of the
+                three cards ONE item from it (SUBJECT_ANCHOR_V2). */}
+            {!minimal && <p className={s.sub}>One thing about {brief.gender ?? 'them'}, or a few. Each of the three cards is built around one.</p>}
             {/* A box, not a line (Aidan 2026-09-15: "needs to be bigger,
                 sitewide — the text is too long to fit"). Enter still moves on. */}
             <textarea value={brief.thing} onChange={(e) => set({ thing: e.target.value.replace(/\n/g, ' ').slice(0, 120) })} placeholder={minimal ? undefined : placeholder} aria-label="Their thing" rows={3} className={`${s.textarea} mt-4`} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (canNext) next(); } }} />
@@ -469,19 +489,31 @@ export function BriefQuestions({ brief, onChange, onDone, skin, initialStep = 0,
                 relationship word for Mum/Dad/Nan/Grandad, the first name,
                 or nothing. ALL THREE cards carry it (Aidan 2026-11-19: "all
                 3 must serve with the name on"; it was one card until then);
-                the engine gets the literal word via frontWordOf(). */}
-            <p className={s.h1}>What goes on the front?{optionalTag}</p>
+                the engine gets the literal word via frontWordOf().
+                Asked as a NAME question again (Aidan 2026-11-24: "kinda
+                confusing now. Probably needs to be name only focussed. Do
+                you want their name? So Mum, their name, no thanks"). "What
+                goes on the front?" with four chips read as a question about
+                the whole front, which we write. No "optional" tag: "No
+                thanks" already says so, and on a phone the tag wrapped onto
+                a line of its own under the longer question. */}
+            <p className={s.h1}>Do you want their name on the front?</p>
             {!minimal && <p className={s.sub}>It goes on all three of your cards, sometimes as the artwork itself.</p>}
             <div className="flex flex-wrap gap-2 mt-4">
               {NAME_LIKE.has(brief.who.trim()) && (
                 <button type="button" className={s.chip(shown('front', brief.front === 'role'))} onClick={() => { touch('front'); set({ front: 'role' }); }}>{brief.who.trim()}</button>
               )}
               <button type="button" className={s.chip(shown('front', brief.front === 'name'))} onClick={() => { touch('front'); set({ front: 'name' }); }}>Their name</button>
-              {/* A few words of their own: a nickname, "Nanny Pat", "Big
-                  Dave" (Aidan 2026-11-19). It rides on all three fronts
-                  exactly as a name does. */}
-              <button type="button" className={s.chip(shown('front', brief.front === 'custom'))} onClick={() => { touch('front'); set({ front: 'custom' }); }} data-testid="front-custom">Something else</button>
-              <button type="button" className={s.chip(shown('front', brief.front === 'none'))} onClick={() => { touch('front'); set({ front: 'none' }); }}>Nothing</button>
+              {/* "Something else" (a nickname or a few words of their own,
+                  2026-11-19) is no longer offered: it was the chip that made
+                  this a question about the front rather than the name. It
+                  still shows for a brief that ARRIVES with front=custom (an
+                  older link), so words that will be printed are never
+                  chosen out of sight. */}
+              {brief.front === 'custom' && (
+                <button type="button" className={s.chip(true)} data-testid="front-custom">Something else</button>
+              )}
+              <button type="button" className={s.chip(shown('front', brief.front === 'none'))} onClick={() => { touch('front'); set({ front: 'none' }); }}>No thanks</button>
             </div>
             {brief.front === 'custom' && (
               <>

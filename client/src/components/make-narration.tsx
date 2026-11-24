@@ -114,8 +114,8 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
   const vibe: Record<Brief['vibe'], BeatPart[]> = {
     funny: [plain('Aiming for the laugh, not the eye-roll.')],
     warm: [plain('Warm, not soppy. There’s a line, and we’re staying on the right side of it.')],
-    rude: [plain('Cheeky, but the kind you’d still put on the mantelpiece.')],
-    mix: [plain('One funny, one warm, one a bit cheeky. You’ll choose.')],
+    rude: [plain('Rude, but the kind you’d still put on the mantelpiece.')],
+    mix: [plain('One funny, one warm, one rude. You’ll choose.')],
   };
   beats.push({ id: 'vibe', parts: vibe[brief.vibe] });
 

@@ -45,7 +45,7 @@ import { copyFor } from '@shared/market-copy';
 
 export interface DemoPreset {
   /** Chip labels exactly as the brief shows them. */
-  who: string; occasion: string; age: string; vibe: 'Light humour' | 'Warm' | 'Cheeky' | 'One of each';
+  who: string; occasion: string; age: string; vibe: 'Light Humour' | 'Warm' | 'Rude' | 'One of each';
   thing: string; cant: string; front: 'role' | 'name' | 'none'; name: string;
   dear: string; from: string;
   /** The typed hook line, when the run opens with one. */
@@ -70,7 +70,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     photo: '/proof-source-photo.webp',
   },
   'dad-60-canal': {
-    who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light humour',
+    who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light Humour',
     thing: 'Fishing on the canal every Sunday, rain or shine', cant: 'Getting up before 6am', front: 'role', name: 'Dave',
     dear: 'Dear Dad,', from: 'Love, Aidan x',
     hookLine: 'Watch us make a card for Dad. 60. Canal fishing every Sunday.',
@@ -80,7 +80,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
   // Three for him."): the phone section of the rack ad. The typed line is
   // what she says in the voiceover, so the screen and the script agree.
   'dad-60-shed': {
-    who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light humour',
+    who: 'Dad', occasion: 'Birthday', age: '60', vibe: 'Light Humour',
     thing: 'His shed, his air fryer, and what he paid for the house in 1994', cant: 'Self-service checkouts', front: 'role', name: 'Dave',
     dear: 'Dear Dad,', from: 'Love, Hannah x',
     // Not 'Golf' as the can't-stand: the engine drew a golf flag as the
@@ -92,7 +92,7 @@ export const DEMO_PRESETS: Record<string, DemoPreset> = {
     // so it can be the same man as the ad's closing shot.
   },
   'mate-30-fiveaside': {
-    who: 'Best mate', occasion: 'Birthday', age: '30', vibe: 'Cheeky',
+    who: 'Best mate', occasion: 'Birthday', age: '30', vibe: 'Rude',
     thing: 'Five-a-side on Thursdays, still thinks he can play', cant: 'Losing', front: 'name', name: 'Tom',
     dear: 'Tom,', from: 'The lads',
     hookLine: 'Watch us make a card for a mate who turns 30 and still thinks he can play.',
@@ -695,7 +695,7 @@ export function PhotoPicker({ photo, onPick, onCancel }: { photo: string; onPick
 }
 
 const OCCASION_CHIP: Record<string, string> = { birthday: 'Birthday', christmas: 'Christmas', anniversary: 'Anniversary', wedding: 'Wedding' };
-const VIBE_CHIP: Record<string, DemoPreset['vibe']> = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
+const VIBE_CHIP: Record<string, DemoPreset['vibe']> = { funny: 'Light Humour', warm: 'Warm', rude: 'Rude', mix: 'One of each' };
 /** A builder config filled from a saved run: the answers, the words and
  *  the photo come from the run, so the replay types what was typed. */
 export function configFromRun(r: ReplayRun, base: DemoConfig, clip: ClipKey = base.clip ?? 'full'): DemoConfig {
@@ -719,7 +719,7 @@ export function configFromRun(r: ReplayRun, base: DemoConfig, clip: ClipKey = ba
     hookLine: clip === 'full' && r.hook_line ? r.hook_line : (CLIPS.find((c) => c.key === clip) ?? CLIPS[0]).hook(whoWords === 'them' ? 'them' : whoWords),
   };
 }
-const VIBE_WORDS: Record<string, string> = { funny: 'Light humour', warm: 'Warm', rude: 'Cheeky', mix: 'One of each' };
+const VIBE_WORDS: Record<string, string> = { funny: 'Light Humour', warm: 'Warm', rude: 'Rude', mix: 'One of each' };
 /** The brief as a few short chips, for "Guess the brief". */
 function guessChipsOf(b: Partial<Brief> | null): string[] {
   if (!b) return [];
