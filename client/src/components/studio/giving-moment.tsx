@@ -177,9 +177,9 @@ export function GivingMoment({
           How would you like to give it?
         </h2>
         <p className="text-sm text-keeper-meta leading-relaxed">
-          Your printed card{recipientName ? ` for ${recipientName}` : ''}:{' '}
-          {formatMoney(CARD_BASE)} inc. postage, with a free digital link to
-          share.
+          Your printed card{recipientName ? ` for ${recipientName}` : ''}, with a free
+          digital link to share. The price, with any first-card offer taken
+          off, is on the next screen before you pay.
         </p>
         {/* The lead-time notice used to repeat here (2026-09-09). The
             studio layout already pins the same sentence at the top of
@@ -229,9 +229,6 @@ export function GivingMoment({
         ) : (
           <>
             Continue to payment
-            <span className="ml-2 font-normal opacity-90">
-              · {formatMoney(CARD_BASE)}
-            </span>
             <ArrowRight className="w-4 h-4 ml-2" />
           </>
         )}

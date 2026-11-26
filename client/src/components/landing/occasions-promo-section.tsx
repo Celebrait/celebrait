@@ -112,7 +112,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
               {onUs ? 'Claim my free card' : 'Claim 50% off'}
             </button>
             <p className="text-[12.5px] text-keeper-meta">
-              One per account. Takes about a minute.
+              One per account. Takes about a minute. UK only.
             </p>
           </div>
         </div>

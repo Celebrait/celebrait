@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { Loader2, ArrowLeft, Check, Camera, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -100,9 +100,9 @@ const textCheckFor = (c: Concept, expectedText: string | undefined) =>
 type FailCode = 'safety' | 'rate' | 'server' | 'auth' | 'timeout' | 'unknown';
 const FAIL_COPY: Record<FailCode, { title: string; tile: string; retry: string }> = {
   safety:  { title: 'The safety filter caught this one', tile: 'The safety filter caught this one, usually a name or a brand in the brief.', retry: 'Try a safer take' },
-  rate:    { title: 'Slow down a sec', tile: 'We’ve hit a rate limit on the drawing engine. Give it 30 seconds.', retry: 'Try again' },
-  server:  { title: 'The drawing engine’s busy', tile: 'The image model is overloaded right now. Try again in a minute.', retry: 'Try again' },
-  auth:    { title: 'Something’s misconfigured', tile: 'We hit a problem with the image provider. The team’s been notified.', retry: 'Try again' },
+  rate:    { title: 'Slow down a sec', tile: 'We’re drawing a lot of cards right now. Give it 30 seconds.', retry: 'Try again' },
+  server:  { title: 'We’re rushed off our feet', tile: 'We’re rushed off our feet right now. Try again in a minute.', retry: 'Try again' },
+  auth:    { title: 'That’s our fault, not yours', tile: 'Something went wrong at our end. Try again in a few minutes, and if it’s still stuck, email us.', retry: 'Try again' },
   timeout: { title: 'That one took too long', tile: 'That one took too long to draw.', retry: 'Have another go' },
   unknown: { title: 'That one didn’t land', tile: 'That one didn’t come out.', retry: 'Have another go' },
 };
@@ -298,6 +298,14 @@ export default function MakePage() {
   // "Keep it": sign in, come back here with ?claim=<id>, adopt the card
   // by its token, then on to the studio. (The token can't ride the
   // session — OTP verify regenerates it — so it lives in the browser.)
+  //
+  // Depends on the QUERY STRING too (launch audit 2026-11-26). A new
+  // account's sign-in flips isAuthenticated first and only afterwards puts
+  // ?claim in the URL (its welcome step sits in between), on the same
+  // pathname, so with [authLoading, isAuthenticated] alone this had already
+  // run, found no ?claim, and never ran again: the card stayed unowned
+  // until a reload. photo-maker.tsx solved the same thing the same way.
+  const search = useSearch();
   useEffect(() => {
     const claim = new URLSearchParams(window.location.search).get('claim');
     if (!claim || authLoading) return;
@@ -308,7 +316,7 @@ export default function MakePage() {
       .then(() => navigate(`/studio/card/${claim}`))
       .catch(() => navigate('/studio'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, search]);
   const forWho = whoPossessive(brief);
 
   const [cells, setCells] = useState<CardCell[]>(() => (madeAtOpen ? [madeCell(madeAtOpen)] : []));
@@ -588,7 +596,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className="mb-3 flex justify-end">
-          <Link href={betaMode ? '/beta' : '/create'} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
+          <Link href={betaMode ? '/beta' : brief.occasion === 'christmas' ? '/create?occasion=christmas' : '/create'} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
           <StepChips steps={chips} current={briefStep} furthest={briefFurthest} onJump={(i) => setBriefJump(i)} />
@@ -622,7 +630,10 @@ export default function MakePage() {
             <div className="flex flex-wrap justify-center gap-3">
               {phase === 'failed' && <button type="button" onClick={() => void generate()} className={primary}>Try again</button>}
               {earlier.length > 0 && <button type="button" onClick={() => { if (bringBack(0)) setPhase('results'); }} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium" data-testid="back-to-earlier"><ArrowLeft className="w-4 h-4" /> Back to your last three</button>}
-              {phase === 'capped' && <Link href="/studio" className={primary}>Sign in to keep going</Link>}
+              {/* Back HERE after signing in, answers and all: this used to go
+                  to /studio, the photo studio, and the three-card visitor never
+                  saw their brief again (launch audit 2026-11-26). */}
+              {phase === 'capped' && !isAuthenticated && <Link href={`/login?redirect=${encodeURIComponent(`/make${window.location.search}`)}`} className={primary}>Sign in to keep going</Link>}
               <button type="button" onClick={() => setPhase('brief')} className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> Change the details</button>
               {rack && <Link href={`/cards/${brief.occasion}`} className={`${textLink} self-center`}>Or take one off the shelf</Link>}
             </div>
@@ -879,7 +890,7 @@ export default function MakePage() {
                       )}
                     </p>
                   </div>
-                  <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign, e.g. Love, Aidan x" className={input} />
+                  <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="How you sign, e.g. Love, Sam x" className={input} />
                 </div>
                 {over && <p className="mt-3 text-sm text-accent-red-dark">Keep the whole inside under {INSIDE_MAX} characters. It’s {joinedLen} at the moment.</p>}
                 {failMsg && <p className="mt-3 text-sm text-accent-red-dark">{failMsg}</p>}
@@ -939,7 +950,16 @@ export default function MakePage() {
                   .then((s) => {
                     // Signed in: the row is already theirs. Guest: sign in,
                     // then come back to claim it by token.
-                    if (isAuthenticated) navigate(`/studio/card/${s.cardId}`);
+                    if (isAuthenticated) {
+                      // Usually theirs already, but not when this browser saved
+                      // it as a guest and they signed in some other way since:
+                      // the studio then said "Card not found". Claim it by its
+                      // token first; the endpoint answers alreadyOwned if so.
+                      const token = (() => { try { return sessionStorage.getItem(rackTokenKey(s.cardId)) ?? ''; } catch { return ''; } })();
+                      fetch(`/api/make/cards/${s.cardId}/claim`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: token }) })
+                        .catch(() => undefined)
+                        .finally(() => navigate(`/studio/card/${s.cardId}`));
+                    }
                     else if (betaMode) {
                       // Beta tester: no sign-in — open their throwaway studio,
                       // then the ?claim effect above adopts the card.

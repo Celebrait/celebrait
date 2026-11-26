@@ -101,7 +101,11 @@ export function TickerBanner() {
   const search = useSearch();
   const door = doorFor(tickerPath, useMakerEnabled() === true);
   const claimTap = useClaimFreeCard();
-  const noOffer = isChristmasVisit(tickerPath, search);
+  // Nor at the till (launch audit 2026-11-26): on /buy and /order the strip
+  // rotated "50% off your first card. Claim it" over a card already priced,
+  // a Christmas one at full price included, and tapping it walked the buyer
+  // out of checkout onto the photo page with the form lost.
+  const noOffer = isChristmasVisit(tickerPath, search) || /^\/(buy|order)\//.test(tickerPath);
   // 0 = the offer, 1 = the honest lead line.
   const [rotating, setSlot] = useState(0);
   useEffect(() => {

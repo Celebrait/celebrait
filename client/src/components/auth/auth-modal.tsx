@@ -21,7 +21,7 @@ import {
 } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { cn } from '@/lib/utils';
 import logoSrc from '@/assets/logo-mark.webp';
 import { AuthForm, authHeadingCopy, type AuthStep } from './auth-form';
@@ -51,6 +51,7 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [redirect, setRedirect] = useState(DEFAULT_REDIRECT);
   const [location] = useLocation();
+  const search = useSearch();
 
   const openAuth = useCallback((to: string = DEFAULT_REDIRECT) => {
     setRedirect(to);
@@ -59,9 +60,13 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
 
   // Close on navigation — a successful auth calls setLocation(redirect),
   // which would otherwise leave the modal open over the destination page.
+  // The query string counts as navigation too: "Sign in to keep it" on
+  // /make returns to /make?claim=<id>, the same pathname, and wouter's
+  // location is pathname only, so the dialog used to stay up over the page
+  // with the name form still showing (launch audit 2026-11-26).
   useEffect(() => {
     setOpen(false);
-  }, [location]);
+  }, [location, search]);
 
   return (
     <AuthModalContext.Provider value={{ openAuth, authOpen: open }}>

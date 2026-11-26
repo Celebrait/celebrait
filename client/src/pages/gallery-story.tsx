@@ -113,14 +113,14 @@ function Story({ s }: { s: GalleryStory }) {
         <Rise delay={0.1} className="md:order-1">
           <p className={EYEBROW}>The inside</p>
           <p className="mt-3 max-w-[40ch] text-[17px] leading-[1.7] text-keeper-body">{s.insideNote}</p>
-          <blockquote className="mt-8 rounded-3xl border border-keeper-gold/30 bg-keeper-gold-wash/60 p-7 md:p-8">
-            <Stars n={s.review.stars} />
-            <p className={`mt-4 text-[22px] leading-[1.35] text-keeper-ink md:text-[24px] ${DISPLAY} font-semibold`}>
-              &ldquo;{s.review.quote}&rdquo;
-            </p>
-            <footer className="mt-5 text-[14px] text-keeper-meta">{s.review.by}</footer>
-          </blockquote>
-          <p className="mt-3 px-1 text-[12px] leading-relaxed text-keeper-meta">{s.provenance}</p>
+          {/* NO STAR RATING, NO QUOTE (launch audit 2026-11-26). These cards
+              and the people in them are ours, made up to show the route. A
+              five-star quote from "Mark, Adam's dad" under the heading "Real
+              stories" is a review from a customer who does not exist, and
+              twelve-pixel small print underneath does not make it anything
+              else (the DMCC Act bans fake reviews outright). The data stays
+              in gallery-stories.ts for the day a real customer says it. The
+              who-made-this line now sits at the TOP of the story, full size. */}
         </Rise>
       </div>
     </article>
@@ -143,7 +143,7 @@ export default function GalleryStoryPage() {
       <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
       <KeeperHeader />
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-36 md:pt-40">
-        <Rise className="mb-10 flex items-center justify-between gap-6 md:mb-14">
+        <Rise className="mb-5 flex items-center justify-between gap-6 md:mb-6">
           <Link
             href="/stories"
             className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-keeper-meta transition-colors hover:text-keeper-ink"
@@ -152,8 +152,11 @@ export default function GalleryStoryPage() {
             <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             All stories
           </Link>
-          {s && <p className={EYEBROW}>Real stories · {s.chip}</p>}
+          {s && <p className={`text-right ${EYEBROW}`}>How a card gets made · {s.chip}</p>}
         </Rise>
+        {/* Who made this, said first and at reading size (see the note where
+            the star rating used to be). */}
+        {s && <p className="mb-8 max-w-[62ch] text-[15px] leading-relaxed text-keeper-body md:mb-10">{s.provenance}</p>}
 
         {s ? (
           <Story s={s} />

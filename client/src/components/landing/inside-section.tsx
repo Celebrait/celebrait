@@ -95,7 +95,7 @@ export function InsideSection() {
               kraft: it's brown and uncoated, and the gloss is exactly what
               makes the artwork print vividly. */}
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
-            It's 2026, anyone can write a prompt and conjure up an image.
+            Anyone can conjure up an image these days.
             But a custom greetings card with a front and inside that belong
             together, pressed onto 280gsm
             gloss and posted to someone you care about.{' '}

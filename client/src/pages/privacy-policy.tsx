@@ -350,8 +350,9 @@ export default function PrivacyPolicy() {
                     <tr>
                       <td className="px-4 py-2">Print &amp; delivery partner</td>
                       <td className="px-4 py-2">
-                        Printing and posting physical cards (recipient name and
-                        address only)
+                        Printing and posting physical cards. They receive the
+                        card artwork and the name and address it is posted
+                        to, nothing else
                       </td>
                       <td className="px-4 py-2">{ZA ? "South Africa" : "EU / United Kingdom"}</td>
                     </tr>

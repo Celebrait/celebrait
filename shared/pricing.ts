@@ -252,7 +252,17 @@ export const STANDARD_POST_WORKING_DAYS = { min: 1, max: 2 } as const;
 /** The plain-English promise we make everywhere. */
 export const ORDER_AHEAD_DAYS = 7;
 
-const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+// Weekends, and the days the post and the printer shut over Christmas and
+// New Year: 25 to 28 December (Christmas Day, Boxing Day and whichever
+// weekdays stand in for them when they fall on a weekend) and 1 January.
+// Without these an order on Friday 18 December 2026 was told "expect it by
+// Fri 25 Dec", and one on the 19th "Mon 28 Dec", a bank holiday (launch
+// audit 2026-11-26). Named isWeekend because that is what every caller asks:
+// "is this a day nothing moves?".
+const isWeekend = (d: Date) =>
+  d.getDay() === 0 || d.getDay() === 6
+  || (d.getMonth() === 11 && d.getDate() >= 25 && d.getDate() <= 28)
+  || (d.getMonth() === 0 && d.getDate() === 1);
 function addWorkingDays(from: Date, n: number): Date {
   const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
   let left = n;

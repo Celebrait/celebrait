@@ -481,7 +481,7 @@ export function AuthForm({
               onKeyDown={(e) =>
                 e.key === 'Enter' && !isSavingProfile && handleWelcomeSubmit()
               }
-              placeholder="Aidan"
+              placeholder="Sam"
               maxLength={60}
               className="mt-1 h-11"
               data-testid="input-welcome-first-name"

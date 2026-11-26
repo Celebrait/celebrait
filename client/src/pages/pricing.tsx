@@ -112,7 +112,6 @@ export default function PricingPage() {
             </h1>
             <p className={`max-w-[40rem] ${SUB}`}>
               Every card is printed once, just for them, and posted with a free digital link to share.
-              {!single && <>{' '}The price depends on how much we make from scratch.</>}
             </p>
 
             <div className="mt-8 md:mt-10">
@@ -185,11 +184,15 @@ export default function PricingPage() {
             <div className="mt-12 rounded-2xl border border-keeper-hair bg-white/70 p-6 backdrop-blur-sm md:mt-16 md:p-8">
               <p className={EYEBROW}>The fine print, kept short</p>
               <ul className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-keeper-body">
-                {maker
-                  ? <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account.</li>
-                  : onUs
-                    ? <li><span className="font-semibold text-keeper-ink">Your first card’s on us, just {formatMoney(shippingPrice())} postage,</span> when you add three dates that matter to your studio. One per account, one per address, UK addresses.</li>
-                    : <li><span className="font-semibold text-keeper-ink">Your first card is half price, {formatMoney(firstOrderPrice('photo'))}</span> when you add three dates that matter to your studio. One per account.</li>}
+                {/* BOTH offers when both routes are open (launch audit 2026-11-26).
+                    With the three-card route on, this list named only its
+                    half price, and the photo page's "first card on us" was
+                    not written down anywhere on the page that says it is
+                    the fine print. */}
+                {maker && <li><span className="font-semibold text-keeper-ink">Your first made-for-them card is half price</span> when you add three dates that matter to your studio. One per account. Not on Christmas cards ordered before 15 December.</li>}
+                {onUs
+                  ? <li><span className="font-semibold text-keeper-ink">Your first photo card’s on us, just {formatMoney(shippingPrice())} postage,</span> when you add three dates that matter to your studio. One per account and per address, UK addresses, while the launch offer lasts. If it has closed when you order, your first card is half price instead.</li>
+                  : !maker && <li><span className="font-semibold text-keeper-ink">Your first card is half price, {formatMoney(firstOrderPrice('photo'))}</span> when you add three dates that matter to your studio. One per account.</li>}
                 <li><span className="font-semibold text-keeper-ink">Personalised cards can't be cancelled</span> once printing begins. We say so before you pay.</li>
                 <li><span className="font-semibold text-keeper-ink">Making is free.</span> Roll again, change the details, start over. You only pay when you post one.</li>
                 <li><span className="font-semibold text-keeper-ink">No logos, brands or famous faces</span> on the front. Your answers set the scene; we draw it.</li>

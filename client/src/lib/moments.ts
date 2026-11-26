@@ -126,7 +126,7 @@ export function occasionFacts(): string[] {
       : 'Mothering Sunday moves with Easter every year. We track it so you never have to.',
     marketId() === 'ZA'
       ? 'Birthdays sneak up on everyone. Not you. Not any more.'
-      : 'The average Brit forgets three birthdays a year. Not you. Not any more.',
+      : 'Birthdays creep up on everyone. Not you. Not any more.',
     "A kept card outlives a text by years. Mantelpieces don't have notification settings.",
   ];
 }

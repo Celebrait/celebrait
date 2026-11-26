@@ -66,7 +66,7 @@ const photoFaqs = (rack: boolean, maker = true): FaqEntry[] => [
   },
   {
     q: 'Where do you ship to?',
-    a: "United Kingdom today. We're working on the rest of Europe, South Africa, and the US. Sign up and we'll let you know when your country is live.",
+    a: "UK addresses only for now. Buying from abroad is fine: have it sent straight to them.",
   },
   {
     q: 'How do reminders work?',
@@ -78,7 +78,7 @@ const photoFaqs = (rack: boolean, maker = true): FaqEntry[] => [
   },
   {
     q: 'Is my photo private?',
-    a: "Yes. Photos you upload are used only for your card. We never share them, never sell them, and never train models on them. You can delete any photo from your account at any time.",
+    a: "Yes. Your photo is used to make your card and nothing else. To draw it we pass it to the image services named in our privacy policy, and the finished artwork goes to our printer. It's never sold and never used for advertising. You can delete any photo from your account at any time.",
   },
 ];
 
@@ -105,7 +105,7 @@ const MAKER_FAQS: FaqEntry[] = [
   },
   {
     q: 'What does it cost?',
-    a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${formatMoney(firstOrderPrice('maker'))}. Making and previewing is free; you only pay when you print one.`,
+    a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${formatMoney(firstOrderPrice('maker'))} (not on Christmas cards ordered before 15 December). Making and previewing is free; you only pay when you print one.`,
   },
   {
     q: 'How long does delivery take?',
@@ -141,7 +141,7 @@ const forMarket = (faqs: FaqEntry[]): FaqEntry[] =>
 const christmasMakerFaqs = (base: FaqEntry[]): FaqEntry[] => [
   {
     q: 'Will it arrive for Christmas?',
-    a: `Yes, if you order by ${CHRISTMAS_LAST_ORDER_LABEL}. Each card is printed to order, which takes up to three working days, then posted Royal Mail 24, tracked. Order after that and it may arrive after Christmas. The free digital link arrives instantly either way.`,
+    a: `It should, if you order by ${CHRISTMAS_LAST_ORDER_LABEL}. That's our last order date for Christmas. Each card is printed to order, which takes up to three working days, then posted Royal Mail 24, tracked. Order after that and it may arrive after Christmas. The free digital link arrives instantly either way.`,
   },
   ...base.map((f) => (f.q === 'How does it work?'
     ? { ...f, a: f.a.replace("Six quick questions: who it's for, the occasion, what they're like.", "Five quick questions: who it's for and what they're like.") }

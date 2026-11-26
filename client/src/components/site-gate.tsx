@@ -7,7 +7,7 @@
 
 import { lazy, Suspense, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 // The advertising-cookie ask rides with the open site only, so it never
 // sits on the launching-soon page. Inert without META_PIXEL_ID.
@@ -38,6 +38,15 @@ export function SiteGate({ children }: { children: ReactNode }) {
     },
     staleTime: 60_000,
     retry: 1,
+    // SIGNING IN MUST NOT WIPE THE PAGE (launch audit 2026-11-26). The key
+    // carries the user id, so the instant a NEW account's code verifies the
+    // key changes and, without this, `data` is undefined until the refetch
+    // lands: the blank-paper line below unmounted the whole route and
+    // rebuilt it with fresh state. That threw away the first-card claim on
+    // /photo mid-sign-up and the finished card behind "Sign in to keep it"
+    // on /make, for exactly the people ads bring. The sibling hooks
+    // (use-maker, use-rack) have always kept the previous answer.
+    placeholderData: keepPreviousData,
   });
 
   if (OPEN.some((re) => re.test(location))) return <>{children}<ConsentBanner /><BetaBar /></>;

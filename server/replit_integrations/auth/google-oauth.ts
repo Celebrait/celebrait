@@ -73,7 +73,9 @@ function withNewAccountFlag(path: string): string {
 
 function safeRedirectPath(input: unknown): string {
   if (typeof input !== 'string') return '/studio';
-  if (input.startsWith('/') && !input.startsWith('//')) return input;
+  // "/\\evil.com" passed the old "//" test and browsers read "/\\" as "//":
+  // an open redirect after Google sign-in (launch audit 2026-11-26).
+  if (input.startsWith('/') && !/^\/[\/\\]/.test(input)) return input;
   return '/studio';
 }
 

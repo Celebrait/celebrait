@@ -167,7 +167,7 @@ export default function CardProductPage() {
               </div>
             )}
             <p className="mt-4 text-center text-xs text-keeper-meta">
-              {card.insideImageUrl ? 'Tap the card to look inside · ' : ''}148 × 148&nbsp;mm folded · 300gsm · envelope included
+              {card.insideImageUrl ? 'Tap the card to look inside · ' : ''}6&nbsp;in (15&nbsp;cm) square · 280gsm · envelope included
             </p>
           </div>
 
@@ -185,7 +185,7 @@ export default function CardProductPage() {
 
             {!rack ? (
               <div className="mt-6 rounded-2xl border border-keeper-hair bg-white/70 p-5 backdrop-blur-sm">
-                <p className="text-sm text-keeper-body">Made for a real person, like every card here. Yours starts with a few words about them.</p>
+                <p className="text-sm text-keeper-body">One of ours, to show what’s possible. Yours starts with them.</p>
                 <Link href={makeHref} className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-keeper-ink py-4 text-base font-semibold text-keeper-paper transition-colors hover:bg-black">Make yours →</Link>
               </div>
             ) : (<>

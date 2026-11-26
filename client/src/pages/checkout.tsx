@@ -446,6 +446,23 @@ export default function CheckoutPage() {
       }
       const body: CheckoutResponse = await res.json();
 
+      // THE SERVER DECIDES THE PRICE; SAY SO IF IT DISAGREES (launch audit
+      // 2026-11-26). This page works "on us" out from the site switch. The
+      // server also checks that this ADDRESS hasn't had a free card and that
+      // today's free cards haven't run out, and falls back to half price.
+      // The customer used to press "Pay £2.95" and meet £5.44 on Stripe with
+      // no word from us in between. Nobody is charged without seeing the
+      // real figure, but it must be us who tells them, before they leave.
+      const serverTotal = body.totals?.totalAmount;
+      if (body.payment.mode === 'redirect' && typeof serverTotal === 'number' && serverTotal > totals.total) {
+        const ok = window.confirm(
+          `One thing before you pay: the total is ${formatMoney(serverTotal)}, not ${formatMoney(totals.total)}.\n\n` +
+          `The first-card offer is one per address and limited each day, so this card is half price plus postage instead of on us.\n\n` +
+          `Carry on to payment?`,
+        );
+        if (!ok) return;
+      }
+
       if (body.payment.mode === 'redirect' && body.payment.redirectUrl) {
         const url = body.payment.redirectUrl;
         // Meta 'InitiateCheckout' as we hand over to the gateway. No-op
@@ -608,12 +625,18 @@ export default function CheckoutPage() {
                 </p>
                 {freeCardApplied ? (
                   <p className="text-lg font-semibold text-keeper-ink mt-3">
-                    <span className="mr-1.5 font-normal text-keeper-meta line-through">
+                    {/* Card and postage said separately (launch audit
+                        2026-11-26). This used to strike the CARD price and
+                        put the TOTAL beside it: "£4.99 struck, £5.44 inc.
+                        postage, 50% off" showed a 'discounted' figure higher
+                        than the one crossed out. */}
+                    Card{' '}
+                    <span className="mr-1 font-normal text-keeper-meta line-through">
                       {formatMoney(cardPrice(card?.source))}
                     </span>
-                    {formatMoney(totals.total)}{' '}
+                    {totals.printAmount === 0 ? 'free' : formatMoney(totals.printAmount)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
-                      inc. postage, {onUs ? 'your first card on us' : '50% off your first card'}
+                      · postage {formatMoney(totals.shippingAmount)} · {formatMoney(totals.total)} to pay, {onUs ? 'your first card on us' : '50% off your first card'}
                     </span>
                   </p>
                 ) : (
@@ -991,13 +1014,10 @@ export default function CheckoutPage() {
                 </Link>{' '}
                 and will wait.
               </p>
-              {/* Promo codes are entered on Stripe's hosted payment page
-                  (allow_promotion_codes), not here — signpost it so a
-                  code-holder doesn't hunt for the field on this screen. */}
-              <p className="flex items-center justify-center gap-1.5 text-[11px] text-keeper-meta">
-                <Tag className="h-3 w-3 shrink-0" aria-hidden />
-                Got a discount code? Add it on the next page (secure payment).
-              </p>
+              {/* The line that sent code-holders to "the next page" is gone
+                  (launch audit 2026-11-26): codes go in this page's own
+                  "Got a code?" box, and Stripe's promotion-code field is
+                  now off (server/studio/stripe-provider.ts). */}
               {/* Pre-contract information (audit 2026-07-27): the ToS's
                   CCR 2013 personalised-goods exemption existed but the
                   buyer never saw it before paying — a consumer must see

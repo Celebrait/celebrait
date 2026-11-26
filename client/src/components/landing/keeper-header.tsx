@@ -20,7 +20,7 @@
 // renders behind the very bar it came from (Aidan 2026-09-10).
 
 import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { Cake, Camera, ChevronDown, Menu, Sparkles, TreePine, type LucideIcon } from 'lucide-react';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -91,6 +91,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
   const minimal = minimalProp || minimalChrome;
   const { openAuth } = useAuthModal();
   const [location] = useLocation();
+  const headerSearch = useSearch();
   const [open, setOpen] = useState(false);
   // The rack is parked until there is stock (/admin/site) — no Stock cards
   // menu until it's known to be open.
@@ -105,7 +106,12 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
   const onGate = location === '/' && maker;
   // On the makers and at checkout the visitor is already doing the thing —
   // the header verb would only pull them out of it (audit 2026-09-09).
-  const hideCta = location === '/photo/make' || location.startsWith('/buy/') || location.startsWith('/order/');
+  // /make too: there the button linked to /make itself, which did nothing
+  // visible but stripped the answers out of the address (launch audit 2026-11-26).
+  const hideCta = location === '/photo/make' || location === '/make' || location.startsWith('/buy/') || location.startsWith('/order/');
+  // On the Christmas page the button stays in Christmas. Bare /make asked six
+  // everyday questions and brought the half-price strip back.
+  const xmasQuery = new URLSearchParams(headerSearch).get('occasion') === 'christmas' ? '?occasion=christmas' : '';
   const onPhotoLp = location === '/photo' || location === '/keeper' || (location === '/' && !maker);
 
   const cta = hideCta || minimal ? null : onGate ? (
@@ -117,7 +123,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
   ) : (
     /* Signed out on the photo page → the PUBLIC photo maker; anywhere
        else → the three-card builder. */
-    <Link href={onPhotoLp || !maker ? '/photo/make' : '/make'}>
+    <Link href={onPhotoLp || !maker ? '/photo/make' : `/make${xmasQuery}`}>
       <button type="button" className={ctaCls}>Make a card</button>
     </Link>
   );

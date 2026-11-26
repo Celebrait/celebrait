@@ -209,7 +209,7 @@ function dateHintForOccasion(occasion: string): string {
   switch (occasion) {
     case 'birthday':
     case 'baby':
-      return "We'll remind you each year on the day.";
+      return "We'll remind you each year, three weeks before, so there's time to make and post a card.";
     case 'anniversary':
     case 'wedding':
     case 'engagement':

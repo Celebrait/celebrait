@@ -24,8 +24,10 @@ import { copyFor, shipPhrase } from './market-copy';
  *  market is known before any module runs, on either side. */
 export const SITE_ORIGIN = publicOrigin();
 
-// "posted first class" in GB (today's words); "sent by courier" in ZA.
-const postedHow = () => (copyFor().za ? shipPhrase(undefined, false) : 'posted first class');
+// "posted Royal Mail 24" in GB, the words every page and the checkout use
+// (it said "first class" here only, a different service: launch audit
+// 2026-11-26); "sent by courier" in ZA.
+const postedHow = () => (copyFor().za ? shipPhrase(undefined, false) : 'posted Royal Mail 24');
 
 // The "from" price follows the rack switch (Aidan 2026-10-09: the rack is
 // parked until there is stock): £4.99 while stock cards sell, else the
@@ -81,7 +83,7 @@ const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
     path: '/create',
     title: 'Why Settle For A Card That’s Anything But All About Them? | Celebrait',
     description:
-      `Tell us who the card is for and we write and illustrate three originals in 3–5 minutes. Printed on 280gsm card and ${postedHow()} from ${fromGBP(rackEnabled)}.`,
+      `Tell us who the card is for and we write and illustrate three originals to choose from, about five minutes start to finish. Printed on 280gsm card and ${postedHow()} from ${fromGBP(rackEnabled)}.`,
   },
   {
     path: '/make',
@@ -130,9 +132,9 @@ const pageSeo = (rackEnabled: boolean, makerEnabled: boolean): PageSeo[] => [
   },
   {
     path: '/stories',
-    title: 'Real Stories: Photo Cards, Start to Finish | Celebrait',
+    title: 'Photo Cards, Start to Finish | Celebrait',
     description:
-      'Real personalised cards told as stories: the selfie each one began as, the words that were typed, and the printed card that arrived. See what one photo becomes.',
+      'How a personalised card gets made, start to finish: the selfie each one began as, the words we typed, and the printed card. See what one photo becomes.',
   },
   {
     path: '/blog',
@@ -243,6 +245,8 @@ const NOINDEX_PATHS: RegExp[] = [
   /^\/login(\/|$)/, // sign-in form
   /^\/buy\//, // checkout by card id
   /^\/(card-capture|og|research|demo|door2?)(\/|$)/, // internal tooling + asset stages
+  /^\/(make|photo\/make)(\/|$)/, // the two builders: a tool, not a page to land on from search
+  /^\/beta(\/|$)/, // the tester door, "closed" when the beta is off
 ];
 
 // Mirror of the router (client/src/App.tsx): every prefix a real route
@@ -291,7 +295,7 @@ export function isKnownRoutePath(path: string): boolean {
 export function robotsForPath(path: string, rackEnabled = false, makerEnabled = false): string | null {
   if (NOINDEX_PATHS.some((re) => re.test(path))) return 'noindex,nofollow';
   if (!GALLERY_OPEN && /^\/gallery\/?$/.test(path)) return 'noindex';
-  if (!rackEnabled && /^\/cards(\/|$)/.test(path)) return 'noindex';
+  if (!rackEnabled && /^\/cards?(\/|$)/.test(path)) return 'noindex'; // /cards and the /card/:id product pages
   if (!makerEnabled && /^\/(create|make)(\/|$)/.test(path)) return 'noindex';
   if (!isKnownRoutePath(path)) return 'noindex';
   return null;

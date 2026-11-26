@@ -29,6 +29,7 @@
 import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { publicOrigin } from '@shared/market';
+import { christmasPhase, isChristmasNeedBy } from '@shared/christmas';
 import { publicImageUrl } from '../image-storage';
 import {
   addressBookEntries,
@@ -297,6 +298,19 @@ export async function runReminderDispatch(
     }
 
     // Fire (or dry-run).
+    // AFTER THE CHRISTMAS CUT-OFF, NO "IT'LL ARRIVE IN TIME" (launch audit
+    // 2026-11-26). The ten-day and seven-day emails say "order this week and
+    // it'll be there with days to spare" and "today is the last safe day to
+    // order". For anything needed by Christmas Day those land on 15 and 18
+    // December, after the site has told everyone orders closed on the 14th
+    // and a card ordered now may arrive after Christmas. Skipping is the
+    // honest option: there is no version of this nudge that is both true and
+    // worth sending.
+    if (christmasPhase() === 'closed' && isChristmasNeedBy(new Date(Date.now() + daysUntil * 86_400_000))) {
+      result.skipped.push({ occasionId: occasion.id, tier: dueTier, reason: 'Christmas last-order date has passed' });
+      continue;
+    }
+
     if (opts.dryRun) {
       console.log(
         `[REMINDERS] DRY RUN would fire ${dueTier} for occasion ${occasion.id} (${entry.name}'s ${occasion.occasion}) — daysUntil=${daysUntil}`,

@@ -102,7 +102,7 @@ const MAKER_SETS: Record<'default' | 'christmas', MakerSet> = {
     questions: [
       { q: "Who's it for?", a: 'Dad' },
       { q: 'How old', a: '60' },
-      { q: 'The vibe', a: 'Funny' },
+      { q: 'The vibe', a: 'Light Humour' },
       { q: 'What they love', a: 'Shed, air fryer' },
       { q: 'Their name', a: 'Dave' },
     ],
@@ -125,7 +125,7 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
   maker: {
     eyebrow: 'From six answers',
     heading: 'How it works',
-    sub: 'Six questions. Three cards. Yours in a minute.',
+    sub: 'Six questions. Three cards. Under a minute to draw.',
     beats: [
       // The same four steps as the Christmas page, in Aidan's words
       // (2026-11-19: design changes there "must reflect on the main 3
@@ -139,7 +139,7 @@ const COPY: Record<Door | 'makerChristmas', { eyebrow: string; heading: string; 
   makerChristmas: {
     eyebrow: 'From five answers',
     heading: 'How it works',
-    sub: 'Five questions. Three Christmas cards. Yours in a minute.',
+    sub: 'Five questions. Three Christmas cards. Under a minute to draw.',
     beats: [
       // The four headings are Aidan's own words (2026-11-19); the lines
       // under them only add what the heading has not already said.

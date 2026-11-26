@@ -55,13 +55,13 @@ export default function StoriesPage() {
       <KeeperHeader />
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-36 md:pt-40">
         <Rise className="max-w-3xl">
-          <p className={EYEBROW}>Real stories</p>
+          <p className={EYEBROW}>How a card gets made</p>
           <h1 className={`mt-3 text-[clamp(34px,5vw,56px)] leading-[1.04] [text-wrap:balance] ${DISPLAY}`}>
             One photo. The whole story.
           </h1>
           <p className="mt-4 max-w-[52ch] text-[17px] leading-[1.7] text-keeper-body">
-            Real cards, start to finish: the selfie each one began as, the words that were typed, and what
-            happened when it arrived.
+            Cards we made ourselves, start to finish: the selfie each one began as, the words we typed, and
+            the printed card. The people and names are made up; the cards are real.
             {GALLERY_OPEN && (
               <>
                 {' '}For every card at a glance, see the{' '}

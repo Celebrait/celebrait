@@ -33,7 +33,6 @@ import { KeeperHeader } from '@/components/landing/keeper-header';
 import { MarketingFooter } from '@/components/landing/marketing-footer';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY, H1 } from '@/pages/doorway';
-import { CardDrift, useDriftCards } from '@/components/catalogue/card-drift';
 import { useAuth } from '@/hooks/use-auth';
 import { useRackEnabled } from '@/hooks/use-rack';
 import { useSeo } from '@/lib/use-seo';
@@ -159,9 +158,6 @@ export default function GatePage() {
   // signed out, the studio's when signed in.
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const photoHref = !authLoading && isAuthenticated ? '/studio/new-card' : '/photo/make';
-  // The wall under the doors: the admin's carousel picks ONLY (no rack
-  // padding). The block hides itself until there's at least one pick.
-  const picks = useDriftCards(20, null);
   const photo = formatMoney(cardPrice('photo'));
   const maker = formatMoney(cardPrice('maker'));
   // "from £X": the rack's £4.99 only while stock cards sell (/admin/site).
@@ -195,8 +191,11 @@ export default function GatePage() {
               card" (Aidan 2026-10-09). The two doors are still the choice,
               so this row IS the two doors, early: the quickest first, the
               photo route beside it. Sits ABOVE the promise chips so both
-              buttons clear a real phone fold (Safari chrome eats ~150 px). */}
-          <div className="mt-6 flex items-stretch gap-2.5 sm:gap-3">
+              buttons clear a real phone fold (Safari chrome eats ~150 px).
+              STACKED on a phone (launch audit 2026-11-26): side by side the
+              pair is 371 px wide in a 327 px column, so "Start with a photo"
+              ran off the right edge of every phone and was cut mid-word. */}
+          <div className="mt-6 flex flex-col items-stretch gap-2.5 sm:flex-row sm:gap-3">
             <Link href="/make" className={`${BTN_PRIMARY} flex-1 whitespace-nowrap px-4 sm:flex-none sm:px-6`}>
               Tell us about them <ArrowRight className="h-4 w-4" />
             </Link>
@@ -215,21 +214,18 @@ export default function GatePage() {
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand-dark">
                     <Icon className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden="true" />
                   </span>
-                  {label}
+                  {/* One span: as loose children of this flex chip the words,
+                      the "+" and the price each became their own column and
+                      wrapped into a jumble on a phone (launch audit 2026-11-26). */}
+                  <span>{label}</span>
                 </span>
               ))}
             </div>
           </div>
 
-          {/* The carousel sits straight under the headline (Aidan
-              2026-09-22) — the hand-picked rack, drifting, tap to open. */}
-          {picks.cards.length > 0 && (
-            <div className="mt-8 md:mt-10">
-              <div className="-mx-6 pl-6 md:pl-[max(1.5rem,calc((100vw-56rem)/2))]">
-                <CardDrift padFrom={null} peek cards={picks.cards} />
-              </div>
-            </div>
-          )}
+          {/* No carousel here any more (Aidan 2026-11-26, launch audit: "remove
+              the carousel from the gate homepage"). The gate asks one question,
+              which door, and each door's own page carries its own wall. */}
 
           <p className={`mx-auto mt-14 max-w-4xl text-left md:mt-20 ${EYEBROW}`}>Two ways in · what kind of card buyer are you?</p>
           <div id="doors" className="mx-auto mt-4 grid max-w-4xl scroll-mt-32 gap-4 sm:gap-5 md:mt-6 md:grid-cols-[1fr_1.3fr] md:items-stretch">
@@ -246,7 +242,7 @@ export default function GatePage() {
               points={[
                 'Tell us who they are and what they love',
                 'We design three cards. You pick the one.',
-                'Printed and posted (or digital if you prefer)',
+                'Printed and posted, with a free digital link',
               ]}
               cta="Tell us about them"
               proof={{ href: '/create', label: 'See how it works' }}
@@ -254,7 +250,7 @@ export default function GatePage() {
                 [Camera, 'Got a photo? Add it once you\'ve picked your favourite and we redesign that card with them in it. Same idea, same words, now they\'re in the picture.'],
                 [RefreshCw, 'Changed your mind? Roll again with a new vibe, or tweak the details.'],
                 [PenLine, 'You steer, we draw. Your answers set the scene. We just can\'t do logos, brands or famous faces.'],
-                [Zap, 'Drawn by our quicker image model, three at a time. That\'s what keeps the price down.'],
+                [Zap, 'We draw three at a time, so you have a choice in under a minute.'],
                 [Clock, `Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is ${formatMoney(shippingPrice())}, ${copyFor().za ? copyFor().shipPhrase : 'Royal Mail 24'}.`],
                 [LockOpen, 'No account needed to see your three.'],
               ]}
@@ -273,14 +269,14 @@ export default function GatePage() {
               points={[
                 'Start with a photo of them (or a group)',
                 'Describe any scene imaginable (seriously)',
-                'Printed and posted (or digital if you prefer)',
+                'Printed and posted, with a free digital link',
               ]}
               cta="Start with a photo"
-              proof={GALLERY_OPEN ? { href: '/gallery', label: 'See a real card first' } : { href: '/stories', label: 'Read a real story first' }}
+              proof={GALLERY_OPEN ? { href: '/gallery', label: 'See a real card first' } : { href: '/stories', label: 'See a card start to finish' }}
               fine={[
                 [Users, 'Any scene you can describe, with more than one person if you like. Not quite them? Start again.'],
                 [ScanFace, 'We check the likeness first and tell you straight if a photo\'s too blurry.'],
-                [Gem, 'Drawn by our bigger image model, one card at a time, at full print quality. Slower, dearer to run, and worth it.'],
+                [Gem, 'Drawn one card at a time, at full print quality. Slower, and worth it.'],
                 [Clock, `Our cards are one-off prints, so please allow at least a week from order to arrival. Postage is ${formatMoney(shippingPrice())}, ${copyFor().za ? copyFor().shipPhrase : 'Royal Mail 24'}.`],
                 [LockOpen, 'No account to start.'],
               ]}

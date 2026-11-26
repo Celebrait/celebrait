@@ -908,7 +908,7 @@ function HeroSection() {
           {/* One plain line (Aidan 2026-11-11): replaced the three-step
               recipe, the £ price and the 7–10 minutes wink. */}
           <p className="order-2 mt-7 max-w-[30rem] text-[17px] leading-[1.6] text-keeper-body md:order-1 md:mt-6">
-            Celebrait turns your photo into any scene imaginable to create mind blowing
+            Celebrait turns your photo into any scene imaginable to create mind-blowing
             custom greetings cards. Print ready in under ten minutes.
           </p>
           <div className="order-1 mt-10 md:order-2 md:mt-8">
@@ -1134,7 +1134,7 @@ function SceneTile({ e, open, onToggle }: { e: ProofExample; open: boolean; onTo
         </span>
       </button>
       <div className="mt-2 pl-1 text-left">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">The scene they typed</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">The scene we typed</p>
         <p className="mt-1.5 font-display text-[20px] font-bold leading-snug tracking-[-0.01em] text-keeper-ink">
           “{e.scene}”
         </p>
@@ -1559,7 +1559,7 @@ function PriceSection() {
             <PrimaryCta large />
           </div>
           <p className="mx-auto mt-6 max-w-[62ch] text-[13px] leading-relaxed text-keeper-meta" data-testid="price-small-print">
-            One per account{onUs ? ' and address, UK only' : ''}. After that, photo cards are{' '}
+            One per account{onUs ? ' and address, UK only, while the launch offer lasts' : ''}. After that, photo cards are{' '}
             {formatMoney(cardPrice('photo'))} plus postage. Make and preview as many as you like for free; you only pay
             when you post one. Our cards are one-off prints, so please allow at least a week from order to arrival.
           </p>

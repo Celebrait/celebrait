@@ -56,7 +56,12 @@ export function useMakerEnabled(): boolean | undefined {
     placeholderData: keepPreviousData,
   });
   if ((user as { isAdmin?: boolean } | null | undefined)?.isAdmin === true) return true;
-  if (isError) return false;
+  // The check itself failed. SiteGate fails OPEN in that case; this used to
+  // fail SHUT, so one transient error sent a Christmas-ad visitor from
+  // /create to the photo page (launch audit 2026-11-26). Someone standing on
+  // the three-card pages (or who has been) keeps them; the server still
+  // guards /api/make, so nothing is opened that the switch has closed.
+  if (isError) return cameByTheDoor();
   if (!data) return undefined;
   // Beta testers (joined at /beta) get both routes while the beta is on.
   if (data.makerEnabled === true || data.beta === true) return true;

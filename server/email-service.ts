@@ -643,7 +643,10 @@ export async function sendMakeYourOwnLinkEmail(
   email: string,
   opts?: { recipientName?: string | null; occasionDate?: string | null },
 ): Promise<boolean> {
-  const startUrl = `${PUBLIC_ORIGIN}/make`;
+  // The copy below is the photo route ("upload a photo, describe the scene"),
+  // so the link is the photo maker. It pointed at /make, the three-card
+  // builder, which asks none of that (launch audit 2026-11-26).
+  const startUrl = `${PUBLIC_ORIGIN}/photo/make`;
   // Occasion-capture variant: acknowledge the nudge they set up. The
   // nudge email itself is a post-launch scheduled job — this line is
   // the promise, the stored occasion_date is the mechanism.
@@ -758,7 +761,8 @@ export async function sendEarlyAccessConfirmEmail(params: {
 // card they came for.
 async function sendPlainWelcomeEmail(params: { email: string; firstName?: string | null }): Promise<boolean> {
   const { email, firstName } = params;
-  const makeUrl = `${PUBLIC_ORIGIN}/make`;
+  // Their Christmas, not six everyday questions (launch audit 2026-11-26).
+  const makeUrl = `${PUBLIC_ORIGIN}/make?occasion=christmas`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
@@ -823,9 +827,10 @@ export async function sendWelcomeEmail(params: {
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
-      Tell us who it's for and one thing about them, and we write and
-      illustrate three to choose from, printed properly and posted
-      ${copyFor().anywhere}.
+      ${free
+        ? "Give us a photo of them and the scene you can picture, and we draw them into it,"
+        : "Tell us who it's for and one thing about them, and we write and illustrate three to choose from,"}
+      printed properly and posted ${copyFor().anywhere}.
     </p>
     <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 18px 20px; margin: 0 0 18px;">
       <p style="margin: 0 0 6px; font-weight: 700; color: #211D19;">
@@ -833,15 +838,15 @@ export async function sendWelcomeEmail(params: {
       </p>
       <p style="margin: 0; font-size: 14px;">
         Tell us <strong>three dates that matter</strong>: birthdays,
-        anniversaries, any day worth a card. Do that and your first one is
-        ${offerPrice}. We'll watch every date
+        anniversaries, any day worth a card. Do that and your first ${free ? 'photo card' : 'one'} is
+        ${offerPrice}.${free ? ' One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, your first card is half price instead.' : ' One per account.'} We'll watch every date
         you add and nudge you in good time, so nobody's day slips past
         again.
       </p>
     </div>
     <p style="margin: 0 0 8px;">
       It takes about a minute to add a date, and there's no rush to buy a
-      thing. The ${free ? 'free' : 'half-price'} card waits for the right moment.
+      thing${free ? ', though the launch offer won’t run for ever' : ''}.
     </p>
   `;
   const html = chassis({
@@ -855,10 +860,10 @@ export async function sendWelcomeEmail(params: {
     ],
     bodyHtml: body,
     cta: { label: free ? 'Claim my free card' : 'Claim 50% off', href: studioUrl },
-    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
+    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}${free ? '/photo/make' : '/make'}" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted ${copyFor().anywhere}.\n\n${free ? "YOUR FIRST CARD'S ON US. SERIOUSLY." : '50% OFF YOUR FIRST CARD'}\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first card is ${offerPriceText}. We'll watch every date you add and nudge you in good time.\n\n${free ? 'Claim my free card' : 'Claim 50% off'}: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/make\n\nAidan at Celebrait`;
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. ${free ? 'Give us a photo of them and the scene you can picture, and we draw them into it,' : "Tell us who it's for and one thing about them, and we write and illustrate three to choose from,"} printed properly and posted ${copyFor().anywhere}.\n\n${free ? "YOUR FIRST CARD'S ON US. SERIOUSLY." : '50% OFF YOUR FIRST CARD'}\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first ${free ? 'photo card' : 'card'} is ${offerPriceText}.${free ? ' One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, your first card is half price instead.' : ' One per account.'} We'll watch every date you add and nudge you in good time.\n\n${free ? 'Claim my free card' : 'Claim 50% off'}: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}${free ? '/photo/make' : '/make'}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject: free ? 'Welcome: your first card’s on us' : 'Welcome: 50% off your first card', html, text });
 }
 
@@ -963,7 +968,7 @@ export async function sendOtpEmail(email: string, code: string): Promise<boolean
   return sendEmail({
     to: email,
     subject: `${code} is your Celebrait verification code`,
-    text: `Your verification code is ${code}. It expires in 10 minutes.`,
+    text: `Your verification code is ${code}. It expires in 30 minutes.`,
     html: otpHtml(code),
   });
 }
@@ -973,14 +978,14 @@ function otpHtml(code: string): string {
   // carries the Keeper frame (logo, paper, hairlines). The code block is
   // the body; violet numerals echo the brand.
   const body = `
-    <p style="margin: 0 0 24px;">Enter this code to sign in. It expires in 10 minutes.</p>
+    <p style="margin: 0 0 24px;">Enter this code to sign in. It expires in 30 minutes.</p>
     <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 22px; text-align: center; margin: 0 0 8px;">
       <span style="font-size: 40px; font-weight: 800; letter-spacing: 10px; color: ${EMAIL_BRAND};">${escape(code)}</span>
     </div>
     <p style="margin: 20px 0 0; color: ${EMAIL_STONE}; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
   `;
   return chassis({
-    preheader: 'Your Celebrait verification code (expires in 10 minutes).',
+    preheader: 'Your Celebrait verification code (expires in 30 minutes).',
     heading: 'Your verification code',
     bodyHtml: body,
   });
@@ -1294,11 +1299,19 @@ export async function sendSenderOrderConfirmedEmail(params: {
   // Self-send (shipTo='sender') = it's coming to YOU to hand over; otherwise
   // it's posted straight to the recipient.
   const toYou = includesPrint && shipTo === 'sender';
-  const subject = toYou
-    ? `Your card's on its way to you`
-    : recipientName
-      ? `Your card's on its way to ${recipientName}`
-      : `Your card's on its way`;
+  // Sent the moment they PAY, before anything is printed, so a printed
+  // order does not say "on its way" (launch audit 2026-11-26): that is what
+  // the shipped email is for, and a customer told it's on its way on day
+  // one starts chasing on day three.
+  const subject = includesPrint
+    ? (toYou || !recipientName
+        ? `Order confirmed: your card is off to the printer`
+        : `Order confirmed: ${recipientName}'s card is off to the printer`)
+    : toYou
+      ? `Your card's on its way to you`
+      : recipientName
+        ? `Your card's on its way to ${recipientName}`
+        : `Your card's on its way`;
 
   const items: string[] = [];
   if (includesDigital) {
@@ -1538,32 +1551,34 @@ export async function sendSenderPrintShippedEmail(params: {
     ? `${recipientName}'s card is in the post`
     : 'Your card is in the post';
 
+  // A real tracking number, or nothing: this used to print "Tracking ref:
+  // Pending" under a "Track delivery" button (launch audit 2026-11-26).
+  const hasTracking = Boolean(trackingNumber) && !/^pending$/i.test(String(trackingNumber).trim());
   const body = `
     <p style="margin: 0 0 16px;">Hi ${escape(senderName)},</p>
     <p style="margin: 0 0 16px;">
-      ${who} card just shipped. <strong>${escape(courier)}</strong> have it now and should be with ${recipientName ? escape(recipientName) : 'them'} <strong>${escape(etaWindow)}</strong>.
+      ${who} card has been printed and posted. It's with <strong>${escape(courier)}</strong> now and usually takes <strong>${escape(etaWindow)}</strong>.
     </p>
   `;
 
   const html = chassis({
-    preheader: `${courier} · expected ${etaWindow}`,
+    preheader: `${courier} · usually ${etaWindow}`,
     heading,
     heroHtml: printSpreadHero(cardImageUrl, insideImageUrl) || undefined,
     bodyHtml: body,
-    cta: { label: 'Track delivery', href: trackingUrl },
-    postCtaHtml: `
+    cta: { label: hasTracking ? 'Track delivery' : 'See your order', href: trackingUrl },
+    postCtaHtml: hasTracking ? `
       <p style="margin: 0; color: ${EMAIL_STONE}; font-size: 13px;">
         Tracking ref: <span style="font-family: monospace;">${escape(trackingNumber)}</span>
       </p>
-    `,
+    ` : undefined,
   });
 
   const text = `Hi ${senderName},
 
-${recipientName ? `${recipientName}'s` : 'Your'} card just shipped. ${courier} have it now and should be with ${recipientName ?? 'them'} ${etaWindow}.
+${recipientName ? `${recipientName}'s` : 'Your'} card has been printed and posted. It's with ${courier} now and usually takes ${etaWindow}.
 
-Track delivery: ${trackingUrl}
-Tracking ref: ${trackingNumber}
+${hasTracking ? 'Track delivery' : 'See your order'}: ${trackingUrl}${hasTracking ? `\nTracking ref: ${trackingNumber}` : ''}
 
 Celebrait`;
 
@@ -1864,7 +1879,7 @@ export async function sendDraftNudgeEmail(params: {
   const timing =
     daysUntil <= 6
       ? `is ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'} away, which is tight for the post (we advise a week), so order today and send the free digital link on the day as a backup`
-      : `is ${daysUntil} days away. Order today and it'll arrive in time`;
+      : `is ${daysUntil} days away. Order today and it should arrive in time`;
 
   const frontAbs = absoluteEmailImage(params.frontImageUrl);
   const insideAbs = absoluteEmailImage(params.insideImageUrl);

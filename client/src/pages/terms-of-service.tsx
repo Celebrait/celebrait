@@ -416,7 +416,7 @@ export default function TermsOfService() {
                 </li>
                 <li>
                   <strong>Printed cards</strong>{" "}
-                  {ZA ? "are printed to order and sent by courier, to South African addresses only." : "are produced and posted by our print-and-delivery partner."}{" "}
+                  {ZA ? "are printed to order and sent by courier, to South African addresses only." : "are printed to order by our print partner (up to three working days) and then posted by Royal Mail, to UK addresses only. Please allow at least a week from order to arrival."}{" "}
                   Any delivery timescales shown are
                   estimates, not guarantees, and can be affected by the carrier.
                 </li>

@@ -223,12 +223,12 @@ export const requireGuestMaker = (kind: string) => async (req: Request, res: Res
   const cap = userId ? (USER_CAPS[kind] ?? 0) : (GUEST_CAPS_PER_IP[kind] ?? 0);
   if (!bump(`${who}:${kind}`, cap)) {
     res.status(429).json({ message: userId
-      ? 'You’ve made a lot of cards today — the rest are in your studio, and the shelf is open'
-      : 'That’s a lot of cards for one day — sign in to keep going, or take one off the shelf' });
+      ? 'You’ve made a lot of cards today. The ones you finished are in your studio, and there are more tomorrow.'
+      : 'That’s a lot of cards for one day. Sign in to keep going.' });
     return false;
   }
   if (!bump(`global:${kind}`, GUEST_CAPS_GLOBAL[kind] ?? 0)) {
-    res.status(429).json({ message: 'We’ve made a lot of cards today — the shelf is open, and we’re back tomorrow' });
+    res.status(429).json({ message: 'We’ve made a lot of cards today. We’re back tomorrow.' });
     return false;
   }
   (req as any).makerKind = kind;

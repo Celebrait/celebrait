@@ -82,7 +82,7 @@ export function NeedByField({
         <p className="flex items-start gap-2 rounded-lg border border-cta/30 bg-cta-light px-3 py-2.5 text-xs leading-relaxed text-cta-dark" data-testid="need-by-verdict" data-tone="ok">
           <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
           <span>
-            <span className="font-semibold">It'll be there in time.</span> Ordered today, expect it by {by}
+            <span className="font-semibold">It should be there in time.</span> Ordered today, expect it by {by}
             {verdict.spareDays > 0 ? `, with ${verdict.spareDays} ${verdict.spareDays === 1 ? 'day' : 'days'} to spare` : ', the day itself'}.
           </span>
         </p>
