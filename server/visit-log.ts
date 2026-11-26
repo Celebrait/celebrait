@@ -23,6 +23,7 @@ import type { Express, Request } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { siteVisits, users } from '@shared/schema';
+import { isKnownRoutePath } from '@shared/seo';
 
 const BOT_RE =
   /bot|crawler|spider|crawling|preview|scraper|curl|wget|python|httpx|axios|headless|lighthouse|pingdom|monitor|facebookexternalhit|slurp|duckduck|baidu|yandex|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|gptbot|claudebot|ccbot|amazonbot|applebot/i;
@@ -39,6 +40,51 @@ function isPageView(req: Request): boolean {
   const accept = req.headers.accept ?? '';
   if (!accept.includes('text/html')) return false;
   return true;
+}
+
+// ── Who is a visitor (Aidan 2026-11-26: "why so many visitors sporadic
+// ... the site aint being marketed anywhere") ─────────────────────────
+// The UA regex only catches bots that say they are bots. Two more holes
+// let the rest in, and both are closed here:
+//
+//   1. ANY path counted, real page or not — so a scanner walking
+//      /wp-admin, /backup, /config … arrived as a burst of "visitors".
+//      A visit now has to be to a page the site actually serves
+//      (shared/seo's route mirror, the same list the 404 fallback uses).
+//      Our own tooling pages are not an audience either.
+//
+//   2. A bot that CLAIMS to be Chrome counted as a person. A real
+//      browser opening a page says so in headers a script almost never
+//      bothers to fake: Accept-Language (always), and Sec-Fetch-Dest:
+//      document + Sec-Fetch-Mode: navigate (every current browser).
+//      Safari before 16.4, and the in-app browsers built on it, send no
+//      Sec-Fetch headers at all, so a WebKit-only UA without them still
+//      counts — an old iPhone arriving from an ad must not vanish. A
+//      "Chrome" without them is not Chrome.
+//
+// Nothing new is stored: these are read off the request and dropped.
+const INTERNAL_RE = /^\/(admin|card-capture|og|research|demo|door2?|hero-poc)(\/|$)/;
+
+function isRealPage(path: string): boolean {
+  return isKnownRoutePath(path) && !INTERNAL_RE.test(path);
+}
+
+function isBrowserNavigation(req: Request): boolean {
+  if (!req.headers['accept-language']) return false;
+  // Chrome fetching a page ahead of a click the visitor may never make.
+  const purpose = `${req.headers['sec-purpose'] ?? ''} ${req.headers['purpose'] ?? ''} ${req.headers['x-moz'] ?? ''}`;
+  if (/prefetch|prerender/i.test(purpose)) return false;
+  const dest = req.headers['sec-fetch-dest'];
+  const mode = req.headers['sec-fetch-mode'];
+  if (dest || mode) return dest === 'document' && mode === 'navigate';
+  const ua = String(req.headers['user-agent'] ?? '');
+  return /AppleWebKit/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/i.test(ua);
+}
+
+/** Exported for the admin screen, which labels old rows that the rules
+ *  above would no longer count. */
+export function isCountedPath(path: string): boolean {
+  return isRealPage(path);
 }
 
 function referrerHost(req: Request): string | null {
@@ -149,7 +195,7 @@ export function registerVisitLogging(app: Express): void {
 
   app.use((req, _res, next) => {
     try {
-      if (isPageView(req)) {
+      if (isPageView(req) && isRealPage(req.path) && isBrowserNavigation(req)) {
         const ua = req.headers['user-agent'] ?? '';
         const selfId = (req as any).session?.otpUserId;
         const skip =

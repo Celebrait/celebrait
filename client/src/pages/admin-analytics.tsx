@@ -40,11 +40,15 @@ type PerfRow = {
   ttfb_p75: number | null; lcp_p50: number | null; lcp_p75: number | null;
   mobile_lcp_p75: number | null; mobile_n: number;
 };
+type PageRow = { path: string; visits: number; last_seen: string; real: boolean };
+type RecentRow = { created_at: string; path: string; device: string | null; source: string; real: boolean };
 type AnalyticsResponse = {
   days: number;
   totals: { visits: number; signups: number; cards: number; paid: number; revenue: number };
   daily: DailyRow[];
   sources: SourceRow[];
+  pages?: PageRow[];
+  recent?: RecentRow[];
   perf?: PerfRow[];
 };
 
@@ -54,6 +58,16 @@ function lcpTone(ms: number | null): string {
   return ms <= 2500 ? 'text-cta-dark' : ms <= 4000 ? 'text-amber-600' : 'text-accent-red-dark';
 }
 const secs = (ms: number | null) => (ms == null ? '—' : `${(ms / 1000).toFixed(1)}s`);
+// UK clock, whatever the browser's own time zone is.
+const when = (iso: string) =>
+  new Date(iso).toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+/** A path the counter no longer accepts (not a page the site serves, or
+ *  one of our own tooling pages): shown, but marked as noise. */
+const NotCounted = () => (
+  <span className="ml-2 rounded-full border border-keeper-hair px-1.5 py-0.5 text-[10.5px] font-medium text-keeper-meta">
+    no longer counted
+  </span>
+);
 
 // Revenue in the active market's currency (shared/market).
 const gbp = (minor: number) => formatMoney(minor);
@@ -236,9 +250,81 @@ export default function AdminAnalyticsPage() {
         )}
       </div>
 
+      {/* Which pages */}
+      <div className="rounded-xl border border-keeper-hair bg-white">
+        <h2 className="border-b border-keeper-hair px-4 py-3 text-sm font-semibold text-keeper-ink">
+          Pages opened ({data.days} days)
+        </h2>
+        {!data.pages || data.pages.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-keeper-meta">No visits in this window.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wide text-keeper-meta">
+                  <th className="px-4 py-2.5">Page</th>
+                  <th className="px-3 py-2.5 text-right">Visits</th>
+                  <th className="px-4 py-2.5 text-right">Last visit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.pages.map((p) => (
+                  <tr key={p.path} className="border-t border-keeper-hair/60">
+                    <td className={`px-4 py-2.5 font-mono text-[12px] ${p.real ? 'text-keeper-ink' : 'text-keeper-meta'}`}>
+                      {p.path}
+                      {p.real ? null : <NotCounted />}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{p.visits}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-keeper-body">{when(p.last_seen)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Latest visits, one by one */}
+      <div className="rounded-xl border border-keeper-hair bg-white">
+        <h2 className="border-b border-keeper-hair px-4 py-3 text-sm font-semibold text-keeper-ink">
+          Latest visits
+        </h2>
+        {!data.recent || data.recent.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-keeper-meta">No visits yet.</p>
+        ) : (
+          <div className="max-h-[420px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-keeper-meta">
+                  <th className="px-4 py-2.5">When (UK time)</th>
+                  <th className="px-3 py-2.5">Page</th>
+                  <th className="px-3 py-2.5">Source</th>
+                  <th className="px-4 py-2.5">Device</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recent.map((r, i) => (
+                  <tr key={`${r.created_at}-${i}`} className="border-t border-keeper-hair/60">
+                    <td className="whitespace-nowrap px-4 py-2 tabular-nums text-keeper-body">{when(r.created_at)}</td>
+                    <td className={`px-3 py-2 font-mono text-[12px] ${r.real ? 'text-keeper-ink' : 'text-keeper-meta'}`}>
+                      {r.path}
+                      {r.real ? null : <NotCounted />}
+                    </td>
+                    <td className="px-3 py-2 text-keeper-body">{r.source}</td>
+                    <td className="px-4 py-2 text-keeper-body">{r.device ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <p className="text-[11.5px] leading-relaxed text-keeper-meta">
         Notes: visits count first page loads (SPA navigation isn't re-counted) with obvious bots
-        filtered; "unknown" signups predate attribution capture; revenue uses the amount actually
+        filtered. Since 26 November 2026 a visit also has to be to a page the site really serves,
+        from something that behaves like a browser opening a page; older rows that would no longer
+        count are marked "no longer counted" above and are still in the totals; "unknown" signups predate attribution capture; revenue uses the amount actually
         paid (discounts included). No cookies are set and no IPs are stored, which is why this
         needs no consent banner.
       </p>

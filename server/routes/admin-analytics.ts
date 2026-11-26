@@ -7,12 +7,20 @@
 //   sources[] — the funnel split by first-touch source: visits (from
 //               site_visits) and signups→cards→paid (joined through
 //               users.attribution)
+//   pages[]   — which pages were opened, and recent[] — the latest
+//               visits one by one (2026-11-26). Daily totals alone could
+//               not answer "who are these visitors?": a burst of visits
+//               to pages that don't exist is a scanner, and only the
+//               paths show it. Rows the counter would no longer accept
+//               come back flagged real: false so old noise is visible
+//               as noise instead of being quietly dropped.
 //
 // "Source" is utm_source when present, else referrer host, else
 // 'direct'. Visits and signups use the SAME rule on both tables so the
 // two columns line up.
 import type { Express, Request, Response } from 'express';
 import { perfRollup } from '../rum';
+import { isCountedPath } from '../visit-log';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '@shared/schema';
@@ -151,9 +159,28 @@ export function registerAdminAnalyticsRoutes(app: Express): void {
         { visits: 0, signups: 0, cards: 0, paid: 0, revenue: 0 },
       );
 
+      // ── Which pages, and when ───────────────────────────────────
+      const pageRows = await db.execute(sql`
+        SELECT path, count(*)::int AS visits, max(created_at) AS last_seen
+        FROM site_visits
+        WHERE created_at >= current_date - ${days - 1} * interval '1 day'
+        GROUP BY path
+        ORDER BY visits DESC, last_seen DESC
+        LIMIT 40
+      `);
+      const pages = (pageRows.rows as any[]).map((r) => ({ ...r, real: isCountedPath(String(r.path)) }));
+      const recentRows = await db.execute(sql`
+        SELECT created_at, path, device,
+               COALESCE(NULLIF(utm_source, ''), NULLIF(referrer_host, ''), 'direct') AS source
+        FROM site_visits
+        ORDER BY created_at DESC
+        LIMIT 60
+      `);
+      const recent = (recentRows.rows as any[]).map((r) => ({ ...r, real: isCountedPath(String(r.path)) }));
+
       // Real-user timing per route (server/rum.ts) — same window.
       const perf = await perfRollup(days).catch(() => []);
-      res.json({ days, totals, daily: dailyRows, sources, perf });
+      res.json({ days, totals, daily: dailyRows, sources, pages, recent, perf });
     } catch (err: any) {
       console.error('[ADMIN-ANALYTICS]', err);
       res.status(500).json({ message: err?.message ?? 'Analytics query failed' });
