@@ -17,6 +17,16 @@
 // from a few answers.
 // Images live in client/public/xmas-wall as WebP. Negative ids: these are
 // not catalogue rows and must never collide with one.
+//
+// INSIDES (2026-11-26). Each front has an inside, <nn>-inside.webp, so a tap
+// on the carousel opens the card onto a real message instead of a blank page
+// (Aidan: the cards "should not be clickable as there are no insides - unless
+// you can create insides for them"; card-drift.tsx only makes a tile a button
+// when its card has one). Drawn by the maker's own inside request
+// (server/scripts/wall-insides.ts, jobs in wall-insides.christmas.json). The original design notes for these
+// fronts were gone, so each inside's colours, lettering and style were written
+// down from the front picture itself. The messages and the names signing them
+// are OURS, like the names on the fronts: nobody here is real.
 import type { CatalogueCard } from '@/components/catalogue/rack-wall';
 
 const FRONTS: string[] = [
@@ -40,5 +50,6 @@ export const CHRISTMAS_WALL: CatalogueCard[] = FRONTS.map((front_text, i) => ({
   id: -(i + 1),
   front_text,
   imageUrl: `/xmas-wall/${String(i + 1).padStart(2, '0')}.webp`,
+  insideImageUrl: `/xmas-wall/${String(i + 1).padStart(2, '0')}-inside.webp`,
   published: false,
 }));
