@@ -93,7 +93,14 @@ export const stripePaymentProvider: PaymentProvider = {
       // stay fully paid, since it's a flat subtraction off the total).
       // Codes/limits/expiry are all managed in the Stripe dashboard — no
       // redeploy to add, change, or disable one.
-      allow_promotion_codes: true,
+      //
+      // OFF since the launch audit (2026-11-26). The site has had its own
+      // "Got a code?" box since 2026-11-11 (/admin/codes), so Stripe's was
+      // a second, different code box on the pay page, and any promotion
+      // code still live in the Stripe dashboard stacked on top of the
+      // site's own offers and codes. A coupon bigger than the total makes
+      // the session "no payment required", which counts as paid and prints.
+      allow_promotion_codes: false,
       success_url: req.returnUrl,
       cancel_url: req.cancelUrl,
       // studioOrderId travels on the session AND the resulting

@@ -131,6 +131,9 @@ async function prodigiFetch(
       "Content-Type": "application/json",
     },
     body: init?.body,
+    // No call to the printer may hang for ever: a submit that never
+    // answers leaves the order looking unsubmitted with no error to act on.
+    signal: AbortSignal.timeout(60_000),
   });
   const text = await res.text();
   let json: any = null;
@@ -279,6 +282,18 @@ export const prodigiPrintProvider: PrintProvider = {
       // can be traced back to us. (We key our own lookup off the returned
       // Prodigi order id, stored as providerOrderId.)
       merchantReference: req.studioOrderId,
+      // ONE PAID ORDER, ONE PRINT (launch audit 2026-11-26). Without this
+      // Prodigi treats every POST as a new order, and we re-POST whenever
+      // we don't KNOW the first one landed: a lost response, a deploy
+      // mid-submit (this repo deploys on every push), a database write
+      // that failed after Prodigi said yes — the sweeper then retries and
+      // the customer's card is printed and posted twice at our cost.
+      // With the key, a repeat returns outcome 'alreadyExists' and the
+      // ORIGINAL order (Prodigi v4 docs: "The new order has not been
+      // created, and we have returned the existing order"), which the
+      // code below stores exactly like a first success. Prodigi checks
+      // duplicates on this key only, never on merchantReference.
+      idempotencyKey: req.studioOrderId,
       shippingMethod,
       recipient: {
         name: req.recipientName,
@@ -341,6 +356,10 @@ export const prodigiPrintProvider: PrintProvider = {
           json,
         ).slice(0, 300)}`,
       );
+    }
+    if (String(json?.outcome ?? "").toLowerCase() === "alreadyexists") {
+      // The idempotency key doing its job: an earlier submit had landed.
+      console.warn(`[PRODIGI] order ${req.studioOrderId} already existed at Prodigi as ${providerOrderId}; stored, not created again`);
     }
     const mapped = mapProdigiStatus(order);
     return {

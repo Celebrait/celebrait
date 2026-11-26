@@ -25,7 +25,7 @@ import { orderItems,
 } from '@shared/schema';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import { getPaymentProvider } from '../studio/payment-provider';
-import { market } from '@shared/market';
+import { market, publicOrigin } from '@shared/market';
 import { shipPhrase } from '@shared/market-copy';
 import {
   getFreeCardStatus,
@@ -33,7 +33,7 @@ import {
   addressHadFreeCard,
 } from '../studio/free-card';
 import { christmasFullPrice } from '@shared/christmas';
-import { validateCompCode, consumeCompCode } from '../studio/comp-code';
+import { validateCompCode, consumeCompCode, claimCompCodeUse } from '../studio/comp-code';
 import { rateLimitHit } from '../simple-rate-limit';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
@@ -560,7 +560,17 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // recorded as 0 so reporting shows a £0 order rather than falling
         // back to totalAmount and inventing revenue.
         if (totalAmount === 0) {
-          await markOrderPaidAndDispatch(order.id, 0);
+          // Take the code's use BEFORE the order becomes paid, atomically
+          // (see claimCompCodeUse): nothing else stands between a
+          // single-use code and as many free prints as requests sent at once.
+          if (compCode && !(await claimCompCodeUse(compCode))) {
+            await db
+              .update(studioOrders)
+              .set({ paymentStatus: 'failed', updatedAt: new Date() })
+              .where(eq(studioOrders.id, order.id));
+            return res.status(409).json({ message: 'That code has already been used.' });
+          }
+          await markOrderPaidAndDispatch(order.id, 0, { compClaimed: Boolean(compCode) });
           console.log(
             `[STUDIO-CHECKOUT] order ${order.id} fully comped (${compCode}) — no payment taken`,
           );
@@ -670,6 +680,9 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // so this never double-fires against the webhook.
         if (
           order.paymentStatus !== 'paid' &&
+          // Refunded stays refunded: Stripe would answer 'paid' for it
+          // (see markOrderPaidAndDispatch).
+          order.paymentStatus !== 'refunded' &&
           order.paymentProvider === 'stripe' &&
           order.paymentReference
         ) {
@@ -1219,6 +1232,10 @@ export function registerStudioCheckoutRoutes(app: Express): void {
 export async function markOrderPaidAndDispatch(
   orderId: string,
   amountPaid?: number,
+  /** compClaimed: the caller already took this order's comp-code use
+   *  (the zero-total checkout does, atomically, before calling), so it
+   *  must not be burned a second time here. */
+  opts: { compClaimed?: boolean } = {},
 ): Promise<{ ok: true; alreadyPaid?: boolean }> {
   const updated = await db
     .update(studioOrders)
@@ -1235,12 +1252,22 @@ export async function markOrderPaidAndDispatch(
       and(
         eq(studioOrders.id, orderId),
         ne(studioOrders.paymentStatus, 'paid'),
+        // A REFUNDED ORDER NEVER GOES BACK TO PAID (launch audit
+        // 2026-11-26). Stripe keeps reporting a refunded session as
+        // payment_status 'paid', and both order pages re-ask Stripe for
+        // any order that isn't 'paid'. So a refunded customer who opened
+        // their order link flipped the row refunded → paid: the "on its
+        // way" emails went out again and, if the print had never been
+        // submitted (the usual reason for the refund), the card went to
+        // print for money we had already given back. Paid can only be
+        // reached from pending or failed.
+        ne(studioOrders.paymentStatus, 'refunded'),
       ),
     )
     .returning();
 
   if (updated.length === 0) {
-    // Either already paid (lost the race) or no such order — no email.
+    // Already paid (lost the race), refunded, or no such order — no email.
     return { ok: true, alreadyPaid: true };
   }
 
@@ -1260,9 +1287,11 @@ export async function markOrderPaidAndDispatch(
   // Comp code: same timing, same reasoning — burn the use only now that
   // the order is real. Never allowed to fail the flip; the card ships
   // either way and an over-redemption is a logged warning, not an error.
-  consumeCompCode(updated[0]).catch((err) => {
-    console.error('[STUDIO-CHECKOUT] comp-code consume failed:', err);
-  });
+  if (!opts.compClaimed) {
+    consumeCompCode(updated[0]).catch((err) => {
+      console.error('[STUDIO-CHECKOUT] comp-code consume failed:', err);
+    });
+  }
 
   // Submit the printed card to the fulfilment provider (async, non-
   // blocking). Runs exactly once per order — this branch only executes
@@ -1761,6 +1790,11 @@ export async function applyFulfillmentUpdate(
 function publicAppOrigin(): string {
   const configured = process.env.PUBLIC_APP_ORIGIN?.replace(/\/$/, '');
   if (configured) return configured;
+  // In production an unset PUBLIC_APP_ORIGIN used to fall through to
+  // localhost, which would have put dead localhost links in the
+  // recipient's "sent you a card" email and the shipped email (launch
+  // audit 2026-11-26). The market's own origin is the right answer there.
+  if (process.env.NODE_ENV === 'production') return publicOrigin();
   const port = process.env.PORT || 5050;
   return `http://localhost:${port}`;
 }

@@ -244,7 +244,10 @@ export function registerShopRoutes(app: Express): void {
       // straight from the gateway, often before the webhook. Mirrors the
       // studio order route; markOrderPaidAndDispatch is idempotent so
       // this never double-fires against the webhook.
-      if (order.paymentStatus !== 'paid' && order.paymentReference) {
+      // Never for a refunded order: Stripe still calls its session 'paid',
+      // and reconciling would flip refunded → paid and reprint (launch audit
+      // 2026-11-26; the guard is in markOrderPaidAndDispatch too).
+      if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded' && order.paymentReference) {
         try {
           const provider = getPaymentProvider();
           if (provider.name === 'stripe') {

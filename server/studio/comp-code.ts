@@ -50,6 +50,26 @@ export async function validateCompCode(raw: unknown): Promise<CompCodeResult> {
   return { ok: true, code: row };
 }
 
+/** Take one use NOW, or report that none is left. For the one checkout
+ *  that never reaches a gateway: a code that brings the total to zero.
+ *
+ *  Everywhere else a use is burned at the paid flip, after money has
+ *  moved, and the gap between "validated" and "burned" is harmless because
+ *  the customer still had to pay something. At zero there is no payment to
+ *  wait for: checkout validated the code and marked the order paid in the
+ *  same request, so ten requests fired together with a single-use code all
+ *  passed validation and all printed (launch audit 2026-11-26). The
+ *  `uses < max_uses` predicate in the UPDATE lets exactly as many through
+ *  as the code has uses left. */
+export async function claimCompCodeUse(code: string): Promise<boolean> {
+  const updated = await db
+    .update(compCodes)
+    .set({ uses: sql`${compCodes.uses} + 1` })
+    .where(and(eq(compCodes.code, code), sql`${compCodes.uses} < ${compCodes.maxUses}`))
+    .returning({ code: compCodes.code });
+  return updated.length > 0;
+}
+
 /** Burn one use. Called from the paid flip, never from checkout-create.
  *
  *  The `uses < max_uses` predicate lives in the UPDATE itself so two
