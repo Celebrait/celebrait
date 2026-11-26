@@ -2,7 +2,8 @@
 //
 // A slow sideways drift of real ajar cards (CSS, not WebGL — one canvas
 // per card melts phones; the tile is already CSS 3D). Pauses on hover,
-// static and swipeable under reduced motion, every card tappable.
+// static and swipeable under reduced motion. A card is tappable only when
+// tapping has somewhere to go (see the note at the tiles).
 //
 // WHAT IT SHOWS (Aidan 2026-09-03): the hand-picked CAROUSEL cards
 // first — templates tagged 'carousel' by an admin, "crucial" interest
@@ -113,7 +114,18 @@ export function CardDrift({ size = 20, padFrom = 'birthday', className = '', pee
           container keeps all of it (the -mb-6 lives on the container). */}
       <div className="door-drift flex gap-4 pb-10 pt-4">
         {row.map((c, i) => (
-          peekMode ? (
+          // A FRONT WITH NO INSIDE IS NOT A BUTTON (Aidan 2026-11-26: "the
+          // carousel on the 3 card route lander should not be clickable as
+          // there are no insides"). The peek's whole offer is "tap the card
+          // to look inside"; the two fixed walls on /create are fronts only,
+          // so the tap opened a card onto a blank page. Such a tile is now a
+          // plain picture: no button, no pointer, no hover lift (no `group`).
+          // Give a card an insideImageUrl and it becomes tappable again.
+          peekMode && !c.insideImageUrl ? (
+            <div key={`${c.id}-${i}`} className="block w-[240px] shrink-0 sm:w-[220px] md:w-[260px]" aria-hidden={i >= cards.length ? true : undefined}>
+              <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
+            </div>
+          ) : peekMode ? (
             <button key={`${c.id}-${i}`} type="button" onClick={() => setPeeking(c)} className="group block w-[240px] shrink-0 text-left sm:w-[220px] md:w-[260px]" aria-hidden={i >= cards.length ? true : undefined} tabIndex={i >= cards.length ? -1 : undefined} aria-label={`Open “${c.front_text}”`}>
               <AjarTile imageUrl={c.imageUrl} alt={c.front_text} eager={i < 10} />
             </button>
