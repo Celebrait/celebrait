@@ -17,6 +17,7 @@
 //   - completed    → show the rendered front + inside images
 //   - failed       → error + retry button (flips status back to draft)
 
+import { makeStep } from '@/lib/make-steps';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { friendlyError } from '@/lib/friendly-error';
 import { useEffect, useRef, useState } from 'react';
@@ -1977,7 +1978,7 @@ function RevealView({
                 >
                   <Button
                     onClick={() =>
-                      setLocation(
+                      (makeStep('buy', { route: 'photo', occasion: state.recipient?.occasion ?? null, setId: `c${cardId}` }), setLocation(
                         // Blank inside has no giving CHOICE to make
                         // (it can only be printed + posted to the
                         // sender), so it skips the Giving Moment and
@@ -1988,7 +1989,7 @@ function RevealView({
                           : insideMode === 'blank'
                             ? `/checkout/${cardId}?product=print`
                             : `/studio/card/${cardId}/give`,
-                      )
+                      ))
                     }
                     className="bg-cta hover:bg-cta-hover text-cta-foreground font-semibold h-[52px] rounded-full w-full sm:w-64"
                     size="lg"

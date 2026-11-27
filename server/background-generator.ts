@@ -38,6 +38,7 @@ import {
   deriveDefaultFrontText,
 } from '@shared/schema';
 import { resolveStyleDescription } from '@shared/style-descriptions';
+import { logMakeStep } from './make-insights';
 import { openai } from './utils/shared';
 
 // Load a card's stable image-key secret (cards.imageKey) — woven into its
@@ -557,6 +558,7 @@ export async function finalizeCardArtifacts(
   state: CardDraftState,
   userId: string | null,
 ): Promise<void> {
+  logMakeStep('finished', { route: 'photo', occasion: state?.recipient?.occasion ?? null, setId: `c${cardId}` });
   await generatePrintResolutionFiles(cardId, await loadImageKey(cardId));
   try {
     await sendCardReadyEmailForCard(cardId, state, userId);
@@ -749,6 +751,8 @@ async function generateStudioCardInner(
       await storage.updateCard(cardId, {
         frontImageUrl: frontStoredUrl,
       });
+      // /admin/maker, photo route: the front exists (counts, no person).
+      logMakeStep('drawn', { route: 'photo', occasion: state.recipient?.occasion ?? null, setId: `c${cardId}` });
 
       if (mode === 'front') {
         await storage.updateCard(cardId, { status: 'front-ready' });

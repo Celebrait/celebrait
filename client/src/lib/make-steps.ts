@@ -8,18 +8,19 @@
 // sendBeacon survives the page navigating away mid-send.
 import { getFirstTouch } from '@/lib/attribution';
 
-export type MakeStep = 'landed' | 'started' | 'questions' | 'drawn' | 'picked' | 'buy';
+export type MakeStep = 'landed' | 'started' | 'questions' | 'photo' | 'scene' | 'generate' | 'drawn' | 'picked' | 'buy';
 
 const sent = new Set<string>();
 
-export function makeStep(step: MakeStep, o: { occasion?: string | null; setId?: string | null; detail?: string | null } = {}): void {
-  const key = `${step}|${o.setId ?? ''}|${o.detail ?? ''}`;
+/** route: 'photo' for the photo route; omitted = the three-card route. */
+export function makeStep(step: MakeStep, o: { route?: 'photo'; occasion?: string | null; setId?: string | null; detail?: string | null } = {}): void {
+  const key = `${o.route ?? ''}|${step}|${o.setId ?? ''}|${o.detail ?? ''}`;
   if (sent.has(key)) return;
   sent.add(key);
   try {
     const ft = getFirstTouch();
     const body = JSON.stringify({
-      step, occasion: o.occasion ?? null, setId: o.setId ?? null, detail: o.detail ?? null,
+      step, route: o.route, occasion: o.occasion ?? null, setId: o.setId ?? null, detail: o.detail ?? null,
       source: ft?.utmSource || ft?.referrerHost || null,
     });
     const blob = new Blob([body], { type: 'application/json' });

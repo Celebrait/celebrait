@@ -14,13 +14,23 @@ type SetRow = {
   fronts: Array<{ front_text: string; art_direction?: string; tone?: string }>;
   flagged: string[] | null; picked: string | null; card_id: number | null; paid: boolean;
 };
-type MakerResponse = { days: number; occasion: string | null; funnel: FunnelRow[]; sets: SetRow[] };
+type PhotoRow = {
+  card_id: number; created_at: string; status: string; recipient: string | null; occasion: string | null;
+  scene: string | null; front_mode: string | null; front_text: string | null; guest: boolean | null; paid: boolean;
+};
+type MakerResponse = { days: number; occasion: string | null; route: 'maker' | 'photo'; funnel: FunnelRow[]; sets: SetRow[]; photoCards?: PhotoRow[] };
 
 const STEP_LABEL: Record<string, string> = {
   landed: 'Landed on the page',
   started: 'Tapped Get started',
   questions: 'Answered the questions',
+  photo: 'Added a photo',
+  scene: 'Wrote the scene',
+  generate: 'Pressed Generate',
   drawn: 'Got their three cards',
+  drawnPhoto: 'Front drawn',
+  finishedPhoto: 'Finished the card (inside done)',
+  buyPhoto: 'Tapped Send this card',
   picked: 'Picked one',
   finished: 'Finished the card',
   buy: 'Tapped Buy',
@@ -31,12 +41,13 @@ const when = (iso: string) =>
   new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export default function AdminMakerPage() {
+  const [route, setRoute] = useState<'maker' | 'photo'>('maker');
   const [days, setDays] = useState(7);
   const [occasion, setOccasion] = useState<'christmas' | ''>('christmas');
   const { data, isLoading, error } = useQuery<MakerResponse>({
-    queryKey: ['/api/admin/maker', days, occasion],
+    queryKey: ['/api/admin/maker', route, days, occasion],
     queryFn: async () => {
-      const r = await fetch(`/api/admin/maker?days=${days}${occasion ? `&occasion=${occasion}` : ''}`, { credentials: 'include' });
+      const r = await fetch(`/api/admin/maker?route=${route}&days=${days}${occasion ? `&occasion=${occasion}` : ''}`, { credentials: 'include' });
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.message ?? 'Could not load');
       return r.json();
     },
@@ -49,10 +60,17 @@ export default function AdminMakerPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold text-keeper-ink">Card maker</h1>
         <p className="mt-1 max-w-2xl text-sm text-keeper-meta">
-          Where people stop on the three-card route, and what they make. Counts only: nobody is followed from step to step.
+          Where people stop on each route, and what they make. Counts only: nobody is followed from step to step.
           Paid comes from the orders themselves. Counting started 27 November 2026.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
+          {([['maker', 'Three cards'], ['photo', 'Photo']] as const).map(([v, l]) => (
+            <button key={v} type="button" onClick={() => setRoute(v)}
+              className={`rounded-full border px-3 py-1.5 text-sm ${route === v ? 'border-2 border-brand bg-brand-muted font-semibold text-brand-dark' : 'border-keeper-hair bg-white text-keeper-body'}`}>
+              {l}
+            </button>
+          ))}
+          <span className="mx-1 w-px bg-keeper-hair" />
           {([['christmas', 'Christmas'], ['', 'All occasions']] as const).map(([v, l]) => (
             <button key={l} type="button" onClick={() => setOccasion(v)}
               className={`rounded-full border px-3 py-1.5 text-sm ${occasion === v ? 'border-brand bg-brand-muted font-semibold text-brand-dark' : 'border-keeper-hair bg-white text-keeper-body'}`}>
@@ -82,7 +100,7 @@ export default function AdminMakerPage() {
                 const pct = top ? Math.round((f.n / top) * 100) : 0;
                 return (
                   <div key={f.step} className="flex items-center gap-4 px-4 py-2.5 text-sm">
-                    <span className="w-52 shrink-0 text-keeper-body">{STEP_LABEL[f.step] ?? f.step}</span>
+                    <span className="w-52 shrink-0 text-keeper-body">{(data.route === 'photo' && STEP_LABEL[`${f.step}Photo`]) || STEP_LABEL[f.step] || f.step}</span>
                     <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-stone-100">
                       <div className="absolute inset-y-0 left-0 rounded-full bg-brand" style={{ width: `${pct}%` }} />
                     </div>
@@ -95,10 +113,54 @@ export default function AdminMakerPage() {
               })}
             </div>
             <p className="border-t border-keeper-hair px-4 py-2.5 text-xs text-keeper-meta">
-              "Landed", "Tapped Get started" and "Answered the questions" are counted on the Christmas page and the everyday /create page. "From Meta" needs utm_source=meta on the ad's link.
+              {data.route === 'photo'
+                ? '"Landed" and "Tapped Get started" are counted on /photo (Christmas and everyday). "Front drawn" and "Finished" are counted by the server as each card is drawn. "From Meta" needs utm_source=meta on the ad\'s link.'
+                : '"Landed", "Tapped Get started" and "Answered the questions" are counted on the Christmas page and the everyday /create page. "From Meta" needs utm_source=meta on the ad\'s link.'}
             </p>
           </div>
 
+          {data.route === 'photo' ? (
+          <div className="rounded-xl border border-keeper-hair bg-white">
+            <h2 className="border-b border-keeper-hair px-4 py-3 text-sm font-semibold text-keeper-ink">
+              What people made <span className="font-normal text-keeper-meta">({data.photoCards?.length ?? 0}{data.photoCards?.length === 150 ? ', newest 150' : ''} · their words only, never their photo · your own admin cards left out)</span>
+            </h2>
+            {!data.photoCards?.length ? (
+              <p className="px-4 py-8 text-center text-sm text-keeper-meta">No photo cards yet in this window.</p>
+            ) : (
+              <div className="divide-y divide-keeper-hair">
+                {data.photoCards.map((c) => (
+                  <div key={c.card_id} className="px-4 py-4">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+                      <span className="text-xs tabular-nums text-keeper-meta">{when(c.created_at)}</span>
+                      <span className="font-semibold text-keeper-ink">{c.recipient || 'Someone'}</span>
+                      {c.occasion && <span className="text-keeper-body">{c.occasion}</span>}
+                      {c.guest && <span className="rounded-full border border-keeper-hair px-2 py-0.5 text-xs text-keeper-meta">guest</span>}
+                      {c.paid ? (
+                        <span className="rounded-full bg-cta-light px-2 py-0.5 text-xs font-semibold text-cta-dark">Paid</span>
+                      ) : c.status === 'completed' ? (
+                        <span className="rounded-full bg-brand-muted px-2 py-0.5 text-xs font-semibold text-brand-dark">Finished, not paid</span>
+                      ) : ['front-ready', 'inside-ready', 'inside-failed'].includes(c.status) ? (
+                        <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-keeper-body">Front drawn, didn't finish</span>
+                      ) : c.status === 'failed' ? (
+                        <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-accent-red-dark">Drawing failed</span>
+                      ) : (
+                        <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-keeper-meta">Not drawn</span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-sm text-keeper-body">
+                      <span className="text-keeper-meta">Scene: </span>
+                      <span className="font-medium text-keeper-ink">{c.scene}</span>
+                    </p>
+                    <p className="mt-0.5 text-sm text-keeper-body">
+                      <span className="text-keeper-meta">Front: </span>
+                      {c.front_mode === 'none' ? 'no words' : c.front_text || 'we picked the words'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          ) : (
           <div className="rounded-xl border border-keeper-hair bg-white">
             <h2 className="border-b border-keeper-hair px-4 py-3 text-sm font-semibold text-keeper-ink">
               What people made <span className="font-normal text-keeper-meta">({data.sets.length}{data.sets.length === 150 ? ', newest 150' : ''})</span>
@@ -154,6 +216,7 @@ export default function AdminMakerPage() {
               </div>
             )}
           </div>
+          )}
         </>
       )}
     </div>

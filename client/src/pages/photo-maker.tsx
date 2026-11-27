@@ -16,6 +16,7 @@
 // Landing chrome (this is still the shop floor), studio panel inside.
 // (The 'free account needed to generate' line was dropped 2026-09-10.)
 
+import { makeStep } from '@/lib/make-steps';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { Link, useLocation, useSearch } from 'wouter';
@@ -275,12 +276,13 @@ export default function PhotoMakerPage() {
               error={transferError}
               onEdit={setStep}
               onSignUp={() => { try { sessionStorage.setItem(PENDING_KEY, '1'); } catch { /* ignore */ } openAuth('/photo/make?claim=1'); }}
-              onGenerate={() => void runTransfer()}
+              onGenerate={() => { makeStep('generate', { route: 'photo', occasion: state.recipient?.occasion ?? null }); void runTransfer(); }}
               onBetaGenerate={async () => {
                 // Show the wait screen at once — minting the studio takes a
                 // beat and a dead button reads as a glitch (Aidan 2026-11-05).
                 // Signed out and not a tester: a guest account, no sign-up
                 // (Aidan 2026-11-27, server/routes/guest-session.ts).
+                makeStep('generate', { route: 'photo', occasion: state.recipient?.occasion ?? null });
                 setTransferError(null);
                 setTransfer('Starting your card…');
                 try {
@@ -301,7 +303,13 @@ export default function PhotoMakerPage() {
             <Button variant="ghost" onClick={goBack} disabled={currentStep === 0} className="text-keeper-body">
               <ChevronLeft className="mr-1 h-4 w-4" /> Back
             </Button>
-            <Button onClick={goNext} disabled={!canAdvance} className="bg-go text-go-foreground hover:bg-go-hover disabled:opacity-50">
+            <Button onClick={() => {
+              // /admin/maker, photo route: leaving the photo and scene steps.
+              const occ = state.recipient?.occasion ?? null;
+              if (currentStep === 1) makeStep('photo', { route: 'photo', occasion: occ });
+              if (currentStep === 2) makeStep('scene', { route: 'photo', occasion: occ });
+              goNext();
+            }} disabled={!canAdvance} className="bg-go text-go-foreground hover:bg-go-hover disabled:opacity-50">
               Next <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>

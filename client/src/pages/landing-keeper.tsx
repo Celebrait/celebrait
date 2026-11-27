@@ -21,6 +21,7 @@
 // gallery cards · E print macro photo (needs the Prodigi test print).
 // Gallery dialogs use the hero card as a stand-in until D1–6 land.
 
+import { makeStep } from '@/lib/make-steps';
 import { christmasPhase } from '@shared/christmas';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { lazy, Suspense, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
@@ -258,7 +259,7 @@ function PrimaryCta({ large = false, fullOnMobile = false }: { large?: boolean; 
     /* Signed out → the PUBLIC photo maker (2026-09-04): start with the
        photo now, sign up at Generate. The 3-dates offer still lives on
        the ticker + the claim flow. */
-    <Link href={`/photo/make${xq}`} className={cls} data-testid="keeper-cta">
+    <Link href={`/photo/make${xq}`} className={cls} data-testid="keeper-cta" onClick={() => makeStep('started', { route: 'photo', occasion: xq ? 'christmas' : null })}>
       Make a card, free to start
     </Link>
   );
@@ -818,6 +819,8 @@ function HeroSection() {
   const onUs = useFirstCardOnUs();
   const betaChrome = useBetaMinimalChrome();
   const xmas = usePhotoChristmas();
+  // Top of the photo route's funnel on /admin/maker (counts only).
+  useEffect(() => { makeStep('landed', { route: 'photo', occasion: xmas ? 'christmas' : null }); }, [xmas]);
   const [persona, setPersona] = useState(0);
   // Shuffled display order (mum pinned first). Stable for the session —
   // useState's lazy init runs the shuffle once on mount.

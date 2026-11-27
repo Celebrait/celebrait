@@ -23,7 +23,13 @@ import { db } from './db';
 import { users } from '@shared/schema';
 
 export const MAKE_STEPS = ['landed', 'started', 'questions', 'drawn', 'picked', 'finished', 'buy'] as const;
-export type MakeStep = (typeof MAKE_STEPS)[number];
+/** The photo route's own journey (2026-11-27). 'drawn' and 'finished'
+ *  are logged by the generator itself (background-generator.ts), so a
+ *  closed tab can't lose them. */
+export const PHOTO_STEPS = ['landed', 'started', 'photo', 'scene', 'generate', 'drawn', 'finished', 'buy'] as const;
+const ALL_STEPS = ['landed', 'started', 'questions', 'photo', 'scene', 'generate', 'drawn', 'picked', 'finished', 'buy'] as const;
+export type MakeRoute = 'maker' | 'photo';
+export type MakeStep = (typeof ALL_STEPS)[number];
 
 export async function ensureMakeInsightTables(): Promise<void> {
   try {
@@ -54,6 +60,9 @@ export async function ensureMakeInsightTables(): Promise<void> {
     )`);
     await db.execute(sql`create index if not exists make_steps_created_at_idx on make_steps (created_at)`);
     await db.execute(sql`create index if not exists make_steps_set_id_idx on make_steps (set_id)`);
+    // 2026-11-27: which route the step belongs to (null = the three-card
+    // route, every row written before the photo route was counted).
+    await db.execute(sql`alter table make_steps add column if not exists route text`);
   } catch (err) {
     console.warn('[MAKE-INSIGHTS] table check failed:', (err as Error)?.message ?? err);
   }
@@ -74,14 +83,15 @@ export function logMakeSet(s: {
     .catch((e) => console.warn('[MAKE-INSIGHTS] set log failed (non-fatal):', (e as Error)?.message ?? e));
 }
 
-export function logMakeStep(step: MakeStep, o: { occasion?: string | null; setId?: string | null; detail?: string | null; source?: string | null; device?: string | null }): void {
-  void db.execute(sql`insert into make_steps (step, occasion, set_id, detail, source, device)
-    values (${step}, ${occ(o.occasion)}, ${o.setId?.slice(0, 16) ?? null}, ${o.detail?.slice(0, 40) ?? null}, ${o.source?.slice(0, 60) ?? null}, ${o.device ?? null})`)
+export function logMakeStep(step: MakeStep, o: { route?: MakeRoute; occasion?: string | null; setId?: string | null; detail?: string | null; source?: string | null; device?: string | null }): void {
+  void db.execute(sql`insert into make_steps (step, route, occasion, set_id, detail, source, device)
+    values (${step}, ${o.route === 'photo' ? 'photo' : null}, ${occ(o.occasion)}, ${o.setId?.slice(0, 16) ?? null}, ${o.detail?.slice(0, 40) ?? null}, ${o.source?.slice(0, 60) ?? null}, ${o.device ?? null})`)
     .catch((e) => console.warn('[MAKE-INSIGHTS] step log failed (non-fatal):', (e as Error)?.message ?? e));
 }
 
 const stepSchema = z.object({
-  step: z.enum(MAKE_STEPS),
+  step: z.enum(ALL_STEPS),
+  route: z.enum(['maker', 'photo']).optional(),
   occasion: z.string().max(40).nullable().optional(),
   setId: z.string().max(16).nullable().optional(),
   detail: z.string().max(40).nullable().optional(),
@@ -129,12 +139,15 @@ export function registerMakeInsights(app: Express): void {
     try {
       const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 90);
       const o = occ(typeof req.query.occasion === 'string' ? req.query.occasion : '') ;
+      const route: MakeRoute = req.query.route === 'photo' ? 'photo' : 'maker';
+      if (route === 'photo') return res.json(await photoInsights(days, o));
       const steps = await db.execute(sql`
         select step, count(*)::int as n,
                count(*) filter (where source = 'meta')::int as from_meta
         from make_steps
         where created_at >= now() - ${days} * interval '1 day'
           and (${o}::text is null or occasion = ${o})
+          and route is null
         group by step`);
       const paid = await db.execute(sql`
         select count(*)::int as n
@@ -165,7 +178,7 @@ export function registerMakeInsights(app: Express): void {
       const counts: Record<string, { n: number; fromMeta: number }> = {};
       for (const r of steps.rows as Array<{ step: string; n: number; from_meta: number }>) counts[r.step] = { n: r.n, fromMeta: r.from_meta };
       res.json({
-        days, occasion: o,
+        days, occasion: o, route: 'maker',
         funnel: [...MAKE_STEPS.map((s) => ({ step: s, n: counts[s]?.n ?? 0, fromMeta: counts[s]?.fromMeta ?? 0 })),
           { step: 'paid', n: (paid.rows[0] as { n: number } | undefined)?.n ?? 0, fromMeta: null }],
         sets: sets.rows,
@@ -175,4 +188,51 @@ export function registerMakeInsights(app: Express): void {
       res.status(500).json({ message: 'Could not load the maker data' });
     }
   });
+}
+
+/** The photo route's half of /admin/maker. Its cards live in `cards`
+ *  (source 'photo', drawn in the studio pipeline, guests included), so
+ *  "what people made" is read from there: the scene they wrote and the
+ *  words for the front, never their photo. */
+async function photoInsights(days: number, o: string | null) {
+  const steps = await db.execute(sql`
+    select step, count(*)::int as n,
+           count(*) filter (where source = 'meta')::int as from_meta
+    from make_steps
+    where created_at >= now() - ${days} * interval '1 day'
+      and (${o}::text is null or occasion = ${o})
+      and route = 'photo'
+    group by step`);
+  const paid = await db.execute(sql`
+    select count(*)::int as n
+    from studio_orders so join cards c on c.id = so.card_id
+    where so.payment_status = 'paid' and c.source = 'photo'
+      and so.paid_at >= now() - ${days} * interval '1 day'
+      and (${o}::text is null or lower(trim(c.conversation_data->'recipient'->>'occasion')) = ${o})`);
+  const made = await db.execute(sql`
+    select c.id as card_id, c.created_at, c.status,
+           c.conversation_data->'recipient'->>'name' as recipient,
+           lower(trim(c.conversation_data->'recipient'->>'occasion')) as occasion,
+           c.conversation_data->'scene'->>'description' as scene,
+           c.conversation_data->'front'->>'mode' as front_mode,
+           c.conversation_data->'front'->>'text' as front_text,
+           (u.email like '%@guests.celebrait.co.uk') as guest,
+           exists (select 1 from studio_orders so where so.card_id = c.id and so.payment_status = 'paid') as paid
+    from cards c left join users u on u.id = c.user_id
+    where c.source = 'photo'
+      and c.created_at >= now() - ${days} * interval '1 day'
+      and (${o}::text is null or lower(trim(c.conversation_data->'recipient'->>'occasion')) = ${o})
+      and coalesce(c.conversation_data->'scene'->>'description', '') <> ''
+      and coalesce(u.is_admin, false) = false
+    order by c.created_at desc
+    limit 150`);
+  const counts: Record<string, { n: number; fromMeta: number }> = {};
+  for (const r of steps.rows as Array<{ step: string; n: number; from_meta: number }>) counts[r.step] = { n: r.n, fromMeta: r.from_meta };
+  return {
+    days, occasion: o, route: 'photo' as const,
+    funnel: [...PHOTO_STEPS.map((s) => ({ step: s, n: counts[s]?.n ?? 0, fromMeta: counts[s]?.fromMeta ?? 0 })),
+      { step: 'paid', n: (paid.rows[0] as { n: number } | undefined)?.n ?? 0, fromMeta: null }],
+    sets: [],
+    photoCards: made.rows,
+  };
 }
