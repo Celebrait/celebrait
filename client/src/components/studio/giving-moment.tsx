@@ -22,6 +22,7 @@
 // On continue: the choice is saved to the draft (`state.delivery`,
 // format always 'print') and the user is sent to /checkout/:id.
 
+import { useIsGuest, useStudioHome } from '@/hooks/use-guest';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
@@ -94,6 +95,9 @@ export function GivingMoment({
   // one moment someone will happily give the occasion date — asked here,
   // optionally, framed as service; never earlier in the maker.
   const [laterOpen, setLaterOpen] = useState(false);
+  // A guest has no studio to come back to, so no "save it for later".
+  const guest = useIsGuest();
+  const studioHome = useStudioHome();
   const [laterDate, setLaterDate] = useState('');
   const [laterBusy, setLaterBusy] = useState(false);
   const { toast } = useToast();
@@ -121,7 +125,7 @@ export function GivingMoment({
     } finally {
       setLaterBusy(false);
     }
-    setLocation('/studio');
+    setLocation(studioHome);
   };
 
   // Step-1 "Back to card" — leaves the giving flow back to wherever the
@@ -241,7 +245,7 @@ export function GivingMoment({
 
       {/* The explicit exit. Cards auto-save, but nothing SAID so — and a
           buy-or-back-button screen reads as buy-or-lose-it. */}
-      <div className="border-t border-keeper-hair pt-4 text-center" data-testid="giving-save-later">
+      {!guest && <div className="border-t border-keeper-hair pt-4 text-center" data-testid="giving-save-later">
         {!laterOpen ? (
           <button
             type="button"
@@ -285,7 +289,7 @@ export function GivingMoment({
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

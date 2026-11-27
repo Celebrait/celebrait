@@ -20,6 +20,11 @@
 // The per-page greeting h1 previously rendered inline here — removed as
 // part of the Week 1 rebuild so each page owns its own header.
 
+import { Redirect } from 'wouter';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { KeeperHeader } from '@/components/landing/keeper-header';
+import { useIsGuest } from '@/hooks/use-guest';
+import { isGuestEmail } from '@shared/guest';
 import { Link, useLocation } from 'wouter';
 import { MakerOnly } from '@/hooks/use-maker';
 import {
@@ -230,6 +235,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   // sidebar, no bell, no account, no coachmarks — the wordmark back to
   // /beta, a beta label and the feedback link.
   const beta = useBetaMinimalChrome();
+  const guest = useIsGuest();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -237,8 +243,24 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
   // (mounted in the header below), so the bell and its driver share one
   // query and one mount point across every Studio surface.
 
-  const initials = user?.firstName?.[0] ?? user?.email?.[0]?.toUpperCase() ?? '?';
+  const initials = user?.firstName?.[0] ?? (isGuestEmail(user?.email) ? 'G' : user?.email?.[0]?.toUpperCase()) ?? '?';
   const showFab = !HIDE_FAB_ON.some((rx) => rx.test(location));
+
+  // Guests (no-account photo route, Aidan 2026-11-27: "just don't direct
+  // them into the studio"). Only the card itself is theirs to see, in the
+  // shop's own chrome: the editor, the card, the giving screen. Anything
+  // else under /studio (the dashboard, moments, drafts) is a studio room,
+  // so it sends them back to the photo page.
+  if (guest && !beta) {
+    if (!/^\/studio\/card\/\d+/.test(location)) return <Redirect to="/photo" />;
+    return (
+      <div className="keeper-serif relative min-h-screen overflow-x-clip">
+        <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+        <KeeperHeader />
+        <main className="relative mx-auto max-w-6xl px-4 pb-20 pt-32 sm:px-6">{children}</main>
+      </div>
+    );
+  }
 
   if (beta) {
     return (
@@ -314,7 +336,7 @@ export default function StudioLayout({ children }: { children: ReactNode }) {
               {initials}
             </div>
             <span className="text-xs text-keeper-meta max-w-[140px] truncate hidden sm:block">
-              {user?.email}
+              {isGuestEmail(user?.email) ? 'Guest' : user?.email}
             </span>
           </div>
           <Button

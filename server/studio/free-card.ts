@@ -22,6 +22,7 @@
 //   • Free orders ship Standard only (fixed, known exposure ≈ 50–70p
 //     per redemption; the faster tiers stay a paid-order thing).
 
+import { isGuestEmail } from '@shared/guest';
 import { and, eq, isNull, or, sql, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { users, recipientOccasions, studioOrders } from '@shared/schema';
@@ -84,16 +85,19 @@ export async function getFreeCardStatus(userId: string): Promise<FreeCardStatus>
   const [keyDates, userRows] = await Promise.all([
     countKeyDates(userId),
     db
-      .select({ redeemedAt: users.freeCardRedeemedAt })
+      .select({ redeemedAt: users.freeCardRedeemedAt, email: users.email })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1),
   ]);
   const redeemed = !!userRows[0]?.redeemedAt;
+  // A guest account is free to mint, so it can never carry the free card
+  // (shared/guest.ts): one fresh account per card would be one free card each.
+  const guest = isGuestEmail(userRows[0]?.email);
   return {
     keyDates,
     redeemed,
-    eligible: keyDates >= FREE_CARD_KEY_DATES && !redeemed,
+    eligible: !guest && keyDates >= FREE_CARD_KEY_DATES && !redeemed,
   };
 }
 

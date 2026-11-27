@@ -9,6 +9,8 @@
 // form page it points back to the card's review step; on the success
 // / cancelled pages it points back to Studio home.
 
+import { useStudioHome } from '@/hooks/use-guest';
+import { isGuestEmail } from '@shared/guest';
 import { Link } from 'wouter';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,8 +30,9 @@ export default function CheckoutLayout({
   backLabel = 'Back to your card',
 }: CheckoutLayoutProps) {
   const { user, logout } = useAuth();
+  const home = useStudioHome();
   const initials =
-    (user?.firstName?.[0] ?? user?.email?.[0] ?? '?').toUpperCase() +
+    (user?.firstName?.[0] ?? (isGuestEmail(user?.email) ? 'G' : user?.email?.[0]) ?? '?').toUpperCase() +
     (user?.lastName?.[0] ?? '').toUpperCase();
 
   return (
@@ -45,11 +48,14 @@ export default function CheckoutLayout({
         </Link>
 
         <div className="flex-1 flex justify-center">
-          <Link href="/studio" className="flex items-center">
+          <Link href={home} className="flex items-center">
             <img src={logoSrc} alt="Celebrait" className="h-8 object-contain" />
           </Link>
         </div>
 
+        {/* A guest has no account to show or leave: logging out would
+            strand the card they're paying for. */}
+        {!isGuestEmail(user?.email) && <>
         <div className="flex items-center gap-2 bg-white/70 border border-keeper-hair rounded-full pl-1 pr-3 py-1">
           <div className="w-7 h-7 rounded-full bg-keeper-gold flex items-center justify-center text-white text-xs font-semibold">
             {initials}
@@ -68,6 +74,7 @@ export default function CheckoutLayout({
           <LogOut className="w-4 h-4" />
           <span className="hidden sm:inline ml-1">Log out</span>
         </Button>
+        </>}
       </header>
 
       <main className="flex-1">

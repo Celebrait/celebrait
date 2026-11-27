@@ -21,6 +21,8 @@
 // gallery cards · E print macro photo (needs the Prodigi test print).
 // Gallery dialogs use the hero card as a stand-in until D1–6 land.
 
+import { christmasPhase } from '@shared/christmas';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { lazy, Suspense, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'wouter';
@@ -229,21 +231,34 @@ function AssetSlot({
 // code", which is the strongest reason we have for paying that cost.
 // The invite modal is mounted on this page and listens for CLAIM_EVENT,
 // same mechanism the ticker and the corner pill already use.
+/** /photo?occasion=christmas while Christmas orders are open (Aidan
+ *  2026-11-27: the photo route's own Christmas ad lands here). Read once
+ *  per mount; after the last order date the same link is the everyday
+ *  page, as /create?occasion=christmas does. */
+function usePhotoChristmas(): boolean {
+  const [on] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('occasion') === 'christmas' && christmasPhase() === 'open'; } catch { return false; }
+  });
+  return on;
+}
+
 function PrimaryCta({ large = false, fullOnMobile = false }: { large?: boolean; fullOnMobile?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
+  // Christmas carries into the maker, so the occasion is already chosen.
+  const xq = usePhotoChristmas() ? '?occasion=christmas' : '';
   const authed = !isLoading && isAuthenticated;
   // Violet go primary (2026-09-04): one primary treatment across the
   // gate, /create and this page; the header's ink pill stays secondary.
   const cls = `${large ? BTN_PRIMARY_LG : BTN_PRIMARY}${fullOnMobile ? ' w-full sm:w-auto' : ''}`;
   return authed ? (
-    <Link href="/studio/new-card" className={cls} data-testid="keeper-cta">
+    <Link href={`/studio/new-card${xq}`} className={cls} data-testid="keeper-cta">
       Make a card. It's free
     </Link>
   ) : (
     /* Signed out → the PUBLIC photo maker (2026-09-04): start with the
        photo now, sign up at Generate. The 3-dates offer still lives on
        the ticker + the claim flow. */
-    <Link href="/photo/make" className={cls} data-testid="keeper-cta">
+    <Link href={`/photo/make${xq}`} className={cls} data-testid="keeper-cta">
       Make a card, free to start
     </Link>
   );
@@ -802,6 +817,7 @@ function HeroSection() {
   const maker = useMakerEnabled() === true;
   const onUs = useFirstCardOnUs();
   const betaChrome = useBetaMinimalChrome();
+  const xmas = usePhotoChristmas();
   const [persona, setPersona] = useState(0);
   // Shuffled display order (mum pinned first). Stable for the session —
   // useState's lazy init runs the shuffle once on mount.
@@ -851,9 +867,17 @@ function HeroSection() {
           (2026-07-29). Desktop is unchanged: text left, proof right. */}
       <div className="mx-auto grid max-w-6xl items-start gap-x-16 gap-y-10 md:grid-cols-[1.05fr_0.95fr] md:gap-y-0">
         <div className="md:col-start-1 md:row-start-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
-            Unbinnable Greetings Cards
-          </p>
+          {/* Christmas (2026-11-27): the deadline first, then "This
+              Christmas..." leading into the same three-line headline, so
+              it reads "This Christmas... put Mum in the picture." */}
+          {xmas && <LeadTimeNotice occasion="christmas" link={false} className="mb-5 max-w-xl" />}
+          {xmas ? (
+            <p className="text-[15px] font-semibold text-keeper-gold">This Christmas...</p>
+          ) : (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-keeper-gold">
+              Unbinnable Greetings Cards
+            </p>
+          )}
           {/* STRUCTURAL three lines (Kevin's rule: "ALWAYS flows 3 lines
               on desktop and mobile"): Put / your-something / in the
               picture. The persona line is nowrap and every persona is
@@ -908,8 +932,9 @@ function HeroSection() {
           {/* One plain line (Aidan 2026-11-11): replaced the three-step
               recipe, the £ price and the 7–10 minutes wink. */}
           <p className="order-2 mt-7 max-w-[30rem] text-[17px] leading-[1.6] text-keeper-body md:order-1 md:mt-6">
-            Celebrait turns your photo into any scene imaginable to create mind-blowing
-            custom greetings cards. Print ready in under ten minutes.
+            {xmas
+              ? 'Celebrait turns your photo into any Christmas scene you can imagine, then we print it on a proper card and post it. Print ready in under ten minutes.'
+              : 'Celebrait turns your photo into any scene imaginable to create mind-blowing custom greetings cards. Print ready in under ten minutes.'}
           </p>
           <div className="order-1 mt-10 md:order-2 md:mt-8">
             <PrimaryCta large fullOnMobile />

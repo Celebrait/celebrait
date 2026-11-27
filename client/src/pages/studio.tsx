@@ -21,6 +21,7 @@
 // Drafts, Ready, and Sent each have their own filtered pages at
 // /studio/drafts, /studio/ready, /studio/sent.
 
+import { isGuestEmail } from '@shared/guest';
 import { useEffect, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { useQuery } from '@tanstack/react-query';
@@ -52,7 +53,7 @@ import { market } from '@shared/market';
 
 export default function StudioHome() {
   const { user } = useAuth();
-  const displayName = user?.firstName || user?.email?.split('@')[0] || 'there';
+  const displayName = user?.firstName || (isGuestEmail(user?.email) ? '' : user?.email?.split('@')[0]) || 'there';
 
   const { data, isLoading, error } = useQuery<CardGridItem[]>({
     queryKey: ['/api/user/cards'],

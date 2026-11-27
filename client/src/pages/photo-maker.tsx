@@ -141,7 +141,7 @@ export default function PhotoMakerPage() {
     setTransferError(null);
     const st = m.stateRef.current;
     try {
-      setTransfer('Setting up your studio…');
+      setTransfer('Getting your card ready…');
       let id = draftIdRef.current;
       if (id == null) {
         const created = await apiRequest('POST', '/api/studio/drafts', {
@@ -221,7 +221,7 @@ export default function PhotoMakerPage() {
         <div className="mx-auto max-w-md py-24 text-center">
           <Loader2 className="mx-auto mb-5 h-8 w-8 animate-spin text-brand" />
           <p className="font-display text-xl font-bold text-keeper-ink">{transfer}</p>
-          <p className="mt-1.5 text-sm text-keeper-meta">A few seconds. Your card opens in the studio, drawing as you arrive.</p>
+          <p className="mt-1.5 text-sm text-keeper-meta">A few seconds, then your card starts drawing.</p>
         </div>
       </Shell>
     );
@@ -279,9 +279,17 @@ export default function PhotoMakerPage() {
               onBetaGenerate={async () => {
                 // Show the wait screen at once — minting the studio takes a
                 // beat and a dead button reads as a glitch (Aidan 2026-11-05).
+                // Signed out and not a tester: a guest account, no sign-up
+                // (Aidan 2026-11-27, server/routes/guest-session.ts).
                 setTransferError(null);
-                setTransfer('Opening your studio…');
-                try { await openBetaSession(qc); } catch (err: any) { setTransfer(null); setTransferError(friendlyError(err, "Couldn't open your studio. Try again.")); return; }
+                setTransfer('Starting your card…');
+                try {
+                  if (betaMode) await openBetaSession(qc);
+                  else {
+                    await apiRequest('POST', '/api/guest/session', {});
+                    await qc.invalidateQueries({ queryKey: ['/api/auth/user'] });
+                  }
+                } catch (err: any) { setTransfer(null); setTransferError(friendlyError(err, "Couldn't start your card. Try again.")); return; }
                 void runTransfer();
               }}
             />
@@ -328,8 +336,9 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
   // us" ad that printing costs the full price, with no postage either.
   // Hook first, above everything (see the hooks-before-returns rule).
   const onUs = useFirstCardOnUs();
-  // Beta tester, signed out: no account to make, nothing to pay.
-  const betaGuest = beta && !authed;
+  // Signed out: no account to make (beta testers since 2026-11-05,
+  // everyone since 2026-11-27). Generate mints a guest account.
+  const betaGuest = !authed;
   const occ = state.recipient?.occasion?.trim();
   const rows: Array<[string, ReactNode, number]> = [
     ['For', `${state.recipient?.name?.trim() || '–'}${occ ? ` · ${getOccasionLabel(occ)}` : ''}`, 0],
@@ -358,18 +367,21 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
           {authed || betaGuest ? 'Ready when you are.' : 'One free account, then we draw.'}
         </p>
         <p className="mt-1 text-[14px] leading-relaxed text-keeper-body">
-          {betaGuest
+          {betaGuest && beta
             ? 'This is the beta, so there’s no account to make and nothing to pay. We open a studio for you and draw the card there, a few minutes on our bigger image model.'
+            : betaGuest
+              ? `No account needed. We draw the front first, about ${DRAW_TIME.oneSide}, then you write the inside.`
             : authed
               ? `Your card is saved to your studio and drawn there: the front first, about ${DRAW_TIME.oneSide}, then the inside.`
               : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
-          {!betaGuest && <> Making it is free, and there’s nothing to pay until you print.</>}
+          {!(betaGuest && beta) && <> Making it is free, and there’s nothing to pay until you print.</>}
         </p>
         {/* What printing costs, offer first when it's on. Conditions sit
             in the same breath as "on us" (three dates, postage). */}
-        {!betaGuest && (
+        {!(betaGuest && beta) && (
           <p className="mt-2 text-[14px] leading-relaxed text-keeper-body" data-testid="gate-price-line">
-            {onUs ? (
+            {/* The offer needs dates on an account; a guest can't hold it. */}
+            {onUs && authed ? (
               <>
                 <b className="text-keeper-ink">Your first photo card’s on us</b> when you save three dates that matter. You just pay{' '}
                 {formatMoney(shippingPrice())} postage. After that, cards are {formatMoney(cardPrice('photo'))} plus postage.

@@ -12,6 +12,7 @@
 // Both render under StudioLayout so the sidebar + header stay. The
 // FAB is auto-hidden on these routes by StudioLayout's HIDE_FAB_ON.
 
+import { useStudioHome } from '@/hooks/use-guest';
 import { useEffect, useRef, useState, useReducer } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { useLocation, useRoute } from 'wouter';
@@ -57,6 +58,7 @@ import { occasionLabelMid } from '@/lib/occasion-label';
 // /studio/new-card would (wrongly) create another empty draft.
 export function NewCardPage() {
   const [, setLocation] = useLocation();
+  const studioHome = useStudioHome();
   const [error, setError] = useState<string | null>(null);
   // Track how long we've been waiting so the fast-path stays near-invisible
   // (no artificial delay) while a slow path (Neon cold start, etc.) gets
@@ -102,7 +104,7 @@ export function NewCardPage() {
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't start a new card.</p>
         <p className="text-xs text-keeper-meta mb-6">{error}</p>
-        <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
+        <Button onClick={() => setLocation(studioHome)}>Back to Studio</Button>
       </div>
     );
   }
@@ -156,6 +158,7 @@ export function NewCardPage() {
 // ── The actual maker ─────────────────────────────────────────────────
 export function CardMakerPage() {
   const [, setLocation] = useLocation();
+  const studioHome = useStudioHome();
   const [, params] = useRoute<{ id: string }>('/studio/card/:id/edit');
   const cardId = params ? parseInt(params.id, 10) : NaN;
 
@@ -163,7 +166,7 @@ export function CardMakerPage() {
     return (
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600">Invalid card id.</p>
-        <Button className="mt-4" onClick={() => setLocation('/studio')}>
+        <Button className="mt-4" onClick={() => setLocation(studioHome)}>
           Back to Studio
         </Button>
       </div>
@@ -175,6 +178,7 @@ export function CardMakerPage() {
 
 function CardMakerInner({ cardId }: { cardId: number }) {
   const [, setLocation] = useLocation();
+  const studioHome = useStudioHome();
   const {
     state,
     isLoading,
@@ -404,7 +408,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
       <div className="max-w-md mx-auto text-center py-16">
         <p className="text-sm text-red-600 mb-2">Couldn't load this card.</p>
         <p className="text-xs text-keeper-meta mb-6">{loadError}</p>
-        <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
+        <Button onClick={() => setLocation(studioHome)}>Back to Studio</Button>
       </div>
     );
   }
@@ -511,7 +515,7 @@ function CardMakerInner({ cardId }: { cardId: number }) {
         )}
         <button
           type="button"
-          onClick={() => setLocation('/studio')}
+          onClick={() => setLocation(studioHome)}
           className="text-keeper-meta hover:text-keeper-body underline underline-offset-2"
           data-testid="link-start-over"
         >

@@ -12,9 +12,14 @@
 // the everyday price. There is no half-price fallback any more, so a new
 // surface needs exactly two states: this offer, or no mention of one.
 import { useLockState } from '@/hooks/use-beta';
+import { useAuth } from '@/hooks/use-auth';
+import { isGuestEmail } from '@shared/guest';
 
 /** true = "your first card's on us" is live (switch on, under its caps). */
 export function useFirstCardOnUs(): boolean {
   const { data } = useLockState();
-  return data?.freeFirstCard === true;
+  // A guest account (shared/guest.ts) can never hold the offer, so it
+  // is never offered one: no promise the checkout would then break.
+  const { user } = useAuth();
+  return data?.freeFirstCard === true && !isGuestEmail(user?.email);
 }

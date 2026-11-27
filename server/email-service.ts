@@ -176,7 +176,7 @@ async function writeDevEmailSink(params: EmailParams): Promise<void> {
 
 /** Throwaway tester accounts (research + beta doors) — no mailbox
  *  exists, so never hand Brevo a bounce. */
-const TESTER_DOMAIN = /@testers\.celebrait\.co\.uk$/i;
+const TESTER_DOMAIN = /@(testers|guests)\.celebrait\.co\.uk$/i;
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   if (TESTER_DOMAIN.test(params.to)) {

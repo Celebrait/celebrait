@@ -15,6 +15,8 @@
 // Builds against the stubbed PaymentProvider today; swapping to
 // Stripe is a provider swap, not a rebuild (see next_payment_gateway.md).
 
+import { useIsGuest, useStudioHome } from '@/hooks/use-guest';
+import { isGuestEmail } from '@shared/guest';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { adConsentPayload } from '@/lib/consent';
@@ -144,6 +146,10 @@ function totalsFor(
 export default function CheckoutPage() {
   const [, params] = useRoute<{ cardId: string }>('/checkout/:cardId');
   const [, setLocation] = useLocation();
+  // A guest (no-account photo route) never goes to the studio.
+  const guest = useIsGuest();
+  const home = useStudioHome();
+  const homeLabel = guest ? 'Back to Celebrait' : 'Back to Studio';
   const betaMode = useBetaMode();
   const { toast } = useToast();
   const cardId = params ? parseInt(params.cardId, 10) : NaN;
@@ -221,7 +227,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (prefilledFromAccount.current || !user) return;
     prefilledFromAccount.current = true;
-    setCustomerEmail((cur) => cur || user.email || '');
+    setCustomerEmail((cur) => cur || (isGuestEmail(user.email) ? '' : user.email) || '');
     setCustomerName((cur) => cur || user.firstName || '');
   }, [user]);
   const [shipTo, setShipTo] = useState<'sender' | 'recipient'>('sender');
@@ -493,11 +499,11 @@ export default function CheckoutPage() {
     }
   };
 
-  const backHref = Number.isFinite(cardId) ? `/studio/card/${cardId}/edit` : '/studio';
+  const backHref = Number.isFinite(cardId) ? `/studio/card/${cardId}/edit` : home;
 
   if (!Number.isFinite(cardId)) {
     return (
-      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+      <CheckoutLayout backHref={home} backLabel={homeLabel}>
         <Centered>Invalid card id.</Centered>
       </CheckoutLayout>
     );
@@ -519,10 +525,10 @@ export default function CheckoutPage() {
   // there (audit 2026-10-06, P1).
   if (cardMissing || (!isLoading && !card)) {
     return (
-      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+      <CheckoutLayout backHref={home} backLabel={homeLabel}>
         <Centered>
           <p className="text-sm text-keeper-body mb-4">We couldn't find that card. It may have been deleted, or the link may be wrong.</p>
-          <Button onClick={() => setLocation('/studio')}>Back to Studio</Button>
+          <Button onClick={() => setLocation(home)}>{homeLabel}</Button>
         </Centered>
       </CheckoutLayout>
     );
@@ -996,6 +1002,7 @@ export default function CheckoutPage() {
               {/* Deferral reassurance (Carina 2026-08-07): she couldn't
                   tell how NOT to buy now and come back later. The card was
                   always safe — nothing SAID so at the moment of doubt. */}
+              {!guest && (
               <p className="text-center text-[11.5px] leading-relaxed text-keeper-meta">
                 Not ready to send it? No rush. It's saved in{' '}
                 <Link href="/studio/drafts" className="underline underline-offset-2 hover:text-keeper-ink">
@@ -1003,6 +1010,7 @@ export default function CheckoutPage() {
                 </Link>{' '}
                 and will wait.
               </p>
+              )}
               {/* The line that sent code-holders to "the next page" is gone
                   (launch audit 2026-11-26): codes go in this page's own
                   "Got a code?" box, and Stripe's promotion-code field is

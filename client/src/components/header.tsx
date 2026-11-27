@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { isGuestEmail } from '@shared/guest';
 import { useAuth } from "@/hooks/use-auth";
 import { User, LogOut, LogIn, Sparkles } from "lucide-react";
 import { Link } from "wouter";
@@ -62,10 +63,10 @@ export default function Header() {
                 
                 <div className="flex items-center space-x-2 bg-purple-50 rounded-full pl-1 pr-2 py-1">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
-                    {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                    {user.firstName?.[0] || (isGuestEmail(user.email) ? 'G' : user.email?.[0]?.toUpperCase()) || <User className="w-4 h-4" />}
                   </div>
                   <span className="text-purple-700 text-xs sm:text-sm font-medium hidden sm:block max-w-[100px] truncate">
-                    {user.firstName || user.email?.split('@')[0]}
+                    {user.firstName || (isGuestEmail(user.email) ? 'Guest' : user.email?.split('@')[0])}
                   </span>
                 </div>
                 

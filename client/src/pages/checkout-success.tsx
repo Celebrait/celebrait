@@ -4,6 +4,7 @@
 // paymentStatus flips to 'paid' (or gives up after ~20s → a calm "check
 // Orders" state), then shows a summary + the digital share link.
 
+import { useIsGuest, useStudioHome } from '@/hooks/use-guest';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
@@ -35,6 +36,10 @@ interface OrderResponse {
 
 export default function CheckoutSuccessPage() {
   const [, setLocation] = useLocation();
+  // A guest (no-account photo route) never goes to the studio.
+  const guest = useIsGuest();
+  const home = useStudioHome();
+  const homeLabel = guest ? 'Back to Celebrait' : 'Back to Studio';
   const { toast } = useToast();
   const qs = new URLSearchParams(window.location.search);
   const orderId = qs.get('orderId') ?? '';
@@ -93,7 +98,7 @@ export default function CheckoutSuccessPage() {
 
   if (!orderId) {
     return (
-      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+      <CheckoutLayout backHref={home} backLabel={homeLabel}>
         <Centered>No order to show.</Centered>
       </CheckoutLayout>
     );
@@ -101,7 +106,7 @@ export default function CheckoutSuccessPage() {
 
   if (!paid && !timedOut) {
     return (
-      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+      <CheckoutLayout backHref={home} backLabel={homeLabel}>
         <Centered>
           <Loader2 className="w-6 h-6 animate-spin text-brand mb-3" />
           <p className="text-sm text-keeper-body">Confirming your order…</p>
@@ -112,17 +117,17 @@ export default function CheckoutSuccessPage() {
 
   if (!paid && timedOut) {
     return (
-      <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+      <CheckoutLayout backHref={home} backLabel={homeLabel}>
         <Centered>
           <p className="text-sm font-medium text-keeper-ink mb-2">
             This is taking longer than usual
           </p>
           <p className="text-xs text-keeper-meta mb-6 max-w-xs leading-relaxed">
             Your payment may still be going through. We'll email your receipt
-            as soon as it confirms. You can also find it under Orders.
+            as soon as it confirms.{guest ? '' : ' You can also find it under Orders.'}
           </p>
-          <Button onClick={() => setLocation('/studio/orders')}>
-            Go to Orders
+          <Button onClick={() => setLocation(guest ? home : '/studio/orders')}>
+            {guest ? homeLabel : 'Go to Orders'}
           </Button>
         </Centered>
       </CheckoutLayout>
@@ -134,7 +139,7 @@ export default function CheckoutSuccessPage() {
   if (!data) return null;
 
   return (
-    <CheckoutLayout backHref="/studio" backLabel="Back to Studio">
+    <CheckoutLayout backHref={home} backLabel={homeLabel}>
       <div className="max-w-md mx-auto pt-6 sm:pt-12">
         <div className="bg-white rounded-2xl border border-keeper-hair p-6 sm:p-8 space-y-5">
           <div className="flex items-start gap-3">
@@ -157,7 +162,7 @@ export default function CheckoutSuccessPage() {
                 <Package className="w-4 h-4 text-keeper-meta" />
                 <span>
                   A one-off print, posted tracked. Expect it by{' '}
-                  <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(data.order.createdAt ?? Date.now()))}</span>. Track it in{' '}
+                  <span className="font-medium text-keeper-ink">{expectedByCopy(new Date(data.order.createdAt ?? Date.now()))}</span>.{guest ? null : <>{' '}Track it in{' '}
                   <Link
                     href="/studio/orders"
                     className="text-brand underline underline-offset-2 hover:text-brand-dark"
@@ -165,7 +170,7 @@ export default function CheckoutSuccessPage() {
                   >
                     Orders
                   </Link>
-                  .
+                  .</>}
                 </span>
               </div>
             )}
@@ -202,9 +207,9 @@ export default function CheckoutSuccessPage() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => setLocation('/studio')}
+              onClick={() => setLocation(home)}
             >
-              Back to Studio
+              {homeLabel}
             </Button>
             {data.shareUrl && (
               <Button

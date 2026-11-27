@@ -19,6 +19,7 @@
 // anything that opens FROM it (dropdown, sheet) must sit higher, or it
 // renders behind the very bar it came from (Aidan 2026-09-10).
 
+import { useIsGuest } from '@/hooks/use-guest';
 import { useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { Cake, Camera, ChevronDown, Menu, Sparkles, TreePine, type LucideIcon } from 'lucide-react';
@@ -86,7 +87,12 @@ function ItemRow({ item, compact = false }: { item: MenuItem; compact?: boolean 
  *  and nothing else, so a tester can't wander off into the site. Also
  *  forced on for every beta tester wherever they are. */
 export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boolean } = {}) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated: signedIn, isLoading } = useAuth();
+  // A guest (no-account photo route) is signed out as far as the header
+  // goes: no studio button, and no Sign in, which would swap accounts and
+  // leave their card behind.
+  const guest = useIsGuest();
+  const isAuthenticated = signedIn && !guest;
   const minimalChrome = useBetaMinimalChrome();
   const minimal = minimalProp || minimalChrome;
   const { openAuth } = useAuthModal();
@@ -178,7 +184,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
             ) : (
               <>
                 {/* Testers never need an account (2026-11-05). */}
-                {!minimal && <button type="button" onClick={() => openAuth('/studio')} className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block">
+                {!minimal && !guest && <button type="button" onClick={() => openAuth('/studio')} className="hidden px-2 text-[13px] font-medium text-keeper-meta transition-colors hover:text-keeper-ink sm:block">
                   Sign in
                 </button>}
                 {cta}
@@ -209,7 +215,7 @@ export function KeeperHeader({ minimal: minimalProp = false }: { minimal?: boole
                     {GALLERY_OPEN && <Link href="/gallery" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Gallery</Link>}
                     <Link href="/stories" onClick={() => setOpen(false)} className="block border-b border-keeper-hair px-1 py-3.5 text-[16px] font-semibold text-keeper-ink">Stories</Link>
                     <Link href="/pricing" onClick={() => setOpen(false)} className="block px-1 py-3 text-[16px] font-semibold text-keeper-ink">Pricing</Link>
-                    {!isLoading && !isAuthenticated && (
+                    {!isLoading && !isAuthenticated && !guest && (
                       <button type="button" onClick={() => { setOpen(false); openAuth('/studio'); }} className="px-1 py-2 text-left text-[14px] font-medium text-keeper-meta">Sign in</button>
                     )}
                   </div>

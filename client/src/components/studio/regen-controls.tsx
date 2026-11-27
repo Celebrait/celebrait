@@ -43,6 +43,7 @@
 //   • Switching versions via a side's rail is non-destructive — the
 //     server just updates which attempt is "selected"; nothing deleted.
 
+import { useIsGuest } from '@/hooks/use-guest';
 import { useEffect, useRef, useState } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
 import { Link } from 'wouter';
@@ -146,6 +147,8 @@ export function RegenEditMode({
   lockedSide,
   renderPreview,
 }: RegenEditModeProps) {
+  // A guest starts again on the photo route, not in the studio.
+  const newCardHref = useIsGuest() ? '/photo/make' : '/studio/new-card';
   // Per-side tweak text. Blank = "leave that side as-is" (no regen).
   const [tweakFront, setTweakFront] = useState('');
   const [tweakInside, setTweakInside] = useState('');
@@ -743,7 +746,7 @@ export function RegenEditMode({
                     Pick your favourite from the versions above, or if none
                     of them are the one,{' '}
                     <Link
-                      href="/studio/new-card"
+                      href={newCardHref}
                       className="font-medium text-brand hover:text-brand-dark"
                       data-testid="regen-start-over"
                     >
@@ -755,7 +758,7 @@ export function RegenEditMode({
                 <p className="text-[11px] text-keeper-meta text-center mb-4">
                   Want a different card altogether?{' '}
                   <Link
-                    href="/studio/new-card"
+                    href={newCardHref}
                     className="text-brand hover:text-brand-dark font-medium"
                     data-testid="regen-start-over"
                   >
