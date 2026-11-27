@@ -201,7 +201,15 @@ const guestCounts = new Map<string, { day: string; n: number }>();
 // 'assess' + 'scene' (2026-09-04): the PUBLIC photo maker runs the
 // likeness check and the scene helper before sign-up. Both cost a
 // vision/LLM call each; a guest gets a handful, a user plenty.
-const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 6, render: 24, 'cameo-check': 24, 'render-inside': 8, 'ip-safe-art': 6, save: 12, assess: 10, scene: 8 };
+// PER INTERNET ADDRESS, NOT PER PERSON (launch audit 2026-11-26). Phone
+// networks, offices and student halls put many strangers behind one
+// address, and ads land mostly on phones: at six sets a day the seventh
+// visitor from a busy mast was told "that's a lot of cards for one day"
+// before making anything. Doubled. One address can now cost about £1.50
+// a day at worst (12 sets at roughly 12p), the global cap below still
+// bounds a bad day, and a capped guest can sign in for their own
+// allowance. render = three fronts a set plus retries.
+const GUEST_CAPS_PER_IP: Record<string, number> = { concepts: 12, render: 48, 'cameo-check': 48, 'render-inside': 16, 'ip-safe-art': 12, save: 24, assess: 20, scene: 16 };
 const USER_CAPS: Record<string, number> = { concepts: 20, render: 80, 'cameo-check': 80, 'render-inside': 30, 'ip-safe-art': 20, save: 40, assess: 40, scene: 30 };
 const GUEST_CAPS_GLOBAL: Record<string, number> = { concepts: 400, render: 1400, 'cameo-check': 1400, 'render-inside': 500, 'ip-safe-art': 200, save: 800, assess: 600, scene: 500 };
 const bump = (key: string, cap: number): boolean => {
