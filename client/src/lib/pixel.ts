@@ -37,7 +37,23 @@ declare global {
 }
 
 const SCRIPT_SRC = 'https://connect.facebook.net/en_US/fbevents.js';
-const VIEW_CONTENT_PATHS = new Set(['/photo', '/photo/make']);
+/** The product pages, and what to call each one. A visit here is someone
+ *  looking at the thing we sell, which is a far stronger signal for Meta
+ *  to optimise towards than a bare page view.
+ *
+ *  ⚠️ THE THREE-CARD ROUTE WAS MISSING until 2026-11-27. Only the photo
+ *  pages were listed, from when that was the only door open. The
+ *  Christmas ad lands on /create, so every visitor it sent would have
+ *  registered as a page view and nothing more — and ViewContent is one
+ *  of the eight events ranked in Aggregated Event Measurement, so for
+ *  iPhone users who declined tracking it was the signal being thrown
+ *  away. Any new door needs its path adding here the day it opens. */
+const VIEW_CONTENT_PATHS = new Map([
+  ['/photo', 'photo card page'],
+  ['/photo/make', 'photo card maker'],
+  ['/create', 'three-card page'],
+  ['/make', 'three-card maker'],
+]);
 
 let started = false;
 let loaded = false;
@@ -83,9 +99,8 @@ function pageView(): void {
   if (path === lastPath) return;
   lastPath = path;
   fbq('track', 'PageView');
-  if (VIEW_CONTENT_PATHS.has(path.replace(/\/+$/, '') || '/')) {
-    fbq('track', 'ViewContent', { content_name: path === '/photo' ? 'photo card page' : 'photo card maker' });
-  }
+  const product = VIEW_CONTENT_PATHS.get(path.replace(/\/+$/, '') || '/');
+  if (product) fbq('track', 'ViewContent', { content_name: product });
 }
 
 function load(): void {
