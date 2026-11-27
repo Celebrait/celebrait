@@ -41,6 +41,8 @@ import { formatMoney, marketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 import type { CropBounds } from '@shared/models/photos';
 import { KeeperHeader } from '@/components/landing/keeper-header';
+import { makeStep } from '@/lib/make-steps';
+import { track } from '@/lib/pixel';
 import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
 
 // ── plumbing ─────────────────────────────────────────────────────────
@@ -88,7 +90,7 @@ const INSIDE_MAX = 300;
 // brief arrives here in the URL; `go=1` means it's finished — straight
 // into the wait.
 
-interface Concept { angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string;
+interface Concept { /** The set it was drawn in (server meter.setId), for /admin/maker. */ setId?: string; angle: string; format?: string; front_text: string; inside_text?: string; art_direction: string; palette?: string; typeface?: string; direction?: string; tone?: string;
   /** ZA languages (2026-10-16): set by the engine when the card is not
    *  English; greeting + opener are the phrasebook words (zu/xh). */
   language?: string; greeting?: string; opener?: string }
@@ -261,7 +263,7 @@ export default function MakePage() {
     const j = await makePost('cards', {
       frontImageUrl: front, insideImageUrl: inside, cameo: cameoKept && !!cameoUrl, insideMode: mode,
       brief: { who: brief.who.trim(), gender: brief.gender, age: ageNum, interest: brief.thing.trim() || undefined, dislike: brief.cant.trim() || undefined, recipientName: brief.name.trim() || undefined, tone: brief.vibe, occasion: occasionLabel },
-      concept: { front_text: c.front_text, inside_text: c.inside_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, direction: c.direction },
+      concept: { front_text: c.front_text, inside_text: c.inside_text, art_direction: c.art_direction, palette: c.palette, typeface: c.typeface, direction: c.direction, setId: c.setId },
       message: msg || undefined,
     });
     const s = { cardId: j.cardId as number, cardToken: j.cardToken as string };
@@ -402,7 +404,8 @@ export default function MakePage() {
         // ZA only: the card's language (English unless the buyer chose one).
         ...(marketId() === 'ZA' ? { language: briefLanguage(brief) } : {}),
       });
-      const concepts: Concept[] = j.concepts ?? [];
+      const setId: string | undefined = typeof j.meter?.setId === 'string' ? j.meter.setId : undefined;
+      const concepts: Concept[] = (j.concepts ?? []).map((c: Concept) => ({ ...c, setId }));
       if (!concepts.length) throw new Error('Nothing came back. Try again');
       // All three fronts finish before anything is shown (Aidan
       // 2026-09-03: words-first "isn't so clean"; reaffirmed 2026-09-08
@@ -415,8 +418,14 @@ export default function MakePage() {
       const done = await Promise.all(concepts.map((c, i) => renderCell(i, c)));
       // One or two failures show as tiles with the reason and a retry;
       // all three failing is the failure screen, worded by the cause.
-      if (done.some(Boolean)) setPhase('results');
-      else {
+      if (done.some(Boolean)) {
+        setPhase('results');
+        makeStep('drawn', { occasion: occasionLabel, setId });
+        // Meta's standard "customised a product" (consented visitors only,
+        // lib/pixel): the warmest audience short of a sale, and a signal
+        // for the ad to learn from before purchases arrive.
+        track('CustomizeProduct', { content_name: 'three-card set', content_category: occasionLabel });
+      } else {
         const codes = cellsRef.current.map((c) => c.code).filter(Boolean) as FailCode[];
         const code = codes.find((k) => k === 'safety') ?? codes.find((k) => k === 'rate') ?? codes[0] ?? 'unknown';
         const err = new Error(FAIL_COPY[code].tile) as Error & { code?: FailCode };
@@ -564,6 +573,7 @@ export default function MakePage() {
   }, [phase, picked, chosenFront, insideUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Pick a card from the three on screen and move on to the photo step. */
   const pickCard = (i: number, cell: CardCell, fresh = false) => {
+    makeStep('picked', { occasion: occasionLabel, setId: cell.concept.setId, detail: String(i + 1) });
     setPicked(i);
     if (fresh || picked !== i || !message.trim()) setMessage(cell.concept.inside_text ?? '');
     setCameoUrl(null); setCameoKept(false); setCameoError(''); setCameoNote(null); setCameoHeld(null);
@@ -978,6 +988,7 @@ export default function MakePage() {
     const buyLabel = betaMode ? 'Save it & give feedback' : `Buy it for ${formatMoney(cardPrice('maker'))}`;
     const buyNow = () => {
       if (!chosenFront) return;
+      makeStep('buy', { occasion: occasionLabel, setId: cells[picked].concept.setId });
       setSaving('buy'); setSaveError('');
       saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideWords)
         .then(async (s) => {

@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Gift codes', href: '/admin/codes', icon: Gift },
   { label: 'Fulfilment', href: '/admin/fulfilment', icon: Printer },
   { label: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+  { label: 'Card maker', href: '/admin/maker', icon: Sparkles },
   { label: 'Prompt Lab', href: '/admin/prompts', icon: Sparkles },
   { label: 'Photo Lab', href: '/admin/photo-lab', icon: ImageIcon },
   { label: 'Occasion studio', href: '/admin/occasion-studio', icon: Cake },

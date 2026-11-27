@@ -45,6 +45,7 @@ import { registerSiteLock } from "./routes/site-lock";
 import { registerLaunchCheck } from "./routes/launch-check";
 import { registerShopRoutes } from "./routes/shop";
 import { registerMakeRoutes } from "./routes/make";
+import { registerMakeInsights } from "./make-insights";
 import { registerThumbRoutes } from "./routes/thumbs";
 import { registerAdminPhotoLabRoutes } from "./routes/admin-photo-lab";
 import { registerClientErrorRoutes } from "./routes/client-errors";
@@ -456,6 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerDemoRunRoutes(app);
   registerShopRoutes(app);
   registerMakeRoutes(app);
+  registerMakeInsights(app);
   registerThumbRoutes(app);
   registerAdminPhotoLabRoutes(app);
   registerClientErrorRoutes(app);

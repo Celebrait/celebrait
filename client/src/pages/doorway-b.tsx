@@ -41,6 +41,7 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { christmasPhase } from '@shared/christmas';
 import { CHRISTMAS_WALL } from '@/lib/christmas-wall';
+import { makeStep } from '@/lib/make-steps';
 
 
 
@@ -79,7 +80,9 @@ export default function DoorwayBPage() {
   // loading spinner in the question area once clicked get started") —
   // the swap is instant, so this is acknowledgement, not waiting: 650ms.
   const [starting, setStarting] = useState(false);
-  const begin = () => { setStarting(true); window.setTimeout(() => { setStarting(false); setStarted(true); }, 650); };
+  // The top of the /admin/maker funnel (counts only, lib/make-steps).
+  useEffect(() => { makeStep('landed', { occasion: xmas ? 'christmas' : null }); }, [xmas]);
+  const begin = () => { makeStep('started', { occasion: xmas ? 'christmas' : null }); setStarting(true); window.setTimeout(() => { setStarting(false); setStarted(true); }, 650); };
   const reduced = useReducedMotion();
   // The wall itself lives in components/catalogue/card-drift.tsx (the
   // hand-picked carousel cards first, then a birthday shuffle). Only the
@@ -160,7 +163,7 @@ export default function DoorwayBPage() {
                 <BriefQuestions skin="landing" compact brief={brief} onChange={setBrief}
                   hide={xmas ? ['occasion'] : undefined}
                   initialStep={!brief.who ? 0 : xmas || !brief.occasion ? 1 : 2}
-                  onDone={(b) => navigate(`/make?${briefToSearch(b)}&go=1`)} />
+                  onDone={(b) => { makeStep('questions', { occasion: xmas ? 'christmas' : b.occasion || null }); navigate(`/make?${briefToSearch(b)}&go=1`); }} />
                 {/* The hand-off (go=1) skips /make's brief panel, so this
                     is the last screen before the three are drawn: the same
                     honest line the photo route shows before its spend

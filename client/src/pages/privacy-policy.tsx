@@ -273,6 +273,14 @@ export default function PrivacyPolicy() {
                     </tr>
                     <tr>
                       <td className="px-4 py-2">
+                        Keep the answers you give when making a card and the
+                        cards we draw from them, not linked to your account,
+                        so we can see which cards land and make them better
+                      </td>
+                      <td className="px-4 py-2">Our legitimate interests</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2">
                         Keep the service secure, prevent abuse and manage cost
                       </td>
                       <td className="px-4 py-2">Our legitimate interests</td>

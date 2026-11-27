@@ -5,6 +5,7 @@ import { runStartupRetag } from "./startup-retag";
 import { runStartupWebpBackfill } from "./startup-webp";
 import { ensurePerfTable } from "./rum";
 import { ensureLaunchColumns } from "./startup-schema";
+import { ensureMakeInsightTables } from "./make-insights";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import path from "path";
@@ -193,6 +194,7 @@ app.use((req, res, next) => {
   void runStartupWebpBackfill();
   void ensurePerfTable();
   void ensureLaunchColumns();
+  void ensureMakeInsightTables();
 
   // Set server timeout for long-running AI processing
   server.timeout = 600000; // 10 minute timeout

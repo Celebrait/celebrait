@@ -28,6 +28,7 @@ import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { requireGuestMaker } from './admin-card-lab';
 import { isAuthenticated } from '../replit_integrations/auth/replitAuth';
 import type { MakerDraftState } from '@shared/models/card-draft';
+import { logMakeStep } from '../make-insights';
 
 const dataImage = z.string().startsWith('data:image/').max(12_000_000);
 
@@ -54,6 +55,9 @@ const saveSchema = z.object({
     palette: z.string().max(200).optional(),
     typeface: z.string().max(200).optional(),
     direction: z.string().max(400).optional(),
+    /** The set this card came from, so /admin/maker can follow a set
+     *  through to the order (server/make-insights.ts). */
+    setId: z.string().max(16).optional(),
   }).optional(),
   /** What went inside, as the person composed it (opener + body + sign-off). */
   message: z.string().max(2000).optional(),
@@ -134,6 +138,7 @@ export function registerMakeRoutes(app: Express): void {
         })
         .returning({ id: cards.id });
 
+      logMakeStep('finished', { occasion: occasionLabel, setId: body.concept?.setId ?? null });
       console.log(`[MAKE] card ${card.id} saved (${userId ? `user ${userId}` : 'guest'}${body.cameo ? ', cameo' : ''})`);
       res.json({
         cardId: card.id,

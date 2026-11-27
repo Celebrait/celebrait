@@ -54,6 +54,7 @@ import { getProvider } from '../providers/registry';
 import { logGeneration } from '../prompts/generation-log';
 import { llmCostCents, chatUsageCents } from '../prompts/llm-cost';
 import { assessCameoRender } from '../photos/analyze';
+import { logMakeSet } from '../make-insights';
 
 /** The model every door draws with in production. The three-card route
  *  does NOT read `prompt_active` (that table drives the photo director's
@@ -3502,6 +3503,14 @@ export function registerAdminCardLabRoutes(app: Express): void {
           art_direction: c.art_direction ?? null, palette: c.palette ?? null,
           comp_mode: freeComp ? 'free' : 'dealt',
         }))).catch((e) => console.warn('[CARD-LAB:v2] generation log failed (non-fatal):', e));
+        // Customer sets only (/api/make/*): what was typed and what we
+        // wrote, for /admin/maker. The lab's own runs stay out.
+        if (req.originalUrl.startsWith('/api/make/')) logMakeSet({
+          setId, occasion: occKey, tone: body.tone ?? null, recipient: body.who ?? null,
+          interest: interestText || null, dislike: body.dislikes?.trim() || null,
+          fronts: concepts.map((c, i) => ({ front_text: String(c.front_text ?? ''), art_direction: c.art_direction ? String(c.art_direction) : undefined, tone: mixTones ? mixTones[i] : undefined })),
+          flagged: violations, costCents: Math.round(meter.cents * 100) / 100,
+        });
 
         // Violations still standing after the repair round ship VISIBLY,
         // never silently — the studio can show them and the harness
