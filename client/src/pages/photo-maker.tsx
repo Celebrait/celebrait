@@ -16,6 +16,7 @@
 // Landing chrome (this is still the shop floor), studio panel inside.
 // (The 'free account needed to generate' line was dropped 2026-09-10.)
 
+import { occasionLabelMid } from '@/lib/occasion-label';
 import { makeStep } from '@/lib/make-steps';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { friendlyError } from '@/lib/friendly-error';
@@ -61,7 +62,7 @@ const PENDING_KEY = 'celebrait:photo-maker:pending';
 function headline(step: number, state: CardDraftState): string {
   const name = state.recipient?.name?.trim();
   const occ = state.recipient?.occasion?.trim();
-  const noun = occ && occ !== 'other' ? `${getOccasionLabel(occ).toLowerCase()} card` : 'card';
+  const noun = occ && occ !== 'other' ? `${occasionLabelMid(occ)} card` : 'card';
   const owned = name ? `${name}'s ${noun}` : `the ${noun}`;
   switch (PUBLIC_STEPS[step]?.id) {
     case 'recipient': return "Who's this card for?";

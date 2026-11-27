@@ -41,6 +41,7 @@
 // quick composite — so it gets <AssemblingCard> (a plain spinner)
 // instead of this screen. See review-step.tsx.
 
+import { useIsGuest } from '@/hooks/use-guest';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
@@ -127,6 +128,8 @@ export function GenerationWaitStage({
   hasInside = true,
   photoCount,
 }: GenerationWaitStageProps) {
+  // A guest (no-account photo route) has no studio to come back to.
+  const guest = useIsGuest();
   const facts = useMemo(() => buildCelebrationFeed(occasion), [occasion]);
   const [idx, setIdx] = useState(0);
 
@@ -189,8 +192,7 @@ export function GenerationWaitStage({
       <p className="max-w-[420px] text-center text-[13px] leading-relaxed text-keeper-meta">
         This usually takes{' '}
         <span className="font-medium text-keeper-ink">{DRAW_TIME.oneSide}</span>, so
-        hang tight. You can close this if you like: your card will be waiting
-        in your Studio whenever you come back.
+        hang tight.{guest ? ' Stay on this page while we draw it.' : ' You can close this if you like: your card will be waiting in your Studio whenever you come back.'}
       </p>
       {/* Card silhouette — SQUARE, matching the real card chassis. The
           shimmer band sweeps via the keyframe in index.css, clipped to

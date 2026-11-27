@@ -17,6 +17,7 @@
 //   - completed    → show the rendered front + inside images
 //   - failed       → error + retry button (flips status back to draft)
 
+import { occasionLabelMid } from '@/lib/occasion-label';
 import { makeStep } from '@/lib/make-steps';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { friendlyError } from '@/lib/friendly-error';
@@ -700,7 +701,7 @@ function _legacyBuildNarration(state: CardDraftState): {
   const name = state.recipient?.name?.trim() || '';
   const occasionRaw = state.recipient?.occasion?.trim();
   const occasion = occasionRaw && occasionRaw !== 'other' ? occasionRaw : '';
-  const occasionPhrase = occasion ? `${occasion.toLowerCase()} card` : 'card';
+  const occasionPhrase = occasion ? `${occasionLabelMid(occasion)} card` : 'card';
   const photoMode = state.photos?.mode ?? 'one_person';
   const photoCount = state.photos?.photoIds?.length ?? 0;
   const scene = state.scene?.description?.trim() || '';
@@ -892,7 +893,7 @@ function frontFirstSubject(state: CardDraftState): string | null {
   const name = state.recipient?.name?.trim();
   if (!name) return null;
   const occ = state.recipient?.occasion?.trim();
-  return occ ? `${name}'s ${occ} card` : `${name}'s card`;
+  return occ && occ !== 'other' ? `${name}'s ${occasionLabelMid(occ)} card` : `${name}'s card`;
 }
 
 // ── StartAgainButton ─────────────────────────────────────────────────
