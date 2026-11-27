@@ -891,12 +891,17 @@ export async function sendDatesNudgeEmail(params: {
   const remaining = Math.max(1, 3 - keyDates);
   const studioUrl = `${PUBLIC_ORIGIN}/studio`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
-  // ONE OFFER, ONE SWITCH (2026-11-27): this email exists to push the
-  // launch offer. With the offer off there is nothing to nudge towards,
-  // so nothing is sent (the dispatcher checks first and stamps nobody).
-  const open = await (await import('./routes/site-lock')).freeFirstCardOpen().then((o) => o.open).catch(() => false);
-  if (!open) return false;
-  const prize = 'on us';
+  // ⚠️ TWO THINGS, NOT ONE (Aidan 2026-11-27). This email was written to
+  // chase THE OFFER, so when the offer went behind a switch I stopped it
+  // sending at all — which threw away the only thing chasing someone who
+  // signed up and drifted. The DATES are worth an email on their own:
+  // nobody wants to be the person who remembers on the day. So it always
+  // sends, and the offer only decides what it argues.
+  //
+  // The three-dot ring counts to three because three dates unlock the
+  // card. With no card to unlock there is no threshold, so it goes and
+  // the email simply says what we are watching.
+  const offerOn = await (await import('./routes/site-lock')).freeFirstCardOpen().then((o) => o.open).catch(() => false);
   const prizeHtml = `<strong>on us</strong> (just ${moneyHtml(shippingPrice())} postage)`;
   // Inline ring state — three dots, filled per key date. Email-safe spans.
   const dots = [0, 1, 2]
@@ -906,31 +911,57 @@ export async function sendDatesNudgeEmail(params: {
         : `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#ffffff;border:2px solid #D9D5F0;margin:0 3px;box-sizing:border-box;"></span>`,
     )
     .join('');
-  const ringBlock = `
+  const watchingLine = keyDates === 0
+    ? 'Nothing in your calendar yet.'
+    : `We're watching ${keyDates === 1 ? 'one day' : `${keyDates} days`} for you.`;
+  const block = offerOn
+    ? `
     <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
       <div style="margin-bottom:8px;">${dots}</div>
       <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
       <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first photo card is ${prizeHtml}.</p>
+    </div>`
+    : `
+    <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
+      <p style="margin:0;font-weight:700;color:#211D19;">${watchingLine}</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">Add a birthday, an anniversary, any day worth a card. About a minute each.</p>
     </div>`;
 
   let subject: string;
   let heading: string;
   let body: string;
   if (variant === 'd2') {
-    subject = remaining === 1 ? 'One date from your free photo card' : 'Your free photo card is still waiting';
-    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from a card on us.`;
-    body = `
+    subject = offerOn
+      ? (remaining === 1 ? 'One date from your free photo card' : 'Your free photo card is still waiting')
+      : (keyDates === 0 ? 'Whose days should we be watching?' : 'One more day worth watching?');
+    heading = offerOn
+      ? `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from a card on us.`
+      : (keyDates === 0 ? 'We don\u2019t know whose days to watch yet.' : 'Who else is worth remembering?');
+    body = offerOn
+      ? `
       <p style="margin:0 0 16px;">${greeting}</p>
       <p style="margin:0 0 16px;">
         Quick one: the first photo card on us we mentioned is still yours to
-        claim. Add ${remaining === 1 ? 'one more date' : `${remaining} more dates`}
-        that matter and it unlocks: a birthday, an anniversary, any day
+        claim. Add ${remaining === 1 ? 'one more date that matters' : `${remaining} more dates that matter`}
+        and it unlocks: a birthday, an anniversary, any day
         worth a card. About a minute's work.
       </p>
-      ${ringBlock}
+      ${block}
       <p style="margin:0 0 8px;">
         We watch every date you add and nudge you in good time. That's the
         whole point of us.
+      </p>`
+      : `
+      <p style="margin:0 0 16px;">${greeting}</p>
+      <p style="margin:0 0 16px;">
+        You're in, but ${keyDates === 0 ? 'we still don\u2019t know whose days matter to you' : 'there are probably a few more we should know about'}.
+        Tell us the birthdays and anniversaries worth a card and we'll nudge
+        you in good time before each one \u2014 far enough ahead that it gets
+        made in slippers rather than in a panic at the petrol station.
+      </p>
+      ${block}
+      <p style="margin:0 0 8px;">
+        Nothing to buy. We watch the dates whether you make a card or not.
       </p>`;
   } else {
     const days = daysUntilChristmas();
@@ -943,24 +974,31 @@ export async function sendDatesNudgeEmail(params: {
         is closer than you think. The dates you add now are the panics you
         skip later. We'll watch them all and nudge you in good time.
       </p>
-      ${ringBlock}
+      ${block}
       <p style="margin:0 0 8px;">
-        No rush to buy a thing. The free photo card waits for the right moment.
+        ${offerOn
+          ? 'No rush to buy a thing. The free photo card waits for the right moment.'
+          : 'No rush to buy a thing. The reminders are the point; the card is up to you.'}
       </p>`;
   }
 
   const html = chassis({
-    preheader: `Three dates that matter, and your first photo card is ${prize}.`,
+    preheader: offerOn
+      ? 'Three dates that matter, and your first photo card is on us.'
+      : 'Tell us the days that matter and we\u2019ll nudge you in good time.',
     heading,
     bodyHtml: body,
     cta: { label: 'Add a date', href: studioUrl },
     footerNote: optOutFooter(),
   });
-  const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
-    variant === 'd2'
-      ? `Your free photo card is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: your first photo card on us, just ${formatMarketMoney(shippingPrice())} postage.`
-      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first photo card is ${prize}.`
-  }\n\nAdd a date: ${studioUrl}\n\nAidan at Celebrait`;
+  const textBody = variant === 'd2'
+    ? (offerOn
+        ? `Your free photo card is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: your first photo card on us, just ${formatMarketMoney(shippingPrice())} postage.`
+        : `${watchingLine} Tell us the birthdays and anniversaries worth a card and we'll nudge you in good time before each one. Nothing to buy.`)
+    : (offerOn
+        ? `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first photo card is on us.`
+        : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. ${watchingLine}`);
+  const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${textBody}\n\nAdd a date: ${studioUrl}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject, html, text, marketing: true });
 }
 

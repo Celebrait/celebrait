@@ -4,9 +4,16 @@
 // silence forever.
 //
 //   D2 — 2 days after signup, still under 3 key dates:
-//        "Your free card's still waiting — you're N dates away."
+//        with the offer on, "your free card's still waiting"; with it
+//        off, "we don't know whose days to watch yet".
 //   D7 — 7 days after signup, same condition, softer date-aware angle:
 //        "Christmas is in N days — whose card will it be?"
+//
+// ⚠️ These send WHETHER OR NOT the offer is on (Aidan 2026-11-27). For a
+// day on 2026-11-27 they didn't: I had gated them on the offer because
+// they were written to sell it, which left nobody chasing a signup who
+// drifted. The dates earn an email on their own — sendDatesNudgeEmail
+// decides what to argue.
 //
 // Hard rules:
 //   • PECR: these are promotional (they push the free-card offer), so
@@ -24,7 +31,6 @@ import { users } from '@shared/schema';
 import { countKeyDates, FREE_CARD_KEY_DATES } from '../studio/free-card';
 import { sendDatesNudgeEmail } from '../email-service';
 import { arrivedForChristmasCards } from '@shared/christmas';
-import { freeFirstCardOpen } from '../routes/site-lock';
 
 interface NudgeTier {
   name: 'd2' | 'd7';
@@ -54,12 +60,6 @@ export async function runDatesNudgeDispatch(opts?: {
     skippedEnoughDates: 0,
     errors: [],
   };
-
-  // ONE OFFER, ONE SWITCH (2026-11-27): these emails push the launch
-  // offer (first photo card on us). With the switch off at /admin/site,
-  // or its caps reached, there is no offer to push, so nothing goes and
-  // nobody is stamped: the nudges can still go once it is switched on.
-  if (!(await freeFirstCardOpen()).open) return result;
 
   for (const tier of TIERS) {
     const cutoff = new Date(Date.now() - tier.minAgeDays * 86_400_000);
