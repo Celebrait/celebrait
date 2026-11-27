@@ -35,9 +35,10 @@ import { formatMoney } from '@shared/market';
 import { LeadTimeNotice } from '@/components/lead-time-notice';
 import { HandoverSection } from '@/components/landing/handover-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
-import { OccasionsPromoSection } from '@/components/landing/occasions-promo-section';
+import { OccasionCaptureSection } from '@/pages/landing-keeper';
 import { InsideSection } from '@/components/landing/inside-section';
 import { FaqSection } from '@/components/landing/faq-section';
+import { FreeCardInvite } from '@/components/landing/free-card-invite';
 import { christmasPhase } from '@shared/christmas';
 import { CHRISTMAS_WALL } from '@/lib/christmas-wall';
 
@@ -216,13 +217,26 @@ export default function DoorwayBPage() {
             beats, drawn with the carousel's own fronts (Aidan 2026-10-11). */}
         <HowItWorksSection door="maker" christmas={xmas} />
         <HandoverSection />
-        {/* No offer on the Christmas page (Aidan 2026-11-18): this section
-            is the dates offer, so it goes; the ticker drops it too. */}
-        {!xmas && <OccasionsPromoSection door="maker" />}
+        {/* CATCHING THE ONE WHO ISN'T READY (Aidan 2026-11-27). This slot
+            used to hold the dates offer, dropped on the Christmas page
+            (2026-11-18) because that page carries no offer and the ticker
+            drops it too. But an ad lands people HERE, and a visitor who
+            likes it and isn't buying today left with nothing: no offer, no
+            capture, no popup. The capture section asks for an email and
+            nothing else — no account, no discount, just "tell us the day
+            that matters and we'll nudge you in good time" — which is the
+            only thing someone not ready will actually give you. It carries
+            no offer, so the Christmas page keeps it too. */}
+        <OccasionCaptureSection />
         <InsideSection />
         <FaqSection door="maker" christmas={xmas} />
       </main>
       <MarketingFooter />
+      {/* The lingering-visitor popup, which this door never had: it was
+          written as the free-card invite and only mounted on /photo. With
+          no offer it asks for the same email the section above does
+          (Aidan 2026-11-27: "a pop up if they're lingering?"). */}
+      <FreeCardInvite />
     </div>
   );
 }

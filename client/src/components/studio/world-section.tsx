@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Gift, Sparkles } from 'lucide-react';
+import { Plus, Gift, Sparkles, CalendarHeart } from 'lucide-react';
 import {
   type UpcomingReminder,
   nextNationalMoments,
@@ -185,23 +185,35 @@ export function WorldSection({
         </div>
       )}
 
-      {/* The free-card band — the offer deserves presence (Aidan
-          2026-08-04): gradient-edged card in the banner's ink→violet
-          identity, white interior, soft violet lift, and a real button.
-          Retires for good once the credit is spent.
-          ONE OFFER, ONE SWITCH (2026-11-27): the band IS the offer (first
-          photo card on us), so it shows only while the offer is on at
-          /admin/site. Off, or capped, and it is simply not here, exactly
-          as for an account that has already had its free card. Its
-          button opens the PHOTO maker, the only card the offer covers. */}
-      {!redeemed && onUs && (
+      {/* The dates band — the offer deserves presence (Aidan 2026-08-04):
+          gradient-edged card in the banner's ink→violet identity, white
+          interior, soft violet lift, and a real button.
+
+          ⚠️ TWO THINGS LIVE HERE AND THEY ARE NOT THE SAME THING. The
+          DATES mechanic (tell us the days that matter, we watch them all
+          year) stands on its own and is the whole retention argument.
+          THE OFFER (first photo card on us) is a topping on it, switched
+          at /admin/site. On 2026-11-27 I welded them together, so
+          switching the offer off took the band with it and a signed-in
+          customer had nothing asking for their dates at all — Aidan spotted
+          it the same day. Keep them separate: the band always shows, the
+          offer only colours what it says.
+
+          With the offer on, the ring counts to three because three dates
+          unlock the card. With it off there is no threshold to count to,
+          so the ring goes and it is a plain invitation. Retires for good
+          once the credit is spent, which only means anything while the
+          offer is on. */}
+      {(!redeemed || !onUs) && (
       <div
         className="mt-3.5 rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]"
         data-hint="free-card"
         data-testid="world-ring-band"
       >
       <div className="flex items-center gap-3.5 rounded-[14.5px] bg-white px-4 py-3.5">
-        {unlocked ? (
+        {!onUs ? (
+          <CalendarHeart className="h-9 w-9 shrink-0 text-brand" strokeWidth={1.75} />
+        ) : unlocked ? (
           <Gift className="h-9 w-9 shrink-0 text-brand" strokeWidth={1.75} />
         ) : (
           <div className="relative h-12 w-12 shrink-0">
@@ -215,7 +227,14 @@ export function WorldSection({
           </div>
         )}
         <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
-          {unlocked ? (
+          {!onUs ? (
+            <>
+              <b className="text-keeper-ink">Tell us the days that matter.</b>{' '}
+              {keyDates > 0
+                ? <>We’re watching {keyDates === 1 ? 'one' : keyDates}. Add another and we’ll nudge you in good time for that one too.</>
+                : <>Birthdays, anniversaries, any day worth a card. We watch them all year and nudge you in good time.</>}
+            </>
+          ) : unlocked ? (
             <>
               <b className="text-keeper-ink">Your first photo card’s on us:</b> just {formatMoney(shippingPrice())} postage.{' '}
               It’s waiting whenever a moment comes round.
@@ -228,7 +247,7 @@ export function WorldSection({
             </>
           )}
         </p>
-        {unlocked ? (
+        {onUs && unlocked ? (
           <Link href="/studio/new-card">
             <span className="shrink-0 rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground hover:bg-go-hover">
               Make it free

@@ -1583,7 +1583,7 @@ function PriceSection() {
 // A date makes the lead nudgeable (stored on marketing_leads;
 // the scheduled nudge email is a post-launch job — the setup email
 // makes the promise either way).
-function OccasionCaptureSection() {
+export function OccasionCaptureSection() {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [email, setEmail] = useState('');
@@ -1858,6 +1858,13 @@ export default function LandingKeeper() {
   // photo route's front door and nothing else — no stories link, no
   // 3-dates offer, no first-order price, no invite modal.
   const beta = useBetaMinimalChrome();
+  // Which section takes the "dates" slot. With the offer on, the promo
+  // sells it (sign up, add three, the card's on us). With the offer off
+  // there is nothing to claim, so the slot goes to the capture section
+  // built for exactly this in July — an email, no account — because a
+  // visitor who isn't ready today is the one we otherwise lose forever
+  // (Aidan 2026-11-27, with the offer about to be off all Christmas).
+  const onUs = useFirstCardOnUs();
   // (Hero imagery preloading moved to index.html <link rel="preload">
   // — the JS-side version here couldn't start until the bundle ran,
   // which was exactly the delay it was trying to hide. crossOrigin
@@ -1931,11 +1938,12 @@ export default function LandingKeeper() {
             shot is an unfilled Prodigi-test-print placeholder and its specs
             already live in FAQ / pricing / the header banner. The function
             is kept below, ready to re-add once the real print photo exists. */}
-        {/* OccasionCaptureSection (email lead form) replaced 2026-08-04 by
-            the Occasions promo — the free-card mechanic is the same capture
-            play with a real account + three dates instead of a lone email.
-            Function preserved below for re-add if ever wanted. */}
-        {!beta && <OccasionsPromoSection />}
+        {/* The dates slot. OccasionCaptureSection (email, no account) was
+            retired on 2026-08-04 when the free card took the job over;
+            it came back on 2026-11-27 for the half of the year the offer
+            is switched off, which is when a lone email is the only thing
+            a not-ready visitor will give you. */}
+        {!beta && (onUs ? <OccasionsPromoSection /> : <OccasionCaptureSection />)}
         {/* DemoVideoSection removed 2026-07-24 (Kevin). Component preserved
             for easy re-add. */}
         <FaqSection />

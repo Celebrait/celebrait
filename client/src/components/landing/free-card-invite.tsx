@@ -21,7 +21,7 @@
 // £8.99 struck through, gift framing, never a price.
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Gift } from 'lucide-react';
+import { X, Gift, CalendarHeart } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
 import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
@@ -59,6 +59,13 @@ export function FreeCardInvite() {
   // same surface, ring still visible, the real <AuthForm> embedded.
   const [claiming, setClaiming] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('email');
+  // The no-offer mode's one field. Deliberately an EMAIL and nothing
+  // else: someone who isn't ready today will not make an account, and
+  // this is the last chance to hear from them again.
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadBusy, setLeadBusy] = useState(false);
+  const [leadSent, setLeadSent] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
 
   const signedOut = !isLoading && !user;
@@ -119,7 +126,7 @@ export function FreeCardInvite() {
   // Auto-show once: 9s dwell or 45% scroll, whichever first. Paused
   // entirely while the auth dialog is up.
   useEffect(() => {
-    if (!signedOut || !onUs || autoShown || authOpen) return;
+    if (!signedOut || autoShown || authOpen) return;
     let done = false;
     try {
       const seenAt = Number(localStorage.getItem(SEEN_KEY) || 0);
@@ -187,15 +194,40 @@ export function FreeCardInvite() {
   // signed the user in — unmounting here killed AuthForm's welcome step
   // (first-name capture) and its /studio redirect, stranding the new
   // account on the landing page.
-  // ONE OFFER, ONE SWITCH (2026-11-27): this popup IS the offer. With
-  // the offer off at /admin/site (or its caps reached) it never shows:
-  // no popup, no corner pill. There is no half-price version any more.
-  if ((!signedOut || !onUs) && !claiming) return null;
+  // TWO MODES, ONE POPUP (2026-11-27). With the offer on this IS the
+  // offer: claim it, which means making an account. With the offer off
+  // it asks for an email and promises a nudge before the days that
+  // matter — still worth interrupting someone for, and the only thing a
+  // not-ready visitor will hand over. It briefly showed in neither state
+  // this morning, which is what Aidan spotted.
+  if (!signedOut && !claiming) return null;
 
   const close = () => {
     setOpen(false);
     setClaiming(false);
     setAuthStep('email');
+  };
+
+  const submitLead = async () => {
+    if (leadBusy || leadSent) return;
+    setLeadBusy(true);
+    setLeadError(null);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: leadEmail, source: 'invite-reminders', marketingOptIn: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? 'Please try again.');
+      }
+      setLeadSent(true);
+    } catch (err: any) {
+      setLeadError(err?.message ?? 'Please try again.');
+    } finally {
+      setLeadBusy(false);
+    }
   };
 
   // Step-aware copy for the embedded claim flow. The email step keeps
@@ -221,7 +253,7 @@ export function FreeCardInvite() {
           className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
-          aria-label="Your first photo card’s on us"
+          aria-label={onUs ? 'Your first photo card’s on us' : 'Before you go'}
           data-testid="free-card-invite"
         >
           {/* Backdrop */}
@@ -244,7 +276,80 @@ export function FreeCardInvite() {
 
             <div className="px-7 pb-7 pt-8 sm:px-9 sm:pb-9">
               <InviteRing />
-              {claiming ? (
+              {!onUs ? (
+                /* NO OFFER: one field, no account, no discount. The only
+                   thing a not-ready visitor will actually hand over. */
+                leadSent ? (
+                  <>
+                    <h2 className="keeper-serif mt-4 font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[27px]">
+                      Done. We’ll be in touch in good time.
+                    </h2>
+                    <p className="mt-2 text-[13.5px] leading-relaxed text-[#3A342E]">
+                      Nothing else from us in between. Come back whenever the moment comes round.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={close}
+                      className="mt-6 w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover"
+                      data-testid="free-card-invite-done"
+                    >
+                      Back to the cards
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
+                      Before you go
+                    </p>
+                    <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
+                      Not today? Tell us when.
+                    </h2>
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      Leave your email and we’ll nudge you in good time before
+                      the days that matter, so the card gets made in slippers
+                      rather than in a panic.
+                    </p>
+                    <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
+                      No account needed. We never contact the people you add,
+                      and you can stop the emails in one click.
+                    </p>
+                    <form
+                      className="mt-5 flex flex-col gap-2.5"
+                      onSubmit={(e) => { e.preventDefault(); void submitLead(); }}
+                    >
+                      <label htmlFor="invite-lead-email" className="sr-only">Your email address</label>
+                      <input
+                        id="invite-lead-email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={leadEmail}
+                        onChange={(e) => setLeadEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="h-12 w-full rounded-full border border-keeper-hair bg-white px-5 text-[15px] text-keeper-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        data-testid="free-card-invite-email"
+                      />
+                      {leadError && <p className="px-1 text-[12.5px] text-red-700">{leadError}</p>}
+                      <button
+                        type="submit"
+                        disabled={leadBusy}
+                        className="w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-60"
+                        data-testid="free-card-invite-remind"
+                      >
+                        {leadBusy ? 'One moment…' : 'Remind me in good time'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={close}
+                        className="w-full rounded-full px-6 py-2.5 text-[13.5px] font-medium text-stone-500 transition-colors hover:text-[#211D19]"
+                        data-testid="free-card-invite-dismiss"
+                      >
+                        I'll keep looking
+                      </button>
+                    </form>
+                  </>
+                )
+              ) : claiming ? (
                 <>
                   <h2 className="keeper-serif mt-4 font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[27px]">
                     {claimCopy.heading}
@@ -359,9 +464,9 @@ export function FreeCardInvite() {
           data-testid="free-card-invite-pill"
         >
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-muted">
-            <Gift className="h-4 w-4 text-brand" strokeWidth={2} />
+            {onUs ? <Gift className="h-4 w-4 text-brand" strokeWidth={2} /> : <CalendarHeart className="h-4 w-4 text-brand" strokeWidth={2} />}
           </span>
-          Your first photo card’s on us
+          {onUs ? 'Your first photo card’s on us' : 'Remind me in good time'}
         </button>
       )}
     </>

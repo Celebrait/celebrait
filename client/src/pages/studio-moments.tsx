@@ -131,12 +131,20 @@ export default function StudioMomentsPage() {
         </Button>
       </div>
 
-      {/* ── The free-card ring — retires once redeemed, and is not
-          shown at all while the offer is switched off ──────────── */}
-      {!redeemed && onUs && (
+      {/* ── The dates panel ────────────────────────────────────
+          ⚠️ The DATES mechanic and THE OFFER are two things. Watching
+          someone's days is the product's retention argument and stands
+          without a discount attached; the offer (first photo card on us,
+          switched at /admin/site) is a topping on it. On 2026-11-27 I
+          made this panel depend on the offer, so switching the offer off
+          left this page with no invitation to add anything — Aidan caught
+          it the same day. The panel always shows; the offer only decides
+          what it says, and whether a progress ring to three makes sense
+          (it only does when three dates unlock something). */}
+      {(!redeemed || !onUs) && (
       <div
         className={`mt-6 rounded-2xl border p-5 ${
-          unlocked
+          onUs && unlocked
             ? 'border-go/40 bg-gradient-to-br from-emerald-50 to-white'
             : 'border-stone-200 bg-white'
         }`}
@@ -144,9 +152,11 @@ export default function StudioMomentsPage() {
       >
         <div className="flex items-center gap-5">
           <div className="relative shrink-0">
-            <ProgressRing filled={ringFilled} />
+            <ProgressRing filled={onUs ? ringFilled : 3} />
             <div className="absolute inset-0 flex items-center justify-center">
-              {unlocked ? (
+              {!onUs ? (
+                <CalendarHeart className="h-8 w-8 text-brand" strokeWidth={2} />
+              ) : unlocked ? (
                 <Gift className="h-8 w-8 text-go" strokeWidth={2} />
               ) : (
                 <span className="text-lg font-bold text-keeper-ink">
@@ -157,7 +167,18 @@ export default function StudioMomentsPage() {
             </div>
           </div>
           <div className="min-w-0">
-            {unlocked ? (
+            {!onUs ? (
+              <>
+                <p className="text-[15px] font-bold text-keeper-ink">
+                  {keyDates > 0 ? 'We’re watching your dates' : 'Tell us the days that matter'}
+                </p>
+                <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
+                  {keyDates > 0
+                    ? <>{keyDates === 1 ? 'One day' : `${keyDates} days`} in, and we’ll nudge you in good time for {keyDates === 1 ? 'it' : 'each one'}. Add another whenever someone comes to mind.</>
+                    : <>Birthdays, anniversaries, the day the dog came home. Add them once and we watch them all year, so the card gets made in slippers rather than in a panic.</>}
+                </p>
+              </>
+            ) : unlocked ? (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
                   Unlocked: your first photo card’s on us
