@@ -153,9 +153,11 @@
       (function () {
         var p = location.pathname.replace(/\/$/, '');
         if (p !== '/photo' && p !== '/keeper') return;
+        // The Christmas link shows a different hero pair (landing-keeper HeroProof).
+        var xm = /(?:^|[?&])occasion=christmas(?:&|$)/.test(location.search);
         [
-          ['/hero-nana-card.webp', 'high', false],
-          ['/hero-nana-source.webp', 'low', false],
+          [xm ? '/hero-xmas-card.webp' : '/hero-nana-card.webp', 'high', false],
+          [xm ? '/hero-xmas-source.webp' : '/hero-nana-source.webp', 'low', false],
           ['/hero-card-front.webp', 'low', true],
         ].forEach(function (x) {
           var l = document.createElement('link');

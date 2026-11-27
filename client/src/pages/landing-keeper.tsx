@@ -605,6 +605,9 @@ const HERO_VIDEO_EVENT = 'celebrait:hero-video';
 
 function HeroProof() {
   const [playing, setPlaying] = useState(false);
+  // Christmas arrivals (/photo?occasion=christmas) see a Christmas card
+  // made from a selfie (Aidan 2026-11-27), not Nana's 80th.
+  const xmasHero = usePhotoChristmas();
   // Beta testers get no way off the photo route (2026-11-05), so the
   // stories link hides for them; the video stays.
   const betaChrome = useBetaMinimalChrome();
@@ -667,8 +670,10 @@ function HeroProof() {
         {/* Nana's 80th (Aidan 2026-11-10) — the same card Real stories
             tells in full further down. Cropped 3:2 from gallery-img. */}
         <img
-          src="/hero-nana-card.webp"
-          alt="A printed Celebrait card: Hannah and her Nana on a Budapest riverside wall at sunset, reading Happy 80th Nana"
+          src={xmasHero ? '/hero-xmas-card.webp' : '/hero-nana-card.webp'}
+          alt={xmasHero
+            ? 'A Celebrait Christmas card on a shelf: a daughter and her dad on the sofa in matching Christmas jumpers, him fast asleep, reading Merry Christmas, Dad'
+            : 'A printed Celebrait card: Hannah and her Nana on a Budapest riverside wall at sunset, reading Happy 80th Nana'}
           className="h-full w-full object-cover"
           width={1100}
           height={734}
@@ -688,10 +693,13 @@ function HeroProof() {
       <div className="absolute -bottom-6 -left-3 w-[34%] -rotate-6 sm:-bottom-8 sm:-left-6 sm:w-[30%]">
         <div className="rounded-lg border-[6px] border-white bg-stone-100 shadow-[0_16px_36px_-12px_rgba(33,29,25,0.45)]">
           <img
-            src="/hero-nana-source.webp"
-            alt="The everyday selfie this card was made from: Hannah and her Nana on a Lake District walk"
+            src={xmasHero ? '/hero-xmas-source.webp' : '/hero-nana-source.webp'}
+            alt={xmasHero
+              ? 'The everyday selfie this card was made from: a daughter and her dad, heads together, outside a café'
+              : 'The everyday selfie this card was made from: Hannah and her Nana on a Lake District walk'}
             className="block h-full w-full rounded-sm object-cover"
-            style={{ aspectRatio: '3/4' }}
+            // The Christmas selfie is square: a 3:4 crop would cut Dad's face.
+            style={{ aspectRatio: xmasHero ? '1/1' : '3/4' }}
           />
         </div>
         <p className="mt-2 text-center text-[11px] font-medium leading-tight text-keeper-meta">
