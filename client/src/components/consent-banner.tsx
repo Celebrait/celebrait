@@ -20,7 +20,7 @@ import {
 const HIDDEN_ON = [/^\/admin/, /^\/demo/, /^\/og(\/|$)/, /^\/card-capture/, /^\/c\//, /^\/card\/[^/]+\/view/];
 
 const BUTTON =
-  'inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-keeper-ink/70 bg-white px-5 text-sm font-medium text-keeper-ink transition-colors hover:bg-keeper-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 sm:flex-none sm:min-w-[120px]';
+  'inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-keeper-ink/70 bg-white px-5 text-sm sm:min-h-[44px] font-medium text-keeper-ink transition-colors hover:bg-keeper-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 sm:flex-none sm:min-w-[120px]';
 
 export function ConsentBanner() {
   const [location] = useLocation();
@@ -44,11 +44,15 @@ export function ConsentBanner() {
     <div
       role="region"
       aria-label="Cookie choice"
-      className="fixed inset-x-0 bottom-0 z-[60] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6"
+      className="fixed inset-x-0 bottom-0 z-[60] px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-keeper-hair bg-white/95 p-4 shadow-[0_12px_40px_-16px_rgba(33,29,25,0.35)] backdrop-blur-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5">
-        <p className="min-w-0 text-[14px] leading-relaxed text-keeper-body">
-          We use one advertising cookie to see which of our ads bring people here. Accept it, or say no and nothing changes.{' '}
+      {/* Phones get a compact strip and a shorter sentence (Aidan 2026-11-27):
+          the full-size banner covered the Christmas page's first card for
+          every ad visitor. Same facts, same two equal buttons. */}
+      <div className="mx-auto flex max-w-3xl flex-col gap-2.5 rounded-2xl border border-keeper-hair bg-white/95 p-3 shadow-[0_12px_40px_-16px_rgba(33,29,25,0.35)] backdrop-blur-sm sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+        <p className="min-w-0 text-[13px] leading-snug text-keeper-body sm:text-[14px] sm:leading-relaxed">
+          <span className="sm:hidden">One ad cookie, to see which ads bring people here. Say no and nothing changes.</span>
+          <span className="hidden sm:inline">We use one advertising cookie to see which of our ads bring people here. Accept it, or say no and nothing changes.</span>{' '}
           <Link href="/privacy-policy#cookies" className="whitespace-nowrap font-medium text-keeper-gold underline underline-offset-2">
             Privacy policy
           </Link>
