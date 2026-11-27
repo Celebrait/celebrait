@@ -21,6 +21,7 @@
 // £8.99 struck through, gift framing, never a price.
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearch } from 'wouter';
 import { X, Gift, CalendarHeart } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useAuthModal } from '@/components/auth/auth-modal';
@@ -52,6 +53,11 @@ export function FreeCardInvite() {
   // the offer off the popup must not "show" invisibly and use up the
   // visitor's once-a-fortnight slot before the offer is switched on.
   const onUs = useFirstCardOnUs();
+  // STARTED = they've answered the first question (the brief rides the
+  // URL from then on, ?who=…). Someone making a card is not lingering:
+  // no popup, no pill (mobile audit 2026-11-27 — the pill sat over the
+  // answer chips on a phone).
+  const started = /(?:^|&)who=/.test(useSearch());
   const [open, setOpen] = useState(false);
   const [autoShown, setAutoShown] = useState(false);
   // Claim happens INSIDE this modal (Kevin 2026-08-03: the generic
@@ -123,10 +129,15 @@ export function FreeCardInvite() {
     if (authOpen) setOpen(false);
   }, [authOpen]);
 
-  // Auto-show once: 9s dwell or 45% scroll, whichever first. Paused
+  // Auto-show once. WITH THE OFFER: 9s dwell or 45% scroll, whichever
+  // first — it's a gift, worth saying early. WITHOUT IT (mobile audit
+  // 2026-11-27): 40s, or nearly the whole page scrolled, and never once
+  // they've started. It is a "not today?" net for the visitor who has
+  // stalled, and at nine seconds on the Christmas ad's landing page it
+  // covered the screen as people reached for "Get started". Paused
   // entirely while the auth dialog is up.
   useEffect(() => {
-    if (!signedOut || autoShown || authOpen) return;
+    if (!signedOut || autoShown || authOpen || started) return;
     let done = false;
     try {
       const seenAt = Number(localStorage.getItem(SEEN_KEY) || 0);
@@ -151,7 +162,7 @@ export function FreeCardInvite() {
         /* non-fatal */
       }
     };
-    timerRef.current = window.setTimeout(fire, 9000);
+    timerRef.current = window.setTimeout(fire, onUs ? 9000 : 40000);
     // Scroll trigger measures MOVEMENT from where the page loaded, not
     // absolute position — browser scroll restoration replays the old
     // position as a scroll event on load, which used to fire the modal
@@ -160,14 +171,14 @@ export function FreeCardInvite() {
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const travelled = window.scrollY - startY > window.innerHeight * 0.6;
-      if (max > 0 && travelled && window.scrollY / max > 0.45) fire();
+      if (max > 0 && travelled && window.scrollY / max > (onUs ? 0.45 : 0.85)) fire();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [signedOut, onUs, autoShown, authOpen]);
+  }, [signedOut, onUs, autoShown, authOpen, started]);
 
   // Scroll-lock + Escape while open.
   useEffect(() => {
@@ -453,7 +464,7 @@ export function FreeCardInvite() {
       {/* The quiet, permanent way back in — bottom-right, REPLACING the
           old "make your own" FloatingPill (Kevin 2026-08-03): capture
           beats commerce for the not-ready-to-buy majority. */}
-      {!open && autoShown && !authOpen && (
+      {!open && autoShown && !authOpen && !started && (
         <button
           type="button"
           onClick={() => {

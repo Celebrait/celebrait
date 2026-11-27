@@ -69,7 +69,13 @@ export function writingBeats({ brief, age, occasionLabel }: MakeNarrationInput):
   const nm = (): BeatPart => whoPart(brief);
   const thing = brief.thing.trim();
   const cant = brief.cant.trim();
-  const occ = occasionLabel.replace(/^\d+(st|nd|rd|th)\s+/i, '').toLowerCase();
+  // Lower-cased so "a birthday card" reads right mid-sentence — but NOT
+  // a proper noun: every Christmas ad visitor read "A christmas card for
+  // Dad" on this screen (mobile audit 2026-11-27).
+  const occBare = occasionLabel.replace(/^\d+(st|nd|rd|th)\s+/i, '');
+  const occ = /christmas|easter|valentine|mother|father|diwali|eid|hanukkah|new year|hogmanay|halloween|bonfire|burns|st\.? (patrick|david|andrew|george)/i.test(occBare)
+    ? occBare.replace(/(^|\s)\w/g, (m) => m.toUpperCase())
+    : occBare.toLowerCase();
   const isBirthday = /birthday/i.test(occasionLabel);
   const beats: Beat[] = [];
 

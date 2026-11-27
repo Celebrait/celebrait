@@ -623,6 +623,23 @@ export default function MakePage() {
   // The three on screen when the questions were reopened, if any: the
   // way back to them from the questions (see the brief screen).
   const drawnCount = cells.filter((c) => c.imageUrl && !c.error).length;
+  // LAND ON THE NEW STEP (mobile audit 2026-11-27). Each step replaces the
+  // last in the same page, so the scroll position was left wherever the
+  // thumb had been: on a phone, picking a card opened "Want Dad in it?"
+  // halfway down, with the card under the header and "Back to the three"
+  // off the top. Now every step change brings its heading to just under
+  // the fixed header — the question and its buttons in view at once.
+  const landedPhase = useRef(phase);
+  useEffect(() => {
+    if (landedPhase.current === phase) return;
+    landedPhase.current = phase;
+    if (phase !== 'results' && phase !== 'cameo' && phase !== 'signoff' && phase !== 'done') return;
+    requestAnimationFrame(() => {
+      const h = document.querySelector<HTMLElement>('[data-step-heading]');
+      const y = h ? h.getBoundingClientRect().top + window.scrollY - 128 : 0;
+      window.scrollTo({ top: Math.max(0, y) });
+    });
+  }, [phase]);
 
   const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
 
@@ -723,7 +740,7 @@ export default function MakePage() {
       return (
         <MakeShell step={step}>
           <div className={panel}>
-            <h1 className={`${h1} mb-1`}>Three new cards for {whoName}. What's the vibe?</h1>
+            <h1 data-step-heading className={`${h1} mb-1`}>Three new cards for {whoName}. What's the vibe?</h1>
             <p className="text-sm text-keeper-body mb-5">Same details. This just sets what they lean towards.</p>
             <div className="space-y-2.5">
               {VIBES.map((t) => {
@@ -747,7 +764,7 @@ export default function MakePage() {
     return (
       <MakeShell step={step}>
         <div className={panel}>
-          <h1 className={`${h1} mb-1`}>Three cards for {whoName}. Pick the one.</h1>
+          <h1 data-step-heading className={`${h1} mb-1`}>Three cards for {whoName}. Pick the one.</h1>
           <p className="text-sm text-keeper-body">Tap your favourite. Next you can put {whoName} in it with a photo (optional), then we design the inside with your words.</p>
           {/* The cards as cards — the carousel's ajar tile, nothing under
               them (the front is right there; captions only cut off). */}
@@ -817,7 +834,7 @@ export default function MakePage() {
       return (
         <MakeShell step={step}>
           <div className={panel}>
-            <h1 className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
+            <h1 data-step-heading className={`${h1} mb-1`}>There they are. Which one are you sending?</h1>
             <p className="text-sm text-keeper-body">Same card, redesigned with {whoName} in it. Both are yours. Pick the one that's more them.</p>
             {/* We checked our own work and we don't rate it. Say so
                 before they choose, not after it's printed. */}
@@ -873,7 +890,7 @@ export default function MakePage() {
               </div>
             ) : (
               <div>
-                <h1 className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
+                <h1 data-step-heading className={`${h1} mb-1`}>Want {whoName} actually in it?</h1>
                 <p className="text-sm text-keeper-body">Add a photo (a group one works too) and we redesign this card with them in it. It keeps its essence (the idea, the words, the style) but the picture changes to fit them in, drawn in the card's own hand. You'll see both versions side by side and choose.</p>
                 {/* The photo route's scaffold in the same order — tips,
                     then the one-time consent that gates the picker
@@ -921,7 +938,7 @@ export default function MakePage() {
               </div>
             ) : (
               <div>
-                <h1 className={`${h1} mb-1`}>Now the inside of {forWho} card</h1>
+                <h1 data-step-heading className={`${h1} mb-1`}>Now the inside of {forWho} card</h1>
                 <p className="text-sm text-keeper-body mb-5">Every card gets a designed inside to match its front.</p>
                 {/* In the card's own order — open, message, sign (Aidan
                     2026-09-09: "dear and from above the message we wrote,
@@ -958,10 +975,38 @@ export default function MakePage() {
 
   // ── step 4: done ──────────────────────────────────────────────────
   if (phase === 'done' && picked !== null) {
+    const buyLabel = betaMode ? 'Save it & give feedback' : `Buy it for ${formatMoney(cardPrice('maker'))}`;
+    const buyNow = () => {
+      if (!chosenFront) return;
+      setSaving('buy'); setSaveError('');
+      saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideWords)
+        .then(async (s) => {
+          if (!betaMode) { navigate(`/buy/${s.cardId}`); return; }
+          // Beta: claim the card into the tester's (silent) studio
+          // account first, so the free digital link on the thank-you
+          // page can be minted for it.
+          try {
+            if (!isAuthenticated) await openBetaSession(qc);
+            await fetch(`/api/make/cards/${s.cardId}/claim`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: s.cardToken }) });
+          } catch { /* the form still works without the link */ }
+          navigate(betaFeedbackHref({ cardId: s.cardId, route: 'maker' }));
+        })
+        .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
+    };
     return (
       <MakeShell step={step}>
-        <div className={panel}>
-          <h1 className={`${h1} mb-1`}>There it is: {forWho} card.</h1>
+        {/* The page's one job now, held in reach on a phone (mobile audit
+            2026-11-27). The front and the inside are each a full screen
+            tall there, so the Buy button sat below both — 987px down an
+            812px screen, out of sight at the moment of decision. Same
+            fixed-bar pattern the checkout already uses for Pay. */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-keeper-hair bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:hidden" data-testid="make-buy-bar">
+          <button type="button" disabled={!!saving || !chosenFront} className={`${commit} w-full py-3 text-base`} onClick={buyNow}>
+            {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {buyLabel}
+          </button>
+        </div>
+        <div className={`${panel} mb-24 sm:mb-0`}>
+          <h1 data-step-heading className={`${h1} mb-1`}>There it is: {forWho} card.</h1>
           <p className="text-sm text-keeper-body">280gsm, kraft envelope, {copyFor().za ? copyFor().shipPhrase : 'posted Royal Mail 24'}. {HONEST_LEAD_LINE}</p>
           <div className="mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
             <div className="bg-white rounded-2xl border border-keeper-hair overflow-hidden"><div className="aspect-square bg-stone-100">{chosenFront && <img src={chosenFront} alt="front" crossOrigin="anonymous" className="w-full h-full object-cover" />}</div><p className="p-3 text-sm font-medium text-keeper-ink">The front</p></div>
@@ -974,25 +1019,8 @@ export default function MakePage() {
             </div>
           )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button type="button" disabled={!!saving || !chosenFront} className={commit}
-              onClick={() => {
-                if (!chosenFront) return;
-                setSaving('buy'); setSaveError('');
-                saveCard(chosenFront, insideUrl, cells[picked].concept, insideMode, insideWords)
-                  .then(async (s) => {
-                    if (!betaMode) { navigate(`/buy/${s.cardId}`); return; }
-                    // Beta: claim the card into the tester's (silent) studio
-                    // account first, so the free digital link on the thank-you
-                    // page can be minted for it.
-                    try {
-                      if (!isAuthenticated) await openBetaSession(qc);
-                      await fetch(`/api/make/cards/${s.cardId}/claim`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardToken: s.cardToken }) });
-                    } catch { /* the form still works without the link */ }
-                    navigate(betaFeedbackHref({ cardId: s.cardId, route: 'maker' }));
-                  })
-                  .catch((e: any) => { setSaveError(friendlyError(e, 'That didn’t save. Try again')); setSaving(''); });
-              }}>
-              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {betaMode ? 'Save it & give feedback' : `Buy it for ${formatMoney(cardPrice('maker'))}`}
+            <button type="button" disabled={!!saving || !chosenFront} className={commit} onClick={buyNow}>
+              {saving === 'buy' ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {buyLabel}
             </button>
             <button type="button" disabled={!!saving || !chosenFront}
               className="inline-flex items-center gap-2 rounded-full border border-keeper-hair bg-white/70 text-keeper-ink hover:bg-keeper-gold-wash px-5 py-2.5 text-sm font-medium disabled:opacity-50"

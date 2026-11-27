@@ -139,7 +139,12 @@ export function whoIsName(b: Pick<Brief, 'who' | 'name'>): boolean {
  *  chip; unknown / "Someone else" gets the general set. */
 const THING_EXAMPLES: Record<string, string[]> = {
   Mum: ['her allotment', 'Strictly and a glass of prosecco', 'the garden centre, every single weekend', 'sea swimming, all year round'],
-  Dad: ['his golf handicap', 'Liverpool, since 1977', 'the shed, and everything in it', 'a barbecue in any weather'],
+  // Air fryer FIRST, golf gone (mobile audit 2026-11-27): the Christmas
+  // ad's whole opening mocks the golf-and-beer Dad card, then types "his
+  // air fryer" — and the first example this box used to type was "his
+  // golf handicap". The page should finish the ad's sentence, not argue
+  // with it.
+  Dad: ['his air fryer, obviously', 'Liverpool, since 1977', 'the shed, and everything in it', 'a barbecue in any weather'],
   Nan: ['bingo Tuesdays', 'her roses', 'Corrie, never missed an episode', 'the best Sunday roast in the county'],
   Grandad: ['the allotment', 'crosswords and a strong tea', 'his old Triumph, still running', 'telling the same joke since 1985'],
   Sister: ['Ibiza with the girls in June', 'true crime podcasts', 'her new flat in Manchester', 'oat lattes and yoga'],
