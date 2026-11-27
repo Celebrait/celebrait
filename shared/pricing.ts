@@ -100,8 +100,8 @@ export const PRICING_TIERS: PricingTier[] = [
     tagline: 'For them',
     blurb: 'The real thing in the post, with a free digital link to share too.',
     // ⚠️ THE "FROM" PRICE, NOT THE ONLY PRICE (2026-08-27). Cards are
-    // priced by door — £4.99 off the shelf, £5.99 made for them, £6.99
-    // from your photo (CARD_PRICES_GBP). This tier exists for the
+    // priced by door (CARD_PRICES_GBP): £4.99 off the shelf, £6.99 for
+    // either made-for-them door since 2026-11-27. This tier exists for the
     // /pricing page's headline, so it carries the cheapest. The AMOUNT
     // CHARGED always comes from cardPrice(card.source), never from
     // here — see UX_THREE_DOORS.md §8a.
@@ -410,17 +410,28 @@ export function tierPriceGBP(id: TierId): number {
 /** Which door produced a card. Mirrors `cards.source`. */
 export type CardSource = 'rack' | 'maker' | 'photo';
 
+// ⚠️ £6.99 ON BOTH MADE-FOR-THEM DOORS since 2026-11-27, and the reason
+// is arithmetic rather than taste. Working the Christmas ad out: Prodigi
+// charges £3.90 all in for a card (items £0.75, shipping £2.50, tax
+// £0.65); add the Stripe fee and ~£0.21 of tokens for the drawing, and a
+// £4.99 card left about £3.50 an order. A cost per purchase under £3.50
+// on cold Meta traffic, in December, is not a target anyone hits, so the
+// campaign would have paid to make cards. At £6.99 the same order leaves
+// about £5.50 — a reachable target — and £6.99 + £2.95 postage still
+// lands at £9.94, under the ten-pound line. Aidan: "Go for it, photo
+// route as well."
+//
+// Before cutting these again, do the same sum with Prodigi's current
+// invoice: the floor is set by what an order has to be worth for paid
+// traffic to make sense, not by what a rival charges for stock designs.
 export const CARD_PRICES_GBP: Record<CardSource, number> = {
-  rack: 499,   // pre-made stock, no generation spend
-  // £4.99 since 2026-11-17 (Aidan, planning the three-card ad: "£4.99 +
-  // postage for this"). Was £5.99. Matches the photo card.
-  maker: 499,  // written and drawn for them (~£0.21 of tokens)
-  // £4.99 since 2026-11-11 (Aidan: "drop my price to £4.99 plus postage";
-  // the rival, The Card Studio, sells at £4.99). Was £6.99. The ladder
-  // above no longer holds: every door is £4.99 (maker followed on
-  // 2026-11-17). The rack is still parked; look at it before reopening.
+  rack: 499,   // pre-made stock, no generation spend — parked (/admin/site)
+  maker: 699,  // written and drawn for them (~£0.21 of tokens)
+  // Was £6.99 until 2026-11-11, cut to £4.99 to match The Card Studio,
+  // and back at £6.99 from 2026-11-27 (see the sum above). The Card
+  // Studio sells stock designs; this draws a new picture of the person.
   // client/index.html's JSON-LD states this price by hand; keep in step.
-  photo: 499,
+  photo: 699,
 };
 
 /** The GBP price (minor units) of a card from a given door. Unknown or
@@ -576,7 +587,10 @@ export function shippingEstimateLabel(tier: ShippingTierId = DEFAULT_SHIPPING_TI
   return `${d.min}–${d.max} working days`;
 }
 
-/** The cheapest door, for "from R99" / "from £4.99" copy. */
+/** The cheapest door, for "cards from £X" copy. ⚠️ That is the RACK,
+ *  which is parked behind /admin/site — a caller that can read the rack
+ *  switch should use it and quote the made-for-them price when the rack
+ *  is shut, the way gate.tsx does. */
 export function cardPriceFrom(m: MarketId = marketId()): number {
   return Math.min(...Object.values(pricesFor(m).card));
 }

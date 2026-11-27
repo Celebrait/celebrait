@@ -4,7 +4,7 @@
 // mention of 3 card route vs photo route, free route can go"). Three
 // facts, in the keeper skin the rest of the public site wears:
 //
-//   1. The price ladder by door — £4.99 off the shelf, £5.99 made for
+//   1. The price ladder by door — £4.99 off the shelf, £6.99 made for
 //      them (the three-card route), £6.99 from your photo (the
 //      director). Numbers come from CARD_PRICES_GBP so this page can't
 //      drift from checkout (UX_THREE_DOORS.md §8a).
