@@ -107,7 +107,16 @@ export default function AdminFulfilmentPage() {
         </p>
       </div>
 
-      {data && data.provider !== 'manual' && (
+      {/* With Prodigi printing, this page is not a to-do list: it is where
+          a held-up order shows and where a failed one is reprinted. The
+          old banner told the operator the setup was wrong when it wasn't. */}
+      {data && data.provider === 'prodigi' && (
+        <div className="mb-4 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600">
+          Prodigi prints and posts these for you. Nothing here needs doing unless an order says{' '}
+          <strong>failed</strong>: that one can be printed again from its row.
+        </div>
+      )}
+      {data && data.provider !== 'manual' && data.provider !== 'prodigi' && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
@@ -180,6 +189,10 @@ function QueueItem({ o }: { o: QueueOrder }) {
   const urgent = days != null && days <= 3;
   const highlighted = typeof window !== 'undefined' && window.location.hash === `#order-${o.id}`;
   const canPrepare = !o.providerOrderId && (o.fulfillmentStatus === 'pending' || o.fulfillmentStatus === 'failed');
+  // The printer took the order and then cancelled or failed it. The
+  // server sends it again as a NEW print (and makes only one however
+  // many times this is pressed).
+  const canReprint = !!o.providerOrderId && o.fulfillmentStatus === 'failed';
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: QUERY_KEY });
 
@@ -202,11 +215,13 @@ function QueueItem({ o }: { o: QueueOrder }) {
   const prepare = async () => {
     setBusy('prepare');
     try {
-      await apiRequest('POST', `/api/admin/orders/${o.id}/resubmit-print`);
-      toast({ title: 'Print files prepared.' });
+      const res = await apiRequest('POST', `/api/admin/orders/${o.id}/resubmit-print`);
+      const j = await res.json().catch(() => null);
+      if (j && j.ok === false) throw new Error("The printer didn't take it. You'll get an email saying why.");
+      toast({ title: canReprint ? 'Sent to the printer again.' : 'Print files prepared.' });
       await refresh();
     } catch (err: any) {
-      toast({ title: "Couldn't prepare the print files", description: err?.message ?? 'Try again.', variant: 'destructive' });
+      toast({ title: canReprint ? "Couldn't send it to the printer" : "Couldn't prepare the print files", description: err?.message ?? 'Try again.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -285,6 +300,23 @@ function QueueItem({ o }: { o: QueueOrder }) {
               {busy === 'prepare' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
               {o.fulfillmentStatus === 'failed' ? 'Try preparing the print files again' : 'Prepare print files'}
             </button>
+          )}
+          {canReprint && (
+            <div>
+              <button
+                onClick={() => {
+                  if (window.confirm('Print and post this card again? Only do this if the first print will not arrive.')) void prepare();
+                }}
+                disabled={busy !== null}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              >
+                {busy === 'prepare' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                Print it again
+              </button>
+              <p className="mt-1 text-xs text-stone-500">
+                The printer cancelled or failed this one ({o.providerOrderId}). This sends it as a new print.
+              </p>
+            </div>
           )}
           {o.giftMessage && (
             <div className="text-xs text-stone-600">

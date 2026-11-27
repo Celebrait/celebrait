@@ -36,6 +36,7 @@ import { christmasFullPrice } from '@shared/christmas';
 import { validateCompCode, consumeCompCode, claimCompCodeUse } from '../studio/comp-code';
 import { rateLimitHit } from '../simple-rate-limit';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
+import { sendPrintAlert, adminOrderLink } from '../studio/print-alerts';
 import { publicImageUrl, resolveStoredImageUrl } from '../image-storage';
 import { touchCheckout } from '../activity';
 import { sendMetaPurchase } from '../meta-capi';
@@ -154,13 +155,21 @@ export function registerStudioCheckoutRoutes(app: Express): void {
       if (order.paymentStatus !== 'paid') {
         return res.status(400).json({ message: `Order is ${order.paymentStatus}, not paid` });
       }
-      if (order.providerOrderId) {
+      // An order the printer still holds must never be sent twice. One
+      // it has CANCELLED or FAILED is different: until 2026-11-26 this
+      // refused those too, so the alert that says "reprint or refund"
+      // offered a reprint that could not be done from anywhere.
+      const reprintOf =
+        order.providerOrderId && order.fulfillmentStatus === 'failed'
+          ? order.providerOrderId
+          : undefined;
+      if (order.providerOrderId && !reprintOf) {
         return res.status(409).json({
           message: `Already submitted (${order.printProvider}:${order.providerOrderId})`,
         });
       }
 
-      await submitPrintOrder(order);
+      await submitPrintOrder(order, { reprintOf });
       const after = await db
         .select({
           providerOrderId: studioOrders.providerOrderId,
@@ -170,7 +179,8 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         .where(eq(studioOrders.id, orderId))
         .limit(1);
       return res.json({
-        ok: !!after[0]?.providerOrderId,
+        // A reprint only worked if the dead provider id was replaced.
+        ok: !!after[0]?.providerOrderId && after[0]?.providerOrderId !== reprintOf,
         providerOrderId: after[0]?.providerOrderId ?? null,
         fulfillmentStatus: after[0]?.fulfillmentStatus ?? null,
       });
@@ -998,15 +1008,12 @@ export function registerStudioCheckoutRoutes(app: Express): void {
             .update(studioOrders)
             .set({ paymentStatus: 'refunded', updatedAt: new Date() })
             .where(eq(studioOrders.id, order.id));
-          // A full refund on an order that is already at the printer
-          // needs a human to pull it — there is no cancel call on the
-          // print provider yet, so the alert is the mechanism.
-          if (order.includesPrint && ['pending', 'submitted'].includes(order.fulfillmentStatus ?? '')) {
-            void sendAdminAlertEmail(`Refunded order ${order.id} may still PRINT`, [
-              `Fully refunded via Stripe while fulfilment is ${order.fulfillmentStatus}.`,
-              order.providerOrderId ? `Cancel Prodigi order ${order.providerOrderId} by hand.` : 'Not yet submitted — the sweeper will not re-drive a refunded order, but check.',
-            ]);
-          }
+          // A FULL REFUND MUST STOP THE PRINT. Until 2026-11-26 this only
+          // mailed "cancel it by hand", so a refund issued in the evening
+          // printed overnight and we paid for a card the customer had been
+          // given their money back for. Now we ask the printer to pull it
+          // and tell the operator plainly which of three things happened.
+          await cancelPrintForRefund(order);
           const sent = await sendRefundEmail({
             customerEmail: order.customerEmail,
             customerName: order.customerName,
@@ -1316,8 +1323,111 @@ export async function markOrderPaidAndDispatch(
 // reflects reality instead of "processing" forever. Best-effort — a
 // submission failure is logged + marked 'failed', never thrown back into
 // the paid-flip.
+/** A fully refunded order: stop it printing if it still can be stopped,
+ *  and tell the operator the outcome either way. Never throws — the
+ *  caller is the Stripe webhook, which must still send the refund email. */
+export async function cancelPrintForRefund(order: typeof studioOrders.$inferSelect): Promise<void> {
+  if (!order.includesPrint) return;
+  const status = order.fulfillmentStatus ?? 'pending';
+  const who = `${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`;
+  try {
+    // Already posted: nothing can stop it. Say so; it is a cost to know about.
+    if (status === 'shipped' || status === 'delivered') {
+      void sendAdminAlertEmail(`Refunded order ${order.id} was already posted`, [
+        `Fully refunded via Stripe after the card was ${status}. Nothing to cancel.`,
+        `Customer: ${who}`,
+      ]);
+      return;
+    }
+    // Never reached the printer. The sweeper only re-drives PAID orders
+    // and submitPrintOrder refuses a refunded one, so it cannot print.
+    if (!order.providerOrderId) {
+      void sendAdminAlertEmail(`Refunded order ${order.id}: nothing was printed`, [
+        'Fully refunded via Stripe before the card reached the printer. It will not be printed. Nothing to do.',
+        `Customer: ${who}`,
+      ]);
+      return;
+    }
+    // The printer already cancelled or failed it.
+    if (status === 'failed') return;
+
+    const provider = getPrintProvider();
+    const canAsk = provider.name === order.printProvider && typeof provider.cancelOrder === 'function';
+    const result = canAsk
+      ? await provider.cancelOrder!(order.providerOrderId)
+      : { outcome: 'failed' as const, detail: `No cancel call for print provider "${order.printProvider ?? '?'}"` };
+
+    if (result.outcome === 'cancelled') {
+      // Recorded as failed (= will not print) directly, NOT through
+      // applyFulfillmentUpdate: that path emails the customer "there's a
+      // problem with your order", which is wrong for someone who asked
+      // for, and has just been sent, their money back.
+      await db
+        .update(studioOrders)
+        .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
+        .where(eq(studioOrders.id, order.id));
+      console.log(`[STRIPE-WEBHOOK] refunded order ${order.id}: print ${order.providerOrderId} cancelled at ${provider.name}`);
+      void sendAdminAlertEmail(`Refunded order ${order.id}: print cancelled`, [
+        `Fully refunded via Stripe. The print (${order.printProvider} ${order.providerOrderId}) was cancelled before it was made. Nothing to do.`,
+        `Customer: ${who}`,
+      ]);
+      return;
+    }
+
+    console.warn(`[STRIPE-WEBHOOK] refunded order ${order.id}: print ${order.providerOrderId} NOT cancelled (${result.outcome}) ${result.detail ?? ''}`);
+    void sendAdminAlertEmail(`Refunded order ${order.id} WILL STILL PRINT`, [
+      result.outcome === 'too-late'
+        ? 'Fully refunded via Stripe, but the printer says it is too late to cancel: the card is already being made and will be posted.'
+        : 'Fully refunded via Stripe, and we could not confirm the print was cancelled. Assume it will print.',
+      `Print order: ${order.printProvider} ${order.providerOrderId} (was ${status}).`,
+      result.detail ? `What the printer said: ${result.detail}` : '',
+      `Customer: ${who}`,
+      '',
+      'If you want to stop it, cancel that order in the Prodigi dashboard now. Otherwise the customer gets a free card.',
+    ].filter((l, i, all) => l !== '' || all[i - 1] !== ''));
+  } catch (err: any) {
+    console.error(`[STRIPE-WEBHOOK] cancel-on-refund failed for order ${order.id}:`, err?.message ?? err);
+    void sendAdminAlertEmail(`Refunded order ${order.id} may still PRINT`, [
+      `Fully refunded via Stripe; the attempt to cancel the print threw: ${err?.message ?? String(err)}`,
+      order.providerOrderId ? `Cancel ${order.printProvider} order ${order.providerOrderId} by hand.` : 'It had not been submitted.',
+    ]);
+  }
+}
+
+/** A paid order whose print could not even be attempted or was turned
+ *  away. Marks it failed and tells the operator, once a day per distinct
+ *  reason rather than on each ten-minute retry. */
+async function failPrintSubmit(
+  order: typeof studioOrders.$inferSelect,
+  reason: string,
+): Promise<void> {
+  console.error('[STUDIO-CHECKOUT] print submission failed for order', order.id, reason);
+  await db
+    .update(studioOrders)
+    .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
+    .where(eq(studioOrders.id, order.id))
+    .catch(() => {});
+  // A paid order with no print MUST reach a human, not just the logs
+  // (audit 2026-07-27 P0-4).
+  await sendPrintAlert('submit-failed', order.id, reason, `Print submission FAILED — order ${order.id}`, [
+    `Order: ${order.id} (card ${order.cardId})`,
+    `Customer: ${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`,
+    `Paid: ${order.totalAmount}p`,
+    `Why: ${reason}`,
+    '',
+    'We retry by ourselves every ten minutes, so a passing fault at the printer heals without you.',
+    'If this message comes back tomorrow it needs you: reprint from the print queue once the cause is fixed, or refund in Stripe.',
+  ]).catch(() => {});
+}
+
 export async function submitPrintOrder(
   order: typeof studioOrders.$inferSelect,
+  opts: {
+    /** Reprint an order the printer cancelled or failed: the provider
+     *  order id being replaced. Only the admin "Print it again" button
+     *  passes this. */
+    reprintOf?: string;
+  } = {},
 ): Promise<void> {
   if (!order.includesPrint) return; // nothing to print
 
@@ -1326,11 +1436,27 @@ export async function submitPrintOrder(
   // sweeper, and the admin resubmit endpoint; audit 2026-07-27 P0-4), and
   // a stale `order` snapshot must never create a second Prodigi order.
   const fresh = await db
-    .select({ providerOrderId: studioOrders.providerOrderId })
+    .select({
+      providerOrderId: studioOrders.providerOrderId,
+      fulfillmentStatus: studioOrders.fulfillmentStatus,
+      paymentStatus: studioOrders.paymentStatus,
+    })
     .from(studioOrders)
     .where(eq(studioOrders.id, order.id))
     .limit(1);
-  if (fresh[0]?.providerOrderId) {
+  // Money went back: never print, whoever is asking and however stale
+  // their copy of the row is.
+  if (fresh[0]?.paymentStatus === 'refunded') {
+    console.log(`[STUDIO-CHECKOUT] print submit skipped for order ${order.id} — refunded`);
+    return;
+  }
+  // A reprint is the one case allowed past an existing provider id, and
+  // only for exactly the dead order the operator was looking at.
+  const reprinting =
+    !!opts.reprintOf &&
+    fresh[0]?.providerOrderId === opts.reprintOf &&
+    fresh[0]?.fulfillmentStatus === 'failed';
+  if (fresh[0]?.providerOrderId && !reprinting) {
     console.log(
       `[STUDIO-CHECKOUT] print submit skipped for order ${order.id} — already submitted (${fresh[0].providerOrderId})`,
     );
@@ -1339,8 +1465,12 @@ export async function submitPrintOrder(
 
   const shipTo = order.shipTo;
   const shippingAddress = order.shippingAddress;
+  // Each bail-out below used to be a console line and a bare return,
+  // which left a PAID order sitting at 'pending' with nobody told and the
+  // sweeper retrying the same dead end every ten minutes for ever (launch
+  // audit 2026-11-26). They now fail loudly like any other submit error.
   if (!shipTo || !shippingAddress) {
-    console.warn('[STUDIO-CHECKOUT] print submit: no shipping address on order', order.id);
+    await failPrintSubmit(order, 'The order has no delivery address, so there is nowhere to post it.');
     return;
   }
 
@@ -1379,13 +1509,14 @@ export async function submitPrintOrder(
   // checking the legacy URL alone silently skipped printing every rack
   // order (caught by the first E2E guest buy, 2026-08-27).
   if (!card || !(card.frontImageUrl || card.frontImagePath)) {
-    console.warn('[STUDIO-CHECKOUT] print submit: card/front image missing for order', order.id);
+    await failPrintSubmit(order, `The card (${order.cardId}) or its front picture is missing, so there is nothing to print.`);
     return;
   }
   if (orderedCards.length !== orderedCardIds.length) {
     // Never print a partial basket: the customer paid for all of them.
-    console.error(
-      `[STUDIO-CHECKOUT] print submit ABORTED for order ${order.id} — ${orderedCardIds.length} cards ordered, ${orderedCards.length} resolvable`,
+    await failPrintSubmit(
+      order,
+      `${orderedCardIds.length} cards were ordered but only ${orderedCards.length} can be found. Nothing was sent, so the customer is not posted a short order.`,
     );
     return;
   }
@@ -1421,7 +1552,7 @@ export async function submitPrintOrder(
   for (const c of orderedCards) {
     const front = resolveStoredImageUrl(c.frontImagePath, c.frontImageUrl);
     if (!front) {
-      console.warn('[STUDIO-CHECKOUT] print submit: no resolvable front image for card', c.id, 'order', order.id);
+      await failPrintSubmit(order, `Card ${c.id} has no front picture we can send to the printer.`);
       return;
     }
     printCards.push({
@@ -1436,6 +1567,11 @@ export async function submitPrintOrder(
     const provider = getPrintProvider();
     const result = await provider.submitOrder({
       studioOrderId: order.id,
+      // A reprint needs its own key: the order id would make the printer
+      // hand back the dead original ("alreadyExists") instead of printing.
+      // Derived from the order being replaced, so pressing the button
+      // twice still makes ONE new print.
+      idempotencyKey: reprinting ? `${order.id}:reprint-of:${opts.reprintOf}` : undefined,
       cards: printCards,
       shipTo: shipTo as 'sender' | 'recipient',
       // The customer opted into the wax-seal sticker (charge > 0 = chosen).
@@ -1460,32 +1596,41 @@ export async function submitPrintOrder(
     console.log(
       `[STUDIO-CHECKOUT] print submitted for order ${order.id} → ${provider.name}:${result.providerOrderId} (${result.status})`,
     );
+    notePrintOrderOpen();
+    if (result.issues?.length) {
+      await alertPrintIssues({ ...order, printProvider: provider.name, providerOrderId: result.providerOrderId }, result.issues);
+    }
   } catch (err: any) {
-    console.error(
-      '[STUDIO-CHECKOUT] print submission failed for order',
-      order.id,
-      err?.message ?? err,
-    );
-    await db
-      .update(studioOrders)
-      .set({ fulfillmentStatus: 'failed', updatedAt: new Date() })
-      .where(eq(studioOrders.id, order.id))
-      .catch(() => {});
-    // A paid order with no print MUST reach a human, not just the logs
-    // (audit 2026-07-27 P0-4). The sweeper retries transient failures;
-    // this alert covers the ones that need eyes.
-    void sendAdminAlertEmail(`Print submission FAILED — order ${order.id}`, [
-      `Order: ${order.id} (card ${order.cardId})`,
-      `Customer: ${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`,
-      `Payment status: ${order.paymentStatus}`,
-      `Error: ${err?.message ?? String(err)}`,
-      '',
-      'The stranded-order sweeper retries every 10 minutes. If it keeps',
-      'failing, use POST /api/admin/orders/:id/resubmit-print after fixing',
-      'the cause, or refund in Stripe.',
-    ]);
+    await failPrintSubmit(order, err?.message ?? String(err));
   }
 }
+
+/** The printer has the order but says something is wrong with it. */
+async function alertPrintIssues(
+  order: Pick<
+    typeof studioOrders.$inferSelect,
+    'id' | 'customerName' | 'customerEmail' | 'printProvider' | 'providerOrderId' | 'needByDate'
+  >,
+  issues: string[],
+): Promise<void> {
+  console.warn(`[FULFILMENT] order ${order.id}: printer reports issue(s): ${issues.join(' | ')}`);
+  await sendPrintAlert('issues', order.id, issues.join('|'), `The printer has a PROBLEM with order ${order.id}`, [
+    `${order.printProvider ?? 'The printer'} accepted the order (${order.providerOrderId ?? 'n/a'}) but will not make it until this is sorted:`,
+    ...issues.map((i) => `  - ${i}`),
+    '',
+    `Customer: ${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`,
+    order.needByDate ? `They need it by ${order.needByDate}.` : '',
+    'Open the order in the Prodigi dashboard to see and fix it. The customer has NOT been told anything.',
+  ].filter((l, i, all) => l !== '' || all[i - 1] !== '')).catch(() => {});
+}
+
+// Set whenever a print goes to the printer, read by the sweeper: it is
+// how an otherwise idle server knows there is an order worth checking on
+// (see watchOpenPrintOrders in recovery/stale-sweeper.ts).
+let printOrdersMayBeOpen = true; // true at boot: the first check finds out
+export function notePrintOrderOpen(): void { printOrdersMayBeOpen = true; }
+export function printOrdersMayBeOpenNow(): boolean { return printOrdersMayBeOpen; }
+export function noPrintOrdersOpen(): void { printOrdersMayBeOpen = false; }
 
 // ── Post-paid comms dispatch ─────────────────────────────────────────
 // Fires two emails when a Studio order transitions to paid:
@@ -1610,13 +1755,21 @@ const FULFILLMENT_RANK: Record<string, number> = {
 
 export async function applyFulfillmentUpdate(
   order: typeof studioOrders.$inferSelect,
-  update: Pick<PrintProviderStatus, 'status' | 'trackingNumber' | 'trackingUrl'> & {
+  update: Pick<PrintProviderStatus, 'status' | 'trackingNumber' | 'trackingUrl' | 'issues'> & {
     /** Who actually carries it, when a human typed it on /admin/fulfilment
      *  (manual print provider). Absent → the shipping tier's carrier. */
     courier?: string;
   },
 ): Promise<void> {
   const next = update.status;
+
+  // The printer can be stuck on an order without its stage changing at
+  // all, so look at what it SAYS is wrong on every update, from the
+  // webhook and the sweeper's check alike. Paid orders only: a refunded
+  // one is being cancelled, and its issues are nobody's problem.
+  if (update.issues?.length && next !== 'failed' && order.paymentStatus === 'paid') {
+    await alertPrintIssues(order, update.issues);
+  }
 
   // Failure is terminal — record it unless we've already delivered.
   if (next === 'failed') {
@@ -1639,8 +1792,9 @@ export async function applyFulfillmentUpdate(
     if (flipped.length && order.paymentStatus === 'paid') {
       void sendAdminAlertEmail(`Print order FAILED — ${order.id}`, [
         `Prodigi reported the order failed/cancelled (provider order ${order.providerOrderId ?? 'n/a'}).`,
+        ...(update.issues?.length ? ['What it said:', ...update.issues.map((i) => `  - ${i}`)] : []),
         `Customer ${order.customerEmail} paid ${order.totalAmount}p and has been told we're on it.`,
-        'Reprint (re-submit from admin) or refund via Stripe within one working day.',
+        `Within one working day either press "Print it again" on the print queue (${adminOrderLink(order.id)}) or refund in Stripe.`,
       ]);
       void sendSenderOrderProblemEmail({
         customerEmail: order.customerEmail,

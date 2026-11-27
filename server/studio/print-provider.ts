@@ -48,6 +48,11 @@ export interface PrintOrderRequest {
   // credit. Absent → the compositor falls back to a "Made with Celebrait"
   // wordmark.
   senderFirstName?: string | null;
+  /** The key the printer de-duplicates on. Absent → the order id (one
+   *  paid order, one print). Only a deliberate REPRINT of an order the
+   *  printer cancelled or failed passes its own, because the order id
+   *  would hand back the dead original instead of printing a new one. */
+  idempotencyKey?: string;
 }
 
 export interface PrintOrderResult {
@@ -56,6 +61,9 @@ export interface PrintOrderResult {
   // via webhooks; the stub jumps straight to "submitted".
   status: "submitted" | "failed";
   estimatedShipDate?: string;
+  /** Problems the printer reported while accepting the order (see
+   *  PrintProviderStatus.issues). */
+  issues?: string[];
 }
 
 export interface PrintProviderStatus {
@@ -63,12 +71,31 @@ export interface PrintProviderStatus {
   status: "pending" | "submitted" | "printed" | "shipped" | "delivered" | "failed";
   trackingNumber?: string;
   trackingUrl?: string;
+  /** Anything the printer says is WRONG with the order while it is still
+   *  "in progress": a picture it could not download, an item it cannot
+   *  make, a payment it wants authorised. None of these change the stage,
+   *  so without this field a stuck order looks exactly like a healthy one
+   *  (launch audit 2026-11-26). Human-readable, one line each. */
+  issues?: string[];
+}
+
+/** What happened when we asked the printer to pull an order.
+ *  'cancelled' = it will not print. 'too-late' = already in production,
+ *  it WILL print and post. 'failed' = we could not find out (network,
+ *  an answer we don't recognise) — treat as "may still print". */
+export interface PrintCancelResult {
+  outcome: "cancelled" | "too-late" | "failed";
+  detail?: string;
 }
 
 export interface PrintProvider {
   readonly name: string;
   submitOrder(req: PrintOrderRequest): Promise<PrintOrderResult>;
   getStatus(providerOrderId: string): Promise<PrintProviderStatus>;
+  /** Ask the printer not to make an order (a refund). Optional: a
+   *  provider with no cancel call (a human at a printer) leaves it out
+   *  and the caller alerts the operator instead. Never throws. */
+  cancelOrder?(providerOrderId: string): Promise<PrintCancelResult>;
   // Each provider parses its own webhook payload and returns a
   // normalised status update. Webhook verification (signature check)
   // lives inside the provider so callers can't forget it.
@@ -86,6 +113,9 @@ export const stubPrintProvider: PrintProvider = {
   },
   async getStatus(providerOrderId) {
     return { providerOrderId, status: "submitted" };
+  },
+  async cancelOrder() {
+    return { outcome: "cancelled" };
   },
   async parseWebhook() {
     throw new Error("stub provider has no webhooks");

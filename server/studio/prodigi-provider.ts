@@ -219,6 +219,34 @@ function mapProdigiStatus(order: any): PrintProviderStatus["status"] {
   return "submitted";
 }
 
+/** Everything Prodigi says is wrong with an order, as plain lines.
+ *  Two places carry it: `status.issues[]` (objectId, errorCode,
+ *  description, and for a payment hold an authorisation link) and any
+ *  `status.details.<step>` reading "Error". Neither changes the stage —
+ *  a card whose artwork Prodigi could not download sits "InProgress"
+ *  for ever — so the mapping above cannot see them and until 2026-11-26
+ *  nothing here read them at all. */
+function issuesFrom(order: any): string[] | undefined {
+  const out: string[] = [];
+  const issues = order?.status?.issues;
+  if (Array.isArray(issues)) {
+    for (const i of issues) {
+      const code = String(i?.errorCode ?? "").trim();
+      const desc = String(i?.description ?? "").trim();
+      const auth = i?.authorisationDetails?.authorisationUrl;
+      const line = [code, desc].filter(Boolean).join(": ") || "Unspecified issue";
+      out.push(auth ? `${line} (authorise at ${auth})` : line);
+    }
+  }
+  const details = order?.status?.details;
+  if (details && typeof details === "object") {
+    for (const [step, value] of Object.entries(details)) {
+      if (String(value).toLowerCase() === "error") out.push(`Step "${step}" reports an error`);
+    }
+  }
+  return out.length ? out : undefined;
+}
+
 export const prodigiPrintProvider: PrintProvider = {
   name: "prodigi",
 
@@ -293,7 +321,7 @@ export const prodigiPrintProvider: PrintProvider = {
       // created, and we have returned the existing order"), which the
       // code below stores exactly like a first success. Prodigi checks
       // duplicates on this key only, never on merchantReference.
-      idempotencyKey: req.studioOrderId,
+      idempotencyKey: req.idempotencyKey ?? req.studioOrderId,
       shippingMethod,
       recipient: {
         name: req.recipientName,
@@ -362,9 +390,17 @@ export const prodigiPrintProvider: PrintProvider = {
       console.warn(`[PRODIGI] order ${req.studioOrderId} already existed at Prodigi as ${providerOrderId}; stored, not created again`);
     }
     const mapped = mapProdigiStatus(order);
+    // 'createdWithIssues' = accepted, but something needs fixing before it
+    // will print. Carry the reasons out so the caller can tell a human.
+    const issues =
+      issuesFrom(order) ??
+      (String(json?.outcome ?? "").toLowerCase() === "createdwithissues"
+        ? ["Prodigi created the order WITH ISSUES but listed none; open it in the Prodigi dashboard"]
+        : undefined);
     return {
       providerOrderId,
       status: mapped === "failed" ? "failed" : "submitted",
+      issues,
     };
   },
 
@@ -375,7 +411,34 @@ export const prodigiPrintProvider: PrintProvider = {
       providerOrderId,
       status: mapProdigiStatus(order),
       ...trackingFrom(order),
+      issues: issuesFrom(order),
     };
+  },
+
+  // A refund must stop the print (launch audit 2026-11-26: a refunded
+  // order still printed and posted, at our cost, unless somebody opened
+  // the Prodigi dashboard in time). Prodigi answers 200 with an outcome:
+  //   cancelled          it will not print
+  //   failedToCancel     "could be already in production and too late"
+  //   actionNotAvailable "cannot be cancelled at this time"
+  // Their docs show the outcome in both cases ("Cancelled"/"cancelled"),
+  // so compare lowercased. Never throws: the caller is a payment webhook
+  // that must still record the refund and tell a human what happened.
+  async cancelOrder(providerOrderId: string) {
+    try {
+      const json = await prodigiFetch(
+        `/Orders/${encodeURIComponent(providerOrderId)}/actions/cancel`,
+        { method: "POST" },
+      );
+      const outcome = String(json?.outcome ?? "").toLowerCase();
+      if (outcome === "cancelled") return { outcome: "cancelled" as const };
+      if (outcome === "failedtocancel" || outcome === "actionnotavailable") {
+        return { outcome: "too-late" as const, detail: `Prodigi said "${json?.outcome}"` };
+      }
+      return { outcome: "failed" as const, detail: `Unrecognised answer from Prodigi: "${json?.outcome}"` };
+    } catch (err) {
+      return { outcome: "failed" as const, detail: String((err as Error)?.message ?? err).slice(0, 300) };
+    }
   },
 
   async parseWebhook(
@@ -419,6 +482,7 @@ export const prodigiPrintProvider: PrintProvider = {
       providerOrderId,
       status: mapProdigiStatus(order),
       ...trackingFrom(order),
+      issues: issuesFrom(order),
     };
   },
 };

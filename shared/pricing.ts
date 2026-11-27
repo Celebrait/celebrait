@@ -291,6 +291,14 @@ export function deliveryWindow(from: Date = new Date()): { earliest: Date; lates
   return { earliest, latest: byWork > promised ? byWork : promised };
 }
 
+/** The day by which the printer should have POSTED an order paid at
+ *  `from`: its production working days plus one of grace. Past this with
+ *  nothing posted, the order is flagged to the operator (it still has
+ *  the post days in hand before the date the customer was quoted). */
+export function shouldBePostedBy(from: Date): Date {
+  return addWorkingDays(from, PRODUCTION_WORKING_DAYS + 1);
+}
+
 /** The one date we quote: "expect it by Thu 17 Sept". */
 export function expectedBy(from: Date = new Date()): Date {
   return deliveryWindow(from).latest;

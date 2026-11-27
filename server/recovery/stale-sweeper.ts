@@ -42,15 +42,29 @@ import { db } from '../db';
 import { activitySince, checkoutSettling } from '../activity';
 import { cards, cardAttempts, studioOrders } from '@shared/schema';
 import { inFlightCards } from '../generation-registry';
-import { markOrderPaidAndDispatch, submitPrintOrder } from '../routes/studio-checkout';
+import {
+  applyFulfillmentUpdate,
+  markOrderPaidAndDispatch,
+  noPrintOrdersOpen,
+  printOrdersMayBeOpenNow,
+  submitPrintOrder,
+} from '../routes/studio-checkout';
 import { getPaymentProvider } from '../studio/payment-provider';
+import { getPrintProvider } from '../studio/print-provider';
+import { sendPrintAlert } from '../studio/print-alerts';
 import { sendAdminAlertEmail } from '../email-service';
+import { expectedBy, formatDayMonth, shouldBePostedBy } from '@shared/pricing';
 
 const GENERATING_STATUSES = ['generating', 'generating-front', 'generating-inside'];
 const ATTEMPT_STALE_MS = 10 * 60 * 1000;
 const ORDER_STALE_MS = 10 * 60 * 1000;
 const FIRST_SWEEP_DELAY_MS = 8 * 60 * 1000;
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+// How often orders sitting at the printer are looked in on. The printer's
+// webhook is the fast path; this is the backstop for the webhook that
+// never came, so it can be slow, and slow matters: each look wakes the
+// database (see IDLE SITES DO NOT SWEEP below).
+const PRINT_WATCH_EVERY_MS = 3 * 60 * 60 * 1000;
 
 /** Friendly failure payload for a swept card — mirrors the ProviderError
  *  shape background-generator writes so the failure panel renders its
@@ -211,11 +225,117 @@ export async function sweepStrandedPaidOrders(): Promise<number> {
   return redriven;
 }
 
+/** LOOK IN ON EVERY ORDER THE PRINTER IS HOLDING (launch audit
+ *  2026-11-26).
+ *
+ *  Once an order was accepted by the printer nothing here ever asked
+ *  about it again. We heard what the printer chose to tell us by webhook
+ *  and nothing else, so an order it had stopped on (artwork it could not
+ *  download, an item it could not make) or simply never got round to
+ *  looked identical to a healthy one until the customer wrote in asking
+ *  where their card was.
+ *
+ *  For each paid order at 'submitted' or 'printed' this asks the printer
+ *  for the live status and runs it through the SAME transition the
+ *  webhook uses (so a missed "shipped" webhook is healed and its email
+ *  sent, exactly once), which also raises any issue the printer reports.
+ *  Then, if it still has not been posted by the day it should have been,
+ *  the operator is told while there is still post time in hand.
+ *
+ *  Returns how many orders still need watching (accepted and not yet
+ *  posted, or paid and not yet accepted), so the scheduler knows whether
+ *  an idle server has any reason to wake the database for this. */
+let lastPrintWatchAt = 0;
+export async function watchOpenPrintOrders(): Promise<number> {
+  lastPrintWatchAt = Date.now();
+  const provider = getPrintProvider();
+  const held = await db
+    .select()
+    .from(studioOrders)
+    .where(
+      and(
+        eq(studioOrders.paymentStatus, 'paid'),
+        eq(studioOrders.includesPrint, true),
+        isNotNull(studioOrders.providerOrderId),
+        inArray(studioOrders.fulfillmentStatus, ['submitted', 'printed']),
+        // Only what the CURRENT provider holds: a stub id from a test run
+        // means nothing to Prodigi, and would be asked about for ever.
+        eq(studioOrders.printProvider, provider.name),
+      ),
+    )
+    .limit(200);
+  // A stub accepts everything and posts nothing; a human printer works
+  // from /admin/fulfilment and is their own status. Neither is "watched".
+  const watchable = provider.name !== 'stub' && provider.name !== 'manual';
+
+  let stillOpen = 0;
+  let unreachable = 0;
+  let lastError = '';
+  for (const order of watchable ? held : []) {
+    let status: Awaited<ReturnType<typeof provider.getStatus>>;
+    try {
+      status = await provider.getStatus(order.providerOrderId!);
+      await applyFulfillmentUpdate(order, status);
+    } catch (err: any) {
+      unreachable += 1;
+      stillOpen += 1;
+      lastError = err?.message ?? String(err);
+      console.error(`[PRINT-WATCH] could not check order ${order.id}:`, lastError);
+      continue;
+    }
+    if (status.status !== 'submitted' && status.status !== 'printed') continue; // posted, or failed (alerted there)
+    stillOpen += 1;
+    const paidAt = order.paidAt ?? order.createdAt ?? new Date();
+    if (Date.now() < shouldBePostedBy(new Date(paidAt)).getTime()) continue;
+    const days = Math.floor((Date.now() - new Date(paidAt).getTime()) / 86_400_000);
+    await sendPrintAlert('stalled', order.id, 'not-posted', `Order ${order.id} has NOT been posted after ${days} days`, [
+      `Paid ${formatDayMonth(new Date(paidAt))}; the printer (${order.printProvider} ${order.providerOrderId}) still shows it as "${status.status}", not posted.`,
+      `The customer was told to expect it by ${formatDayMonth(expectedBy(new Date(paidAt)))}.`,
+      order.needByDate ? `They said they need it by ${order.needByDate}.` : '',
+      `Customer: ${order.customerName ?? '?'} <${order.customerEmail ?? '?'}>`,
+      '',
+      'Look the order up in the Prodigi dashboard, or ask Prodigi support what is holding it. The customer has NOT been told anything.',
+    ].filter((l, i, all) => l !== '' || all[i - 1] !== '')).catch(() => {});
+  }
+  if (unreachable) {
+    await sendPrintAlert('check-failed', 'printer', 'unreachable', `Could not check ${unreachable} order(s) with the printer`, [
+      `We asked ${provider.name} about ${unreachable} order(s) that are being printed and got no usable answer.`,
+      `Last error: ${lastError}`,
+      'If this comes back tomorrow, check the Prodigi API key on Render and Prodigi\'s status page.',
+    ]).catch(() => {});
+  }
+
+  // Paid and not yet accepted by the printer: sweepStrandedPaidOrders
+  // retries these, but only if the pass runs, so they count as open too.
+  const stranded = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(studioOrders)
+    .where(
+      and(
+        eq(studioOrders.paymentStatus, 'paid'),
+        eq(studioOrders.includesPrint, true),
+        isNull(studioOrders.providerOrderId),
+        inArray(studioOrders.fulfillmentStatus, ['pending', 'failed']),
+      ),
+    );
+  const open = stillOpen + (stranded[0]?.n ?? 0);
+  if (open === 0) noPrintOrdersOpen();
+  return open;
+}
+
+function printWatchDue(): boolean {
+  return printOrdersMayBeOpenNow() && Date.now() - lastPrintWatchAt >= PRINT_WATCH_EVERY_MS;
+}
+
 async function runSweeps(): Promise<void> {
   try {
     const gen = await sweepStaleGenerations();
     const paid = await sweepUnreconciledPayments();
     const orders = await sweepStrandedPaidOrders();
+    if (printWatchDue()) {
+      const open = await watchOpenPrintOrders();
+      if (open) console.log(`[PRINT-WATCH] ${open} print order(s) still open; checking again in ${PRINT_WATCH_EVERY_MS / 3_600_000}h`);
+    }
     const emptied = await purgeUntouchedDrafts();
     if (gen.cardsSwept || gen.attemptsSwept || paid || orders || emptied) {
       console.log(
@@ -280,7 +400,12 @@ export async function purgeUntouchedDrafts(): Promise<number> {
 export function scheduleStaleSweeps(): void {
   let lastPassAt = 0;
   const pass = () => {
-    if (!activitySince(lastPassAt) && !checkoutSettling()) return;  // nobody here since the last one, and no checkout still settling
+    // The one thing that is NOT downstream of a request: an order already
+    // at the printer goes wrong (or just goes nowhere) while the site is
+    // quiet. So a quiet site still passes when there is a print order
+    // open and its check is due, and only then: with nothing at the
+    // printer this stays as idle as before.
+    if (!activitySince(lastPassAt) && !checkoutSettling() && !printWatchDue()) return;  // nobody here since the last one, no checkout still settling, no print to look in on
     lastPassAt = Date.now();
     void runSweeps();
   };
