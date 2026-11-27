@@ -35,7 +35,6 @@ import { NeedByField, expectedByCopy } from '@/components/checkout/need-by';
 import {
   tierPrice,
   cardPrice,
-  firstOrderPrice,
   shippingPrice,
   shippingCarrierLabel,
   envelopeStickerPrice,
@@ -45,7 +44,6 @@ import {
   type ShippingTierId,
 } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
-import { christmasFullPrice } from '@shared/christmas';
 import { formatMoney, market, type MarketId } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
 
@@ -114,7 +112,7 @@ function totalsFor(
   tier: ShippingTierId,
   shipTo: 'sender' | 'recipient',
   addSticker: boolean,
-  /** First-order credit applies — the card at half price (shared/pricing). */
+  /** The launch offer applies: this card is on us, £0 (postage paid). */
   freeCard: boolean,
   /** Comp code entered ("this one's on us" — creator gifting). Display
    *  optimistically zeroes postage; the server validates the real code
@@ -125,13 +123,11 @@ function totalsFor(
    *  while the card is still loading; falls back to the photo price,
    *  which is the historic product and the safest over-estimate. */
   cardSource?: string,
-  /** The launch offer is open and this is a photo card: £0, not half. */
-  onUs = false,
 ) {
   // Priced by the door that made this card, mirroring the server so the
   // shown total always equals the charge (UX_THREE_DOORS.md §8a).
   const printPrice = cardPrice(cardSource);
-  const printAmount = compCode?.card ? 0 : freeCard ? (onUs ? 0 : firstOrderPrice(cardSource)) : printPrice;
+  const printAmount = compCode?.card || freeCard ? 0 : printPrice;
   const digitalAmount = 0;
   const shippingAmount = compCode?.shipping ? 0 : shippingPrice(tier);
   const stickerAmount = envelopeStickerPrice(addSticker, shipTo);
@@ -318,27 +314,22 @@ export default function CheckoutPage() {
     refetchOnMount: 'always',
     staleTime: 0,
   });
-  // Since 2026-09-02 the credit is 50% off the first MADE-FOR-THEM card
-  // (source 'maker'), any postage tier — mirrors studio-checkout.ts.
-  // CHRISTMAS AD (2026-11-18): a three-card Christmas card is full price
-  // while Christmas orders are open; the server makes the same exception
-  // (shared/christmas.ts), so no offer is shown and none is applied.
-  const fullPrice = christmasFullPrice(card?.source, card?.state?.recipient?.occasion);
-  const freeCardApplied = freeCard?.eligible === true && !!card && card.source !== 'rack' && !fullPrice;
-  // THE LAUNCH OFFER (2026-11-06): first PHOTO card on us while the switch
-  // is open. The server re-checks the address (one per address, UK only)
-  // and falls back to half price if it must — the Stripe page shows the
-  // real total either way.
+  // ONE OFFER, ONE SWITCH (Aidan 2026-11-27), mirroring studio-checkout.ts.
+  // The only offer is THE LAUNCH OFFER: the first PHOTO card on us while
+  // the /admin/site switch is on and under its caps. Switch off = no
+  // offer line, no "add your dates" prompt, the plain price. Any other
+  // card (three-card, rack) is always its plain price. The server also
+  // checks the address (one per address, UK only) and charges the usual
+  // price if it must; the pay button says so before the customer leaves.
   const onUsOpen = useFirstCardOnUs();
-  const onUs = freeCardApplied && onUsOpen && card?.source === 'photo';
+  const offerCard = onUsOpen && !!card && card.source === 'photo';
+  const freeCardApplied = offerCard && freeCard?.eligible === true;
   // THE GAP (found 2026-11-11): the landing page's main button goes
   // straight to the maker, so an ad visitor could reach this page with
   // no dates saved and see the full price with no word about the offer
   // they clicked on. Say how to unlock it, right under the price.
   const datesToGo = Math.max(0, 3 - (freeCard?.keyDates ?? 0));
-  const offerLocked =
-    !!freeCard && !freeCard.redeemed && datesToGo > 0 && !!card && card.source !== 'rack' && !fullPrice;
-  const lockedOnUs = offerLocked && onUsOpen && card?.source === 'photo';
+  const offerLocked = offerCard && !!freeCard && !freeCard.redeemed && datesToGo > 0;
   const effectiveTier: ShippingTierId = shippingTier;
 
   const includesPrint = choice !== 'digital';
@@ -347,11 +338,11 @@ export default function CheckoutPage() {
   // `choice` machinery would compute false here; the model says true.)
   const includesDigital = true;
   const totals = useMemo(
-    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compApplied, card?.source, onUs),
+    () => totalsFor(effectiveTier, shipTo, addSticker, freeCardApplied, compApplied, card?.source),
     // card.source was missing here (audit 2026-09-09): the memo ran once
     // with the card still loading and priced every maker card as a photo
     // card (£6.99 shown, £5.99 charged).
-    [effectiveTier, shipTo, addSticker, freeCardApplied, compApplied?.card, compApplied?.shipping, card?.source, onUs],
+    [effectiveTier, shipTo, addSticker, freeCardApplied, compApplied?.card, compApplied?.shipping, card?.source],
   );
 
   // Postcode lookup via postcodes.io — free, no key, fills city on
@@ -449,15 +440,15 @@ export default function CheckoutPage() {
       // THE SERVER DECIDES THE PRICE; SAY SO IF IT DISAGREES (launch audit
       // 2026-11-26). This page works "on us" out from the site switch. The
       // server also checks that this ADDRESS hasn't had a free card and that
-      // today's free cards haven't run out, and falls back to half price.
-      // The customer used to press "Pay £2.95" and meet £5.44 on Stripe with
+      // today's free cards haven't run out, and charges the usual price if so.
+      // The customer used to press "Pay £2.95" and meet a higher total on Stripe with
       // no word from us in between. Nobody is charged without seeing the
       // real figure, but it must be us who tells them, before they leave.
       const serverTotal = body.totals?.totalAmount;
       if (body.payment.mode === 'redirect' && typeof serverTotal === 'number' && serverTotal > totals.total) {
         const ok = window.confirm(
           `One thing before you pay: the total is ${formatMoney(serverTotal)}, not ${formatMoney(totals.total)}.\n\n` +
-          `The first-card offer is one per address and limited each day, so this card is half price plus postage instead of on us.\n\n` +
+          `The first-card offer is one per address and limited each day, so this card is its usual price plus postage instead of on us.\n\n` +
           `Carry on to payment?`,
         );
         if (!ok) return;
@@ -636,7 +627,7 @@ export default function CheckoutPage() {
                     </span>
                     {totals.printAmount === 0 ? 'free' : formatMoney(totals.printAmount)}{' '}
                     <span className="text-xs font-normal text-keeper-meta">
-                      · postage {formatMoney(totals.shippingAmount)} · {formatMoney(totals.total)} to pay, {onUs ? 'your first card on us' : '50% off your first card'}
+                      · postage {formatMoney(totals.shippingAmount)} · {formatMoney(totals.total)} to pay, your first photo card on us
                     </span>
                   </p>
                 ) : (
@@ -655,11 +646,9 @@ export default function CheckoutPage() {
                     <p className="flex items-start gap-2 text-[14px] leading-snug text-keeper-ink">
                       <Gift className="mt-0.5 h-4 w-4 shrink-0 text-brand-dark" aria-hidden="true" />
                       <span>
-                        <b>{lockedOnUs ? 'Your first card’s on us.' : '50% off your first card.'}</b>{' '}
+                        <b>Your first photo card’s on us.</b>{' '}
                         Add {datesToGo === 3 ? 'three dates' : datesToGo === 1 ? 'one more date' : `${datesToGo} more dates`} that
-                        matter and {lockedOnUs
-                          ? <>this card is free. You just pay {formatMoney(shippingPrice())} postage.</>
-                          : <>this card is {formatMoney(firstOrderPrice(card?.source))} plus postage.</>}
+                        matter and this card is free. You just pay {formatMoney(shippingPrice())} postage.
                       </span>
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -671,7 +660,7 @@ export default function CheckoutPage() {
                         Add my dates
                       </Link>
                       <span className="text-[11.5px] text-keeper-meta">
-                        Takes about a minute. Your card is saved. One per account{lockedOnUs ? ' and address, UK only' : ''}.
+                        Takes about a minute. Your card is saved. One per account and address, UK only.
                       </span>
                     </div>
                   </div>
@@ -874,7 +863,7 @@ export default function CheckoutPage() {
                 label="Printed card"
                 sub={
                   freeCardApplied
-                    ? (onUs ? 'Your first card, on us' : 'Your first card, half price')
+                    ? 'Your first photo card, on us'
                     : 'Square, 280gsm gloss art card'
                 }
                 amount={totals.printAmount}

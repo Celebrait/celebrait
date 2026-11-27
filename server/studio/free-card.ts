@@ -2,11 +2,13 @@
 //
 // The free-first-card credit (Moments rewards, Kevin 2026-08-03).
 //
-// The deal (since 2026-09-02): add 3 key dates → your FIRST made-for-them
-// card is 50% off (£5.99 struck to £2.99), postage as normal. It began
-// life as the photo-only free card; the eligibility, consumption and the
-// users.free_card_* columns are unchanged — only what the credit is
-// worth, and which door it applies to, live in studio-checkout.ts.
+// The deal (since 2026-11-27, ONE OFFER, ONE SWITCH): add 3 key dates →
+// your first PHOTO card is on us, postage paid, while the /admin/site
+// switch is on. Switch off = this credit is worth nothing and nothing
+// spends it. (2026-09-02 to 2026-11-27 it was also worth half price on a
+// three-card card; that is gone.) The eligibility, consumption and the
+// users.free_card_* columns are unchanged: what the credit is worth, and
+// which door it applies to, live in studio-checkout.ts.
 //
 // Design invariants:
 //   • Eligibility is DERIVED, never stored: ≥3 key dates AND the user's

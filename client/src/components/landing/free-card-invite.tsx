@@ -27,11 +27,9 @@ import { useAuthModal } from '@/components/auth/auth-modal';
 import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
 import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
-import { useMakerEnabled } from '@/hooks/use-maker';
-import { useLocation } from 'wouter';
 
 const SEEN_KEY = 'celebrait:free-card-invite:v1';
 
@@ -50,6 +48,10 @@ function InviteRing() {
 export function FreeCardInvite() {
   const { user, isLoading } = useAuth();
   const { authOpen } = useAuthModal();
+  // Declared up here because the auto-show effect below reads it: with
+  // the offer off the popup must not "show" invisibly and use up the
+  // visitor's once-a-fortnight slot before the offer is switched on.
+  const onUs = useFirstCardOnUs();
   const [open, setOpen] = useState(false);
   const [autoShown, setAutoShown] = useState(false);
   // Claim happens INSIDE this modal (Kevin 2026-08-03: the generic
@@ -57,13 +59,6 @@ export function FreeCardInvite() {
   // same surface, ring still visible, the real <AuthForm> embedded.
   const [claiming, setClaiming] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('email');
-  // The price the offer quotes follows the DOOR the visitor is on, like
-  // the ticker: the three-card price only on /create or /make while that
-  // route is open, the photo price everywhere else. (Until 2026-10-29 it
-  // quoted the three-card £5.99 → £2.99 on the photo page.)
-  const [invitePath] = useLocation();
-  const makerOpen = useMakerEnabled() === true;
-  const offer = makerOpen && /^\/(create|make)(\/|$)/.test(invitePath) ? 'maker' : 'photo';
   const timerRef = useRef<number | null>(null);
 
   const signedOut = !isLoading && !user;
@@ -124,7 +119,7 @@ export function FreeCardInvite() {
   // Auto-show once: 9s dwell or 45% scroll, whichever first. Paused
   // entirely while the auth dialog is up.
   useEffect(() => {
-    if (!signedOut || autoShown || authOpen) return;
+    if (!signedOut || !onUs || autoShown || authOpen) return;
     let done = false;
     try {
       const seenAt = Number(localStorage.getItem(SEEN_KEY) || 0);
@@ -165,7 +160,7 @@ export function FreeCardInvite() {
       if (timerRef.current) window.clearTimeout(timerRef.current);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [signedOut, autoShown, authOpen]);
+  }, [signedOut, onUs, autoShown, authOpen]);
 
   // Scroll-lock + Escape while open.
   useEffect(() => {
@@ -188,13 +183,14 @@ export function FreeCardInvite() {
   // null) and then resolved, one more hook ran than before and React
   // threw #310 — the WHOLE landing page fell to the error screen on
   // most fresh loads. Found by the live walkthrough audit.
-  const onUs = useFirstCardOnUs();
-
   // Stay mounted while a claim is mid-flight even though verify has
   // signed the user in — unmounting here killed AuthForm's welcome step
   // (first-name capture) and its /studio redirect, stranding the new
   // account on the landing page.
-  if (!signedOut && !claiming) return null;
+  // ONE OFFER, ONE SWITCH (2026-11-27): this popup IS the offer. With
+  // the offer off at /admin/site (or its caps reached) it never shows:
+  // no popup, no corner pill. There is no half-price version any more.
+  if ((!signedOut || !onUs) && !claiming) return null;
 
   const close = () => {
     setOpen(false);
@@ -208,7 +204,7 @@ export function FreeCardInvite() {
   const claimCopy =
     authStep === 'email'
       ? {
-          heading: onUs ? 'Claim your first card. It’s on us.' : 'Claim 50% off your first card.',
+          heading: 'Claim your first photo card. It’s on us.',
           sub: "Pop your email in and we'll send a 6-digit code. No passwords, ever.",
         }
       : authStep === 'code'
@@ -225,7 +221,7 @@ export function FreeCardInvite() {
           className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
-          aria-label={onUs ? 'Your first card’s on us' : '50% off your first card'}
+          aria-label="Your first photo card’s on us"
           data-testid="free-card-invite"
         >
           {/* Backdrop */}
@@ -258,13 +254,7 @@ export function FreeCardInvite() {
                   </p>
                   {authStep === 'email' && (
                     <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
-                      {onUs ? (
-                        <>Then three dates that matter, and your first card’s <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.</>
-                      ) : (
-                        <>Then three dates that matter, and your first card is{' '}
-                        <span className="line-through">{formatMoney(cardPrice(offer))}</span> <b>{formatMoney(firstOrderPrice(offer))}</b>,
-                        half price.</>
-                      )}
+                      Then three dates that matter, and your first photo card’s <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.
                     </p>
                   )}
                   <div className="mt-5" data-testid="free-card-invite-authform">
@@ -301,7 +291,7 @@ export function FreeCardInvite() {
               ) : (
                 <>
                   <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
-                    {intent === 'asked' ? (onUs ? 'Your first card’s on us' : '50% off your first card') : 'A gift to start'}
+                    {intent === 'asked' ? 'Your first photo card’s on us' : 'A gift to start'}
                   </p>
                   <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
                     {intent === 'asked'
@@ -312,27 +302,15 @@ export function FreeCardInvite() {
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       You'll need an account to make a card either way, so
                       start here. Tell us <b>three dates that matter</b> (a
-                      birthday, an anniversary, any day) and your first card
-                      {onUs ? (
-                        <> is <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.</>
-                      ) : (
-                        <> is half price.{' '}
-                        <span className="text-stone-400 line-through">{formatMoney(cardPrice(offer))}</span>{' '}
-                        <b>{formatMoney(firstOrderPrice(offer))}</b>, plus postage.</>
-                      )}
+                      birthday, an anniversary, any day) and your first photo
+                      card is <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.
                     </p>
                   ) : (
                     <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
                       The right moment probably hasn't come round yet. So start the
                       other way: tell us <b>three dates that matter</b> (a birthday,
-                      an anniversary, any day) and your first card is{' '}
-                      {onUs ? (
-                        <><b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage. It waits for the moment.</>
-                      ) : (
-                        <>half price.{' '}
-                        <span className="text-stone-400 line-through">{formatMoney(cardPrice(offer))}</span>{' '}
-                        <b>{formatMoney(firstOrderPrice(offer))}</b>, plus postage. It waits for the moment.</>
-                      )}
+                      an anniversary, any day) and your first photo card is{' '}
+                      <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage. It waits for the moment.
                     </p>
                   )}
                   <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
@@ -383,7 +361,7 @@ export function FreeCardInvite() {
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-muted">
             <Gift className="h-4 w-4 text-brand" strokeWidth={2} />
           </span>
-          {onUs ? 'Your first card’s on us' : '50% off your first card'}
+          Your first photo card’s on us
         </button>
       )}
     </>

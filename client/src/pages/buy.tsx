@@ -244,9 +244,6 @@ export default function BuyPage() {
                 {formatMoney(totals.print)}
               </span>
             </p>
-            {card.listPrice != null && card.listPrice > totals.print && (
-              <p className="-mt-0.5 text-xs text-brand-dark">Half price on your first card</p>
-            )}
             <p className="flex justify-between"><span>Postage · {shippingCarrierLabel(DEFAULT_SHIPPING_TIER)}</span><span>{formatMoney(totals.ship)}</span></p>
           </div>
         </div>

@@ -32,6 +32,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useBetaMode } from '@/hooks/use-beta';
 import { useToast } from '@/hooks/use-toast';
 import { useClaimFreeCard } from '@/components/landing/ticker-banner';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
+import { formatMoney } from '@shared/market';
+import { shippingPrice } from '@shared/pricing';
 import logoSrc from '../assets/logo-mark.webp';
 import type { CardDraftState } from '@shared/schema';
 
@@ -389,6 +392,10 @@ function MakeYourOwnPanel({
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
+  // ONE OFFER, ONE SWITCH (2026-11-27): "on us" is said only while the
+  // offer is on at /admin/site, and with its terms. This button used to
+  // say "Your first is on us" whether or not it was.
+  const onUs = useFirstCardOnUs();
 
   const submit = async () => {
     if (busy || sent) return;
@@ -455,8 +462,13 @@ function MakeYourOwnPanel({
           data-testid="btn-viewer-create"
         >
           <Sparkles className="mr-2 h-4 w-4" />
-          Make one of your own. Your first is on us
+          Make one of your own
         </button>
+      )}
+      {!createHref && onUs && (
+        <p className="mx-auto mt-2 max-w-[40ch] text-[12.5px] leading-snug text-keeper-meta" data-testid="viewer-offer-line">
+          Your first photo card’s on us when you save three dates that matter. Just {formatMoney(shippingPrice())} postage.
+        </p>
       )}
 
       {/* 3 — recipient utility, quiet */}

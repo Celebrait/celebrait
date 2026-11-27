@@ -23,7 +23,7 @@ import { ProgressRing } from '@/components/studio/moment-ring';
 import { countdownLabel, daysToChristmas } from '@/lib/moments';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { CLAIM_EVENT } from '@/components/landing/ticker-banner';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
@@ -34,28 +34,26 @@ const DISPLAY = 'font-display font-bold tracking-[-0.015em] text-keeper-ink';
 const MUM_IN_DAYS = 18;
 const ANNIV_IN_DAYS = 96;
 
-/** `door` picks the price the offer quotes (the ticker does the same):
- *  the number must be the number THIS door will charge — the line was
- *  hardcoded to the three-card price, so on /photo it promised
- *  £5.99→£2.99 for a card that is £6.99→£3.49 at checkout. Mounted on
- *  /photo (default) and, since 2026-10-09, on /create as `maker`. */
+/** ONE OFFER, ONE SWITCH (2026-11-27). The only offer is the first PHOTO
+ *  card on us, switched at /admin/site. So this section has two states,
+ *  not the three it had: on the photo page with the offer ON it sells the
+ *  dates AND the free card; everywhere else, or with the offer OFF, it
+ *  sells the dates alone (the reminders are worth having on their own)
+ *  and promises nothing off. Mounted on /photo (default) and on /create
+ *  as `maker`, where there is never an offer. */
 export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'maker' } = {}) {
-  // The free first card is a PHOTO card: the three-card door quotes its
-  // own offer (half price), never "on us" (2026-11-17).
   const onUs = useFirstCardOnUs() && door === 'photo';
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   const claim = () => {
     if (user) {
-      setLocation('/studio');
-    } else if (door === 'photo') {
+      setLocation(onUs ? '/studio' : '/studio/moments');
+    } else if (onUs) {
       // The invite modal is mounted on the photo landing page.
       window.dispatchEvent(new CustomEvent(CLAIM_EVENT));
     } else {
-      // No modal on /create: sign up, then the dates page, which is where
-      // this door's offer is earned. (It used to go to the photo page's
-      // invite, which promises a different offer for a different card.)
+      // Nothing to claim: sign up, then straight to the dates page.
       setLocation(`/login?redirect=${encodeURIComponent('/studio/moments')}`);
     }
   };
@@ -86,18 +84,11 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
           <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.6] text-keeper-body">
             Tell us the days that matter: birthdays, anniversaries, the lot.
             We watch them all year and nudge you in good time, so the card's
-            made in slippers, not in a panic. And for telling us three?{' '}
-            {onUs ? (
+            made in slippers, not in a panic.
+            {onUs && (
               <>
-                <strong className="text-keeper-ink">Your first card’s on us.</strong> Seriously. Just {formatMoney(shippingPrice())} postage.
-              </>
-            ) : (
-              <>
-                <strong className="text-keeper-ink">
-                  50% off your first card
-                </strong>:{' '}
-                <span className="line-through">{formatMoney(cardPrice(door))}</span> <b>{formatMoney(firstOrderPrice(door))}</b>, plus
-                postage.
+                {' '}And for telling us three?{' '}
+                <strong className="text-keeper-ink">Your first photo card’s on us.</strong> Seriously. Just {formatMoney(shippingPrice())} postage.
               </>
             )}
           </p>
@@ -109,10 +100,10 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
               className="rounded-full bg-go px-7 py-3.5 text-base font-semibold text-go-foreground shadow-sm transition-colors hover:bg-go-hover"
               data-testid="occasions-promo-claim"
             >
-              {onUs ? 'Claim my free card' : 'Claim 50% off'}
+              {onUs ? 'Claim my free card' : 'Add my dates'}
             </button>
             <p className="text-[12.5px] text-keeper-meta">
-              One per account. Takes about a minute. UK only.
+              {onUs ? 'One per account and address. Takes about a minute. UK only.' : 'Takes about a minute. We never contact the people you add.'}
             </p>
           </div>
         </div>
@@ -124,7 +115,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
           onClick={claim}
           onKeyDown={(e) => e.key === 'Enter' && claim()}
           className="cursor-pointer rounded-[28px] border border-keeper-hair bg-[#FAF8F4] p-4 shadow-[0_30px_70px_-30px_rgba(33,29,25,.35)] transition-transform hover:scale-[1.01] sm:p-5"
-          aria-label="See your studio home and claim your free card"
+          aria-label={onUs ? 'See your studio home and claim your free card' : 'See your studio home and add your dates'}
           data-testid="occasions-promo-demo"
         >
           {/* Framing label — logged out, the UI's second-person copy
@@ -139,7 +130,9 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
             </span>
           </div>
 
-          {/* The free-card band, live. */}
+          {/* The free-card band, live. Only while the offer is on: with it
+              off the studio shows no band either, so nor does its example. */}
+          {onUs && (
           <div className="rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]">
             <div className="flex flex-col gap-3 rounded-[14.5px] bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:gap-3.5">
               <div className="flex items-center gap-3.5 sm:contents">
@@ -152,8 +145,8 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
                   </div>
                 </div>
                 <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
-                  <b className="text-keeper-ink">{onUs ? 'Your first card’s on us.' : '50% off your first card.'}</b> 1
-                  more date, any day that matters, and it's {onUs ? 'yours' : 'half price'}.
+                  <b className="text-keeper-ink">Your first photo card’s on us.</b> 1
+                  more date, any day that matters, and it's yours.
                 </p>
               </div>
               <span className="shrink-0 self-start rounded-full bg-go px-4 py-2 text-[12.5px] font-bold text-go-foreground sm:self-auto">
@@ -161,6 +154,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
               </span>
             </div>
           </div>
+          )}
 
           {/* THE OCCASIONS PAGE'S OWN ROWS (studio review, 2026-11-12).
               This used to be a one-off "year ahead" timeline drawn only
@@ -171,7 +165,7 @@ export function OccasionsPromoSection({ door = 'photo' }: { door?: 'photo' | 'ma
               drawing of it. Dates are computed, so it never goes stale.
               (It was also the min-width strip that pushed this section
               off the side of phones.) */}
-          <div className="mt-4">
+          <div className={onUs ? 'mt-4' : ''}>
             <div className="flex items-baseline justify-between px-1">
               <p className="font-display text-[17px] font-semibold tracking-[-0.01em] text-keeper-ink">
                 Your occasions

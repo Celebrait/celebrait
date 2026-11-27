@@ -48,7 +48,7 @@ const HINTS: HintDef[] = [
   {
     id: 'free-card',
     title: 'A gift to start',
-    body: 'Add three dates that matter, like birthdays or anniversaries, and your first card is free.',
+    body: 'Add three dates that matter, like birthdays or anniversaries, and your first photo card is on us. You just pay postage.',
   },
   {
     id: 'moments',

@@ -51,17 +51,17 @@ import {
 } from '@/lib/moments';
 import { ProgressRing } from '@/components/studio/moment-ring';
 import { MomentIcon } from '@/components/studio/moment-icon';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
-import { useMakerEnabled } from '@/hooks/use-maker';
 
 export default function StudioMomentsPage() {
   const onUs = useFirstCardOnUs();
-  // The three-card route parked (2026-10-29): the offer quotes the photo
-  // card and "Make your card" opens the photo studio.
-  const maker = useMakerEnabled() === true;
-  const offer = maker ? 'maker' : 'photo';
+  // ONE OFFER, ONE SWITCH (2026-11-27): the ring panel below IS the offer
+  // (first photo card on us). It shows only while the offer is on at
+  // /admin/site, and its button opens the PHOTO maker. It used to open
+  // the three-card maker straight after saying "on us", where the card
+  // was half price, or full price at Christmas.
   // Sent here from checkout to unlock the offer (2026-11-11): once the
   // third date is in, the button goes BACK to that card, not to a new one.
   // Only an internal /checkout/<id> path is honoured.
@@ -131,8 +131,9 @@ export default function StudioMomentsPage() {
         </Button>
       </div>
 
-      {/* ── The free-card ring — retires once redeemed ──────────── */}
-      {!redeemed && (
+      {/* ── The free-card ring — retires once redeemed, and is not
+          shown at all while the offer is switched off ──────────── */}
+      {!redeemed && onUs && (
       <div
         className={`mt-6 rounded-2xl border p-5 ${
           unlocked
@@ -159,38 +160,32 @@ export default function StudioMomentsPage() {
             {unlocked ? (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  {onUs ? 'Unlocked: your first card’s on us' : 'Unlocked: 50% off your first card'}
+                  Unlocked: your first photo card’s on us
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
-                  {onUs ? (
-                    <>Seriously. Just <span className="font-semibold text-go">{formatMoney(shippingPrice())}</span> postage.</>
-                  ) : (
-                    <><span className="line-through text-keeper-meta">{formatMoney(cardPrice(offer))}</span>{' '}
-                    <span className="font-semibold text-go">{formatMoney(firstOrderPrice(offer))}</span> plus
-                    postage.</>
-                  )}{' '}
+                  Seriously. Just <span className="font-semibold text-go">{formatMoney(shippingPrice())}</span> postage.{' '}
                   It’s waiting whenever a moment comes round.
                 </p>
-                <Link href={backToCard ?? (maker ? '/make' : '/studio/new-card')}>
+                <Link href={backToCard ?? '/studio/new-card'}>
                   <Button
                     size="sm"
                     className="mt-2 rounded-full bg-go hover:bg-go-hover text-go-foreground"
                     data-testid="btn-make-free-card"
                   >
-                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> {backToCard ? 'Back to your card' : 'Make your card'}
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" /> {backToCard ? 'Back to your card' : 'Make your photo card'}
                   </Button>
                 </Link>
               </>
             ) : (
               <>
                 <p className="text-[15px] font-bold text-keeper-ink">
-                  {onUs ? 'Your first card’s on us. Seriously.' : '50% off your first card'}
+                  Your first photo card’s on us. Seriously.
                 </p>
                 <p className="mt-0.5 text-[13px] leading-snug text-keeper-body">
                   Add {3 - ringFilled} more key{' '}
                   {3 - ringFilled === 1 ? 'date' : 'dates'} (a birthday, an
-                  anniversary, any day that matters) and your first card is
-                  {onUs ? ' yours, just postage' : ' half price'}. We’ll watch every date you add, forever.
+                  anniversary, any day that matters) and your first photo card
+                  is yours, just {formatMoney(shippingPrice())} postage. We’ll watch every date you add, forever.
                 </p>
               </>
             )}

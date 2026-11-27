@@ -203,11 +203,11 @@ export default function AdminSitePage() {
           <div className="flex items-center gap-3">
             <Gift className={`h-6 w-6 ${data.freeFirstCard ? 'text-emerald-600' : 'text-keeper-meta'}`} />
             <div>
-              <p className="font-semibold text-keeper-ink">{data.freeFirstCard ? 'First card on us: on' : 'First card on us: off'}</p>
+              <p className="font-semibold text-keeper-ink">{data.freeFirstCard ? 'The offer: on' : 'The offer: off'}</p>
               <p className="text-[13px] text-keeper-body">
                 {data.freeFirstCard
-                  ? `The first photo card is £0 at checkout (customer pays postage) after three dates. ${data.freeFirstCardUsage?.open ? 'Open now.' : 'CAP HIT — the site has fallen back to half price.'} Used: ${data.freeFirstCardUsage?.usedTotal ?? 0} of ${data.freeFirstCardTotal ?? 0} total, ${data.freeFirstCardUsage?.usedToday ?? 0} of ${data.freeFirstCardDaily ?? 0} today.`
-                  : 'Off: the standing offer is half price on the first card. Switch on to match the ad ("your first card’s on us, seriously").'}
+                  ? `This is the only offer on the site. The first photo card is £0 at checkout (customer pays postage) after three dates, and every page says so in the same words. ${data.freeFirstCardUsage?.open ? 'Open now.' : 'CAP HIT: the site is showing no offer and charging full price until the cap frees up.'} Used: ${data.freeFirstCardUsage?.usedTotal ?? 0} of ${data.freeFirstCardTotal ?? 0} total, ${data.freeFirstCardUsage?.usedToday ?? 0} of ${data.freeFirstCardDaily ?? 0} today.`
+                  : 'Off: no offer anywhere. No strip, no popup, no offer in emails, and every card is full price at checkout. Switch on for "your first photo card’s on us" across the whole site.'}
               </p>
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function AdminSitePage() {
         <div className="mt-4 grid gap-3 border-t border-keeper-hair/70 pt-4 sm:grid-cols-2">
           <div>
             <label htmlFor="cap-total" className="block text-sm font-semibold text-keeper-ink">Total free cards</label>
-            <p className="mt-0.5 text-[13px] text-keeper-body">Counts paid orders where the card was £0. At the cap, the site says half price instead.</p>
+            <p className="mt-0.5 text-[13px] text-keeper-body">Counts paid orders where the card was £0. At the cap, the offer disappears from the site and cards are full price.</p>
             <input id="cap-total" inputMode="numeric" value={capTotal} onChange={(e) => setCapTotal(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder={String(data.freeFirstCardTotal ?? 100)}
               className="mt-2 h-11 w-full rounded-full border border-keeper-hair px-4 text-[15px] text-keeper-ink focus:border-brand focus:outline-none" />
           </div>
@@ -233,7 +233,7 @@ export default function AdminSitePage() {
             <button type="button" disabled={saving || (!capTotal && !capDaily)}
               onClick={() => { const patch: Partial<Lock> = {}; if (capTotal) patch.freeFirstCardTotal = Number(capTotal); if (capDaily) patch.freeFirstCardDaily = Number(capDaily); void save(patch).then(() => { setCapTotal(''); setCapDaily(''); }); }}
               className="h-11 rounded-full bg-keeper-ink px-5 text-sm font-semibold text-keeper-paper disabled:opacity-40">Save caps</button>
-            <span className="ml-3 text-[13px] text-keeper-body">Photo route only. Three-card and rack stay at half price.</span>
+            <span className="ml-3 text-[13px] text-keeper-body">Photo cards only. Three-card cards are always full price.</span>
           </div>
         </div>
       </div>

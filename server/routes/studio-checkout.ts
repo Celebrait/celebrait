@@ -32,7 +32,6 @@ import {
   consumeFreeCardCredit,
   addressHadFreeCard,
 } from '../studio/free-card';
-import { christmasFullPrice } from '@shared/christmas';
 import { validateCompCode, consumeCompCode, claimCompCodeUse } from '../studio/comp-code';
 import { rateLimitHit } from '../simple-rate-limit';
 import { getPrintProvider, type PrintOrderCard } from '../studio/print-provider';
@@ -62,7 +61,6 @@ import {
   DEFAULT_SHIPPING_TIER,
   OFFERED_SHIPPING_TIER_IDS,
   type ShippingTierId,
-  firstOrderPrice,
   FREE_FIRST_CARD_SOURCE,
 } from '@shared/pricing';
 
@@ -338,20 +336,19 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // NOT consumed here — only when this order actually pays (see
         // consumeFreeCardCredit in markOrderPaidAndDispatch), so an
         // abandoned session never burns it. See server/studio/free-card.ts.
-        // Account-only by nature (one per account). Since 2026-09-02 the
-        // credit is 50% OFF THE FIRST MADE-FOR-THEM CARD (the 3-card
-        // route, source 'maker') — the photo-only free card is retired
-        // with the photo route's launch deferred. A guest rack buyer is
-        // never eligible. The column keeps its old name.
-        // Both made-for-them doors qualify (photo + maker) since the gate
-        // put the photo route back on the front door (2026-09-03) and the
-        // ticker promises "50% off your first card" on both landing pages.
-        // The rack never does.
-        // CHRISTMAS AD (2026-11-18): a three-card Christmas card is sold at
-        // full price while Christmas orders are open (shared/christmas.ts).
-        // The credit is left alone for the customer's next card.
-        const freeCardApplied = userId && !christmasFullPrice(card.source, state?.recipient?.occasion)
-          ? (await getFreeCardStatus(userId)).eligible && card.source !== 'rack'
+        // ONE OFFER, ONE SWITCH (Aidan 2026-11-27: "turn it off site wide,
+        // simple toggle to activate with consistency"). The only offer is
+        // THE LAUNCH OFFER: the first PHOTO card is on us, postage paid,
+        // while the /admin/site switch is on and under its caps. Switch off
+        // (or capped) = no offer of any kind: every card is its full price.
+        // The old half-price credit on three-card cards is gone. It made
+        // the site say "half price" on one page and "on us" on the next,
+        // and it silently spent a customer's free £4.99 card to save them
+        // £2.49. The Christmas exception went with it: a three-card card
+        // never carries an offer now, so there is nothing to except.
+        // Decided below, once the address is known.
+        const mayBeOnUs = !!userId && card.source === FREE_FIRST_CARD_SOURCE
+          ? (await freeFirstCardOpen()).open && (await getFreeCardStatus(userId)).eligible
           : false;
 
         // Every order: printed card + free digital link. Digital is £0.
@@ -373,21 +370,19 @@ export function registerStudioCheckoutRoutes(app: Express): void {
         // The SERVER decides from the stored card.source — a crafted POST
         // can't buy a photo card at rack price.
         // Market-aware (shared/pricing): pence in GB, cents in ZA.
-        // THE LAUNCH OFFER (Aidan 2026-11-06): the first PHOTO card is on us —
-        // £0 for the card, postage paid — while the /admin/site switch is on
-        // and under its caps, UK addresses only, one per delivery address
-        // (users.free_card_* already makes it one per account). Anything
-        // else falls back to the half-price credit above.
-        let firstCardOnUs = false;
-        if (freeCardApplied && card.source === FREE_FIRST_CARD_SOURCE) {
-          const offer = await freeFirstCardOpen();
+        // On us needs a UK address that has not already had a free card
+        // (users.free_card_* makes it one per account). The order's
+        // free_card_applied flag means exactly "this card was free": it is
+        // what consumes the credit on the paid flip and what the caps count.
+        let freeCardApplied = false;
+        if (mayBeOnUs) {
           const addr = body.shippingAddress as { line1?: string; postcode?: string; country?: string } | undefined;
           const uk = !addr?.country || /^(gb|uk|united kingdom|england|scotland|wales|northern ireland)$/i.test(addr.country.trim());
-          const addressUsed = offer.open && uk ? await addressHadFreeCard(addr) : false;
-          firstCardOnUs = offer.open && uk && !addressUsed;
-          if (!firstCardOnUs) console.log(`[FIRST-CARD] card ${cardId}: on-us not applied (open=${offer.open} uk=${uk} addressUsed=${addressUsed}) — half price instead`);
+          const addressUsed = uk ? await addressHadFreeCard(addr) : false;
+          freeCardApplied = uk && !addressUsed;
+          if (!freeCardApplied) console.log(`[FIRST-CARD] card ${cardId}: on-us not applied (uk=${uk} addressUsed=${addressUsed}), full price`);
         }
-        const printAmount0 = freeCardApplied ? (firstCardOnUs ? 0 : firstOrderPrice(card.source)) : cardPrice(card.source);
+        const printAmount0 = freeCardApplied ? 0 : cardPrice(card.source);
         const digitalAmount = 0;
         const shippingAmount0 = shippingPrice(shippingTier);
 
@@ -617,7 +612,7 @@ export function registerStudioCheckoutRoutes(app: Express): void {
           currency: market().currency,
           customerEmail: body.customerEmail,
           customerName: body.customerName,
-          description: freeCardApplied ? `${productName} · ${firstCardOnUs ? 'first card, on us' : 'first card, 50% off'}` : productName,
+          description: freeCardApplied ? `${productName} · first card, on us` : productName,
           // GB: "posted Royal Mail 24 tracked" exactly as before; ZA: "sent by courier".
           productDescription: `Printed to order on 280gsm card, ${shipPhrase(market()).replace(', tracked', ' tracked')}. Free digital link included.`,
           imageUrl: frontPublic ?? undefined,

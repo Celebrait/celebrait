@@ -24,9 +24,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../db';
 import { cards, cardTemplates, orderItems, studioOrders } from '@shared/schema';
-import { cardPrice, firstOrderPrice } from '@shared/pricing';
-import { getFreeCardStatus } from '../studio/free-card';
-import { christmasFullPrice } from '@shared/christmas';
+import { cardPrice } from '@shared/pricing';
 import { publicImageUrl, storeImageToCustomFilename } from '../image-storage';
 import { generateInsideImage } from './admin-card-lab';
 import { markOrderPaidAndDispatch } from './studio-checkout';
@@ -168,22 +166,12 @@ export function registerShopRoutes(app: Express): void {
       const owns = sessionUser && card.userId === sessionUser;
       const holdsToken = card.userId === null && card.imageKey && token === card.imageKey;
       if (!owns && !holdsToken) return res.status(403).json({ message: 'Not your card' });
-      // The checkout POST applies the first-order credit (half price) for
-      // a signed-in owner of a made-for-them card. Until 2026-10-06 this
-      // summary always quoted the full price, so /buy showed £5.99 and
-      // billed £2.99 (audit). Mirror the SAME rule the checkout uses.
+      // The price quoted here is the price charged. A three-card or rack
+      // card carries no offer (ONE OFFER, ONE SWITCH, 2026-11-27: the only
+      // offer is the first PHOTO card on us, and photo cards check out on
+      // /checkout, not here), so this is always the list price.
       const listPrice = cardPrice(card.source);
-      let price = listPrice;
-      // Same exception the checkout makes: a three-card Christmas card is
-      // full price while Christmas orders are open (shared/christmas.ts).
-      const fullPrice = christmasFullPrice(card.source, (card.conversationData as RackCardState | null)?.recipient?.occasion);
-      if (owns && card.source !== 'rack' && !fullPrice) {
-        try {
-          if ((await getFreeCardStatus(sessionUser)).eligible) price = firstOrderPrice(card.source);
-        } catch (err) {
-          console.warn('[SHOP] free-card status lookup failed — quoting list price:', err);
-        }
-      }
+      const price = listPrice;
       res.json({
         card: {
           id: card.id,

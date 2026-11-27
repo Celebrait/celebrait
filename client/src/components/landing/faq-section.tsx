@@ -18,7 +18,6 @@ import { useRackEnabled } from '@/hooks/use-rack';
 import { useMakerEnabled } from '@/hooks/use-maker';
 import {
   cardPrice,
-  firstOrderPrice,
   shippingPrice,
   HONEST_LEAD_LINE,
 } from '@shared/pricing';
@@ -105,7 +104,7 @@ const MAKER_FAQS: FaqEntry[] = [
   },
   {
     q: 'What does it cost?',
-    a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Tell us three dates that matter and your first card is half price, ${formatMoney(firstOrderPrice('maker'))} (not on Christmas cards ordered before 15 December). Making and previewing is free; you only pay when you print one.`,
+    a: `${formatMoney(cardPrice('maker'))} a card, plus ${formatMoney(shippingPrice())} postage, with a free digital link to share included. Making and previewing is free; you only pay when you print one.`,
   },
   {
     q: 'How long does delivery take?',

@@ -24,6 +24,7 @@ import { users } from '@shared/schema';
 import { countKeyDates, FREE_CARD_KEY_DATES } from '../studio/free-card';
 import { sendDatesNudgeEmail } from '../email-service';
 import { arrivedForChristmasCards } from '@shared/christmas';
+import { freeFirstCardOpen } from '../routes/site-lock';
 
 interface NudgeTier {
   name: 'd2' | 'd7';
@@ -54,6 +55,12 @@ export async function runDatesNudgeDispatch(opts?: {
     errors: [],
   };
 
+  // ONE OFFER, ONE SWITCH (2026-11-27): these emails push the launch
+  // offer (first photo card on us). With the switch off at /admin/site,
+  // or its caps reached, there is no offer to push, so nothing goes and
+  // nobody is stamped: the nudges can still go once it is switched on.
+  if (!(await freeFirstCardOpen()).open) return result;
+
   for (const tier of TIERS) {
     const cutoff = new Date(Date.now() - tier.minAgeDays * 86_400_000);
     // Consent + age + never-sent + never-redeemed, in SQL. The key-date
@@ -82,7 +89,7 @@ export async function runDatesNudgeDispatch(opts?: {
     for (const u of candidates) {
       try {
         // The Christmas ad's signups are sold their card at full price
-        // (shared/christmas.ts): no "you're N dates from half price" while
+        // (shared/christmas.ts): no "you're N dates from a free card" while
         // that holds. Not stamped, so the nudge can still go once
         // Christmas orders close.
         if (arrivedForChristmasCards((u.attribution as { landingPath?: string } | null)?.landingPath)) continue;

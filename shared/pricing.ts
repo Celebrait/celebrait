@@ -14,7 +14,7 @@
 //     the gift moment.
 //   • 2026-10-15: SUPERSEDED for prices: ZAR is live behind the market
 //     switch (shared/market.ts). Surfaces call the market-aware
-//     cardPrice()/firstOrderPrice()/shippingPrice() at the bottom of
+//     cardPrice()/shippingPrice() at the bottom of
 //     this file; the *GBP functions are kept as GB-pinned aliases.
 //   • UK-PRIMARY LAUNCH. ZAR numbers stay in this file as dormant
 //     data — tuned per the SA market research note, ready for the
@@ -37,7 +37,7 @@ export type CurrencyCode = 'GBP' | 'ZAR';
 // Aidan hasn't set the SA prices yet. Change them HERE and nowhere
 // else: every rand on the site, at both checkouts, in the server's
 // charge and in emails derives from this one object (via cardPrice(),
-// firstOrderPrice(), shippingPrice() below). Minor units (cents):
+// shippingPrice() below). Minor units (cents):
 // 9900 = R99. Only read when the market is ZA (env MARKET=ZA); the UK
 // prices further down are untouched by it.
 // ═════════════════════════════════════════════════════════════════════
@@ -490,20 +490,20 @@ export function genCostUsdX100ToGbp(costCentsX100: number): number {
   return (costCentsX100 / 10_000) * USD_TO_GBP;
 }
 
-// ── The first-order offer (2026-09-02) ──────────────────────────────
-// Replaces the photo-only free first card: add three key dates and your
-// FIRST made-for-them card is half price. The reference price is the
-// everyday `cardPriceGBP` (never inflated for the strike-through — CAP
-// Code). Rounded DOWN to the penny so the customer never loses a fraction.
-export const FIRST_ORDER_DISCOUNT = 0.5;
-/** THE LAUNCH OFFER (Aidan 2026-11-06, the social ad's promise): the
- *  first card from THIS door is on us — £0 for the card, postage paid by
- *  the customer — while the /admin/site switch is on and under its caps.
- *  Otherwise the half-price offer above applies. Photo route only. */
+// ── THE OFFER: ONE, BEHIND ONE SWITCH (Aidan 2026-11-27) ────────────
+// "Turn it off site wide, simple toggle to activate with consistency."
+// The only offer there is: the first card from THIS door is on us, £0
+// for the card, postage paid by the customer, while the /admin/site
+// switch is on and under its caps. Switch off = no offer anywhere and
+// every card is its everyday price.
+//
+// The half-price "first-order offer" (2026-09-02) that used to sit
+// underneath it is gone, and so are its functions. With both alive the
+// site said "half price" on one page and "on us" on the next, the two
+// were really one reward, and the three-card checkout spent it without
+// asking. Do not bring a second offer back alongside this one: change
+// what this one is instead.
 export const FREE_FIRST_CARD_SOURCE: CardSource = 'photo';
-export function firstOrderPriceGBP(source: Parameters<typeof cardPriceGBP>[0]): number {
-  return firstOrderPrice(source, 'GB');
-}
 
 // ═════════════════════════════════════════════════════════════════════
 // MARKET-AWARE PRICES (2026-10-15): what every surface calls.
@@ -545,11 +545,6 @@ export function cardPrice(source: string | null | undefined, m: MarketId = marke
   return table[(source ?? 'photo') as CardSource] ?? table.photo;
 }
 
-/** The first-order offer price (half the everyday price, rounded DOWN
- *  to the minor unit so the customer never loses a fraction). */
-export function firstOrderPrice(source: string | null | undefined, m: MarketId = marketId()): number {
-  return Math.floor(cardPrice(source, m) * (1 - FIRST_ORDER_DISCOUNT));
-}
 
 /** Postage for an order. GB resolves the tier (historical orders can
  *  carry express/overnight); ZA sells one courier option, so every tier

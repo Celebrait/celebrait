@@ -371,7 +371,7 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
           <p className="mt-2 text-[14px] leading-relaxed text-keeper-body" data-testid="gate-price-line">
             {onUs ? (
               <>
-                <b className="text-keeper-ink">Your first card’s on us</b> when you save three dates that matter. You just pay{' '}
+                <b className="text-keeper-ink">Your first photo card’s on us</b> when you save three dates that matter. You just pay{' '}
                 {formatMoney(shippingPrice())} postage. After that, cards are {formatMoney(cardPrice('photo'))} plus postage.
               </>
             ) : (

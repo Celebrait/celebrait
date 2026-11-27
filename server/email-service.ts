@@ -33,7 +33,7 @@ import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { CONTROLLER, SUPPORT_EMAIL, legalValue } from '@shared/legal';
 import { market, publicOrigin, formatMoney as formatMarketMoney } from '@shared/market';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
 import { copyFor } from '@shared/market-copy';
 
 /** "printed to order by a partner printer, then posted Royal Mail 24"
@@ -759,17 +759,30 @@ export async function sendEarlyAccessConfirmEmail(params: {
 // Same hello as the welcome below with the offer box, the offer subject
 // and the claim button taken out: the one thing to do next is make the
 // card they came for.
-async function sendPlainWelcomeEmail(params: { email: string; firstName?: string | null }): Promise<boolean> {
+async function sendPlainWelcomeEmail(params: { email: string; firstName?: string | null; christmas?: boolean }): Promise<boolean> {
   const { email, firstName } = params;
-  // Their Christmas, not six everyday questions (launch audit 2026-11-26).
-  const makeUrl = `${PUBLIC_ORIGIN}/make?occasion=christmas`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
+  // Two readers (2026-11-27). The Christmas ad's signups came for three
+  // Christmas cards, so they get that and a link straight back to it.
+  // Everyone else gets this whenever the launch offer is switched off:
+  // they may have come for a photo card, so it names what is open and
+  // sends them to the front door rather than to Christmas questions.
+  const threeCards = params.christmas === true
+    || await (await import('./routes/site-lock')).makerOpen().catch(() => false);
+  const makeUrl = params.christmas ? `${PUBLIC_ORIGIN}/make?occasion=christmas` : `${PUBLIC_ORIGIN}/`;
+  const what = params.christmas
+    ? "Tell us who it's for and one thing about them, and we write and illustrate three to choose from,"
+    : threeCards
+      ? "Give us a photo of them and the scene you can picture and we draw them into it, or tell us a little about them and we write and illustrate three to choose from,"
+      : "Give us a photo of them and the scene you can picture, and we draw them into it,";
+  const preheader = params.christmas
+    ? 'Three cards to choose from, written and drawn for one person.'
+    : 'A card made for one person, printed properly and posted.';
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
-      Tell us who it's for and one thing about them, and we write and
-      illustrate three to choose from, printed properly and posted
+      ${what} printed properly and posted
       ${copyFor().anywhere}.
     </p>
     <p style="margin: 0 0 8px;">
@@ -778,7 +791,7 @@ async function sendPlainWelcomeEmail(params: { email: string; firstName?: string
     </p>
   `;
   const html = chassis({
-    preheader: 'Three cards to choose from, written and drawn for one person.',
+    preheader,
     heading: "You're in. Let's make someone's day.",
     heroImages: [
       {
@@ -790,7 +803,7 @@ async function sendPlainWelcomeEmail(params: { email: string; firstName?: string
     cta: { label: 'Make a card', href: makeUrl },
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Tell us who it's for and one thing about them, and we write and illustrate three to choose from, printed properly and posted ${copyFor().anywhere}.\n\nIt's free to make and there's no rush to buy a thing. Your cards are saved in your studio whenever you come back.\n\nMake a card: ${makeUrl}\n\nAidan at Celebrait`;
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. ${what} printed properly and posted ${copyFor().anywhere}.\n\nIt's free to make and there's no rush to buy a thing. Your cards are saved in your studio whenever you come back.\n\nMake a card: ${makeUrl}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject: 'Welcome to Celebrait', html, text });
 }
 
@@ -809,27 +822,25 @@ export async function sendWelcomeEmail(params: {
   offer?: boolean;
 }): Promise<boolean> {
   const { email, firstName } = params;
-  if (params.offer === false) return sendPlainWelcomeEmail({ email, firstName });
+  if (params.offer === false) return sendPlainWelcomeEmail({ email, firstName, christmas: true });
   // Land on the studio home — the free-card band + Year Ahead pick the
   // story up exactly where this email leaves it.
   const studioUrl = `${PUBLIC_ORIGIN}/studio`;
   // The launch offer (2026-11-06): first photo card on us while it's open.
   const onUs = (await import('./routes/site-lock')).freeFirstCardOpen().then((o) => o.open).catch(() => false);
-  const free = await onUs;
-  const offerTitle = free ? 'Your first card’s on us. Seriously.' : '50% off your first card';
-  const offerPrice = free
-    ? `<strong>on us</strong>: just ${moneyHtml(shippingPrice())} postage`
-    : `<span style="text-decoration: line-through;">${moneyHtml(cardPrice('maker'))}</span>
-        <strong>${moneyHtml(firstOrderPrice('maker'))}</strong>, plus postage`;
-  const offerPriceText = free ? `on us (just ${formatMarketMoney(shippingPrice())} postage)` : `${formatMarketMoney(cardPrice('maker'))} -> ${formatMarketMoney(firstOrderPrice('maker'))}, plus postage`;
+  // ONE OFFER, ONE SWITCH (2026-11-27): with the offer off (or capped)
+  // there is nothing to promise, so the plain welcome goes instead. There
+  // is no half-price version any more.
+  if (!(await onUs)) return sendPlainWelcomeEmail({ email, firstName });
+  const offerTitle = 'Your first photo card’s on us. Seriously.';
+  const offerPrice = `<strong>on us</strong>: just ${moneyHtml(shippingPrice())} postage`;
+  const offerPriceText = `on us (just ${formatMarketMoney(shippingPrice())} postage)`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
   const body = `
     <p style="margin: 0 0 16px;">${greeting}</p>
     <p style="margin: 0 0 16px;">
       Lovely to have you. Celebrait makes cards <strong>for one person</strong>.
-      ${free
-        ? "Give us a photo of them and the scene you can picture, and we draw them into it,"
-        : "Tell us who it's for and one thing about them, and we write and illustrate three to choose from,"}
+      Give us a photo of them and the scene you can picture, and we draw them into it,
       printed properly and posted ${copyFor().anywhere}.
     </p>
     <div style="background: #f2f1fb; border: 1px solid #e5e4f9; border-radius: 14px; padding: 18px 20px; margin: 0 0 18px;">
@@ -838,19 +849,19 @@ export async function sendWelcomeEmail(params: {
       </p>
       <p style="margin: 0; font-size: 14px;">
         Tell us <strong>three dates that matter</strong>: birthdays,
-        anniversaries, any day worth a card. Do that and your first ${free ? 'photo card' : 'one'} is
-        ${offerPrice}.${free ? ' One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, your first card is half price instead.' : ' One per account.'} We'll watch every date
+        anniversaries, any day worth a card. Do that and your first photo card is
+        ${offerPrice}. One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, the card is its usual ${moneyHtml(cardPrice('photo'))}. We'll watch every date
         you add and nudge you in good time, so nobody's day slips past
         again.
       </p>
     </div>
     <p style="margin: 0 0 8px;">
       It takes about a minute to add a date, and there's no rush to buy a
-      thing${free ? ', though the launch offer won’t run for ever' : ''}.
+      thing, though the launch offer won’t run for ever.
     </p>
   `;
   const html = chassis({
-    preheader: free ? 'Your first card’s on us. Three dates that matter, and it’s yours.' : "50% off your first card. Three dates that matter, and it's half price.",
+    preheader: 'Your first photo card’s on us. Three dates that matter, and it’s yours.',
     heading: "You're in. Let's make someone's day.",
     heroImages: [
       {
@@ -859,12 +870,12 @@ export async function sendWelcomeEmail(params: {
       },
     ],
     bodyHtml: body,
-    cta: { label: free ? 'Claim my free card' : 'Claim 50% off', href: studioUrl },
-    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}${free ? '/photo/make' : '/make'}" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
+    cta: { label: 'Claim my free card', href: studioUrl },
+    postCtaHtml: `<p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: ${EMAIL_STONE};">Rather dive straight in? <a href="${PUBLIC_ORIGIN}/photo/make" style="color: ${EMAIL_BRAND}; font-weight: 600;">Start a card</a>. It's free to make.</p>`,
   });
   const text =
-    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. ${free ? 'Give us a photo of them and the scene you can picture, and we draw them into it,' : "Tell us who it's for and one thing about them, and we write and illustrate three to choose from,"} printed properly and posted ${copyFor().anywhere}.\n\n${free ? "YOUR FIRST CARD'S ON US. SERIOUSLY." : '50% OFF YOUR FIRST CARD'}\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first ${free ? 'photo card' : 'card'} is ${offerPriceText}.${free ? ' One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, your first card is half price instead.' : ' One per account.'} We'll watch every date you add and nudge you in good time.\n\n${free ? 'Claim my free card' : 'Claim 50% off'}: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}${free ? '/photo/make' : '/make'}\n\nAidan at Celebrait`;
-  return sendEmail({ to: email, subject: free ? 'Welcome: your first card’s on us' : 'Welcome: 50% off your first card', html, text });
+    `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\nLovely to have you. Celebrait makes cards for one person. Give us a photo of them and the scene you can picture, and we draw them into it, printed properly and posted ${copyFor().anywhere}.\n\nYOUR FIRST PHOTO CARD'S ON US. SERIOUSLY.\nTell us three dates that matter: birthdays, anniversaries, any day worth a card. Do that and your first photo card is ${offerPriceText}. One per account and per address, UK only, while the launch offer lasts; if it has closed when you order, the card is its usual ${formatMarketMoney(cardPrice('photo'))}. We'll watch every date you add and nudge you in good time.\n\nClaim my free card: ${studioUrl}\nOr start a card straight away (free to make): ${PUBLIC_ORIGIN}/photo/make\n\nAidan at Celebrait`;
+  return sendEmail({ to: email, subject: 'Welcome: your first photo card’s on us', html, text });
 }
 
 // ── Dates-nudge flow (marketing — opted-in accounts only) ───────────
@@ -880,11 +891,13 @@ export async function sendDatesNudgeEmail(params: {
   const remaining = Math.max(1, 3 - keyDates);
   const studioUrl = `${PUBLIC_ORIGIN}/studio`;
   const greeting = firstName ? `Hi ${escape(firstName)},` : 'Hi,';
-  const free = await (await import('./routes/site-lock')).freeFirstCardOpen().then((o) => o.open).catch(() => false);
-  const prize = free ? 'on us' : 'half price';
-  const prizeHtml = free
-    ? `<strong>on us</strong> (just ${moneyHtml(shippingPrice())} postage)`
-    : `<span style="text-decoration:line-through;">${moneyHtml(cardPrice('maker'))}</span> <strong>${moneyHtml(firstOrderPrice('maker'))}</strong>, half price`;
+  // ONE OFFER, ONE SWITCH (2026-11-27): this email exists to push the
+  // launch offer. With the offer off there is nothing to nudge towards,
+  // so nothing is sent (the dispatcher checks first and stamps nobody).
+  const open = await (await import('./routes/site-lock')).freeFirstCardOpen().then((o) => o.open).catch(() => false);
+  if (!open) return false;
+  const prize = 'on us';
+  const prizeHtml = `<strong>on us</strong> (just ${moneyHtml(shippingPrice())} postage)`;
   // Inline ring state — three dots, filled per key date. Email-safe spans.
   const dots = [0, 1, 2]
     .map((i) =>
@@ -897,21 +910,19 @@ export async function sendDatesNudgeEmail(params: {
     <div style="text-align:center;background:#f2f1fb;border:1px solid #e5e4f9;border-radius:14px;padding:18px;margin:0 0 18px;">
       <div style="margin-bottom:8px;">${dots}</div>
       <p style="margin:0;font-weight:700;color:#211D19;">${keyDates} of 3 dates added</p>
-      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first card is ${prizeHtml}.</p>
+      <p style="margin:4px 0 0;font-size:13px;color:${EMAIL_STONE};">${remaining} more and your first photo card is ${prizeHtml}.</p>
     </div>`;
 
   let subject: string;
   let heading: string;
   let body: string;
   if (variant === 'd2') {
-    subject = free
-      ? (remaining === 1 ? 'One date from your free card' : 'Your free card is still waiting')
-      : (remaining === 1 ? 'One date from 50% off' : 'Your 50% off is still waiting');
-    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from ${free ? 'a card on us' : 'half price'}.`;
+    subject = remaining === 1 ? 'One date from your free photo card' : 'Your free photo card is still waiting';
+    heading = `You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} from a card on us.`;
     body = `
       <p style="margin:0 0 16px;">${greeting}</p>
       <p style="margin:0 0 16px;">
-        Quick one: the ${free ? 'first card on us' : '50% off your first card'} we mentioned is still yours to
+        Quick one: the first photo card on us we mentioned is still yours to
         claim. Add ${remaining === 1 ? 'one more date' : `${remaining} more dates`}
         that matter and it unlocks: a birthday, an anniversary, any day
         worth a card. About a minute's work.
@@ -934,12 +945,12 @@ export async function sendDatesNudgeEmail(params: {
       </p>
       ${ringBlock}
       <p style="margin:0 0 8px;">
-        No rush to buy a thing. The ${free ? 'free' : 'half-price'} card waits for the right moment.
+        No rush to buy a thing. The free photo card waits for the right moment.
       </p>`;
   }
 
   const html = chassis({
-    preheader: `Three dates that matter, and your first card is ${prize}.`,
+    preheader: `Three dates that matter, and your first photo card is ${prize}.`,
     heading,
     bodyHtml: body,
     cta: { label: 'Add a date', href: studioUrl },
@@ -947,8 +958,8 @@ export async function sendDatesNudgeEmail(params: {
   });
   const text = `${firstName ? `Hi ${firstName},` : 'Hi,'}\n\n${
     variant === 'd2'
-      ? `Your ${free ? 'free card' : '50% off'} is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: ${free ? `your first card on us, just ${formatMarketMoney(shippingPrice())} postage` : `${formatMarketMoney(cardPrice('maker'))} -> ${formatMarketMoney(firstOrderPrice('maker'))}, plus postage`}.`
-      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first card is ${prize}.`
+      ? `Your free photo card is still waiting. You're ${remaining} ${remaining === 1 ? 'date' : 'dates'} away. Add the days that matter and it unlocks: your first photo card on us, just ${formatMarketMoney(shippingPrice())} postage.`
+      : `Christmas is in ${daysUntilChristmas()} days. Add the dates that matter now and skip the panics later. Just ${remaining} more and your first photo card is ${prize}.`
   }\n\nAdd a date: ${studioUrl}\n\nAidan at Celebrait`;
   return sendEmail({ to: email, subject, html, text, marketing: true });
 }

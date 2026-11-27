@@ -24,11 +24,10 @@ import {
 import { QuickAddMoment } from '@/components/studio/quick-add-moment';
 import { MomentIcon } from '@/components/studio/moment-icon';
 import { ProgressRing } from '@/components/studio/moment-ring';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { market } from '@shared/market';
-import { useMakerEnabled } from '@/hooks/use-maker';
 
 const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 
@@ -80,8 +79,6 @@ export function WorldSection({
   showRiver?: boolean;
 }) {
   const onUs = useFirstCardOnUs();
-  // The offer quotes the photo card while the three-card route is parked.
-  const offer = useMakerEnabled() === true ? 'maker' : 'photo';
   const [addOpen, setAddOpen] = useState(false);
   const [preset, setPreset] = useState<string | undefined>(undefined);
   const openAdd = (occasion?: string) => {
@@ -191,8 +188,13 @@ export function WorldSection({
       {/* The free-card band — the offer deserves presence (Aidan
           2026-08-04): gradient-edged card in the banner's ink→violet
           identity, white interior, soft violet lift, and a real button.
-          Retires for good once the credit is spent. */}
-      {!redeemed && (
+          Retires for good once the credit is spent.
+          ONE OFFER, ONE SWITCH (2026-11-27): the band IS the offer (first
+          photo card on us), so it shows only while the offer is on at
+          /admin/site. Off, or capped, and it is simply not here, exactly
+          as for an account that has already had its free card. Its
+          button opens the PHOTO maker, the only card the offer covers. */}
+      {!redeemed && onUs && (
       <div
         className="mt-3.5 rounded-2xl bg-gradient-to-r from-[#211D19] via-[#5c57d4] to-[#8B87E8] p-[1.5px] shadow-[0_16px_34px_-20px_rgba(92,87,212,0.55)]"
         data-hint="free-card"
@@ -215,19 +217,14 @@ export function WorldSection({
         <p className="min-w-0 flex-1 text-[13px] leading-snug text-keeper-body">
           {unlocked ? (
             <>
-              {onUs ? (
-                <><b className="text-keeper-ink">Your first card’s on us:</b> just {formatMoney(shippingPrice())} postage.</>
-              ) : (
-                <><b className="text-keeper-ink">Your first card’s half price:</b>{' '}
-                <span className="line-through">{formatMoney(cardPrice(offer))}</span> {formatMoney(firstOrderPrice(offer))}, plus postage.</>
-              )}{' '}
+              <b className="text-keeper-ink">Your first photo card’s on us:</b> just {formatMoney(shippingPrice())} postage.{' '}
               It’s waiting whenever a moment comes round.
             </>
           ) : (
             <>
-              <b className="text-keeper-ink">{onUs ? 'Your first card’s on us.' : '50% off your first card.'}</b>{' '}
+              <b className="text-keeper-ink">Your first photo card’s on us.</b>{' '}
               {3 - keyDates} more {3 - keyDates === 1 ? 'date' : 'dates'}, any
-              day that matters, and it’s {onUs ? 'yours' : 'half price'}.
+              day that matters, and it’s yours. Just {formatMoney(shippingPrice())} postage.
             </>
           )}
         </p>

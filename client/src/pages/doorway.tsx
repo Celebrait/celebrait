@@ -161,7 +161,7 @@ export default function DoorwayPage() {
                 <h2 className="mt-5 font-display text-xl font-bold text-keeper-ink">A scene made around them.</h2>
                 <p className="mt-1 text-sm leading-relaxed text-keeper-body">From one photo. You describe the moment, we make it real.</p>
                 <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-3">
-                  <span className="text-[12px] text-keeper-meta">{formatMoney(cardPrice('photo'))} · first one's on us</span>
+                  <span className="text-[12px] text-keeper-meta">{formatMoney(cardPrice('photo'))} plus postage</span>
                   <span className={doorCta}><Camera className="h-4 w-4 text-cta" /> Start with a photo</span>
                 </div>
               </Link>

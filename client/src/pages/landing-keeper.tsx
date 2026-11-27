@@ -71,7 +71,7 @@ import { GestureHints } from '@/components/gesture-hints';
 // The shared kit: display face, hero headline scale, the one primary
 // button. This page kept its own copies, which is how it drifted (2026-09-22).
 import { DISPLAY, H1, BTN_PRIMARY, BTN_PRIMARY_LG } from '@/pages/doorway';
-import { cardPrice, firstOrderPrice, shippingPrice } from '@shared/pricing';
+import { cardPrice, shippingPrice } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 import { copyFor } from '@shared/market-copy';
@@ -918,8 +918,8 @@ function HeroSection() {
             <p className="mt-3 text-[12.5px] leading-snug text-keeper-meta" data-testid="hero-offer-line">
               {onUs ? (
                 <>
-                  <b className="font-semibold text-keeper-ink">First card free when you save three dates.</b>{' '}
-                  {formatMoney(shippingPrice())} postage. No payment details to start.
+                  <b className="font-semibold text-keeper-ink">First photo card free when you save three dates.</b>{' '}
+                  Just {formatMoney(shippingPrice())} postage. No payment details to start.
                 </>
               ) : (
                 'Free to make. No payment details needed.'
@@ -1536,31 +1536,38 @@ function PriceSection() {
           is no end date, and perpetual urgency is upheld against. */}
       <div className="mx-auto max-w-3xl rounded-[32px] border-2 border-brand bg-brand-muted px-6 py-12 text-center shadow-[0_30px_80px_-44px_rgba(92,87,212,0.55)] sm:px-12 md:py-16">
         <Rise>
+          {/* ONE OFFER, ONE SWITCH (2026-11-27). Offer on: the free card,
+              its terms in the same breath. Offer off: the plain price and
+              nothing struck through. There is no half-price state. */}
           <h2 className={`text-[clamp(22px,3.2vw,30px)] leading-tight [text-wrap:balance] ${DISPLAY}`}>
             {onUs ? (
-              <>Your first card’s <span className="text-accent-coral-dark">on us</span>. Seriously.</>
+              <>Your first photo card’s <span className="text-accent-coral-dark">on us</span>. Seriously.</>
             ) : (
-              <><span className="text-accent-coral-dark">Half price</span> on your first card.</>
+              <>One price. No subscription.</>
             )}
           </h2>
           <div className="mt-3 flex items-baseline justify-center gap-4">
             <span className={`text-[clamp(76px,13vw,136px)] leading-[0.95] ${DISPLAY}`}>
-              {onUs ? 'Free' : formatMoney(firstOrderPrice('photo'))}
+              {onUs ? 'Free' : formatMoney(cardPrice('photo'))}
             </span>
-            <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
-              <span className="sr-only">Normally </span>
-              <s>{formatMoney(cardPrice('photo'))}</s>
-            </span>
+            {onUs && (
+              <span className="text-[clamp(22px,3.4vw,34px)] text-keeper-meta">
+                <span className="sr-only">Normally </span>
+                <s>{formatMoney(cardPrice('photo'))}</s>
+              </span>
+            )}
           </div>
           <p className="mx-auto mt-4 max-w-[30ch] text-[19px] font-medium leading-snug text-keeper-ink md:max-w-none md:text-[21px]">
-            {onUs ? 'Just' : 'Plus'} {formatMoney(shippingPrice())} postage when you save three dates that matter.
+            {onUs
+              ? <>Just {formatMoney(shippingPrice())} postage when you save three dates that matter.</>
+              : <>Plus {formatMoney(shippingPrice())} postage. Printed, posted, and a free digital link to share.</>}
           </p>
           <div className="mt-7">
             <PrimaryCta large />
           </div>
           <p className="mx-auto mt-6 max-w-[62ch] text-[13px] leading-relaxed text-keeper-meta" data-testid="price-small-print">
-            One per account{onUs ? ' and address, UK only, while the launch offer lasts' : ''}. After that, photo cards are{' '}
-            {formatMoney(cardPrice('photo'))} plus postage. Make and preview as many as you like for free; you only pay
+            {onUs && <>One per account and address, UK only, while the launch offer lasts. After that, photo cards are{' '}
+            {formatMoney(cardPrice('photo'))} plus postage. </>}Make and preview as many as you like for free; you only pay
             when you post one. Our cards are one-off prints, so please allow at least a week from order to arrival.
           </p>
         </Rise>
