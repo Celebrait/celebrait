@@ -105,7 +105,12 @@ export default function DoorwayBPage() {
         <section className={`pb-16 md:pb-24 ${HERO_TOP}`}>
           <div className="mx-auto max-w-6xl px-6">
             {xmasArrival && <LeadTimeNotice occasion="christmas" link={false} className="mb-5 max-w-xl" />}
-            <p className={EYEBROW}>{xmas ? 'Unbinnable Christmas cards' : 'Unbinnable Greetings Cards'}</p>
+            {/* Christmas (Aidan 2026-11-27): the eyebrow is a lead-in to the
+                headline, read as one sentence, so it's sentence case, not the
+                house uppercase label. */}
+            {xmas
+              ? <p className="text-[15px] font-semibold text-keeper-gold">This Christmas...</p>
+              : <p className={EYEBROW}>Unbinnable Greetings Cards</p>}
             {starting ? (
               <div className="mt-4 flex min-h-[300px] max-w-3xl items-center justify-center" role="status" aria-label="Loading the questions">
                 <Loader2 className="h-14 w-14 animate-spin text-keeper-gold" strokeWidth={1.5} />
@@ -116,12 +121,22 @@ export default function DoorwayBPage() {
                     Fraunces, the mechanism beneath with the shimmer + glow. */}
                 {/* The human bit is the headline; the mechanism is the line
                     under it, with the glow on "just for them". */}
-                <h1 className={`mt-4 max-w-[26ch] text-[clamp(30px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
-                  Why settle for a {xmas ? 'Christmas ' : ''}card that's anything but{' '}
-                  <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
-                    <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
-                  </span>?
-                </h1>
+                {xmas ? (
+                  /* Christmas headline (Aidan 2026-11-27): the ad's own
+                     promise, short enough to leave room on a phone's first
+                     screen. The rest of the site keeps the "all about them"
+                     line. */
+                  <h1 className={`mt-3 max-w-[22ch] text-[clamp(32px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                    Say goodbye to boring greetings cards
+                  </h1>
+                ) : (
+                  <h1 className={`mt-4 max-w-[26ch] text-[clamp(30px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                    Why settle for a card that's anything but{' '}
+                    <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
+                      <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
+                    </span>?
+                  </h1>
+                )}
                 <p className={`max-w-[36rem] ${SUB}`}>
                   {xmas
                     ? 'Answer five quick questions and get 3 personalised Christmas cards to choose from. Then write the inside.'
