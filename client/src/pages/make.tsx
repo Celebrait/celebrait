@@ -578,6 +578,52 @@ export default function MakePage() {
     setCells(set); setPicked(null); setInsideUrl(null); setFailMsg('');
     return set;
   };
+  // ── THE PHONE'S BACK BUTTON STEPS BACK A SCREEN ──
+  // Every screen here is one URL, so Back used to leave /make outright:
+  // a thumb on the edge of a phone threw away three drawn cards (and a
+  // set off the day's allowance) with no way to get them back (launch
+  // audit 2026-11-26). The pictures are megabytes of data URL, too big
+  // to stash and restore, so instead Back is made to do what the eye
+  // expects: one screen back, the cards still on it.
+  //
+  // How: while cards made in this visit are on screen, ONE extra history
+  // entry (same URL) sits on top. Back consumes it without leaving the
+  // page; we step back a screen and put it straight back. On the
+  // questions there is no extra entry, so Back there leaves as normal.
+  // A card opened from "Cards you've finished" never arms it: that
+  // screen has no earlier screen, and Back should go where it came from.
+  // (These hooks sit ABOVE the early returns below. Keep them there.)
+  const cardsMadeHere = useRef(false);
+  if (phase === 'results') cardsMadeHere.current = true;
+  const backArmed = cardsMadeHere.current && (phase === 'results' || phase === 'cameo' || phase === 'signoff' || phase === 'done');
+  const backEntry = useRef(false); // is our extra history entry on top?
+  const stepBack = useRef<() => void>(() => {});
+  stepBack.current = () => {
+    setPhase(phase === 'done' ? 'signoff' : phase === 'signoff' ? 'cameo' : phase === 'cameo' ? 'results' : 'brief');
+  };
+  useEffect(() => {
+    if (!backArmed || backEntry.current) return;
+    const st = window.history.state;
+    window.history.pushState({ ...(st && typeof st === 'object' ? st : {}), makeBack: true }, '');
+    backEntry.current = true;
+  }, [backArmed, phase]); // phase: re-arm after each step back
+  useEffect(() => {
+    // Arriving ON a leftover extra entry (went to checkout, pressed Back):
+    // drop to the real one beneath it, same URL, so the next Back is not
+    // a press that visibly does nothing.
+    if ((window.history.state as { makeBack?: boolean } | null)?.makeBack) window.history.back();
+    const onPop = () => {
+      if (!backEntry.current) return; // not ours: a real leave
+      backEntry.current = false;
+      stepBack.current();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  // The three on screen when the questions were reopened, if any: the
+  // way back to them from the questions (see the brief screen).
+  const drawnCount = cells.filter((c) => c.imageUrl && !c.error).length;
+
   const step = phase === 'brief' ? 0 : phase === 'generating' || phase === 'results' ? 1 : phase === 'cameo' || phase === 'signoff' ? 2 : 3;
 
   // ── step 1: the questions — one at a time (shared with the doorway) ──
@@ -595,7 +641,14 @@ export default function MakePage() {
     ];
     return (
       <MakeShell step={step}>
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          {/* Back from the three cards lands here; this is the way back
+              to them, so nothing drawn is ever one tap from gone. */}
+          {cardsMadeHere.current && drawnCount > 0 ? (
+            <button type="button" onClick={() => setPhase('results')} className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-dark" data-testid="btn-back-to-cards">
+              <ArrowLeft className="h-4 w-4" /> Back to your {drawnCount === 1 ? 'card' : `${drawnCount === 3 ? 'three' : drawnCount} cards`}
+            </button>
+          ) : <span />}
           <Link href={betaMode ? '/beta' : brief.occasion === 'christmas' ? '/create?occasion=christmas' : '/create'} className="text-xs text-keeper-meta underline underline-offset-2 hover:text-keeper-body">Close</Link>
         </div>
         <div className="mb-6 sm:mb-8">
