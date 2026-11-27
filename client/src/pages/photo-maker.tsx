@@ -40,7 +40,7 @@ import { getOccasionLabel } from '@/components/studio/scene-presets';
 import { useLocalCardMaker } from '@/hooks/use-local-card-maker';
 import { GuestPhotoContext, useGuestPhotos, getGuestPhotoBlobs, clearGuestPhotos, discardGuestSession, photoThumbSrc } from '@/lib/guest-photos';
 import { CARD_MAKER_STEPS, type CardDraftState } from '@shared/schema';
-import { cardPrice, shippingPrice } from '@shared/pricing';
+import { cardPrice, shippingPrice, DRAW_TIME } from '@shared/pricing';
 import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
 import { formatMoney } from '@shared/market';
 
@@ -361,7 +361,7 @@ function GateStep({ state, photos, allReady, authed, beta, error, onEdit, onSign
           {betaGuest
             ? 'This is the beta, so there’s no account to make and nothing to pay. We open a studio for you and draw the card there, a few minutes on our bigger image model.'
             : authed
-              ? 'Your card is saved to your studio and drawn there. It takes a few minutes.'
+              ? `Your card is saved to your studio and drawn there: the front first, about ${DRAW_TIME.oneSide}, then the inside.`
               : 'Sign up in ten seconds. Your photo, scene and words come with you; the card is drawn in your studio and saved there.'}
           {!betaGuest && <> Making it is free, and there’s nothing to pay until you print.</>}
         </p>

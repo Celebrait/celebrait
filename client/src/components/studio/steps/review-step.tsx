@@ -71,13 +71,15 @@ import { likenessNoteForSet } from '@/lib/photo-likeness';
 import type { Photo } from '@shared/models/photos';
 import type { CardAttemptDTO } from '@/hooks/use-card-maker';
 import type { CardSide, CardGridItem } from '@shared/schema';
+import { DRAW_TIME } from '@shared/pricing';
 
 // Approximate generation time per side (front / inside). Used to size the
 // pre-gen advice copy ("about 90 seconds") so it matches the progress
 // bar's ESTIMATE_MS=90s in generation-wait.tsx — and reality: observed
 // front gens run ~80s (Kevin 2026-07-09), so 45 was under-promising and
 // over-disappointing. Not a hard timeout — some providers are slower.
-const TYPICAL_GENERATION_SECONDS = 90;
+// One figure for every screen: shared/pricing.ts DRAW_TIME.
+const TYPICAL_GENERATION = DRAW_TIME.oneSide;
 
 interface ReviewStepProps {
   cardId: number;
@@ -319,8 +321,8 @@ export function ReviewStep({
         </Button>
         <p className="text-[11px] text-keeper-meta text-center mt-2 leading-relaxed">
           {isReroll
-            ? `About ${TYPICAL_GENERATION_SECONDS} seconds. Your earlier takes stay in your drafts. Nothing here overwrites them.`
-            : `About ${TYPICAL_GENERATION_SECONDS} seconds to draft. Don't love it? Start again with the same details, free. Your card saves as you go.`}
+            ? `About ${TYPICAL_GENERATION}. Your earlier takes stay in your drafts. Nothing here overwrites them.`
+            : `About ${TYPICAL_GENERATION} to draft. Don't love it? Start again with the same details, free. Your card saves as you go.`}
         </p>
       </div>
 

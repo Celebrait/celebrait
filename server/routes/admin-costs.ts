@@ -254,8 +254,34 @@ export function registerAdminCostsRoutes(app: Express): void {
         0,
       );
 
+      // ── HOW LONG A DRAWING REALLY TAKES. The site quotes a wait
+      //    (shared/pricing.ts DRAW_TIME) that until 2026-11-26 nobody
+      //    could check against real customers: the durations were
+      //    logged on every generation and shown nowhere. Successful
+      //    image calls only (over a second, so stubs and instant
+      //    failures don't flatter it), by slot, in the chosen window.
+      const drawTimesRaw = await db.execute(sql`
+        select
+          slot,
+          count(*) as rows,
+          percentile_cont(0.5) within group (order by duration_ms) as p50,
+          percentile_cont(0.9) within group (order by duration_ms) as p90,
+          max(duration_ms) as slowest
+        from generation_log
+        where card_id is not null and success = true and duration_ms > 1000 and ${filter}
+        group by slot
+        order by rows desc
+      `);
+
       res.json({
         window,
+        drawTimes: (drawTimesRaw.rows as any[]).map((r) => ({
+          slot: r.slot as string,
+          rows: Number(r.rows),
+          typicalSeconds: Math.round(Number(r.p50) / 1000),
+          nineInTenSeconds: Math.round(Number(r.p90) / 1000),
+          slowestSeconds: Math.round(Number(r.slowest) / 1000),
+        })),
         // Card-less LLM spend (photo analysis, scene helper, brainstorm).
         // Included in overview.totalCentsX100 and spendTotals; itemised
         // here so it can't hide inside the headline number.

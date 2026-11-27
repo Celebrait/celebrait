@@ -48,6 +48,7 @@ import {
   buildCelebrationFeed,
   type CelebrationFact,
 } from '@/lib/celebration-facts';
+import { DRAW_TIME } from '@shared/pricing';
 
 /** The four stages a generation passes through. Derived in the
  *  parent from poll data — see `deriveGenerationStage()` in
@@ -75,7 +76,9 @@ const CYCLE_MS = 5500;
 // Per-side generation estimate. gpt-image-2 at medium routinely runs
 // ~60–120s per side; 90s is the honest middle we choreograph the bar
 // and stage copy against.
-const ESTIMATE_MS = 90_000;
+// The figure itself lives in shared/pricing.ts (DRAW_TIME) so the note
+// below, the Generate button and the public maker cannot disagree.
+const ESTIMATE_MS = DRAW_TIME.seconds * 1000;
 
 // The first three sub-steps each get a third of the estimate; the
 // fourth ("…final details") holds open past it so a slow gen doesn't
@@ -185,7 +188,7 @@ export function GenerationWaitStage({
           card animation so it's the first thing read. */}
       <p className="max-w-[420px] text-center text-[13px] leading-relaxed text-keeper-meta">
         This usually takes{' '}
-        <span className="font-medium text-keeper-ink">60–90 seconds</span>, so
+        <span className="font-medium text-keeper-ink">{DRAW_TIME.oneSide}</span>, so
         hang tight. You can close this if you like: your card will be waiting
         in your Studio whenever you come back.
       </p>

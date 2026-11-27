@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { genCostUsdX100ToGbp } from '@shared/pricing';
+import { genCostUsdX100ToGbp, DRAW_TIME } from '@shared/pricing';
 import {
   Bar,
   BarChart,
@@ -44,6 +44,9 @@ interface CostsResponse {
   regen: { avgRowsPerCard: number };
   byProvider: { provider: string; rows: number; centsX100: number }[];
   bySlot: { slot: string; rows: number; centsX100: number }[];
+  /** Measured wall time of successful drawings, by slot. The site quotes
+   *  DRAW_TIME (shared/pricing.ts); this is what to check it against. */
+  drawTimes?: { slot: string; rows: number; typicalSeconds: number; nineInTenSeconds: number; slowestSeconds: number }[];
   /** Card-less LLM spend (photo analysis, scene helper, brainstorm).
    *  Already inside overview.totalCentsX100 — itemised so it can't hide
    *  inside the headline (audit 2026-07-29). */
@@ -362,6 +365,45 @@ function CostsView({ data, window }: { data: CostsResponse; window: Window }) {
                 </tbody>
               </table>
             </>
+          )}
+        </ChartCard>
+      </section>
+
+      {/* The wait we quote customers, against the wait they really had. */}
+      <section>
+        <ChartCard
+          title="How long a drawing takes"
+          subtitle={`Real generations in this window. The site tells customers one side takes ${DRAW_TIME.oneSide}. If "9 in 10 within" runs well past that, the wording needs changing.`}
+        >
+          {!data.drawTimes || data.drawTimes.length === 0 ? (
+            <div className="py-6 text-center text-sm text-stone-500">
+              No finished drawings in this window.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="border-b border-stone-200 text-left text-xs uppercase text-stone-500">
+                <tr>
+                  <th className="py-2">What was drawn</th>
+                  <th className="py-2 text-right">Drawings</th>
+                  <th className="py-2 text-right">Typical</th>
+                  <th className="py-2 text-right">9 in 10 within</th>
+                  <th className="py-2 text-right">Slowest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.drawTimes.map((d) => (
+                  <tr key={d.slot} className="border-b border-stone-100 last:border-0">
+                    <td className="py-2 font-medium text-stone-900">{d.slot}</td>
+                    <td className="py-2 text-right tabular-nums">{d.rows}</td>
+                    <td className="py-2 text-right tabular-nums">{d.typicalSeconds}s</td>
+                    <td className={`py-2 text-right tabular-nums ${/^(front_scene|inside_write|inside_blank)$/.test(d.slot) && d.nineInTenSeconds > DRAW_TIME.seconds + 30 ? 'font-semibold text-red-700' : ''}`}>
+                      {d.nineInTenSeconds}s
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-stone-500">{d.slowestSeconds}s</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </ChartCard>
       </section>

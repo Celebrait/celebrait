@@ -432,6 +432,29 @@ export function cardPriceGBP(source: string | null | undefined): number {
 
 /** Time to make, start to finish, by door (Aidan 2026-09-10: "roughly
  *  3–5 mins for casual, 7–10 mins director"). Said on every route. */
+/** HOW LONG ONE DRAWING TAKES on the photo route, said in ONE place.
+ *
+ *  Three screens each had their own figure: the wait said "60–90
+ *  seconds", the button under Generate "about 90 seconds", and the
+ *  public maker "a few minutes" (launch audit 2026-11-26). They were
+ *  describing the same thing at different zoom: a photo card is TWO
+ *  drawings, the front and then the inside, each with its own wait.
+ *
+ *  The figure: in our own test runs one side took 70 seconds typically
+ *  and 9 in 10 finished inside 91 (front n=12, inside n=5, June 2026,
+ *  dev database; all the measurement there was when this was written).
+ *  The LIVE figure is on /admin/costs under "How long a drawing takes",
+ *  read from every real generation. If that drifts from this, change it
+ *  HERE and every screen follows.
+ *
+ *  `seconds` is the top of the range: the wait screen paces its progress
+ *  bar and step copy against it. */
+export const DRAW_TIME = {
+  seconds: 90,
+  oneSide: '60–90 seconds',
+  wholeCard: 'two to three minutes',
+} as const;
+
 export const MAKE_TIME: Record<CardSource, string> = {
   rack: 'about a minute',
   maker: '3–5 minutes',
