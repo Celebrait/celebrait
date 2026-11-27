@@ -12,10 +12,11 @@
 //      burning real tokens or crafting prompts that trip the actual
 //      safety filter.
 //
-// Visibility: ONLY renders when `import.meta.env.DEV` is true. Vite
-// tree-shakes the inverse branch so this entire component is removed
-// from production bundles. Server endpoints also 404 in production as
-// a second guard.
+// Visibility: renders in local dev (`import.meta.env.DEV`), OR wherever the
+// /api/dev/stub-mode GET responds 200 — which only happens on a test server
+// running with ALLOW_STUB_TOGGLE=1. In real prod that endpoint 404s, the
+// query fails, and the panel stays hidden. Server endpoints share the same
+// ALLOW_STUB_TOGGLE guard, so the whole surface is gated by one flag.
 //
 // Pairs with: server/routes/dev-test-failures.ts
 
@@ -75,9 +76,9 @@ const FAILURE_KINDS: Array<{
 ];
 
 export function DevTestFailurePanel() {
-  // Only render in dev mode. Vite tree-shakes the inverse branch so this
-  // entire component is removed from production bundles.
-  if (!import.meta.env.DEV) return null;
+  // Always mount; the inner component decides visibility. It shows in
+  // local dev, OR wherever the stub-toggle endpoint is enabled
+  // (ALLOW_STUB_TOGGLE=1) — so a TEST server gets the live stub toggle.
   return <DevTestFailurePanelInner />;
 }
 
@@ -97,6 +98,9 @@ function DevTestFailurePanelInner() {
       return res.json() as Promise<{ on: boolean }>;
     },
     staleTime: 30_000,
+    // 404 here = endpoint disabled (prod without ALLOW_STUB_TOGGLE) → don't
+    // retry-spam; the panel just stays hidden.
+    retry: false,
   });
 
   const stubModeOn = stubModeQuery.data?.on ?? false;
@@ -202,6 +206,13 @@ function DevTestFailurePanelInner() {
     },
   });
 
+  // Visible in local dev, OR wherever the stub-toggle endpoint responds
+  // (test server with ALLOW_STUB_TOGGLE=1). Otherwise the GET 404s and the
+  // panel stays hidden. The full panel (failure injection + spawn) shows in
+  // both — the endpoints share the same flag.
+  const enabled = import.meta.env.DEV || stubModeQuery.isSuccess;
+  if (!enabled) return null;
+
   return (
     <div
       className="fixed bottom-4 right-4 z-50 select-none"
@@ -247,6 +258,10 @@ function DevTestFailurePanelInner() {
           </div>
 
           {/* Armed indicator */}
+          {/* Failure injection, spawn, email-tester. These render wherever the
+              panel is `enabled` — local dev, or a test server with
+              ALLOW_STUB_TOGGLE=1. In real prod the panel never mounts (the
+              stub-mode GET 404s) so this whole block is unreachable. */}
           {armedKind && stubModeOn && (
             <div className="px-4 py-2 bg-amber-500/20 border-b border-amber-500/30 text-xs text-amber-200">
               Armed: <span className="font-mono font-semibold">{armedKind}</span>

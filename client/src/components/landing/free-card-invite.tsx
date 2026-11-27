@@ -1,0 +1,485 @@
+// client/src/components/landing/free-card-invite.tsx
+//
+// The free-first-card invitation — the landing page's capture play
+// (Kevin 2026-08-03: "most ain't ready to buy and we need sign ups…
+// captivate not distract… ack the fact they ain't ready").
+//
+// Behaviour, tuned to that brief:
+//   • Auto-shows ONCE per visitor (localStorage), and only after they've
+//     had a real look — 9s on page OR 45% scroll, whichever lands first.
+//     An instant popup would cheapen the gallery; this one arrives like
+//     a shop assistant who waited for you to browse.
+//   • After dismissal a quiet bottom-left pill stays put, so the offer
+//     is always one tap away without ever nagging again. (Bottom-right
+//     belongs to the existing "make your own" FloatingPill.)
+//   • Signed-in users never see any of it — they have the world band.
+//   • The claim CTA opens the auth modal and lands them on /studio,
+//     where the ring + quick-add continue the story.
+//
+// Copy leads with the honesty: "Not ready to send a card? Fair." —
+// acknowledging the browse state IS the hook. Anchor stays protected:
+// £8.99 struck through, gift framing, never a price.
+
+import { useEffect, useRef, useState } from 'react';
+import { useSearch } from 'wouter';
+import { X, Gift, CalendarHeart } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useAuthModal } from '@/components/auth/auth-modal';
+import { AuthForm, type AuthStep } from '@/components/auth/auth-form';
+import { CLAIM_EVENT, CLAIM_PARAM } from '@/components/landing/ticker-banner';
+import { ProgressRing } from '@/components/studio/moment-ring';
+import { shippingPrice } from '@shared/pricing';
+import { useFirstCardOnUs } from '@/hooks/use-first-card-offer';
+import { formatMoney } from '@shared/market';
+
+const SEEN_KEY = 'celebrait:free-card-invite:v1';
+
+/** The shared ring, shown full — the earned shape as the promise. */
+function InviteRing() {
+  return (
+    <div className="relative h-20 w-20">
+      <ProgressRing filled={3} size={80} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Gift className="h-7 w-7 text-brand" strokeWidth={1.75} />
+      </div>
+    </div>
+  );
+}
+
+export function FreeCardInvite() {
+  const { user, isLoading } = useAuth();
+  const { authOpen } = useAuthModal();
+  // Declared up here because the auto-show effect below reads it: with
+  // the offer off the popup must not "show" invisibly and use up the
+  // visitor's once-a-fortnight slot before the offer is switched on.
+  const onUs = useFirstCardOnUs();
+  // STARTED = they've answered the first question (the brief rides the
+  // URL from then on, ?who=…). Someone making a card is not lingering:
+  // no popup, no pill (mobile audit 2026-11-27 — the pill sat over the
+  // answer chips on a phone).
+  const started = /(?:^|&)who=/.test(useSearch());
+  const [open, setOpen] = useState(false);
+  const [autoShown, setAutoShown] = useState(false);
+  // Claim happens INSIDE this modal (Kevin 2026-08-03: the generic
+  // sign-in dialog dropped the gift context at the commitment moment) —
+  // same surface, ring still visible, the real <AuthForm> embedded.
+  const [claiming, setClaiming] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>('email');
+  // The no-offer mode's one field. Deliberately an EMAIL and nothing
+  // else: someone who isn't ready today will not make an account, and
+  // this is the last chance to hear from them again.
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadBusy, setLeadBusy] = useState(false);
+  const [leadSent, setLeadSent] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
+  const timerRef = useRef<number | null>(null);
+
+  const signedOut = !isLoading && !user;
+
+  // Who opened this, and therefore what it should say. ASKED = the visitor
+  // actively clicked something ("Make a card", the ticker) so they're
+  // already sold and want to get on with it. OFFERED = we interrupted them
+  // (auto-show, corner pill), where "not ready? fair" is the right note.
+  // Greeting someone who just clicked MAKE A CARD with "not ready? fair"
+  // reads like we weren't listening.
+  const [intent, setIntent] = useState<'asked' | 'offered'>('offered');
+
+  // Arrived from a CTA on another page (/blog, /pricing, …) — those can't
+  // fire the event because this modal isn't mounted there, so they send the
+  // visitor home carrying ?claim=1. Strip it once handled: a refresh or a
+  // shared link shouldn't reopen it.
+  useEffect(() => {
+    if (!signedOut) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get(CLAIM_PARAM) !== '1') return;
+    setIntent('asked');
+    setAutoShown(true);
+    setOpen(true);
+    url.searchParams.delete(CLAIM_PARAM);
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    try {
+      localStorage.setItem(SEEN_KEY, String(Date.now()));
+    } catch {
+      /* non-fatal */
+    }
+  }, [signedOut]);
+
+  // The ticker banner's free-card item opens the invite directly.
+  useEffect(() => {
+    const onClaim = (e: Event) => {
+      if (!signedOut) return;
+      const asked = (e as CustomEvent<{ intent?: string }>).detail?.intent;
+      setIntent(asked === 'asked' ? 'asked' : 'offered');
+      setAutoShown(true);
+      setOpen(true);
+      try {
+        localStorage.setItem(SEEN_KEY, String(Date.now()));
+      } catch {
+        /* non-fatal */
+      }
+    };
+    window.addEventListener(CLAIM_EVENT, onClaim);
+    return () => window.removeEventListener(CLAIM_EVENT, onClaim);
+  }, [signedOut]);
+
+  // Never coexist with the sign-in dialog — someone mid-OTP must not get
+  // a second overlay stacking behind/over it (Kevin 2026-08-03). If they
+  // close auth without signing in, the auto-show effect re-arms below.
+  useEffect(() => {
+    if (authOpen) setOpen(false);
+  }, [authOpen]);
+
+  // Auto-show once. WITH THE OFFER: 9s dwell or 45% scroll, whichever
+  // first — it's a gift, worth saying early. WITHOUT IT (mobile audit
+  // 2026-11-27): 40s, or nearly the whole page scrolled, and never once
+  // they've started. It is a "not today?" net for the visitor who has
+  // stalled, and at nine seconds on the Christmas ad's landing page it
+  // covered the screen as people reached for "Get started". Paused
+  // entirely while the auth dialog is up.
+  useEffect(() => {
+    if (!signedOut || autoShown || authOpen || started) return;
+    let done = false;
+    try {
+      const seenAt = Number(localStorage.getItem(SEEN_KEY) || 0);
+      // Once per visit-era, not once per lifetime: a returning visitor
+      // gets the offer again after a fortnight (Aidan 2026-08-03).
+      if (seenAt && Date.now() - seenAt < 14 * 24 * 60 * 60 * 1000) {
+        setAutoShown(true);
+        return;
+      }
+    } catch {
+      /* private mode — just don't auto-show twice this session */
+    }
+    const fire = () => {
+      if (done) return;
+      done = true;
+      setIntent('offered');
+      setAutoShown(true);
+      setOpen(true);
+      try {
+        localStorage.setItem(SEEN_KEY, String(Date.now()));
+      } catch {
+        /* non-fatal */
+      }
+    };
+    timerRef.current = window.setTimeout(fire, onUs ? 9000 : 40000);
+    // Scroll trigger measures MOVEMENT from where the page loaded, not
+    // absolute position — browser scroll restoration replays the old
+    // position as a scroll event on load, which used to fire the modal
+    // instantly on refresh.
+    const startY = window.scrollY;
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const travelled = window.scrollY - startY > window.innerHeight * 0.6;
+      if (max > 0 && travelled && window.scrollY / max > (onUs ? 0.45 : 0.85)) fire();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [signedOut, onUs, autoShown, authOpen, started]);
+
+  // Scroll-lock + Escape while open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  // ⚠️ EVERY HOOK STAYS ABOVE THE EARLY RETURN BELOW. This one sat
+  // under it from 2026-11-06 to 2026-11-11: whenever the sign-in check
+  // was still loading on the first render (`signedOut` false → return
+  // null) and then resolved, one more hook ran than before and React
+  // threw #310 — the WHOLE landing page fell to the error screen on
+  // most fresh loads. Found by the live walkthrough audit.
+  // Stay mounted while a claim is mid-flight even though verify has
+  // signed the user in — unmounting here killed AuthForm's welcome step
+  // (first-name capture) and its /studio redirect, stranding the new
+  // account on the landing page.
+  // TWO MODES, ONE POPUP (2026-11-27). With the offer on this IS the
+  // offer: claim it, which means making an account. With the offer off
+  // it asks for an email and promises a nudge before the days that
+  // matter — still worth interrupting someone for, and the only thing a
+  // not-ready visitor will hand over. It briefly showed in neither state
+  // this morning, which is what Aidan spotted.
+  if (!signedOut && !claiming) return null;
+
+  const close = () => {
+    setOpen(false);
+    setClaiming(false);
+    setAuthStep('email');
+  };
+
+  const submitLead = async () => {
+    if (leadBusy || leadSent) return;
+    setLeadBusy(true);
+    setLeadError(null);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: leadEmail, source: 'invite-reminders', marketingOptIn: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? 'Please try again.');
+      }
+      setLeadSent(true);
+    } catch (err: any) {
+      setLeadError(err?.message ?? 'Please try again.');
+    } finally {
+      setLeadBusy(false);
+    }
+  };
+
+  // Step-aware copy for the embedded claim flow. The email step keeps
+  // the gift front and centre; code/welcome mirror the standard auth
+  // copy so the mechanics feel familiar.
+  const claimCopy =
+    authStep === 'email'
+      ? {
+          heading: 'Claim your first photo card. It’s on us.',
+          sub: "Pop your email in and we'll send a 6-digit code. No passwords, ever.",
+        }
+      : authStep === 'code'
+        ? { heading: 'Check your email.', sub: 'We sent you a 6-digit code.' }
+        : {
+            heading: 'One last thing.',
+            sub: 'What should we call you? Your three dates are next.',
+          };
+
+  return (
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={onUs ? 'Your first photo card’s on us' : 'Before you go'}
+          data-testid="free-card-invite"
+        >
+          {/* Backdrop */}
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={close}
+            className="absolute inset-0 bg-[#211D19]/45 backdrop-blur-[2px]"
+          />
+          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-[#FFFDF9] shadow-[0_30px_80px_-20px_rgba(33,29,25,.5)] animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+              data-testid="free-card-invite-close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="px-7 pb-7 pt-8 sm:px-9 sm:pb-9">
+              <InviteRing />
+              {!onUs ? (
+                /* NO OFFER: one field, no account, no discount. The only
+                   thing a not-ready visitor will actually hand over. */
+                leadSent ? (
+                  <>
+                    <h2 className="keeper-serif mt-4 font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[27px]">
+                      Done. We’ll be in touch in good time.
+                    </h2>
+                    <p className="mt-2 text-[13.5px] leading-relaxed text-[#3A342E]">
+                      Nothing else from us in between. Come back whenever the moment comes round.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={close}
+                      className="mt-6 w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover"
+                      data-testid="free-card-invite-done"
+                    >
+                      Back to the cards
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
+                      Before you go
+                    </p>
+                    <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
+                      Not today? Tell us when.
+                    </h2>
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      Leave your email and we’ll nudge you in good time before
+                      the days that matter, so the card gets made in slippers
+                      rather than in a panic.
+                    </p>
+                    <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
+                      No account needed. We never contact the people you add,
+                      and you can stop the emails in one click.
+                    </p>
+                    <form
+                      className="mt-5 flex flex-col gap-2.5"
+                      onSubmit={(e) => { e.preventDefault(); void submitLead(); }}
+                    >
+                      <label htmlFor="invite-lead-email" className="sr-only">Your email address</label>
+                      <input
+                        id="invite-lead-email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={leadEmail}
+                        onChange={(e) => setLeadEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="h-12 w-full rounded-full border border-keeper-hair bg-white px-5 text-[15px] text-keeper-ink placeholder:text-stone-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        data-testid="free-card-invite-email"
+                      />
+                      {leadError && <p className="px-1 text-[12.5px] text-red-700">{leadError}</p>}
+                      <button
+                        type="submit"
+                        disabled={leadBusy}
+                        className="w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover disabled:opacity-60"
+                        data-testid="free-card-invite-remind"
+                      >
+                        {leadBusy ? 'One moment…' : 'Remind me in good time'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={close}
+                        className="w-full rounded-full px-6 py-2.5 text-[13.5px] font-medium text-stone-500 transition-colors hover:text-[#211D19]"
+                        data-testid="free-card-invite-dismiss"
+                      >
+                        I'll keep looking
+                      </button>
+                    </form>
+                  </>
+                )
+              ) : claiming ? (
+                <>
+                  <h2 className="keeper-serif mt-4 font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[27px]">
+                    {claimCopy.heading}
+                  </h2>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-[#3A342E]">
+                    {claimCopy.sub}
+                  </p>
+                  {authStep === 'email' && (
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
+                      Then three dates that matter, and your first photo card’s <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.
+                    </p>
+                  )}
+                  <div className="mt-5" data-testid="free-card-invite-authform">
+                    <AuthForm defaultRedirect="/studio" onStepChange={setAuthStep} />
+                  </div>
+                  <p className="mt-4 text-[11px] text-stone-400">
+                    By continuing you agree to our{' '}
+                    <a
+                      href="/terms-of-service"
+                      className="underline-offset-2 hover:text-stone-600 hover:underline"
+                    >
+                      Terms
+                    </a>{' '}
+                    and{' '}
+                    <a
+                      href="/privacy-policy"
+                      className="underline-offset-2 hover:text-stone-600 hover:underline"
+                    >
+                      Privacy Policy
+                    </a>
+                    .
+                  </p>
+                  {authStep === 'email' && (
+                    <button
+                      type="button"
+                      onClick={() => setClaiming(false)}
+                      className="mt-3 text-[12.5px] font-medium text-stone-500 transition-colors hover:text-[#211D19]"
+                      data-testid="free-card-invite-back"
+                    >
+                      ‹ Back
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-dark">
+                    {intent === 'asked' ? 'Your first photo card’s on us' : 'A gift to start'}
+                  </p>
+                  <h2 className="keeper-serif mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-[#211D19] sm:text-[30px]">
+                    {intent === 'asked'
+                      ? 'Three dates, then let’s make it.'
+                      : 'Not ready to send a card? Fair.'}
+                  </h2>
+                  {intent === 'asked' ? (
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      You'll need an account to make a card either way, so
+                      start here. Tell us <b>three dates that matter</b> (a
+                      birthday, an anniversary, any day) and your first photo
+                      card is <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage.
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-[14.5px] leading-relaxed text-[#3A342E]">
+                      The right moment probably hasn't come round yet. So start the
+                      other way: tell us <b>three dates that matter</b> (a birthday,
+                      an anniversary, any day) and your first photo card is{' '}
+                      <b>on us</b>. Seriously. Just {formatMoney(shippingPrice())} postage. It waits for the moment.
+                    </p>
+                  )}
+                  <p className="mt-2.5 text-[12px] leading-relaxed text-stone-500">
+                    We'll watch every date and nudge you in good time, and we
+                    never contact the people you add.
+                  </p>
+
+                  <div className="mt-6 flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setClaiming(true)}
+                      className="w-full rounded-full bg-go px-6 py-3.5 text-[15px] font-bold text-go-foreground transition-colors hover:bg-go-hover"
+                      data-testid="free-card-invite-claim"
+                    >
+                      {intent === 'asked'
+                        ? 'Let’s go, takes a minute'
+                        : 'Claim it, takes a minute'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={close}
+                      className="w-full rounded-full px-6 py-2.5 text-[13.5px] font-medium text-stone-500 transition-colors hover:text-[#211D19]"
+                      data-testid="free-card-invite-dismiss"
+                    >
+                      I'll keep looking
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* The quiet, permanent way back in — bottom-right, REPLACING the
+          old "make your own" FloatingPill (Kevin 2026-08-03): capture
+          beats commerce for the not-ready-to-buy majority. */}
+      {!open && autoShown && !authOpen && !started && (
+        <button
+          type="button"
+          onClick={() => {
+            setIntent('offered');
+            setOpen(true);
+          }}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-stone-200 bg-white/95 py-2 pl-2.5 pr-4 text-[12.5px] font-semibold text-[#211D19] shadow-[0_10px_30px_-12px_rgba(33,29,25,.35)] backdrop-blur transition-transform hover:scale-[1.03]"
+          data-testid="free-card-invite-pill"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-muted">
+            {onUs ? <Gift className="h-4 w-4 text-brand" strokeWidth={2} /> : <CalendarHeart className="h-4 w-4 text-brand" strokeWidth={2} />}
+          </span>
+          {onUs ? 'Your first photo card’s on us' : 'Remind me in good time'}
+        </button>
+      )}
+    </>
+  );
+}

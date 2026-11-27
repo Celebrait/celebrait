@@ -1,23 +1,58 @@
-// Print provider abstraction. The supplier choice (Gelato leading
-// candidate, Prodigi as fallback) is deliberately deferred — we build
-// checkout + order flow against this interface and slot in the real
-// provider once physical samples land.
+// Print provider abstraction. **Supplier locked: Prodigi** (decision
+// 2026-04-29, confirmed 2026-05-27). API key in Kevin's possession.
+// Sandbox-first via `api.sandbox.prodigi.com/v4.0` — test orders are
+// free, so the integration can be wired and exercised end-to-end
+// before any real money or real prints. Real implementation lives in
+// `prodigi-provider.ts` (TBD); pick it via `STUDIO_PRINT_PROVIDER=prodigi`.
 //
-// Implementations live alongside this file (e.g. `gelato-provider.ts`).
-// Pick the active one via the `STUDIO_PRINT_PROVIDER` env var, resolved
-// through `getPrintProvider()`.
+// See next_prodigi_and_print_modes.md for SKU map (5.5×5.5 squares,
+// Direct vs Self-Send modes maps onto Giving Moment destinations) and
+// the open paper-stock decision (Mohawk vs Gloss). Samples ordered
+// 2026-05-27 — paper choice lands when they arrive.
 
 import type { ShippingAddress } from "@shared/schema";
+import { prodigiPrintProvider } from "./prodigi-provider";
+import { manualPrintProvider } from "./manual-print-provider";
 
-export interface PrintOrderRequest {
-  studioOrderId: string;
+/** One card in a print order. An order may hold several — the basket
+ *  (UX_THREE_DOORS.md §8d) posts them in ONE shipment, which is why
+ *  shipping is charged once and Prodigi receives one item per card. */
+export interface PrintOrderCard {
   cardId: number;
   frontImageUrl: string;
   insideImageUrl: string | null;
+  /** Card's stable per-card secret — names the composed print-strip
+   *  object so it can't be enumerated from the sequential card id.
+   *  Legacy cards fall back to the bare id. */
+  imageKey?: string | null;
+}
+
+export interface PrintOrderRequest {
+  studioOrderId: string;
+  /** Every card in this order, in basket order. Always at least one. */
+  cards: PrintOrderCard[];
+  // Delivery destination. Drives the Prodigi SKU: 'recipient' → Direct
+  // Delivery (-DIR, Kraft envelope, we post it); 'sender' → Self Send
+  // (-BLA, cellophane sleeve + spare envelopes, the creator posts it).
   shipTo: "sender" | "recipient";
+  // Customer opted into the wax-seal envelope sticker (direct sends only).
+  // Only then does the provider attach the branding sticker.
+  envelopeSticker?: boolean;
   shippingAddress: ShippingAddress;
   recipientName: string;
   giftMessage?: string;
+  // Prodigi shippingMethod for the chosen delivery speed
+  // (Standard|Express|Overnight). Defaults to Standard when absent.
+  shippingMethod?: string;
+  // Sender's first name (captured at signup) for the back-of-card signed
+  // credit. Absent → the compositor falls back to a "Made with Celebrait"
+  // wordmark.
+  senderFirstName?: string | null;
+  /** The key the printer de-duplicates on. Absent → the order id (one
+   *  paid order, one print). Only a deliberate REPRINT of an order the
+   *  printer cancelled or failed passes its own, because the order id
+   *  would hand back the dead original instead of printing a new one. */
+  idempotencyKey?: string;
 }
 
 export interface PrintOrderResult {
@@ -26,6 +61,9 @@ export interface PrintOrderResult {
   // via webhooks; the stub jumps straight to "submitted".
   status: "submitted" | "failed";
   estimatedShipDate?: string;
+  /** Problems the printer reported while accepting the order (see
+   *  PrintProviderStatus.issues). */
+  issues?: string[];
 }
 
 export interface PrintProviderStatus {
@@ -33,12 +71,31 @@ export interface PrintProviderStatus {
   status: "pending" | "submitted" | "printed" | "shipped" | "delivered" | "failed";
   trackingNumber?: string;
   trackingUrl?: string;
+  /** Anything the printer says is WRONG with the order while it is still
+   *  "in progress": a picture it could not download, an item it cannot
+   *  make, a payment it wants authorised. None of these change the stage,
+   *  so without this field a stuck order looks exactly like a healthy one
+   *  (launch audit 2026-11-26). Human-readable, one line each. */
+  issues?: string[];
+}
+
+/** What happened when we asked the printer to pull an order.
+ *  'cancelled' = it will not print. 'too-late' = already in production,
+ *  it WILL print and post. 'failed' = we could not find out (network,
+ *  an answer we don't recognise) — treat as "may still print". */
+export interface PrintCancelResult {
+  outcome: "cancelled" | "too-late" | "failed";
+  detail?: string;
 }
 
 export interface PrintProvider {
   readonly name: string;
   submitOrder(req: PrintOrderRequest): Promise<PrintOrderResult>;
   getStatus(providerOrderId: string): Promise<PrintProviderStatus>;
+  /** Ask the printer not to make an order (a refund). Optional: a
+   *  provider with no cancel call (a human at a printer) leaves it out
+   *  and the caller alerts the operator instead. Never throws. */
+  cancelOrder?(providerOrderId: string): Promise<PrintCancelResult>;
   // Each provider parses its own webhook payload and returns a
   // normalised status update. Webhook verification (signature check)
   // lives inside the provider so callers can't forget it.
@@ -57,6 +114,9 @@ export const stubPrintProvider: PrintProvider = {
   async getStatus(providerOrderId) {
     return { providerOrderId, status: "submitted" };
   },
+  async cancelOrder() {
+    return { outcome: "cancelled" };
+  },
   async parseWebhook() {
     throw new Error("stub provider has no webhooks");
   },
@@ -67,6 +127,16 @@ export function getPrintProvider(): PrintProvider {
   switch (name) {
     case "stub":
       return stubPrintProvider;
+    case "prodigi":
+      // The Prodigi module's config() (API key + SKU check) only runs when
+      // submitOrder/getStatus is actually called, so importing it here in
+      // stub mode is harmless.
+      return prodigiPrintProvider;
+    case "manual":
+      // A human prints and couriers (SA launch, no print API partner yet):
+      // composes the print files, mails the operator a print job, and the
+      // order is moved on from /admin/fulfilment. See manual-print-provider.ts.
+      return manualPrintProvider;
     default:
       throw new Error(`Unknown STUDIO_PRINT_PROVIDER: ${name}`);
   }

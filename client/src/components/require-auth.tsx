@@ -30,7 +30,9 @@ export function RequireAuth({ children, fallback }: RequireAuthProps) {
         `/login?redirect=${encodeURIComponent(
           window.location.pathname + window.location.search,
         )}`;
-      setLocation(target);
+      // replace: without it Back from the login page returned to the
+      // guarded page, which sent them straight to login again.
+      setLocation(target, { replace: true });
     }
   }, [isAuthenticated, isLoading, fallback, setLocation]);
 
@@ -58,6 +60,7 @@ export function RequireAdmin({ children }: RequireAdminProps) {
         `/login?redirect=${encodeURIComponent(
           window.location.pathname + window.location.search,
         )}`,
+        { replace: true },
       );
     }
   }, [isAuthenticated, isLoading, setLocation]);

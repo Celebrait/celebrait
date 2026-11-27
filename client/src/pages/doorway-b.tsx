@@ -1,0 +1,260 @@
+// client/src/pages/doorway-b.tsx — DOORWAY, VARIANT B (/door2)
+//
+// Aidan, 2026-09-02: "feel like the hero might need to be the first
+// step of /make … also some kinda scrolling recently-made carousel —
+// maybe in the hero — like a 3D wall lol — too complex?"
+//
+// So the hero IS the builder's first question: "Who's the card for?"
+// with the research maker's recipient chips. Tap Mum → /make with Mum
+// answered, landing on question two. The photo route is one quiet line
+// beneath. Under that, THE WALL: a slow sideways drift of real ajar
+// cards from the rack (CSS, not WebGL — one canvas per card melts
+// phones; the tile is already CSS 3D). Pauses on hover, static under
+// reduced motion, every card tappable. The full rack with its filters
+// follows, exactly as on /door.
+
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
+import { BriefQuestions, readBriefFromSearch, briefToSearch, type Brief } from '@/components/brief-questions';
+import { ShimmerWord } from '@/pages/landing-keeper';
+import { KeeperHeader } from '@/components/landing/keeper-header';
+import { MadeCardsRow } from '@/components/made-cards-row';
+import { MAKER_WALL } from '@/lib/maker-wall';
+import { MarketingFooter } from '@/components/landing/marketing-footer';
+import { CelebrationBackdrop } from '@/pages/hero-scroll-poc';
+import { TrustChips } from '@/pages/landing-keeper';
+import { CardDrift } from '@/components/catalogue/card-drift';
+import { DISPLAY, HERO_MAIN, HERO_TOP, EYEBROW, SUB, BTN_PRIMARY_LG } from '@/pages/doorway';
+import type { RackPayload } from '@/components/catalogue/rack-wall';
+import { useSeo } from '@/lib/use-seo';
+import { useRackEnabled } from '@/hooks/use-rack';
+import { cardPrice, shippingPrice } from '@shared/pricing';
+import { formatMoney } from '@shared/market';
+import { LeadTimeNotice } from '@/components/lead-time-notice';
+import { HandoverSection } from '@/components/landing/handover-section';
+import { HowItWorksSection } from '@/components/landing/how-it-works-section';
+import { OccasionCaptureSection } from '@/pages/landing-keeper';
+import { InsideSection } from '@/components/landing/inside-section';
+import { FaqSection } from '@/components/landing/faq-section';
+import { FreeCardInvite } from '@/components/landing/free-card-invite';
+import { christmasPhase } from '@shared/christmas';
+import { CHRISTMAS_WALL } from '@/lib/christmas-wall';
+import { makeStep } from '@/lib/make-steps';
+
+
+
+
+/** The drifting wall — the rack's cards, interleaved across occasions,
+ *  duplicated once so the loop is seamless. */
+export default function DoorwayBPage() {
+  useSeo('/create'); // /door2 is a redirect; /create is the canonical URL
+  const [, navigate] = useLocation();
+  // The brief lives in the URL as it's answered (refresh/back/share all
+  // keep it); the hand-off to /make carries it with go=1.
+  const [brief, setBriefState] = useState<Brief>(() => readBriefFromSearch(typeof window !== 'undefined' ? window.location.search : ''));
+  const setBrief = (b: Brief) => {
+    setBriefState(b);
+    const qs = briefToSearch(b);
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+  };
+  // "Get started" swaps the hero copy for the questions, same spot. A
+  // brief already in the URL means they're mid-way — open on the questions.
+  const [started, setStarted] = useState<boolean>(() => brief.who.trim().length > 0);
+  // THE CHRISTMAS PAGE (2026-11-18): the Christmas ad lands on
+  // /create?occasion=christmas. While Christmas orders are open that link
+  // turns this page Christmas: the last order date up top, Christmas
+  // already answered (five questions, not six), Christmas cards on the
+  // wall and in "how it works", and no link out to the photo route (the
+  // two routes are being tested separately, each with its own ad). Read
+  // once on arrival; after the cut-off the same link gets the everyday
+  // page with a line saying Christmas orders have closed.
+  const [xmasArrival] = useState<'open' | 'closed' | null>(() => {
+    if (brief.occasion !== 'christmas') return null;
+    const phase = christmasPhase();
+    return phase === 'off' ? null : phase;
+  });
+  const xmas = xmasArrival === 'open';
+  // A short beat between the tap and the first question (Aidan: "a
+  // loading spinner in the question area once clicked get started") —
+  // the swap is instant, so this is acknowledgement, not waiting: 650ms.
+  const [starting, setStarting] = useState(false);
+  // The top of the /admin/maker funnel (counts only, lib/make-steps).
+  useEffect(() => { makeStep('landed', { occasion: xmas ? 'christmas' : null }); }, [xmas]);
+  const begin = () => { makeStep('started', { occasion: xmas ? 'christmas' : null }); setStarting(true); window.setTimeout(() => { setStarting(false); setStarted(true); }, 650); };
+  const reduced = useReducedMotion();
+  // The wall itself lives in components/catalogue/card-drift.tsx (the
+  // hand-picked carousel cards first, then a birthday shuffle). Only the
+  // rack counts are fetched here.
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  // The rack is parked until there is stock (/admin/site): the carousel
+  // stays as proof, the shelf links go.
+  const rack = useRackEnabled() === true;
+  useEffect(() => {
+    if (!rack) return;
+    for (const o of ['christmas', 'birthday'] as const) {
+      fetch(`/api/catalogue/${o}`).then((r) => (r.ok ? r.json() : null))
+        .then((x: RackPayload | null) => { if (x) setCounts((c) => ({ ...c, [o]: x.count })); }).catch(() => {});
+    }
+  }, [rack]);
+
+  return (
+    <div className="keeper-serif relative min-h-screen overflow-x-clip">
+      <CelebrationBackdrop background="linear-gradient(180deg, #FFFDF9 0%, #FAF8F4 100%)" permanentFade />
+      <KeeperHeader />
+      <main className={HERO_MAIN}>
+        {/* ── The hero IS step one of the builder ── */}
+        <section className={`pb-16 md:pb-24 ${HERO_TOP}`}>
+          <div className="mx-auto max-w-6xl px-6">
+            {xmasArrival && <LeadTimeNotice occasion="christmas" link={false} className="mb-5 max-w-xl" />}
+            {/* Christmas (Aidan 2026-11-27): the eyebrow is a lead-in to the
+                headline, read as one sentence, so it's sentence case, not the
+                house uppercase label. */}
+            {xmas
+              ? <p className="text-[15px] font-semibold text-keeper-gold">This Christmas...</p>
+              : <p className={EYEBROW}>Unbinnable Greetings Cards</p>}
+            {starting ? (
+              <div className="mt-4 flex min-h-[300px] max-w-3xl items-center justify-center" role="status" aria-label="Loading the questions">
+                <Loader2 className="h-14 w-14 animate-spin text-keeper-gold" strokeWidth={1.5} />
+              </div>
+            ) : !started ? (
+              <>
+                {/* The headline (Aidan 2026-09-02): the human line in
+                    Fraunces, the mechanism beneath with the shimmer + glow. */}
+                {/* The human bit is the headline; the mechanism is the line
+                    under it, with the glow on "just for them". */}
+                {xmas ? (
+                  /* Christmas headline (Aidan 2026-11-27): the ad's own
+                     promise, short enough to leave room on a phone's first
+                     screen. The rest of the site keeps the "all about them"
+                     line. */
+                  <h1 className={`mt-3 max-w-[22ch] text-[clamp(32px,5.4vw,62px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                    Say goodbye to boring greetings cards
+                  </h1>
+                ) : (
+                  <h1 className={`mt-4 max-w-[26ch] text-[clamp(30px,5vw,58px)] leading-[1.06] text-balance ${DISPLAY}`}>
+                    Why settle for a card that's anything but{' '}
+                    <span className="-mx-1 inline-block whitespace-nowrap [filter:drop-shadow(0_0_22px_rgba(92,87,212,0.4))]">
+                      <ShimmerWord reduced={!!reduced}>all about them</ShimmerWord>
+                    </span>?
+                  </h1>
+                )}
+                <p className={`max-w-[36rem] ${SUB}`}>
+                  {xmas
+                    ? 'Answer five quick questions and get 3 personalised Christmas cards to choose from. Then write the inside.'
+                    : 'In just a few clicks, get 3 personalised greetings cards to choose from. Then design the inside.'}
+                  {' '}Thoughtful, funny, gloriously daft?{' '}
+                  <span className="font-semibold text-keeper-ink">Over to you.</span>
+                </p>
+                <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+                  <button type="button" onClick={begin}
+                    className={BTN_PRIMARY_LG}>
+                    <Sparkles className="h-4 w-4" /> Get started
+                  </button>
+                  <span className="text-[13px] text-keeper-meta">{xmas ? 'Five' : 'Six'} quick questions · 3–5 minutes start to finish</span>
+                </div>
+              </>
+            ) : (
+              /* Get started swaps the copy for the questions, one at a
+                 time, in the same place — the wall below never moves. The
+                 page only changes at "Write their three cards" (→ /make). */
+              <div className="mt-6 max-w-3xl">
+                <BriefQuestions skin="landing" compact brief={brief} onChange={setBrief}
+                  hide={xmas ? ['occasion'] : undefined}
+                  initialStep={!brief.who ? 0 : xmas || !brief.occasion ? 1 : 2}
+                  onDone={(b) => { makeStep('questions', { occasion: xmas ? 'christmas' : b.occasion || null }); navigate(`/make?${briefToSearch(b)}&go=1`); }} />
+                {/* The hand-off (go=1) skips /make's brief panel, so this
+                    is the last screen before the three are drawn: the same
+                    honest line the photo route shows before its spend
+                    (launch audit 2026-10-06, parity). */}
+                {!xmasArrival && <LeadTimeNotice className="mt-5 max-w-xl" occasion={brief.occasion} />}
+              </div>
+            )}
+
+            <div className="mt-8 max-w-3xl">
+              {/* The other door (the gate, 2026-09-03): the photo route is
+                  live at /photo and each page points at the other. */}
+              <p className="text-[14px] text-keeper-body">
+                <span className="text-keeper-meta">{formatMoney(cardPrice('maker'))} plus {formatMoney(shippingPrice())} postage · nothing to pay until you print</span>
+                {!xmas && <>
+                <span className="mx-2 text-keeper-hair">|</span>
+                <Link href="/photo" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">Got a photo of them? Put them in the picture →</Link>
+                </>}
+              </p>
+              {/* Back from "Make another", or back another day: the cards
+                  this browser already finished, one tap from reopening
+                  (Aidan 2026-11-19). Nothing renders for a first visit. */}
+              <MadeCardsRow className="mt-6" />
+            </div>
+          </div>
+
+          {/* ── The wall: real cards, drifting ── */}
+          <div className="mt-12 md:mt-16">
+            <div className="mx-auto max-w-6xl px-6">
+              {/* The fixed walls are OUR examples (made-up briefs and faces),
+                  so the label must not say "made for real people" (DMCC).
+                  Only the rack's own stock keeps the old line. */}
+              <p className={EYEBROW}>{rack && !xmas ? 'From the rack · made for real people' : 'Each one drawn from a few answers'}</p>
+            </div>
+            <div className="mt-3 pl-6 md:pl-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]">
+              {/* Names on most, people in some (Aidan 2026-11-19). While the
+                  rack sells, the everyday page still shows the rack. */}
+              {xmas ? <CardDrift cards={CHRISTMAS_WALL} makeHref="/make?occasion=christmas" />
+                : rack ? <CardDrift />
+                : <CardDrift cards={MAKER_WALL} />}
+            </div>
+          </div>
+
+          {/* The carousel IS the shelf (Aidan: the full wall beneath it
+              was "too much") — two links into the racks proper, which
+              carry the toggle, the filters and the search. */}
+          {rack && <div className="mx-auto mt-5 max-w-6xl px-6">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-keeper-body">
+              <span>Or take one off the shelf:</span>
+              <Link href="/cards/christmas" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                Christmas{counts.christmas ? <span className="ml-1 text-[12px] text-keeper-meta">{counts.christmas}</span> : null}
+              </Link>
+              <span className="text-keeper-hair">·</span>
+              <Link href="/cards/birthday" className="font-medium text-keeper-ink underline decoration-keeper-hair underline-offset-4 transition-colors hover:text-keeper-gold hover:decoration-keeper-gold">
+                Birthdays{counts.birthday ? <span className="ml-1 text-[12px] text-keeper-meta">{counts.birthday}</span> : null}
+              </Link>
+              <span className="text-[13px] text-keeper-meta">· from {formatMoney(cardPrice('rack'))}</span>
+            </p>
+          </div>}
+
+          <div className="mx-auto mt-8 max-w-6xl px-6"><TrustChips /></div>
+        </section>
+
+        {/* Below the rack (Aidan 2026-10-09): the four door-agnostic
+            sections the photo door already carries — delivery, the dates
+            offer (at THIS door's price), the print statement — then a FAQ
+            with the three-card answers. Same components as /photo, so the
+            two doors can't drift apart. */}
+        {/* Six questions, three cards, the inside: the route in three
+            beats, drawn with the carousel's own fronts (Aidan 2026-10-11). */}
+        <HowItWorksSection door="maker" christmas={xmas} />
+        <HandoverSection />
+        {/* CATCHING THE ONE WHO ISN'T READY (Aidan 2026-11-27). This slot
+            used to hold the dates offer, dropped on the Christmas page
+            (2026-11-18) because that page carries no offer and the ticker
+            drops it too. But an ad lands people HERE, and a visitor who
+            likes it and isn't buying today left with nothing: no offer, no
+            capture, no popup. The capture section asks for an email and
+            nothing else — no account, no discount, just "tell us the day
+            that matters and we'll nudge you in good time" — which is the
+            only thing someone not ready will actually give you. It carries
+            no offer, so the Christmas page keeps it too. */}
+        <OccasionCaptureSection />
+        <InsideSection />
+        <FaqSection door="maker" christmas={xmas} />
+      </main>
+      <MarketingFooter />
+      {/* The lingering-visitor popup, which this door never had: it was
+          written as the free-card invite and only mounted on /photo. With
+          no offer it asks for the same email the section above does
+          (Aidan 2026-11-27: "a pop up if they're lingering?"). */}
+      <FreeCardInvite />
+    </div>
+  );
+}

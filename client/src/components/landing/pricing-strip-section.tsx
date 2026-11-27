@@ -1,8 +1,8 @@
 // client/src/components/landing/pricing-strip-section.tsx
 //
-// Landing-page pricing teaser — three compact cards summarising the
-// Free / Digital / Printed tiers, with a "See full pricing →" link
-// to /pricing for the detailed table + currency toggle + fine print.
+// Landing-page pricing teaser — compact cards summarising the Free +
+// Printed tiers (the printed card includes a free digital link), with
+// a "See full pricing →" link to /pricing for the detail + fine print.
 //
 // Sits between the testimonial carousel and FAQ on the lander. The
 // narrative is: hero (what) → demo (how) → brainstorm reveal (magic)
@@ -17,6 +17,7 @@
 import { Link } from 'wouter';
 import { ArrowRight, Check } from 'lucide-react';
 import { PRICING_TIERS, formatPrice, type PricingTier } from '@shared/pricing';
+import { market } from '@shared/market';
 
 // Strip shows a tighter feature set than /pricing — top 3 bullets
 // per tier so the cards stay scannable at a glance. The full list
@@ -24,7 +25,7 @@ import { PRICING_TIERS, formatPrice, type PricingTier } from '@shared/pricing';
 const STRIP_FEATURE_LIMIT = 3;
 
 function StripTier({ tier }: { tier: PricingTier }) {
-  const price = formatPrice(tier.price, 'GBP');
+  const price = formatPrice(tier.price, market().currency);
   const features = tier.features.slice(0, STRIP_FEATURE_LIMIT);
 
   return (
@@ -56,7 +57,7 @@ function StripTier({ tier }: { tier: PricingTier }) {
         {price}
       </p>
       <p className="text-xs text-ink-soft mt-1 mb-5">
-        {tier.id === 'free' ? 'No card needed' : 'per card · one-off'}
+        {tier.id === 'free' ? 'No card needed' : 'per card · plus postage'}
       </p>
 
       <ul className="space-y-2 flex-1">
@@ -76,7 +77,7 @@ function StripTier({ tier }: { tier: PricingTier }) {
 
 export function PricingStripSection() {
   return (
-    <section className="py-20 md:py-28 bg-surface">
+    <section className="snap-center py-20 md:py-28">
       <div className="max-w-6xl mx-auto px-6 md:px-10">
         {/* Header */}
         <div className="text-center mb-12 md:mb-14 max-w-2xl mx-auto">
@@ -93,7 +94,7 @@ export function PricingStripSection() {
         </div>
 
         {/* Tiers */}
-        <div className="grid md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-5 md:gap-6 max-w-3xl mx-auto">
           {PRICING_TIERS.map((tier) => (
             <StripTier key={tier.id} tier={tier} />
           ))}

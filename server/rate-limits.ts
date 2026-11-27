@@ -17,9 +17,13 @@
 
 import { and, eq, gt } from 'drizzle-orm';
 import { db } from './db';
-import { cards, generationLog } from '@shared/schema';
+import { cards, generationLog, users } from '@shared/schema';
+import { isGuestEmail } from '@shared/guest';
 
 export const DAILY_GENERATION_LIMIT = 20;
+/** Guest accounts (shared/guest.ts) cost nothing to make, so they get
+ *  fewer cards a day; signing in with an email lifts it to the full cap. */
+export const GUEST_DAILY_GENERATION_LIMIT = 5;
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export interface RateLimitStatus {
@@ -62,19 +66,29 @@ export async function checkDailyGenerationLimit(
       and(
         eq(cards.userId, userId),
         gt(generationLog.createdAt, windowStart),
+        // Failed provider calls don't count against the user — they got
+        // nothing for them (audit 2026-07-27).
+        eq(generationLog.success, true),
       ),
     );
 
-  const used = rows.length;
+  // DISTINCT CARDS, not rows (audit 2026-07-27): every log row has a
+  // unique createdAt, so distinct-on-(cardId, createdAt) was just a row
+  // count — front+inside = 2, each regen +1 — inflating `used` ~2-3× and
+  // capping testers at ~7 real cards while claiming "20". The rows keep
+  // createdAt for the reset estimate below; dedupe here.
+  const used = new Set(rows.map((r) => r.cardId)).size;
+  const [who] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const limit = isGuestEmail(who?.email) ? GUEST_DAILY_GENERATION_LIMIT : DAILY_GENERATION_LIMIT;
   const oldest = rows.reduce<Date | null>((earliest, r) => {
     if (!earliest) return r.createdAt;
     return r.createdAt < earliest ? r.createdAt : earliest;
   }, null);
 
   return {
-    allowed: used < DAILY_GENERATION_LIMIT,
+    allowed: used < limit,
     used,
-    limit: DAILY_GENERATION_LIMIT,
+    limit,
     oldestCountedAt: oldest ? oldest.toISOString() : null,
   };
 }
